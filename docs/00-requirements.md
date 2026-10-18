@@ -21,6 +21,8 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | G6 | Code in TypeScript (web app and companion CLI). | Chat | Decided |
 | G7 | Store both IATA and ICAO codes for airlines and airports; accept either on input. | Chat | Decided |
 | G8 | Every precise time is recorded as a date-time (date + time + UTC offset), never as a time alone. Avoids filing a takeoff after midnight under the previous day. | Chat | Decided |
+| G9 | UK English spelling everywhere: interface copy, docs, and code comments (colour, organise, centre, licence as a noun). Third-party names keep their own spelling. | Chat | Decided |
+| G10 | Light and dark themes. The default follows the device; the user can pick light or dark. | Chat | Decided |
 
 ## Users and storage
 
@@ -28,6 +30,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 |----|-------------|--------|--------|
 | U1 | Several users (the owner and friends). | Chat | Decided |
 | U2 | Each user's data is private. No sharing or social features. | Chat | Decided |
+| U3 | The hosted site is gated: nobody reaches the app, its pages, or its API without authenticating, and only invited users are let in. | Chat | Decided: Cloudflare Access (Q-ACCESS) |
 | S1 | Think through how data is stored. | Doc | Done in [12](12-storage-and-sync.md) |
 | S2 | Data syncs across a user's devices. | Chat | Decided |
 | S3 | Each user's data lives in storage the user owns (Google Drive first), not in a central database. | Chat | Decided |
@@ -57,7 +60,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | D7 | Special livery field. Only real special liveries and stickers go there; regular livery variants (e.g. an airline's alternate standard colour schemes) go to a separate `livery` field and are not counted as special. | Doc, Chat | Decided |
 | D8 | Imports go through a round of checking before they are saved. | Doc | Decided |
 | D9 | The user can choose Claude Code or Codex to verify imports. | Doc | Decided |
-| D10 | Minimize the risk that the agent causes harm. | Doc | Decided |
+| D10 | Minimise the risk that the agent causes harm. | Doc | Decided |
 | D11 | The agent check runs through a companion CLI on the user's own computer. | Chat | Decided |
 
 ## Photos

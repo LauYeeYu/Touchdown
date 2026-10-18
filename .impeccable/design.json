@@ -1,0 +1,1131 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T05:26:24Z",
+  "title": "Design System: Touchdown",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "theme": "light",
+        "canonical": "#faf8f1",
+        "oklch": "oklch(97.9% 0.009 94)",
+        "tonalRamp": [
+          "#0c0b07",
+          "#25241f",
+          "#41403a",
+          "#5f5e58",
+          "#7f7d77",
+          "#a09e98",
+          "#c6c4bd",
+          "#f0eee7"
+        ]
+      },
+      "paper-band": {
+        "role": "neutral",
+        "displayName": "Paper Band",
+        "theme": "light",
+        "canonical": "#f2efe6",
+        "oklch": "oklch(95.2% 0.012 92)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#26241d",
+          "#424038",
+          "#605d56",
+          "#807d75",
+          "#a19e96",
+          "#c7c4bb",
+          "#f1eee5"
+        ]
+      },
+      "paper-deep": {
+        "role": "neutral",
+        "displayName": "Deep Paper",
+        "theme": "light",
+        "canonical": "#e8e3d6",
+        "oklch": "oklch(91.6% 0.018 89)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#27241a",
+          "#433f35",
+          "#625d52",
+          "#817d71",
+          "#a39e92",
+          "#c9c4b7",
+          "#f3eee1"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field",
+        "theme": "light",
+        "canonical": "#fffdf8",
+        "oklch": "oklch(99.4% 0.007 89)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403c",
+          "#5f5d59",
+          "#7f7d79",
+          "#a09e9a",
+          "#c6c4bf",
+          "#f0eee9"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "theme": "light",
+        "canonical": "#e4dfd3",
+        "oklch": "oklch(90.4% 0.017 88)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#27241b",
+          "#433f36",
+          "#625d53",
+          "#817d72",
+          "#a39e93",
+          "#c9c4b8",
+          "#f3eee2"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "theme": "light",
+        "canonical": "#d3ccbc",
+        "oklch": "oklch(84.6% 0.023 87)",
+        "tonalRamp": [
+          "#0f0a02",
+          "#292317",
+          "#453f32",
+          "#635d4f",
+          "#837d6e",
+          "#a59e8f",
+          "#cac3b4",
+          "#f5eedd"
+        ]
+      },
+      "rule-hover": {
+        "role": "neutral",
+        "displayName": "Hover Hairline",
+        "theme": "light",
+        "canonical": "#bdb5a3",
+        "oklch": "oklch(77.5% 0.027 87)",
+        "tonalRamp": [
+          "#100a01",
+          "#2a2315",
+          "#463f30",
+          "#645d4d",
+          "#847d6c",
+          "#a69e8c",
+          "#cbc3b1",
+          "#f6eedb"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "theme": "light",
+        "canonical": "#1f1d1a",
+        "oklch": "oklch(23.2% 0.006 78)",
+        "tonalRamp": [
+          "#0d0b08",
+          "#262421",
+          "#423f3c",
+          "#605d5a",
+          "#7f7d79",
+          "#a19e9a",
+          "#c6c4bf",
+          "#f1eeea"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "theme": "light",
+        "canonical": "#534e46",
+        "oklch": "oklch(42.6% 0.014 80)",
+        "tonalRamp": [
+          "#0e0a05",
+          "#28231c",
+          "#443f37",
+          "#625d55",
+          "#827c74",
+          "#a39e95",
+          "#c9c3ba",
+          "#f4eee4"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "theme": "light",
+        "canonical": "#6e685e",
+        "oklch": "oklch(52.0% 0.017 81)",
+        "tonalRamp": [
+          "#0f0a04",
+          "#28231b",
+          "#443f36",
+          "#635d53",
+          "#837c72",
+          "#a49e93",
+          "#cac3b8",
+          "#f4eee2"
+        ]
+      },
+      "button-hover": {
+        "role": "neutral",
+        "displayName": "Button Hover",
+        "theme": "light",
+        "canonical": "#3a3631",
+        "oklch": "oklch(33.5% 0.010 74)",
+        "tonalRamp": [
+          "#0e0b07",
+          "#27231f",
+          "#433f3a",
+          "#615d57",
+          "#817c77",
+          "#a29e98",
+          "#c8c3bd",
+          "#f3eee7"
+        ]
+      },
+      "tip-muted": {
+        "role": "neutral",
+        "displayName": "Tooltip Muted",
+        "theme": "light",
+        "canonical": "#cfc9bd",
+        "oklch": "oklch(83.7% 0.018 85)",
+        "tonalRamp": [
+          "#0f0b04",
+          "#28231a",
+          "#443f35",
+          "#625d52",
+          "#827d72",
+          "#a49e92",
+          "#c9c3b7",
+          "#f4eee1"
+        ]
+      },
+      "hover-wash": {
+        "role": "neutral",
+        "displayName": "Hover Wash",
+        "theme": "light",
+        "canonical": "rgba(31, 29, 26, 0.05)"
+      },
+      "selected-wash": {
+        "role": "neutral",
+        "displayName": "Selected Wash",
+        "theme": "light",
+        "canonical": "rgba(31, 29, 26, 0.07)"
+      },
+      "flown": {
+        "role": "primary",
+        "displayName": "Flown Blue",
+        "theme": "light",
+        "canonical": "#2b6cb8",
+        "oklch": "oklch(52.9% 0.136 255)",
+        "tonalRamp": [
+          "#000927",
+          "#00234e",
+          "#053f7b",
+          "#1a5da8",
+          "#3e7fcc",
+          "#60a1f1",
+          "#9cc7fe",
+          "#e4f0ff"
+        ]
+      },
+      "flown-ink": {
+        "role": "primary",
+        "displayName": "Flown Text Blue",
+        "theme": "light",
+        "canonical": "#245c9e",
+        "oklch": "oklch(47.3% 0.122 255)",
+        "tonalRamp": [
+          "#000926",
+          "#00234d",
+          "#003e7e",
+          "#265ea0",
+          "#477fc4",
+          "#68a1e9",
+          "#9ec7fc",
+          "#e4f0fe"
+        ]
+      },
+      "flown-wash": {
+        "role": "primary",
+        "displayName": "Flown Wash",
+        "theme": "light",
+        "canonical": "rgba(43, 108, 184, 0.1)"
+      },
+      "spotted": {
+        "role": "secondary",
+        "displayName": "Spotted Orange",
+        "theme": "light",
+        "canonical": "#d0742a",
+        "oklch": "oklch(65.0% 0.143 55)",
+        "tonalRamp": [
+          "#1c0300",
+          "#3c1900",
+          "#642f00",
+          "#904700",
+          "#bc620c",
+          "#e1833c",
+          "#fcb17d",
+          "#ffeadc"
+        ]
+      },
+      "spotted-ink": {
+        "role": "secondary",
+        "displayName": "Spotted Text Orange",
+        "theme": "light",
+        "canonical": "#9c5214",
+        "oklch": "oklch(51.8% 0.120 54)",
+        "tonalRamp": [
+          "#1c0300",
+          "#3c1900",
+          "#642f00",
+          "#904700",
+          "#b3672e",
+          "#d88951",
+          "#fcb07e",
+          "#ffeadd"
+        ]
+      },
+      "spotted-wash": {
+        "role": "secondary",
+        "displayName": "Spotted Wash",
+        "theme": "light",
+        "canonical": "rgba(208, 116, 42, 0.12)"
+      },
+      "good": {
+        "role": "tertiary",
+        "displayName": "Check Green",
+        "theme": "light",
+        "canonical": "#2e7d4f",
+        "oklch": "oklch(52.9% 0.106 155)",
+        "tonalRamp": [
+          "#001003",
+          "#002d15",
+          "#044d29",
+          "#1c6f42",
+          "#429060",
+          "#65b281",
+          "#8bd9a5",
+          "#c7fed8"
+        ]
+      },
+      "land": {
+        "role": "neutral",
+        "displayName": "Land",
+        "theme": "light",
+        "canonical": "#e6e0d1",
+        "oklch": "oklch(90.7% 0.021 89)",
+        "tonalRamp": [
+          "#0f0b03",
+          "#282418",
+          "#443f33",
+          "#625d50",
+          "#827d6f",
+          "#a49e90",
+          "#cac4b5",
+          "#f4eedf"
+        ]
+      },
+      "land-edge": {
+        "role": "neutral",
+        "displayName": "Coastline",
+        "theme": "light",
+        "canonical": "#f6f3eb",
+        "oklch": "oklch(96.4% 0.011 90)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#26241e",
+          "#424039",
+          "#605d57",
+          "#807d76",
+          "#a19e97",
+          "#c7c4bc",
+          "#f1eee6"
+        ]
+      },
+      "sphere": {
+        "role": "neutral",
+        "displayName": "Globe Disc",
+        "theme": "light",
+        "canonical": "#f4f1e8",
+        "oklch": "oklch(95.8% 0.012 92)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#26241d",
+          "#424038",
+          "#605d56",
+          "#807d75",
+          "#a19e96",
+          "#c7c4bb",
+          "#f1eee5"
+        ]
+      },
+      "chart-grid": {
+        "role": "neutral",
+        "displayName": "Chart Grid",
+        "theme": "light",
+        "canonical": "#e9e4d8",
+        "oklch": "oklch(91.9% 0.017 88)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#27241b",
+          "#433f36",
+          "#625d53",
+          "#817d72",
+          "#a39e93",
+          "#c9c4b8",
+          "#f3eee2"
+        ]
+      },
+      "shimmer": {
+        "role": "neutral",
+        "displayName": "Shimmer",
+        "theme": "light",
+        "canonical": "#efeadf",
+        "oklch": "oklch(93.8% 0.016 86)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#27241b",
+          "#433f36",
+          "#615d54",
+          "#817d73",
+          "#a39e94",
+          "#c8c4b9",
+          "#f3eee3"
+        ]
+      },
+      "paper-dark": {
+        "role": "neutral",
+        "displayName": "Warm Paper (dark)",
+        "theme": "dark",
+        "canonical": "#171613",
+        "oklch": "oklch(20.0% 0.006 92)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252421",
+          "#41403c",
+          "#5f5d5a",
+          "#7e7d79",
+          "#a09e9a",
+          "#c5c4c0",
+          "#f0eeea"
+        ]
+      },
+      "paper-band-dark": {
+        "role": "neutral",
+        "displayName": "Paper Band (dark)",
+        "theme": "dark",
+        "canonical": "#201f1b",
+        "oklch": "oklch(23.9% 0.008 95)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e59",
+          "#7e7d78",
+          "#a09e99",
+          "#c5c4bf",
+          "#f0eee9"
+        ]
+      },
+      "paper-deep-dark": {
+        "role": "neutral",
+        "displayName": "Deep Paper (dark)",
+        "theme": "dark",
+        "canonical": "#2b2924",
+        "oklch": "oklch(28.1% 0.009 89)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#26241f",
+          "#42403a",
+          "#605d58",
+          "#7f7d77",
+          "#a19e98",
+          "#c6c4bd",
+          "#f1eee8"
+        ]
+      },
+      "field-dark": {
+        "role": "neutral",
+        "displayName": "Field (dark)",
+        "theme": "dark",
+        "canonical": "#1d1c18",
+        "oklch": "oklch(22.6% 0.008 95)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e59",
+          "#7e7d78",
+          "#a09e99",
+          "#c5c4bf",
+          "#f0eee9"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (dark)",
+        "theme": "dark",
+        "canonical": "#2f2d28",
+        "oklch": "oklch(29.7% 0.009 89)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#26241f",
+          "#42403a",
+          "#605d58",
+          "#7f7d77",
+          "#a19e98",
+          "#c6c4bd",
+          "#f1eee8"
+        ]
+      },
+      "rule-strong-dark": {
+        "role": "neutral",
+        "displayName": "Strong Hairline (dark)",
+        "theme": "dark",
+        "canonical": "#45423a",
+        "oklch": "oklch(37.9% 0.014 90)",
+        "tonalRamp": [
+          "#0d0b05",
+          "#27241c",
+          "#434038",
+          "#615d55",
+          "#807d74",
+          "#a29e95",
+          "#c7c4ba",
+          "#f2eee4"
+        ]
+      },
+      "rule-hover-dark": {
+        "role": "neutral",
+        "displayName": "Hover Hairline (dark)",
+        "theme": "dark",
+        "canonical": "#5b574d",
+        "oklch": "oklch(45.7% 0.017 89)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#27241b",
+          "#433f36",
+          "#615d53",
+          "#817d72",
+          "#a29e93",
+          "#c8c4b8",
+          "#f3eee2"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)",
+        "theme": "dark",
+        "canonical": "#f1eee6",
+        "oklch": "oklch(94.9% 0.011 90)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#26241e",
+          "#424039",
+          "#605d57",
+          "#807d76",
+          "#a19e97",
+          "#c7c4bc",
+          "#f1eee6"
+        ]
+      },
+      "ink-2-dark": {
+        "role": "neutral",
+        "displayName": "Ink 2 (dark)",
+        "theme": "dark",
+        "canonical": "#c8c2b5",
+        "oklch": "oklch(81.5% 0.019 86)",
+        "tonalRamp": [
+          "#0f0b03",
+          "#282319",
+          "#443f34",
+          "#625d52",
+          "#827d71",
+          "#a49e91",
+          "#cac4b6",
+          "#f4eee0"
+        ]
+      },
+      "ink-3-dark": {
+        "role": "neutral",
+        "displayName": "Ink 3 (dark)",
+        "theme": "dark",
+        "canonical": "#a19b8e",
+        "oklch": "oklch(69.1% 0.020 86)",
+        "tonalRamp": [
+          "#0f0b03",
+          "#282319",
+          "#443f34",
+          "#635d51",
+          "#827d70",
+          "#a49e91",
+          "#cac3b6",
+          "#f4eee0"
+        ]
+      },
+      "button-hover-dark": {
+        "role": "neutral",
+        "displayName": "Button Hover (dark)",
+        "theme": "dark",
+        "canonical": "#d9d4c9",
+        "oklch": "oklch(87.1% 0.016 86)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#27241b",
+          "#433f36",
+          "#625d54",
+          "#817d73",
+          "#a39e93",
+          "#c9c4b9",
+          "#f3eee3"
+        ]
+      },
+      "tip-muted-dark": {
+        "role": "neutral",
+        "displayName": "Tooltip Muted (dark)",
+        "theme": "dark",
+        "canonical": "#57524a",
+        "oklch": "oklch(44.1% 0.014 80)",
+        "tonalRamp": [
+          "#0e0a05",
+          "#28231c",
+          "#443f37",
+          "#625d55",
+          "#827c74",
+          "#a39e95",
+          "#c9c3ba",
+          "#f4eee4"
+        ]
+      },
+      "hover-wash-dark": {
+        "role": "neutral",
+        "displayName": "Hover Wash (dark)",
+        "theme": "dark",
+        "canonical": "rgba(241, 238, 230, 0.06)"
+      },
+      "selected-wash-dark": {
+        "role": "neutral",
+        "displayName": "Selected Wash (dark)",
+        "theme": "dark",
+        "canonical": "rgba(241, 238, 230, 0.09)"
+      },
+      "flown-dark": {
+        "role": "primary",
+        "displayName": "Flown Blue (dark)",
+        "theme": "dark",
+        "canonical": "#4f92e0",
+        "oklch": "oklch(65.1% 0.136 254)",
+        "tonalRamp": [
+          "#000a25",
+          "#00244a",
+          "#023f7a",
+          "#175ea7",
+          "#3c7fcb",
+          "#5ea1f1",
+          "#9cc8fd",
+          "#e4f0ff"
+        ]
+      },
+      "flown-ink-dark": {
+        "role": "primary",
+        "displayName": "Flown Text Blue (dark)",
+        "theme": "dark",
+        "canonical": "#8ab8ef",
+        "oklch": "oklch(77.1% 0.093 253)",
+        "tonalRamp": [
+          "#000926",
+          "#00234c",
+          "#16406f",
+          "#355f91",
+          "#5480b4",
+          "#75a2d7",
+          "#9dc8fb",
+          "#e4f0fe"
+        ]
+      },
+      "flown-wash-dark": {
+        "role": "primary",
+        "displayName": "Flown Wash (dark)",
+        "theme": "dark",
+        "canonical": "rgba(79, 146, 224, 0.16)"
+      },
+      "spotted-dark": {
+        "role": "secondary",
+        "displayName": "Spotted Orange (dark)",
+        "theme": "dark",
+        "canonical": "#d4773a",
+        "oklch": "oklch(66.2% 0.138 51)",
+        "tonalRamp": [
+          "#1d0200",
+          "#3e1700",
+          "#672d00",
+          "#90460f",
+          "#bc6120",
+          "#e18347",
+          "#fcb083",
+          "#ffeade"
+        ]
+      },
+      "spotted-ink-dark": {
+        "role": "secondary",
+        "displayName": "Spotted Text Orange (dark)",
+        "theme": "dark",
+        "canonical": "#eda46c",
+        "oklch": "oklch(77.8% 0.113 58)",
+        "tonalRamp": [
+          "#1b0400",
+          "#3a1b00",
+          "#613201",
+          "#8b4a06",
+          "#af6a32",
+          "#d38c54",
+          "#fbb179",
+          "#ffeadc"
+        ]
+      },
+      "spotted-wash-dark": {
+        "role": "secondary",
+        "displayName": "Spotted Wash (dark)",
+        "theme": "dark",
+        "canonical": "rgba(212, 119, 58, 0.18)"
+      },
+      "good-dark": {
+        "role": "tertiary",
+        "displayName": "Check Green (dark)",
+        "theme": "dark",
+        "canonical": "#63b886",
+        "oklch": "oklch(71.5% 0.111 156)",
+        "tonalRamp": [
+          "#001004",
+          "#002d17",
+          "#044d2c",
+          "#0d7042",
+          "#3a9161",
+          "#5eb381",
+          "#85daa6",
+          "#c7feda"
+        ]
+      },
+      "land-dark": {
+        "role": "neutral",
+        "displayName": "Land (dark)",
+        "theme": "dark",
+        "canonical": "#2a2823",
+        "oklch": "oklch(27.7% 0.009 89)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#26241f",
+          "#42403a",
+          "#605d58",
+          "#7f7d77",
+          "#a19e98",
+          "#c6c4bd",
+          "#f1eee7"
+        ]
+      },
+      "sphere-dark": {
+        "role": "neutral",
+        "displayName": "Globe Disc (dark)",
+        "theme": "dark",
+        "canonical": "#1d1c19",
+        "oklch": "oklch(22.6% 0.006 92)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252421",
+          "#41403c",
+          "#5f5d5a",
+          "#7e7d79",
+          "#a09e9a",
+          "#c5c4c0",
+          "#f0eeea"
+        ]
+      },
+      "chart-grid-dark": {
+        "role": "neutral",
+        "displayName": "Chart Grid (dark)",
+        "theme": "dark",
+        "canonical": "#2c2a25",
+        "oklch": "oklch(28.5% 0.009 89)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#26241f",
+          "#42403a",
+          "#605d58",
+          "#7f7d77",
+          "#a19e98",
+          "#c6c4bd",
+          "#f1eee8"
+        ]
+      },
+      "shimmer-dark": {
+        "role": "neutral",
+        "displayName": "Shimmer (dark)",
+        "theme": "dark",
+        "canonical": "#34312b",
+        "oklch": "oklch(31.4% 0.011 85)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27241e",
+          "#423f39",
+          "#615d57",
+          "#807d76",
+          "#a29e97",
+          "#c7c4bc",
+          "#f2eee6"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Airport codes on a flight's route hero; 3.25rem on phones."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "The lead sentence on Home and Flights, max 31em, balanced; 1.5rem on phones."
+      },
+      "headline-figure": {
+        "displayName": "Headline figure",
+        "purpose": "Figures inside a lead sentence: 650 weight, tabular."
+      },
+      "headline-flight": {
+        "displayName": "Headline, flight",
+        "purpose": "The lead sentence on a flight, max 34em; 1.25rem on phones."
+      },
+      "route": {
+        "displayName": "Route",
+        "purpose": "Route codes in the most-recent block; 1.875rem on phones."
+      },
+      "clock": {
+        "displayName": "Clock",
+        "purpose": "Times in the times strip; 1.5rem on phones."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section titles; 1.25rem on phones."
+      },
+      "title-small": {
+        "displayName": "Title, small",
+        "purpose": "Month headings in the flight list."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text and definition values."
+      },
+      "body-small": {
+        "displayName": "Body, small",
+        "purpose": "Most interface text: nav, buttons, meta lines, row cells, menu items."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Column heads, time labels, definition terms, legends, tooltips, footer."
+      },
+      "chart-label": {
+        "displayName": "Chart label",
+        "purpose": "Axis ticks and bar values."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The product name in the header only, in capitals."
+      }
+    },
+    "shadows": [
+      {
+        "name": "pop",
+        "value": "0 6px 18px rgba(31, 29, 26, 0.14), 0 1px 3px rgba(31, 29, 26, 0.08)",
+        "valueDark": "0 6px 18px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3)",
+        "purpose": "Menus, tooltips and toasts: things that float above the page."
+      },
+      {
+        "name": "lift",
+        "value": "0 8px 20px rgba(31, 29, 26, 0.08)",
+        "valueDark": "0 8px 20px rgba(0, 0, 0, 0.35)",
+        "purpose": "A linked card on hover, with a 2px rise."
+      },
+      {
+        "name": "flash",
+        "value": "0 0 0 6px var(--flown-wash)",
+        "purpose": "Ring that fades over 1.2s on the aircraft card when a lead-sentence phrase points at it."
+      },
+      {
+        "name": "focus-field",
+        "value": "0 0 0 3px var(--flown-wash)",
+        "purpose": "Focus ring on inputs and selects, with a flown-blue border."
+      }
+    ],
+    "focus": {
+      "outline": "2px solid var(--flown)",
+      "outlineOffset": "2px",
+      "radius": "4px"
+    },
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The only easing; used by every transition."
+      },
+      {
+        "name": "duration-tooltip",
+        "value": "120ms",
+        "purpose": "Tooltip fade and 4px rise."
+      },
+      {
+        "name": "duration-hover",
+        "value": "160ms",
+        "purpose": "Hover colour and background changes on buttons, links, inputs (rows 140ms)."
+      },
+      {
+        "name": "duration-control",
+        "value": "180ms",
+        "purpose": "Segment selection and check scale, phrase wash, chevron, toast."
+      },
+      {
+        "name": "duration-layer",
+        "value": "200ms",
+        "purpose": "Map layer isolation and card lift."
+      },
+      {
+        "name": "duration-photo",
+        "value": "260ms",
+        "purpose": "Photo fade-in once loaded."
+      },
+      {
+        "name": "duration-flash",
+        "value": "1200ms",
+        "purpose": "Aircraft card flash."
+      },
+      {
+        "name": "duration-shimmer",
+        "value": "1400ms linear infinite",
+        "purpose": "Loading shimmer on photo placeholders."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "1ms",
+        "purpose": "All transitions and animations under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "list-compact",
+        "value": "960px",
+        "purpose": "max-width: flight list drops aircraft and distance columns."
+      },
+      {
+        "name": "phone",
+        "value": "720px",
+        "purpose": "max-width: 16px gutter, bottom tab bar, single-column grids, gallery strip, two-line rows, 2x2 times strip."
+      },
+      {
+        "name": "map-disc",
+        "value": "600px",
+        "purpose": "Map container width below which Flights and flight maps become a disc (orthographic or azimuthal equal-area)."
+      }
+    ],
+    "themes": {
+      "default": "follows prefers-color-scheme",
+      "override": "data-theme=\"light\" | \"dark\" on the root element, stored by the theme button",
+      "themeColor": {
+        "light": "#f2efe6",
+        "dark": "#201f1b"
+      }
+    },
+    "dateTime": {
+      "rule": "Every precise time is shown with its date and UTC offset, 24-hour airport-local, with a +N day chip when the date changes.",
+      "example": "07:45 · Tue 4 Mar · UTC+8"
+    },
+    "icons": {
+      "set": "Lucide (ISC), inline SVG",
+      "strokeWidth": 1.75,
+      "checkStrokeWidth": 2.25,
+      "size": "1em, 18px in icon buttons, 22px in the phone tab bar"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one filled action in a view, such as Add.",
+      "html": "<button class=\"ds-btn ds-btn-primary\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add</button>",
+      "css": ".ds-btn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid transparent; font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn .ds-icon { width: 1em; height: 1em; } .ds-btn-primary { background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); } .ds-btn-primary:hover { background: var(--btn-hover, #3a3631); } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary action: transparent with a strong hairline outline.",
+      "html": "<button class=\"ds-btn-quiet\" type=\"button\">Clear filters</button>",
+      "css": ".ds-btn-quiet { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--rule-strong, #d3ccbc); background: transparent; color: var(--ink, #1f1d1a); font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-quiet:hover { background: var(--hover, rgba(31,29,26,0.05)); } .ds-btn-quiet:active { transform: translateY(1px); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Segmented Period Control",
+      "kind": "chip",
+      "refersTo": "segment",
+      "description": "Outlined pill of equal-width segments; the selected one fills with deep paper and shows a check; width never changes.",
+      "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Period\"><button class=\"ds-seg__b\" aria-pressed=\"false\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>Earlier</button><button class=\"ds-seg__b\" aria-pressed=\"false\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>2024</button><button class=\"ds-seg__b\" aria-pressed=\"true\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>2025</button><button class=\"ds-seg__b\" aria-pressed=\"false\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>All time</button></div>",
+      "css": ".ds-seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 999px; overflow: hidden; } .ds-seg__b { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 36px; padding: 0 30px; border: 0; border-left: 1px solid var(--rule-strong, #d3ccbc); background: transparent; font-size: 0.875rem; font-weight: 500; color: var(--ink-2, #534e46); white-space: nowrap; cursor: pointer; transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), color 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-seg__b:first-child { border-left: 0; } .ds-seg__b:hover { background: var(--hover, rgba(31,29,26,0.05)); color: var(--ink, #1f1d1a); } .ds-seg__b[aria-pressed=\"true\"] { background: var(--paper-3, #e8e3d6); color: var(--ink, #1f1d1a); } .ds-seg__check { position: absolute; left: 11px; top: 50%; width: 15px; height: 15px; stroke-width: 2.25; opacity: 0; transform: translateY(-50%) scale(0.6); transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-seg__b[aria-pressed=\"true\"] .ds-seg__check { opacity: 1; transform: translateY(-50%) scale(1); } .ds-seg__b:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: -3px; border-radius: 999px; }"
+    },
+    {
+      "name": "Lead Sentence",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "Signature: the view's point as one sentence, figures at 650, data phrases underlined 2px in their ink.",
+      "html": "<p class=\"ds-lead\">This year you took <span class=\"ds-fig\">23 flights</span> over <span class=\"ds-fig\">61,480 km</span>, on <span class=\"ds-phrase ds-phrase--flown\" tabindex=\"0\">14 routes</span>, and photographed <span class=\"ds-phrase ds-phrase--spotted\" tabindex=\"0\">212 aircraft</span>, <span class=\"ds-phrase ds-phrase--both\" tabindex=\"0\">9 of them</span> ones you also flew on.</p>",
+      "css": ".ds-lead { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); font-weight: 400; font-size: 2rem; line-height: 1.32; letter-spacing: -0.02em; max-width: 31em; margin: 0; text-wrap: balance; color: var(--ink, #1f1d1a); } .ds-fig { font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; } .ds-phrase { cursor: pointer; border-radius: 2px; background-repeat: no-repeat; background-size: 100% 2px; background-position: 0 calc(100% - 0.04em); transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1); box-decoration-break: clone; -webkit-box-decoration-break: clone; } .ds-phrase--flown { background-image: linear-gradient(var(--flown, #2b6cb8), var(--flown, #2b6cb8)); } .ds-phrase--spotted { background-image: linear-gradient(var(--spotted, #d0742a), var(--spotted, #d0742a)); } .ds-phrase--both { background-image: linear-gradient(90deg, var(--flown, #2b6cb8) 0 50%, var(--spotted, #d0742a) 50% 100%); } .ds-phrase--flown:hover { background-color: var(--flown-wash, rgba(43,108,184,0.1)); } .ds-phrase--spotted:hover { background-color: var(--spotted-wash, rgba(208,116,42,0.12)); } .ds-phrase--both:hover { background-color: var(--hover, rgba(31,29,26,0.05)); } .ds-phrase:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Aircraft Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Gallery-style photo card: photo flush on top, tinted caption block, events with data-ink dots, photographer credit pinned to the bottom.",
+      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-card__photo\">B-LRA</div><div class=\"ds-card__body\"><span class=\"ds-card__reg\">B-LRA</span><span class=\"ds-card__type\">Airbus A350-941</span><ul class=\"ds-card__events\"><li><span class=\"ds-dot ds-dot--flown\"></span>Flown 2 times</li><li><span class=\"ds-dot ds-dot--spotted\"></span>Spotted 12 Apr</li></ul><p class=\"ds-credit\">Photo: A. Photographer · <a href=\"#\">planespotters.net</a></p></div></a>",
+      "css": ".ds-card { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; flex-direction: column; width: 260px; border-radius: 12px; background: var(--paper-2, #f2efe6); overflow: hidden; color: var(--ink, #1f1d1a); text-decoration: none; transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift, 0 8px 20px rgba(31,29,26,0.08)); } .ds-card:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; } .ds-card__photo { aspect-ratio: 3 / 2; display: grid; place-items: center; background: var(--paper-3, #e8e3d6); color: var(--ink-3, #6e685e); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.04em; } .ds-card__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; } .ds-card__reg { font-size: 1.0625rem; font-weight: 600; letter-spacing: 0.01em; } .ds-card__type { font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events li { display: flex; align-items: center; gap: 8px; } .ds-dot { width: 8px; height: 8px; border-radius: 50%; } .ds-dot--flown { background: var(--flown, #2b6cb8); } .ds-dot--spotted { background: var(--spotted, #d0742a); } .ds-credit { margin: 0; padding-top: 10px; font-size: 0.75rem; color: var(--ink-3, #6e685e); } .ds-credit a { color: inherit; }"
+    },
+    {
+      "name": "Flight List Row",
+      "kind": "custom",
+      "refersTo": "flight-row",
+      "description": "Grid row aligned on the first baseline; route codes with a blue arc arrow, tabular numbers right-aligned, outlined Review chip when a check needs a look.",
+      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-row__date\"><b>Tue 4 Mar</b>2025</span><span class=\"ds-row__route-wrap\"><span class=\"ds-row__route\">HKG<svg class=\"ds-arrow\" viewBox=\"0 0 56 20\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 16 C 16 2, 40 2, 54 16\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"54\" cy=\"16\" r=\"2.5\" fill=\"currentColor\"/></svg>LHR<span class=\"ds-chip\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg>Review</span></span><span class=\"ds-row__cities\">Hong Kong to London</span></span><span class=\"ds-row__cell\"><b>CX 255</b>Cathay Pacific</span><span class=\"ds-row__num\">13 h 05</span></a>",
+      "css": ".ds-row { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: 92px minmax(190px, 1.4fr) minmax(120px, 1fr) 80px; gap: 16px; align-items: first baseline; padding: 14px 12px; border-bottom: 1px solid var(--rule, #e4dfd3); border-radius: 8px; color: var(--ink, #1f1d1a); text-decoration: none; transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-row:hover { background: var(--paper-2, #f2efe6); } .ds-row:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; } .ds-row__date, .ds-row__cell { font-size: 0.9375rem; color: var(--ink-2, #534e46); line-height: 1.35; } .ds-row__date b { display: block; color: var(--ink, #1f1d1a); font-weight: 600; } .ds-row__cell b { display: block; color: var(--ink, #1f1d1a); font-weight: 500; } .ds-row__route { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1.0625rem; font-weight: 600; } .ds-arrow { width: 22px; height: 10px; color: var(--flown, #2b6cb8); } .ds-row__cities { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-row__num { font-size: 0.9375rem; text-align: right; font-variant-numeric: tabular-nums; } .ds-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; } .ds-chip .ds-icon { width: 13px; height: 13px; }"
+    },
+    {
+      "name": "Times Strip Cell",
+      "kind": "custom",
+      "refersTo": "clock",
+      "description": "A dated local time: label, clock in tabular figures, then date and UTC offset, with a +1 day chip when the date changes.",
+      "html": "<div class=\"ds-times\"><div class=\"ds-time\"><p class=\"ds-time__label\">Takeoff</p><p class=\"ds-time__clock\">23:55</p><p class=\"ds-time__date\">Tue 4 Mar · UTC+8</p></div><div class=\"ds-time\"><p class=\"ds-time__label\">Landing</p><p class=\"ds-time__clock\">05:00</p><p class=\"ds-time__date\">Wed 5 Mar · UTC+0<span class=\"ds-plus\">+1 day</span></p></div></div>",
+      "css": ".ds-times { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--rule, #e4dfd3); border-bottom: 1px solid var(--rule, #e4dfd3); color: var(--ink, #1f1d1a); } .ds-time { padding: 18px 20px 18px 0; } .ds-time + .ds-time { padding-left: 20px; border-left: 1px solid var(--rule, #e4dfd3); } .ds-time p { margin: 0; } .ds-time__label { font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-time__clock { margin-top: 4px !important; font-size: 1.75rem; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-time__date { margin-top: 4px !important; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-plus { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; color: var(--ink, #1f1d1a); white-space: nowrap; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Field with a search icon; hairline outline, flown-blue focus border with a wash ring.",
+      "html": "<label class=\"ds-search\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-input\" type=\"search\" placeholder=\"Search route, flight, aircraft\"></label>",
+      "css": ".ds-search { position: relative; display: block; max-width: 380px; } .ds-search .ds-icon { position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--ink-3, #6e685e); } .ds-input { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); width: 100%; height: 38px; padding: 0 12px 0 36px; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 8px; background: var(--field, #fffdf8); color: var(--ink, #1f1d1a); font-size: 0.9375rem; transition: border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: var(--ink-3, #6e685e); } .ds-input:hover { border-color: var(--rule-hover, #bdb5a3); } .ds-input:focus { outline: none; border-color: var(--flown, #2b6cb8); box-shadow: 0 0 0 3px var(--flown-wash, rgba(43,108,184,0.1)); }"
+    },
+    {
+      "name": "Header Band",
+      "kind": "nav",
+      "refersTo": "header-band",
+      "description": "Sticky paper band: tracked wordmark, nav links with a washed current page, tools on the right.",
+      "html": "<header class=\"ds-head\"><a class=\"ds-word\" href=\"#\">TOUCHDOWN</a><nav class=\"ds-nav\"><a class=\"ds-nav__a\" href=\"#\" aria-current=\"page\">Home</a><a class=\"ds-nav__a\" href=\"#\">Flights</a><a class=\"ds-nav__a\" aria-disabled=\"true\">Stats</a></nav><button class=\"ds-addbtn\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add</button></header>",
+      "css": ".ds-head { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: center; gap: 32px; height: 64px; padding: 0 32px; background: var(--paper-2, #f2efe6); border-bottom: 1px solid var(--rule, #e4dfd3); color: var(--ink, #1f1d1a); } .ds-word { font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.16em; color: inherit; text-decoration: none; } .ds-nav { display: flex; gap: 4px; margin-right: auto; } .ds-nav__a { padding: 6px 12px; border-radius: 8px; font-size: 0.9375rem; color: var(--ink-2, #534e46); text-decoration: none; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav__a:hover { background: var(--hover, rgba(31,29,26,0.05)); color: var(--ink, #1f1d1a); } .ds-nav__a[aria-current=\"page\"] { color: var(--ink, #1f1d1a); font-weight: 600; background: var(--selected, rgba(31,29,26,0.07)); } .ds-nav__a[aria-disabled=\"true\"] { color: var(--ink-3, #6e685e); cursor: default; } .ds-nav__a[aria-disabled=\"true\"]:hover { background: transparent; } .ds-nav__a:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; } .ds-addbtn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.9375rem; font-weight: 600; cursor: pointer; } .ds-addbtn:hover { background: var(--btn-hover, #3a3631); } .ds-addbtn .ds-icon { width: 1em; height: 1em; }"
+    },
+    {
+      "name": "Status Line",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Icon plus words; only the passed-checks icon carries the green.",
+      "html": "<div><p class=\"ds-status ds-status--good\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/></svg><span>All checks passed: aircraft type matches the registration, times are in order.</span></p><p class=\"ds-status ds-status--check\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg><span><b>Needs a look.</b> The registration was reused on another airframe in 2019.</span></p></div>",
+      "css": ".ds-status { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; font-size: 0.9375rem; color: var(--ink-2, #534e46); } .ds-status .ds-icon { width: 1em; height: 1em; flex: none; margin-top: 3px; } .ds-status--good .ds-icon { color: var(--good, #2e7d4f); } .ds-status--check { color: var(--ink, #1f1d1a); }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "Inverted ink notice centred near the bottom edge, announced politely.",
+      "html": "<div class=\"ds-toast\" role=\"status\">Theme: follows your device</div>",
+      "css": ".ds-toast { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-block; padding: 10px 16px; border-radius: 10px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.875rem; box-shadow: var(--shadow-pop, 0 6px 18px rgba(31,29,26,0.14), 0 1px 3px rgba(31,29,26,0.08)); animation: ds-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1); } @keyframes ds-toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }"
+    },
+    {
+      "name": "Fact List",
+      "kind": "list",
+      "refersTo": "fact-list",
+      "description": "Stacked stats under the lead sentence: label above, large value with smaller units, muted detail line below. Auto-fill grid so columns stay put; two columns on phones. Statuses go on their own line, not in the grid.",
+      "html": "<dl class=\"ds-facts\"><div><dt>Longest flight</dt><dd><span class=\"ds-facts-value\">SFO → SIN</span><span class=\"ds-facts-detail\">13,582 km · SQ 31</span></dd></div><div><dt>Time in the air</dt><dd><span class=\"ds-facts-value\">141<span class=\"ds-facts-unit\">h</span> 15<span class=\"ds-facts-unit\">m</span></span><span class=\"ds-facts-detail\">across 20 flights</span></dd></div><div><dt>Most flown airline</dt><dd><span class=\"ds-facts-value\">United Airlines</span><span class=\"ds-facts-detail\">7 flights</span></dd></div><div><dt>Most spotted type</dt><dd><span class=\"ds-facts-value\"><span class=\"ds-facts-keep\">Boeing 737-800</span></span><span class=\"ds-facts-detail\">24 aircraft</span></dd></div></dl>",
+      "css": ".ds-facts { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px 32px; margin: 0; } .ds-facts > div { min-width: 0; } .ds-facts dt { font-size: 0.8125rem; color: #6e685e; } .ds-facts dd { margin: 4px 0 0; } .ds-facts-value { display: block; font-size: 1.25rem; line-height: 1.25; font-weight: 650; letter-spacing: -0.015em; color: #1f1d1a; font-variant-numeric: tabular-nums; } .ds-facts-unit { margin-left: 1px; font-size: 0.72em; font-weight: 500; letter-spacing: 0; color: #534e46; } .ds-facts-keep { white-space: nowrap; } .ds-facts-detail { display: block; margin-top: 2px; font-size: 0.875rem; color: #6e685e; } @media (max-width: 720px) { .ds-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; } .ds-facts-value { font-size: 1.125rem; } .ds-facts > div:last-child:nth-child(odd) { grid-column: 1 / -1; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Written Logbook",
+    "overview": "Each view states its main point as one plain sentence with the figures inside it, then shows one subject at full size underneath: the period's map on Home, the period's routes on Flights, the route on a flight. Supporting context (most recent, aircraft cards, month by month, the flight list) sits below in quiet sections divided by hairline rules. The world comes from the owner's own lab site and photo gallery: warm paper ground, one sans family, a narrow reading measure, hairlines instead of boxes, and rounded photo cards with a tinted caption block.\n\nColour is reserved for data. Flown is blue, spotted is orange, and everything else is paper and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts) and on a card under the pointer. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.\n\nThe system refuses the KPI-tile grid and the flight-tracker wall of panels. A statistic belongs in a sentence or a chart with its own counted-what subtitle, not in a box of its own.",
+    "keyCharacteristics": [
+      "Warm paper ground in light, warm near-black in dark; both follow the device by default.",
+      "One system sans for every role; display weight 650 with tight negative tracking.",
+      "Two data inks, flown blue and spotted orange, and no other decorative colour.",
+      "Lead sentences with phrases underlined in their data ink that point at the map or the aircraft.",
+      "Hairline rules and tonal paper bands instead of borders and boxes.",
+      "Credited photo cards with 12px corners and a tinted caption block.",
+      "Every precise time shown with its date and UTC offset."
+    ],
+    "rules": [
+      {
+        "name": "The Two Inks Rule",
+        "body": "Flown blue and spotted orange are the only data colours. A chart, map layer, dot or underline about flights is blue; about spotting is orange; about both is split half blue, half orange. No third data colour is introduced; new series are separated by position, dash or label.",
+        "section": "colors"
+      },
+      {
+        "name": "The Validated Pair Rule",
+        "body": "Each data ink has a light and a dark value that were checked against their own ground (`flown` and `spotted` on `paper`; `flown-dark` and `spotted-dark` on `paper-dark`). Use the pair together; do not lift one theme's ink into the other.",
+        "section": "colors"
+      },
+      {
+        "name": "The Word With The Icon Rule",
+        "body": "Status is never colour alone. A status line pairs an icon with a written word or sentence (\"Needs a look.\", \"All checks passed: ...\"); only the passed icon carries `good`.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "Sans-serif only, from the system stack. No serif, no webfont, no monospace. Contrast comes from weight (400, 500, 600, 650, 700) and size.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Any number that sits in a column, a strip, a chart or a lead-sentence figure uses tabular figures, so values align and do not shift as they change.",
+        "section": "typography"
+      },
+      {
+        "name": "The Dated Time Rule",
+        "body": "Every precise time is shown with its date and its UTC offset (for example \"Tue 4 Mar · UTC+8\"), in 24-hour local time of the airport, with a \"+1 day\" chip when the landing date differs. A clock time never appears alone.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Subject Rule",
+        "body": "Each view has one full-width subject directly under its sentence. Supporting material goes below it in sections, never beside it in a panel wall.",
+        "section": "layout"
+      },
+      {
+        "name": "The Constant Width Rule",
+        "body": "Controls whose label changes reserve the width of their longest possible label, so selecting a value never moves the layout.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Page Rule",
+        "body": "Nothing resting on the page casts a shadow. A shadow means \"this floats\" or \"this responds to you\".",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep `paper` (#FAF8F1) as the light ground and `paper-dark` as the dark ground, and support both themes, following the device unless the user picks one.",
+      "Do colour flight data blue and spotting data orange, using each theme's validated pair, and split the two for data that is both.",
+      "Do open each view with one plain sentence carrying its figures, and underline data phrases 2px in their ink so they point at the map layer or the aircraft.",
+      "Do show every precise time with its date and UTC offset, in 24-hour airport-local time.",
+      "Do use tabular figures for every number that aligns or updates.",
+      "Do give every status an icon and a word.",
+      "Do credit every aircraft photo with the photographer and a link to the source.",
+      "Do reserve the longest label's width in controls whose label changes.",
+      "Do align multi-line list rows on their first baseline.",
+      "Do separate sections with hairlines and space, and use `paper-band` for raised areas."
+    ],
+    "donts": [
+      "Don't use a serif, a webfont or a monospace face; the system sans covers every role.",
+      "Don't add a third data colour or use the data inks as decoration; blue outside data is limited to focus, caret, selection and the current phone tab.",
+      "Don't build KPI tiles or a wall of side panels; a figure belongs in a sentence or a chart.",
+      "Don't show a clock time without its date, or a status by colour alone.",
+      "Don't put shadows on anything resting on the page.",
+      "Don't add small uppercase labels above headings; the wordmark is the only tracked capitals in the interface."
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "prototype/index.html"
+        ],
+        "createdAt": "2026-10-18T04:54:39.804Z",
+        "reason": "user confirmed: the owner chose to keep #FAF8F1 (their gallery site's page ground) over white"
+      }
+    ]
+  }
+}

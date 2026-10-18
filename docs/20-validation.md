@@ -6,7 +6,7 @@ Sanity checks on every entry (requirement D2) and consistency checks across reco
 
 - Checks never block saving (requirement G4). They produce findings.
 - Every finding has a rule id, a severity, the records involved, a message, and an optional suggested fix.
-- A suggested fix is applied only when the user accepts it. Exception: pure formatting fixes (case, dashes, whitespace) are applied to the normalized value automatically; the raw value is kept.
+- A suggested fix is applied only when the user accepts it. Exception: pure formatting fixes (case, dashes, whitespace) are applied to the normalised value automatically; the raw value is kept.
 - The user can accept a warning (IssueAck). It stays hidden until the values that caused it change.
 - The same rule code runs in the browser and in the companion CLI (shared TypeScript package).
 

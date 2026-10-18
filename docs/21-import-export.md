@@ -8,8 +8,8 @@ Every import, from any source, goes through the same stages. Nothing is written 
 
 ```
 1. Read        file or sheet → raw rows (kept in the ImportBatch)
-2. Detect      recognize the format by its header → column mapping (editable)
-3. Parse       each row → candidate record: raw values + normalized values
+2. Detect      recognise the format by its header → column mapping (editable)
+3. Parse       each row → candidate record: raw values + normalised values
 4. Match       compare with existing records → new | identical | update | conflict
 5. Resolve     link to airframes (11)
 6. Check       deterministic rules (20)

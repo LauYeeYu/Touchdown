@@ -18,7 +18,7 @@ Where facts about airports, airlines, aircraft types, airframes, flights, and tr
 
 Built by `packages/refdata` and shipped with the web app as versioned JSON. Rebuilt on a schedule (weekly is enough).
 
-| Dataset | Source | License | Fields used | Notes |
+| Dataset | Source | Licence | Fields used | Notes |
 |---------|--------|---------|-------------|-------|
 | Airports | [OurAirports](https://ourairports.com/data/) `airports.csv` | Public domain | ident, type, name, lat/lon, elevation, iso_country, municipality, icao_code, iata_code | Keep `large_airport`, `medium_airport`, and any airport with an IATA code or used in the user's data. |
 | Airport time zones | [airportsdata](https://github.com/mborsetti/airportsdata) | MIT | icao, iata, tz | Joined to OurAirports by ICAO, then IATA. Fallback: compute from lat/lon with timezone-boundary-builder (ODbL). |
@@ -37,10 +37,10 @@ Facts about individual airframes. Too large to ship whole with the app (hundreds
 
 **Inputs (merged by the refdata build):**
 
-| Source | Gives | License / terms |
+| Source | Gives | Licence / terms |
 |--------|-------|-----------------|
 | [Mictronics aircraft DB](https://github.com/Mictronics/aircraft-database) | hex ↔ registration ↔ type | ODC-By (attribution) |
-| [tar1090-db](https://github.com/wiedehopf/tar1090-db) | hex ↔ registration ↔ type, description | No license file. The user accepts using it for this hobby app (Q-LICENSES). |
+| [tar1090-db](https://github.com/wiedehopf/tar1090-db) | hex ↔ registration ↔ type, description | No licence file. The user accepts using it for this hobby app (Q-LICENSES). |
 | [FAA registry](https://registry.faa.gov/database/ReleasableAircraft.zip) | US: serial number, year, hex; DEREG file gives registration history | US government data |
 | [OpenSky aircraft DB](https://opensky-network.org/) complete snapshot 2025-08 | serial number, line number, first flight, operator, prevReg/nextReg | OpenSky terms (non-profit research and education). The user accepts using it for this hobby app (Q-LICENSES). Not updated since 2025-08. |
 
@@ -91,7 +91,7 @@ Stateless; no user data stored; responses cached.
 
 | Endpoint | Does |
 |----------|------|
-| `GET /airframe/{registration}` | Static index entry, else adsbdb/hexdb, normalized to one shape. |
+| `GET /airframe/{registration}` | Static index entry, else adsbdb/hexdb, normalised to one shape. |
 | `GET /trace/{hex}/{date}` | Fetches and caches the adsb.lol trace. |
 | `GET /flight/{flightNumber}/{date}` | Forwards to AeroAPI with the user's key passed in a header (never stored or logged). Only if the user configured a key. |
 | `GET /live/{callsign}` | adsb.lol live lookup for "capture during flight". |

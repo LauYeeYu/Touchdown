@@ -15,7 +15,7 @@ Docs are numbered from low level to high level. Each one depends only on lower n
 | 10 | [Domain model and schema](10-domain-model.md) | Data | Every table, column, and type; one schema for all backends. |
 | 11 | [Aircraft identity](11-aircraft-identity.md) | Data | Why registration + type code is not enough; how records link to airframes. |
 | 12 | [Storage and sync](12-storage-and-sync.md) | Data | Generic backend interface, JSON tables and SQLite file backends, sync, migrations, adapters. |
-| 13 | [Reference data](13-reference-data.md) | Data | Sources for airports, airlines, types, airframes, flights, tracks; licenses and costs. |
+| 13 | [Reference data](13-reference-data.md) | Data | Sources for airports, airlines, types, airframes, flights, tracks; licences and costs. |
 | 20 | [Validation](20-validation.md) | Logic | Sanity and consistency rules, auto-fill. |
 | 21 | [Import and export](21-import-export.md) | Logic | Import pipeline, myFR24 and sheet formats, exports, undo. |
 | 22 | [Agent verification](22-agent-verification.md) | Logic | Claude Code / Codex check through the companion CLI; threat model. |
@@ -30,6 +30,7 @@ Docs are numbered from low level to high level. Each one depends only on lower n
 
 - Hosted static web app. Each user's data lives in their own storage (Google Drive first), as JSON tables or a SQLite file, both from one structured schema. Server databases can be added later. CSV always available. No central database by default.
 - Every precise time is a full date-time with UTC offset; never a time alone.
+- UK English spelling. Sans-serif interface on a warm paper ground, with light and dark themes.
 - Private per user. Friends use the same app with their own storage.
 - An aircraft is a physical airframe, identified by manufacturer + serial number. Registration is a dated attribute. Aircraft counts are per airframe.
 - Every field is optional. Checks never block saving.

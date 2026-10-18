@@ -14,3 +14,12 @@ coverage/
 .DS_Store
 .idea/
 .vscode/
+
+# Local agent settings and caches
+.claude/settings.local.json
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+
+# Impeccable: review screenshots, and the engine binary (the launcher downloads it when missing)
+.impeccable/review/
+**/skills/impeccable/scripts/bin/

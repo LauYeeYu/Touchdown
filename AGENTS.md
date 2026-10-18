@@ -17,6 +17,7 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 ## Writing rules
 
 - Plain, direct prose. No mannered or decorative writing, no filler, no marketing tone.
+- UK English spelling in docs, interface copy, and comments (colour, organise, centre, licence as a noun). Code identifiers and third-party names keep their own spelling (`color` in CSS, "Authorized JavaScript origins" in Google's console).
 - Prefer tables and lists for specs.
 - Mark each design statement as Decided, Proposed, or Open when it matters.
 - When something is uncertain, ask the user instead of guessing. Add it to `docs/90-open-questions.md` if it cannot be answered right away.
@@ -27,6 +28,7 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 - Ticket numbers and booking references are private fields. Never put them in fixtures, docs, logs, or agent prompts.
 - Test fixtures use made-up or scrubbed data.
 - Docs and other committed files contain no personal information about the owner (subscriptions, devices, home airport, travel history, counts or example rows from their data). Write "a user may have X". Use made-up examples (registrations, flight numbers, seats, dates), never values from the owner's data. Real values go in `data/private/`.
+- The hosted site stays behind the access gate (docs/30-architecture.md); never add a public route or an unauthenticated API endpoint.
 - Do not put dates of research or planning sessions in docs ("researched on …", "answered on …").
 
 ## Data rules

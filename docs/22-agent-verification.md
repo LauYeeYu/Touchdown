@@ -12,7 +12,7 @@ The deterministic checks catch format errors and contradictions between records.
 Web app                                   User's computer
 ───────                                   ───────────────
 1. Import parsed, deterministic checks run
-2. Build check request (minimized data)
+2. Build check request (minimised data)
 3. Write checks/<batch>.request.json ───►  4. `touchdown check <file>`
    (to the Drive folder, or download)          - validates request
                                                - runs claude or codex, locked down

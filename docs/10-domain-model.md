@@ -8,7 +8,7 @@ The schema is defined once, in code (`packages/core/schema`), and is the single 
 
 - **Flat tables.** Every column holds one scalar value. Lists and nested data are child tables. The only exception is `record_history.row`, a full row snapshot kept for undo, which is validated against the schema version it was written with.
 - **Everything optional.** Every column is optional except system columns and the parent reference of child tables. A record can be saved with any subset of fields (requirement G4). A missing field creates an "incomplete" notice, never a save error. Each statistic reports how many records it left out (see [24](24-statistics.md)).
-- **Raw and normalized.** Where the typed input matters (registration, codes, model), a `…Raw` column keeps the value as entered and the plain column holds the normalized value. Automatic fixes change only the normalized value and record where it came from in `field_provenance`.
+- **Raw and normalised.** Where the typed input matters (registration, codes, model), a `…Raw` column keeps the value as entered and the plain column holds the normalised value. Automatic fixes change only the normalised value and record where it came from in `field_provenance`.
 - **Date-times.** Every precise time is a full ISO 8601 date-time with the UTC offset in effect at that place and moment, e.g. `2025-03-15T00:12+01:00`. There are no time-only columns, so a takeoff after midnight can never be filed under the previous day (requirement G8). The wall-clock part is the local time at the airport; the offset makes it an exact instant. The offset is computed from the airport's IANA time zone when the value is entered.
 - **Dates.** Values that are calendar dates by nature, or where only the day is known, are `YYYY-MM-DD` (`scheduledDate`, `firstFlightDate`, `seenOn`).
 - **IDs.** ULIDs, generated on the device.
@@ -162,7 +162,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `reason` | enum | `leisure` | `leisure`, `business`, `crew`, `other` (same set as FR24). |
 | `ticketNumber` | text | | **Private.** |
 | `bookingRef` | text | | **Private.** PNR. |
-| `registration`, `registrationRaw` | text | `D-ABCD`, `dabcd` | Normalized and as entered. |
+| `registration`, `registrationRaw` | text | `D-ABCD`, `dabcd` | Normalised and as entered. |
 | `typeCode`, `typeCodeRaw` | text | `A359` | |
 | `model`, `modelRaw` | text | `A350-941`, `A350941` | Standard form (manufacturer designation) and as entered (any style; requirement D4). |
 | `airframeId` | ref airframes | | Set by the identity resolver. |
@@ -226,7 +226,7 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 | `factsFetchedAt` | datetime | | |
 | `notes` | text | | |
 
-**registration_periods**: `airframeId` (ref), `registration` (text, normalized), `validFrom` (date), `validTo` (date; empty = current), `icaoHex` (text; changes with the registration, so it lives here), `source` (text).
+**registration_periods**: `airframeId` (ref), `registration` (text, normalised), `validFrom` (date), `validTo` (date; empty = current), `icaoHex` (text; changes with the registration, so it lives here), `source` (text).
 
 **operator_periods**: `airframeId` (ref), `operatorId` (ref operators), `validFrom`, `validTo` (date), `source` (text).
 
@@ -267,6 +267,7 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 | Column | Type | Notes |
 |--------|------|-------|
 | `distanceUnit` | enum | `km`, `mi`, `nm` |
+| `theme` | enum | `system` (follow the device), `light`, `dark` |
 | `codeDisplay` | enum | `iata`, `icao`, `both` |
 | `modelNaming` | enum | `standard` (`Boeing 777-322(ER)`) or `compact` (`B777-322ER`). Display only (D4). |
 | `agentChecker` | enum | `claude`, `codex`, `none` |

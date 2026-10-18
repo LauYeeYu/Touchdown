@@ -28,7 +28,7 @@ The type code is not part of the key. It is an attribute of the airframe that ea
 
 The ICAO 24-bit hex address is not the key either. It follows the registration and changes when the registration changes.
 
-## Normalizing a registration
+## Normalising a registration
 
 1. Trim, uppercase, remove spaces.
 2. Look up the country prefix ([10](10-domain-model.md) RegistrationPrefix).
@@ -39,7 +39,7 @@ The ICAO 24-bit hex address is not the key either. It follows the registration a
 
 ## Resolving a record to an airframe
 
-Input: the record's normalized registration `R`, date `D` (flights: the flight day, i.e. the local date of `takeoffAt`, else `scheduledDate`; sightings: `seenOn`), and optionally type code `T`, operator `O`, MSN `M`.
+Input: the record's normalised registration `R`, date `D` (flights: the flight day, i.e. the local date of `takeoffAt`, else `scheduledDate`; sightings: `seenOn`), and optionally type code `T`, operator `O`, MSN `M`.
 
 ```
 1. If M is given:

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f2efe6" />
+    <title>Touchdown</title>
+    <script>
+      try {
+        var t = localStorage.getItem("td-theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="page masthead__bar">
+        <a class="wordmark" href="#/">TOUCHDOWN</a>
+        <nav class="nav" aria-label="Main">
+          <a class="nav__link" href="#/" data-nav="home"></a>
+          <a class="nav__link" href="#/flights" data-nav="flights"></a>
+          <a class="nav__link" href="#" data-nav="spotting" aria-disabled="true"></a>
+          <a class="nav__link" href="#" data-nav="aircraft" aria-disabled="true"></a>
+          <a class="nav__link" href="#" data-nav="stats" aria-disabled="true"></a>
+        </nav>
+        <div class="masthead__tools">
+          <span class="sync" id="sync"></span>
+          <button class="icon-btn" type="button" id="theme-btn"></button>
+          <button class="btn btn--primary" type="button" id="add-btn"></button>
+        </div>
+      </div>
+    </header>
+    <div class="sample-note">
+      <div class="page" id="sample-note"></div>
+    </div>
+
+    <main id="view" tabindex="-1"></main>
+
+    <footer class="site-foot">
+      <div class="page">
+        <p>Prototype with invented sample data built around real public aircraft. It is not anyone's travel history.</p>
+        <p>
+          Aircraft photos from <a href="https://www.planespotters.net/" rel="noopener" target="_blank">planespotters.net</a>, credited on each photo.
+          Map: Natural Earth (public domain) via world-atlas. Icons: Lucide (ISC).
+        </p>
+      </div>
+    </footer>
+
+    <div class="tooltip" id="tooltip" role="tooltip"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="vendor/d3.min.js"></script>
+    <script src="vendor/topojson-client.min.js"></script>
+    <script src="vendor/countries-110m.js"></script>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

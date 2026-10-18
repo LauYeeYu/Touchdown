@@ -12,7 +12,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 ## Phase 1: Core on real data (no UI)
 
 - Deliver:
-  - `packages/core`: the schema with its generators (types, validators, JSON Schema, SQL DDL), normalization, registration rules, identity resolver (local), validation rules, stats engine, importers for the two sheets and the myFR24 CSV.
+  - `packages/core`: the schema with its generators (types, validators, JSON Schema, SQL DDL), normalisation, registration rules, identity resolver (local), validation rules, stats engine, importers for the two sheets and the myFR24 CSV.
   - `packages/refdata`: airports + time zones, airlines, types, families, model patterns, registration prefixes.
   - A CLI command that imports files from `data/private/` and prints findings and summary stats.
 - Done when:
@@ -36,7 +36,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 4: Lookups and auto-fill
 
-- Deliver: airframe index build, lookup service, auto-fill suggestions, external rules (X-), reference links to airfleets / planespotters / aviation.flights.
+- Deliver: Cloudflare Access gate and Access-token check in the Worker, airframe index build, lookup service, auto-fill suggestions, external rules (X-), reference links to airfleets / planespotters / aviation.flights.
 - Done when: most of the user's records link to confirmed airframes, the provisional share is reported, and auto-fill never overwrites a user value.
 
 ## Phase 5: Agent check

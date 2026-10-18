@@ -49,3 +49,6 @@ None. Phase 1 test data is in `data/private/`.
 | Q-MODELS | Track die-cast models? | No. Misc is a note to the user; import it as notes. |
 | — | How are times stored? | Always as a full date-time with UTC offset; never a time alone. Plain dates only where only the day is known. |
 | — | How generic is storage? | One structured schema for every backend; Drive backends JSON tables or SQLite file (user chooses); later local SQLite, Postgres / Supabase, Cloudflare D1. |
+| — | Spelling? | UK English in copy, docs, and comments. |
+| — | Type and colour constraints for the interface? | Sans-serif only; keep the warm paper ground #FAF8F1 (white acceptable, not preferred); support dark mode. |
+| Q-ACCESS | How is the hosted site gated? | Cloudflare Access: allowlist of invited emails; sign in with Google or a one-time email code; the Worker also checks the Access token on `/api/*`. |
