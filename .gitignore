@@ -1,0 +1,16 @@
+# Personal data: exports, sheets, FR24 CSV. Never commit.
+data/private/
+
+# Secrets
+.env
+.env.*
+
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
