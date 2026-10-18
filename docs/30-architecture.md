@@ -79,8 +79,8 @@ One pnpm workspace. The core package has no browser or Node-specific code, so th
 | CSV | Papa Parse | Handles quoting, encodings, large files. |
 | Google auth | Google Identity Services token flow, scope `drive.file` | No backend needed for auth. |
 | Offline | Service worker (PWA) | App loads without network; sync resumes later. |
-| Lookup service | Cloudflare Worker + Cache API/KV | Free tier is enough. |
-| Hosting | Cloudflare Pages (or GitHub Pages) | Free static hosting. |
+| Lookup service | The `/api/*` routes of the same Cloudflare Worker that serves the app; Cache API for caching | Free plan is enough (see Deployment). |
+| Hosting | One Cloudflare Worker with static assets | Cloudflare points new projects to Workers with static assets rather than Pages. Static file requests are free. |
 | Tests | Vitest (core, CLI), Playwright (web flows) | |
 | CLI packaging | Node, published to npm, run with `npx` | |
 
@@ -92,6 +92,26 @@ One pnpm workspace. The core package has no browser or Node-specific code, so th
 - Private fields (ticket number, booking reference) never leave the user's storage and browser except in exports the user asks for with "include private fields".
 - All imported text is treated as untrusted: escaped in the UI, never used as HTML, formula-guarded on CSV export.
 - Dependencies pinned with a lockfile; no install scripts in the CLI.
+
+## Deployment (Cloudflare, proposed)
+
+```
+Cloudflare Worker "touchdown"
+  static assets   apps/web build output + reference JSON + airframe index shards
+                  (single-page-app fallback for unknown paths)
+  /api/*          lookup service (13): airframe, trace, flight, live lookups
+  secrets         provider API keys, set by the owner with `wrangler secret put`
+```
+
+- One Worker serves both the app and the API, so they share one origin: no CORS setup, one deployment.
+- Free plan: static asset requests are free and not counted; API requests share 100,000 per day with 10 ms of CPU each. The lookup service mostly waits on upstream servers, which does not count as CPU. The paid plan ($5/month) is the fallback if limits are reached. Recheck the limits before launch.
+- Airframe index shards (about 1,300 small files) ship as static assets. If the plan's per-version file limit is too low, they move to R2.
+- Reference data and the airframe index are rebuilt weekly in GitHub Actions (the source files are about 100 MB, too heavy for a Worker cron), then deployed with `wrangler`.
+- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered as authorized JavaScript origins. Per-upload preview URLs change, so they are not used for sign-in.
+- Headers: a strict Content Security Policy. No `Cross-Origin-Opener-Policy: same-origin` / COEP isolation, because it would likely break the Google sign-in popup. The SQLite backend therefore uses the `opfs-sahpool` storage mode (or an in-memory database), which needs no cross-origin isolation.
+- Logs: Worker logs for `/api/*` are kept minimal (no request bodies, no client identifiers), because lookups reveal which aircraft a user is interested in.
+- Cloudflare D1 (a later backend, Q-SERVER-DB) can live in the same account.
+- Not on Cloudflare: user data (each user's storage) and the companion CLI (each user's computer).
 
 ## Multi-user
 
