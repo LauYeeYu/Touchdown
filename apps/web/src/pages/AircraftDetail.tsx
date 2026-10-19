@@ -6,7 +6,8 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { factsMismatch, flightDay, isValidDate, parsePastedFacts, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
-import { airlineLabel, cityOf, dateOnly, dayMonthYear, modelLabel, PHASE_LABEL, plural, shortAirport, typeName } from "../lib/format.ts";
+import { airportWithCode, textCode } from "../lib/codes.ts";
+import { airlineLabel, dateOnly, dayMonthYear, modelLabel, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { FindingList } from "../components/Findings.tsx";
@@ -93,7 +94,7 @@ export function AircraftDetail() {
       {v.flights.length === 0 && v.sightings.length > 0 && `You photographed ${reg || "this aircraft"} `}
       {v.sightings.length > 0 && (v.sightings.length === 1 ? "once" : plural(v.sightings.length, "time"))}
       {first?.date && `, first on ${dateOnly(first.date, { day: "numeric", month: "long", year: "numeric" })}`}
-      {first?.kind === "sighting" && first.s.airportId && ` at ${cityOf(first.s.airportId, ref)}`}
+      {first?.kind === "sighting" && first.s.airportId && ` at ${airportWithCode(first.s.airportId, ref)}`}
       {first?.kind === "flight" && ` on ${first.f.flightNumber ?? "a flight"}`}.
     </>
   );
@@ -154,7 +155,7 @@ export function AircraftDetail() {
                   <span className="dot dot--flown" />
                   <span className="timeline__date">{e.date ? dayMonthYear(e.date) : "No date"}</span>
                   <Link to="/flights/$id" params={{ id: e.f.id }}>
-                    Flew {e.f.flightNumber ?? ""} {ref.airport(e.f.fromAirportId)?.iata ?? e.f.fromRaw} → {ref.airport(e.f.toAirportId)?.iata ?? e.f.toRaw}
+                    Flew {e.f.flightNumber ?? ""} {textCode(ref.airport(e.f.fromAirportId), e.f.fromRaw)} → {textCode(ref.airport(e.f.toAirportId), e.f.toRaw)}
                   </Link>
                   {e.f.registration && e.f.registration !== reg && <span className="muted"> as {e.f.registration}</span>}
                 </li>
@@ -163,7 +164,7 @@ export function AircraftDetail() {
                   <span className="dot dot--spotted" />
                   <span className="timeline__date">{e.date ? dayMonthYear(e.date) : "No date"}</span>
                   <Link to="/spotting/$id/edit" params={{ id: e.s.id }}>
-                    Spotted at {shortAirport(e.s.airportId, ref) || e.s.airportRaw || "an unknown place"}
+                    Spotted at {airportWithCode(e.s.airportId, ref, e.s.airportRaw) || "an unknown place"}
                   </Link>
                   {e.s.phase && <span className="muted"> · {PHASE_LABEL[e.s.phase]?.toLowerCase()}</span>}
                   {e.s.specialLivery && <span className="pill pill--livery">{e.s.specialLivery}</span>}

@@ -1285,7 +1285,7 @@ main {
   color: var(--ink-3);
 }
 
-.numbers summary {
+.disclosure summary {
   cursor: pointer;
   width: fit-content;
 }
@@ -1901,69 +1901,6 @@ main {
 @media (max-width: 720px) {
   :root {
     --gutter: 16px;
-  }
-
-  .masthead__bar {
-    height: 56px;
-    gap: 8px;
-  }
-
-  .wordmark {
-    margin-right: auto;
-  }
-
-  .sync__text {
-    display: none;
-  }
-
-  .nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    z-index: 30;
-    margin: 0;
-    gap: 0;
-    justify-content: space-around;
-    padding: 6px 4px calc(7px + env(safe-area-inset-bottom));
-    background: var(--paper-2);
-    border-top: 1px solid var(--rule);
-    transform: translateZ(0);
-  }
-
-  /* Chrome on Android resizes the viewport while its toolbar slides; the bar's colour
-     continues below the edge so the page never shows through a transient gap. */
-  .nav::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 100%;
-    height: 120px;
-    background: var(--paper-2);
-  }
-
-  .nav__link {
-    flex-direction: column;
-    gap: 2px;
-    padding: 6px 8px;
-    font-size: 0.6875rem;
-    min-width: 56px;
-  }
-
-  .nav__link .icon {
-    display: block;
-    width: 22px;
-    height: 22px;
-  }
-
-  .nav__link[aria-current="page"] {
-    background: transparent;
-    color: var(--flown-ink);
-  }
-
-  main {
-    padding-bottom: 120px;
   }
 
   .view-top {
@@ -2600,30 +2537,16 @@ a.btn--primary {
   height: 32px;
 }
 
-.disclosure {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* "More" on the flight form (Disclosure): a full-size summary above the optional fields. */
+.disclosure--form {
   margin-top: 32px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
+}
+
+.disclosure--form > summary {
+  gap: 8px;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--ink);
-  cursor: pointer;
-}
-
-.disclosure .icon {
-  width: 18px;
-  height: 18px;
-  transform: rotate(-90deg);
-  transition: transform 180ms var(--ease);
-}
-
-.disclosure[aria-expanded="true"] .icon {
-  transform: none;
 }
 
 .form-checks {
@@ -2980,6 +2903,7 @@ a.btn--primary {
 /* ---------- tabs, stats ---------- */
 
 .tabs {
+  position: relative;
   display: flex;
   gap: 4px;
   margin-top: 28px;
@@ -3008,16 +2932,6 @@ a.btn--primary {
   font-weight: 600;
 }
 
-.tab[aria-selected="true"]::after {
-  content: "";
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--ink);
-}
 
 .tabs + .chips {
   margin-top: 20px;
@@ -3065,16 +2979,19 @@ a.btn--primary {
   font-size: 0.9375rem;
 }
 
+/* Long names (routes, airports) wrap to a second line rather than being cut off. */
 .ranked__label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
 }
 
+/* The bar shows each count against the largest; there is no "full" to show, so no track behind it. */
 .ranked__bar {
   height: 6px;
   border-radius: 3px;
-  background: var(--paper-2);
   overflow: hidden;
 }
 
@@ -3376,20 +3293,6 @@ a.btn--primary {
 @media (max-width: 720px) {
   .hide-phone {
     display: none;
-  }
-
-  .masthead__tools {
-    gap: 4px;
-  }
-
-  .masthead__tools .btn--primary span {
-    display: none;
-  }
-
-  .masthead__tools .btn--primary {
-    width: 36px;
-    padding: 0;
-    justify-content: center;
   }
 
   .form-title {
@@ -3724,13 +3627,6 @@ a.card:hover {
   background: var(--surface-mid);
 }
 
-/* Tabs: Material's indicator, three pixels with rounded top corners. */
-.tab[aria-selected="true"]::after {
-  height: 3px;
-  left: 14px;
-  right: 14px;
-  border-radius: 3px 3px 0 0;
-}
 
 /* Floating surfaces. */
 .tooltip {
@@ -3763,81 +3659,6 @@ a.card:hover {
 }
 
 @media (max-width: 720px) {
-  .masthead__tools .add-menu {
-    display: none;
-  }
-
-  .fab-wrap {
-    display: block;
-    position: fixed;
-    right: 16px;
-    bottom: calc(92px + env(safe-area-inset-bottom));
-    z-index: 35;
-  }
-
-  .fab {
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    border: 0;
-    border-radius: 16px;
-    background: var(--selected-container);
-    color: var(--on-selected-container);
-    box-shadow: var(--shadow-2);
-    cursor: pointer;
-  }
-
-  .fab .icon {
-    width: 24px;
-    height: 24px;
-  }
-
-  .fab-wrap .menu {
-    top: auto;
-    bottom: calc(100% + 10px);
-  }
-
-  /* Navigation bar: a pill behind the current tab's icon, label below. */
-  .nav {
-    padding-top: 10px;
-    background: var(--surface-mid);
-    border-top-color: transparent;
-  }
-
-  .nav::after {
-    background: var(--surface-mid);
-  }
-
-  .nav__link,
-  .nav__link:hover,
-  .nav__link[aria-current="page"] {
-    background: transparent;
-    padding: 0 4px 6px;
-    gap: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
-  .nav__link .icon {
-    box-sizing: content-box;
-    width: 22px;
-    height: 22px;
-    padding: 5px 20px;
-    border-radius: 999px;
-    transition: background-color 180ms var(--ease);
-  }
-
-  .nav__link[aria-current="page"] {
-    color: var(--ink);
-    font-weight: 650;
-  }
-
-  .nav__link[aria-current="page"] .icon {
-    background: var(--selected-container);
-    color: var(--on-selected-container);
-  }
-
   .map-wrap .map {
     border-radius: 24px;
   }
@@ -3959,28 +3780,6 @@ a.card:hover {
 }
 
 @media (max-width: 720px) {
-  .globe-page {
-    min-height: calc(100dvh - 56px);
-  }
-
-  .globe-stage {
-    width: 100%;
-    margin: 0;
-    border-radius: 24px 24px 0 0;
-    height: calc(100dvh - 56px - 132px - 76px);
-    min-height: 360px;
-  }
-
-  .globe__canvas {
-    border-radius: 24px 24px 0 0;
-  }
-
-  .globe-hint {
-    left: 16px;
-    right: 76px;
-    bottom: 14px;
-  }
-
   .legend__action {
     margin-left: 0;
   }
@@ -4183,15 +3982,15 @@ a.card:hover {
   background-position: right 12px center;
 }
 
-/* Each navigation label reserves the width of its bold form, so marking the current page never moves the
-   links after it. */
-.nav__label {
+/* A label that reserves the width of its bold form (StableLabel): the current page in the navigation and the
+   selected tab turn bold without moving what comes after them. */
+.stable-label {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
 }
 
-.nav__label::after {
+.stable-label::after {
   content: attr(data-label) / "";
   height: 0;
   overflow: hidden;
@@ -4259,15 +4058,15 @@ a.card:hover {
   color: var(--ink-2);
 }
 
-/* ---------- disclosure ("Show the numbers") ---------- */
+/* ---------- disclosure (Disclosure, e.g. "Show the numbers") ---------- */
 
 /* Opens by sliding the content down and fading it in; the chevron turns. Browsers without ::details-content
    simply open it. */
-.numbers {
+.disclosure {
   interpolate-size: allow-keywords;
 }
 
-.numbers summary {
+.disclosure summary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -4275,11 +4074,11 @@ a.card:hover {
   padding: 4px 0;
 }
 
-.numbers summary::-webkit-details-marker {
+.disclosure summary::-webkit-details-marker {
   display: none;
 }
 
-.numbers summary::before {
+.disclosure summary::before {
   content: "";
   width: 12px;
   height: 12px;
@@ -4288,15 +4087,15 @@ a.card:hover {
   transition: transform 220ms var(--ease);
 }
 
-.numbers[open] summary::before {
+.disclosure[open] summary::before {
   transform: rotate(0deg);
 }
 
-.numbers summary:hover {
+.disclosure summary:hover {
   color: var(--ink);
 }
 
-.numbers::details-content {
+.disclosure::details-content {
   block-size: 0;
   overflow: clip;
   opacity: 0;
@@ -4306,14 +4105,14 @@ a.card:hover {
     content-visibility 280ms allow-discrete;
 }
 
-.numbers[open]::details-content {
+.disclosure[open]::details-content {
   block-size: auto;
   opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .numbers::details-content,
-  .numbers summary::before {
+  .disclosure::details-content,
+  .disclosure summary::before {
     transition: none;
   }
 }
@@ -4326,5 +4125,299 @@ a.card:hover {
 @media (max-width: 720px) {
   .row__type-phone {
     display: block;
+  }
+}
+
+.pivot-intro {
+  margin: 24px 0 0;
+}
+
+/* ---------- tabs: stable labels and a sliding indicator ---------- */
+
+
+/* Material's indicator: three pixels with rounded top corners under the selected label. It slides and
+   resizes to the newly selected tab. */
+.tabs__indicator {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.tabs.is-ready .tabs__indicator {
+  transition:
+    transform 300ms var(--ease),
+    width 300ms var(--ease);
+}
+
+/* ---------- ranked bars ---------- */
+
+/* Bars, not dots: 8px tall with 2px corners, so even a short bar reads as a length. They grow from the start
+   when they appear and move to new lengths when the period changes. */
+.ranked__bar {
+  height: 8px;
+  border-radius: 2px;
+}
+
+.ranked__bar span {
+  border-radius: 2px;
+  transform-origin: left center;
+  animation: bar-grow 600ms var(--ease) both;
+  transition: width 400ms var(--ease);
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs.is-ready .tabs__indicator,
+  .ranked__bar span {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* The tab row scrolls sideways, which would clip an outside focus ring; draw it inside the tab. */
+.tab:focus-visible {
+  outline-offset: -3px;
+  border-radius: 10px;
+}
+
+/* An airport code in large type, with the other code small beneath it when the user shows both (BigCode). */
+.big-code {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.big-code__second {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+/* ---------- compact navigation (840px and below) ----------
+   Below Material's expanded width the top bar cannot hold the wordmark, the navigation and the tools, so the
+   navigation moves to the bottom bar and Add becomes the floating button, as on phones. */
+
+@media (max-width: 840px) {
+  .masthead__bar {
+    height: 56px;
+    gap: 8px;
+  }
+
+  .wordmark {
+    margin-right: auto;
+  }
+
+  .sync__text {
+    display: none;
+  }
+
+  .nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    z-index: 30;
+    margin: 0;
+    gap: 0;
+    justify-content: space-around;
+    padding: 6px 4px calc(7px + env(safe-area-inset-bottom));
+    background: var(--paper-2);
+    border-top: 1px solid var(--rule);
+    transform: translateZ(0);
+  }
+
+  /* Chrome on Android resizes the viewport while its toolbar slides; the bar's colour
+     continues below the edge so the page never shows through a transient gap. */
+  .nav::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 120px;
+    background: var(--paper-2);
+  }
+
+  .nav__link {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    font-size: 0.6875rem;
+    min-width: 56px;
+  }
+
+  .nav__link .icon {
+    display: block;
+    width: 22px;
+    height: 22px;
+  }
+
+  .nav__link[aria-current="page"] {
+    background: transparent;
+    color: var(--flown-ink);
+  }
+
+  main {
+    padding-bottom: 120px;
+  }
+
+  .masthead__tools {
+    gap: 4px;
+  }
+
+  .masthead__tools .btn--primary span {
+    display: none;
+  }
+
+  .masthead__tools .btn--primary {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .masthead__tools .add-menu {
+    display: none;
+  }
+
+  .fab-wrap {
+    display: block;
+    position: fixed;
+    right: 16px;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    z-index: 35;
+  }
+
+  .fab {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--selected-container);
+    color: var(--on-selected-container);
+    box-shadow: var(--shadow-2);
+    cursor: pointer;
+  }
+
+  .fab .icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .fab-wrap .menu {
+    top: auto;
+    bottom: calc(100% + 10px);
+  }
+
+  /* Navigation bar: a pill behind the current tab's icon, label below. */
+  .nav {
+    padding-top: 10px;
+    background: var(--surface-mid);
+    border-top-color: transparent;
+  }
+
+  .nav::after {
+    background: var(--surface-mid);
+  }
+
+  .nav__link,
+  .nav__link:hover,
+  .nav__link[aria-current="page"] {
+    background: transparent;
+    padding: 0 4px 6px;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .nav__link .icon {
+    box-sizing: content-box;
+    width: 22px;
+    height: 22px;
+    padding: 5px 20px;
+    border-radius: 999px;
+    transition: background-color 180ms var(--ease);
+  }
+
+  .nav__link[aria-current="page"] {
+    color: var(--ink);
+    font-weight: 650;
+  }
+
+  .nav__link[aria-current="page"] .icon {
+    background: var(--selected-container);
+    color: var(--on-selected-container);
+  }
+
+  .globe-page {
+    min-height: calc(100dvh - 56px);
+  }
+
+  .globe-stage {
+    width: 100%;
+    margin: 0;
+    border-radius: 24px 24px 0 0;
+    height: calc(100dvh - 56px - 132px - 76px);
+    min-height: 360px;
+  }
+
+  .globe__canvas {
+    border-radius: 24px 24px 0 0;
+  }
+
+  .globe-hint {
+    left: 16px;
+    right: 76px;
+    bottom: 14px;
+  }
+}
+
+/* ---------- top bar between 841px and 1180px ----------
+   The bar tightens in steps rather than overflowing: the save status keeps only its icon (the words stay in its
+   tooltip), gaps and link padding shrink, and below 1000px Add keeps only its plus. */
+
+@media (min-width: 841px) and (max-width: 1180px) {
+  .masthead__bar {
+    gap: 20px;
+  }
+
+  .sync__text {
+    display: none;
+  }
+
+  .nav {
+    gap: 2px;
+  }
+
+  .nav__link {
+    padding: 8px 12px;
+  }
+
+  .masthead__tools {
+    gap: 6px;
+  }
+}
+
+@media (min-width: 841px) and (max-width: 1000px) {
+  .masthead__tools .btn--primary span {
+    display: none;
+  }
+
+  .masthead__tools .btn--primary {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
   }
 }

@@ -6,13 +6,14 @@ import { useApp } from "../data/context.tsx";
 import { Icon, type IconName } from "../lib/icons.tsx";
 import { MenuButton } from "./Menu.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
+import { StableLabel } from "./StableLabel.tsx";
 
 const NAV: { to: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
   { to: "/", label: "Home", icon: "house", match: (p) => p === "/" },
   { to: "/flights", label: "Flights", icon: "plane", match: (p) => p.startsWith("/flights") },
   { to: "/spotting", label: "Spotting", icon: "camera", match: (p) => p.startsWith("/spotting") },
   { to: "/aircraft", label: "Aircraft", icon: "id-card", match: (p) => p.startsWith("/aircraft") },
-  { to: "/stats", label: "Stats", icon: "chart-column", match: (p) => p.startsWith("/stats") || p.startsWith("/map") || p.startsWith("/globe") },
+  { to: "/stats", label: "Statistics", icon: "chart-column", match: (p) => p.startsWith("/stats") || p.startsWith("/map") || p.startsWith("/globe") },
 ];
 
 const THEMES = ["system", "light", "dark"] as const;
@@ -87,9 +88,7 @@ export function Shell() {
             {NAV.map((n) => (
               <Link key={n.to} className="nav__link" to={n.to} aria-current={n.match(path) ? "page" : undefined}>
                 <Icon name={n.icon} />
-                <span className="nav__label" data-label={n.label}>
-                  {n.label}
-                </span>
+                <StableLabel text={n.label} />
               </Link>
             ))}
           </nav>

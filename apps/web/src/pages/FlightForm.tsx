@@ -5,12 +5,14 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { parseDateTime, parseFlightNumber, todayIn, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
+import { textCode } from "../lib/codes.ts";
 import { draftFindings } from "../data/draft.ts";
 import { CABIN_LABEL, REASON_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { airportOptions, DateTimeField, Field, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
+import { Disclosure } from "../components/Disclosure.tsx";
 import { NotFound } from "./NotFound.tsx";
 
 type TimeKey = "boarding" | "takeoff" | "landing";
@@ -81,7 +83,6 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
   const settings = app.settings();
   const existing = edit && params.id ? app.store.get("flights", params.id) : null;
   const [d, setD] = useState<Draft>(() => fromFlight(existing));
-  const [more, setMore] = useState(edit);
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
   const setTime = (k: TimeKey, part: "date" | "time", v: string) => setD((x) => ({ ...x, times: { ...x.times, [k]: { ...x.times[k], [part]: v } } }));
@@ -194,9 +195,9 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
         <h2 className="form-section">Times</h2>
         <p className="form-sub">Takeoff and landing, in local time at each airport. A takeoff after midnight goes on the next day.</p>
         <div className="form-grid">
-          <DateTimeField label="Boarding" {...dt(d, "boarding", setTime)} hint={tzHint(from?.tz, from?.iata ?? d.fromRaw)} />
-          <DateTimeField label="Takeoff" {...dt(d, "takeoff", setTime)} hint={tzHint(from?.tz, from?.iata ?? d.fromRaw)} />
-          <DateTimeField label="Landing" {...dt(d, "landing", setTime)} hint={tzHint(to?.tz, to?.iata ?? d.toRaw)} />
+          <DateTimeField label="Boarding" {...dt(d, "boarding", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
+          <DateTimeField label="Takeoff" {...dt(d, "takeoff", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
+          <DateTimeField label="Landing" {...dt(d, "landing", setTime)} hint={tzHint(to?.tz, textCode(to, d.toRaw))} />
         </div>
 
         {findings.length > 0 && (
@@ -206,73 +207,67 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
           </div>
         )}
 
-        <button type="button" className="disclosure" aria-expanded={more} onClick={() => setMore((m) => !m)}>
-          <Icon name="chevron-down" />
-          More: seat, class, gate, livery, notes, ticket
-        </button>
-        {more && (
-          <>
-            <div className="form-grid">
-              <Field label="Seat">
-                <TextInput value={d.seat} onChange={(e) => set("seat", e.target.value)} placeholder="14A" />
-              </Field>
-              <Field label="Seat position">
-                <Segmented label="Seat position" value={d.seatPosition || null} onChange={(v) => set("seatPosition", v ?? "")} options={[{ value: "window", label: "Window" }, { value: "middle", label: "Middle" }, { value: "aisle", label: "Aisle" }]} />
-              </Field>
-              <Field label="Cabin">
-                <select className="select" value={d.cabinClass} onChange={(e) => set("cabinClass", e.target.value as Draft["cabinClass"])}>
-                  <option value="">Not recorded</option>
-                  {Object.entries(CABIN_LABEL).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Fare">
-                <TextInput value={d.fareBrand} onChange={(e) => set("fareBrand", e.target.value)} placeholder="Main Cabin" />
-              </Field>
-              <Field label="Booking class">
-                <TextInput value={d.bookingClass} onChange={(e) => set("bookingClass", e.target.value)} maxLength={1} placeholder="T" />
-              </Field>
-              <Field label="Reason">
-                <select className="select" value={d.reason} onChange={(e) => set("reason", e.target.value as Draft["reason"])}>
-                  <option value="">Not recorded</option>
-                  {Object.entries(REASON_LABEL).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Terminal">
-                <TextInput value={d.departureTerminal} onChange={(e) => set("departureTerminal", e.target.value)} />
-              </Field>
-              <Field label="Gate">
-                <TextInput value={d.departureGate} onChange={(e) => set("departureGate", e.target.value)} />
-              </Field>
-              <Field label="Special livery" hint="Only real special liveries and stickers">
-                <TextInput value={d.specialLivery} onChange={(e) => set("specialLivery", e.target.value)} />
-              </Field>
-              <Field label="Regular livery variant">
-                <TextInput value={d.livery} onChange={(e) => set("livery", e.target.value)} />
-              </Field>
-              <Field label="Notes" wide>
-                <textarea className="input textarea" rows={3} value={d.notes} onChange={(e) => set("notes", e.target.value)} />
-              </Field>
-            </div>
-            <h2 className="form-section">Private</h2>
-            <p className="form-sub">Kept in your data only. Never sent to a lookup or an agent check, and left out of exports unless you include them.</p>
-            <div className="form-grid">
-              <Field label="Ticket number">
-                <TextInput value={d.ticketNumber} onChange={(e) => set("ticketNumber", e.target.value)} placeholder="13 digits and coupon, e.g. /1" />
-              </Field>
-              <Field label="Booking reference">
-                <TextInput value={d.bookingRef} onChange={(e) => set("bookingRef", e.target.value)} />
-              </Field>
-            </div>
-          </>
-        )}
+        <Disclosure className="disclosure--form" summary="More: seat, class, gate, livery, notes, ticket" defaultOpen={edit}>
+          <div className="form-grid">
+            <Field label="Seat">
+              <TextInput value={d.seat} onChange={(e) => set("seat", e.target.value)} placeholder="14A" />
+            </Field>
+            <Field label="Seat position">
+              <Segmented label="Seat position" value={d.seatPosition || null} onChange={(v) => set("seatPosition", v ?? "")} options={[{ value: "window", label: "Window" }, { value: "middle", label: "Middle" }, { value: "aisle", label: "Aisle" }]} />
+            </Field>
+            <Field label="Cabin">
+              <select className="select" value={d.cabinClass} onChange={(e) => set("cabinClass", e.target.value as Draft["cabinClass"])}>
+                <option value="">Not recorded</option>
+                {Object.entries(CABIN_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Fare">
+              <TextInput value={d.fareBrand} onChange={(e) => set("fareBrand", e.target.value)} placeholder="Main Cabin" />
+            </Field>
+            <Field label="Booking class">
+              <TextInput value={d.bookingClass} onChange={(e) => set("bookingClass", e.target.value)} maxLength={1} placeholder="T" />
+            </Field>
+            <Field label="Reason">
+              <select className="select" value={d.reason} onChange={(e) => set("reason", e.target.value as Draft["reason"])}>
+                <option value="">Not recorded</option>
+                {Object.entries(REASON_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Terminal">
+              <TextInput value={d.departureTerminal} onChange={(e) => set("departureTerminal", e.target.value)} />
+            </Field>
+            <Field label="Gate">
+              <TextInput value={d.departureGate} onChange={(e) => set("departureGate", e.target.value)} />
+            </Field>
+            <Field label="Special livery" hint="Only real special liveries and stickers">
+              <TextInput value={d.specialLivery} onChange={(e) => set("specialLivery", e.target.value)} />
+            </Field>
+            <Field label="Regular livery variant">
+              <TextInput value={d.livery} onChange={(e) => set("livery", e.target.value)} />
+            </Field>
+            <Field label="Notes" wide>
+              <textarea className="input textarea" rows={3} value={d.notes} onChange={(e) => set("notes", e.target.value)} />
+            </Field>
+          </div>
+          <h2 className="form-section">Private</h2>
+          <p className="form-sub">Kept in your data only. Never sent to a lookup or an agent check, and left out of exports unless you include them.</p>
+          <div className="form-grid">
+            <Field label="Ticket number">
+              <TextInput value={d.ticketNumber} onChange={(e) => set("ticketNumber", e.target.value)} placeholder="13 digits and coupon, e.g. /1" />
+            </Field>
+            <Field label="Booking reference">
+              <TextInput value={d.bookingRef} onChange={(e) => set("bookingRef", e.target.value)} />
+            </Field>
+          </div>
+        </Disclosure>
 
         <div className="form-actions">
           <button type="submit" className="btn btn--primary">

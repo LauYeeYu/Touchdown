@@ -5,10 +5,11 @@ import { Link } from "@tanstack/react-router";
 import { useApp } from "../data/context.tsx";
 import type { FlightView } from "../lib/views.ts";
 import type { TrackInfo } from "../lib/mapdata.ts";
-import { typeName, airlineLabel, cityOf, dateOnly, distance } from "../lib/format.ts";
+import { airlineLabel, cityOf, dateOnly, distance } from "../lib/format.ts";
 import { ArrowGlyph, Icon } from "../lib/icons.tsx";
 import { esc, hideTip, showTip } from "./overlay.tsx";
 import { Duration } from "./Duration.tsx";
+import { TypeCell } from "./TypeCell.tsx";
 
 export function FlightCols() {
   return (
@@ -91,10 +92,7 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
           <b>{v.f.flightNumber ?? "—"}</b>
           {airlineLabel(v.f.airlineId, ref) || v.f.airlineRaw}
         </span>
-        <span className="row__cell row__aircraft">
-          <b>{typeName(v.f.typeCode, ref) || "—"}</b>
-          {v.f.registration}
-        </span>
+        <TypeCell code={v.f.typeCode} second={v.f.registration} className="row__aircraft" />
         <span className="row__num row__num--dur tabular">{v.min !== null ? <Duration min={v.min} /> : "—"}</span>
         <span className="row__num row__num--dist tabular">{v.km !== null ? distance(v.km, unit) : "—"}</span>
         <span className="row__track" onPointerEnter={tip} onPointerMove={tip} onPointerLeave={hideTip}>

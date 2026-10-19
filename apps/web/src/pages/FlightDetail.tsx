@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { daysBetween, flightDay, guessSeatPosition, parseDateTime, type Flight } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
+import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { trackIndex } from "../lib/mapdata.ts";
 import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, plural, REASON_LABEL, shortAirport, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -153,7 +154,7 @@ export function FlightDetail() {
       <div className="route-hero">
         <div className="route-hero__end">
           <h1 className="route-hero__code" aria-label={`${f.flightNumber ?? "Flight"} from ${shortAirport(f.fromAirportId, ref) || f.fromRaw || "an unknown airport"}`}>
-            {v.fromCode}
+            {primaryCode(A, f.fromRaw)}
           </h1>
           <p className="route-hero__place">
             {A ? (
@@ -163,8 +164,8 @@ export function FlightDetail() {
             ) : (
               <span className="route-hero__city">{f.fromRaw ?? "Unknown airport"}</span>
             )}
-            {A && <span className="route-hero__name">{A.name} · </span>}
-            {A?.icao && <span className="route-hero__icao">{A.icao}</span>}
+            {A && <span className="route-hero__name">{A.name}</span>}
+            {secondaryCode(A) && <span className="route-hero__icao"> · {secondaryCode(A)}</span>}
           </p>
         </div>
         <div className="route-hero__mid" aria-hidden="true">
@@ -172,14 +173,18 @@ export function FlightDetail() {
             <path className="arcline" d="M4 50 C 50 4, 150 4, 196 50" vectorEffect="non-scaling-stroke" />
           </svg>
           <div className="route-hero__stat">
-            {v.min !== null && <b>{durLong(v.min)}</b>}
+            {v.min !== null && (
+              <b>
+                <Duration min={v.min} pad={false} />
+              </b>
+            )}
             {v.min !== null && v.km !== null && " · "}
             {v.km !== null && distance(v.km, unit)}
           </div>
         </div>
         <div className="route-hero__end route-hero__end--to">
           <p className="route-hero__code" aria-label={`to ${shortAirport(f.toAirportId, ref) || f.toRaw || "an unknown airport"}`}>
-            {v.toCode}
+            {primaryCode(B, f.toRaw)}
           </p>
           <p className="route-hero__place">
             {B ? (
@@ -189,8 +194,8 @@ export function FlightDetail() {
             ) : (
               <span className="route-hero__city">{f.toRaw ?? "Unknown airport"}</span>
             )}
-            {B && <span className="route-hero__name">{B.name} · </span>}
-            {B?.icao && <span className="route-hero__icao">{B.icao}</span>}
+            {B && <span className="route-hero__name">{B.name}</span>}
+            {secondaryCode(B) && <span className="route-hero__icao"> · {secondaryCode(B)}</span>}
           </p>
         </div>
       </div>
@@ -259,7 +264,7 @@ export function FlightDetail() {
               </span>
             )}
           </div>
-          <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={v.fromCode} toCode={v.toCode} track={track} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${f.flightNumber ?? "the flight"} from ${shortAirport(A.id, ref)} to ${shortAirport(B.id, ref)}`} />
+          <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} track={track} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${f.flightNumber ?? "the flight"} from ${shortAirport(A.id, ref)} to ${shortAirport(B.id, ref)}`} />
         </div>
       )}
 
@@ -355,7 +360,7 @@ export function FlightDetail() {
                 {spotted.map((s) => (
                   <li key={s.id}>
                     <span className="dot dot--spotted" />
-                    Spotted{s.airportId ? ` at ${shortAirport(s.airportId, ref)}` : ""}
+                    Spotted{s.airportId ? ` at ${airportWithCode(s.airportId, ref)}` : ""}
                     {s.seenOn && `, ${dayMonthYear(s.seenOn)}`}
                   </li>
                 ))}

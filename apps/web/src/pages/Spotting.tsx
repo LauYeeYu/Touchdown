@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { sightingStats, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
+import { airportWithCode, textCode } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sessionsOf } from "../lib/views.ts";
 import { mapSpots } from "../lib/mapdata.ts";
@@ -13,6 +14,8 @@ import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
 import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
+import { TypeCell } from "../components/TypeCell.tsx";
+import { Fact } from "../components/Facts.tsx";
 
 const SESSION_PREVIEW = 12;
 const SESSIONS_PER_PAGE = 10;
@@ -80,41 +83,15 @@ export function Spotting() {
       {sightings.length > 0 && (
         <dl className="facts">
           {topAirline && (
-            <div>
-              <dt>{ss.byAirline.top.length > 1 ? "Most spotted airlines" : "Most spotted airline"}</dt>
-              <dd>
-                <span className="facts__value">{ss.byAirline.top.map((id) => airlineLabel(id, ref)).join(" and ")}</span>
-                <span className="facts__detail">{plural(topAirline.count, "aircraft", "aircraft")}</span>
-              </dd>
-            </div>
+            <Fact label={ss.byAirline.top.length > 1 ? "Most spotted airlines" : "Most spotted airline"} value={ss.byAirline.top.map((id) => airlineLabel(id, ref)).join(" and ")} detail={plural(topAirline.count, "aircraft", "aircraft")} />
           )}
           {topType && (
-            <div>
-              <dt>Most spotted type</dt>
-              <dd>
-                <span className="facts__value">{typeName(topType.key, ref)}</span>
-                <span className="facts__detail">{plural(topType.count, "aircraft", "aircraft")}</span>
-              </dd>
-            </div>
+            <Fact label="Most spotted type" value={typeName(topType.key, ref)} detail={plural(topType.count, "aircraft", "aircraft")} />
           )}
-          <div>
-            <dt>Special liveries</dt>
-            <dd>
-              <span className="facts__value">{plural(ss.specialLiveryAircraft.value, "aircraft", "aircraft")}</span>
-              <span className="facts__detail">{plural(ss.specialLiveries.value, "livery", "liveries")}</span>
-            </dd>
-          </div>
+          <Fact label="Special liveries" value={plural(ss.specialLiveryAircraft.value, "aircraft", "aircraft")} detail={plural(ss.specialLiveries.value, "livery", "liveries")} />
           {busiest && (
-            <div>
-              <dt>Busiest day</dt>
-              <dd>
-                <span className="facts__value">{plural(busiest.sightings.length, "sighting")}</span>
-                <span className="facts__detail">
-                  {busiest.date ? dateOnly(busiest.date, { day: "numeric", month: "short", year: "numeric" }) : ""}
-                  {busiest.airportId ? ` · ${ref.airport(busiest.airportId)?.iata ?? ref.airport(busiest.airportId)?.icao}` : ""}
-                </span>
-              </dd>
-            </div>
+            <Fact label="Busiest day" value={plural(busiest.sightings.length, "sighting")} detail={<>{busiest.date ? dateOnly(busiest.date, { day: "numeric", month: "short", year: "numeric" }) : ""}
+                  {busiest.airportId ? ` · ${textCode(ref.airport(busiest.airportId))}` : ""}</>} />
           )}
         </dl>
       )}
@@ -143,7 +120,7 @@ export function Spotting() {
             <option value="">All locations</option>
             {airports.map((id) => (
               <option key={id} value={id}>
-                {shortAirport(id, ref)}
+                {airportWithCode(id, ref)}
               </option>
             ))}
           </select>
@@ -174,7 +151,7 @@ export function Spotting() {
           <section className="month session" key={sess.key}>
             <div className="month__head">
               <h2 className="month__title">
-                {sess.date ? dayLong(sess.date) : "No date"} · {shortAirport(sess.airportId, ref) || sess.sightings[0]?.airportRaw || "Unknown place"}
+                {sess.date ? dayLong(sess.date) : "No date"} · {airportWithCode(sess.airportId, ref) || sess.sightings[0]?.airportRaw || "Unknown place"}
               </h2>
               <span className="month__sum">
                 {plural(sess.aircraft, "aircraft", "aircraft")}
@@ -202,10 +179,7 @@ export function Spotting() {
                       </span>
                       <span className="row__cities">{airlineLabel(s.operatorId, ref) || s.operatorRaw || "Unknown operator"}</span>
                     </span>
-                    <span className="row__cell">
-                      <b>{typeName(s.typeCode, ref) || "—"}</b>
-                      {ref.type(s.typeCode) && s.typeCode}
-                    </span>
+                    <TypeCell code={s.typeCode} />
                     <span className="row__cell row__phase">{s.phase ? PHASE_LABEL[s.phase] : ""}</span>
                     <span className="row__cell row__notes">
                       {s.specialLivery && <span className="pill pill--livery">{s.specialLivery}</span>}

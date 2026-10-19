@@ -1,12 +1,12 @@
 // Readable, stable addresses for records (docs/31-ui.md, "Addresses"). Stored ids change when a log is
 // rebuilt from its sources, so pages are addressed by what the record is:
-//   flight    /flights/2025-03-14T0830-BOS-SEA      local takeoff date and time, route (no one leaves one airport
+//   flight    /flights/2025-03-14T0830-LHR-CDG      local takeoff date and time, route (no one leaves one airport
 //                                                   twice in a minute); without a takeoff time: day, route,
 //                                                   flight number
-//   sighting  /spotting/2025-03-14-BOS-N1001X/edit  day, place, registration (one sighting per aircraft, place and day)
+//   sighting  /spotting/2025-03-14-AMS-N1001X/edit  day, place, registration (one sighting per aircraft, place and day)
 //   aircraft  /aircraft/airbus-99001                maker and serial number, the airframe's identity (docs/11);
 //             /aircraft/N1001X-2024-03-01           until the serial number is known: registration and day first seen
-//   airport   /airports/BOS                         IATA code, else ICAO
+//   airport   /airports/LHR                         IATA code, else ICAO
 // Flight numbers repeat (often the same number both ways) and registrations rotate, so neither is the key.
 // A second record with the same address gets "-2", "-3" in time order. Links keep passing record ids; the router
 // turns them into addresses and back (main.tsx), and old addresses still open their page.
@@ -58,7 +58,7 @@ const code = (ref: RefIndex, id: string | null, raw: string | null) => {
 
 export function flightSlugBase(f: Flight, ref: RefIndex): string {
   const route = `${code(ref, f.fromAirportId, f.fromRaw)}-${code(ref, f.divertedToAirportId ?? f.toAirportId, f.toRaw)}`;
-  // "2025-03-14T08:30-04:00": the date and time as written at the departure airport.
+  // "2025-03-14T08:30+00:00": the date and time as written at the departure airport.
   const t = f.takeoffAt && /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(f.takeoffAt);
   if (t) return `${t[1]}T${t[2]}${t[3]}-${route}`;
   const parts = [flightDay(f) ?? f.scheduledDate ?? "undated", route];

@@ -23,6 +23,7 @@ import { Issues } from "./pages/Issues.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
 import { airportParams, slugParams, setSlugData } from "./lib/slugs.ts";
+import { setCodeStyle } from "./lib/codes.ts";
 
 const root = createRootRoute({ component: Shell, notFoundComponent: () => <NotFound /> });
 
@@ -68,6 +69,9 @@ function App() {
         if (await m.loadLocalBackupOnHardReload(opened, () => setNote("Hard refresh: loading your local data again…"))) return;
       }
       setSlugData(opened);
+      // Airport codes follow the setting on every page (lib/codes.ts).
+      setCodeStyle(opened.settings().codeDisplay);
+      opened.subscribe(() => setCodeStyle(opened.settings().codeDisplay));
       setApp(opened);
     })().catch((e: Error) => setError(e.message));
   }, []);

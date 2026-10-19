@@ -9,6 +9,7 @@ import type { AppData } from "../data/app.ts";
 import { dayMonthYear, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FindingItem } from "../components/Findings.tsx";
+import { Tabs } from "../components/Tabs.tsx";
 
 type Sev = "error" | "warning" | "info";
 
@@ -73,14 +74,15 @@ export function Issues() {
           : sentence(count("error"), count("warning"))}
       </h1>
       <p className="form-sub">Checks never block saving. Fix what is wrong, or mark a warning as right; it comes back only if the values change.</p>
-      <div className="tabs" role="tablist" aria-label="Issues">
-        <button type="button" role="tab" className="tab" aria-selected={tab === "open"} onClick={() => setTab("open")}>
-          Open ({open.length})
-        </button>
-        <button type="button" role="tab" className="tab" aria-selected={tab === "accepted"} onClick={() => setTab("accepted")}>
-          Accepted ({accepted.length})
-        </button>
-      </div>
+      <Tabs
+        label="Issues"
+        value={tab}
+        onChange={setTab}
+        items={[
+          ["open", `Open (${open.length})`],
+          ["accepted", `Accepted (${accepted.length})`],
+        ]}
+      />
       {tab === "open" && (
         <>
           <div className="chips" role="group" aria-label="Severity">

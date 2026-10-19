@@ -7,8 +7,9 @@ import { airportVisits, arrivalAirportId, type Sighting } from "@touchdown/core"
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
+import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, mapSpots, trackInfo } from "../lib/mapdata.ts";
-import { typeName, airlineLabel, countryName, dateOnly, distance, plural, shortAirport } from "../lib/format.ts";
+import { airlineLabel, countryName, dateOnly, distance, plural, shortAirport } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -16,6 +17,8 @@ import { Fig } from "../components/Phrase.tsx";
 import { FlightCols, FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { NotFound } from "./NotFound.tsx";
+import { TypeCell } from "../components/TypeCell.tsx";
+import { Fact } from "../components/Facts.tsx";
 
 const FLIGHT_PAGE = 20;
 const AIRCRAFT_PAGE = 30;
@@ -109,7 +112,8 @@ export function AirportPage() {
   }
 
   const name = shortAirport(id, ref);
-  const code = ap.iata ?? ap.icao ?? "";
+  const code = primaryCode(ap);
+  const other = secondaryCode(ap);
   const dep = visits.departures.length;
   const land = visits.landings.length;
   const trans = visits.transits.length;
@@ -137,7 +141,7 @@ export function AirportPage() {
             {ap.name}
             {ap.country ? ` · ${countryName(ap.country)}` : ""}
           </span>
-          {ap.icao && ap.icao !== code && <span className="route-hero__icao"> · {ap.icao}</span>}
+          {other && <span className="route-hero__icao"> · {other}</span>}
         </p>
       </div>
       <div className="view-top view-top--airport">
@@ -181,58 +185,35 @@ export function AirportPage() {
         <dl className="facts">
           {here.length > 0 && (
             <>
-              <div>
-                <dt>Departures</dt>
-                <dd>
-                  <span className="facts__value">{dep}</span>
-                  <span className="facts__detail">{dep ? "flights that started here" : "none"}</span>
-                </dd>
-              </div>
-              <div>
-                <dt>Transits</dt>
-                <dd>
-                  <span className="facts__value">{trans}</span>
-                  <span className="facts__detail">landed, then left within 24 hours</span>
-                </dd>
-              </div>
-              <div>
-                <dt>Landings</dt>
-                <dd>
-                  <span className="facts__value">{land}</span>
-                  <span className="facts__detail">{land ? "flights that ended here" : "none"}</span>
-                </dd>
-              </div>
+              <Fact label="Departures" value={dep} detail={dep ? "flights that started here" : "none"} />
+              <Fact label="Transits" value={trans} detail="landed, then left within 24 hours" />
+              <Fact label="Landings" value={land} detail={land ? "flights that ended here" : "none"} />
             </>
           )}
           {topOther && (
-            <div>
-              <dt>Most flown with</dt>
-              <dd>
-                <Link className="facts__value facts__link" to="/airports/$id" params={{ id: topOther[0] }}>
-                  {shortAirport(topOther[0], ref)}
+            <Fact
+              label="Most flown with"
+              value={
+                <Link className="facts__link" to="/airports/$id" params={{ id: topOther[0] }}>
+                  {airportWithCode(topOther[0], ref)}
                 </Link>
-                <span className="facts__detail">{plural(topOther[1], "flight")}</span>
-              </dd>
-            </div>
+              }
+              detail={plural(topOther[1], "flight")}
+            />
           )}
           {sightings.length > 0 && (
-            <div>
-              <dt>Aircraft photographed</dt>
-              <dd>
-                <span className="facts__value">{plural(spotted.length, "aircraft", "aircraft")}</span>
-                <span className="facts__detail">
+            <Fact
+              label="Aircraft photographed"
+              value={plural(spotted.length, "aircraft", "aircraft")}
+              detail={
+                <>
                   {plural(sightings.length, "sighting")} on {plural(days.size, "day")}
-                </span>
-              </dd>
-            </div>
+                </>
+              }
+            />
           )}
           {firstDay && (
-            <div>
-              <dt>{year === "all" ? "First time here" : `First time in ${year}`}</dt>
-              <dd>
-                <span className="facts__value">{dateOnly(firstDay, { day: "numeric", month: "short", year: "numeric" })}</span>
-              </dd>
-            </div>
+            <Fact label={year === "all" ? "First time here" : `First time in ${year}`} value={dateOnly(firstDay, { day: "numeric", month: "short", year: "numeric" })} />
           )}
         </dl>
       )}
@@ -312,10 +293,7 @@ export function AirportPage() {
                     <span className="row__route">{e.registration || "No registration"}</span>
                     <span className="row__cities">{airlineLabel(e.operatorId, ref) || e.operatorRaw || "Unknown operator"}</span>
                   </span>
-                  <span className="row__cell">
-                    <b>{typeName(e.typeCode, ref) || "—"}</b>
-                    {ref.type(e.typeCode) && e.typeCode}
-                  </span>
+                  <TypeCell code={e.typeCode} />
                   <span className="row__cell row__airline">{airlineLabel(e.operatorId, ref) || e.operatorRaw || "—"}</span>
                   <span className="row__num tabular" title={`Seen here on ${plural(e.days.size || 1, "day")}`}>
                     <span className="dot dot--spotted" />

@@ -5,6 +5,7 @@ import type { MapFlight, MapSpot } from "../components/maps.tsx";
 import { esc } from "../components/overlay.tsx";
 import { dateOnly, dayShort, distance, plural, shortAirport } from "./format.ts";
 import type { FlightView } from "./views.ts";
+import { primaryCode, textCode } from "./codes.ts";
 
 /** Recorded track coordinates per flight id. */
 export function trackIndex(store: Store): Map<string, [number, number][]> {
@@ -51,8 +52,9 @@ export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["d
       id: v.f.id,
       from: [a.lon, a.lat],
       to: [b.lon, b.lat],
-      fromCode: v.fromCode,
-      toCode: v.toCode,
+      // Map labels have room for one code; the tooltip below shows them as text.
+      fromCode: primaryCode(a),
+      toCode: primaryCode(b),
       fromId: a.id,
       toId: b.id,
       fromName: shortAirport(a.id, ref),
@@ -83,7 +85,7 @@ export function mapSpots(sightings: Sighting[], ref: RefIndex, bothAirframes: Se
   for (const [id, v] of byAp) {
     const a = ref.airport(id);
     if (!a) continue;
-    const code = a.iata ?? a.icao ?? "";
+    const code = primaryCode(a);
     const name = shortAirport(id, ref);
     out.push({
       airportId: id,
@@ -93,7 +95,7 @@ export function mapSpots(sightings: Sighting[], ref: RefIndex, bothAirframes: Se
       aircraft: v.airframes.size,
       both: v.both,
       label: `${name}: ${plural(v.airframes.size, "aircraft", "aircraft")} seen`,
-      tip: `<strong>${esc(name)} (${esc(code)})</strong><br><span class="muted">${plural(v.airframes.size, "aircraft", "aircraft")} seen on ${plural(v.days.size, "day")}${v.last ? ` · last ${dateOnly(v.last)}` : ""} · click for the airport page</span>`,
+      tip: `<strong>${esc(name)} (${esc(textCode(a))})</strong><br><span class="muted">${plural(v.airframes.size, "aircraft", "aircraft")} seen on ${plural(v.days.size, "day")}${v.last ? ` · last ${dateOnly(v.last)}` : ""} · click for the airport page</span>`,
     });
   }
   return out;

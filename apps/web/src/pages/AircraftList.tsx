@@ -8,6 +8,7 @@ import { airlineLabel, dateOnly, plural, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
+import { TypeCell } from "../components/TypeCell.tsx";
 
 type Filter = "all" | "flown" | "both" | "provisional" | "noFirstFlight";
 
@@ -111,10 +112,7 @@ export function AircraftList() {
                 {/* Phones hide the type column, so the type code moves under the registration. */}
                 {v.airframe.typeCode && <span className="row__cities row__type-phone">{v.airframe.typeCode}</span>}
               </span>
-              <span className="row__cell">
-                <b>{typeName(v.airframe.typeCode, ref) || "—"}</b>
-                {ref.type(v.airframe.typeCode) && v.airframe.typeCode}
-              </span>
+              <TypeCell code={v.airframe.typeCode} />
               <span className="row__cell row__airline">{airlineLabel(v.operatorId, ref) || "—"}</span>
               <span className="row__num tabular">
                 {v.flights.length > 0 && <span className="dot dot--flown" />}

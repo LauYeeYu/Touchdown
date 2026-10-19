@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { flightStats } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
+import { routeCodes } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights, type FlightView } from "../lib/views.ts";
 import { mapFlights, trackIndex, trackInfo } from "../lib/mapdata.ts";
@@ -68,7 +69,7 @@ export function Flights() {
   const opening = year === "all" ? `Since ${years[0] ?? thisYear} you have taken` : year === thisYear ? `So far in ${year} you have taken` : `In ${year} you took`;
   const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
   const topRoute = fs.byRoute.items[0];
-  const [ra, rb] = topRoute ? topRoute.key.split("-") : [];
+  const [ra, rb] = topRoute ? routeCodes(topRoute.key, ref, " ").split(" ") : [];
 
   // A highlight comes from a hovered row or arc, else from a pointed-at or pinned phrase.
   const active: Highlight = hover ?? (focus ? { kind: "route", key: focus } : null);

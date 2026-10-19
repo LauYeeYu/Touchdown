@@ -4,10 +4,12 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { flightStats, sightingStats, todayIn, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
+import { airportWithCode, textCode } from "../lib/codes.ts";
+import { BigCode } from "../components/BigCode.tsx";
 import { usePeriod, inPeriod } from "../lib/period.ts";
 import { sessionsOf, sortedFlights, flownAndPhotographed } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, cityOf, dateOnly, dayShort, distance, durLong, MONTHS_LONG, nf, plural, shortAirport, typeName } from "../lib/format.ts";
+import { airlineLabel, cityOf, dateOnly, dayShort, distance, durLong, MONTHS_LONG, plural, typeName } from "../lib/format.ts";
 import { ArrowGlyph, Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -16,6 +18,8 @@ import { Credit, Photo } from "../components/Photo.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { Fig, Phrase, usePhrases } from "../components/Phrase.tsx";
 import { EmptyLog } from "./EmptyLog.tsx";
+import { Disclosure } from "../components/Disclosure.tsx";
+import { Fact } from "../components/Facts.tsx";
 
 /** Model names such as 737-800 stay on one line instead of breaking at the hyphen. */
 function Keep({ text }: { text: string }) {
@@ -151,13 +155,7 @@ export function Home() {
       {facts.length > 0 && (
         <dl className="facts">
           {facts.map(([label, value, detail]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>
-                <span className="facts__value">{value}</span>
-                {detail && <span className="facts__detail">{detail}</span>}
-              </dd>
-            </div>
+            <Fact key={label} label={label} value={value} detail={detail} />
           ))}
         </dl>
       )}
@@ -208,9 +206,9 @@ export function Home() {
             {last ? (
               <>
                 <h3 className="route-mini" aria-label={`${cityOf(last.f.fromAirportId, ref)} to ${cityOf(last.f.toAirportId, ref)}`}>
-                  <span>{last.fromCode}</span>
+                  <BigCode airport={ref.airport(last.f.fromAirportId)} raw={last.f.fromRaw} />
                   <ArrowGlyph />
-                  <span>{last.toCode}</span>
+                  <BigCode airport={ref.airport(last.f.divertedToAirportId ?? last.f.toAirportId)} raw={last.f.toRaw} />
                 </h3>
                 <p className="recent__line">
                   {last.day && <b>{dayShort(last.day)}</b>} · {cityOf(last.f.fromAirportId, ref)} to {cityOf(last.f.toAirportId, ref)}
@@ -221,7 +219,7 @@ export function Home() {
                   {last.min !== null && (
                     <li>
                       <Icon name="clock" />
-                      {durLong(last.min)}
+                      <Duration min={last.min} pad={false} />
                     </li>
                   )}
                   {last.km !== null && (
@@ -251,7 +249,7 @@ export function Home() {
           <div>
             {lastSession ? (
               <>
-                <h3 className="session__title">{shortAirport(lastSession.airportId, ref) || lastSession.sightings[0]?.airportRaw || "Unknown place"}</h3>
+                <h3 className="session__title">{airportWithCode(lastSession.airportId, ref) || lastSession.sightings[0]?.airportRaw || "Unknown place"}</h3>
                 <p className="recent__line">
                   {lastSession.date && <b>{dayShort(lastSession.date)}</b>} · {plural(lastSession.aircraft, "aircraft", "aircraft")} seen
                   {lastSession.newAircraft > 0 && (
@@ -315,7 +313,7 @@ export function Home() {
                     <li>
                       <span className="dot dot--spotted" />
                       Spotted {sighting.seenOn ? dateOnly(sighting.seenOn) : ""}
-                      {sighting.airportId && ` · ${ref.airport(sighting.airportId)?.iata ?? ref.airport(sighting.airportId)?.icao}`}
+                      {sighting.airportId && ` · ${textCode(ref.airport(sighting.airportId))}`}
                     </li>
                   </ul>
                   <Credit reg={flight.registration} />
@@ -353,8 +351,7 @@ export function Home() {
             <MonthChart values={newByMonth} color="var(--spotted)" unitOne="new aircraft" unitMany="new aircraft" futureFrom={futureFrom} yearLabel={year === "all" ? "" : year} />
           </div>
         </div>
-        <details className="numbers">
-          <summary>Show the numbers</summary>
+        <Disclosure className="numbers" summary="Show the numbers">
           <table>
             <thead>
               <tr>
@@ -373,7 +370,7 @@ export function Home() {
               ))}
             </tbody>
           </table>
-        </details>
+        </Disclosure>
       </section>
     </div>
   );

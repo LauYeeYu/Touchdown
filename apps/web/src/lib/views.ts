@@ -12,6 +12,7 @@ import {
   type Store,
 } from "@touchdown/core";
 import { inPeriod } from "./period.ts";
+import { textCode } from "./codes.ts";
 
 export interface FlightView {
   f: Flight;
@@ -32,8 +33,9 @@ export function viewFlight(f: Flight, ref: RefIndex): FlightView {
     km: flightDistanceKm(f, ref),
     min: flightDurationMin(f),
     route: routeKey(f, ref),
-    fromCode: from?.iata ?? from?.icao ?? f.fromRaw ?? "?",
-    toCode: to?.iata ?? to?.icao ?? f.toRaw ?? "?",
+    // As text, in the user's codes ("LHR", "EGLL" or "LHR/EGLL"); large type and maps use primaryCode.
+    fromCode: textCode(from, f.fromRaw) || "?",
+    toCode: textCode(to, f.toRaw) || "?",
   };
 }
 
