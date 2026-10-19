@@ -98,6 +98,19 @@ The sheets and the myFR24 export store a date and separate clock times. Touchdow
 
 When matching rows against other sources (tracks, FR24 lists, the other spreadsheet), compare instants, and allow the scheduled date to differ from the takeoff date by one day.
 
+### Time zones and daylight saving
+
+Decided:
+
+| Case | Rule |
+|---|---|
+| Offset | Each airport has an IANA time zone (`Europe/London`, not `+01:00`). A clock time gets the offset in force there on that date, so summer time and past changes to a zone's rules (Moscow in 2014, Brazil in 2019, Mexico in 2022) come out right. Zone rules come from the runtime's time-zone data (`Intl`); none is shipped. |
+| Duration | Always the difference between instants. A flight that crosses a clock change has a duration that differs from the clock difference by the change. |
+| Repeated hour (clocks go back) | A clock time in that hour happens twice. Takeoff: the one that makes takeoff plus duration land at the row's landing time; otherwise the earlier. Landing without a duration: the first one after takeoff. Boarding: the latest one not after takeoff. |
+| Skipped hour (clocks go forward) | The time does not exist; it is moved forward by the change (02:30 → 03:30), as Temporal's "compatible" rule does. |
+| A day later | Moving a time to the next day (after-midnight corrections, the V-TIMES-ORDER fix) keeps the clock time and takes the offset in force on the new day. |
+| Diversions | Landing and actual arrival use the zone of the airport the flight landed at; scheduled arrival uses the planned destination's zone. |
+
 ## Reconciling FR24 and the flight log spreadsheet
 
 The same flights are in both the FR24 export and the flight log spreadsheet. The first import of the second source matches every row against the first (stage 4) and merges:

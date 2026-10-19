@@ -41,7 +41,7 @@ Severity:
 | V-FLIGHTNO-AIRLINE | flightNumber, airline | Designator prefix matches the airline's IATA or ICAO code. | warning | Fill airline from flight number. |
 | V-SEAT-FORMAT | seat | 1–3 digits + one letter. | warning | Uppercase. |
 | V-TIMES-ORDER | flight times | boarding ≤ departure ≤ takeoff < landing ≤ arrival, compared as instants. | error | |
-| V-TIME-OFFSET | any date-time | The UTC offset matches the airport's time zone on that date (catches a wrong zone or a missed daylight-saving change). | error | Recompute the offset from the airport. |
+| V-TIME-OFFSET | any date-time | The UTC offset matches the airport's time zone on that date (catches a wrong zone or a missed daylight-saving change). A diverted flight's landing and arrival are checked against the airport it landed at. | error | Recompute the offset from the airport. |
 | V-DAY-ROLLOVER | flight | The local date of takeoff is `scheduledDate` or the day after. The day after is fine (late departure) and is shown as info; anything else is an error. | error / info | |
 | V-DURATION-SPEED | flight | Distance / duration between about 150 and 1,100 km/h. Catches wrong airports, wrong dates, wrong times. | warning | |
 | V-DISTANCE-DIFF | flight | Entered distance within 3% of great-circle distance. | info | Use computed value. |
