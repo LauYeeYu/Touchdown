@@ -4,7 +4,7 @@ Metric definitions for flights, sightings, and both together (requirements G3, P
 
 ## General rules
 
-- Stats are computed in the browser from the local store. Data volume (thousands of records) does not need a database engine; plain TypeScript aggregation is enough.
+- Statistics are computed in the browser from the local store. Data volume (thousands of records) does not need a database engine; plain TypeScript aggregation is enough.
 - "Aircraft" always means distinct airframes (requirement I4). Provisional airframes are counted, and the count of provisional ones is shown next to the total.
 - Every metric lists the fields it needs. Records missing them are left out, and the UI shows "N records left out (missing X)".
 - Deleted records (tombstones) are never counted. Only flown flights exist in the log.
@@ -46,9 +46,9 @@ Metric definitions for flights, sightings, and both together (requirements G3, P
 | Airports | Count of distinct airports. |
 | First seen / last seen | Min / max date. |
 
-### Pivot
+### Custom view (pivot)
 
-Any one or two dimensions × one measure, with filters (date range, dataset, any dimension value). Shown as a table and, where it reads well, a chart. Examples the user already has:
+Shown in the app as the "Custom view" tab, with plain controls: From (flights or sightings), Count (number of records, aircraft each once, distance, time in the air), Group by (rows) and Split by (columns, optional). Any one or two dimensions × one measure, with filters (date range, dataset, any dimension value). Shown as a table and, where it reads well, a chart. Examples the user already has:
 
 | Sheet tab | Pivot |
 |-----------|-------|
@@ -57,7 +57,7 @@ Any one or two dimensions × one measure, with filters (date range, dataset, any
 | Manufacturer by Airlines | rows = airline, columns = manufacturer, measure = aircraft |
 | Family by Location | rows = airport, columns = family, measure = aircraft |
 
-Saved views: the user can save a pivot (dimensions, measure, filters) under a name. Saved views are stored in `settings.json`.
+Saved views: the user can save a custom view (dimensions, measure, filters) under a name ("Save this view"). Saved views are stored in `settings.json`.
 
 ## Sightings summary (requirement P1)
 
