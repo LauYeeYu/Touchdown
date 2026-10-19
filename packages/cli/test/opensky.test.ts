@@ -1,0 +1,30 @@
+import { describe, expect, it } from "vitest";
+import { RefIndex } from "@touchdown/core";
+import { refTables } from "../../core/test/fixtures.ts";
+import { openSkyFacts, parseOpenSkyRow, splitOpenSkyLine } from "../src/providers/opensky.ts";
+
+const ref = new RefIndex(refTables);
+
+// Made-up rows in the snapshot's layout (32 fields).
+const aligned = `'a00001','2024-01-01 00:00:00',0,0,'2019-01-01',Medium,United States,'2x CFM LEAP',,,L2J,'5001',AIRBUS,Airbus,A321 271NX,0,'','',Delta Air Lines,DELTA,DL,DAL,Delta Air Lines,'',,'2019-06-03',N1001X,'','99001','',A21N,0`;
+// An unquoted comma in the operator name pushes the middle fields out of place.
+const shifted = `'a00002','2024-01-01 00:00:00',0,0,,'',United States,'',,,L2J,'',BOEING,Boeing,757 232,0,'','',Example Air, Inc.,'','',EXA,Example Air,'',,,N2002X,'','29001','',B752,0`;
+
+describe("OpenSky snapshot rows", () => {
+  it("splits quoted and bare fields", () => {
+    expect(splitOpenSkyLine(`'a','b,c',,d,'it''s'`)).toEqual(["a", "b,c", "", "d", "it's"]);
+  });
+
+  it("reads an aligned row", () => {
+    const r = parseOpenSkyRow(aligned)!;
+    expect(r).toMatchObject({ registration: "N1001X", serialNumber: "99001", typecode: "A21N", registered: "2019-06-03", lineNumber: "5001", model: "A321 271NX" });
+    const f = openSkyFacts(r, ref);
+    expect(f).toMatchObject({ msn: "99001", typeCode: "A21N", manufacturer: "Airbus", notBefore: "2019-01-01", lineNumber: "5001" });
+    expect(f.registrations).toEqual([{ registration: "N1001X", from: "2019-06-03", to: null, operator: null }]);
+  });
+
+  it("reads the end of a row whose middle has an extra comma", () => {
+    const r = parseOpenSkyRow(shifted)!;
+    expect(r).toMatchObject({ registration: "N2002X", serialNumber: "29001", typecode: "B752", lineNumber: "", model: "" });
+  });
+});

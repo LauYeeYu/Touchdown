@@ -1,0 +1,13 @@
+{
+  "name": "@touchdown/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "touchdown": "./src/main.ts"
+  },
+  "dependencies": {
+    "@touchdown/core": "*",
+    "@touchdown/refdata": "*"
+  }
+}
