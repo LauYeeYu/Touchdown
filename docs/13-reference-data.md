@@ -10,7 +10,7 @@ Where facts about airports, airlines, aircraft types, airframes, flights, and tr
 | Airlines (IATA + ICAO + validity) | Wikidata, VRS airlines, Mictronics operators | none needed | small airlines, renames |
 | Aircraft types | VRS standing-data model-type | none needed | family table is ours to maintain |
 | Registration → type, hex, operator | Mictronics / tar1090-db, adsbdb, hexdb | — | registration history outside the US |
-| Registration → MSN, first flight | FAA registry (US), OpenSky aircraft DB (2025-08 snapshot) | — | non-US aircraft built after 2025-08; history |
+| Registration → MSN, first flight | OpenSky aircraft DB (2025-08 snapshot); Flightradar24 through the user's own browser (opt-in); text pasted from an airframe page | — | aircraft registered after 2025-08; exact first flight dates (see "Airframe facts") |
 | Flight number + date → aircraft, times | none for past flights | FlightAware AeroAPI Personal (last 10 days) | flights older than 10 days |
 | Recorded track | adsb.lol trace history (from 2023-03) | AeroAPI (last 10 days); FR24 consumer plan (manual download) | flights before 2023-03; areas with poor receiver coverage |
 
@@ -57,9 +57,67 @@ Used when the static index has no entry or is stale. Results are cached by the l
 | [adsbdb](https://www.adsbdb.com/) | `GET /v0/aircraft/{reg or hex}` | type, manufacturer, hex, registration, owner, country | Free, no key. Aircraft data credited to PlaneBase. Route data may not be copied into other databases. Light, cached use only. |
 | [hexdb.io](https://hexdb.io/) | `/api/v1/aircraft/{hex}`, `/reg-hex?reg=` | registration, type, owner | "Please do not scrape." Light, cached use only. |
 
-## Sites the user checks by hand
+## Airframe facts
 
-The user currently looks up aircraft on airfleets.net (Airbus), aviation.flights (Boeing), and planespotters.net. These sites do not allow automated access (airframes.org explicitly forbids it; the others have no API). The app does not scrape them. Instead, each airframe page shows links that open these sites with the registration filled in, so the manual check is one click away. A value the user copies from them is stored with `fieldSources = user`.
+How an aircraft in the log gets its serial number (MSN), line number, first flight and delivery dates. The airframe index above is the long-term plan; this section is what the CLI and the web app do now.
+
+### Sources
+
+| Source | Gives | How | Status |
+|--------|-------|-----|--------|
+| OpenSky aircraft database, complete snapshot 2025-08 | MSN for most airliners; line number and first flight for a few (first flight is filled in about 1% of rows); build year | One CSV download (about 110 MB, from OpenSky's S3 bucket) into `data/private/reference/` (git-ignored), read locally. Licence accepted for this app (Q-LICENSES). | Decided |
+| Flightradar24 aircraft page (`/data/aircraft/<registration>`) | MSN, model, type code, Mode S code, and a month beside the age (for example "AGE (Oct 2009)") | Opt-in (`--fr24`). Read through a Chrome the user started with `--remote-debugging-port` and is signed in to: one tab, one page at a time, 10 seconds apart by default, answers cached. FR24's terms (clause 2.3) allow access only "via a human-operated web browser or mobile application"; the user decides whether to use this (Q-FR24-BROWSER). If FR24 shows a bot check, the run stops using FR24; nothing tries to get past it. | Decided |
+| Text pasted from an airframe page | Whatever the page shows: MSN, line number, first flight, delivery | The user opens a page in their browser (the aircraft page links to airfleets.net, aviation.flights, planespotters.net and Flightradar24), selects all, copies and pastes into "Paste from a web page" on the aircraft page. The values are previewed before saving. | Decided |
+
+**Limitation of FR24.** FR24 never gives the day of the first flight, only a month beside the age, so it can fill serial numbers but not first flight dates. A first flight date is stored only when the exact day is known (Q-FR24-MONTH). The month is not always the first flight either: for an older aircraft it matched the first flight, but brand-new aircraft were seen up to three months before it (it is probably the delivery or registration month). So it is used only as a loose check: an answer is rejected when one of the user's records is more than a year before that month, which still catches a registration that belonged to another aircraft years earlier.
+
+### Sites that are not read automatically
+
+| Site | Why |
+|------|-----|
+| airfleets.net | Every request from a program gets a bot check (HTTP 403), which says Airfleets "protects its aviation data against automated access and abusive scraping". robots.txt itself allows `/ficheapp/` and `/recherche/`. |
+| aviation.flights | Every request from a program gets a bot check, robots.txt included. Its terms reserve the right to block users "creating automated scripts that will interact with any of the pages of the service". It sells an API. |
+| planespotters.net | robots.txt ends with `User-agent: *` / `Disallow: /` (only named search engines are allowed). The terms (section 13) say the aircraft database "may not be copied or altered, neither in whole nor in part, without prior permission". Every request from a program also gets a bot check. |
+| FAA registry download | The ReleasableAircraft.zip download refuses requests from a program (HTTP 503). A user can download it in a browser; reading that file is not built yet (Proposed). |
+| adsbdb, hexdb.io | Allow light use but give neither MSN nor first flight. |
+| Wikidata | Allows queries, but has serial numbers or first flights for only a few hundred airframes. |
+
+An exact first flight date for most aircraft therefore comes from the user at a browser, through the paste flow (Q-FIRST-FLIGHT).
+
+### Checks before anything is stored
+
+A source answers for a registration, and registrations are reused. An answer is used only if it fits every record of the airframe; otherwise it is reported and nothing is stored.
+
+| Check | Rejects when |
+|-------|--------------|
+| Type | The source's type code is in another family than the airframe's (same family, e.g. A321 and A21N, is fine). |
+| Maker | The first word of the maker differs ("Airbus SAS" and "Airbus" agree). |
+| First flight | A record of the airframe is dated before the source's first flight. |
+| Build year, age month | A record is dated before the start of the build year (OpenSky), or more than a year before the age month (FR24). |
+| Registration dates | The source gives when the aircraft carried the registration and a record falls outside it, with a month's slack either side. |
+
+When a source knows several airframes for a registration, the first that passes is used.
+
+### What is stored
+
+- The facts go on the airframe (`msn`, `lineNumber`, `firstFlightDate`, `deliveryDate`, `status`, and `manufacturer` when missing), with a `field_provenance` row per field: source `lookup`, detail the provider (`opensky`, `fr24`). `factsProvider` and `factsFetchedAt` record the latest lookup; the page address goes in `external_ids` (system = provider).
+- A serial number makes the airframe confirmed (`identityKey = msn:<maker>:<msn>`, [11](11-aircraft-identity.md)). If another airframe already has that key, the two are merged.
+- Serial numbers are compared and stored without leading zeros when they are all digits (FR24 writes "038" where the maker writes "38").
+- A value the user typed in the app always wins; a different lookup value is reported, not stored. A value imported from the user's own sheet also wins unless the CLI runs with `--overwrite-imported`.
+- Pasted values are saved as values the user entered (`field_provenance` source `user`).
+- The aircraft page shows where each fact came from ("from OpenSky", "from your sheet", "entered by you"), linking to the page when there is one.
+
+### Running it
+
+`npm run touchdown -- airframes <backup.zip> --out <backup.zip>` looks up every aircraft that lacks a serial number or first flight; `import … --airframes` does the same while building a backup. Options:
+
+| Option | Does |
+|--------|------|
+| `--fr24` | Also use Flightradar24 through the user's Chrome (`--chrome-port`, default 9222; `--fr24-delay`, default 10 seconds). Only aircraft still without a serial number are visited. |
+| `--all` | Look up every aircraft, not only those with gaps. |
+| `--only REG,REG` / `--limit N` | Restrict the run. |
+| `--refresh` / `--offline` | Ask the sources again / use only cached answers. Answers are cached for 90 days in `data/private/cache/airframes/`. |
+| `--overwrite-imported` | Let lookups replace values imported from the user's sheet. |
 
 ## Flight lookups (flight number + date)
 

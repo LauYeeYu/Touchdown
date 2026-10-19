@@ -44,6 +44,9 @@ None. Phase 1 test data is in `data/private/`.
 | Q-LOOKUP | Lookup service or no server? | Cloudflare Worker. The owner will set API keys as Worker secrets; keys are not shared in chat. |
 | Q-BUDGET, Q-FR24-SUB | Paid data? FR24 subscription? | No paid source in the app. A user might have an FR24 subscription (Silver 90 days, Gold 365 days, Business 3 years of track downloads) and use it for manual track downloads. |
 | Q-LICENSES | OpenSky DB and tar1090-db for the airframe index? | Acceptable; no need to ask the maintainers. |
+| Q-FIRST-FLIGHT | Exact first flight dates can be read automatically only with a site's permission or paid data. Ask or pay, or keep the paste flow? | Keep the paste flow ([13](13-reference-data.md), "Airframe facts"). |
+| Q-FR24-MONTH | Store FR24's age month (a month, not a day), for example as a first-flight month column? | No. A first flight date is stored only when the exact day is known; FR24's month is used only as a loose check (it is not always the first flight). |
+| Q-FR24-BROWSER | Read Flightradar24 aircraft pages through the user's own signed-in Chrome (remote debugging), although FR24's terms allow only a human-operated browser? | Yes, as an opt-in CLI option (`--fr24`) for the user's own lookups, slow and cached, stopping at any bot check. Airfleets, aviation.flights and planespotters are not read this way. |
 | Q-PLANNED | Planned (future) flights? | Not supported. |
 | Q-MOBILE | Phone support? | Web app in Chrome on Android. No iOS support needed. |
 | Q-MODELS | Track die-cast models? | No. Misc is a note to the user; import it as notes. |

@@ -59,7 +59,7 @@ docs/
 data/private/        personal data, git-ignored
 ```
 
-One pnpm workspace. The core package has no browser or Node-specific code, so the web app and the CLI share it.
+One npm workspace (npm ships with Node, so there is no extra package manager to install). The core package has no browser or Node-specific code, so the web app and the CLI share it.
 
 ## Technology (proposed unless noted)
 
@@ -70,12 +70,12 @@ One pnpm workspace. The core package has no browser or Node-specific code, so th
 | Routing / data tables | TanStack Router, TanStack Table | Typed, client-only. |
 | Schema | Zod-based table definitions in `packages/core/schema` | One definition generates TypeScript types, validators, JSON Schemas, and SQL DDL for SQLite / D1 / Postgres. |
 | SQLite in the browser | Official SQLite WebAssembly build | Opens and writes the SQLite file backend in Chrome (desktop and Android). |
-| Local store | IndexedDB via Dexie | Offline, fast queries, survives reloads. |
+| Local store | IndexedDB via Dexie | Offline, survives reloads. All rows are also held in memory (a personal log is a few MB), so pages compute from the core store directly; IndexedDB is the persistence under it. |
 | Time zones | Temporal API (polyfill until browsers ship it) | Correct local-time and day-offset math. |
-| Interactive map | MapLibre GL JS with a free vector tile source | No API key needed. |
+| Interactive map | d3-geo on Natural Earth land (world-atlas), drawn as SVG | Decided by the approved prototype: a quiet world map with arcs and spots, no tiles, no API key, same drawing code as the exports. |
 | Export rendering | d3-geo + Natural Earth (public domain) on canvas/SVG | Full control of the output, no tile licensing issues in exported images and videos. |
 | Video encoding | WebCodecs + an MP4 muxer in the browser (supported in Chrome on desktop and Android); WebM via MediaRecorder as fallback; CLI with ffmpeg for long renders | No server needed. |
-| Charts | Observable Plot | SVG output, simple API, easy to export. |
+| Charts | d3 scales and hand-drawn SVG | The few charts (months, altitude, ranked lists) follow the prototype's mark rules exactly; a chart library would add weight without saving code. |
 | CSV | Papa Parse | Handles quoting, encodings, large files. |
 | Google auth | Google Identity Services token flow, scope `drive.file` | No backend needed for auth. |
 | Offline | Service worker (PWA) | App loads without network; sync resumes later. |

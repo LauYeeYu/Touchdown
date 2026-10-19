@@ -20,7 +20,8 @@ The last case matters most: if the type code is part of the key, the consistency
 The physical airframe is identified by **manufacturer + manufacturer serial number (MSN)**. The MSN never changes over the life of the airframe.
 
 - Known MSN: `identityKey = msn:<manufacturer>:<msn>`, e.g. `msn:airbus:10741`.
-- Unknown MSN: the airframe is **provisional**, `identityKey = prov:<registration>:<first date seen>`. A provisional airframe is upgraded when a lookup or the user supplies the MSN.
+- Unknown MSN: the airframe is **provisional**, `identityKey = prov:<registration>:<first date seen>`. A provisional airframe is upgraded when a lookup or the user supplies the MSN ([13](13-reference-data.md), "Airframe facts"). If another airframe already has that MSN, the two are merged.
+- MSNs that are all digits are compared and stored without leading zeros ("038" and "38" are the same airframe).
 
 The registration is not the key. It is a time-bound attribute: an airframe has a list of `RegistrationPeriod {registration, from, to}`.
 
@@ -65,8 +66,12 @@ Input: the record's normalised registration `R`, date `D` (flights: the flight d
           and T (if given) matches its type; otherwise raise X-REG-REUSE-POSSIBLE
           and create a provisional airframe.
    c. Lookup unavailable (offline, no data):
-      reuse a provisional airframe for R if one exists and its type matches T;
-      otherwise create a new provisional airframe prov:<R>:<D>.
+      create a new provisional airframe prov:<R>:<D> with an open-ended
+      registration period for R. Later records with R find it in step 2, whatever
+      their type code; a different type code is then flagged by C-TYPE-MISMATCH in
+      step 6 instead of silently creating a second aircraft. (Decided: a typo is far
+      more common than a reused registration, and the user resolves the finding by
+      fixing the type or splitting the registration period.)
 
 6. Check the record against the linked airframe:
    - T differs from airframe.typeCode       -> C-TYPE-MISMATCH (error)

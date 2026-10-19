@@ -39,7 +39,7 @@ This doc contains no personal data. Examples are made up. The actual values, sum
 | Type Code | A333 | `flights.typeCodeRaw` → `typeCode` | ICAO type designator. |
 | Aircraft | A330-343 | `flights.modelRaw` → `model` | Manufacturer model designation; parsed into the standard form (D4). |
 | Registration Number | B-1234 | `flights.registrationRaw` → `registration` | |
-| First Flight Date | 23-Dec-2010 | `airframes.firstFlightDate` | Fact about the airframe, not the flight. Recorded with `field_provenance` source `user`. |
+| First Flight Date | 17-Sep-2011 | `airframes.firstFlightDate` | Fact about the airframe, not the flight. Recorded with `field_provenance` source `user`. |
 | Special Livery | Anniversary Livery | `flights.specialLivery` | |
 | Misc | free text, URLs | `flights.notes` | A note to the user, copied as is. Not parsed or tracked. |
 

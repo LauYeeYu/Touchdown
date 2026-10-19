@@ -154,7 +154,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `arrivalAt` | datetime | | Gate arrival, actual. |
 | `departureTerminal`, `departureGate` | text | `1`, `A12` | |
 | `arrivalTerminal`, `arrivalGate` | text | | |
-| `seat` | text | `21C` | |
+| `seat` | text | `14A` | |
 | `seatPosition` | enum | `window` | `window`, `middle`, `aisle`. When empty, a guess from the seat letter is shown as derived. |
 | `cabinClass` | enum | `economy` | `economy`, `premium_economy`, `business`, `first`, `private` |
 | `bookingClass` | text | `T` | Single letter. |
@@ -183,8 +183,8 @@ One sighting = one aircraft seen at one place on one day. Several photos of it i
 
 | Column | Type | Example | Notes |
 |--------|------|---------|-------|
-| `seenOn` | date | `2025-09-13` | Local date. Always set when the day is known. |
-| `seenAt` | datetime | `2025-09-13T14:05-04:00` | Set when the time is known. Its local date must equal `seenOn`. |
+| `seenOn` | date | `2025-06-21` | Local date. Always set when the day is known. |
+| `seenAt` | datetime | `2025-06-21T14:05-04:00` | Set when the time is known. Its local date must equal `seenOn`. |
 | `airportId` | ref airports | | |
 | `airportRaw` | text | `KAAA` | |
 | `spotName` | text | | Spotting location name. |
@@ -253,7 +253,7 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 
 ### History, imports, accepted warnings
 
-**record_history**: previous versions of rows, for undo and conflict review. `tableName` (text), `recordId` (id), `rev` (integer), `row` (json), `changedAt` (datetime), `batchId` (ref import_batches, optional), `reason` (enum `edit`, `import`, `sync_conflict`, `migration`).
+**record_history**: previous versions of rows, for undo and conflict review. `tableName` (text), `recordId` (id), `recordRev` (integer; the version of the row that was replaced, named so it does not clash with the system column `rev`), `row` (json), `changedAt` (datetime), `batchId` (ref import_batches, optional), `reason` (enum `edit`, `import`, `sync_conflict`, `migration`). A user's own edits write a row with reason `edit`; undoing an import uses this to leave records edited since alone.
 
 **import_batches**: `createdAt` (datetime), `sourceKind` (enum), `fileName` (text), `fileHash` (text), `mappingPreset` (text), `rowsRead`, `rowsAccepted`, `rowsEdited`, `rowsRejected` (integer), `agentChecker` (enum `claude`, `codex`, `none`), `status` (enum `committed`, `undone`). The original source file is kept next to the data as an attachment ([12](12-storage-and-sync.md)).
 

@@ -8,7 +8,7 @@ Touchdown is a personal aircraft log: flights the user has flown on and aircraft
 
 ## Status
 
-Planning. Do not write application code until the user approves the plan in `docs/`. Changes to `docs/` are fine.
+The plan in `docs/` is approved. Building phase 1 (core on real data) and phase 2 (web app on one device) from `docs/40-roadmap.md`. When the code and a doc disagree, ask the user which one is right, then fix the other.
 
 ## Docs
 
@@ -44,4 +44,16 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 
 ## Commands
 
-None yet. Add build, test, and lint commands here when the code exists.
+One npm workspace (`packages/*`, `apps/*`). Packages are consumed as TypeScript source; there is no build step for them.
+
+| Command | Does |
+|---------|------|
+| `npm install` | Install all workspace dependencies. |
+| `npm test` | Run every Vitest suite. |
+| `npm run typecheck` | Type-check the packages. |
+| `npm run touchdown -- import <files…>` | Phase 1 CLI: import files, print findings and summary statistics. `--apply-fixes` accepts single suggested fixes first; `--out backup.zip` writes a backup the web app can restore. |
+| `npm run touchdown -- import <files…> --tracks DIR --tracks-adsblol DIR --airframes --out data/private/touchdown-backup.zip` | Build the owner's local backup, recorded tracks and airframe facts (OpenSky) included. |
+| `npm run touchdown -- airframes data/private/touchdown-backup.zip [--fr24] --out data/private/touchdown-backup.zip` | Fill serial numbers and first flight dates in an existing backup (docs/13, "Airframe facts"). `--fr24` also reads Flightradar24 through a Chrome started with `--remote-debugging-port=9222` and signed in. |
+| `npm run dev -w @touchdown/web` | Web app dev server at http://127.0.0.1:5173. In development only, an empty browser loads `data/private/touchdown-backup.zip` once; a hard refresh (Shift-reload) or the button in Settings loads it again; the production build contains none of this. |
+| `npm run build -w @touchdown/web` | Type-check and build the web app into `apps/web/dist`. |
+| `npm run build-data -w @touchdown/refdata` | Rebuild the reference tables in `packages/refdata/data/`. |

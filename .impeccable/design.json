@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-18T05:26:24Z",
+  "generatedAt": "2026-10-18T12:00:00Z",
   "title": "Design System: Touchdown",
   "extensions": {
     "colorMeta": {
@@ -12,12 +12,12 @@
         "oklch": "oklch(97.9% 0.009 94)",
         "tonalRamp": [
           "#0c0b07",
-          "#25241f",
-          "#41403a",
-          "#5f5e58",
-          "#7f7d77",
-          "#a09e98",
-          "#c6c4bd",
+          "#262520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59e",
+          "#cbc9c2",
           "#f0eee7"
         ]
       },
@@ -29,12 +29,12 @@
         "oklch": "oklch(95.2% 0.012 92)",
         "tonalRamp": [
           "#0d0b06",
-          "#26241d",
-          "#424038",
-          "#605d56",
-          "#807d75",
-          "#a19e96",
-          "#c7c4bb",
+          "#27251e",
+          "#44423b",
+          "#646159",
+          "#85827a",
+          "#a8a59c",
+          "#ccc9c0",
           "#f1eee5"
         ]
       },
@@ -46,12 +46,12 @@
         "oklch": "oklch(91.6% 0.018 89)",
         "tonalRamp": [
           "#0e0b04",
-          "#27241a",
-          "#433f35",
-          "#625d52",
-          "#817d71",
-          "#a39e92",
-          "#c9c4b7",
+          "#29251b",
+          "#464237",
+          "#656156",
+          "#878276",
+          "#a9a598",
+          "#cec9bc",
           "#f3eee1"
         ]
       },
@@ -63,12 +63,12 @@
         "oklch": "oklch(99.4% 0.007 89)",
         "tonalRamp": [
           "#0c0b08",
-          "#252420",
-          "#41403c",
-          "#5f5d59",
-          "#7f7d79",
-          "#a09e9a",
-          "#c6c4bf",
+          "#262521",
+          "#43423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a0",
+          "#cbc9c4",
           "#f0eee9"
         ]
       },
@@ -80,12 +80,12 @@
         "oklch": "oklch(90.4% 0.017 88)",
         "tonalRamp": [
           "#0e0b04",
-          "#27241b",
-          "#433f36",
-          "#625d53",
-          "#817d72",
-          "#a39e93",
-          "#c9c4b8",
+          "#28251c",
+          "#464238",
+          "#656156",
+          "#868277",
+          "#a9a599",
+          "#cec9bd",
           "#f3eee2"
         ]
       },
@@ -97,12 +97,12 @@
         "oklch": "oklch(84.6% 0.023 87)",
         "tonalRamp": [
           "#0f0a02",
-          "#292317",
-          "#453f32",
-          "#635d4f",
-          "#837d6e",
-          "#a59e8f",
-          "#cac3b4",
+          "#2a2418",
+          "#474134",
+          "#676153",
+          "#888273",
+          "#aba495",
+          "#d0c9b9",
           "#f5eedd"
         ]
       },
@@ -114,12 +114,12 @@
         "oklch": "oklch(77.5% 0.027 87)",
         "tonalRamp": [
           "#100a01",
-          "#2a2315",
-          "#463f30",
-          "#645d4d",
-          "#847d6c",
-          "#a69e8c",
-          "#cbc3b1",
+          "#2b2416",
+          "#484132",
+          "#686150",
+          "#898271",
+          "#aca493",
+          "#d1c8b6",
           "#f6eedb"
         ]
       },
@@ -131,12 +131,12 @@
         "oklch": "oklch(23.2% 0.006 78)",
         "tonalRamp": [
           "#0d0b08",
-          "#262421",
-          "#423f3c",
-          "#605d5a",
-          "#7f7d79",
-          "#a19e9a",
-          "#c6c4bf",
+          "#272522",
+          "#44423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a1",
+          "#cbc9c5",
           "#f1eeea"
         ]
       },
@@ -148,12 +148,12 @@
         "oklch": "oklch(42.6% 0.014 80)",
         "tonalRamp": [
           "#0e0a05",
-          "#28231c",
-          "#443f37",
-          "#625d55",
-          "#827c74",
-          "#a39e95",
-          "#c9c3ba",
+          "#29241d",
+          "#464139",
+          "#666058",
+          "#878279",
+          "#aaa49b",
+          "#cec8bf",
           "#f4eee4"
         ]
       },
@@ -165,12 +165,12 @@
         "oklch": "oklch(52.0% 0.017 81)",
         "tonalRamp": [
           "#0f0a04",
-          "#28231b",
-          "#443f36",
-          "#635d53",
-          "#837c72",
-          "#a49e93",
-          "#cac3b8",
+          "#29241c",
+          "#474138",
+          "#666057",
+          "#888177",
+          "#aba499",
+          "#cfc8bd",
           "#f4eee2"
         ]
       },
@@ -182,12 +182,12 @@
         "oklch": "oklch(33.5% 0.010 74)",
         "tonalRamp": [
           "#0e0b07",
-          "#27231f",
-          "#433f3a",
-          "#615d57",
-          "#817c77",
-          "#a29e98",
-          "#c8c3bd",
+          "#282420",
+          "#45413c",
+          "#65605b",
+          "#86817c",
+          "#a9a49e",
+          "#cdc8c2",
           "#f3eee7"
         ]
       },
@@ -199,12 +199,12 @@
         "oklch": "oklch(83.7% 0.018 85)",
         "tonalRamp": [
           "#0f0b04",
-          "#28231a",
-          "#443f35",
-          "#625d52",
-          "#827d72",
-          "#a49e92",
-          "#c9c3b7",
+          "#29241b",
+          "#464137",
+          "#666156",
+          "#878277",
+          "#aaa499",
+          "#cec8bc",
           "#f4eee1"
         ]
       },
@@ -222,83 +222,83 @@
       },
       "flown": {
         "role": "primary",
-        "displayName": "Flown Blue",
+        "displayName": "Flown Gold",
         "theme": "light",
-        "canonical": "#2b6cb8",
-        "oklch": "oklch(52.9% 0.136 255)",
+        "canonical": "#c48400",
+        "oklch": "oklch(66.2% 0.140 75)",
         "tonalRamp": [
-          "#000927",
-          "#00234e",
-          "#053f7b",
-          "#1a5da8",
-          "#3e7fcc",
-          "#60a1f1",
-          "#9cc7fe",
-          "#e4f0ff"
+          "#130900",
+          "#352000",
+          "#5a3b01",
+          "#835703",
+          "#ae7508",
+          "#d89629",
+          "#febb55",
+          "#feebd2"
         ]
       },
       "flown-ink": {
         "role": "primary",
-        "displayName": "Flown Text Blue",
+        "displayName": "Flown Text Gold",
         "theme": "light",
-        "canonical": "#245c9e",
-        "oklch": "oklch(47.3% 0.122 255)",
+        "canonical": "#714b00",
+        "oklch": "oklch(44.4% 0.093 76)",
         "tonalRamp": [
-          "#000926",
-          "#00234d",
-          "#003e7e",
-          "#265ea0",
-          "#477fc4",
-          "#68a1e9",
-          "#9ec7fc",
-          "#e4f0fe"
+          "#130900",
+          "#342000",
+          "#593b06",
+          "#805917",
+          "#a37a3d",
+          "#c79d60",
+          "#edc183",
+          "#feecd2"
         ]
       },
       "flown-wash": {
         "role": "primary",
         "displayName": "Flown Wash",
         "theme": "light",
-        "canonical": "rgba(43, 108, 184, 0.1)"
+        "canonical": "rgba(196, 132, 0, 0.1)"
       },
       "spotted": {
         "role": "secondary",
-        "displayName": "Spotted Orange",
+        "displayName": "Spotted Blue",
         "theme": "light",
-        "canonical": "#d0742a",
-        "oklch": "oklch(65.0% 0.143 55)",
+        "canonical": "#4559a9",
+        "oklch": "oklch(48.9% 0.130 270)",
         "tonalRamp": [
-          "#1c0300",
-          "#3c1900",
-          "#642f00",
-          "#904700",
-          "#bc620c",
-          "#e1833c",
-          "#fcb17d",
-          "#ffeadc"
+          "#030132",
+          "#111762",
+          "#293986",
+          "#465aaa",
+          "#657cd0",
+          "#86a0f6",
+          "#b6c7fd",
+          "#e8eefe"
         ]
       },
       "spotted-ink": {
         "role": "secondary",
-        "displayName": "Spotted Text Orange",
+        "displayName": "Spotted Text Blue",
         "theme": "light",
-        "canonical": "#9c5214",
-        "oklch": "oklch(51.8% 0.120 54)",
+        "canonical": "#2b4090",
+        "oklch": "oklch(40.3% 0.135 269)",
         "tonalRamp": [
-          "#1c0300",
-          "#3c1900",
-          "#642f00",
-          "#904700",
-          "#b3672e",
-          "#d88951",
-          "#fcb07e",
-          "#ffeadd"
+          "#020034",
+          "#0d1665",
+          "#253988",
+          "#425aad",
+          "#617dd3",
+          "#82a0f9",
+          "#b3c8ff",
+          "#e8eeff"
         ]
       },
       "spotted-wash": {
         "role": "secondary",
         "displayName": "Spotted Wash",
         "theme": "light",
-        "canonical": "rgba(208, 116, 42, 0.12)"
+        "canonical": "rgba(69, 89, 169, 0.12)"
       },
       "good": {
         "role": "tertiary",
@@ -307,15 +307,67 @@
         "canonical": "#2e7d4f",
         "oklch": "oklch(52.9% 0.106 155)",
         "tonalRamp": [
-          "#001003",
-          "#002d15",
-          "#044d29",
-          "#1c6f42",
-          "#429060",
-          "#65b281",
-          "#8bd9a5",
-          "#c7fed8"
+          "#001005",
+          "#022e16",
+          "#06502b",
+          "#217245",
+          "#489565",
+          "#6cb987",
+          "#90deaa",
+          "#c6ffd8"
         ]
+      },
+      "alert": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "theme": "light",
+        "canonical": "#ba1a1a",
+        "oklch": "oklch(50.6% 0.193 28)",
+        "tonalRamp": [
+          "#1f0000",
+          "#4c0304",
+          "#7f080a",
+          "#b51215",
+          "#de443b",
+          "#fb7669",
+          "#feb3a9",
+          "#ffe9e5"
+        ]
+      },
+      "alert-wash": {
+        "role": "tertiary",
+        "displayName": "Alert Wash",
+        "theme": "light",
+        "canonical": "rgba(186, 26, 26, 0.08)"
+      },
+      "focus": {
+        "role": "secondary",
+        "displayName": "Focus Gold",
+        "theme": "light",
+        "canonical": "#b58a00",
+        "oklch": "oklch(65.7% 0.134 86)",
+        "tonalRamp": [
+          "#110a00",
+          "#302301",
+          "#543e02",
+          "#7a5c06",
+          "#a27c0c",
+          "#ca9e2b",
+          "#efc357",
+          "#feedc6"
+        ]
+      },
+      "focus-wash": {
+        "role": "secondary",
+        "displayName": "Focus Wash",
+        "theme": "light",
+        "canonical": "rgba(247, 190, 2, 0.3)"
+      },
+      "selection": {
+        "role": "secondary",
+        "displayName": "Text Selection",
+        "theme": "light",
+        "canonical": "#f9de85"
       },
       "land": {
         "role": "neutral",
@@ -325,12 +377,12 @@
         "oklch": "oklch(90.7% 0.021 89)",
         "tonalRamp": [
           "#0f0b03",
-          "#282418",
-          "#443f33",
-          "#625d50",
-          "#827d6f",
-          "#a49e90",
-          "#cac4b5",
+          "#292519",
+          "#474235",
+          "#666154",
+          "#878274",
+          "#aaa596",
+          "#cfc9ba",
           "#f4eedf"
         ]
       },
@@ -342,12 +394,12 @@
         "oklch": "oklch(96.4% 0.011 90)",
         "tonalRamp": [
           "#0d0b06",
-          "#26241e",
-          "#424039",
-          "#605d57",
-          "#807d76",
-          "#a19e97",
-          "#c7c4bc",
+          "#27251f",
+          "#44423b",
+          "#64615a",
+          "#85827b",
+          "#a8a59d",
+          "#ccc9c1",
           "#f1eee6"
         ]
       },
@@ -359,12 +411,12 @@
         "oklch": "oklch(95.8% 0.012 92)",
         "tonalRamp": [
           "#0d0b06",
-          "#26241d",
-          "#424038",
-          "#605d56",
-          "#807d75",
-          "#a19e96",
-          "#c7c4bb",
+          "#27251e",
+          "#44423b",
+          "#646159",
+          "#85827a",
+          "#a8a59c",
+          "#ccc9c0",
           "#f1eee5"
         ]
       },
@@ -376,12 +428,12 @@
         "oklch": "oklch(91.9% 0.017 88)",
         "tonalRamp": [
           "#0e0b04",
-          "#27241b",
-          "#433f36",
-          "#625d53",
-          "#817d72",
-          "#a39e93",
-          "#c9c4b8",
+          "#28251c",
+          "#464238",
+          "#656157",
+          "#868277",
+          "#a9a599",
+          "#cec9bd",
           "#f3eee2"
         ]
       },
@@ -393,13 +445,178 @@
         "oklch": "oklch(93.8% 0.016 86)",
         "tonalRamp": [
           "#0e0b05",
-          "#27241b",
-          "#433f36",
-          "#615d54",
-          "#817d73",
-          "#a39e94",
-          "#c8c4b9",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cec9be",
           "#f3eee3"
+        ]
+      },
+      "surface-lowest": {
+        "role": "neutral",
+        "displayName": "Surface Lowest",
+        "theme": "light",
+        "canonical": "#fffdf8",
+        "oklch": "oklch(99.4% 0.007 89)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#262521",
+          "#43423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a0",
+          "#cbc9c4",
+          "#f0eee9"
+        ]
+      },
+      "surface-low": {
+        "role": "neutral",
+        "displayName": "Surface Low",
+        "theme": "light",
+        "canonical": "#f5f0e5",
+        "oklch": "oklch(95.6% 0.016 86)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#28251d",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cdc9be",
+          "#f3eee3"
+        ]
+      },
+      "surface-mid": {
+        "role": "neutral",
+        "displayName": "Surface Mid",
+        "theme": "light",
+        "canonical": "#f2ede2",
+        "oklch": "oklch(94.7% 0.016 86)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cdc9be",
+          "#f3eee3"
+        ]
+      },
+      "surface-high": {
+        "role": "neutral",
+        "displayName": "Surface High",
+        "theme": "light",
+        "canonical": "#ede8dd",
+        "oklch": "oklch(93.2% 0.016 86)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cec9be",
+          "#f3eee3"
+        ]
+      },
+      "surface-highest": {
+        "role": "neutral",
+        "displayName": "Surface Highest",
+        "theme": "light",
+        "canonical": "#e7e2d7",
+        "oklch": "oklch(91.4% 0.016 86)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cec9be",
+          "#f3eee3"
+        ]
+      },
+      "selected-container": {
+        "role": "secondary",
+        "displayName": "Selection Container",
+        "theme": "light",
+        "canonical": "#eee1c5",
+        "oklch": "oklch(91.3% 0.040 86)",
+        "tonalRamp": [
+          "#110a00",
+          "#2e240c",
+          "#4b4129",
+          "#6b6047",
+          "#8d8167",
+          "#b0a489",
+          "#d5c8ac",
+          "#faedd1"
+        ]
+      },
+      "on-selected-container": {
+        "role": "secondary",
+        "displayName": "On Selection Container",
+        "theme": "light",
+        "canonical": "#211b0a",
+        "oklch": "oklch(22.4% 0.030 90)",
+        "tonalRamp": [
+          "#100a00",
+          "#2b2413",
+          "#48422f",
+          "#68614e",
+          "#89826e",
+          "#aca590",
+          "#d1c9b3",
+          "#f6eed8"
+        ]
+      },
+      "state-hover": {
+        "role": "neutral",
+        "displayName": "Hover State Layer",
+        "theme": "light",
+        "canonical": "rgba(31, 29, 26, 0.08)"
+      },
+      "state-press": {
+        "role": "neutral",
+        "displayName": "Press State Layer",
+        "theme": "light",
+        "canonical": "rgba(31, 29, 26, 0.12)"
+      },
+      "globe-stage": {
+        "role": "neutral",
+        "displayName": "Globe Stage",
+        "theme": "light",
+        "canonical": "#ede8dd",
+        "oklch": "oklch(93.2% 0.016 86)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cec9be",
+          "#f3eee3"
+        ]
+      },
+      "globe-sphere": {
+        "role": "neutral",
+        "displayName": "Globe Ocean",
+        "theme": "light",
+        "canonical": "#fffdf8",
+        "oklch": "oklch(99.4% 0.007 89)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#262521",
+          "#43423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a0",
+          "#cbc9c4",
+          "#f0eee9"
         ]
       },
       "paper-dark": {
@@ -410,12 +627,12 @@
         "oklch": "oklch(20.0% 0.006 92)",
         "tonalRamp": [
           "#0c0b08",
-          "#252421",
-          "#41403c",
-          "#5f5d5a",
-          "#7e7d79",
-          "#a09e9a",
-          "#c5c4c0",
+          "#262522",
+          "#43423e",
+          "#62615d",
+          "#83827e",
+          "#a6a5a1",
+          "#cac9c5",
           "#f0eeea"
         ]
       },
@@ -427,12 +644,12 @@
         "oklch": "oklch(23.9% 0.008 95)",
         "tonalRamp": [
           "#0c0b08",
-          "#252420",
-          "#41403b",
-          "#5f5e59",
-          "#7e7d78",
-          "#a09e99",
-          "#c5c4bf",
+          "#262521",
+          "#43423e",
+          "#62615c",
+          "#84827d",
+          "#a6a5a0",
+          "#cac9c4",
           "#f0eee9"
         ]
       },
@@ -444,12 +661,12 @@
         "oklch": "oklch(28.1% 0.009 89)",
         "tonalRamp": [
           "#0d0b07",
-          "#26241f",
-          "#42403a",
-          "#605d58",
-          "#7f7d77",
-          "#a19e98",
-          "#c6c4bd",
+          "#272520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59e",
+          "#cbc9c2",
           "#f1eee8"
         ]
       },
@@ -461,12 +678,12 @@
         "oklch": "oklch(22.6% 0.008 95)",
         "tonalRamp": [
           "#0c0b08",
-          "#252420",
-          "#41403b",
-          "#5f5e59",
-          "#7e7d78",
-          "#a09e99",
-          "#c5c4bf",
+          "#262521",
+          "#43423d",
+          "#62615c",
+          "#84827d",
+          "#a6a5a0",
+          "#cac9c4",
           "#f0eee9"
         ]
       },
@@ -478,12 +695,12 @@
         "oklch": "oklch(29.7% 0.009 89)",
         "tonalRamp": [
           "#0d0b07",
-          "#26241f",
-          "#42403a",
-          "#605d58",
-          "#7f7d77",
-          "#a19e98",
-          "#c6c4bd",
+          "#272520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59f",
+          "#cbc9c2",
           "#f1eee8"
         ]
       },
@@ -495,12 +712,12 @@
         "oklch": "oklch(37.9% 0.014 90)",
         "tonalRamp": [
           "#0d0b05",
-          "#27241c",
-          "#434038",
-          "#615d55",
-          "#807d74",
-          "#a29e95",
-          "#c7c4ba",
+          "#28251d",
+          "#45423a",
+          "#646158",
+          "#858279",
+          "#a8a59b",
+          "#ccc9bf",
           "#f2eee4"
         ]
       },
@@ -512,12 +729,12 @@
         "oklch": "oklch(45.7% 0.017 89)",
         "tonalRamp": [
           "#0e0b04",
-          "#27241b",
-          "#433f36",
-          "#615d53",
-          "#817d72",
-          "#a29e93",
-          "#c8c4b8",
+          "#28251c",
+          "#464238",
+          "#656157",
+          "#868277",
+          "#a9a59a",
+          "#cdc9bd",
           "#f3eee2"
         ]
       },
@@ -529,12 +746,12 @@
         "oklch": "oklch(94.9% 0.011 90)",
         "tonalRamp": [
           "#0d0b06",
-          "#26241e",
-          "#424039",
-          "#605d57",
-          "#807d76",
-          "#a19e97",
-          "#c7c4bc",
+          "#27251f",
+          "#44423b",
+          "#64615a",
+          "#85827b",
+          "#a8a59d",
+          "#ccc9c1",
           "#f1eee6"
         ]
       },
@@ -546,12 +763,12 @@
         "oklch": "oklch(81.5% 0.019 86)",
         "tonalRamp": [
           "#0f0b03",
-          "#282319",
-          "#443f34",
-          "#625d52",
-          "#827d71",
-          "#a49e91",
-          "#cac4b6",
+          "#29251a",
+          "#464137",
+          "#666155",
+          "#878276",
+          "#aaa498",
+          "#cfc9bb",
           "#f4eee0"
         ]
       },
@@ -563,12 +780,12 @@
         "oklch": "oklch(69.1% 0.020 86)",
         "tonalRamp": [
           "#0f0b03",
-          "#282319",
-          "#443f34",
-          "#635d51",
-          "#827d70",
-          "#a49e91",
-          "#cac3b6",
+          "#29241a",
+          "#474136",
+          "#666155",
+          "#888275",
+          "#aaa497",
+          "#cfc9bb",
           "#f4eee0"
         ]
       },
@@ -580,12 +797,12 @@
         "oklch": "oklch(87.1% 0.016 86)",
         "tonalRamp": [
           "#0e0b04",
-          "#27241b",
-          "#433f36",
-          "#625d54",
-          "#817d73",
-          "#a39e93",
-          "#c9c4b9",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a59a",
+          "#cec9be",
           "#f3eee3"
         ]
       },
@@ -593,18 +810,13 @@
         "role": "neutral",
         "displayName": "Tooltip Muted (dark)",
         "theme": "dark",
-        "canonical": "#57524a",
-        "oklch": "oklch(44.1% 0.014 80)",
-        "tonalRamp": [
-          "#0e0a05",
-          "#28231c",
-          "#443f37",
-          "#625d55",
-          "#827c74",
-          "#a39e95",
-          "#c9c3ba",
-          "#f4eee4"
-        ]
+        "canonical": "#c8c2b5"
+      },
+      "tip-bg-dark": {
+        "role": "neutral",
+        "displayName": "Tooltip Surface (dark)",
+        "theme": "dark",
+        "canonical": "#3d3b33"
       },
       "hover-wash-dark": {
         "role": "neutral",
@@ -620,83 +832,83 @@
       },
       "flown-dark": {
         "role": "primary",
-        "displayName": "Flown Blue (dark)",
+        "displayName": "Flown Gold (dark)",
         "theme": "dark",
-        "canonical": "#4f92e0",
-        "oklch": "oklch(65.1% 0.136 254)",
+        "canonical": "#c48400",
+        "oklch": "oklch(66.2% 0.140 75)",
         "tonalRamp": [
-          "#000a25",
-          "#00244a",
-          "#023f7a",
-          "#175ea7",
-          "#3c7fcb",
-          "#5ea1f1",
-          "#9cc8fd",
-          "#e4f0ff"
+          "#130900",
+          "#352000",
+          "#5a3b01",
+          "#835703",
+          "#ae7508",
+          "#d89629",
+          "#febb55",
+          "#feebd2"
         ]
       },
       "flown-ink-dark": {
         "role": "primary",
-        "displayName": "Flown Text Blue (dark)",
+        "displayName": "Flown Text Gold (dark)",
         "theme": "dark",
-        "canonical": "#8ab8ef",
-        "oklch": "oklch(77.1% 0.093 253)",
+        "canonical": "#ffba4b",
+        "oklch": "oklch(83.4% 0.147 76)",
         "tonalRamp": [
-          "#000926",
-          "#00234c",
-          "#16406f",
-          "#355f91",
-          "#5480b4",
-          "#75a2d7",
-          "#9dc8fb",
-          "#e4f0fe"
+          "#130900",
+          "#342100",
+          "#5a3b00",
+          "#825803",
+          "#ad7607",
+          "#d99617",
+          "#fdbc55",
+          "#ffebd1"
         ]
       },
       "flown-wash-dark": {
         "role": "primary",
         "displayName": "Flown Wash (dark)",
         "theme": "dark",
-        "canonical": "rgba(79, 146, 224, 0.16)"
+        "canonical": "rgba(196, 132, 0, 0.16)"
       },
       "spotted-dark": {
         "role": "secondary",
-        "displayName": "Spotted Orange (dark)",
+        "displayName": "Spotted Blue (dark)",
         "theme": "dark",
-        "canonical": "#d4773a",
-        "oklch": "oklch(66.2% 0.138 51)",
+        "canonical": "#788ce0",
+        "oklch": "oklch(66.1% 0.127 272)",
         "tonalRamp": [
-          "#1d0200",
-          "#3e1700",
-          "#672d00",
-          "#90460f",
-          "#bc6120",
-          "#e18347",
-          "#fcb083",
-          "#ffeade"
+          "#040131",
+          "#151761",
+          "#2d3884",
+          "#4959a9",
+          "#697cce",
+          "#8a9ff5",
+          "#b7c7fe",
+          "#e9eeff"
         ]
       },
       "spotted-ink-dark": {
         "role": "secondary",
-        "displayName": "Spotted Text Orange (dark)",
+        "displayName": "Spotted Text Blue (dark)",
         "theme": "dark",
-        "canonical": "#eda46c",
-        "oklch": "oklch(77.8% 0.113 58)",
+        "canonical": "#b8c4ff",
+        "oklch": "oklch(83.2% 0.084 276)",
         "tonalRamp": [
-          "#1b0400",
-          "#3a1b00",
-          "#613201",
-          "#8b4a06",
-          "#af6a32",
-          "#d38c54",
-          "#fbb179",
-          "#ffeadc"
+          "#06022d",
+          "#1b1f4d",
+          "#363d6e",
+          "#545d91",
+          "#747eb5",
+          "#96a1da",
+          "#bac6fe",
+          "#eaeeff"
         ]
       },
       "spotted-wash-dark": {
         "role": "secondary",
         "displayName": "Spotted Wash (dark)",
         "theme": "dark",
-        "canonical": "rgba(212, 119, 58, 0.18)"
+        "canonical": "rgba(120, 140, 224, 0.18)"
       },
       "good-dark": {
         "role": "tertiary",
@@ -705,15 +917,67 @@
         "canonical": "#63b886",
         "oklch": "oklch(71.5% 0.111 156)",
         "tonalRamp": [
-          "#001004",
-          "#002d17",
-          "#044d2c",
-          "#0d7042",
-          "#3a9161",
-          "#5eb381",
-          "#85daa6",
-          "#c7feda"
+          "#000f05",
+          "#002e18",
+          "#01502d",
+          "#147346",
+          "#409666",
+          "#65ba88",
+          "#8adfab",
+          "#c4ffd9"
         ]
+      },
+      "alert-dark": {
+        "role": "tertiary",
+        "displayName": "Alert Red (dark)",
+        "theme": "dark",
+        "canonical": "#ffb4ab",
+        "oklch": "oklch(83.8% 0.089 27)",
+        "tonalRamp": [
+          "#1f0000",
+          "#470c0b",
+          "#692c27",
+          "#8d4c45",
+          "#b26d65",
+          "#d78f87",
+          "#feb3aa",
+          "#ffe9e6"
+        ]
+      },
+      "alert-wash-dark": {
+        "role": "tertiary",
+        "displayName": "Alert Wash (dark)",
+        "theme": "dark",
+        "canonical": "rgba(255, 180, 171, 0.12)"
+      },
+      "focus-dark": {
+        "role": "secondary",
+        "displayName": "Focus Gold (dark)",
+        "theme": "dark",
+        "canonical": "#d5a400",
+        "oklch": "oklch(74.3% 0.152 87)",
+        "tonalRamp": [
+          "#110a00",
+          "#302302",
+          "#533f05",
+          "#7a5c00",
+          "#a27c01",
+          "#cc9e11",
+          "#f4c23d",
+          "#feedc6"
+        ]
+      },
+      "focus-wash-dark": {
+        "role": "secondary",
+        "displayName": "Focus Wash (dark)",
+        "theme": "dark",
+        "canonical": "rgba(247, 190, 2, 0.24)"
+      },
+      "selection-dark": {
+        "role": "secondary",
+        "displayName": "Text Selection (dark)",
+        "theme": "dark",
+        "canonical": "#6b5300"
       },
       "land-dark": {
         "role": "neutral",
@@ -723,13 +987,30 @@
         "oklch": "oklch(27.7% 0.009 89)",
         "tonalRamp": [
           "#0d0b07",
-          "#26241f",
-          "#42403a",
-          "#605d58",
-          "#7f7d77",
-          "#a19e98",
-          "#c6c4bd",
+          "#272520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59e",
+          "#cbc9c2",
           "#f1eee7"
+        ]
+      },
+      "land-edge-dark": {
+        "role": "neutral",
+        "displayName": "Coastline (dark)",
+        "theme": "dark",
+        "canonical": "#171613",
+        "oklch": "oklch(20.0% 0.006 92)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#262522",
+          "#43423e",
+          "#62615d",
+          "#83827e",
+          "#a6a5a1",
+          "#cac9c5",
+          "#f0eeea"
         ]
       },
       "sphere-dark": {
@@ -740,12 +1021,12 @@
         "oklch": "oklch(22.6% 0.006 92)",
         "tonalRamp": [
           "#0c0b08",
-          "#252421",
-          "#41403c",
-          "#5f5d5a",
-          "#7e7d79",
-          "#a09e9a",
-          "#c5c4c0",
+          "#262522",
+          "#43423e",
+          "#62615d",
+          "#83827e",
+          "#a6a5a1",
+          "#cac9c5",
           "#f0eeea"
         ]
       },
@@ -757,12 +1038,12 @@
         "oklch": "oklch(28.5% 0.009 89)",
         "tonalRamp": [
           "#0d0b07",
-          "#26241f",
-          "#42403a",
-          "#605d58",
-          "#7f7d77",
-          "#a19e98",
-          "#c6c4bd",
+          "#272520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59f",
+          "#cbc9c2",
           "#f1eee8"
         ]
       },
@@ -774,13 +1055,178 @@
         "oklch": "oklch(31.4% 0.011 85)",
         "tonalRamp": [
           "#0d0b06",
-          "#27241e",
-          "#423f39",
-          "#615d57",
-          "#807d76",
-          "#a29e97",
-          "#c7c4bc",
+          "#28251f",
+          "#45423b",
+          "#64615a",
+          "#85827b",
+          "#a8a59d",
+          "#ccc9c1",
           "#f2eee6"
+        ]
+      },
+      "surface-lowest-dark": {
+        "role": "neutral",
+        "displayName": "Surface Lowest (dark)",
+        "theme": "dark",
+        "canonical": "#0f0e08",
+        "oklch": "oklch(16.3% 0.012 100)",
+        "tonalRamp": [
+          "#0c0b06",
+          "#26251e",
+          "#43423b",
+          "#63615a",
+          "#84837a",
+          "#a7a59d",
+          "#cbc9c0",
+          "#f0efe6"
+        ]
+      },
+      "surface-low-dark": {
+        "role": "neutral",
+        "displayName": "Surface Low (dark)",
+        "theme": "dark",
+        "canonical": "#1d1c15",
+        "oklch": "oklch(22.5% 0.013 101)",
+        "tonalRamp": [
+          "#0c0b06",
+          "#26251e",
+          "#43423a",
+          "#636259",
+          "#84837a",
+          "#a7a59c",
+          "#cbc9c0",
+          "#f0efe5"
+        ]
+      },
+      "surface-mid-dark": {
+        "role": "neutral",
+        "displayName": "Surface Mid (dark)",
+        "theme": "dark",
+        "canonical": "#212019",
+        "oklch": "oklch(24.2% 0.013 101)",
+        "tonalRamp": [
+          "#0c0b06",
+          "#26251e",
+          "#43423b",
+          "#636259",
+          "#84837a",
+          "#a7a59c",
+          "#cbc9c0",
+          "#f0efe5"
+        ]
+      },
+      "surface-high-dark": {
+        "role": "neutral",
+        "displayName": "Surface High (dark)",
+        "theme": "dark",
+        "canonical": "#2b2a23",
+        "oklch": "oklch(28.4% 0.012 100)",
+        "tonalRamp": [
+          "#0c0b06",
+          "#26251e",
+          "#43423b",
+          "#63615a",
+          "#84837a",
+          "#a7a59d",
+          "#cbc9c0",
+          "#f0efe5"
+        ]
+      },
+      "surface-highest-dark": {
+        "role": "neutral",
+        "displayName": "Surface Highest (dark)",
+        "theme": "dark",
+        "canonical": "#36352d",
+        "oklch": "oklch(32.7% 0.014 101)",
+        "tonalRamp": [
+          "#0c0b05",
+          "#26251e",
+          "#43423a",
+          "#636259",
+          "#848379",
+          "#a7a59c",
+          "#cbcac0",
+          "#f0efe5"
+        ]
+      },
+      "selected-container-dark": {
+        "role": "secondary",
+        "displayName": "Selection Container (dark)",
+        "theme": "dark",
+        "canonical": "#4e4631",
+        "oklch": "oklch(39.6% 0.035 90)",
+        "tonalRamp": [
+          "#100a00",
+          "#2c2410",
+          "#49412c",
+          "#69614b",
+          "#8a826b",
+          "#aea48d",
+          "#d2c9b0",
+          "#f8eed5"
+        ]
+      },
+      "on-selected-container-dark": {
+        "role": "secondary",
+        "displayName": "On Selection Container (dark)",
+        "theme": "dark",
+        "canonical": "#eee1c5",
+        "oklch": "oklch(91.3% 0.040 86)",
+        "tonalRamp": [
+          "#110a00",
+          "#2e240c",
+          "#4b4129",
+          "#6b6047",
+          "#8d8167",
+          "#b0a489",
+          "#d5c8ac",
+          "#faedd1"
+        ]
+      },
+      "state-hover-dark": {
+        "role": "neutral",
+        "displayName": "Hover State Layer (dark)",
+        "theme": "dark",
+        "canonical": "rgba(241, 238, 230, 0.08)"
+      },
+      "state-press-dark": {
+        "role": "neutral",
+        "displayName": "Press State Layer (dark)",
+        "theme": "dark",
+        "canonical": "rgba(241, 238, 230, 0.12)"
+      },
+      "globe-stage-dark": {
+        "role": "neutral",
+        "displayName": "Globe Stage (dark)",
+        "theme": "dark",
+        "canonical": "#1d1c15",
+        "oklch": "oklch(22.5% 0.013 101)",
+        "tonalRamp": [
+          "#0c0b06",
+          "#26251e",
+          "#43423a",
+          "#636259",
+          "#84837a",
+          "#a7a59c",
+          "#cbc9c0",
+          "#f0efe5"
+        ]
+      },
+      "globe-sphere-dark": {
+        "role": "neutral",
+        "displayName": "Globe Ocean (dark)",
+        "theme": "dark",
+        "canonical": "#1d1c19",
+        "oklch": "oklch(22.6% 0.006 92)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#262522",
+          "#43423e",
+          "#62615d",
+          "#83827e",
+          "#a6a5a1",
+          "#cac9c5",
+          "#f0eeea"
         ]
       }
     },
@@ -827,11 +1273,11 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Column heads, time labels, definition terms, legends, tooltips, footer."
+        "purpose": "Column heads, time labels, definition terms, legends, tooltips, the globe hint line, footer."
       },
       "chart-label": {
         "displayName": "Chart label",
-        "purpose": "Axis ticks and bar values."
+        "purpose": "Axis ticks and bar values; airport codes on maps and the globe at 600."
       },
       "wordmark": {
         "displayName": "Wordmark",
@@ -843,13 +1289,22 @@
         "name": "pop",
         "value": "0 6px 18px rgba(31, 29, 26, 0.14), 0 1px 3px rgba(31, 29, 26, 0.08)",
         "valueDark": "0 6px 18px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3)",
-        "purpose": "Menus, tooltips and toasts: things that float above the page."
+        "purpose": "Tooltips and toasts."
       },
       {
-        "name": "lift",
-        "value": "0 8px 20px rgba(31, 29, 26, 0.08)",
-        "valueDark": "0 8px 20px rgba(0, 0, 0, 0.35)",
-        "purpose": "A linked card on hover, with a 2px rise."
+        "name": "menu",
+        "value": "0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1)",
+        "purpose": "Menus and pickers on their surface-mid fill."
+      },
+      {
+        "name": "fab",
+        "value": "0 1px 3px rgba(31, 29, 26, 0.2), 0 4px 12px rgba(31, 29, 26, 0.16)",
+        "purpose": "The floating Add button on phones."
+      },
+      {
+        "name": "globe-control",
+        "value": "0 1px 3px rgba(31, 29, 26, 0.14)",
+        "purpose": "Round buttons floating over the globe."
       },
       {
         "name": "flash",
@@ -858,12 +1313,12 @@
       },
       {
         "name": "focus-field",
-        "value": "0 0 0 3px var(--flown-wash)",
-        "purpose": "Focus ring on inputs and selects, with a flown-blue border."
+        "value": "0 0 0 3px var(--focus-wash)",
+        "purpose": "Focus ring on inputs and selects, with a focus-gold border."
       }
     ],
     "focus": {
-      "outline": "2px solid var(--flown)",
+      "outline": "2px solid var(--focus)",
       "outlineOffset": "2px",
       "radius": "4px"
     },
@@ -886,12 +1341,12 @@
       {
         "name": "duration-control",
         "value": "180ms",
-        "purpose": "Segment selection and check scale, phrase wash, chevron, toast."
+        "purpose": "Segment selection and check scale, phrase wash, chevron, phone tab pill, toast."
       },
       {
         "name": "duration-layer",
         "value": "200ms",
-        "purpose": "Map layer isolation and card lift."
+        "purpose": "Map layer isolation."
       },
       {
         "name": "duration-photo",
@@ -909,6 +1364,11 @@
         "purpose": "Loading shimmer on photo placeholders."
       },
       {
+        "name": "globe-inertia",
+        "value": "per-frame decay",
+        "purpose": "The globe keeps turning after a quick drag release and slows to a stop."
+      },
+      {
         "name": "reduced-motion",
         "value": "1ms",
         "purpose": "All transitions and animations under prefers-reduced-motion."
@@ -923,7 +1383,7 @@
       {
         "name": "phone",
         "value": "720px",
-        "purpose": "max-width: 16px gutter, bottom tab bar, single-column grids, gallery strip, two-line rows, 2x2 times strip."
+        "purpose": "max-width: 16px gutter, bottom navigation bar with icon pills, floating Add button, single-column grids, gallery strip, two-line rows, 2x2 times strip, 24px map corners, edge-to-edge globe stage."
       },
       {
         "name": "map-disc",
@@ -935,8 +1395,8 @@
       "default": "follows prefers-color-scheme",
       "override": "data-theme=\"light\" | \"dark\" on the root element, stored by the theme button",
       "themeColor": {
-        "light": "#f2efe6",
-        "dark": "#201f1b"
+        "light": "#f2ede2",
+        "dark": "#212019"
       }
     },
     "dateTime": {
@@ -947,7 +1407,12 @@
       "set": "Lucide (ISC), inline SVG",
       "strokeWidth": 1.75,
       "checkStrokeWidth": 2.25,
-      "size": "1em, 18px in icon buttons, 22px in the phone tab bar"
+      "size": "1em; 16px in buttons, 18px in icon buttons and globe controls, 22px in the phone navigation bar, 24px in the floating Add button"
+    },
+    "stateLayers": {
+      "hover": "var(--state-hover): ink at 8%",
+      "press": "var(--state-press): ink at 12%",
+      "note": "Material-style state layers over pills, icon buttons, nav links, segments, chips and menu items."
     }
   },
   "components": [
@@ -955,25 +1420,41 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one filled action in a view, such as Add.",
+      "description": "The one filled action in a view: an ink pill with paper text.",
       "html": "<button class=\"ds-btn ds-btn-primary\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add</button>",
-      "css": ".ds-btn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid transparent; font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn .ds-icon { width: 1em; height: 1em; } .ds-btn-primary { background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); } .ds-btn-primary:hover { background: var(--btn-hover, #3a3631); } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; }"
+      "css": ".ds-btn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 20px; border-radius: 999px; border: 1px solid transparent; font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn .ds-icon { width: 16px; height: 16px; } .ds-btn-primary { background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); } .ds-btn-primary:hover { background: var(--btn-hover, #3a3631); } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
     },
     {
       "name": "Quiet Button",
       "kind": "button",
       "refersTo": "button-quiet",
-      "description": "Secondary action: transparent with a strong hairline outline.",
-      "html": "<button class=\"ds-btn-quiet\" type=\"button\">Clear filters</button>",
-      "css": ".ds-btn-quiet { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--rule-strong, #d3ccbc); background: transparent; color: var(--ink, #1f1d1a); font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-quiet:hover { background: var(--hover, rgba(31,29,26,0.05)); } .ds-btn-quiet:active { transform: translateY(1px); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; }"
+      "description": "Secondary action: a transparent pill with a hairline outline and Material state layers; a small 34px size exists.",
+      "html": "<div style=\"display:flex;gap:8px;align-items:center\"><button class=\"ds-btn-quiet\" type=\"button\">Clear filters</button><button class=\"ds-btn-quiet ds-btn-quiet--small\" type=\"button\">Edit</button></div>",
+      "css": ".ds-btn-quiet { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--rule-hover, #bdb5a3); background: transparent; color: var(--ink, #1f1d1a); font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-quiet--small { height: 34px; padding: 0 14px; font-size: 0.875rem; } .ds-btn-quiet:hover { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-btn-quiet:active { background: var(--state-press, rgba(31,29,26,0.12)); transform: translateY(1px); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Floating Add Button",
+      "kind": "button",
+      "refersTo": "fab",
+      "description": "Phones only: a 56px button with 16px corners in the selection container, above the navigation bar; hidden on the globe page.",
+      "html": "<button class=\"ds-fab\" type=\"button\" aria-label=\"Add\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button>",
+      "css": ".ds-fab { display: grid; place-items: center; width: 56px; height: 56px; border: 0; border-radius: 16px; background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); box-shadow: 0 1px 3px rgba(31,29,26,0.2), 0 4px 12px rgba(31,29,26,0.16); cursor: pointer; position: relative; isolation: isolate; } .ds-fab::after { content: \"\"; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-fab:hover::after { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-fab:active::after { background: var(--state-press, rgba(31,29,26,0.12)); } .ds-fab .ds-icon { width: 24px; height: 24px; } .ds-fab:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
     },
     {
       "name": "Segmented Period Control",
       "kind": "chip",
       "refersTo": "segment",
-      "description": "Outlined pill of equal-width segments; the selected one fills with deep paper and shows a check; width never changes.",
+      "description": "Outlined pill of equal-width 40px segments; the selected one fills with the selection container and shows a check; width never changes.",
       "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Period\"><button class=\"ds-seg__b\" aria-pressed=\"false\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>Earlier</button><button class=\"ds-seg__b\" aria-pressed=\"false\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>2024</button><button class=\"ds-seg__b\" aria-pressed=\"true\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>2025</button><button class=\"ds-seg__b\" aria-pressed=\"false\"><svg class=\"ds-seg__check\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>All time</button></div>",
-      "css": ".ds-seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 999px; overflow: hidden; } .ds-seg__b { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 36px; padding: 0 30px; border: 0; border-left: 1px solid var(--rule-strong, #d3ccbc); background: transparent; font-size: 0.875rem; font-weight: 500; color: var(--ink-2, #534e46); white-space: nowrap; cursor: pointer; transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), color 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-seg__b:first-child { border-left: 0; } .ds-seg__b:hover { background: var(--hover, rgba(31,29,26,0.05)); color: var(--ink, #1f1d1a); } .ds-seg__b[aria-pressed=\"true\"] { background: var(--paper-3, #e8e3d6); color: var(--ink, #1f1d1a); } .ds-seg__check { position: absolute; left: 11px; top: 50%; width: 15px; height: 15px; stroke-width: 2.25; opacity: 0; transform: translateY(-50%) scale(0.6); transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-seg__b[aria-pressed=\"true\"] .ds-seg__check { opacity: 1; transform: translateY(-50%) scale(1); } .ds-seg__b:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: -3px; border-radius: 999px; }"
+      "css": ".ds-seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 999px; overflow: hidden; } .ds-seg__b { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 40px; padding: 0 30px; border: 0; border-left: 1px solid var(--rule-strong, #d3ccbc); background: transparent; font-size: 0.875rem; font-weight: 500; color: var(--ink-2, #534e46); white-space: nowrap; cursor: pointer; transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), color 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-seg__b:first-child { border-left: 0; } .ds-seg__b:hover { background: var(--state-hover, rgba(31,29,26,0.08)); color: var(--ink, #1f1d1a); } .ds-seg__b[aria-pressed=\"true\"] { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); } .ds-seg__check { position: absolute; left: 11px; top: 50%; width: 15px; height: 15px; stroke-width: 2.25; opacity: 0; transform: translateY(-50%) scale(0.6); transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-seg__b[aria-pressed=\"true\"] .ds-seg__check { opacity: 1; transform: translateY(-50%) scale(1); } .ds-seg__b:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: -3px; border-radius: 999px; }"
+    },
+    {
+      "name": "Layer Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "8px-cornered toggles with their legend swatch; on fills with the selection container and drops the outline.",
+      "html": "<div class=\"ds-chips\" role=\"group\" aria-label=\"Show\"><button class=\"ds-chip\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-swatch-line\"></span>Flights (24)</button><button class=\"ds-chip\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-swatch-dot\"></span>Spotting (9)</button></div>",
+      "css": ".ds-chips { display: flex; gap: 8px; flex-wrap: wrap; } .ds-chip { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 8px; background: transparent; font-size: 0.875rem; font-weight: 500; color: var(--ink-2, #534e46); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-chip:hover { background: var(--state-hover, rgba(31,29,26,0.08)); color: var(--ink, #1f1d1a); } .ds-chip[aria-pressed=\"true\"] { background: var(--selected-container, #eee1c5); border-color: transparent; color: var(--on-selected-container, #211b0a); } .ds-chip:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-swatch-line { width: 18px; border-top: 2px solid var(--flown, #c48400); } .ds-swatch-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--spotted, #4559a9); }"
     },
     {
       "name": "Lead Sentence",
@@ -981,23 +1462,23 @@
       "refersTo": "headline",
       "description": "Signature: the view's point as one sentence, figures at 650, data phrases underlined 2px in their ink.",
       "html": "<p class=\"ds-lead\">This year you took <span class=\"ds-fig\">23 flights</span> over <span class=\"ds-fig\">61,480 km</span>, on <span class=\"ds-phrase ds-phrase--flown\" tabindex=\"0\">14 routes</span>, and photographed <span class=\"ds-phrase ds-phrase--spotted\" tabindex=\"0\">212 aircraft</span>, <span class=\"ds-phrase ds-phrase--both\" tabindex=\"0\">9 of them</span> ones you also flew on.</p>",
-      "css": ".ds-lead { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); font-weight: 400; font-size: 2rem; line-height: 1.32; letter-spacing: -0.02em; max-width: 31em; margin: 0; text-wrap: balance; color: var(--ink, #1f1d1a); } .ds-fig { font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; } .ds-phrase { cursor: pointer; border-radius: 2px; background-repeat: no-repeat; background-size: 100% 2px; background-position: 0 calc(100% - 0.04em); transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1); box-decoration-break: clone; -webkit-box-decoration-break: clone; } .ds-phrase--flown { background-image: linear-gradient(var(--flown, #2b6cb8), var(--flown, #2b6cb8)); } .ds-phrase--spotted { background-image: linear-gradient(var(--spotted, #d0742a), var(--spotted, #d0742a)); } .ds-phrase--both { background-image: linear-gradient(90deg, var(--flown, #2b6cb8) 0 50%, var(--spotted, #d0742a) 50% 100%); } .ds-phrase--flown:hover { background-color: var(--flown-wash, rgba(43,108,184,0.1)); } .ds-phrase--spotted:hover { background-color: var(--spotted-wash, rgba(208,116,42,0.12)); } .ds-phrase--both:hover { background-color: var(--hover, rgba(31,29,26,0.05)); } .ds-phrase:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; }"
+      "css": ".ds-lead { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); font-weight: 400; font-size: 2rem; line-height: 1.32; letter-spacing: -0.02em; max-width: 31em; margin: 0; text-wrap: balance; color: var(--ink, #1f1d1a); } .ds-fig { font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; } .ds-phrase { cursor: pointer; border-radius: 2px; background-repeat: no-repeat; background-size: 100% 2px; background-position: 0 calc(100% - 0.04em); transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1); box-decoration-break: clone; -webkit-box-decoration-break: clone; } .ds-phrase--flown { background-image: linear-gradient(var(--flown, #c48400), var(--flown, #c48400)); } .ds-phrase--spotted { background-image: linear-gradient(var(--spotted, #4559a9), var(--spotted, #4559a9)); } .ds-phrase--both { background-image: linear-gradient(90deg, var(--flown, #c48400) 0 50%, var(--spotted, #4559a9) 50% 100%); } .ds-phrase--flown:hover { background-color: var(--flown-wash, rgba(196,132,0,0.1)); } .ds-phrase--spotted:hover { background-color: var(--spotted-wash, rgba(69,89,169,0.12)); } .ds-phrase--both:hover { background-color: var(--hover, rgba(31,29,26,0.05)); } .ds-phrase:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
     },
     {
       "name": "Aircraft Card",
       "kind": "card",
       "refersTo": "card",
-      "description": "Gallery-style photo card: photo flush on top, tinted caption block, events with data-ink dots, photographer credit pinned to the bottom.",
-      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-card__photo\">B-LRA</div><div class=\"ds-card__body\"><span class=\"ds-card__reg\">B-LRA</span><span class=\"ds-card__type\">Airbus A350-941</span><ul class=\"ds-card__events\"><li><span class=\"ds-dot ds-dot--flown\"></span>Flown 2 times</li><li><span class=\"ds-dot ds-dot--spotted\"></span>Spotted 12 Apr</li></ul><p class=\"ds-credit\">Photo: A. Photographer · <a href=\"#\">planespotters.net</a></p></div></a>",
-      "css": ".ds-card { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; flex-direction: column; width: 260px; border-radius: 12px; background: var(--paper-2, #f2efe6); overflow: hidden; color: var(--ink, #1f1d1a); text-decoration: none; transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift, 0 8px 20px rgba(31,29,26,0.08)); } .ds-card:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; } .ds-card__photo { aspect-ratio: 3 / 2; display: grid; place-items: center; background: var(--paper-3, #e8e3d6); color: var(--ink-3, #6e685e); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.04em; } .ds-card__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; } .ds-card__reg { font-size: 1.0625rem; font-weight: 600; letter-spacing: 0.01em; } .ds-card__type { font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events li { display: flex; align-items: center; gap: 8px; } .ds-dot { width: 8px; height: 8px; border-radius: 50%; } .ds-dot--flown { background: var(--flown, #2b6cb8); } .ds-dot--spotted { background: var(--spotted, #d0742a); } .ds-credit { margin: 0; padding-top: 10px; font-size: 0.75rem; color: var(--ink-3, #6e685e); } .ds-credit a { color: inherit; }"
+      "description": "Gallery-style photo card with 20px corners: photo flush on top, tonal caption block, events with data-ink dots, photographer credit pinned to the bottom.",
+      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-card__photo\">G-ABCD</div><div class=\"ds-card__body\"><span class=\"ds-card__reg\">G-ABCD</span><span class=\"ds-card__type\">Airbus A320neo</span><ul class=\"ds-card__events\"><li><span class=\"ds-dot ds-dot--flown\"></span>Flown twice</li><li><span class=\"ds-dot ds-dot--spotted\"></span>Spotted 3 May</li></ul><p class=\"ds-credit\">Photo: A. Photographer · <a href=\"#\">planespotters.net</a></p></div></a>",
+      "css": ".ds-card { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; flex-direction: column; width: 260px; border-radius: var(--radius, 20px); background: var(--surface-low, #f5f0e5); overflow: hidden; color: var(--ink, #1f1d1a); text-decoration: none; transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(31,29,26,0.12), 0 4px 14px rgba(31,29,26,0.08); } .ds-card:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-card__photo { aspect-ratio: 3 / 2; display: grid; place-items: center; background: var(--paper-3, #e8e3d6); color: var(--ink-3, #6e685e); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.04em; } .ds-card__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; } .ds-card__reg { font-size: 1.0625rem; font-weight: 600; letter-spacing: 0.01em; } .ds-card__type { font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events li { display: flex; align-items: center; gap: 8px; } .ds-dot { width: 8px; height: 8px; border-radius: 50%; } .ds-dot--flown { background: var(--flown, #c48400); } .ds-dot--spotted { background: var(--spotted, #4559a9); } .ds-credit { margin: 0; padding-top: 10px; font-size: 0.75rem; color: var(--ink-3, #6e685e); } .ds-credit a { color: inherit; }"
     },
     {
       "name": "Flight List Row",
       "kind": "custom",
       "refersTo": "flight-row",
-      "description": "Grid row aligned on the first baseline; route codes with a blue arc arrow, tabular numbers right-aligned, outlined Review chip when a check needs a look.",
-      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-row__date\"><b>Tue 4 Mar</b>2025</span><span class=\"ds-row__route-wrap\"><span class=\"ds-row__route\">HKG<svg class=\"ds-arrow\" viewBox=\"0 0 56 20\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 16 C 16 2, 40 2, 54 16\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"54\" cy=\"16\" r=\"2.5\" fill=\"currentColor\"/></svg>LHR<span class=\"ds-chip\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg>Review</span></span><span class=\"ds-row__cities\">Hong Kong to London</span></span><span class=\"ds-row__cell\"><b>CX 255</b>Cathay Pacific</span><span class=\"ds-row__num\">13 h 05</span></a>",
-      "css": ".ds-row { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: 92px minmax(190px, 1.4fr) minmax(120px, 1fr) 80px; gap: 16px; align-items: first baseline; padding: 14px 12px; border-bottom: 1px solid var(--rule, #e4dfd3); border-radius: 8px; color: var(--ink, #1f1d1a); text-decoration: none; transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-row:hover { background: var(--paper-2, #f2efe6); } .ds-row:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; } .ds-row__date, .ds-row__cell { font-size: 0.9375rem; color: var(--ink-2, #534e46); line-height: 1.35; } .ds-row__date b { display: block; color: var(--ink, #1f1d1a); font-weight: 600; } .ds-row__cell b { display: block; color: var(--ink, #1f1d1a); font-weight: 500; } .ds-row__route { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1.0625rem; font-weight: 600; } .ds-arrow { width: 22px; height: 10px; color: var(--flown, #2b6cb8); } .ds-row__cities { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-row__num { font-size: 0.9375rem; text-align: right; font-variant-numeric: tabular-nums; } .ds-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; } .ds-chip .ds-icon { width: 13px; height: 13px; }"
+      "description": "Grid row aligned on the first baseline with a 14px state layer; route codes with a gold arc arrow, tabular numbers right-aligned, outlined Review pill when a check needs a look.",
+      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-row__date\"><b>Tue 4 Mar</b>2025</span><span class=\"ds-row__route-wrap\"><span class=\"ds-row__route\">AAA<svg class=\"ds-arrow\" viewBox=\"0 0 56 20\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 16 C 16 2, 40 2, 54 16\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"54\" cy=\"16\" r=\"2.5\" fill=\"currentColor\"/></svg>BBB<span class=\"ds-chip\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg>Review</span></span><span class=\"ds-row__cities\">Alpha City to Bravo City</span></span><span class=\"ds-row__cell\"><b>XY 123</b>Example Air</span><span class=\"ds-row__num\">13 h 05</span></a>",
+      "css": ".ds-row { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: 92px minmax(190px, 1.4fr) minmax(120px, 1fr) 80px; gap: 16px; align-items: first baseline; padding: 14px 12px; border-bottom: 1px solid var(--rule, #e4dfd3); border-radius: 14px; color: var(--ink, #1f1d1a); text-decoration: none; transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-row:hover { background: var(--surface-mid, #f2ede2); } .ds-row:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-row__date, .ds-row__cell { font-size: 0.9375rem; color: var(--ink-2, #534e46); line-height: 1.35; } .ds-row__date b { display: block; color: var(--ink, #1f1d1a); font-weight: 600; } .ds-row__cell b { display: block; color: var(--ink, #1f1d1a); font-weight: 500; } .ds-row__route { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1.0625rem; font-weight: 600; } .ds-arrow { width: 22px; height: 10px; color: var(--flown, #c48400); } .ds-row__cities { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-row__num { font-size: 0.9375rem; text-align: right; font-variant-numeric: tabular-nums; } .ds-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; } .ds-chip .ds-icon { width: 13px; height: 13px; }"
     },
     {
       "name": "Times Strip Cell",
@@ -1008,20 +1489,52 @@
       "css": ".ds-times { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--rule, #e4dfd3); border-bottom: 1px solid var(--rule, #e4dfd3); color: var(--ink, #1f1d1a); } .ds-time { padding: 18px 20px 18px 0; } .ds-time + .ds-time { padding-left: 20px; border-left: 1px solid var(--rule, #e4dfd3); } .ds-time p { margin: 0; } .ds-time__label { font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-time__clock { margin-top: 4px !important; font-size: 1.75rem; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-time__date { margin-top: 4px !important; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-plus { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; color: var(--ink, #1f1d1a); white-space: nowrap; }"
     },
     {
-      "name": "Search Input",
+      "name": "Search Field",
       "kind": "input",
-      "refersTo": "input",
-      "description": "Field with a search icon; hairline outline, flown-blue focus border with a wash ring.",
+      "refersTo": "input-search",
+      "description": "A filled pill on surface-high; lighter on hover; on focus it turns surface-lowest with the focus border and halo.",
       "html": "<label class=\"ds-search\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-input\" type=\"search\" placeholder=\"Search route, flight, aircraft\"></label>",
-      "css": ".ds-search { position: relative; display: block; max-width: 380px; } .ds-search .ds-icon { position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--ink-3, #6e685e); } .ds-input { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); width: 100%; height: 38px; padding: 0 12px 0 36px; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 8px; background: var(--field, #fffdf8); color: var(--ink, #1f1d1a); font-size: 0.9375rem; transition: border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: var(--ink-3, #6e685e); } .ds-input:hover { border-color: var(--rule-hover, #bdb5a3); } .ds-input:focus { outline: none; border-color: var(--flown, #2b6cb8); box-shadow: 0 0 0 3px var(--flown-wash, rgba(43,108,184,0.1)); }"
+      "css": ".ds-search { position: relative; display: block; max-width: 380px; } .ds-search .ds-icon { position: absolute; left: 16px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--ink-3, #6e685e); } .ds-input { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); width: 100%; height: 46px; padding: 0 12px 0 44px; border: 1px solid transparent; border-radius: 999px; background: var(--surface-high, #ede8dd); color: var(--ink, #1f1d1a); font-size: 0.9375rem; transition: border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: var(--ink-3, #6e685e); } .ds-input:hover { background: var(--surface-highest, #e7e2d7); } .ds-input:focus { outline: none; border-color: var(--focus, #b58a00); background: var(--surface-lowest, #fffdf8); box-shadow: 0 0 0 3px var(--focus-wash, rgba(247,190,2,0.3)); }"
     },
     {
       "name": "Header Band",
       "kind": "nav",
       "refersTo": "header-band",
-      "description": "Sticky paper band: tracked wordmark, nav links with a washed current page, tools on the right.",
-      "html": "<header class=\"ds-head\"><a class=\"ds-word\" href=\"#\">TOUCHDOWN</a><nav class=\"ds-nav\"><a class=\"ds-nav__a\" href=\"#\" aria-current=\"page\">Home</a><a class=\"ds-nav__a\" href=\"#\">Flights</a><a class=\"ds-nav__a\" aria-disabled=\"true\">Stats</a></nav><button class=\"ds-addbtn\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add</button></header>",
-      "css": ".ds-head { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: center; gap: 32px; height: 64px; padding: 0 32px; background: var(--paper-2, #f2efe6); border-bottom: 1px solid var(--rule, #e4dfd3); color: var(--ink, #1f1d1a); } .ds-word { font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.16em; color: inherit; text-decoration: none; } .ds-nav { display: flex; gap: 4px; margin-right: auto; } .ds-nav__a { padding: 6px 12px; border-radius: 8px; font-size: 0.9375rem; color: var(--ink-2, #534e46); text-decoration: none; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav__a:hover { background: var(--hover, rgba(31,29,26,0.05)); color: var(--ink, #1f1d1a); } .ds-nav__a[aria-current=\"page\"] { color: var(--ink, #1f1d1a); font-weight: 600; background: var(--selected, rgba(31,29,26,0.07)); } .ds-nav__a[aria-disabled=\"true\"] { color: var(--ink-3, #6e685e); cursor: default; } .ds-nav__a[aria-disabled=\"true\"]:hover { background: transparent; } .ds-nav__a:focus-visible { outline: 2px solid var(--flown, #2b6cb8); outline-offset: 2px; } .ds-addbtn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.9375rem; font-weight: 600; cursor: pointer; } .ds-addbtn:hover { background: var(--btn-hover, #3a3631); } .ds-addbtn .ds-icon { width: 1em; height: 1em; }"
+      "description": "Sticky tonal band (surface-mid, no hairline): tracked wordmark, pill nav links with the current page in the selection container, tools on the right.",
+      "html": "<header class=\"ds-head\"><a class=\"ds-word\" href=\"#\">TOUCHDOWN</a><nav class=\"ds-nav\"><a class=\"ds-nav__a\" href=\"#\" aria-current=\"page\">Home</a><a class=\"ds-nav__a\" href=\"#\">Flights</a><a class=\"ds-nav__a\" href=\"#\">Spotting</a><a class=\"ds-nav__a\" href=\"#\">Stats</a></nav><button class=\"ds-addbtn\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add</button></header>",
+      "css": ".ds-head { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: center; gap: 32px; height: 64px; padding: 0 32px; background: var(--surface-mid, #f2ede2); color: var(--ink, #1f1d1a); } .ds-word { font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.16em; color: inherit; text-decoration: none; } .ds-nav { display: flex; gap: 4px; margin-right: auto; } .ds-nav__a { padding: 8px 16px; border-radius: 999px; font-size: 0.9375rem; color: var(--ink-2, #534e46); text-decoration: none; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav__a:hover { background: var(--state-hover, rgba(31,29,26,0.08)); color: var(--ink, #1f1d1a); } .ds-nav__a[aria-current=\"page\"] { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); font-weight: 600; } .ds-nav__a:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-addbtn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.9375rem; font-weight: 600; cursor: pointer; } .ds-addbtn:hover { background: var(--btn-hover, #3a3631); } .ds-addbtn .ds-icon { width: 16px; height: 16px; }"
+    },
+    {
+      "name": "Phone Navigation Bar",
+      "kind": "nav",
+      "refersTo": "nav-tab-current-phone",
+      "description": "Bottom bar on phones: surface-mid, icons above labels, a selection-container pill behind the current tab's icon.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab\" href=\"#\" aria-current=\"page\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg><span>Home</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z\"/></svg><span>Flights</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/></svg><span>Spotting</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v16a2 2 0 0 0 2 2h16\"/><path d=\"M18 17V9\"/><path d=\"M13 17V5\"/><path d=\"M8 17v-3\"/></svg><span>Stats</span></a></nav>",
+      "css": ".ds-tabs { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(4, 1fr); max-width: 400px; padding: 10px 0 8px; background: var(--surface-mid, #f2ede2); } .ds-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 4px 6px; font-size: 0.75rem; font-weight: 500; color: var(--ink-2, #534e46); text-decoration: none; } .ds-tab .ds-icon { box-sizing: content-box; width: 22px; height: 22px; padding: 5px 20px; border-radius: 999px; transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-tab:hover .ds-icon { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-tab[aria-current=\"page\"] { color: var(--ink, #1f1d1a); font-weight: 650; } .ds-tab[aria-current=\"page\"] .ds-icon { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); } .ds-tab:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Finding",
+      "kind": "card",
+      "refersTo": "finding",
+      "description": "Check result as a 16px tonal box without a border; an error sits on the alert wash with its icon in alert red and a written word.",
+      "html": "<div class=\"ds-findings\"><div class=\"ds-finding\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg><p><b>Needs a look.</b> The landing time is earlier than the takeoff time.</p></div><div class=\"ds-finding ds-finding--error\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" x2=\"12\" y1=\"8\" y2=\"12\"/><line x1=\"12\" x2=\"12.01\" y1=\"16\" y2=\"16\"/></svg><p><b>Problem.</b> The arrival airport code is not known.</p></div></div>",
+      "css": ".ds-findings { display: grid; gap: 8px; max-width: 520px; } .ds-finding { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--surface-low, #f5f0e5); font-size: 0.9375rem; color: var(--ink, #1f1d1a); } .ds-finding p { margin: 0; } .ds-finding .ds-icon { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--ink-3, #6e685e); } .ds-finding--error { background: var(--alert-wash, rgba(186,26,26,0.08)); } .ds-finding--error .ds-icon { color: var(--alert, #ba1a1a); }"
+    },
+    {
+      "name": "Map Container and Legend",
+      "kind": "custom",
+      "refersTo": "map-container",
+      "description": "Every map sits in a 28px rounded tonal container; overview legends end with the \"Explore on a globe\" pill.",
+      "html": "<div class=\"ds-mapwrap\"><div class=\"ds-legend\"><span class=\"ds-legend__item\"><span class=\"ds-swatch-line\"></span>Flights</span><span class=\"ds-legend__item\"><span class=\"ds-swatch-line ds-swatch-line--gap\"></span>Not recorded</span><span class=\"ds-legend__item\"><span class=\"ds-swatch-dot\"></span>Spotting</span><a class=\"ds-legend__action\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20\"/><path d=\"M2 12h20\"/></svg>Explore on a globe</a></div><svg class=\"ds-map\" viewBox=\"0 0 600 260\" aria-hidden=\"true\"><path d=\"M90 170 Q 250 40 420 120\" fill=\"none\" stroke=\"var(--flown, #c48400)\" stroke-width=\"1.75\" stroke-linecap=\"round\" opacity=\"0.85\"/><path d=\"M420 120 Q 470 140 510 180\" fill=\"none\" stroke=\"var(--flown, #c48400)\" stroke-width=\"1.75\" stroke-dasharray=\"2 4\" stroke-linecap=\"round\"/><circle cx=\"300\" cy=\"190\" r=\"7\" fill=\"var(--spotted, #4559a9)\" stroke=\"var(--paper, #faf8f1)\" stroke-width=\"2\"/></svg></div>",
+      "css": ".ds-mapwrap { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; gap: 12px; max-width: 640px; } .ds-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; padding-inline: 4px; font-size: 0.8125rem; color: var(--ink-2, #534e46); } .ds-legend__item { display: inline-flex; align-items: center; gap: 8px; } .ds-swatch-line { width: 18px; border-top: 2px solid var(--flown, #c48400); } .ds-swatch-line--gap { border-top-style: dashed; } .ds-swatch-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--spotted, #4559a9); } .ds-legend__action { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 4px 12px; border-radius: 999px; background: var(--surface-high, #ede8dd); color: var(--ink, #1f1d1a); font-weight: 500; text-decoration: none; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-legend__action:hover { background: var(--surface-highest, #e7e2d7); } .ds-legend__action:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-legend__action .ds-icon { width: 15px; height: 15px; } .ds-map { display: block; width: 100%; height: auto; border-radius: 28px; background: var(--surface-low, #f5f0e5); }"
+    },
+    {
+      "name": "Globe Stage",
+      "kind": "custom",
+      "refersTo": "globe-stage",
+      "description": "The interactive globe: canvas in a 28px rounded stage, 44px round tonal controls bottom right, a \"Flat map\" pill top right, hint line bottom left.",
+      "html": "<div class=\"ds-globe\"><div class=\"ds-globe__sphere\"></div><a class=\"ds-globe-flat\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z\"/><path d=\"M15 5.764v15\"/><path d=\"M9 3.236v15\"/></svg>Flat map</a><div class=\"ds-globe-controls\"><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Zoom in\" title=\"Zoom in\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Zoom out\" title=\"Zoom out\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/></svg></button><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Back to the whole period\" title=\"Back to the whole period\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg></button></div><p class=\"ds-globe-hint\">Drag to turn · scroll or pinch to zoom · click a route to open the flight</p></div>",
+      "css": ".ds-globe { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 380px; max-width: 720px; border-radius: 28px; background: var(--globe-stage, #ede8dd); overflow: hidden; } .ds-globe__sphere { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--globe-sphere, #fffdf8); border: 1px solid var(--rule-strong, #d3ccbc); } .ds-globe-controls { position: absolute; right: 16px; bottom: 16px; display: grid; gap: 8px; } .ds-globe-btn { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 999px; background: var(--surface-highest, #e7e2d7); color: var(--ink, #1f1d1a); box-shadow: 0 1px 3px rgba(31,29,26,0.14); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-globe-btn:hover { background: var(--surface-high, #ede8dd); } .ds-globe-btn:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-btn .ds-icon { width: 18px; height: 18px; } .ds-globe-flat { position: absolute; top: 16px; right: 16px; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; background: var(--surface-highest, #e7e2d7); color: var(--ink, #1f1d1a); font-size: 0.875rem; font-weight: 600; text-decoration: none; } .ds-globe-flat:hover { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-globe-flat:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-flat .ds-icon { width: 16px; height: 16px; } .ds-globe-hint { position: absolute; left: 20px; bottom: 16px; margin: 0; max-width: calc(100% - 100px); font-size: 0.8125rem; color: var(--ink-3, #6e685e); }"
     },
     {
       "name": "Status Line",
@@ -1037,38 +1550,39 @@
       "refersTo": "toast",
       "description": "Inverted ink notice centred near the bottom edge, announced politely.",
       "html": "<div class=\"ds-toast\" role=\"status\">Theme: follows your device</div>",
-      "css": ".ds-toast { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-block; padding: 10px 16px; border-radius: 10px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.875rem; box-shadow: var(--shadow-pop, 0 6px 18px rgba(31,29,26,0.14), 0 1px 3px rgba(31,29,26,0.08)); animation: ds-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1); } @keyframes ds-toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }"
+      "css": ".ds-toast { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-block; padding: 14px 20px; border-radius: 12px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.875rem; box-shadow: var(--shadow-pop, 0 6px 18px rgba(31,29,26,0.14), 0 1px 3px rgba(31,29,26,0.08)); animation: ds-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1); } @keyframes ds-toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }"
     },
     {
       "name": "Fact List",
       "kind": "list",
       "refersTo": "fact-list",
       "description": "Stacked stats under the lead sentence: label above, large value with smaller units, muted detail line below. Auto-fill grid so columns stay put; two columns on phones. Statuses go on their own line, not in the grid.",
-      "html": "<dl class=\"ds-facts\"><div><dt>Longest flight</dt><dd><span class=\"ds-facts-value\">SFO → SIN</span><span class=\"ds-facts-detail\">13,582 km · SQ 31</span></dd></div><div><dt>Time in the air</dt><dd><span class=\"ds-facts-value\">141<span class=\"ds-facts-unit\">h</span> 15<span class=\"ds-facts-unit\">m</span></span><span class=\"ds-facts-detail\">across 20 flights</span></dd></div><div><dt>Most flown airline</dt><dd><span class=\"ds-facts-value\">United Airlines</span><span class=\"ds-facts-detail\">7 flights</span></dd></div><div><dt>Most spotted type</dt><dd><span class=\"ds-facts-value\"><span class=\"ds-facts-keep\">Boeing 737-800</span></span><span class=\"ds-facts-detail\">24 aircraft</span></dd></div></dl>",
+      "html": "<dl class=\"ds-facts\"><div><dt>Longest flight</dt><dd><span class=\"ds-facts-value\">AAA → BBB</span><span class=\"ds-facts-detail\">9,850 km · XY 123</span></dd></div><div><dt>Time in the air</dt><dd><span class=\"ds-facts-value\">141<span class=\"ds-facts-unit\">h</span> 15<span class=\"ds-facts-unit\">m</span></span><span class=\"ds-facts-detail\">across 20 flights</span></dd></div><div><dt>Most flown airline</dt><dd><span class=\"ds-facts-value\">Example Air</span><span class=\"ds-facts-detail\">7 flights</span></dd></div><div><dt>Most spotted type</dt><dd><span class=\"ds-facts-value\"><span class=\"ds-facts-keep\">Boeing 737-800</span></span><span class=\"ds-facts-detail\">24 aircraft</span></dd></div></dl>",
       "css": ".ds-facts { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px 32px; margin: 0; } .ds-facts > div { min-width: 0; } .ds-facts dt { font-size: 0.8125rem; color: #6e685e; } .ds-facts dd { margin: 4px 0 0; } .ds-facts-value { display: block; font-size: 1.25rem; line-height: 1.25; font-weight: 650; letter-spacing: -0.015em; color: #1f1d1a; font-variant-numeric: tabular-nums; } .ds-facts-unit { margin-left: 1px; font-size: 0.72em; font-weight: 500; letter-spacing: 0; color: #534e46; } .ds-facts-keep { white-space: nowrap; } .ds-facts-detail { display: block; margin-top: 2px; font-size: 0.875rem; color: #6e685e; } @media (max-width: 720px) { .ds-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; } .ds-facts-value { font-size: 1.125rem; } .ds-facts > div:last-child:nth-child(odd) { grid-column: 1 / -1; } }"
     }
   ],
   "narrative": {
     "northStar": "The Written Logbook",
-    "overview": "Each view states its main point as one plain sentence with the figures inside it, then shows one subject at full size underneath: the period's map on Home, the period's routes on Flights, the route on a flight. Supporting context (most recent, aircraft cards, month by month, the flight list) sits below in quiet sections divided by hairline rules. The world comes from the owner's own lab site and photo gallery: warm paper ground, one sans family, a narrow reading measure, hairlines instead of boxes, and rounded photo cards with a tinted caption block.\n\nColour is reserved for data. Flown is blue, spotted is orange, and everything else is paper and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts) and on a card under the pointer. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.\n\nThe system refuses the KPI-tile grid and the flight-tracker wall of panels. A statistic belongs in a sentence or a chart with its own counted-what subtitle, not in a box of its own.",
+    "overview": "Each view states its main point as one plain sentence with the figures inside it, then shows one subject at full size underneath: the period's map on Home, the period's routes on Flights, the route on a flight, the whole period on the globe. Supporting context (most recent, aircraft cards, month by month, the flight list) sits below in quiet sections divided by hairline rules. The world comes from the owner's own lab site and photo gallery: warm paper ground, one sans family, a narrow reading measure, hairlines between sections, and rounded photo cards with a tinted caption block.\n\nOn that ground sits a layer borrowed from Material You, deliberately not exact Material: its shapes (pill buttons, round icon buttons, large rounded containers), its tonal surfaces (a warm neutral palette at the page's hue) and its state layers. Material's colour roles are not borrowed: buttons stay ink and neutral, and gold and blue stay data only. The one non-data tint is a muted gold container that marks what is selected. This document describes the shipped web app (`apps/web`); the prototype in `prototype/` is the earlier reference and does not have the Material layer.\n\nColour is reserved for data. Flown is gold, spotted is blue, and everything else is paper, tonal surface and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts, the floating Add button, the globe's controls) and on a card under the pointer. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.\n\nThe system refuses the KPI-tile grid and the flight-tracker wall of panels. A statistic belongs in a sentence or a chart with its own counted-what subtitle, not in a box of its own.",
     "keyCharacteristics": [
       "Warm paper ground in light, warm near-black in dark; both follow the device by default.",
       "One system sans for every role; display weight 650 with tight negative tracking.",
-      "Two data inks, flown blue and spotted orange, and no other decorative colour.",
+      "Two data inks, flown gold and spotted blue, and no other decorative colour.",
       "Lead sentences with phrases underlined in their data ink that point at the map or the aircraft.",
-      "Hairline rules and tonal paper bands instead of borders and boxes.",
-      "Credited photo cards with 12px corners and a tinted caption block.",
+      "Tonal surfaces and hairline rules instead of outlined boxes; pill-shaped controls and large rounded containers.",
+      "Selection shown by a muted gold container, never by a data ink.",
+      "Credited photo cards with 20px corners and a tinted caption block.",
       "Every precise time shown with its date and UTC offset."
     ],
     "rules": [
       {
         "name": "The Two Inks Rule",
-        "body": "Flown blue and spotted orange are the only data colours. A chart, map layer, dot or underline about flights is blue; about spotting is orange; about both is split half blue, half orange. No third data colour is introduced; new series are separated by position, dash or label.",
+        "body": "Flown gold and spotted blue are the only data colours. A chart, map layer, dot or underline about flights is gold; about spotting is blue; about both is split half gold, half blue. No third data colour is introduced; new series are separated by position, dash or label.",
         "section": "colors"
       },
       {
         "name": "The Validated Pair Rule",
-        "body": "Each data ink has a light and a dark value that were checked against their own ground (`flown` and `spotted` on `paper`; `flown-dark` and `spotted-dark` on `paper-dark`). Use the pair together; do not lift one theme's ink into the other.",
+        "body": "Each data ink has a light and a dark value that were checked against their own ground (`flown` and `spotted` on `paper`; `flown-dark` and `spotted-dark` on `paper-dark`). Use the pair together; do not lift one theme's ink into the other. The gold mark happens to pass on both grounds, so `flown` and `flown-dark` share one value; the navy is too dark for the dark ground and steps up to a lighter tone there; both text shades (`-ink`) always differ by theme.",
         "section": "colors"
       },
       {
@@ -1105,11 +1619,16 @@
         "name": "The Flat Page Rule",
         "body": "Nothing resting on the page casts a shadow. A shadow means \"this floats\" or \"this responds to you\".",
         "section": "elevation"
+      },
+      {
+        "name": "The Borrowed Shapes Rule",
+        "body": "The Material layer borrows shapes, tonal surfaces and state layers, never Material's colour roles. Buttons are ink (primary) or neutral (quiet, ghost); no button, tab or control is filled with a data ink. Selection uses the muted gold container; gold and blue stay data only.",
+        "section": "shapes"
       }
     ],
     "dos": [
       "Do keep `paper` (#FAF8F1) as the light ground and `paper-dark` as the dark ground, and support both themes, following the device unless the user picks one.",
-      "Do colour flight data blue and spotting data orange, using each theme's validated pair, and split the two for data that is both.",
+      "Do colour flight data gold and spotting data blue, using each theme's validated pair, and split the two for data that is both.",
       "Do open each view with one plain sentence carrying its figures, and underline data phrases 2px in their ink so they point at the map layer or the aircraft.",
       "Do show every precise time with its date and UTC offset, in 24-hour airport-local time.",
       "Do use tabular figures for every number that aligns or updates.",
@@ -1117,11 +1636,14 @@
       "Do credit every aircraft photo with the photographer and a link to the source.",
       "Do reserve the longest label's width in controls whose label changes.",
       "Do align multi-line list rows on their first baseline.",
-      "Do separate sections with hairlines and space, and use `paper-band` for raised areas."
+      "Do separate sections with hairlines and space, and use the `surface-*` steps for raised areas.",
+      "Do make everything you press a pill (chips excepted, at 8px), and show selection with `selected-container` and its `on-selected-container` text.",
+      "Do put every map in a 28px rounded tonal container (24px on phones), with the \"Explore on a globe\" link in the legend of overview maps."
     ],
     "donts": [
       "Don't use a serif, a webfont or a monospace face; the system sans covers every role.",
-      "Don't add a third data colour or use the data inks as decoration; blue outside data is limited to focus, caret, selection and the current phone tab.",
+      "Don't add a third data colour or use the data inks as decoration; gold outside data is limited to focus, caret, text selection, the checkbox accent and the muted selection container.",
+      "Don't fill a button, tab or navigation item with flown gold or spotted blue; buttons stay ink or neutral.",
       "Don't build KPI tiles or a wall of side panels; a figure belongs in a sentence or a chart.",
       "Don't show a clock time without its date, or a status by colour alone.",
       "Don't put shadows on anything resting on the page.",

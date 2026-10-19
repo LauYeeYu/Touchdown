@@ -28,6 +28,10 @@ Matching keys (stage 4):
 
 "Update" rows show a field-by-field diff. Empty incoming fields never overwrite existing values.
 
+Two cases are settled by the importer rather than left as conflicts (the user can still turn each one down in the review):
+- A sighting repeated within one file (same registration, place and day) is merged into the first row: empty fields are filled, photo notes are combined, and a different phase goes into the notes ("Also taking off"). This follows the rule that one aircraft at one place on one day is one sighting.
+- When an existing flight has its takeoff on the scheduled date and the incoming row's boarding time shows the flight left after midnight, the row's takeoff and landing (a day later) are taken, with the reason shown.
+
 Lookups during an import are batched, cached, and rate-limited. If the app is offline, external checks are marked "not checked" and can be re-run later.
 
 ## Source: my.flightradar24.com CSV
@@ -112,6 +116,8 @@ Comparing the times of matched flights also answers Q-FR24-TIMES (local or UTC).
 ## Source: Touchdown backup
 
 A `.zip` of the user's Touchdown folder from [12](12-storage-and-sync.md) (JSON tables or SQLite file, plus tracks and attachments). Restores everything exactly. Used for moving between storage backends and for the manual-file adapter.
+
+The companion CLI writes the same file (`touchdown import FILES --out backup.zip`), so data imported or added with a local command can be loaded into the web app with Restore in Settings, until sync arrives in phase 3.
 
 ## Exports
 

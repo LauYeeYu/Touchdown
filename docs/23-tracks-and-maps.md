@@ -61,12 +61,12 @@ Failures are findings, not silent drops.
 
 ## Maps in the app
 
-- Desktop overview maps: Equal Earth, centred on the Americas, full width, cropped to the latitudes the period covers.
+- Desktop overview maps: Equal Earth, full width, cropped to the latitudes the period covers. The central meridian is chosen so the map's edge falls in the widest band of longitudes with no flights or spots, so routes such as trans-Pacific ones are never cut.
 - Phone overview maps: a disc centred on the period's routes (an orthographic globe when they fit on one hemisphere, an azimuthal equal-area disc otherwise), cropped to the routes, so the map stays about as tall as it is wide instead of a thin world strip.
 - Flight maps: an orthographic globe centred on the route.
 - Labels are placed so they never overlap each other, a marker, or the frame edge; a label that does not fit is dropped and stays available on hover.
 
-- MapLibre GL with a free vector tile source.
+- Drawn with d3-geo on Natural Earth land (world-atlas) as SVG, no map tiles.
 - Flights: tracks or great circles, filterable by year, airline, type. Line weight by how often a route was flown.
 - Airports: circles sized by visits.
 - Sightings: spots and airports with aircraft counts.
