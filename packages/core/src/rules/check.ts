@@ -6,10 +6,10 @@ import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Finding, RecordRef, Severity, SuggestedFix } from "./types.ts";
 import { fnv1a } from "../ids.ts";
-import { flightDay, flightDistanceKm, flightDurationMin, greatCircleKm } from "../derive.ts";
+import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, greatCircleKm } from "../derive.ts";
 import { normaliseRegistration } from "../normalise/registration.ts";
 import { isSeatFormat, parseFlightNumber } from "../normalise/flight.ts";
-import { addDays, daysBetween, formatOffset, instant, localDateOf, offsetAt, parseDateTime, todayIn, toZoned } from "../time/index.ts";
+import { addDays, daysBetween, formatOffset, instant, localDateOf, offsetAt, parseDateTime, todayIn, zonedDateTime } from "../time/index.ts";
 
 export const FIRST_POWERED_FLIGHT = "1903-12-17";
 
@@ -153,13 +153,15 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
   checkFirstFlight(out, r, day, airframes, f.airframeId, label);
 
   // Times.
+  // A diverted flight lands, and arrives, at the airport it was diverted to.
+  const landed = ref.airport(arrivalAirportId(f)) ?? to;
   const seq = FLIGHT_TIME_FIELDS.map((k) => [k, instant(f[k])] as const).filter(([, t]) => t !== null) as [string, number][];
   for (let i = 1; i < seq.length; i++) {
     const [ka, ta] = seq[i - 1]!;
     const [kb, tb] = seq[i]!;
     const strict = ka === "takeoffAt" && kb === "landingAt";
     if (tb < ta || (strict && tb === ta)) {
-      out.add("V-TIMES-ORDER", "error", [r], [ka, kb], `${label}: ${kb.replace("At", "")} is before ${ka.replace("At", "")}.`, [f[ka as keyof Flight], f[kb as keyof Flight]], afterMidnightFix(f, r, ka, kb));
+      out.add("V-TIMES-ORDER", "error", [r], [ka, kb], `${label}: ${kb.replace("At", "")} is before ${ka.replace("At", "")}.`, [f[ka as keyof Flight], f[kb as keyof Flight]], afterMidnightFix(f, r, ka, kb, from?.tz, landed?.tz));
     }
   }
   const zones: [string, string | null | undefined][] = [
@@ -167,9 +169,9 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     ["departureScheduledAt", from?.tz],
     ["departureAt", from?.tz],
     ["takeoffAt", from?.tz],
-    ["landingAt", to?.tz],
+    ["landingAt", landed?.tz],
     ["arrivalScheduledAt", to?.tz],
-    ["arrivalAt", to?.tz],
+    ["arrivalAt", landed?.tz],
   ];
   for (const [field, tz] of zones) {
     const v = f[field as keyof Flight] as string | null;
@@ -179,8 +181,7 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     const expected = offsetAt(tz, p.epochMs);
     if (expected !== p.offsetMin) {
       // Keep the wall-clock time; the offset was wrong.
-      const wallUtc = p.epochMs + p.offsetMin * 60_000;
-      const fixed = toZoned(wallUtc - expected * 60_000, tz);
+      const fixed = zonedDateTime(p.date, p.time, tz)!;
       out.add("V-TIME-OFFSET", "error", [r], [field], `${label}: ${v} has offset ${formatOffset(p.offsetMin)}, but the airport's time zone (${tz}) was ${formatOffset(expected)} then.`, [v, tz], [{ ...r, field, value: fixed, label: `Use ${fixed}` }]);
     }
   }
@@ -226,15 +227,21 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
  * Boarding before midnight and a takeoff clock time just after it, both on the scheduled date: the takeoff
  * (and landing) were on the next day. Offer to move them.
  */
-function afterMidnightFix(f: Flight, r: RecordRef, ka: string, kb: string): SuggestedFix[] {
+function afterMidnightFix(f: Flight, r: RecordRef, ka: string, kb: string, fromTz: string | null | undefined, toTz: string | null | undefined): SuggestedFix[] {
   if (kb !== "takeoffAt" || !["boardingAt", "departureAt"].includes(ka) || !f.takeoffAt) return [];
   const before = instant(f[ka as keyof Flight] as string)!;
   const p = parseDateTime(f.takeoffAt)!;
-  const next = p.epochMs + 86_400_000;
+  // The same clock time a day later, with the offset in force then: the clocks may change overnight.
+  const shift = (v: string, tz: string | null | undefined) => {
+    const q = parseDateTime(v)!;
+    const date = addDays(q.date, 1);
+    return (tz && zonedDateTime(date, q.time, tz)) || `${date}${v.slice(10)}`;
+  };
+  const takeoff = shift(f.takeoffAt, fromTz);
+  const next = instant(takeoff)!;
   if (next <= before || next - before > 4 * 3_600_000) return [];
-  const shift = (v: string) => `${addDays(v.slice(0, 10), 1)}${v.slice(10)}`;
-  const also: SuggestedFix["also"] = f.landingAt ? [{ field: "landingAt", value: shift(f.landingAt) }] : [];
-  return [{ ...r, field: "takeoffAt", value: shift(f.takeoffAt), also, label: `Move takeoff${f.landingAt ? " and landing" : ""} to the next day (${addDays(p.date, 1)})` }];
+  const also: SuggestedFix["also"] = f.landingAt ? [{ field: "landingAt", value: shift(f.landingAt, toTz) }] : [];
+  return [{ ...r, field: "takeoffAt", value: takeoff, also, label: `Move takeoff${f.landingAt ? " and landing" : ""} to the next day (${addDays(p.date, 1)})` }];
 }
 
 // ---------- sightings ----------

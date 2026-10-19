@@ -5,7 +5,7 @@ import type { Flight, FlightValues, Sighting, SightingValues } from "../schema/t
 import type { Store } from "../store.ts";
 import type { Candidate, ParsedSource } from "./candidate.ts";
 import { flightDay } from "../derive.ts";
-import { addDays, instant, toUtcIso } from "../time/index.ts";
+import { addDays, instant, parseDateTime, toUtcIso } from "../time/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
 
 export type MatchKind = "new" | "identical" | "update" | "conflict" | "duplicate";
@@ -34,6 +34,15 @@ export interface Match {
 
 const DAY_MS = 86_400_000;
 
+/** `b` is `a` a day later (within two minutes): by the clock, or by elapsed time when the clocks changed overnight. */
+function aDayLater(a: string | null | undefined, b: string | null | undefined): boolean {
+  const pa = a ? parseDateTime(a) : null;
+  const pb = b ? parseDateTime(b) : null;
+  if (!pa || !pb) return false;
+  const near = (ms: number) => Math.abs(ms - DAY_MS) <= 2 * 60_000;
+  return near(pb.epochMs - pa.epochMs) || near(pb.epochMs + pb.offsetMin * 60_000 - (pa.epochMs + pa.offsetMin * 60_000));
+}
+
 /**
  * The existing record put the takeoff on the scheduled date; this row's boarding time shows the flight left
  * after midnight, a day later (docs/21, "Building date-times from clock times"). Take the row's takeoff and
@@ -44,12 +53,10 @@ function afterMidnightCorrections(existing: Flight, incoming: Partial<FlightValu
   const newTake = instant(incoming.takeoffAt);
   const oldTake = instant(existing.takeoffAt);
   if (board === null || newTake === null || oldTake === null || existing.boardingAt) return [];
-  if (Math.abs(newTake - oldTake - DAY_MS) > 2 * 60_000 || !(oldTake < board && board < newTake)) return [];
+  if (!aDayLater(existing.takeoffAt, incoming.takeoffAt) || !(oldTake < board && board < newTake)) return [];
   const reason = `The flight left after midnight: boarding was at ${incoming.boardingAt!.slice(11, 16)} the evening before.`;
   const out: Correction[] = [{ field: "takeoffAt", existing: existing.takeoffAt, incoming: incoming.takeoffAt, reason }];
-  const oldLand = instant(existing.landingAt);
-  const newLand = instant(incoming.landingAt);
-  if (oldLand !== null && newLand !== null && Math.abs(newLand - oldLand - DAY_MS) <= 2 * 60_000) {
+  if (aDayLater(existing.landingAt, incoming.landingAt)) {
     out.push({ field: "landingAt", existing: existing.landingAt, incoming: incoming.landingAt, reason });
   }
   return out;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, instant, offsetAt, parseDateTime, parseDuration, parseLooseDate, serialToDate, toZoned, zonedDateTime } from "../src/index.ts";
+import { addDays, instant, offsetAt, parseDateTime, parseDuration, parseLooseDate, serialToDate, toZoned, zonedDateTime, zonedInstants } from "../src/index.ts";
 
 describe("date-times", () => {
   it("builds local date-times with the offset in effect", () => {
@@ -18,6 +18,20 @@ describe("date-times", () => {
   it("picks the earlier instant in an overlap", () => {
     // 2025-11-02 01:30 happens twice in New York.
     expect(zonedDateTime("2025-11-02", "01:30", "America/New_York")).toBe("2025-11-02T01:30-04:00");
+  });
+
+  it("lists both instants of a repeated time", () => {
+    const [a, b] = zonedInstants("2025-11-02", "01:30", "America/New_York");
+    expect(toZoned(a!, "America/New_York")).toBe("2025-11-02T01:30-04:00");
+    expect(toZoned(b!, "America/New_York")).toBe("2025-11-02T01:30-05:00");
+    expect(zonedInstants("2025-11-02", "03:30", "America/New_York")).toHaveLength(1);
+  });
+
+  it("follows past changes to a zone's rules", () => {
+    expect(zonedDateTime("2013-01-10", "12:00", "Europe/Moscow")).toBe("2013-01-10T12:00+04:00");
+    expect(zonedDateTime("2015-01-10", "12:00", "Europe/Moscow")).toBe("2015-01-10T12:00+03:00");
+    expect(zonedDateTime("2018-12-10", "12:00", "America/Sao_Paulo")).toBe("2018-12-10T12:00-02:00");
+    expect(zonedDateTime("2020-12-10", "12:00", "America/Sao_Paulo")).toBe("2020-12-10T12:00-03:00");
   });
 
   it("parses stored date-times to instants", () => {

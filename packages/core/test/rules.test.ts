@@ -97,6 +97,19 @@ describe("field rules: each fails on a bad value", () => {
     expect(findings.find((x) => x.ruleId === "V-TIME-OFFSET")?.fixes[0]?.value).toBe("2025-04-02T08:00-04:00");
   });
 
+  it("V-TIMES-ORDER moves a takeoff to the next day with the offset in force then", () => {
+    // New York's clocks went forward on 2025-03-09 at 02:00.
+    const { findings } = run([{ ...goodFlight, scheduledDate: "2025-03-08", fromRaw: "JFK", toRaw: "LHR", boardingAt: "2025-03-08T23:40-05:00", takeoffAt: "2025-03-08T03:10-05:00", landingAt: "2025-03-08T14:10+00:00" }]);
+    const fix = findings.find((x) => x.ruleId === "V-TIMES-ORDER")?.fixes[0];
+    expect(fix).toMatchObject({ field: "takeoffAt", value: "2025-03-09T03:10-04:00", also: [{ field: "landingAt", value: "2025-03-09T14:10+00:00" }] });
+  });
+
+  it("V-TIME-OFFSET checks a diverted landing against the airport it landed at", () => {
+    const diverted = { ...goodFlight, scheduledDate: "2025-04-02", fromRaw: "JFK", toRaw: "LHR", divertedToAirportId: "ap_eddf", boardingAt: null, takeoffAt: "2025-04-02T19:00-04:00", landingAt: "2025-04-03T09:10+02:00" };
+    expect(ids(run([diverted]).findings)).not.toContain("V-TIME-OFFSET");
+    expect(ids(run([{ ...diverted, landingAt: "2025-04-03T08:10+01:00" }]).findings)).toContain("V-TIME-OFFSET");
+  });
+
   it("V-BEFORE-FIRST-FLIGHT", () => {
     const { store } = run([goodFlight]);
     const a = store.all("airframes")[0]!;

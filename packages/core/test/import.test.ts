@@ -36,6 +36,29 @@ describe("building date-times from clock times", () => {
     const t = buildFlightTimes({ scheduledDate: "2025-03-14", originTz: "America/Los_Angeles", destTz: "America/New_York", takeoff: "22:00", landing: "06:10" });
     expect(t.landingAt).toBe("2025-03-15T06:10-04:00");
   });
+
+  // On 2025-10-26 the clocks in Dublin and London went back at 02:00 summer time: 01:00–01:59 happened twice.
+  it("places a landing in the repeated hour on the same day", () => {
+    const t = buildFlightTimes({ scheduledDate: "2025-10-26", originTz: "Europe/Dublin", destTz: "Europe/London", takeoff: "01:30", landing: "01:10" });
+    expect(t.takeoffAt).toBe("2025-10-26T01:30+01:00");
+    expect(t.landingAt).toBe("2025-10-26T01:10+00:00");
+  });
+
+  it("uses the landing time to tell which repeated takeoff time it was", () => {
+    const t = buildFlightTimes({ scheduledDate: "2025-10-26", originTz: "Europe/Dublin", destTz: "Europe/London", boarding: "01:05", takeoff: "01:30", landing: "02:20", durationMin: 50 });
+    expect(t.takeoffAt).toBe("2025-10-26T01:30+00:00");
+    expect(t.landingAt).toBe("2025-10-26T02:20+00:00");
+    expect(t.boardingAt).toBe("2025-10-26T01:05+00:00");
+    expect(t.issues).toEqual([]);
+  });
+
+  it("counts the flight time across a clock change", () => {
+    // London's clocks went back during the flight: 6h05 in the air, 10h05 apart on the clocks.
+    const t = buildFlightTimes({ scheduledDate: "2025-10-25", originTz: "America/New_York", destTz: "Europe/London", takeoff: "22:00", landing: "08:05", durationMin: 6 * 60 + 5 });
+    expect(t.takeoffAt).toBe("2025-10-25T22:00-04:00");
+    expect(t.landingAt).toBe("2025-10-26T08:05+00:00");
+    expect(t.issues).toEqual([]);
+  });
 });
 
 describe("import pipeline", () => {

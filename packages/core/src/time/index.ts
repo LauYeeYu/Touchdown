@@ -115,25 +115,31 @@ export function parseClock(s: string): { h: number; m: number; s: number } | nul
 }
 
 /**
- * Instant of a local wall-clock time on a date in a time zone. In a daylight-saving gap the later
- * offset is used (the clock moves forward); in an overlap the earlier instant is used.
+ * Every instant that shows a local wall-clock time on a date in a time zone, earliest first. Usually one;
+ * two in the hour that repeats when the clocks go back. In the hour skipped when the clocks go forward no
+ * instant shows the time: the one returned is the time moved forward by the change (02:30 → 03:30), as
+ * Temporal's "compatible" disambiguation does.
  */
-export function zonedInstant(date: string, clock: string, tz: string): number | null {
-  if (!isValidDate(date)) return null;
+export function zonedInstants(date: string, clock: string, tz: string): number[] {
+  if (!isValidDate(date)) return [];
   const c = parseClock(clock);
-  if (!c) return null;
+  if (!c) return [];
   const [y, mo, d] = date.split("-").map(Number) as [number, number, number];
   const wall = Date.UTC(y, mo - 1, d, c.h, c.m, c.s);
   const o1 = offsetAt(tz, wall - 14 * 3_600_000);
   const o2 = offsetAt(tz, wall + 14 * 3_600_000);
-  const candidates = [wall - o1 * 60_000, wall - o2 * 60_000].filter((t) => {
+  const candidates = [...new Set([wall - o1 * 60_000, wall - o2 * 60_000])].filter((t) => {
     const back = wallParts(t, tz);
     return Date.UTC(back.year, back.month - 1, back.day, back.hour, back.minute, back.second) === wall;
   });
-  if (candidates.length) return Math.min(...candidates);
-  // In a gap: no instant shows this wall time. Use the offset before the change, as Temporal's
-  // "compatible" disambiguation does, which lands after the gap.
-  return wall - o1 * 60_000;
+  if (candidates.length) return candidates.sort((a, b) => a - b);
+  // In a gap: use the offset before the change, which lands after the gap.
+  return [wall - o1 * 60_000];
+}
+
+/** Instant of a local wall-clock time on a date in a time zone; the earlier one when the time repeats. */
+export function zonedInstant(date: string, clock: string, tz: string): number | null {
+  return zonedInstants(date, clock, tz)[0] ?? null;
 }
 
 /** Combine a date and a clock time into a stored date-time in the airport's zone. */
