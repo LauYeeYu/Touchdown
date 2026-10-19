@@ -3779,6 +3779,12 @@ a.card:hover {
   border-color: transparent;
 }
 
+/* Like the globe controls, the pill gets a tonal step on hover, not the quiet button's translucent layer. */
+.globe-flat:hover,
+.globe-flat:active {
+  background: var(--surface-high);
+}
+
 @media (max-width: 720px) {
   .legend__action {
     margin-left: 0;
