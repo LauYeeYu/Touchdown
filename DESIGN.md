@@ -14,6 +14,9 @@ colors:
   ink-3: "#6e685e"
   button-hover: "#3a3631"
   tip-muted: "#cfc9bd"
+  tip-bg: "#1f1d1a"
+  tip-ink: "#faf8f1"
+  tip-edge: "transparent"
   hover-wash: "rgba(31, 29, 26, 0.05)"
   selected-wash: "rgba(31, 29, 26, 0.07)"
   flown: "#c48400"
@@ -57,6 +60,8 @@ colors:
   button-hover-dark: "#d9d4c9"
   tip-muted-dark: "#c8c2b5"
   tip-bg-dark: "#3d3b33"
+  tip-ink-dark: "#f1eee6"
+  tip-edge-dark: "rgba(241, 238, 230, 0.1)"
   hover-wash-dark: "rgba(241, 238, 230, 0.06)"
   selected-wash-dark: "rgba(241, 238, 230, 0.09)"
   flown-dark: "#c48400"
@@ -134,6 +139,13 @@ typography:
     fontSize: "1.125rem"
     fontWeight: 650
     letterSpacing: "-0.01em"
+  stat:
+    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 650
+    lineHeight: 1.25
+    letterSpacing: "-0.015em"
+    fontFeature: "\"tnum\" 1"
   body:
     fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "1rem"
@@ -229,6 +241,9 @@ components:
   nav-link-current:
     backgroundColor: "{colors.selected-container}"
     textColor: "{colors.on-selected-container}"
+  nav-link-tight:
+    rounded: "{rounded.pill}"
+    padding: "8px 12px"
   nav-tab-phone:
     backgroundColor: "{colors.surface-mid}"
     textColor: "{colors.ink-2}"
@@ -288,12 +303,50 @@ components:
     backgroundColor: "{colors.surface-highest}"
   input-search-focus:
     backgroundColor: "{colors.surface-lowest}"
+  select:
+    backgroundColor: "{colors.field}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.field}"
+    padding: "0 40px 0 12px"
+    height: "42px"
   select-filter:
     backgroundColor: "{colors.surface-high}"
     textColor: "{colors.ink}"
     rounded: "{rounded.pill}"
-    padding: "0 16px"
+    padding: "0 42px 0 16px"
     height: "42px"
+  select-filter-hover:
+    backgroundColor: "{colors.surface-highest}"
+  textarea:
+    backgroundColor: "{colors.field}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.surface}"
+    padding: "12px 14px"
+    height: "min 88px"
+  tab:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink-2}"
+    padding: "10px 14px"
+  tab-selected:
+    textColor: "{colors.ink}"
+  tab-indicator:
+    backgroundColor: "{colors.ink}"
+    height: "3px"
+  ranked-bar:
+    backgroundColor: "{colors.flown}"
+    rounded: "{rounded.hairline}"
+    height: "8px"
+  pager-number:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.pill}"
+    padding: "0 8px"
+    height: "40px"
+  pager-number-hover:
+    backgroundColor: "{colors.state-hover}"
+  pager-number-current:
+    backgroundColor: "{colors.selected-container}"
+    textColor: "{colors.on-selected-container}"
   card:
     backgroundColor: "{colors.surface-low}"
     textColor: "{colors.ink}"
@@ -339,9 +392,11 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.pill}"
     size: "44px"
+  globe-button-hover:
+    backgroundColor: "{colors.surface-high}"
   tooltip:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.paper}"
+    backgroundColor: "{colors.tip-bg}"
+    textColor: "{colors.tip-ink}"
     typography: "{typography.label}"
     rounded: "{rounded.item}"
     padding: "8px 10px"
@@ -354,6 +409,9 @@ components:
   header-band:
     backgroundColor: "{colors.surface-mid}"
     height: "64px"
+  header-band-compact:
+    backgroundColor: "{colors.surface-mid}"
+    height: "56px"
 ---
 
 # Design System: Touchdown
@@ -366,7 +424,7 @@ Each view states its main point as one plain sentence with the figures inside it
 
 On that ground sits a layer borrowed from Material You, deliberately not exact Material: its shapes (pill buttons, round icon buttons, large rounded containers), its tonal surfaces (a warm neutral palette at the page's hue) and its state layers. Material's colour roles are not borrowed: buttons stay ink and neutral, and gold and blue stay data only. The one non-data tint is a muted gold container that marks what is selected. This document describes the shipped web app (`apps/web`); the prototype in `prototype/` is the earlier reference and does not have the Material layer.
 
-Colour is reserved for data. Flown is gold, spotted is blue, and everything else is paper, tonal surface and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts, the floating Add button, the globe's controls) and on a card under the pointer. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.
+Colour is reserved for data. Flown is gold, spotted is blue, and everything else is paper, tonal surface and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts, the floating Add button, the globe's controls). A linked card under the pointer changes shade; it does not rise. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.
 
 The system refuses the KPI-tile grid and the flight-tracker wall of panels. A statistic belongs in a sentence or a chart with its own counted-what subtitle, not in a box of its own.
 
@@ -395,7 +453,7 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 - **Spotted Text Blue** (`spotted-ink`, `spotted-ink-dark`): spotted blue as readable text, for example the "new to your log" count.
 
 - **Focus Gold** (`focus` #b58a00, `focus-dark` #d5a400, with `focus-wash`): focus rings, the text caret and the input focus border with its 3px halo. A yellower Material tone (hue 88) than the flown ink, because the flown gold's pale halo reads as peach on the cream page.
-- **Selection Container** (`selected-container` #eee1c5, `selected-container-dark` #4e4631, text in `on-selected-container` #211b0a / #eee1c5): a muted gold tint for what is selected. The current page in the desktop navigation, the pill behind the current tab's icon on phones, a selected segment, a selected chip, the main first-run item and the floating Add button. It is a tint at low chroma, not a data ink, and it never marks flights.
+- **Selection Container** (`selected-container` #eee1c5, `selected-container-dark` #4e4631, text in `on-selected-container` #211b0a / #eee1c5): a muted gold tint for what is selected. The current page in the desktop navigation, the pill behind the current tab's icon in the bottom navigation bar, a selected segment, a selected chip, the main first-run item and the floating Add button. It is a tint at low chroma, not a data ink, and it never marks flights.
 
 ### Tertiary
 - **Check Green** (`good`, `good-dark`): the icon of a passed-checks status line only. Never a fill, never a chart colour.
@@ -411,6 +469,8 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 - **Ink** (`ink`), **Ink 2** (`ink-2`), **Ink 3** (`ink-3`): primary text; secondary text and inactive controls; labels, captions, credits, and axis text.
 - **Map neutrals** (`land`, `land-edge`, `sphere`, `chart-grid`): land fill, coastline stroke in the paper colour, the globe disc on phone maps, and chart gridlines and graticule.
 - **Globe neutrals** (`globe-stage`, `globe-sphere`): the rounded stage behind the interactive globe (#ede8dd, dark #1d1c15) and the globe's ocean disc (#fffdf8, dark #1d1c19).
+- **Tooltip surfaces** (`tip-bg`, `tip-ink`, `tip-edge`, `tip-muted`): on the light theme the tooltip is inverted, ink fill (#1f1d1a) with paper text (#faf8f1) and no edge. On the dark theme it is a raised dark surface (`tip-bg-dark` #3d3b33) with light ink text (`tip-ink-dark` #f1eee6), a 1px edge at 10% ink (`tip-edge-dark`) and muted lines in `tip-muted-dark` (#c8c2b5); a bright box on a dark page glares.
+- **Select chevron** (`--select-chevron`): not a colour but a 12px data-URI image, a chevron drawn with a 1.6px stroke in the `ink-2` value of each theme. Selects and the Disclosure summary use it.
 - **State layers** (`state-hover`, `state-press`): ink at 8% and 12% over a control on hover and press. The older washes (`hover-wash` 5%, `selected-wash` 7%) remain only on controls the Material layer does not cover.
 
 ### Named Rules
@@ -436,8 +496,8 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 - **Clock** (600, 1.75rem, 1.1, tabular): times in the times strip; 1.5rem on phones.
 - **Title** (650, 1.375rem, 1.25, -0.015em): section titles. 1.25rem on phones. Month headings in the list use the smaller title (650, 1.125rem, -0.01em).
 - **Body** (400, 1rem, 1.5): running text and definition values. Most interface text sits one step down at 0.9375rem (nav, buttons, row cells, menu items).
-- **Stat** (650, 1.25rem, 1.25, -0.015em, tabular): values in the stats under the lead sentence; units inside them at 0.72em, weight 500, in `ink-2`. 1.125rem on phones.
-- **Label** (400, 0.8125rem): column heads, time labels, definition terms, legends, tooltips, the globe's hint line, footer. Credits drop to 0.75rem (0.6875rem under thumbnails). Phone navigation labels are 0.75rem at 500 (650 for the current tab).
+- **Stat** (650, 1.25rem, 1.25, -0.015em, tabular): values in the fact list under the lead sentence; units inside them at 0.72em, weight 500, in `ink-2`. 1.125rem on phones.
+- **Label** (400, 0.8125rem): column heads, time labels, definition terms, legends, tooltips, the globe's hint line, footer. Credits drop to 0.75rem (0.6875rem under thumbnails). Bottom navigation labels (840px and below) are 0.75rem at 500 (650 for the current tab).
 - **Chart label** (11px, tabular): axis ticks and bar values (bar values at 600); airport codes on maps and the globe at 600.
 - **Wordmark** (700, 0.9375rem, 0.16em, capitals): the name in the header only.
 
@@ -446,19 +506,22 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 
 **The Tabular Figures Rule.** Any number that sits in a column, a strip, a chart or a lead-sentence figure uses tabular figures, so values align and do not shift as they change.
 
-**The Dated Time Rule.** Every precise time is shown with its date and its UTC offset (for example "Tue 4 Mar · UTC+8"), in 24-hour local time of the airport, with a "+1 day" chip when the landing date differs. A clock time never appears alone.
+**The Dated Time Rule.** Every precise time is shown with its date and its UTC offset (for example "Tue 4 Mar · UTC+1"), in 24-hour local time of the airport, with a "+1 day" chip when the landing date differs. A clock time never appears alone.
 
 ## Layout
 
-A single centred column: `min(1120px, 100% - 2 × gutter)`, gutter 32px, 16px on phones. Views open 40px below the header (24px on phones) with the period control, then the lead sentence 24px below, then the subject at full column width. Sections are separated by 64px (44px on phones), each with a title row (title left, aside or link right, baseline-aligned) 20px above its content. Two-column splits use 7:5 or 5:7 with a 48px gap; chart pairs use two equal columns with a 48px gap. The main area keeps 96px of bottom padding (120px on phones, to clear the navigation bar).
+A single centred column: `min(1120px, 100% - 2 × gutter)`, gutter 32px, 16px on phones. Views open 40px below the header (24px on phones) with the period control, then the lead sentence 24px below, then the subject at full column width. Sections are separated by 64px (44px on phones), each with a title row (title left, aside or link right, baseline-aligned) 20px above its content. Two-column splits use 7:5 or 5:7 with a 48px gap; chart pairs use two equal columns with a 48px gap. The main area keeps 96px of bottom padding (120px at 840px and below, to clear the bottom navigation bar).
 
 The globe page is the one exception to the reading column: the period control and the Flights/Spotting chips sit in the column at the top (20px above, 16px below), and the stage below is wider, `min(1280px, 100% - 2 × gutter)`, and fills the rest of the viewport height (at least 420px) with 24px below it.
 
 Spacing runs on 4px steps, mainly 4, 8, 12, 16, 20, 24, 32, 48 and 64px.
 
 **Responsive rules.**
-- **Up to 960px:** the flight list drops the aircraft and distance columns.
-- **Up to 720px:** the gutter becomes 16px; the header shrinks to 56px with wordmark, sync icon (text hidden) and theme; the header's Add menu is replaced by the floating Add button, 16px from the right edge and 92px (plus the safe area) above the bottom, so it clears the navigation bar; navigation moves to a fixed bottom bar; split and chart grids stack to one column with a 36px gap; the gallery becomes a horizontal scroll-snap strip with cards at 78% width; list rows become a two-line layout (route and duration on top, date and meta below); the times strip becomes two by two; breadcrumbs lose the pager; map containers drop to 24px corners; the globe stage runs edge to edge with 24px top corners only and a minimum height of 360px.
+- **Above 1180px:** the full top bar: wordmark, navigation links, save status with its words, theme button and the Add button with its label.
+- **1180px to 841px:** the top bar tightens instead of overflowing. The save status keeps only its icon (its words move to the tooltip), the bar's gap drops from 32px to 20px, link gaps to 2px and link padding to 8px 12px. Below 1000px the Add button keeps only its plus (a 40px round button).
+- **840px and below (compact navigation):** Material's compact and medium widths. The header shrinks to 56px with the wordmark, sync icon and theme button; navigation moves to a fixed bottom bar; the header's Add menu is replaced by the floating Add button, 16px from the right edge and 92px (plus the safe area) above the bottom so it clears the bar; the globe stage runs edge to edge with 24px top corners only and a minimum height of 360px. This applies whatever the device.
+- **Up to 960px:** the flight list drops the aircraft and distance columns; the first-run items stack.
+- **Up to 720px (phone layout):** the gutter becomes 16px; views open 24px below the header; split, chart and ranked grids stack to one column (36px gap between split and chart columns); the fact list becomes two columns; the gallery becomes a horizontal scroll-snap strip with cards at 78% width; list rows become a two-line layout (route and duration on top, date and meta below); the times strip becomes two by two; breadcrumbs lose the pager; the pager centres; map containers drop to 24px corners.
 - **Maps under 600px wide:** the Flights and flight maps become a disc centred on the period (an orthographic globe when everything fits on one hemisphere, an azimuthal equal-area disc otherwise) about as tall as it is wide, rather than a shallow world strip. Home keeps the full-width world cropped to the period's latitudes.
 
 ### Named Rules
@@ -468,13 +531,14 @@ Spacing runs on 4px steps, mainly 4, 8, 12, 16, 20, 24, 32, 48 and 64px.
 
 ## Elevation & Depth
 
-The page is flat. Depth comes from tonal surfaces (the five `surface-*` steps) and hairline rules: a raised area is a step lighter or darker, not outlined. Shadows exist only on elements that float above the page, and on a linked card under the pointer.
+The page is flat. Depth comes from tonal surfaces (the five `surface-*` steps) and hairline rules: a raised area is a step lighter or darker, not outlined. Shadows exist only on elements that float above the page. A linked card under the pointer does not rise or cast a shadow; it only changes shade.
 
 ### Shadow Vocabulary
 - **Pop** (`0 6px 18px rgba(31, 29, 26, 0.14), 0 1px 3px rgba(31, 29, 26, 0.08)`; dark `0 6px 18px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3)`): tooltips and toasts.
-- **Menu** (`0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1)`): menus and pickers, on their tonal fill.
-- **FAB** (`0 1px 3px rgba(31, 29, 26, 0.2), 0 4px 12px rgba(31, 29, 26, 0.16)`): the floating Add button on phones.
-- **Globe control** (`0 1px 3px rgba(31, 29, 26, 0.14)`): the round buttons floating over the globe.
+- **Menu** (`--shadow-2`: `0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1)`; dark `0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35)`): menus and pickers on their tonal fill, and the floating Add button.
+- **Raised** (`--shadow-1`: `0 1px 2px rgba(31, 29, 26, 0.12), 0 4px 14px rgba(31, 29, 26, 0.08)`; dark `0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3)`): the round zoom buttons floating over the globe.
+- **Tooltip edge** (`0 0 0 1px` in `tip-edge`, under the pop shadow): a 1px ring that separates the dark-theme tooltip from the page; transparent on the light theme.
+- **Focus halo** (`0 0 0 3px` in `focus-wash`): the ring around a focused field, with its focus-gold border. A state, not elevation.
 - **Flash** (a 6px ring in `flown-wash` that fades over 1.2s): the aircraft card when a lead-sentence phrase points at it.
 
 ### Named Rules
@@ -482,14 +546,14 @@ The page is flat. Depth comes from tonal surfaces (the five `surface-*` steps) a
 
 ## Shapes
 
-Rounded in the Material way, with corners that grow with the size of the thing: everything you press is a pill, containers are large and soft, and nothing is sharp. Buttons, icon buttons, nav links, segments, the search field, filter selects and the legend's globe link are pills (999px). Chips use 8px corners, as do skip links and small thumbnails. Menu items and tooltips use 10px; fields, compact findings and toasts 12px; rows and merge-list items 14px; findings, menus, pickers, textareas and the floating Add button 16px; cards 20px (`--radius`); first-run items and the drop zone 24px; map containers and the globe stage 28px (24px on phones). Bar-chart tops and focus outlines 4px; the phrase highlight 2px. Small outlined pills (Review, +1 day) keep their 1px outline. Borders are 1px hairlines; there are no thick strokes outside the data. Photos are cropped to 3:2 in cards and thumbnails and 16:10 on the aircraft card. Icons are Lucide line icons at 1.75 stroke (2.25 for checks), inline SVG, sized to the text.
+Rounded in the Material way, with corners that grow with the size of the thing: everything you press is a pill, containers are large and soft, and nothing is sharp. Buttons, icon buttons, nav links, segments, the search field, filter selects and the legend's globe link are pills (999px). Chips use 8px corners, as do skip links and small thumbnails. Menu items, tooltips and the tab focus ring use 10px; fields, compact findings and toasts 12px; rows and merge-list items 14px; findings, menus, pickers, textareas and the floating Add button 16px; cards 20px (`--radius`); first-run items and the drop zone 24px; map containers and the globe stage 28px (24px on phones). Bar-chart tops and focus outlines 4px; ranked bars and the phrase highlight 2px; the tab indicator rounds only its top corners (3px). Small outlined pills (Review, +1 day) keep their 1px outline. Borders are 1px hairlines; there are no thick strokes outside the data. Photos are cropped to 3:2 in cards and thumbnails and 16:10 on the aircraft card. Icons are Lucide line icons at 1.75 stroke (2.25 for checks), inline SVG, sized to the text.
 
 ### Named Rules
 **The Borrowed Shapes Rule.** The Material layer borrows shapes, tonal surfaces and state layers, never Material's colour roles. Buttons are ink (primary) or neutral (quiet, ghost); no button, tab or control is filled with a data ink. Selection uses the muted gold container; gold and blue stay data only.
 
 ## Components
 
-Shared React components in `apps/web/src/components/`; use them rather than repeating their markup or styles. `Tabs` (sliding indicator, stable labels, arrow keys), `StableLabel` (a label that turns bold without moving its neighbours; also the navigation), `Pager` and `usePaging` (long lists), `Disclosure` (animated open and close), `Ranked` (label, bar, number), `Fact` and `LeftOut` (fact lists), `FlightRow` and `FlightCols` (flight lists), `TypeCell` (maker and name over the code), `Duration` ("2h 07m"), plus the maps, the globe, `Photo` and the form fields. Airport codes and names come from `lib/codes.ts`, which follows the Codes setting.
+Shared React components in `apps/web/src/components/`; use them rather than repeating their markup or styles. `Tabs` (sliding indicator, stable labels, arrow keys), `StableLabel` (a label that turns bold without moving its neighbours; also the navigation), `Pager` and `usePaging` (long lists), `Disclosure` (animated open and close), `Ranked` (label, bar, number), `Fact` and `LeftOut` (fact lists), `FlightRow` and `FlightCols` (flight lists), `TypeCell` (maker and name over the code), `Duration` ("2h 07m"), `BigCode` (a large airport code, with the other code small beneath it in `ink-3` at 0.8125rem and 500 when the user shows both), plus the maps, the globe, `Photo` and the form fields. Airport codes and names come from `lib/codes.ts`, which follows the user's Codes setting (IATA, ICAO or both): text shows the chosen code, or both as "LHR/EGLL"; large type and map labels have room for one code (ICAO when chosen, else IATA); names carry their code in parentheses, "London Heathrow (LHR)", joined by a non-breaking space.
 
 ### Buttons
 Pills in ink and neutral; the only filled button is the primary action.
@@ -499,7 +563,7 @@ Pills in ink and neutral; the only filled button is the primary action.
 - **Ghost:** transparent, no outline, `ink-2` text; same state layers.
 - **Danger:** quiet outline with alert text; hover adds the alert wash.
 - **Icon button:** 40px round, transparent, `ink-2` icon at 18px; hover and press add the state layers.
-- **Floating Add button (840px and below):** 56px square with 16px corners, the selection container with a 24px plus icon, FAB shadow. It opens the Add menu upwards. Hidden on the globe page, where the stage takes the screen.
+- **Floating Add button (840px and below):** 56px square with 16px corners, the selection container with a 24px plus icon, the Menu shadow. It opens the Add menu upwards. Hidden on the globe page, where the stage takes the screen.
 - **Text link with arrow:** 600 weight, no underline at rest, underline on hover.
 - **Transitions:** 160ms on background, border and transform with the standard ease.
 
@@ -522,7 +586,7 @@ A headline-size sentence in the owner's plain voice with the period's figures in
 Stacked stats under the lead sentence, after Flighty's passport page: a label above a large value, a muted detail line below. Order: longest flight (route; distance and flight number), time in the air (hours and minutes; number of flights), most flown airline (number of flights), most flown aircraft (registration; flights and type; shown only when one aircraft was flown more than once), most spotted type (number of aircraft). A stat with no data is left out.
 
 - Label: full noun phrase, 0.8125rem, `ink-3`.
-- Value: 1.25rem, weight 650, -0.015em, `ink`, tabular figures. Units step down to 0.72em, weight 500, `ink-2`, so the figure reads first (`141h 15m`). Model names with a hyphen (737-800) do not break at it.
+- Value: 1.25rem, weight 650, -0.015em, `ink`, tabular figures. Units step down to 0.72em, weight 500, `ink-2`, so the figure reads first (`38h 15m`). Model names with a hyphen (737-800) do not break at it.
 - Detail: 0.875rem, `ink-3`, 2px below the value; parts joined with a middle dot.
 - Grid: `repeat(auto-fill, minmax(190px, 1fr))` with 20px by 32px gaps, 32px below the lead sentence. Columns keep their positions when a period has fewer stats. Two columns from 720px down (18px by 20px); a last stat on its own takes the full row.
 
@@ -539,7 +603,7 @@ No rules, icons, colons or cards. Hairlines are kept only where rows are too wid
 The `/globe` page shows the period on a canvas orthographic globe inside a 28px rounded stage (`globe-stage`), with the ocean disc in `globe-sphere`, land in `land` with `land-edge` coastlines, a 10° graticule in `chart-grid` and a `rule-strong` outline.
 - **Content:** flown routes in gold, recorded tracks where they exist and dashed great circles for the missing stretches; line width grows gently with zoom (1.4px up to 3px). Spotting locations are blue dots with a 2px paper ring, sized by aircraft seen; points on the far side are hidden. Airports flown through are 3.5px ink dots with a paper ring, labelled with 11px 600 codes in `ink-2` with a paper stroke, placed greedily so labels never overlap or leave the frame.
 - **Interaction:** drag to turn, with inertia after a quick release; scroll or pinch to zoom; arrow keys turn and + / − zoom when the canvas has focus (focus ring inset 4px). Hovering a route, an airport or a spotting dot shows its tooltip; the hovered route redraws 1.6px thicker at full opacity while the others drop to 22% and spots to 35%, and a hovered airport dot grows to 5.5px. Clicking a route opens the flight; clicking an airport or a spotting dot opens the airport page.
-- **Controls:** zoom in, zoom out and back to the whole period as a column of 44px round buttons on `surface-highest` with the globe-control shadow, 16px from the bottom right, 8px apart. A "Flat map" small quiet pill on `surface-highest` sits 16px from the top right and links to the flat map. A hint line ("Drag to turn · scroll or pinch to zoom · click a route or an airport to open it") sits bottom left in label size, `ink-3`.
+- **Controls:** zoom in, zoom out and back to the whole period as a column of 44px round buttons on `surface-highest` (`surface-high` on hover) with the Raised shadow, 16px from the bottom right, 8px apart. A "Flat map" small quiet pill on `surface-highest` (`surface-high` on hover, like the controls) sits 16px from the top right and links to the flat map. A hint line ("Drag to turn · scroll or pinch to zoom · click a route or an airport to open it") sits bottom left in label size, `ink-3`.
 - **Above the stage:** the period control and two chips, Flights and Spotting, each with its legend swatch and count, that toggle the layers.
 
 ### Cards / Containers
@@ -561,16 +625,16 @@ Check results as tonal boxes: 16px corners (12px in the compact list), no border
 A seven-column grid (date, route, flight, aircraft, duration, distance, track) aligned on the **first baseline**, so a two-line cell and a one-line cell share the top line. 14px 12px padding, hairline bottom, 14px corners, `surface-mid` on hover or when its route is isolated. Aircraft types are always written maker and name ("Boeing 737-800", "Airbus A321neo"), never the bare model, so no maker reads differently from another; in the Aircraft, Spotting and airport lists the ICAO type code always sits on the second line (flight rows put the registration there). On phones the Aircraft list hides the type column and shows the code under the registration instead; the registration cell carries nothing else (no serial number or matching note). Route codes at 600 with a small gold arc arrow; cities below in `ink-3` at 0.8125rem. Numbers right-aligned with tabular figures. Months are grouped under a 650 month heading with a hairline and a muted sum. A row that needs a look carries an outlined pill chip with an info icon and the word "Review". The track column shows a route icon (recorded track) or a great-circle icon in `ink-3`; hovering it shows the tooltip with what it means: "Recorded track" with its source, "Recorded track, with gaps" (the missing stretches are dashed great circles), or "Great circle only" (no recorded track; the map draws the shortest path, not the route flown). Screen readers get the same text.
 
 ### Selects
-Native selects with the browser's arrow removed and our own 12px chevron (1.6px stroke, `ink-2`, a token per theme) placed 16px from the end (18px on the filled filter pills, 12px in session rows), with 40px of right padding so text never runs under it.
+Native selects with the browser's arrow removed and our own 12px chevron (the `--select-chevron` image: 1.6px stroke in `ink-2`, one per theme) inset from the rounded end: 16px from the end with 40px of right padding on form selects, 18px with 42px on the filled filter pills, 12px with 32px in session rows, so text never runs under it.
 
 ### Durations
-Written "2h 07m": figures at full size, the units at 0.72em and 500 in `ink-2`, 1px after the figure; under an hour just "49m". Lists pad the minutes to two digits so the column lines up; prose facts do not ("207h 8m"). Long prose uses words ("6 h 5 min").
+Written "2h 07m": figures at full size, the units at 0.72em and 500 in `ink-2`, 1px after the figure; under an hour just "49m". Lists pad the minutes to two digits so the column lines up; prose facts do not ("27h 8m"). Long prose uses words ("6 h 5 min").
 
 ### Disclosure
 `Disclosure` is a native `details`, used for "Show the numbers" on Home (small, `ink-3`) and "More" on the flight form (`.disclosure--form`: 0.9375rem, 600, ink, 32px above; open at first when editing). Its summary carries the 12px select chevron, turned −90° when closed and upright when open (220ms). The content slides open and fades in (height 280ms, opacity 220ms, the standard ease); without `::details-content` support it opens at once, and reduced motion turns both off.
 
 ### Pager
-Below a long list, 24px under the last row: the range and total on the left ("31–60 of 330 aircraft", 0.875rem `ink-3`, tabular figures), page buttons on the right. Page numbers are 40px pills in `ink-2` with the state layer on hover; the current page fills with the selection container at 650. Gaps are an ellipsis in `ink-3`. Previous and next are round icon buttons, faded to 38% when there is no page that way. On phones the count sits on its own centred line above centred 36px buttons.
+Below a long list, 24px under the last row: the range and total on the left ("31–60 of 120 aircraft", 0.875rem `ink-3`, tabular figures), page buttons on the right. Page numbers are 40px pills in `ink-2` with the state layer on hover; the current page fills with the selection container at 650. Gaps are an ellipsis in `ink-3`. Previous and next are round icon buttons, faded to 38% when there is no page that way. On phones the count sits on its own centred line above centred 36px buttons.
 
 ### Airport page
 A shorter header than a flight page: the airport code at the 5rem hero size (3.5rem on phones) with the city (600, ink) and the name, country and ICAO code (`ink-2`) beside it, aligned to its baseline. Then the period control, a 1.5rem lead sentence, the fact list, the map, and the two paged lists (flight rows; aircraft rows as on the Aircraft page). Both legs of a transit carry a neutral "Transit" pill after the route.
@@ -579,19 +643,20 @@ A shorter header than a flight page: the airport code at the 5rem hero size (3.5
 Text tabs at 0.9375rem and 500 in `ink-2`, 10px 14px padding, ink on hover; the selected one is ink at 600. Each label reserves its bold width (a hidden copy at 600), so selecting a tab never moves the others. Material's indicator is a single 3px ink bar with rounded top corners (3px 3px 0 0) under the selected label, on the hairline below the tab row; when the selection changes it slides and resizes to the new label (transform and width, 300ms, the standard ease), with no slide on first paint. Arrow keys, Home and End move the selection. The focus ring is drawn 3px inside the tab, since the tab row scrolls sideways.
 
 ### Ranked lists
-Label, bar, number. Labels wrap to two lines rather than being cut off; a code stays with its name. The bar is the count against the largest in the list: 8px tall, 2px corners (a bar, never a dot), in the list's data ink, with no track behind it because there is no total to fill. Bars grow from their start when they appear (600ms) and move to new lengths when the period changes (400ms); reduced motion turns both off.
+Label, bar, number, in a grid of a flexible label column, a 72px bar column and a 44px right-aligned number column (12px gaps, 5px row padding, 0.9375rem). Each list has a 1rem title at 650 and shows its first eight rows, with a "Show all" link button and the left-out note below. Lists sit in an auto-fill grid of 300px minimum columns with 36px by 48px gaps, one column on phones. Labels wrap to two lines rather than being cut off; a code stays with its name. The bar is the count against the largest in the list: 8px tall, 2px corners (a bar, never a dot), in the list's data ink, with no track behind it because there is no total to fill. Bars grow from their start when they appear (600ms) and move to new lengths when the period changes (400ms); reduced motion turns both off.
 
 ### Times strip
 Four equal cells (boarding, takeoff, landing, duration) between hairlines, with hairline dividers. Each cell: label in `ink-3`, the clock at Clock size, then the airport's local date and UTC offset, plus an outlined "+1 day" pill when the day changes. Two by two on phones.
 
 ### Tooltips and toasts
-On the light theme both are inverted: ink background, paper text, pop shadow. On the dark theme the tooltip is not inverted (a bright box on a dark page glares): it sits on a raised dark surface (`tip-bg-dark` #3d3b33) with ink text, muted lines in `tip-muted-dark` #c8c2b5 and a 1px edge at 10% ink; the toast stays inverted. Tooltips are 0.8125rem, 8px 10px padding, 10px corners, max 280px, with muted lines in `tip-muted`; they rise 4px into place over 120ms and never take the pointer. Toasts sit centred 28px above the bottom edge, 14px 20px padding, 12px corners, rising 12px over 180ms; they announce politely to assistive technology.
+Tooltips use their own tokens (`tip-bg`, `tip-ink`, `tip-edge`, `tip-muted`). On the light theme the tooltip and the toast are both inverted: ink background, paper text, pop shadow. On the dark theme the tooltip is not inverted (a bright box on a dark page glares): it sits on a raised dark surface (`tip-bg-dark` #3d3b33) with ink text, muted lines in `tip-muted-dark` (#c8c2b5) and a 1px edge at 10% ink; the toast stays inverted. Tooltips are 0.8125rem, 8px 10px padding, 10px corners, max 280px, with muted lines in `tip-muted`; they rise 4px into place over 120ms and never take the pointer. Toasts sit centred 28px above the bottom edge, 14px 20px padding, 12px corners, rising 12px over 180ms; they announce politely to assistive technology.
 
 ### Status lines
 A row of icon plus sentence at 0.9375rem in `ink-2`, the icon nudged 3px down to sit on the first line. Passed checks use a circle-check icon in `good`; a finding uses an info icon with the text in ink and a bold lead word ("Needs a look."). Import provenance uses the info icon in the default tone.
 
 ### Inputs / Fields
-- **Style:** 42px high, 1px `rule-strong` outline, 12px corners, `field` background, 12px padding, 0.9375rem. Textareas use 16px corners.
+- **Style:** 42px high, 1px `rule-strong` outline, 12px corners, `field` background, 12px padding, 0.9375rem.
+- **Text areas:** keep their rows instead of the single-line height: at least 88px, 12px 14px padding, 16px corners, resizable vertically.
 - **Search:** a filled pill, 46px high, no outline, on `surface-high` (`surface-highest` on hover), with the search icon 16px from the left and 44px left padding. On focus it turns `surface-lowest` with the focus border and ring.
 - **Filter selects:** filled pills on `surface-high` with 16px side padding and no outline; `surface-highest` on hover.
 - **Hover:** outlined fields darken to `rule-hover`.
@@ -600,19 +665,19 @@ A row of icon plus sentence at 0.9375rem in `ink-2`, the icon nudged 3px down to
 - **Checkboxes:** native, 16px, accent in flown gold.
 
 ### Navigation
-- **Header band:** sticky, `surface-mid` with no bottom hairline, 64px high (56px on phones): wordmark, nav links, then sync state, theme button and Add on the right (Add moves to the floating button on phones).
+- **Header band:** sticky, `surface-mid` with no bottom hairline, 64px high (56px at 840px and below): wordmark, nav links, then sync state, theme button and Add on the right (Add moves to the floating button at 840px and below).
 - **Desktop links:** 0.9375rem `ink-2`, 8px 16px padding, pill corners; hover adds the state layer; the current page sits in a pill of the selection container with `on-selected-container` text at 600. Unavailable sections stay visible in `ink-3` and do nothing on hover.
 - **Stable widths:** each label reserves the width of its bold form (a hidden copy at 650 under it), so marking the current page never moves the links after it.
 - **Widths:** above 1180px the full top bar. From 1180px down to 841px it tightens in steps: the save status keeps only its icon (words in its tooltip), gaps shrink to 20px and links to 8px 12px padding, and below 1000px Add keeps only its plus. At 840px and below (Material's compact and medium widths) the navigation moves to the bottom bar and Add becomes the floating button, whatever the device.
 - **Bottom navigation bar (840px and below):** fixed to the bottom, `surface-mid` with no top hairline, 10px top padding, icons at 22px above 0.75rem labels at 500, safe-area padding below. The current tab gets a pill of the selection container behind its icon (5px 20px padding, fading in over 180ms) and an ink label at 650. The bar's colour continues below the screen edge so the page never shows through while the browser toolbar moves.
 
 ### Motion
-One easing, `cubic-bezier(0.16, 1, 0.3, 1)`, for every transition. Durations: 120ms tooltips, 140-160ms hover and colour changes, 180ms segments, phrases, the phone tab pill and toasts, 200ms map layers, 300ms card shade, 260ms photo fade-in, 1.2s card flash, 1.4s linear shimmer. The globe's inertia decays frame by frame after a drag. Reduced-motion users get effectively instant transitions.
+One easing, `cubic-bezier(0.16, 1, 0.3, 1)`, for every transition. Durations: 120ms tooltips, 140-160ms hover and colour changes, 180ms segments, phrases, the phone tab pill and toasts, 200ms map layers, 220ms the disclosure chevron and content fade, 280ms the disclosure height, 300ms card shade and the tab indicator's slide, 400ms ranked bars moving to new lengths, 600ms ranked bars growing in, 260ms photo fade-in, 1.2s card flash, 1.4s linear shimmer. The globe's inertia decays frame by frame after a drag. Reduced-motion users get effectively instant transitions; the tab slide, ranked bars and disclosure turn off entirely.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep `paper` (#FAF8F1) as the light ground and `paper-dark` as the dark ground, and support both themes, following the device unless the user picks one.
+- **Do** keep `paper` (#faf8f1) as the light ground and `paper-dark` as the dark ground, and support both themes, following the device unless the user picks one.
 - **Do** colour flight data gold and spotting data blue, using each theme's validated pair, and split the two for data that is both.
 - **Do** open each view with one plain sentence carrying its figures, and underline data phrases 2px in their ink so they point at the map layer or the aircraft.
 - **Do** show every precise time with its date and UTC offset, in 24-hour airport-local time.
@@ -631,5 +696,5 @@ One easing, `cubic-bezier(0.16, 1, 0.3, 1)`, for every transition. Durations: 12
 - **Don't** fill a button, tab or navigation item with flown gold or spotted blue; buttons stay ink or neutral.
 - **Don't** build KPI tiles or a wall of side panels; a figure belongs in a sentence or a chart.
 - **Don't** show a clock time without its date, or a status by colour alone.
-- **Don't** put shadows on anything resting on the page.
+- **Don't** put shadows on anything resting on the page, and don't lift a card on hover; a linked card only changes shade.
 - **Don't** add small uppercase labels above headings; the wordmark is the only tracked capitals in the interface.

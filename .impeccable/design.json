@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-18T12:00:00Z",
+  "generatedAt": "2026-10-19T12:00:00+00:00",
   "title": "Design System: Touchdown",
   "extensions": {
     "colorMeta": {
@@ -207,6 +207,59 @@
           "#cec8bc",
           "#f4eee1"
         ]
+      },
+      "tip-bg": {
+        "role": "neutral",
+        "displayName": "Tooltip Fill",
+        "theme": "light",
+        "canonical": "#1f1d1a",
+        "tonalRamp": [
+          "#0d0b08",
+          "#272522",
+          "#44423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a1",
+          "#cbc9c5",
+          "#f1eeea"
+        ],
+        "note": "Same value as ink: the light tooltip is inverted.",
+        "oklch": "oklch(23.2% 0.006 78)"
+      },
+      "tip-ink": {
+        "role": "neutral",
+        "displayName": "Tooltip Text",
+        "theme": "light",
+        "canonical": "#faf8f1",
+        "tonalRamp": [
+          "#0c0b07",
+          "#262520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59e",
+          "#cbc9c2",
+          "#f0eee7"
+        ],
+        "note": "Same value as paper.",
+        "oklch": "oklch(97.9% 0.009 94)"
+      },
+      "tip-edge": {
+        "role": "neutral",
+        "displayName": "Tooltip Edge",
+        "theme": "light",
+        "canonical": "transparent",
+        "tonalRamp": [
+          "#0d0b08",
+          "#272522",
+          "#44423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a1",
+          "#cbc9c5",
+          "#f1eeea"
+        ],
+        "note": "No edge on the light theme; the ramp is ink's, for reference only."
       },
       "hover-wash": {
         "role": "neutral",
@@ -818,6 +871,41 @@
         "theme": "dark",
         "canonical": "#3d3b33"
       },
+      "tip-ink-dark": {
+        "role": "neutral",
+        "displayName": "Tooltip Text (dark)",
+        "theme": "dark",
+        "canonical": "#f1eee6",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251f",
+          "#44423b",
+          "#64615a",
+          "#85827b",
+          "#a8a59d",
+          "#ccc9c1",
+          "#f1eee6"
+        ],
+        "note": "Same value as ink-dark.",
+        "oklch": "oklch(94.9% 0.011 90)"
+      },
+      "tip-edge-dark": {
+        "role": "neutral",
+        "displayName": "Tooltip Edge (dark)",
+        "theme": "dark",
+        "canonical": "rgba(241, 238, 230, 0.1)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251f",
+          "#44423b",
+          "#64615a",
+          "#85827b",
+          "#a8a59d",
+          "#ccc9c1",
+          "#f1eee6"
+        ],
+        "note": "Ink-dark at 10%: a 1px ring around the raised dark tooltip."
+      },
       "hover-wash-dark": {
         "role": "neutral",
         "displayName": "Hover Wash (dark)",
@@ -1263,6 +1351,10 @@
         "displayName": "Title, small",
         "purpose": "Month headings in the flight list."
       },
+      "stat": {
+        "displayName": "Stat",
+        "purpose": "Values in the fact list under the lead sentence, tabular; units at 0.72em, 500, ink-2. 1.125rem on phones."
+      },
       "body": {
         "displayName": "Body",
         "purpose": "Running text and definition values."
@@ -1287,24 +1379,29 @@
     "shadows": [
       {
         "name": "pop",
+        "token": "--shadow-pop",
         "value": "0 6px 18px rgba(31, 29, 26, 0.14), 0 1px 3px rgba(31, 29, 26, 0.08)",
         "valueDark": "0 6px 18px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3)",
         "purpose": "Tooltips and toasts."
       },
       {
         "name": "menu",
+        "token": "--shadow-2",
         "value": "0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1)",
-        "purpose": "Menus and pickers on their surface-mid fill."
+        "valueDark": "0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35)",
+        "purpose": "Menus and pickers on their surface-mid fill, and the floating Add button."
       },
       {
-        "name": "fab",
-        "value": "0 1px 3px rgba(31, 29, 26, 0.2), 0 4px 12px rgba(31, 29, 26, 0.16)",
-        "purpose": "The floating Add button on phones."
+        "name": "raised",
+        "token": "--shadow-1",
+        "value": "0 1px 2px rgba(31, 29, 26, 0.12), 0 4px 14px rgba(31, 29, 26, 0.08)",
+        "valueDark": "0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3)",
+        "purpose": "The round zoom buttons floating over the globe."
       },
       {
-        "name": "globe-control",
-        "value": "0 1px 3px rgba(31, 29, 26, 0.14)",
-        "purpose": "Round buttons floating over the globe."
+        "name": "tooltip-edge",
+        "value": "0 0 0 1px var(--tip-edge)",
+        "purpose": "A 1px ring under the pop shadow that separates the dark-theme tooltip from the page; transparent on the light theme."
       },
       {
         "name": "flash",
@@ -1314,7 +1411,7 @@
       {
         "name": "focus-field",
         "value": "0 0 0 3px var(--focus-wash)",
-        "purpose": "Focus ring on inputs and selects, with a focus-gold border."
+        "purpose": "Focus halo on inputs and selects, with a focus-gold border. A state, not elevation."
       }
     ],
     "focus": {
@@ -1336,12 +1433,12 @@
       {
         "name": "duration-hover",
         "value": "160ms",
-        "purpose": "Hover colour and background changes on buttons, links, inputs (rows 140ms)."
+        "purpose": "Hover colour and background changes on buttons, links, inputs, chips, pager numbers (rows 140ms)."
       },
       {
         "name": "duration-control",
         "value": "180ms",
-        "purpose": "Segment selection and check scale, phrase wash, chevron, phone tab pill, toast."
+        "purpose": "Segment selection and check scale, phrase wash, phone tab pill, toast."
       },
       {
         "name": "duration-layer",
@@ -1349,9 +1446,34 @@
         "purpose": "Map layer isolation."
       },
       {
+        "name": "duration-disclosure",
+        "value": "220ms / 280ms",
+        "purpose": "Disclosure chevron turn and content fade (220ms); content height (280ms)."
+      },
+      {
         "name": "duration-photo",
         "value": "260ms",
         "purpose": "Photo fade-in once loaded."
+      },
+      {
+        "name": "duration-card-shade",
+        "value": "300ms",
+        "purpose": "A linked card's fill mixing in 9% ink on hover. No rise, no shadow."
+      },
+      {
+        "name": "duration-tab-indicator",
+        "value": "300ms",
+        "purpose": "The tab indicator sliding and resizing (transform and width); no slide on first paint."
+      },
+      {
+        "name": "duration-ranked-width",
+        "value": "400ms",
+        "purpose": "Ranked bars moving to new lengths when the period changes."
+      },
+      {
+        "name": "duration-ranked-grow",
+        "value": "600ms",
+        "purpose": "Ranked bars growing from their start (scaleX from 0) when they appear."
       },
       {
         "name": "duration-flash",
@@ -1371,19 +1493,34 @@
       {
         "name": "reduced-motion",
         "value": "1ms",
-        "purpose": "All transitions and animations under prefers-reduced-motion."
+        "purpose": "All transitions and animations under prefers-reduced-motion; the tab slide, ranked bars and disclosure are switched off."
       }
     ],
     "breakpoints": [
       {
+        "name": "top-bar-tight",
+        "value": "1180px",
+        "purpose": "max-width (from 841px): save status keeps only its icon, bar gap 20px, link padding 8px 12px."
+      },
+      {
+        "name": "top-bar-tighter",
+        "value": "1000px",
+        "purpose": "max-width (from 841px): the Add button keeps only its plus."
+      },
+      {
         "name": "list-compact",
         "value": "960px",
-        "purpose": "max-width: flight list drops aircraft and distance columns."
+        "purpose": "max-width: flight list drops aircraft and distance columns; first-run items stack."
+      },
+      {
+        "name": "compact-nav",
+        "value": "840px",
+        "purpose": "max-width: 56px header, bottom navigation bar with icon pills, floating Add button, 120px main bottom padding, edge-to-edge globe stage."
       },
       {
         "name": "phone",
         "value": "720px",
-        "purpose": "max-width: 16px gutter, bottom navigation bar with icon pills, floating Add button, single-column grids, gallery strip, two-line rows, 2x2 times strip, 24px map corners, edge-to-edge globe stage."
+        "purpose": "max-width: 16px gutter, single-column grids, two-column fact list, gallery strip, two-line rows, 2x2 times strip, 24px map corners, centred pager."
       },
       {
         "name": "map-disc",
@@ -1401,13 +1538,13 @@
     },
     "dateTime": {
       "rule": "Every precise time is shown with its date and UTC offset, 24-hour airport-local, with a +N day chip when the date changes.",
-      "example": "07:45 · Tue 4 Mar · UTC+8"
+      "example": "07:45 · Tue 4 Mar · UTC+1"
     },
     "icons": {
       "set": "Lucide (ISC), inline SVG",
       "strokeWidth": 1.75,
       "checkStrokeWidth": 2.25,
-      "size": "1em; 16px in buttons, 18px in icon buttons and globe controls, 22px in the phone navigation bar, 24px in the floating Add button"
+      "size": "1em; 16px in buttons, 18px in icon buttons and globe controls, 22px in the bottom navigation bar, 24px in the floating Add button"
     },
     "stateLayers": {
       "hover": "var(--state-hover): ink at 8%",
@@ -1436,9 +1573,9 @@
       "name": "Floating Add Button",
       "kind": "button",
       "refersTo": "fab",
-      "description": "Phones only: a 56px button with 16px corners in the selection container, above the navigation bar; hidden on the globe page.",
+      "description": "840px and below: a 56px button with 16px corners in the selection container, above the bottom navigation bar, with the Menu shadow; hidden on the globe page.",
       "html": "<button class=\"ds-fab\" type=\"button\" aria-label=\"Add\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button>",
-      "css": ".ds-fab { display: grid; place-items: center; width: 56px; height: 56px; border: 0; border-radius: 16px; background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); box-shadow: 0 1px 3px rgba(31,29,26,0.2), 0 4px 12px rgba(31,29,26,0.16); cursor: pointer; position: relative; isolation: isolate; } .ds-fab::after { content: \"\"; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-fab:hover::after { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-fab:active::after { background: var(--state-press, rgba(31,29,26,0.12)); } .ds-fab .ds-icon { width: 24px; height: 24px; } .ds-fab:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
+      "css": ".ds-fab { display: grid; place-items: center; width: 56px; height: 56px; border: 0; border-radius: 16px; background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); box-shadow: var(--shadow-2, 0 2px 6px rgba(31,29,26,0.12), 0 8px 24px rgba(31,29,26,0.1)); cursor: pointer; position: relative; isolation: isolate; } .ds-fab::after { content: \"\"; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-fab:hover::after { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-fab:active::after { background: var(--state-press, rgba(31,29,26,0.12)); } .ds-fab .ds-icon { width: 24px; height: 24px; } .ds-fab:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
     },
     {
       "name": "Segmented Period Control",
@@ -1453,64 +1590,96 @@
       "kind": "chip",
       "refersTo": "chip",
       "description": "8px-cornered toggles with their legend swatch; on fills with the selection container and drops the outline.",
-      "html": "<div class=\"ds-chips\" role=\"group\" aria-label=\"Show\"><button class=\"ds-chip\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-swatch-line\"></span>Flights (24)</button><button class=\"ds-chip\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-swatch-dot\"></span>Spotting (9)</button></div>",
+      "html": "<div class=\"ds-chips\" role=\"group\" aria-label=\"Show\"><button class=\"ds-chip\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-swatch-line\"></span>Flights (12)</button><button class=\"ds-chip\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-swatch-dot\"></span>Spotting (8)</button></div>",
       "css": ".ds-chips { display: flex; gap: 8px; flex-wrap: wrap; } .ds-chip { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 8px; background: transparent; font-size: 0.875rem; font-weight: 500; color: var(--ink-2, #534e46); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-chip:hover { background: var(--state-hover, rgba(31,29,26,0.08)); color: var(--ink, #1f1d1a); } .ds-chip[aria-pressed=\"true\"] { background: var(--selected-container, #eee1c5); border-color: transparent; color: var(--on-selected-container, #211b0a); } .ds-chip:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-swatch-line { width: 18px; border-top: 2px solid var(--flown, #c48400); } .ds-swatch-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--spotted, #4559a9); }"
+    },
+    {
+      "name": "Search Field and Filter Select",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "The search is a filled pill on surface-high, lighter on hover, surface-lowest with the focus border and halo on focus. Filter selects are filled pills with their own 12px chevron inset 18px from the rounded end.",
+      "html": "<div class=\"ds-filters\"><label class=\"ds-search\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-input\" type=\"search\" placeholder=\"Search route, flight, aircraft\"></label><select class=\"ds-select\" aria-label=\"Airline\"><option>All airlines</option><option>Example Air</option></select></div>",
+      "css": ".ds-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; } .ds-search { position: relative; display: block; flex: 1 1 280px; max-width: 380px; } .ds-search .ds-icon { position: absolute; left: 16px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--ink-3, #6e685e); } .ds-input { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); width: 100%; height: 46px; padding: 0 12px 0 44px; border: 1px solid transparent; border-radius: 999px; background: var(--surface-high, #ede8dd); color: var(--ink, #1f1d1a); font-size: 0.9375rem; transition: border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: var(--ink-3, #6e685e); } .ds-input:hover { background: var(--surface-highest, #e7e2d7); } .ds-input:focus { outline: none; border-color: var(--focus, #b58a00); background: var(--surface-lowest, #fffdf8); box-shadow: 0 0 0 3px var(--focus-wash, rgba(247,190,2,0.3)); } .ds-select { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); appearance: none; -webkit-appearance: none; height: 42px; max-width: 280px; padding: 0 42px 0 16px; border: 1px solid transparent; border-radius: 999px; background-color: var(--surface-high, #ede8dd); background-image: var(--select-chevron, url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23534e46' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")); background-repeat: no-repeat; background-position: right 18px center; background-size: 12px 12px; color: var(--ink, #1f1d1a); font-size: 0.9375rem; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-select:hover { background-color: var(--surface-highest, #e7e2d7); } .ds-select:focus { outline: none; border-color: var(--focus, #b58a00); box-shadow: 0 0 0 3px var(--focus-wash, rgba(247,190,2,0.3)); }"
+    },
+    {
+      "name": "Top Bar and Navigation",
+      "kind": "nav",
+      "refersTo": "nav-link-current",
+      "description": "Above 840px: sticky surface-mid band (64px, no hairline), tracked wordmark, pill links in ink-2 with the state layer on hover; the current page sits in a selection-container pill at 600, its label reserving its bold width. From 1180px down links tighten to 8px 12px.",
+      "html": "<header class=\"ds-head\"><a class=\"ds-word\" href=\"#\">TOUCHDOWN</a><nav class=\"ds-nav\"><a class=\"ds-nav__a\" href=\"#\" aria-current=\"page\"><span class=\"ds-stable\" data-label=\"Home\">Home</span></a><a class=\"ds-nav__a\" href=\"#\"><span class=\"ds-stable\" data-label=\"Flights\">Flights</span></a><a class=\"ds-nav__a\" href=\"#\"><span class=\"ds-stable\" data-label=\"Spotting\">Spotting</span></a><a class=\"ds-nav__a\" href=\"#\"><span class=\"ds-stable\" data-label=\"Stats\">Stats</span></a></nav><button class=\"ds-addbtn\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add</button></header>",
+      "css": ".ds-head { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: center; gap: 32px; height: 64px; padding: 0 32px; background: var(--surface-mid, #f2ede2); color: var(--ink, #1f1d1a); } .ds-word { font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.16em; color: inherit; text-decoration: none; } .ds-nav { display: flex; gap: 4px; margin-right: auto; } .ds-nav__a { padding: 8px 16px; border-radius: 999px; font-size: 0.9375rem; color: var(--ink-2, #534e46); text-decoration: none; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav__a:hover { background: var(--state-hover, rgba(31,29,26,0.08)); color: var(--ink, #1f1d1a); } .ds-nav__a[aria-current=\"page\"] { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); font-weight: 600; } .ds-nav__a:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-addbtn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.9375rem; font-weight: 600; cursor: pointer; } .ds-addbtn:hover { background: var(--btn-hover, #3a3631); } .ds-addbtn .ds-icon { width: 16px; height: 16px; } .ds-stable { display: inline-flex; flex-direction: column; align-items: center; } .ds-stable::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: 650; } .ds-addbtn:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Bottom Navigation Bar",
+      "kind": "nav",
+      "refersTo": "nav-tab-current-phone",
+      "description": "840px and below, whatever the device: a fixed surface-mid bar, 22px icons above 0.75rem labels; the current tab gets a selection-container pill behind its icon and an ink label at 650.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab\" href=\"#\" aria-current=\"page\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg><span>Home</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z\"/></svg><span>Flights</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/></svg><span>Spotting</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v16a2 2 0 0 0 2 2h16\"/><path d=\"M18 17V9\"/><path d=\"M13 17V5\"/><path d=\"M8 17v-3\"/></svg><span>Stats</span></a></nav>",
+      "css": ".ds-tabs { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(4, 1fr); max-width: 400px; padding: 10px 0 8px; background: var(--surface-mid, #f2ede2); } .ds-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 4px 6px; font-size: 0.75rem; font-weight: 500; color: var(--ink-2, #534e46); text-decoration: none; } .ds-tab .ds-icon { box-sizing: content-box; width: 22px; height: 22px; padding: 5px 20px; border-radius: 999px; transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-tab:hover { color: var(--ink, #1f1d1a); } .ds-tab[aria-current=\"page\"] { color: var(--ink, #1f1d1a); font-weight: 650; } .ds-tab[aria-current=\"page\"] .ds-icon { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); } .ds-tab:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Sliding Tabs",
+      "kind": "nav",
+      "refersTo": "tab-selected",
+      "description": "Text tabs over a hairline; one 3px ink indicator with rounded top corners slides and resizes to the selected label (transform and width, 300ms). Labels reserve their bold width; arrow keys, Home and End move the selection; the focus ring is drawn 3px inside.",
+      "html": "<div class=\"ds-tabs-row\" role=\"tablist\" aria-label=\"Statistics\"><button class=\"ds-tab-b\" role=\"tab\" aria-selected=\"true\"><span class=\"ds-stable\" data-label=\"Overview\">Overview</span></button><button class=\"ds-tab-b\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\"><span class=\"ds-stable\" data-label=\"Airports\">Airports</span></button><button class=\"ds-tab-b\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\"><span class=\"ds-stable\" data-label=\"Aircraft\">Aircraft</span></button><span class=\"ds-tabs-ind\" aria-hidden=\"true\" style=\"width: 66px; transform: translateX(14px)\"></span></div>",
+      "css": ".ds-tabs-row { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; display: flex; gap: 4px; border-bottom: 1px solid var(--rule, #e4dfd3); overflow-x: auto; } .ds-tab-b { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; padding: 10px 14px; border: 0; background: transparent; font-size: 0.9375rem; font-weight: 500; color: var(--ink-2, #534e46); white-space: nowrap; cursor: pointer; } .ds-tab-b:hover { color: var(--ink, #1f1d1a); } .ds-tab-b[aria-selected=\"true\"] { color: var(--ink, #1f1d1a); font-weight: 600; } .ds-tab-b:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: -3px; border-radius: 10px; } .ds-stable { display: inline-flex; flex-direction: column; align-items: center; } .ds-stable::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: 650; } .ds-tabs-ind { position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--ink, #1f1d1a); pointer-events: none; transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), width 300ms cubic-bezier(0.16, 1, 0.3, 1); }"
+    },
+    {
+      "name": "Ranked List",
+      "kind": "custom",
+      "refersTo": "ranked-bar",
+      "description": "Label, bar, number. The bar is the count against the largest: 8px tall, 2px corners, in the list's data ink, no track; it grows in over 600ms and moves to new lengths over 400ms. Labels wrap to two lines.",
+      "html": "<section class=\"ds-ranked\"><h3 class=\"ds-ranked__title\">Airports</h3><ol class=\"ds-ranked__list\"><li><span class=\"ds-ranked__label\">London Heathrow (LHR)</span><span class=\"ds-ranked__bar\" aria-hidden=\"true\"><span style=\"width: 100%\"></span></span><span class=\"ds-ranked__num\">9</span></li><li><span class=\"ds-ranked__label\">Amsterdam Schiphol (AMS)</span><span class=\"ds-ranked__bar\" aria-hidden=\"true\"><span style=\"width: 67%\"></span></span><span class=\"ds-ranked__num\">6</span></li><li><span class=\"ds-ranked__label\">Paris Charles de Gaulle (CDG)</span><span class=\"ds-ranked__bar\" aria-hidden=\"true\"><span style=\"width: 44%\"></span></span><span class=\"ds-ranked__num\">4</span></li><li><span class=\"ds-ranked__label\">Madrid (MAD)</span><span class=\"ds-ranked__bar\" aria-hidden=\"true\"><span style=\"width: 22%\"></span></span><span class=\"ds-ranked__num\">2</span></li></ol></section>",
+      "css": ".ds-ranked { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); max-width: 420px; color: var(--ink, #1f1d1a); } .ds-ranked__title { margin: 0 0 10px; font-size: 1rem; font-weight: 650; } .ds-ranked__list { list-style: none; margin: 0; padding: 0; } .ds-ranked__list li { display: grid; grid-template-columns: minmax(0, 1fr) 72px 44px; gap: 12px; align-items: center; padding: 5px 0; font-size: 0.9375rem; } .ds-ranked__label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.35; } .ds-ranked__bar { height: 8px; border-radius: 2px; overflow: hidden; } .ds-ranked__bar span { display: block; height: 100%; border-radius: 2px; background: var(--flown, #c48400); transform-origin: left center; animation: ds-bar-grow 600ms cubic-bezier(0.16, 1, 0.3, 1) both; transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-ranked__num { text-align: right; font-variant-numeric: tabular-nums; } @keyframes ds-bar-grow { from { transform: scaleX(0); } } @media (prefers-reduced-motion: reduce) { .ds-ranked__bar span { animation: none; transition: none; } }"
     },
     {
       "name": "Lead Sentence",
       "kind": "custom",
       "refersTo": "headline",
       "description": "Signature: the view's point as one sentence, figures at 650, data phrases underlined 2px in their ink.",
-      "html": "<p class=\"ds-lead\">This year you took <span class=\"ds-fig\">23 flights</span> over <span class=\"ds-fig\">61,480 km</span>, on <span class=\"ds-phrase ds-phrase--flown\" tabindex=\"0\">14 routes</span>, and photographed <span class=\"ds-phrase ds-phrase--spotted\" tabindex=\"0\">212 aircraft</span>, <span class=\"ds-phrase ds-phrase--both\" tabindex=\"0\">9 of them</span> ones you also flew on.</p>",
+      "html": "<p class=\"ds-lead\">This year you took <span class=\"ds-fig\">12 flights</span> over <span class=\"ds-fig\">18,400 km</span>, on <span class=\"ds-phrase ds-phrase--flown\" tabindex=\"0\">7 routes</span>, and photographed <span class=\"ds-phrase ds-phrase--spotted\" tabindex=\"0\">40 aircraft</span>, <span class=\"ds-phrase ds-phrase--both\" tabindex=\"0\">3 of them</span> ones you also flew on.</p>",
       "css": ".ds-lead { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); font-weight: 400; font-size: 2rem; line-height: 1.32; letter-spacing: -0.02em; max-width: 31em; margin: 0; text-wrap: balance; color: var(--ink, #1f1d1a); } .ds-fig { font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; } .ds-phrase { cursor: pointer; border-radius: 2px; background-repeat: no-repeat; background-size: 100% 2px; background-position: 0 calc(100% - 0.04em); transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1); box-decoration-break: clone; -webkit-box-decoration-break: clone; } .ds-phrase--flown { background-image: linear-gradient(var(--flown, #c48400), var(--flown, #c48400)); } .ds-phrase--spotted { background-image: linear-gradient(var(--spotted, #4559a9), var(--spotted, #4559a9)); } .ds-phrase--both { background-image: linear-gradient(90deg, var(--flown, #c48400) 0 50%, var(--spotted, #4559a9) 50% 100%); } .ds-phrase--flown:hover { background-color: var(--flown-wash, rgba(196,132,0,0.1)); } .ds-phrase--spotted:hover { background-color: var(--spotted-wash, rgba(69,89,169,0.12)); } .ds-phrase--both:hover { background-color: var(--hover, rgba(31,29,26,0.05)); } .ds-phrase:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
     },
     {
-      "name": "Aircraft Card",
-      "kind": "card",
-      "refersTo": "card",
-      "description": "Gallery-style photo card with 20px corners: photo flush on top, tonal caption block, events with data-ink dots, photographer credit pinned to the bottom.",
-      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-card__photo\">G-ABCD</div><div class=\"ds-card__body\"><span class=\"ds-card__reg\">G-ABCD</span><span class=\"ds-card__type\">Airbus A320neo</span><ul class=\"ds-card__events\"><li><span class=\"ds-dot ds-dot--flown\"></span>Flown twice</li><li><span class=\"ds-dot ds-dot--spotted\"></span>Spotted 3 May</li></ul><p class=\"ds-credit\">Photo: A. Photographer · <a href=\"#\">planespotters.net</a></p></div></a>",
-      "css": ".ds-card { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; flex-direction: column; width: 260px; border-radius: var(--radius, 20px); background: var(--surface-low, #f5f0e5); overflow: hidden; color: var(--ink, #1f1d1a); text-decoration: none; transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(31,29,26,0.12), 0 4px 14px rgba(31,29,26,0.08); } .ds-card:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-card__photo { aspect-ratio: 3 / 2; display: grid; place-items: center; background: var(--paper-3, #e8e3d6); color: var(--ink-3, #6e685e); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.04em; } .ds-card__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; } .ds-card__reg { font-size: 1.0625rem; font-weight: 600; letter-spacing: 0.01em; } .ds-card__type { font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events li { display: flex; align-items: center; gap: 8px; } .ds-dot { width: 8px; height: 8px; border-radius: 50%; } .ds-dot--flown { background: var(--flown, #c48400); } .ds-dot--spotted { background: var(--spotted, #4559a9); } .ds-credit { margin: 0; padding-top: 10px; font-size: 0.75rem; color: var(--ink-3, #6e685e); } .ds-credit a { color: inherit; }"
+      "name": "Fact List",
+      "kind": "custom",
+      "refersTo": "stat",
+      "description": "Stacked stats under the lead sentence: label above, large value with smaller units, muted detail line below. Auto-fill grid so columns stay put; two columns on phones. Statuses go on their own line, not in the grid.",
+      "html": "<dl class=\"ds-facts\"><div><dt>Longest flight</dt><dd><span class=\"ds-facts-value\">LHR → MAD</span><span class=\"ds-facts-detail\">1,250 km · XY 123</span></dd></div><div><dt>Time in the air</dt><dd><span class=\"ds-facts-value\">38<span class=\"ds-facts-unit\">h</span> 15<span class=\"ds-facts-unit\">m</span></span><span class=\"ds-facts-detail\">across 12 flights</span></dd></div><div><dt>Most flown airline</dt><dd><span class=\"ds-facts-value\">Example Air</span><span class=\"ds-facts-detail\">5 flights</span></dd></div><div><dt>Most spotted type</dt><dd><span class=\"ds-facts-value\"><span class=\"ds-facts-keep\">Boeing 737-800</span></span><span class=\"ds-facts-detail\">9 aircraft</span></dd></div></dl>",
+      "css": ".ds-facts { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px 32px; margin: 0; } .ds-facts > div { min-width: 0; } .ds-facts dt { font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-facts dd { margin: 4px 0 0; } .ds-facts-value { display: block; font-size: 1.25rem; line-height: 1.25; font-weight: 650; letter-spacing: -0.015em; color: var(--ink, #1f1d1a); font-variant-numeric: tabular-nums; } .ds-facts-unit { margin-left: 1px; font-size: 0.72em; font-weight: 500; letter-spacing: 0; color: var(--ink-2, #534e46); } .ds-facts-keep { white-space: nowrap; } .ds-facts-detail { display: block; margin-top: 2px; font-size: 0.875rem; color: var(--ink-3, #6e685e); } @media (max-width: 720px) { .ds-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; } .ds-facts-value { font-size: 1.125rem; } .ds-facts > div:last-child:nth-child(odd) { grid-column: 1 / -1; } } .ds-facts a { color: inherit; text-decoration: none; } .ds-facts a:hover { text-decoration: underline; text-underline-offset: 3px; } .ds-facts a:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
     },
     {
       "name": "Flight List Row",
       "kind": "custom",
       "refersTo": "flight-row",
-      "description": "Grid row aligned on the first baseline with a 14px state layer; route codes with a gold arc arrow, tabular numbers right-aligned, outlined Review pill when a check needs a look.",
-      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-row__date\"><b>Tue 4 Mar</b>2025</span><span class=\"ds-row__route-wrap\"><span class=\"ds-row__route\">AAA<svg class=\"ds-arrow\" viewBox=\"0 0 56 20\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 16 C 16 2, 40 2, 54 16\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"54\" cy=\"16\" r=\"2.5\" fill=\"currentColor\"/></svg>BBB<span class=\"ds-chip\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg>Review</span></span><span class=\"ds-row__cities\">Alpha City to Bravo City</span></span><span class=\"ds-row__cell\"><b>XY 123</b>Example Air</span><span class=\"ds-row__num\">13 h 05</span></a>",
-      "css": ".ds-row { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: 92px minmax(190px, 1.4fr) minmax(120px, 1fr) 80px; gap: 16px; align-items: first baseline; padding: 14px 12px; border-bottom: 1px solid var(--rule, #e4dfd3); border-radius: 14px; color: var(--ink, #1f1d1a); text-decoration: none; transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-row:hover { background: var(--surface-mid, #f2ede2); } .ds-row:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-row__date, .ds-row__cell { font-size: 0.9375rem; color: var(--ink-2, #534e46); line-height: 1.35; } .ds-row__date b { display: block; color: var(--ink, #1f1d1a); font-weight: 600; } .ds-row__cell b { display: block; color: var(--ink, #1f1d1a); font-weight: 500; } .ds-row__route { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1.0625rem; font-weight: 600; } .ds-arrow { width: 22px; height: 10px; color: var(--flown, #c48400); } .ds-row__cities { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-row__num { font-size: 0.9375rem; text-align: right; font-variant-numeric: tabular-nums; } .ds-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; } .ds-chip .ds-icon { width: 13px; height: 13px; }"
+      "description": "Grid row aligned on the first baseline with a 14px surface-mid state on hover; route codes with a gold arc arrow, cities in ink-3, durations as \"1h 15m\" with small units, outlined Review pill when a check needs a look.",
+      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-row__date\"><b>Tue 4 Mar</b>2025</span><span class=\"ds-row__route-wrap\"><span class=\"ds-row__route\">LHR<svg class=\"ds-arrow\" viewBox=\"0 0 56 20\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 16 C 16 2, 40 2, 54 16\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"54\" cy=\"16\" r=\"2.5\" fill=\"currentColor\"/></svg>CDG<span class=\"ds-chip\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg>Review</span></span><span class=\"ds-row__cities\">London to Paris</span></span><span class=\"ds-row__cell\"><b>XY 123</b>Example Air</span><span class=\"ds-row__num\"><span class=\"ds-dur\">1<span class=\"ds-dur__u\">h</span> 15<span class=\"ds-dur__u\">m</span></span></span></a>",
+      "css": ".ds-row { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: 92px minmax(190px, 1.4fr) minmax(120px, 1fr) 80px; gap: 16px; align-items: first baseline; padding: 14px 12px; border-bottom: 1px solid var(--rule, #e4dfd3); border-radius: 14px; color: var(--ink, #1f1d1a); text-decoration: none; transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-row:hover { background: var(--surface-mid, #f2ede2); } .ds-row:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-row__date, .ds-row__cell { font-size: 0.9375rem; color: var(--ink-2, #534e46); line-height: 1.35; } .ds-row__date b { display: block; color: var(--ink, #1f1d1a); font-weight: 600; } .ds-row__cell b { display: block; color: var(--ink, #1f1d1a); font-weight: 500; } .ds-row__route { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1.0625rem; font-weight: 600; } .ds-arrow { width: 22px; height: 10px; color: var(--flown, #c48400); } .ds-row__cities { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-row__num { font-size: 0.9375rem; text-align: right; font-variant-numeric: tabular-nums; } .ds-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; } .ds-chip .ds-icon { width: 13px; height: 13px; } .ds-dur { white-space: nowrap; } .ds-dur__u { margin-left: 1px; font-size: 0.72em; font-weight: 500; letter-spacing: 0; color: var(--ink-2, #534e46); }"
+    },
+    {
+      "name": "Pager",
+      "kind": "nav",
+      "refersTo": "pager-number-current",
+      "description": "Below a long list: range and total on the left in ink-3, 40px pill page numbers on the right with the state layer on hover; the current page fills with the selection container at 650; previous and next are round icon buttons, faded to 38% when disabled.",
+      "html": "<nav class=\"ds-pager\" aria-label=\"Pages\"><span class=\"ds-pager__count\">31–60 of 120 aircraft</span><span class=\"ds-pager__pages\"><button class=\"ds-pager__icon\" type=\"button\" aria-label=\"Previous page\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg></button><button class=\"ds-pager__num\" type=\"button\">1</button><button class=\"ds-pager__num\" type=\"button\" aria-current=\"page\">2</button><button class=\"ds-pager__num\" type=\"button\">3</button><span class=\"ds-pager__gap\">…</span><button class=\"ds-pager__num\" type=\"button\">4</button><button class=\"ds-pager__icon\" type=\"button\" aria-label=\"Next page\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button></span></nav>",
+      "css": ".ds-pager { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; max-width: 640px; } .ds-pager__count { font-size: 0.875rem; color: var(--ink-3, #6e685e); font-variant-numeric: tabular-nums; } .ds-pager__pages { display: flex; align-items: center; gap: 4px; } .ds-pager__num, .ds-pager__icon { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); min-width: 40px; height: 40px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; font-size: 0.9375rem; font-variant-numeric: tabular-nums; color: var(--ink-2, #534e46); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-pager__icon { display: inline-grid; place-items: center; width: 40px; padding: 0; } .ds-pager__icon .ds-icon { width: 18px; height: 18px; } .ds-pager__num:hover, .ds-pager__icon:hover { background: var(--state-hover, rgba(31,29,26,0.08)); color: var(--ink, #1f1d1a); } .ds-pager__num:active, .ds-pager__icon:active { background: var(--state-press, rgba(31,29,26,0.12)); } .ds-pager__num[aria-current=\"page\"] { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); font-weight: 650; } .ds-pager__num:focus-visible, .ds-pager__icon:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-pager__icon:disabled { opacity: 0.38; background: transparent; cursor: default; } .ds-pager__gap { min-width: 24px; text-align: center; color: var(--ink-3, #6e685e); }"
+    },
+    {
+      "name": "Aircraft Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Gallery-style photo card with 20px corners: photo flush on top, tonal caption block, events with data-ink dots, photographer credit pinned to the bottom. On hover a linked card only changes shade (9% ink mixed into its fill over 300ms); no rise, no shadow.",
+      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-card__photo\">N1001X</div><div class=\"ds-card__body\"><span class=\"ds-card__reg\">N1001X</span><span class=\"ds-card__type\">Airbus A320neo</span><ul class=\"ds-card__events\"><li><span class=\"ds-dot ds-dot--flown\"></span>Flown twice</li><li><span class=\"ds-dot ds-dot--spotted\"></span>Spotted 3 May</li></ul><p class=\"ds-credit\">Photo: A. Photographer · <a href=\"#\">planespotters.net</a></p></div></a>",
+      "css": ".ds-card { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; flex-direction: column; width: 260px; border-radius: var(--radius, 20px); background: var(--surface-low, #f5f0e5); overflow: hidden; color: var(--ink, #1f1d1a); text-decoration: none; transition: background-color 300ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { background: color-mix(in srgb, var(--surface-low, #f5f0e5), var(--ink, #1f1d1a) 9%); } .ds-card:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-card__photo { aspect-ratio: 3 / 2; display: grid; place-items: center; background: var(--paper-3, #e8e3d6); color: var(--ink-3, #6e685e); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.04em; } .ds-card__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; } .ds-card__reg { font-size: 1.0625rem; font-weight: 600; letter-spacing: 0.01em; } .ds-card__type { font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-card__events li { display: flex; align-items: center; gap: 8px; } .ds-dot { width: 8px; height: 8px; border-radius: 50%; } .ds-dot--flown { background: var(--flown, #c48400); } .ds-dot--spotted { background: var(--spotted, #4559a9); } .ds-credit { margin: 0; padding-top: 10px; font-size: 0.75rem; color: var(--ink-3, #6e685e); } .ds-credit a { color: inherit; }"
     },
     {
       "name": "Times Strip Cell",
       "kind": "custom",
       "refersTo": "clock",
       "description": "A dated local time: label, clock in tabular figures, then date and UTC offset, with a +1 day chip when the date changes.",
-      "html": "<div class=\"ds-times\"><div class=\"ds-time\"><p class=\"ds-time__label\">Takeoff</p><p class=\"ds-time__clock\">23:55</p><p class=\"ds-time__date\">Tue 4 Mar · UTC+8</p></div><div class=\"ds-time\"><p class=\"ds-time__label\">Landing</p><p class=\"ds-time__clock\">05:00</p><p class=\"ds-time__date\">Wed 5 Mar · UTC+0<span class=\"ds-plus\">+1 day</span></p></div></div>",
+      "html": "<div class=\"ds-times\"><div class=\"ds-time\"><p class=\"ds-time__label\">Takeoff</p><p class=\"ds-time__clock\">21:40</p><p class=\"ds-time__date\">Tue 4 Mar · UTC+0</p></div><div class=\"ds-time\"><p class=\"ds-time__label\">Landing</p><p class=\"ds-time__clock\">00:55</p><p class=\"ds-time__date\">Wed 5 Mar · UTC+1<span class=\"ds-plus\">+1 day</span></p></div></div>",
       "css": ".ds-times { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--rule, #e4dfd3); border-bottom: 1px solid var(--rule, #e4dfd3); color: var(--ink, #1f1d1a); } .ds-time { padding: 18px 20px 18px 0; } .ds-time + .ds-time { padding-left: 20px; border-left: 1px solid var(--rule, #e4dfd3); } .ds-time p { margin: 0; } .ds-time__label { font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-time__clock { margin-top: 4px !important; font-size: 1.75rem; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-time__date { margin-top: 4px !important; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.875rem; color: var(--ink-2, #534e46); } .ds-plus { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; border: 1px solid var(--rule-strong, #d3ccbc); font-size: 0.75rem; font-weight: 600; color: var(--ink, #1f1d1a); white-space: nowrap; }"
-    },
-    {
-      "name": "Search Field",
-      "kind": "input",
-      "refersTo": "input-search",
-      "description": "A filled pill on surface-high; lighter on hover; on focus it turns surface-lowest with the focus border and halo.",
-      "html": "<label class=\"ds-search\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-input\" type=\"search\" placeholder=\"Search route, flight, aircraft\"></label>",
-      "css": ".ds-search { position: relative; display: block; max-width: 380px; } .ds-search .ds-icon { position: absolute; left: 16px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--ink-3, #6e685e); } .ds-input { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); width: 100%; height: 46px; padding: 0 12px 0 44px; border: 1px solid transparent; border-radius: 999px; background: var(--surface-high, #ede8dd); color: var(--ink, #1f1d1a); font-size: 0.9375rem; transition: border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: var(--ink-3, #6e685e); } .ds-input:hover { background: var(--surface-highest, #e7e2d7); } .ds-input:focus { outline: none; border-color: var(--focus, #b58a00); background: var(--surface-lowest, #fffdf8); box-shadow: 0 0 0 3px var(--focus-wash, rgba(247,190,2,0.3)); }"
-    },
-    {
-      "name": "Header Band",
-      "kind": "nav",
-      "refersTo": "header-band",
-      "description": "Sticky tonal band (surface-mid, no hairline): tracked wordmark, pill nav links with the current page in the selection container, tools on the right.",
-      "html": "<header class=\"ds-head\"><a class=\"ds-word\" href=\"#\">TOUCHDOWN</a><nav class=\"ds-nav\"><a class=\"ds-nav__a\" href=\"#\" aria-current=\"page\">Home</a><a class=\"ds-nav__a\" href=\"#\">Flights</a><a class=\"ds-nav__a\" href=\"#\">Spotting</a><a class=\"ds-nav__a\" href=\"#\">Stats</a></nav><button class=\"ds-addbtn\" type=\"button\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add</button></header>",
-      "css": ".ds-head { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: center; gap: 32px; height: 64px; padding: 0 32px; background: var(--surface-mid, #f2ede2); color: var(--ink, #1f1d1a); } .ds-word { font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.16em; color: inherit; text-decoration: none; } .ds-nav { display: flex; gap: 4px; margin-right: auto; } .ds-nav__a { padding: 8px 16px; border-radius: 999px; font-size: 0.9375rem; color: var(--ink-2, #534e46); text-decoration: none; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav__a:hover { background: var(--state-hover, rgba(31,29,26,0.08)); color: var(--ink, #1f1d1a); } .ds-nav__a[aria-current=\"page\"] { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); font-weight: 600; } .ds-nav__a:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-addbtn { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.9375rem; font-weight: 600; cursor: pointer; } .ds-addbtn:hover { background: var(--btn-hover, #3a3631); } .ds-addbtn .ds-icon { width: 16px; height: 16px; }"
-    },
-    {
-      "name": "Phone Navigation Bar",
-      "kind": "nav",
-      "refersTo": "nav-tab-current-phone",
-      "description": "Bottom bar on phones: surface-mid, icons above labels, a selection-container pill behind the current tab's icon.",
-      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab\" href=\"#\" aria-current=\"page\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg><span>Home</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z\"/></svg><span>Flights</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/></svg><span>Spotting</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v16a2 2 0 0 0 2 2h16\"/><path d=\"M18 17V9\"/><path d=\"M13 17V5\"/><path d=\"M8 17v-3\"/></svg><span>Stats</span></a></nav>",
-      "css": ".ds-tabs { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(4, 1fr); max-width: 400px; padding: 10px 0 8px; background: var(--surface-mid, #f2ede2); } .ds-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 4px 6px; font-size: 0.75rem; font-weight: 500; color: var(--ink-2, #534e46); text-decoration: none; } .ds-tab .ds-icon { box-sizing: content-box; width: 22px; height: 22px; padding: 5px 20px; border-radius: 999px; transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-tab:hover .ds-icon { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-tab[aria-current=\"page\"] { color: var(--ink, #1f1d1a); font-weight: 650; } .ds-tab[aria-current=\"page\"] .ds-icon { background: var(--selected-container, #eee1c5); color: var(--on-selected-container, #211b0a); } .ds-tab:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; }"
     },
     {
       "name": "Finding",
@@ -1519,6 +1688,14 @@
       "description": "Check result as a 16px tonal box without a border; an error sits on the alert wash with its icon in alert red and a written word.",
       "html": "<div class=\"ds-findings\"><div class=\"ds-finding\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg><p><b>Needs a look.</b> The landing time is earlier than the takeoff time.</p></div><div class=\"ds-finding ds-finding--error\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" x2=\"12\" y1=\"8\" y2=\"12\"/><line x1=\"12\" x2=\"12.01\" y1=\"16\" y2=\"16\"/></svg><p><b>Problem.</b> The arrival airport code is not known.</p></div></div>",
       "css": ".ds-findings { display: grid; gap: 8px; max-width: 520px; } .ds-finding { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--surface-low, #f5f0e5); font-size: 0.9375rem; color: var(--ink, #1f1d1a); } .ds-finding p { margin: 0; } .ds-finding .ds-icon { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--ink-3, #6e685e); } .ds-finding--error { background: var(--alert-wash, rgba(186,26,26,0.08)); } .ds-finding--error .ds-icon { color: var(--alert, #ba1a1a); }"
+    },
+    {
+      "name": "Status Line",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Icon plus words; only the passed-checks icon carries the green.",
+      "html": "<div><p class=\"ds-status ds-status--good\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/></svg><span>All checks passed: aircraft type matches the registration, times are in order.</span></p><p class=\"ds-status ds-status--check\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg><span><b>Needs a look.</b> The registration was reused on another airframe in 2019.</span></p></div>",
+      "css": ".ds-status { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; font-size: 0.9375rem; color: var(--ink-2, #534e46); } .ds-status .ds-icon { width: 1em; height: 1em; flex: none; margin-top: 3px; } .ds-status--good .ds-icon { color: var(--good, #2e7d4f); } .ds-status--check { color: var(--ink, #1f1d1a); } .ds-status b { font-weight: 600; }"
     },
     {
       "name": "Map Container and Legend",
@@ -1532,17 +1709,17 @@
       "name": "Globe Stage",
       "kind": "custom",
       "refersTo": "globe-stage",
-      "description": "The interactive globe: canvas in a 28px rounded stage, 44px round tonal controls bottom right, a \"Flat map\" pill top right, hint line bottom left.",
+      "description": "The interactive globe: canvas in a 28px rounded stage, 44px round tonal controls with the Raised shadow bottom right, a \"Flat map\" pill top right, hint line bottom left.",
       "html": "<div class=\"ds-globe\"><div class=\"ds-globe__sphere\"></div><a class=\"ds-globe-flat\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z\"/><path d=\"M15 5.764v15\"/><path d=\"M9 3.236v15\"/></svg>Flat map</a><div class=\"ds-globe-controls\"><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Zoom in\" title=\"Zoom in\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Zoom out\" title=\"Zoom out\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/></svg></button><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Back to the whole period\" title=\"Back to the whole period\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg></button></div><p class=\"ds-globe-hint\">Drag to turn · scroll or pinch to zoom · click a route to open the flight</p></div>",
-      "css": ".ds-globe { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 380px; max-width: 720px; border-radius: 28px; background: var(--globe-stage, #ede8dd); overflow: hidden; } .ds-globe__sphere { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--globe-sphere, #fffdf8); border: 1px solid var(--rule-strong, #d3ccbc); } .ds-globe-controls { position: absolute; right: 16px; bottom: 16px; display: grid; gap: 8px; } .ds-globe-btn { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 999px; background: var(--surface-highest, #e7e2d7); color: var(--ink, #1f1d1a); box-shadow: 0 1px 3px rgba(31,29,26,0.14); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-globe-btn:hover { background: var(--surface-high, #ede8dd); } .ds-globe-btn:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-btn .ds-icon { width: 18px; height: 18px; } .ds-globe-flat { position: absolute; top: 16px; right: 16px; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; background: var(--surface-highest, #e7e2d7); color: var(--ink, #1f1d1a); font-size: 0.875rem; font-weight: 600; text-decoration: none; } .ds-globe-flat:hover { background: var(--state-hover, rgba(31,29,26,0.08)); } .ds-globe-flat:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-flat .ds-icon { width: 16px; height: 16px; } .ds-globe-hint { position: absolute; left: 20px; bottom: 16px; margin: 0; max-width: calc(100% - 100px); font-size: 0.8125rem; color: var(--ink-3, #6e685e); }"
+      "css": ".ds-globe { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 380px; max-width: 720px; border-radius: 28px; background: var(--globe-stage, #ede8dd); overflow: hidden; } .ds-globe__sphere { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--globe-sphere, #fffdf8); border: 1px solid var(--rule-strong, #d3ccbc); } .ds-globe-controls { position: absolute; right: 16px; bottom: 16px; display: grid; gap: 8px; } .ds-globe-btn { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 999px; background: var(--surface-highest, #e7e2d7); color: var(--ink, #1f1d1a); box-shadow: var(--shadow-1, 0 1px 2px rgba(31,29,26,0.12), 0 4px 14px rgba(31,29,26,0.08)); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-globe-btn:hover { background: var(--surface-high, #ede8dd); } .ds-globe-btn:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-btn .ds-icon { width: 18px; height: 18px; } .ds-globe-flat { position: absolute; top: 16px; right: 16px; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; background: var(--surface-highest, #e7e2d7); color: var(--ink, #1f1d1a); font-size: 0.875rem; font-weight: 600; text-decoration: none; } .ds-globe-flat:hover { background: var(--surface-high, #ede8dd); } .ds-globe-flat:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-flat .ds-icon { width: 16px; height: 16px; } .ds-globe-hint { position: absolute; left: 20px; bottom: 16px; margin: 0; max-width: calc(100% - 100px); font-size: 0.8125rem; color: var(--ink-3, #6e685e); }"
     },
     {
-      "name": "Status Line",
+      "name": "Tooltip",
       "kind": "custom",
-      "refersTo": "",
-      "description": "Icon plus words; only the passed-checks icon carries the green.",
-      "html": "<div><p class=\"ds-status ds-status--good\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/></svg><span>All checks passed: aircraft type matches the registration, times are in order.</span></p><p class=\"ds-status ds-status--check\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg><span><b>Needs a look.</b> The registration was reused on another airframe in 2019.</span></p></div>",
-      "css": ".ds-status { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; font-size: 0.9375rem; color: var(--ink-2, #534e46); } .ds-status .ds-icon { width: 1em; height: 1em; flex: none; margin-top: 3px; } .ds-status--good .ds-icon { color: var(--good, #2e7d4f); } .ds-status--check { color: var(--ink, #1f1d1a); }"
+      "refersTo": "tooltip",
+      "description": "Inverted (ink fill, paper text) on the light theme; a raised dark surface (#3d3b33) with a 1px 10% edge on the dark theme. 0.8125rem, 8px 10px padding, 10px corners, max 280px, muted lines in tip-muted; rises 4px into place over 120ms and never takes the pointer.",
+      "html": "<div class=\"ds-tip-demo\"><span class=\"ds-tip-anchor\" tabindex=\"0\">LHR → CDG</span><div class=\"ds-tip\" role=\"tooltip\"><strong>XY 123 · London to Paris</strong><br><span class=\"ds-tip__muted\">Recorded track</span></div></div>",
+      "css": ".ds-tip-demo { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; display: inline-block; padding-bottom: 72px; } .ds-tip-anchor { font-weight: 600; color: var(--ink, #1f1d1a); border-bottom: 2px solid var(--flown, #c48400); cursor: default; } .ds-tip-anchor:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; border-radius: 4px; } .ds-tip { position: absolute; left: 0; top: 32px; width: max-content; max-width: 280px; padding: 8px 10px; border-radius: 10px; background: var(--tip-bg, #1f1d1a); color: var(--tip-ink, #faf8f1); font-size: 0.8125rem; line-height: 1.4; box-shadow: 0 0 0 1px var(--tip-edge, transparent), var(--shadow-pop, 0 6px 18px rgba(31,29,26,0.14), 0 1px 3px rgba(31,29,26,0.08)); pointer-events: none; opacity: 0.0; transform: translateY(4px); transition: opacity 120ms cubic-bezier(0.16, 1, 0.3, 1), transform 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-tip-anchor:hover + .ds-tip, .ds-tip-anchor:focus-visible + .ds-tip { opacity: 1; transform: translateY(0); } .ds-tip strong { font-weight: 600; } .ds-tip__muted { color: var(--tip-muted, #cfc9bd); }"
     },
     {
       "name": "Toast",
@@ -1553,17 +1730,17 @@
       "css": ".ds-toast { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: inline-block; padding: 14px 20px; border-radius: 12px; background: var(--ink, #1f1d1a); color: var(--paper, #faf8f1); font-size: 0.875rem; box-shadow: var(--shadow-pop, 0 6px 18px rgba(31,29,26,0.14), 0 1px 3px rgba(31,29,26,0.08)); animation: ds-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1); } @keyframes ds-toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }"
     },
     {
-      "name": "Fact List",
-      "kind": "list",
-      "refersTo": "fact-list",
-      "description": "Stacked stats under the lead sentence: label above, large value with smaller units, muted detail line below. Auto-fill grid so columns stay put; two columns on phones. Statuses go on their own line, not in the grid.",
-      "html": "<dl class=\"ds-facts\"><div><dt>Longest flight</dt><dd><span class=\"ds-facts-value\">AAA → BBB</span><span class=\"ds-facts-detail\">9,850 km · XY 123</span></dd></div><div><dt>Time in the air</dt><dd><span class=\"ds-facts-value\">141<span class=\"ds-facts-unit\">h</span> 15<span class=\"ds-facts-unit\">m</span></span><span class=\"ds-facts-detail\">across 20 flights</span></dd></div><div><dt>Most flown airline</dt><dd><span class=\"ds-facts-value\">Example Air</span><span class=\"ds-facts-detail\">7 flights</span></dd></div><div><dt>Most spotted type</dt><dd><span class=\"ds-facts-value\"><span class=\"ds-facts-keep\">Boeing 737-800</span></span><span class=\"ds-facts-detail\">24 aircraft</span></dd></div></dl>",
-      "css": ".ds-facts { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px 32px; margin: 0; } .ds-facts > div { min-width: 0; } .ds-facts dt { font-size: 0.8125rem; color: #6e685e; } .ds-facts dd { margin: 4px 0 0; } .ds-facts-value { display: block; font-size: 1.25rem; line-height: 1.25; font-weight: 650; letter-spacing: -0.015em; color: #1f1d1a; font-variant-numeric: tabular-nums; } .ds-facts-unit { margin-left: 1px; font-size: 0.72em; font-weight: 500; letter-spacing: 0; color: #534e46; } .ds-facts-keep { white-space: nowrap; } .ds-facts-detail { display: block; margin-top: 2px; font-size: 0.875rem; color: #6e685e; } @media (max-width: 720px) { .ds-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; } .ds-facts-value { font-size: 1.125rem; } .ds-facts > div:last-child:nth-child(odd) { grid-column: 1 / -1; } }"
+      "name": "Disclosure",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "A native details element: the summary carries the select chevron, turned -90deg when closed and upright when open (220ms); the content slides open and fades in (280ms / 220ms). The form variant is 0.9375rem, 600, ink.",
+      "html": "<details class=\"ds-disc\"><summary>Show the numbers</summary><p>Flights by month, distance and time in the air for the period.</p></details>",
+      "css": ".ds-disc { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); interpolate-size: allow-keywords; max-width: 520px; color: var(--ink, #1f1d1a); } .ds-disc summary { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; list-style: none; font-size: 0.875rem; color: var(--ink-3, #6e685e); cursor: pointer; } .ds-disc summary::-webkit-details-marker { display: none; } .ds-disc summary::before { content: \"\"; width: 12px; height: 12px; background: var(--select-chevron, url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23534e46' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")) no-repeat center / 12px 12px; transform: rotate(-90deg); transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-disc[open] summary::before { transform: rotate(0deg); } .ds-disc summary:hover { color: var(--ink, #1f1d1a); } .ds-disc summary:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; border-radius: 4px; } .ds-disc::details-content { block-size: 0; overflow: clip; opacity: 0; transition: block-size 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), content-visibility 280ms allow-discrete; } .ds-disc[open]::details-content { block-size: auto; opacity: 1; } .ds-disc p { margin: 8px 0 0; font-size: 0.9375rem; }"
     }
   ],
   "narrative": {
     "northStar": "The Written Logbook",
-    "overview": "Each view states its main point as one plain sentence with the figures inside it, then shows one subject at full size underneath: the period's map on Home, the period's routes on Flights, the route on a flight, the whole period on the globe. Supporting context (most recent, aircraft cards, month by month, the flight list) sits below in quiet sections divided by hairline rules. The world comes from the owner's own lab site and photo gallery: warm paper ground, one sans family, a narrow reading measure, hairlines between sections, and rounded photo cards with a tinted caption block.\n\nOn that ground sits a layer borrowed from Material You, deliberately not exact Material: its shapes (pill buttons, round icon buttons, large rounded containers), its tonal surfaces (a warm neutral palette at the page's hue) and its state layers. Material's colour roles are not borrowed: buttons stay ink and neutral, and gold and blue stay data only. The one non-data tint is a muted gold container that marks what is selected. This document describes the shipped web app (`apps/web`); the prototype in `prototype/` is the earlier reference and does not have the Material layer.\n\nColour is reserved for data. Flown is gold, spotted is blue, and everything else is paper, tonal surface and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts, the floating Add button, the globe's controls) and on a card under the pointer. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.\n\nThe system refuses the KPI-tile grid and the flight-tracker wall of panels. A statistic belongs in a sentence or a chart with its own counted-what subtitle, not in a box of its own.",
+    "overview": "Each view states its main point as one plain sentence with the figures inside it, then shows one subject at full size underneath: the period's map on Home, the period's routes on Flights, the route on a flight, the whole period on the globe. Supporting context (most recent, aircraft cards, month by month, the flight list) sits below in quiet sections divided by hairline rules. The world comes from the owner's own lab site and photo gallery: warm paper ground, one sans family, a narrow reading measure, hairlines between sections, and rounded photo cards with a tinted caption block.\n\nOn that ground sits a layer borrowed from Material You, deliberately not exact Material: its shapes (pill buttons, round icon buttons, large rounded containers), its tonal surfaces (a warm neutral palette at the page's hue) and its state layers. Material's colour roles are not borrowed: buttons stay ink and neutral, and gold and blue stay data only. The one non-data tint is a muted gold container that marks what is selected. This document describes the shipped web app (`apps/web`); the prototype in `prototype/` is the earlier reference and does not have the Material layer.\n\nColour is reserved for data. Flown is gold, spotted is blue, and everything else is paper, tonal surface and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts, the floating Add button, the globe's controls). A linked card under the pointer changes shade; it does not rise. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.\n\nThe system refuses the KPI-tile grid and the flight-tracker wall of panels. A statistic belongs in a sentence or a chart with its own counted-what subtitle, not in a box of its own.",
     "keyCharacteristics": [
       "Warm paper ground in light, warm near-black in dark; both follow the device by default.",
       "One system sans for every role; display weight 650 with tight negative tracking.",
@@ -1602,7 +1779,7 @@
       },
       {
         "name": "The Dated Time Rule",
-        "body": "Every precise time is shown with its date and its UTC offset (for example \"Tue 4 Mar · UTC+8\"), in 24-hour local time of the airport, with a \"+1 day\" chip when the landing date differs. A clock time never appears alone.",
+        "body": "Every precise time is shown with its date and its UTC offset (for example \"Tue 4 Mar · UTC+1\"), in 24-hour local time of the airport, with a \"+1 day\" chip when the landing date differs. A clock time never appears alone.",
         "section": "typography"
       },
       {
@@ -1627,7 +1804,7 @@
       }
     ],
     "dos": [
-      "Do keep `paper` (#FAF8F1) as the light ground and `paper-dark` as the dark ground, and support both themes, following the device unless the user picks one.",
+      "Do keep `paper` (#faf8f1) as the light ground and `paper-dark` as the dark ground, and support both themes, following the device unless the user picks one.",
       "Do colour flight data gold and spotting data blue, using each theme's validated pair, and split the two for data that is both.",
       "Do open each view with one plain sentence carrying its figures, and underline data phrases 2px in their ink so they point at the map layer or the aircraft.",
       "Do show every precise time with its date and UTC offset, in 24-hour airport-local time.",
@@ -1646,7 +1823,7 @@
       "Don't fill a button, tab or navigation item with flown gold or spotted blue; buttons stay ink or neutral.",
       "Don't build KPI tiles or a wall of side panels; a figure belongs in a sentence or a chart.",
       "Don't show a clock time without its date, or a status by colour alone.",
-      "Don't put shadows on anything resting on the page.",
+      "Don't put shadows on anything resting on the page, and don't lift a card on hover; a linked card only changes shade.",
       "Don't add small uppercase labels above headings; the wordmark is the only tracked capitals in the interface."
     ]
   }
