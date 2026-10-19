@@ -1,6 +1,6 @@
 // Aircraft: every airframe in the log, counted once however many registrations it had (requirement I4).
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
@@ -9,6 +9,7 @@ import { Icon } from "../lib/icons.tsx";
 import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
 type Filter = "all" | "flown" | "both" | "provisional" | "noFirstFlight";
 
@@ -17,9 +18,10 @@ const PAGE_SIZE = 50;
 export function AircraftList() {
   const { app, version } = useApp();
   const { store, ref } = app;
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
-  const [sort, setSort] = useState<"last" | "count" | "reg">("last");
+  // Kept for Back (lib/viewState.ts).
+  const [q, setQ] = useViewState("q", "");
+  const [filter, setFilter] = useViewState<Filter>("filter", "all");
+  const [sort, setSort] = useViewState<"last" | "count" | "reg">("sort", "last");
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const views = useMemo(() => aircraftViews(store).filter((v) => v.flights.length || v.sightings.length), [store, version]);

@@ -1,6 +1,6 @@
 // Map: every flight of the period as a great circle (or its recorded track) and every spotting location.
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
@@ -10,6 +10,7 @@ import { airlineLabel, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
 export function MapPage() {
   const { app, version } = useApp();
@@ -17,9 +18,10 @@ export function MapPage() {
   const navigate = useNavigate();
   const { year, setYear, years } = usePeriod(store, version);
   const unit = app.settings().distanceUnit ?? "km";
-  const [showFlights, setShowFlights] = useState(true);
-  const [showSpots, setShowSpots] = useState(true);
-  const [airline, setAirline] = useState("");
+  // Kept for Back (lib/viewState.ts).
+  const [showFlights, setShowFlights] = useViewState("showFlights", true);
+  const [showSpots, setShowSpots] = useViewState("showSpots", true);
+  const [airline, setAirline] = useViewState("airline", "");
   const data = useMemo(() => {
     const views = sortedFlights(store, ref).filter((v) => inPeriod(v.day, year));
     const sightings = store.all("sightings").filter((s) => inPeriod(s.seenOn, year));

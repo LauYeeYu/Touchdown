@@ -15,6 +15,7 @@ import { WorldMap } from "../components/maps.tsx";
 import { Fig, usePhrases } from "../components/Phrase.tsx";
 import { FlightCols, FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
 type Highlight = { kind: "id" | "route"; key: string } | null;
 
@@ -26,9 +27,10 @@ export function Flights() {
   const navigate = useNavigate();
   const { year, setYear, years, thisYear } = usePeriod(store, version);
   const unit = app.settings().distanceUnit ?? "km";
-  const [q, setQ] = useState("");
-  const [airline, setAirline] = useState("");
-  const [recordedOnly, setRecordedOnly] = useState(false);
+  // Kept for Back (lib/viewState.ts).
+  const [q, setQ] = useViewState("q", "");
+  const [airline, setAirline] = useViewState("airline", "");
+  const [recordedOnly, setRecordedOnly] = useViewState("recordedOnly", false);
   const [hover, setHover] = useState<Highlight>(null);
   const { focus, bind } = usePhrases();
 

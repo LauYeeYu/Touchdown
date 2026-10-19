@@ -1,19 +1,22 @@
 // Paging for long lists: a page of items at a time, with previous / next and page numbers. The page goes back
-// to the first one when the list itself changes (a new filter, a new period).
+// to the first one when the list itself changes (a new filter, a new period), and is kept for Back
+// (lib/viewState.ts).
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { nf } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
-export function usePaging<T>(items: T[], size: number, resetKey: string) {
-  const [page, setPage] = useState(1);
+/** `name` tells two lists on one page apart. */
+export function usePaging<T>(items: T[], size: number, resetKey: string, name = "page") {
+  // The page number belongs to the list it was chosen in: a different list starts at page 1.
+  const [saved, setSaved] = useViewState(name, { page: 1, list: resetKey });
   const top = useRef<HTMLDivElement>(null);
-  useEffect(() => setPage(1), [resetKey]);
   const pages = Math.max(1, Math.ceil(items.length / size));
-  const current = Math.min(page, pages);
+  const current = Math.min(saved.list === resetKey ? saved.page : 1, pages);
   const start = (current - 1) * size;
   const go = (p: number) => {
-    setPage(Math.max(1, Math.min(pages, p)));
+    setSaved({ page: Math.max(1, Math.min(pages, p)), list: resetKey });
     // Back to the top of the list, not the top of the page.
     const el = top.current;
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });

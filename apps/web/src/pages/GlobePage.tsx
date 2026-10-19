@@ -1,7 +1,7 @@
 // The interactive globe page: every flight of the period (recorded track where there is one) and every
 // spotting location, on a globe you can turn and zoom.
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
@@ -11,6 +11,7 @@ import { plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { Globe, type GlobeHandle } from "../components/Globe.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
 export function GlobePage() {
   const { app, version } = useApp();
@@ -18,8 +19,9 @@ export function GlobePage() {
   const navigate = useNavigate();
   const { year, setYear, years } = usePeriod(store, version);
   const unit = app.settings().distanceUnit ?? "km";
-  const [showFlights, setShowFlights] = useState(true);
-  const [showSpots, setShowSpots] = useState(true);
+  // Kept for Back (lib/viewState.ts).
+  const [showFlights, setShowFlights] = useViewState("showFlights", true);
+  const [showSpots, setShowSpots] = useViewState("showSpots", true);
   const globe = useRef<GlobeHandle>(null);
 
   const data = useMemo(() => {

@@ -1,6 +1,6 @@
 // Spotting: the period's sightings in a sentence, where they happened, then each session (a day at a place).
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { sightingStats, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
@@ -16,6 +16,7 @@ import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
 const SESSION_PREVIEW = 12;
 const SESSIONS_PER_PAGE = 10;
@@ -25,9 +26,10 @@ export function Spotting() {
   const { store, ref } = app;
   const navigate = useNavigate();
   const { year, setYear, years, thisYear } = usePeriod(store, version);
-  const [q, setQ] = useState("");
-  const [airport, setAirport] = useState("");
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Kept for Back (lib/viewState.ts).
+  const [q, setQ] = useViewState("q", "");
+  const [airport, setAirport] = useViewState("airport", "");
+  const [expanded, setExpanded] = useViewState<string[]>("expanded", []);
 
   const data = useMemo(() => {
     const sightings = store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
@@ -145,7 +147,7 @@ export function Spotting() {
       )}
       <div ref={paging.top} className="list-top" />
       {paging.slice.map((sess) => {
-        const open = expanded.has(sess.key) || !!needle || sess.shown.length <= SESSION_PREVIEW + 2;
+        const open = expanded.includes(sess.key) || !!needle || sess.shown.length <= SESSION_PREVIEW + 2;
         const rows = open ? sess.shown : sess.shown.slice(0, SESSION_PREVIEW);
         return (
           <section className="month session" key={sess.key}>
@@ -197,7 +199,7 @@ export function Spotting() {
               ))}
             </ul>
             {!open && (
-              <button type="button" className="btn btn--quiet btn--small show-all" onClick={() => setExpanded((e) => new Set([...e, sess.key]))}>
+              <button type="button" className="btn btn--quiet btn--small show-all" onClick={() => setExpanded((e) => [...e, sess.key])}>
                 Show all {plural(sess.shown.length, "sighting")}
               </button>
             )}

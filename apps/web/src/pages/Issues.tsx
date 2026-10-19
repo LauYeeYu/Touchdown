@@ -1,7 +1,7 @@
 // Issues (docs/31-ui.md): every open finding, grouped by rule, with the records involved, the suggested fix,
 // and "this is right" for warnings. Accepted warnings are listed separately so they can be reopened.
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { flightDay, RULES, SEVERITY_ORDER, type Finding, type RecordRef } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
@@ -10,6 +10,7 @@ import { dayMonthYear, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FindingItem } from "../components/Findings.tsx";
 import { Tabs } from "../components/Tabs.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
 type Sev = "error" | "warning" | "info";
 
@@ -47,8 +48,10 @@ function sentence(errors: number, warnings: number): string {
 
 export function Issues() {
   const { app, version } = useApp();
-  const [tab, setTab] = useState<"open" | "accepted">("open");
-  const [sev, setSev] = useState<Set<Sev>>(new Set(["error", "warning"]));
+  // Kept for Back (lib/viewState.ts).
+  const [tab, setTab] = useViewState<"open" | "accepted">("tab", "open");
+  const [sevList, setSev] = useViewState<Sev[]>("severities", ["error", "warning"]);
+  const sev = new Set(sevList);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const open = useMemo(() => app.findings(), [app, version]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,12 +61,7 @@ export function Issues() {
   const groups = new Map<string, Finding[]>();
   for (const f of shown) groups.set(f.ruleId, [...(groups.get(f.ruleId) ?? []), f]);
   const ordered = [...groups].sort((a, b) => SEVERITY_ORDER[a[1][0]!.severity] - SEVERITY_ORDER[b[1][0]!.severity] || b[1].length - a[1].length);
-  const toggle = (s: Sev) => setSev((cur) => {
-    const n = new Set(cur);
-    if (n.has(s)) n.delete(s);
-    else n.add(s);
-    return n;
-  });
+  const toggle = (s: Sev) => setSev((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
 
   return (
     <div className="page">

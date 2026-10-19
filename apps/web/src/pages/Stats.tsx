@@ -1,7 +1,7 @@
 // Stats (docs/24-statistics.md): flights, sightings and both together, and a custom view (a pivot) of any one or two
 // dimensions by one measure. Every number says what it left out.
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, pivot, sightingStats, type Dataset, type Measure, type Measured, type Sighting, type StatsContext } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
@@ -15,6 +15,7 @@ import { Duration } from "../components/Duration.tsx";
 import { Tabs } from "../components/Tabs.tsx";
 import { Fact, LeftOut } from "../components/Facts.tsx";
 import { Ranked } from "../components/Ranked.tsx";
+import { useViewState } from "../lib/viewState.ts";
 
 type Tab = "flights" | "sightings" | "both" | "pivot";
 
@@ -28,7 +29,8 @@ export function Stats() {
   const { year, setYear, years } = usePeriod(store, version);
   const settings = app.settings();
   const unit = settings.distanceUnit ?? "km";
-  const [tab, setTab] = useState<Tab>("flights");
+  // Kept for Back (lib/viewState.ts), as are the custom view's choices.
+  const [tab, setTab] = useViewState<Tab>("tab", "flights");
 
   const data = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
@@ -188,11 +190,11 @@ export function Stats() {
 function Pivot({ ctx, flights, sightings, label }: { ctx: StatsContext; flights: ReturnType<typeof flightStats> extends never ? never : import("@touchdown/core").Flight[]; sightings: Sighting[]; label: { op: (k: string) => string; ap: (k: string) => string; ty: (k: string) => string; fam: (k: string) => string } }) {
   const { app } = useApp();
   const unit = app.settings().distanceUnit ?? "km";
-  const [dataset, setDataset] = useState<Dataset>("sightings");
+  const [dataset, setDataset] = useViewState<Dataset>("custom.dataset", "sightings");
   const dims = DIMENSIONS.filter((d) => d.datasets.includes(dataset));
-  const [rowId, setRowId] = useState("airline");
-  const [colId, setColId] = useState("family");
-  const [measure, setMeasure] = useState<Measure>("aircraft");
+  const [rowId, setRowId] = useViewState("custom.rows", "airline");
+  const [colId, setColId] = useViewState("custom.columns", "family");
+  const [measure, setMeasure] = useViewState<Measure>("custom.measure", "aircraft");
   const rowDim = dims.find((d) => d.id === rowId) ?? dims[0]!;
   const colDim = colId ? (dims.find((d) => d.id === colId && d.id !== rowDim.id) ?? null) : null;
   const records = dataset === "flights" ? flights : sightings;

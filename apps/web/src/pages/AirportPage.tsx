@@ -100,8 +100,8 @@ export function AirportPage() {
 
   const { here, visits, transitIds, sightings, spotted, days, flownOn, topOther, firstDay, review, trackMeta } = data;
   const newestFirst = useMemo(() => [...here].reverse(), [here]);
-  const flightPages = usePaging(newestFirst, FLIGHT_PAGE, `${id}|${year}`);
-  const aircraftPages = usePaging(spotted, AIRCRAFT_PAGE, `${id}|${year}`);
+  const flightPages = usePaging(newestFirst, FLIGHT_PAGE, `${id}|${year}`, "flightsPage");
+  const aircraftPages = usePaging(spotted, AIRCRAFT_PAGE, `${id}|${year}`, "aircraftPage");
   const hereKey = here.map((v) => v.f.id).join(",");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const marks = useMemo(() => mapFlights(here, ref, unit, new Set(), store), [hereKey, version, unit]);

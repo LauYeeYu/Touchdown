@@ -48,7 +48,8 @@ const settings = createRoute({ getParentRoute: () => root, path: "/settings", co
 
 const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings]);
 
-const router = createRouter({ routeTree, defaultPreload: false, scrollRestoration: false });
+// Back returns to where the page was scrolled; a new page starts at the top.
+const router = createRouter({ routeTree, defaultPreload: false, scrollRestoration: true });
 
 declare module "@tanstack/react-router" {
   interface Register {

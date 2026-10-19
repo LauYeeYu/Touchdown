@@ -46,7 +46,6 @@ export function Shell() {
 
   useEffect(() => {
     hideTip();
-    window.scrollTo(0, 0);
   }, [path]);
 
   // Development only: offer the local backup when it was rebuilt after the one in this browser.
