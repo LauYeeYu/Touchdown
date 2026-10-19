@@ -1439,10 +1439,21 @@ main {
   padding: 0;
 }
 
+/* The divider belongs to the list item, so it stays a straight line; the row's rounded shape shows only in
+   its hover fill, which hides the dividers above and below it. */
+.rows > li:has(> .row) {
+  border-bottom: 1px solid var(--rule);
+  transition: border-color 140ms var(--ease);
+}
+
+.rows > li:has(> .row:hover, > .row.is-active),
+.rows > li:has(+ li > .row:hover, + li > .row.is-active) {
+  border-bottom-color: transparent;
+}
+
 .row {
   padding: 14px 12px;
   margin: 0 -12px;
-  border-bottom: 1px solid var(--rule);
   border-radius: 8px;
   text-decoration: none;
   transition: background-color 140ms var(--ease);
