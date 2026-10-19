@@ -23,3 +23,9 @@ coverage/
 # Impeccable: review screenshots, and the engine binary (the launcher downloads it when missing)
 .impeccable/review/
 **/skills/impeccable/scripts/bin/
+
+# Downloaded sources for the reference data build
+packages/refdata/.cache/
+
+# TypeScript build info from `tsc -b`
+*.tsbuildinfo
