@@ -70,7 +70,7 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 | Routing / data tables | TanStack Router, TanStack Table | Typed, client-only. |
 | Schema | Zod-based table definitions in `packages/core/schema` | One definition generates TypeScript types, validators, JSON Schemas, and SQL DDL for SQLite / D1 / Postgres. |
 | SQLite in the browser | Official SQLite WebAssembly build | Opens and writes the SQLite file backend in Chrome (desktop and Android). |
-| Local store | IndexedDB via Dexie | Offline, survives reloads. All rows are also held in memory (a personal log is a few MB), so pages compute from the core store directly; IndexedDB is the persistence under it. |
+| Local store | IndexedDB via Dexie | Offline, survives reloads. One record per row, except track points: one record per track ([12](12-storage-and-sync.md), "Local store"). All rows are also held in memory (a personal log is a few MB), so pages compute from the core store directly; IndexedDB is the persistence under it. |
 | Time zones | Temporal API (polyfill until browsers ship it) | Correct local-time and day-offset math. |
 | Interactive map | d3-geo on Natural Earth land (world-atlas), drawn as SVG | Decided by the approved prototype: a quiet world map with arcs and spots, no tiles, no API key, same drawing code as the exports. |
 | Export rendering | d3-geo + Natural Earth (public domain) on canvas/SVG | Full control of the output, no tile licensing issues in exported images and videos. |

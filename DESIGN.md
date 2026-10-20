@@ -347,6 +347,14 @@ components:
   pager-number-current:
     backgroundColor: "{colors.selected-container}"
     textColor: "{colors.on-selected-container}"
+  loading-bar:
+    backgroundColor: "{colors.surface-highest}"
+    rounded: "{rounded.hairline}"
+    height: "4px"
+  loading-bar-fill:
+    backgroundColor: "{colors.ink}"
+    rounded: "{rounded.hairline}"
+    height: "4px"
   card:
     backgroundColor: "{colors.surface-low}"
     textColor: "{colors.ink}"
@@ -635,6 +643,9 @@ Written "2h 07m": figures at full size, the units at 0.72em and 500 in `ink-2`, 
 
 ### Pager
 Below a long list, 24px under the last row: the range and total on the left ("31–60 of 120 aircraft", 0.875rem `ink-3`, tabular figures), page buttons on the right. Page numbers are 40px pills in `ink-2` with the state layer on hover; the current page fills with the selection container at 650. Gaps are an ellipsis in `ink-3`. Previous and next are round icon buttons, faded to 38% when there is no page that way. On phones the count sits on its own centred line above centred 36px buttons.
+
+### Loading screen
+Shown from the first moment until the first page is ready, over the page: the wordmark, one progress bar and one line of `ink-3` text at 0.875rem saying what is being done, centred a third of the way down. The bar is a single 4px track in `surface-highest`, 220px wide (60% of the screen on phones), with round 2px ends, filled with `ink` from the left. Its own stylesheet (`public/boot.css`) loads with the page, so the screen is styled before the app's code runs. The bar creeps towards 30% while the code loads, moves on over 200ms as each step of opening the log finishes, then fills; the screen fades out over 160ms to show the first page, which has rendered underneath. With reduced motion it jumps from step to step and does not fade. If the log cannot be opened, the same screen shows the reason under a 1.25rem heading.
 
 ### Airport page
 A shorter header than a flight page: the airport code at the 5rem hero size (3.5rem on phones) with the city (600, ink) and the name, country and ICAO code (`ink-2`) beside it, aligned to its baseline. Then the period control, a 1.5rem lead sentence, the fact list, the map, and the two paged lists (flight rows; aircraft rows as on the Aircraft page). Both legs of a transit carry a neutral "Transit" pill after the route.
