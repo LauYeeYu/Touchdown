@@ -2,6 +2,7 @@
 // (vite.config.ts). The production build never calls this.
 
 import { readBackup } from "@touchdown/core";
+import { nf } from "../lib/format.ts";
 import type { AppData } from "./app.ts";
 
 export const LOCAL_BACKUP_KEY = "td-dev-local-backup"; // modification time of the backup last loaded
@@ -30,18 +31,26 @@ export function loadedBackupModified(): number {
   }
 }
 
-/** Replace everything in this browser with the local backup, then reload. Returns false when there is none. */
-export async function loadLocalBackup(app: AppData, onStart?: () => void): Promise<boolean> {
+/**
+ * Replace everything in this browser with the local backup, then reload. Returns false when there is none.
+ * `step` hears what is being done, for the loading bar.
+ */
+export async function loadLocalBackup(app: AppData, step?: (text: string) => void): Promise<boolean> {
   const modified = await localBackupModified();
+  if (modified === null) return false;
+  step?.("Downloading the local backup…");
   const res = await fetch("/__local/backup.zip", { cache: "no-store" }).catch(() => null);
-  if (!res?.ok || modified === null) return false;
-  onStart?.();
+  if (!res?.ok) return false;
+  step?.("Reading the backup…");
   const back = readBackup(new Uint8Array(await res.arrayBuffer()));
   if (back.problems.length) {
     console.warn("Local backup not loaded:", back.problems);
     return false;
   }
+  const records = [...back.tables.values()].reduce((n, rows) => n + rows.length, 0);
+  step?.(`Saving ${nf.format(records)} records in this browser…`);
   await app.replaceAll(back.tables);
+  step?.("Reloading…");
   try {
     localStorage.setItem(LOCAL_BACKUP_KEY, String(modified));
   } catch {
@@ -55,13 +64,13 @@ export async function loadLocalBackup(app: AppData, onStart?: () => void): Promi
  * The first time an empty browser opens the dev server, load the local backup so the owner's log shows
  * without a manual restore. Returns true when the page is about to reload with the data.
  */
-export async function loadLocalBackupOnce(app: AppData, onStart: () => void): Promise<boolean> {
+export async function loadLocalBackupOnce(app: AppData, step: (text: string) => void): Promise<boolean> {
   try {
     if (localStorage.getItem(LOCAL_BACKUP_KEY) || app.store.count("flights") || app.store.count("sightings")) return false;
   } catch {
     return false;
   }
-  return loadLocalBackup(app, onStart);
+  return loadLocalBackup(app, step);
 }
 
 /**
@@ -69,7 +78,7 @@ export async function loadLocalBackupOnce(app: AppData, onStart: () => void): Pr
  * The dev server notes when it last served a page for a hard refresh; this page was one if that request came
  * after the page started loading. Returns true when the page is about to reload with the data.
  */
-export async function loadLocalBackupOnHardReload(app: AppData, onStart: () => void): Promise<boolean> {
+export async function loadLocalBackupOnHardReload(app: AppData, step: (text: string) => void): Promise<boolean> {
   const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
   if (nav?.type !== "reload") return false;
   const { modified, hardReloadAt } = await backupInfo();
@@ -81,5 +90,5 @@ export async function loadLocalBackupOnHardReload(app: AppData, onStart: () => v
   } catch {
     return false;
   }
-  return loadLocalBackup(app, onStart);
+  return loadLocalBackup(app, step);
 }

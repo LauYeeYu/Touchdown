@@ -1,0 +1,138 @@
+/* The loading screen (docs/31-ui.md, "Opening"). A plain file linked from index.html, so it applies before the
+   app's code and stylesheet have loaded. Colours repeat the app's tokens (src/styles/app.css): paper, ink, ink-3
+   and surface-highest, in both themes. */
+
+@property --p {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 0%;
+}
+
+:root {
+  --boot-paper: #faf8f1;
+  --boot-ink: #1f1d1a;
+  --boot-ink-3: #6e685e;
+  --boot-track: #e7e2d7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --boot-paper: #171613;
+    --boot-ink: #f1eee6;
+    --boot-ink-3: #a19b8e;
+    --boot-track: #36352d;
+  }
+}
+
+:root[data-theme="dark"] {
+  --boot-paper: #171613;
+  --boot-ink: #f1eee6;
+  --boot-ink-3: #a19b8e;
+  --boot-track: #36352d;
+}
+
+html {
+  background: var(--boot-paper);
+}
+
+/* As in app.css, so the screen does not move when the app's stylesheet arrives. */
+body {
+  margin: 0;
+}
+
+/* Over the page, so the first page renders underneath while the bar finishes and the screen fades out. */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  padding: 32vh 16px 0;
+  background: var(--boot-paper);
+  color: var(--boot-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.boot__mark {
+  margin: 0 0 4px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+/* One bar: a 4px track with round ends, filled with the app's ink from the left. */
+.boot__bar {
+  width: min(220px, 60vw);
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--boot-track);
+}
+
+.boot__fill {
+  display: block;
+  width: var(--p);
+  height: 100%;
+  border-radius: 2px;
+  background: var(--boot-ink);
+}
+
+/* Before the app's code runs nothing reports progress: creep towards a third while the code loads. */
+.boot__bar--waiting {
+  animation: boot-wait 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes boot-wait {
+  from {
+    --p: 0%;
+  }
+  to {
+    --p: 30%;
+  }
+}
+
+/* Then each step of opening the log moves it on. */
+.boot__bar--steps {
+  transition: --p 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Done: the bar fills, then the screen fades to show the first page. */
+.boot--done {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease-out 120ms;
+}
+
+.boot__text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--boot-ink-3);
+  text-align: center;
+}
+
+.boot__error {
+  max-width: 34rem;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot__bar--waiting {
+    animation: none;
+    --p: 30%;
+  }
+
+  .boot__bar--steps,
+  .boot--done {
+    transition: none;
+  }
+}

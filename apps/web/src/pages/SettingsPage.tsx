@@ -28,6 +28,14 @@ export function SettingsPage() {
   const [family, setFamily] = useState("");
   const [sources, setSources] = useState<string[]>([]);
   const [refVersion, setRefVersion] = useState("");
+  // Whether the browser keeps the log when the disk runs low (main.tsx asks for that).
+  const [kept, setKept] = useState<boolean | null>(null);
+  useEffect(() => {
+    navigator.storage
+      ?.persisted?.()
+      .then(setKept)
+      .catch(() => setKept(null));
+  }, []);
 
   useEffect(() => {
     void import("@touchdown/refdata").then((m) => {
@@ -77,7 +85,9 @@ export function SettingsPage() {
       <p className="status-line">
         <Icon name="hard-drive" />
         <span>
-          Your log is stored in this browser ({plural(store.count("flights"), "flight")}, {plural(store.count("sightings"), "sighting")}, {plural(store.count("airframes"), "aircraft", "aircraft")}). Syncing to your Google Drive comes in a later version; until then, export a backup now and then.
+          Your log is stored in this browser ({plural(store.count("flights"), "flight")}, {plural(store.count("sightings"), "sighting")}, {plural(store.count("airframes"), "aircraft", "aircraft")}).
+          {kept === true && " The browser keeps it until you delete it."}
+          {kept === false && " The browser may clear it if the disk runs low."} Syncing to your Google Drive comes in a later version; until then, export a backup now and then.
         </span>
       </p>
       <div className="button-row">

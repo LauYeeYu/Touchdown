@@ -6,6 +6,7 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f2ede2" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/boot.css" />
     <title>Touchdown</title>
     <script>
       // Apply the chosen theme before first paint. The Content Security Policy allows this one script by hash.
@@ -16,7 +17,14 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- The loading screen until the app's code runs; components/Boot.tsx continues it. -->
+      <div class="boot" aria-busy="true">
+        <p class="boot__mark">TOUCHDOWN</p>
+        <div class="boot__bar boot__bar--waiting" role="progressbar" aria-label="Opening Touchdown"><span class="boot__fill"></span></div>
+        <p class="boot__text">Loading the app…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -30,6 +30,7 @@ import {
   type TableName,
 } from "@touchdown/core";
 import { db } from "./db.ts";
+import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
 
 export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "deleted"> = {
   distanceUnit: "km",
@@ -59,6 +60,16 @@ function deviceId(): string {
 
 export type SaveState = "saved" | "saving" | "error";
 
+/** Steps of opening the log, for the loading bar: reference data and the log are read at the same time. */
+export type OpenStep = "reference" | "log";
+
+// Let the loading bar paint its new text before a stretch of work that does not yield. A hidden tab paints
+// nothing, so this never waits more than 50ms.
+const paint = () => new Promise<void>((r) => {
+  requestAnimationFrame(() => setTimeout(r, 0));
+  setTimeout(r, 50);
+});
+
 export class AppData {
   readonly store: Store;
   readonly ref: RefIndex;
@@ -81,13 +92,30 @@ export class AppData {
     });
   }
 
-  static async open(): Promise<AppData> {
-    const { loadRefTables } = await import("@touchdown/refdata");
-    const tables: RefTables = loadRefTables();
+  /** `done` hears each step as it finishes; with "log", the number of records read. */
+  static async open(done: (step: OpenStep, records?: number) => void = () => {}): Promise<AppData> {
+    const [tables, [rows, tracks]] = await Promise.all([
+      import("@touchdown/refdata").then(({ loadRefTables }): RefTables => {
+        const t = loadRefTables();
+        done("reference");
+        return t;
+      }),
+      db.transaction("r", db.rows, db.trackPoints, () => Promise.all([db.rows.toArray(), db.trackPoints.toArray()])).then((read) => {
+        done("log", read[0].length + read[1].reduce((n, t) => n + t.rows.length, 0));
+        return read;
+      }),
+    ]);
+    await paint();
     const store = new Store({ deviceId: deviceId() });
-    const rows = await db.rows.toArray();
     const byTable = new Map<string, Record<string, unknown>[]>();
-    for (const r of rows) byTable.set(r.table, [...(byTable.get(r.table) ?? []), r.row]);
+    for (const r of rows) {
+      const list = byTable.get(r.table);
+      if (list) list.push(r.row);
+      else byTable.set(r.table, [r.row]);
+    }
+    const points = byTable.get("track_points") ?? [];
+    for (const t of tracks) points.push(...t.rows);
+    if (points.length) byTable.set("track_points", points);
     const problems: string[] = [];
     for (const [table, list] of byTable) {
       if (!(table in TABLES)) continue;
@@ -100,8 +128,7 @@ export class AppData {
       }
     }
     if (problems.length) console.warn("Rows that failed validation were not loaded:", problems);
-    const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)));
-    return app;
+    return new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)));
   }
 
   private static overridesFrom(store: Store) {
@@ -140,10 +167,20 @@ export class AppData {
     this.pending.clear();
     if (!batch.length) return;
     try {
-      const puts = batch.filter((r) => r.row !== null) as { table: string; id: string; row: Record<string, unknown> }[];
-      const dels = batch.filter((r) => r.row === null).map((r) => [r.table, r.id] as [string, string]);
-      if (puts.length) await db.rows.bulkPut(puts);
-      if (dels.length) await db.rows.bulkDelete(dels);
+      const rows = batch.filter((r) => r.table !== "track_points");
+      const puts = rows.filter((r) => r.row !== null) as { table: string; id: string; row: Record<string, unknown> }[];
+      const dels = rows.filter((r) => r.row === null).map((r) => [r.table, r.id] as [string, string]);
+      // Track points are stored one record per track: rewrite each track that changed from what the store
+      // holds now, or remove its record when it has no points left. A point's key is "<trackId>|<seq>".
+      const changedTracks = new Set(batch.filter((r) => r.table === "track_points").map((r) => r.id.slice(0, r.id.lastIndexOf("|"))));
+      const trackPuts = changedTracks.size ? groupTrackPoints(this.store.all("track_points").filter((p) => changedTracks.has(p.trackId)) as unknown as Record<string, unknown>[]) : [];
+      const trackDels = [...changedTracks].filter((id) => !trackPuts.some((t) => t.trackId === id));
+      await db.transaction("rw", db.rows, db.trackPoints, async () => {
+        if (puts.length) await db.rows.bulkPut(puts);
+        if (dels.length) await db.rows.bulkDelete(dels);
+        if (trackPuts.length) await db.trackPoints.bulkPut(trackPuts);
+        if (trackDels.length) await db.trackPoints.bulkDelete(trackDels);
+      });
       this.saveState = this.pending.size ? "saving" : "saved";
       this.lastSavedAt = Date.now();
     } catch (e) {
@@ -379,16 +416,26 @@ export class AppData {
     const fresh = new Store({ deviceId: this.store.deviceId });
     for (const [name, rows] of tables) fresh.load(name, rows as never);
     const out: { table: string; id: string; row: Record<string, unknown> }[] = [];
+    const points: Record<string, unknown>[] = [];
     for (const name of Object.keys(TABLES) as TableName[]) {
-      for (const r of fresh.allWithDeleted(name)) out.push({ table: name, id: rowKey(name, r as unknown as Record<string, unknown>), row: r as unknown as Record<string, unknown> });
+      for (const r of fresh.allWithDeleted(name)) {
+        const row = r as unknown as Record<string, unknown>;
+        if (name === "track_points" && hasTrackKey(row)) points.push(row);
+        else out.push({ table: name, id: rowKey(name, row), row });
+      }
     }
-    await db.transaction("rw", db.rows, async () => {
+    await db.transaction("rw", db.rows, db.trackPoints, async () => {
       await db.rows.clear();
+      await db.trackPoints.clear();
       await db.rows.bulkPut(out);
+      await db.trackPoints.bulkPut(groupTrackPoints(points));
     });
   }
 
   async deleteEverything() {
-    await db.rows.clear();
+    await db.transaction("rw", db.rows, db.trackPoints, async () => {
+      await db.rows.clear();
+      await db.trackPoints.clear();
+    });
   }
 }

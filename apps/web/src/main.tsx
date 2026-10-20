@@ -2,7 +2,9 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import "./styles/app.css";
-import { AppData } from "./data/app.ts";
+import { AppData, type OpenStep } from "./data/app.ts";
+import { Boot, BootError, waitingProgress } from "./components/Boot.tsx";
+import { nf } from "./lib/format.ts";
 import { AppContext } from "./data/context.tsx";
 import { Shell } from "./components/Shell.tsx";
 import { Home } from "./pages/Home.tsx";
@@ -57,44 +59,96 @@ declare module "@tanstack/react-router" {
   }
 }
 
+// Opens the data once per page load. React's development mode runs effects twice; without this the data was
+// read twice and the local backup could be loaded twice. Null when the page is about to reload with the backup.
+let booting: Promise<AppData | null> | null = null;
+
+/** Where the loading bar is (0 to 1) and what is being done. */
+interface Progress {
+  at: number;
+  text: string;
+}
+
+// One bar from 0 to 100%: the page's own bar creeps towards 30% while the code loads (public/boot.css), each
+// step of opening the log moves it on, and it fills when the first page is ready.
+const SHARE: Record<OpenStep, number> = { reference: 0.15, log: 0.3 };
+const PREPARED = 0.9;
+// Read before React replaces the page's own bar, so the bar never steps back.
+const START = Math.max(0.3, waitingProgress());
+
+function boot(report: (p: Progress) => void): Promise<AppData | null> {
+  booting ??= (async () => {
+    let at = START;
+    const pending = new Set<OpenStep>(["reference", "log"]);
+    let records = 0;
+    const text = () =>
+      pending.size === 2
+        ? "Reading your log and the reference data…"
+        : pending.has("log")
+          ? "Reading your log…"
+          : pending.has("reference")
+            ? "Loading airports, airlines and aircraft types…"
+            : `Preparing ${nf.format(records)} records…`;
+    report({ at, text: text() });
+    const opened = await AppData.open((step, n) => {
+      pending.delete(step);
+      if (n !== undefined) records = n;
+      at += SHARE[step];
+      report({ at, text: text() });
+    });
+    if (import.meta.env.DEV) {
+      const m = await import("./data/localBackup.ts");
+      const step = (t: string) => report({ at: (at = Math.min(PREPARED, at + 0.04)), text: t });
+      if (await m.loadLocalBackupOnce(opened, step)) return null;
+      if (await m.loadLocalBackupOnHardReload(opened, (t) => step(`Hard refresh. ${t}`))) return null;
+    }
+    report({ at: PREPARED, text: "Showing your log…" });
+    setSlugData(opened);
+    // Airport codes follow the setting on every page (lib/codes.ts).
+    setCodeStyle(opened.settings().codeDisplay);
+    opened.subscribe(() => setCodeStyle(opened.settings().codeDisplay));
+    // Ask the browser to keep the log when the disk runs low (docs/12, "Local store"). Chrome decides without
+    // asking the user; Firefox asks once.
+    if (opened.store.count("flights") || opened.store.count("sightings")) {
+      void navigator.storage
+        ?.persisted?.()
+        .then((kept) => kept || navigator.storage.persist())
+        .catch(() => false);
+    }
+    return opened;
+  })();
+  return booting;
+}
+
+// How long the finished bar stays before the loading screen goes: the fill, then the fade (boot.css).
+const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 300;
+
 function App() {
   const [app, setApp] = useState<AppData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Progress>({ at: START, text: "Loading the app…" });
+  const [finished, setFinished] = useState(false);
   useEffect(() => {
-    (async () => {
-      const opened = await AppData.open();
-      if (import.meta.env.DEV) {
-        const m = await import("./data/localBackup.ts");
-        if (await m.loadLocalBackupOnce(opened, () => setNote("Loading your local data…"))) return;
-        if (await m.loadLocalBackupOnHardReload(opened, () => setNote("Hard refresh: loading your local data again…"))) return;
-      }
-      setSlugData(opened);
-      // Airport codes follow the setting on every page (lib/codes.ts).
-      setCodeStyle(opened.settings().codeDisplay);
-      opened.subscribe(() => setCodeStyle(opened.settings().codeDisplay));
-      setApp(opened);
-    })().catch((e: Error) => setError(e.message));
+    boot(setProgress)
+      .then((opened) => opened && setApp(opened))
+      .catch((e: Error) => setError(e.message));
   }, []);
-  if (error) {
-    return (
-      <div className="page boot">
-        <h1 className="lead">Touchdown could not open its local data.</h1>
-        <p className="recent__line">{error}</p>
-      </div>
-    );
-  }
-  if (!app) {
-    return (
-      <div className="page boot" aria-busy="true">
-        <p className="recent__line">{note ?? "Opening your log…"}</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!app) return;
+    const t = setTimeout(() => setFinished(true), FINISH_MS);
+    return () => clearTimeout(t);
+  }, [app]);
+  if (error) return <BootError message={error} />;
+  // The first page renders under the loading screen while the bar fills and the screen fades.
   return (
-    <AppContext.Provider value={app}>
-      <RouterProvider router={router} />
-    </AppContext.Provider>
+    <>
+      {app && (
+        <AppContext.Provider value={app}>
+          <RouterProvider router={router} />
+        </AppContext.Provider>
+      )}
+      {!finished && <Boot progress={app ? 1 : progress.at} text={app ? "Ready" : progress.text} done={!!app} />}
+    </>
   );
 }
 
