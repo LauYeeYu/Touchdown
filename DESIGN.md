@@ -347,14 +347,28 @@ components:
   pager-number-current:
     backgroundColor: "{colors.selected-container}"
     textColor: "{colors.on-selected-container}"
-  loading-bar:
-    backgroundColor: "{colors.surface-highest}"
+  loading-glide-path:
+    backgroundColor: "{colors.rule-strong}"
+    height: "2px"
+  loading-glide-flown:
+    backgroundColor: "{colors.flown}"
+    height: "2px"
+  loading-runway:
+    backgroundColor: "{colors.ink-3}"
     rounded: "{rounded.hairline}"
-    height: "4px"
-  loading-bar-fill:
-    backgroundColor: "{colors.ink}"
-    rounded: "{rounded.hairline}"
-    height: "4px"
+    height: "3px"
+  loading-aircraft:
+    textColor: "{colors.ink}"
+    width: "46px"
+  map-style-switch:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.pill}"
+    height: "32px"
+    padding: "0 14px"
+  map-style-switch-selected:
+    backgroundColor: "{colors.selected-container}"
+    textColor: "{colors.on-selected-container}"
   card:
     backgroundColor: "{colors.surface-low}"
     textColor: "{colors.ink}"
@@ -428,7 +442,7 @@ components:
 
 **Creative North Star: "The Written Logbook"**
 
-Each view states its main point as one plain sentence with the figures inside it, then shows one subject at full size underneath: the period's map on Home, the period's routes on Flights, the route on a flight, the whole period on the globe. Supporting context (most recent, aircraft cards, month by month, the flight list) sits below in quiet sections divided by hairline rules. The world comes from the owner's own lab site and photo gallery: warm paper ground, one sans family, a narrow reading measure, hairlines between sections, and rounded photo cards with a tinted caption block.
+Each view states its main point as one plain sentence with the figures inside it, then shows one subject at full size underneath: the period's map on Home, the period's routes on Flights, the route on a flight, the whole period on the globe at the head of Statistics. Supporting context (most recent, aircraft cards, month by month, the flight list) sits below in quiet sections divided by hairline rules. The world comes from the owner's own lab site and photo gallery: warm paper ground, one sans family, a narrow reading measure, hairlines between sections, and rounded photo cards with a tinted caption block.
 
 On that ground sits a layer borrowed from Material You, deliberately not exact Material: its shapes (pill buttons, round icon buttons, large rounded containers), its tonal surfaces (a warm neutral palette at the page's hue) and its state layers. Material's colour roles are not borrowed: buttons stay ink and neutral, and gold and blue stay data only. The one non-data tint is a muted gold container that marks what is selected. This document describes the shipped web app (`apps/web`); the prototype in `prototype/` is the earlier reference and does not have the Material layer.
 
@@ -520,8 +534,6 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 
 A single centred column: `min(1120px, 100% - 2 × gutter)`, gutter 32px, 16px on phones. Views open 40px below the header (24px on phones) with the period control, then the lead sentence 24px below, then the subject at full column width. Sections are separated by 64px (44px on phones), each with a title row (title left, aside or link right, baseline-aligned) 20px above its content. Two-column splits use 7:5 or 5:7 with a 48px gap; chart pairs use two equal columns with a 48px gap. The main area keeps 96px of bottom padding (120px at 840px and below, to clear the bottom navigation bar).
 
-The globe page is the one exception to the reading column: the period control and the Flights/Spotting chips sit in the column at the top (20px above, 16px below), and the stage below is wider, `min(1280px, 100% - 2 × gutter)`, and fills the rest of the viewport height (at least 420px) with 24px below it.
-
 Spacing runs on 4px steps, mainly 4, 8, 12, 16, 20, 24, 32, 48 and 64px.
 
 **Responsive rules.**
@@ -571,7 +583,7 @@ Pills in ink and neutral; the only filled button is the primary action.
 - **Ghost:** transparent, no outline, `ink-2` text; same state layers.
 - **Danger:** quiet outline with alert text; hover adds the alert wash.
 - **Icon button:** 40px round, transparent, `ink-2` icon at 18px; hover and press add the state layers.
-- **Floating Add button (840px and below):** 56px square with 16px corners, the selection container with a 24px plus icon, the Menu shadow. It opens the Add menu upwards. Hidden on the globe page, where the stage takes the screen.
+- **Floating Add button (840px and below):** 56px square with 16px corners, the selection container with a 24px plus icon, the Menu shadow. It opens the Add menu upwards.
 - **Text link with arrow:** 600 weight, no underline at rest, underline on hover.
 - **Transitions:** 160ms on background, border and transform with the standard ease.
 
@@ -602,17 +614,20 @@ No rules, icons, colons or cards. Hairlines are kept only where rows are too wid
 
 ### Maps
 - **Container:** every map sits in a rounded container, 28px corners (24px on phones) on a `surface-low` fill. The legend sits above it with 4px inline padding.
-- **World map (Home, Flights, Statistics map):** Equal Earth projection, full column width, cropped to the period's latitudes with 12° margin. The map's edge (its central meridian) is placed where the fewest routes cross it, so as few routes as possible are cut. Land in `land` with a paper-coloured coastline, a faint graticule. Flown routes are 1.75px gold lines at 85% opacity with a 12px invisible hit line: the recorded track where one exists, thinned to about 400 points, otherwise the great circle. A partial track joins its airports with the missing stretch drawn as a dashed great circle (2 4 dash). Spotting dots are navy with a 2px paper ring, sized by aircraft seen. Isolated layers drop others to 12% opacity; an active route goes to 3px at full opacity.
+- **World map (Home, Flights, airport pages):** Equal Earth projection, full column width, cropped to the period's latitudes with 12° margin. The map's edge (its central meridian) is placed where the fewest routes cross it, so as few routes as possible are cut. Land in `land` with a paper-coloured coastline, a faint graticule. Flown routes are 1.75px gold lines at 85% opacity with a 12px invisible hit line: the recorded track where one exists, thinned to about 400 points, otherwise the great circle. A partial track joins its airports with the missing stretch drawn as a dashed great circle (2 4 dash). Spotting dots are navy with a 2px paper ring, sized by aircraft seen. Isolated layers drop others to 12% opacity; an active route goes to 3px at full opacity.
 - **Flight map:** orthographic, centred on the route: recorded track in 2.5px gold over a 6px paper halo; great-circle reference dashed in `ink-3` (or 2px gold dashed when it is the only path); airports as ink dots with a paper ring and 11px 600 labels with a paper stroke.
 - **Clickable airports:** when a map can open airport pages, each airport dot gets an invisible 9px hit circle, and its label and the spotting dots become links (pointer cursor, Enter opens). Hover grows the dot to 6px or rings a spotting dot in ink; the tooltip names the airport with its flight count.
-- **Legend:** above the map, 0.8125rem `ink-2`, with an 18px line swatch for routes, a dashed gold swatch when partial tracks are present, and a 10px dot for spots. On every overview map the legend ends with an "Explore on a globe" link: a pill on `surface-high` (`surface-highest` on hover), 4px 12px padding, weight 500, a 15px globe icon, pushed to the right (under the legend on phones).
+- **Legend:** above the map, 0.8125rem `ink-2`, with an 18px line swatch for routes, a dashed gold swatch when partial tracks are present, and a 10px dot for spots. On Home and Flights the legend ends with an "Explore on a globe" link to Statistics: a pill on `surface-high` (`surface-highest` on hover), 4px 12px padding, weight 500, a 15px globe icon, pushed to the right (under the legend on phones). On flight and airport pages it ends with the Map / Globe switch instead.
+- **Map / Globe switch:** a small segmented control (`segmented--small`): two 32px segments with a 15px map or globe icon and the word, 0.8125rem, 14px side padding, the selected one in the selection container. It sits at the right end of the legend row (under the legend on phones). The choice is kept in the browser.
 
 ### Interactive globe (signature)
-The `/globe` page shows the period on a canvas orthographic globe inside a 28px rounded stage (`globe-stage`), with the ocean disc in `globe-sphere`, land in `land` with `land-edge` coastlines, a 10° graticule in `chart-grid` and a `rule-strong` outline.
-- **Content:** flown routes in gold, recorded tracks where they exist and dashed great circles for the missing stretches; line width grows gently with zoom (1.4px up to 3px). Spotting locations are blue dots with a 2px paper ring, sized by aircraft seen; points on the far side are hidden. Airports flown through are 3.5px ink dots with a paper ring, labelled with 11px 600 codes in `ink-2` with a paper stroke, placed greedily so labels never overlap or leave the frame.
-- **Interaction:** drag to turn, with inertia after a quick release; scroll or pinch to zoom; arrow keys turn and + / − zoom when the canvas has focus (focus ring inset 4px). Hovering a route, an airport or a spotting dot shows its tooltip; the hovered route redraws 1.6px thicker at full opacity while the others drop to 22% and spots to 35%, and a hovered airport dot grows to 5.5px. Clicking a route opens the flight; clicking an airport or a spotting dot opens the airport page.
-- **Controls:** zoom in, zoom out and back to the whole period as a column of 44px round buttons on `surface-highest` (`surface-high` on hover) with the Raised shadow, 16px from the bottom right, 8px apart. A "Flat map" small quiet pill on `surface-highest` (`surface-high` on hover, like the controls) sits 16px from the top right and links to the flat map. A hint line ("Drag to turn · scroll or pinch to zoom · click a route or an airport to open it") sits bottom left in label size, `ink-3`.
-- **Above the stage:** the period control and two chips, Flights and Spotting, each with its legend swatch and count, that toggle the layers.
+`GlobePanel` shows a canvas orthographic globe inside a 28px rounded stage (`globe-stage`, 24px on phones), with the ocean disc in `globe-sphere`, land in `land` with `land-edge` coastlines, a 10° graticule in `chart-grid` and a `rule-strong` outline. It heads Statistics (the period) and replaces the flat map on flight and airport pages when the Map / Globe switch says Globe. The legend row above it is the same as the flat map's, and on flight and airport pages the stage takes the flat map's height (430px for a route, 280px when narrower than 600px; an airport's map as it was measured), so switching moves nothing. Elsewhere the stage is `clamp(340px, 58vh, 560px)` tall (`clamp(320px, 50vh, 420px)` on phones).
+- **Content:** flown routes in gold, recorded tracks where they exist and dashed great circles for the missing stretches; on a flight page the route's great circle is drawn too, 1.4px dashed (4 4) in `ink-3` under the track, as on the flat route map; line width grows gently with zoom (1.4px up to 3px). Spotting locations are blue dots with a 2px paper ring, sized by aircraft seen; points on the far side are hidden. Airports flown through are 3.5px ink dots with a paper ring, labelled with 11px 600 codes in `ink-2` with a paper stroke, placed greedily so labels never overlap or leave the frame.
+- **Interaction:** drag to turn, with inertia after a quick release; pinch to zoom; arrow keys turn and + / − zoom when the canvas has focus (focus ring inset 4px). In a page the globe leaves scrolling to the page: the wheel and vertical swipes scroll, Ctrl-scroll (and a trackpad pinch) zooms. Expanded, the wheel zooms. Framing zooms in on close routes but stops when the globe is as wide as the stage (radius 46% of its longer side), so its edge stays in view at the sides. Hovering a route, an airport or a spotting dot shows its tooltip; the hovered route redraws 1.6px thicker at full opacity while the others drop to 22% and spots to 35%, and a hovered airport dot grows to 5.5px. Clicking a route opens the flight; clicking an airport or a spotting dot opens the airport page.
+- **Controls:** zoom in, zoom out and "turn back to show everything" as a column of 44px round buttons on `surface-highest` (`surface-high` on hover) with the Raised shadow, 16px from the bottom right, 8px apart. A hint line ("Drag to turn · pinch or Ctrl-scroll to zoom · click a route or an airport to open it", then a note such as the period and how many flights have a recorded track) sits bottom left in label size, `ink-3`; hidden on phones until expanded.
+- **Expand:** a 36px pill inside the stage, 16px from the top right: `surface-highest` (`surface-high` on hover) with the Raised shadow, a 15px expand icon and "Expand" at 0.8125rem and 500.
+- **Head row:** the page's legend items or switches. On Statistics it holds two chips, Flights and Spotting, each with its legend swatch and count, and the airline filter as a 34px filled pill.
+- **Expanded:** the whole panel goes full screen (the Fullscreen API; a fixed overlay where there is none) on the paper background with 16px padding at the top and the gutter elsewhere; the stage takes the height left. The Expand pill reads Collapse with a collapse icon; Esc and Back on Android also return. Clicking the globe gives it keyboard focus without scrolling the page. The tooltip moves into the panel while it is full screen.
 
 ### Cards / Containers
 Photo cards borrowed from a gallery: the photo sits flush on top, the caption block below is a tonal surface.
@@ -620,6 +635,7 @@ Photo cards borrowed from a gallery: the photo sits flush on top, the caption bl
 - **Background:** `surface-low` caption block; `paper-deep` behind a loading photo, with a shimmer sweep and the registration as a fallback.
 - **Shadow Strategy:** none, at rest or on hover.
 - **Hover:** a linked card only changes shade: its fill mixes in 9% ink over 300ms, so it darkens on the light theme and lightens on the dark one. No rise, no shadow; the photo is unchanged.
+- **Linking:** a card or thumbnail that opens a page is not itself a link. Its registration is the link, stretched over the whole card (`stretch` and `stretch__link`), and the photo credit's link sits above it, so links never nest. Keyboard focus rings the whole card. A linked thumbnail underlines its registration on hover.
 - **Border:** none.
 - **Internal Padding:** 14px 16px 16px (aircraft card 18px 20px). Registration at 600 and 1.0625rem (1.5rem on the aircraft card), type in `ink-2`, then flown and spotted events each with an 8px ink dot.
 - **Credit:** every photo carries its photographer credit and a link to the source, 0.75rem in `ink-3`, pinned to the bottom of the caption block.
@@ -645,7 +661,7 @@ Written "2h 07m": figures at full size, the units at 0.72em and 500 in `ink-2`, 
 Below a long list, 24px under the last row: the range and total on the left ("31–60 of 120 aircraft", 0.875rem `ink-3`, tabular figures), page buttons on the right. Page numbers are 40px pills in `ink-2` with the state layer on hover; the current page fills with the selection container at 650. Gaps are an ellipsis in `ink-3`. Previous and next are round icon buttons, faded to 38% when there is no page that way. On phones the count sits on its own centred line above centred 36px buttons.
 
 ### Loading screen
-Shown from the first moment until the first page is ready, over the page: the wordmark, one progress bar and one line of `ink-3` text at 0.875rem saying what is being done, centred a third of the way down. The bar is a single 4px track in `surface-highest`, 220px wide (60% of the screen on phones), with round 2px ends, filled with `ink` from the left. Its own stylesheet (`public/boot.css`) loads with the page, so the screen is styled before the app's code runs. The bar creeps towards 30% while the code loads, moves on over 200ms as each step of opening the log finishes, then fills; the screen fades out over 160ms to show the first page, which has rendered underneath. With reduced motion it jumps from step to step and does not fade. If the log cannot be opened, the same screen shows the reason under a 1.25rem heading.
+Shown from the first moment until the first page is ready, over the page: the wordmark, the progress bar and one line of `ink-3` text at 0.875rem saying what is being done, centred a third of the way down. The progress bar is a final approach seen from the side, in a 240 by 52px scene: a 1px ground line in `rule-strong` with a 3px runway in `ink-3` at its right end (64px, round ends); a 2px glide path at 9° from the top left down to 14px past the runway threshold, dashed in `rule-strong` (4px dashes, 4px gaps) as far as the threshold, the part already flown solid in `flown` gold; and a 46px side view of a Boeing 747 in `ink` (upper-deck hump, two engines on the near side, gear down), standing on the path by its main wheels at 3° nose up. Progress is how far along the path it is; at 100% it touches down and flares to 6°. Its own stylesheet (`public/boot.css`) loads with the page, so the screen is styled before the app's code runs. The aircraft creeps towards 30% while the code loads, moves on over 200ms as each step of opening the log finishes, then lands; the screen fades out over 160ms to show the first page, which has rendered underneath. With reduced motion it jumps from step to step, does not flare and does not fade. If the log cannot be opened, the same screen shows the reason under a 1.25rem heading.
 
 ### Airport page
 A shorter header than a flight page: the airport code at the 5rem hero size (3.5rem on phones) with the city (600, ink) and the name, country and ICAO code (`ink-2`) beside it, aligned to its baseline. Then the period control, a 1.5rem lead sentence, the fact list, the map, and the two paged lists (flight rows; aircraft rows as on the Aircraft page). Both legs of a transit carry a neutral "Transit" pill after the route.
@@ -699,7 +715,7 @@ One easing, `cubic-bezier(0.16, 1, 0.3, 1)`, for every transition. Durations: 12
 - **Do** align multi-line list rows on their first baseline.
 - **Do** separate sections with hairlines and space, and use the `surface-*` steps for raised areas.
 - **Do** make everything you press a pill (chips excepted, at 8px), and show selection with `selected-container` and its `on-selected-container` text.
-- **Do** put every map in a 28px rounded tonal container (24px on phones), with the "Explore on a globe" link in the legend of overview maps.
+- **Do** put every map and globe in a 28px rounded tonal container (24px on phones), with the "Explore on a globe" link in the legend of the Home and Flights maps and the Map / Globe switch on flight and airport pages.
 
 ### Don't:
 - **Don't** use a serif, a webfont or a monospace face; the system sans covers every role.
