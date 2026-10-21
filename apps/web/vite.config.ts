@@ -25,6 +25,13 @@ function localBackup(): Plugin {
         res.setHeader("Cache-Control", "no-store");
         res.end(JSON.stringify(local && existsSync(LOCAL_BACKUP) ? { modified: statSync(LOCAL_BACKUP).mtimeMs, hardReloadAt } : {}));
       });
+      // Whether this request came with "no-cache": src/data/localBackup.ts tells a hard refresh from a browser
+      // with its cache disabled by it.
+      server.middlewares.use("/__local/cache-probe", (req, res) => {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-store");
+        res.end(JSON.stringify({ noCache: /no-cache/.test(req.headers["cache-control"] ?? "") }));
+      });
       server.middlewares.use("/__local/backup.zip", (req, res) => {
         const host = req.socket.remoteAddress ?? "";
         if (!["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(host) || !existsSync(LOCAL_BACKUP)) {

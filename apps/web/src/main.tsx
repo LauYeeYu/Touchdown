@@ -60,8 +60,8 @@ declare module "@tanstack/react-router" {
 }
 
 // Opens the data once per page load. React's development mode runs effects twice; without this the data was
-// read twice and the local backup could be loaded twice. Null when the page is about to reload with the backup.
-let booting: Promise<AppData | null> | null = null;
+// read twice and the local backup could be loaded twice.
+let booting: Promise<AppData> | null = null;
 
 /** Where the loading bar is (0 to 1) and what is being done. */
 interface Progress {
@@ -76,7 +76,7 @@ const PREPARED = 0.9;
 // Read before React replaces the page's own bar, so the bar never steps back.
 const START = Math.max(0.3, waitingProgress());
 
-function boot(report: (p: Progress) => void): Promise<AppData | null> {
+function boot(report: (p: Progress) => void): Promise<AppData> {
   booting ??= (async () => {
     let at = START;
     const pending = new Set<OpenStep>(["reference", "log"]);
@@ -90,7 +90,7 @@ function boot(report: (p: Progress) => void): Promise<AppData | null> {
             ? "Loading airports, airlines and aircraft types…"
             : `Preparing ${nf.format(records)} records…`;
     report({ at, text: text() });
-    const opened = await AppData.open((step, n) => {
+    let opened = await AppData.open((step, n) => {
       pending.delete(step);
       if (n !== undefined) records = n;
       at += SHARE[step];
@@ -99,8 +99,11 @@ function boot(report: (p: Progress) => void): Promise<AppData | null> {
     if (import.meta.env.DEV) {
       const m = await import("./data/localBackup.ts");
       const step = (t: string) => report({ at: (at = Math.min(PREPARED, at + 0.04)), text: t });
-      if (await m.loadLocalBackupOnce(opened, step)) return null;
-      if (await m.loadLocalBackupOnHardReload(opened, (t) => step(`Hard refresh. ${t}`))) return null;
+      const hard = (t: string) => step(`Hard refresh. ${t}`);
+      if ((await m.loadLocalBackupOnce(opened, step)) || (await m.loadLocalBackupOnHardReload(opened, hard))) {
+        // The browser now holds the backup: read it in, carrying the same bar on rather than reloading.
+        opened = await AppData.open((s, n) => s === "log" && n !== undefined && step(`Preparing ${nf.format(n)} records…`));
+      }
     }
     report({ at: PREPARED, text: "Showing your log…" });
     setSlugData(opened);
@@ -130,7 +133,7 @@ function App() {
   const [finished, setFinished] = useState(false);
   useEffect(() => {
     boot(setProgress)
-      .then((opened) => opened && setApp(opened))
+      .then(setApp)
       .catch((e: Error) => setError(e.message));
   }, []);
   useEffect(() => {

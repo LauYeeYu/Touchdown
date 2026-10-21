@@ -32,10 +32,11 @@ export function loadedBackupModified(): number {
 }
 
 /**
- * Replace everything in this browser with the local backup, then reload. Returns false when there is none.
- * `step` hears what is being done, for the loading bar.
+ * Replace everything in this browser with the local backup. Returns false when there is none. The open
+ * AppData does not see the new rows: open the log again, or reload. `step` hears what is being done, for the
+ * loading bar.
  */
-export async function loadLocalBackup(app: AppData, step?: (text: string) => void): Promise<boolean> {
+export async function replaceWithLocalBackup(app: AppData, step?: (text: string) => void): Promise<boolean> {
   const modified = await localBackupModified();
   if (modified === null) return false;
   step?.("Downloading the local backup…");
@@ -50,19 +51,24 @@ export async function loadLocalBackup(app: AppData, step?: (text: string) => voi
   const records = [...back.tables.values()].reduce((n, rows) => n + rows.length, 0);
   step?.(`Saving ${nf.format(records)} records in this browser…`);
   await app.replaceAll(back.tables);
-  step?.("Reloading…");
   try {
     localStorage.setItem(LOCAL_BACKUP_KEY, String(modified));
   } catch {
     /* storage unavailable */
   }
+  return true;
+}
+
+/** Replace everything in this browser with the local backup, then reload. Returns false when there is none. */
+export async function loadLocalBackup(app: AppData): Promise<boolean> {
+  if (!(await replaceWithLocalBackup(app))) return false;
   location.reload();
   return true;
 }
 
 /**
  * The first time an empty browser opens the dev server, load the local backup so the owner's log shows
- * without a manual restore. Returns true when the page is about to reload with the data.
+ * without a manual restore. Returns true when this browser now holds the backup; open the log again.
  */
 export async function loadLocalBackupOnce(app: AppData, step: (text: string) => void): Promise<boolean> {
   try {
@@ -70,25 +76,38 @@ export async function loadLocalBackupOnce(app: AppData, step: (text: string) => 
   } catch {
     return false;
   }
-  return loadLocalBackup(app, step);
+  return replaceWithLocalBackup(app, step);
+}
+
+/**
+ * True when the browser sends "no-cache" with every request, as Chrome does while DevTools' "Disable cache" is
+ * on; every reload then looks like a hard refresh to the dev server. A hard refresh sends it only while the
+ * page loads: a request made after the load event goes out without it.
+ */
+async function cacheDisabled(): Promise<boolean> {
+  if (document.readyState !== "complete") await new Promise((r) => addEventListener("load", r, { once: true }));
+  await new Promise((r) => setTimeout(r, 0));
+  const res = await fetch("/__local/cache-probe").catch(() => null);
+  return res?.ok ? ((await res.json()) as { noCache: boolean }).noCache : true;
 }
 
 /**
  * A hard refresh (Shift-reload) of this page loads the local backup again, like the button in Settings.
  * The dev server notes when it last served a page for a hard refresh; this page was one if that request came
- * after the page started loading. Returns true when the page is about to reload with the data.
+ * after the page started loading. Returns true when this browser now holds the backup; open the log again.
  */
 export async function loadLocalBackupOnHardReload(app: AppData, step: (text: string) => void): Promise<boolean> {
   const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
   if (nav?.type !== "reload") return false;
   const { modified, hardReloadAt } = await backupInfo();
   if (!modified || !hardReloadAt || hardReloadAt < performance.timeOrigin) return false;
+  if (await cacheDisabled()) return false;
   try {
-    // The reload after loading is an ordinary one, but guard against loading twice for one hard refresh.
+    // Guard against loading twice for one hard refresh.
     if (sessionStorage.getItem(HARD_RELOAD_KEY) === String(hardReloadAt)) return false;
     sessionStorage.setItem(HARD_RELOAD_KEY, String(hardReloadAt));
   } catch {
     return false;
   }
-  return loadLocalBackup(app, step);
+  return replaceWithLocalBackup(app, step);
 }
