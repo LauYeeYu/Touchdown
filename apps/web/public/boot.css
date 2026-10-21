@@ -1,6 +1,6 @@
 /* The loading screen (docs/31-ui.md, "Opening"). A plain file linked from index.html, so it applies before the
-   app's code and stylesheet have loaded. Colours repeat the app's tokens (src/styles/app.css): paper, ink, ink-3
-   and surface-highest, in both themes. */
+   app's code and stylesheet have loaded. Colours repeat the app's tokens (src/styles/app.css): paper, ink, ink-3,
+   rule-strong and flown, in both themes. */
 
 @property --p {
   syntax: "<percentage>";
@@ -12,7 +12,8 @@
   --boot-paper: #faf8f1;
   --boot-ink: #1f1d1a;
   --boot-ink-3: #6e685e;
-  --boot-track: #e7e2d7;
+  --boot-rule: #d3ccbc;
+  --boot-flown: #c48400;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,7 +21,8 @@
     --boot-paper: #171613;
     --boot-ink: #f1eee6;
     --boot-ink-3: #a19b8e;
-    --boot-track: #36352d;
+    --boot-rule: #45423a;
+    --boot-flown: #c48400;
   }
 }
 
@@ -28,7 +30,8 @@
   --boot-paper: #171613;
   --boot-ink: #f1eee6;
   --boot-ink-3: #a19b8e;
-  --boot-track: #36352d;
+  --boot-rule: #45423a;
+  --boot-flown: #c48400;
 }
 
 html {
@@ -65,21 +68,71 @@ body {
   letter-spacing: 0.16em;
 }
 
-/* One bar: a 4px track with round ends, filled with the app's ink from the left. */
+/* The progress bar is a final approach, seen from the side: an aircraft follows the glide path down to the
+   runway and touches down at 100%. The path already flown is drawn in the flown colour, the rest dashed.
+   240 by 52px; the glide path starts at (6, 16), runs 186px at 9 degrees and meets the runway 14px past its
+   threshold. --p is how far along it the aircraft is. */
 .boot__bar {
-  width: min(220px, 60vw);
-  height: 4px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: var(--boot-track);
+  position: relative;
+  width: 240px;
+  height: 52px;
+}
+
+.boot__ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 45px;
+  height: 1px;
+  background: var(--boot-rule);
+}
+
+.boot__runway {
+  position: absolute;
+  left: 176px;
+  right: 0;
+  top: 44px;
+  height: 3px;
+  border-radius: 1.5px;
+  background: var(--boot-ink-3);
+}
+
+.boot__glide {
+  position: absolute;
+  left: 6px;
+  top: 15px;
+  width: 186px;
+  height: 2px;
+  transform: rotate(9deg);
+  transform-origin: 0 50%;
+  /* Dashed as far as the runway threshold. */
+  background: repeating-linear-gradient(90deg, var(--boot-rule) 0 4px, transparent 4px 8px) 0 0 / 92.5% 100% no-repeat;
 }
 
 .boot__fill {
   display: block;
   width: var(--p);
   height: 100%;
-  border-radius: 2px;
-  background: var(--boot-ink);
+  border-radius: 1px;
+  background: var(--boot-flown);
+}
+
+/* A Boeing 747, anchored at its main wheels, which sit on the path; turned back level, then 3 degrees nose up,
+   as on an approach. At touchdown it flares to 6 degrees. */
+.boot__plane {
+  position: absolute;
+  left: var(--p);
+  top: 0;
+  width: 46px;
+  height: 15.14px;
+  color: var(--boot-ink);
+  transform: translate(-48.6%, -100%) rotate(-12deg);
+  transform-origin: 48.6% 100%;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.boot--done .boot__plane {
+  transform: translate(-48.6%, -100%) rotate(-15deg);
 }
 
 /* Before the app's code runs nothing reports progress: creep towards a third while the code loads. */
@@ -132,7 +185,8 @@ body {
   }
 
   .boot__bar--steps,
-  .boot--done {
+  .boot--done,
+  .boot__plane {
     transition: none;
   }
 }
