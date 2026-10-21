@@ -1,6 +1,6 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, redirect, RouterProvider } from "@tanstack/react-router";
 import "./styles/app.css";
 import { AppData, type OpenStep } from "./data/app.ts";
 import { Boot, BootError, waitingProgress } from "./components/Boot.tsx";
@@ -17,8 +17,6 @@ import { SessionAdd } from "./pages/SessionAdd.tsx";
 import { AircraftList } from "./pages/AircraftList.tsx";
 import { AircraftDetail } from "./pages/AircraftDetail.tsx";
 import { Stats } from "./pages/Stats.tsx";
-import { MapPage } from "./pages/MapPage.tsx";
-import { GlobePage } from "./pages/GlobePage.tsx";
 import { AirportPage } from "./pages/AirportPage.tsx";
 import { ImportPage } from "./pages/ImportPage.tsx";
 import { Issues } from "./pages/Issues.tsx";
@@ -41,9 +39,10 @@ const sightingEdit = createRoute({ getParentRoute: () => root, path: "/spotting/
 const aircraft = createRoute({ getParentRoute: () => root, path: "/aircraft", component: AircraftList });
 const aircraftOne = createRoute({ getParentRoute: () => root, path: "/aircraft/$id", component: AircraftDetail, params: slugParams("aircraft") });
 const stats = createRoute({ getParentRoute: () => root, path: "/stats", component: Stats });
-const map = createRoute({ getParentRoute: () => root, path: "/map", component: MapPage });
+// The map and the globe once had pages of their own; the globe now heads Statistics.
+const map = createRoute({ getParentRoute: () => root, path: "/map", beforeLoad: () => { throw redirect({ to: "/stats", replace: true }); } });
 const airport = createRoute({ getParentRoute: () => root, path: "/airports/$id", component: AirportPage, params: airportParams });
-const globeR = createRoute({ getParentRoute: () => root, path: "/globe", component: GlobePage });
+const globeR = createRoute({ getParentRoute: () => root, path: "/globe", beforeLoad: () => { throw redirect({ to: "/stats", replace: true }); } });
 const importR = createRoute({ getParentRoute: () => root, path: "/import", component: ImportPage });
 const issues = createRoute({ getParentRoute: () => root, path: "/issues", component: Issues });
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: SettingsPage });

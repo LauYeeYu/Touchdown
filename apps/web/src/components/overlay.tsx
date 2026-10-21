@@ -47,8 +47,18 @@ export function Overlays() {
     };
     const onScroll = () => hideTip();
     window.addEventListener("scroll", onScroll, { passive: true });
+    // Only the full-screen element is drawn while one is full screen (the globe): the tooltip moves into it,
+    // and back when it leaves.
+    const home = tip.current!.parentElement!;
+    const onFullscreen = () => {
+      hideTip();
+      const into = document.fullscreenElement ?? home;
+      if (tip.current && tip.current.parentElement !== into) into.appendChild(tip.current);
+    };
+    document.addEventListener("fullscreenchange", onFullscreen);
     return () => {
       window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("fullscreenchange", onFullscreen);
       tipEl = null;
       pushToast = null;
     };

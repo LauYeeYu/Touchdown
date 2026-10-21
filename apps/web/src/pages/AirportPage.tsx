@@ -13,6 +13,8 @@ import { airlineLabel, countryName, dateOnly, distance, plural, shortAirport } f
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
+import { GlobePanel } from "../components/GlobePanel.tsx";
+import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { Fig } from "../components/Phrase.tsx";
 import { FlightCols, FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
@@ -50,6 +52,7 @@ export function AirportPage() {
   const { year, setYear, years, thisYear } = usePeriod(store, version);
   const unit = app.settings().distanceUnit ?? "km";
   const ap = ref.airport(id);
+  const mapStyle = useMapStyle();
 
   const data = useMemo(() => {
     const all = sortedFlights(store, ref);
@@ -108,7 +111,7 @@ export function AirportPage() {
   const spots = useMemo(() => mapSpots(sightings, ref), [sightings, ref]);
 
   if (!ap || (!data.everFlown && !data.everSpotted)) {
-    return <NotFound what={ap ? `${shortAirport(id, ref)} is not in your log.` : "That airport is not in the reference data."} back={{ to: "/map", label: "Map" }} />;
+    return <NotFound what={ap ? `${shortAirport(id, ref)} is not in your log.` : "That airport is not in the reference data."} back={{ to: "/stats", label: "Statistics" }} />;
   }
 
   const name = shortAirport(id, ref);
@@ -118,13 +121,31 @@ export function AirportPage() {
   const land = visits.landings.length;
   const trans = visits.transits.length;
   const nothing = !here.length && !sightings.length;
+  const mapHead = (
+    <>
+      {here.length > 0 && (
+        <span className="legend__item">
+          <span className="swatch-line" />
+          Flights to and from {code}
+        </span>
+      )}
+      {sightings.length > 0 && (
+        <span className="legend__item">
+          <span className="swatch-dot" />
+          Where you photographed aircraft
+        </span>
+      )}
+      <span className="legend__item">Click another airport to open its page</span>
+      <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
+    </>
+  );
   const opening = year === "all" ? "" : year === thisYear ? `So far in ${year} ` : `In ${year} `;
   const flownParts: { lead: string; n: number }[] = [];
   if (dep) flownParts.push({ lead: `left from ${name}`, n: dep });
   if (land) flownParts.push({ lead: `landed ${dep ? "there" : `at ${name}`}`, n: land });
   if (trans) flownParts.push({ lead: `changed planes ${dep || land ? "there" : `at ${name}`}`, n: trans });
   const flownText = flownParts.length > 0;
-  const goBack = () => (window.history.length > 1 ? router.history.back() : navigate({ to: "/map" }));
+  const goBack = () => (window.history.length > 1 ? router.history.back() : navigate({ to: "/stats" }));
 
   return (
     <div className="page">
@@ -218,33 +239,30 @@ export function AirportPage() {
         </dl>
       )}
 
-      {!nothing && (
-        <div className="map-wrap">
-          <div className="legend">
-            {here.length > 0 && (
-              <span className="legend__item">
-                <span className="swatch-line" />
-                Flights to and from {code}
-              </span>
-            )}
-            {sightings.length > 0 && (
-              <span className="legend__item">
-                <span className="swatch-dot" />
-                Where you photographed aircraft
-              </span>
-            )}
-            <span className="legend__item">Click another airport to open its page</span>
-          </div>
-          <WorldMap
+      {!nothing &&
+        (mapStyle.style === "globe" ? (
+          <GlobePanel
             flights={marks}
             spots={spots}
-            mode="fit"
-            onArcClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
+            height={mapStyle.height}
+            head={mapHead}
+            label={`Globe with ${plural(here.length, "flight")} to and from ${name}`}
+            onFlightClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
             onAirportClick={(other) => other !== id && navigate({ to: "/airports/$id", params: { id: other } })}
-            label={`Map of ${plural(here.length, "flight")} to and from ${name}`}
           />
-        </div>
-      )}
+        ) : (
+          <div className="map-wrap" ref={mapStyle.box}>
+            <div className="legend">{mapHead}</div>
+            <WorldMap
+              flights={marks}
+              spots={spots}
+              mode="fit"
+              onArcClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
+              onAirportClick={(other) => other !== id && navigate({ to: "/airports/$id", params: { id: other } })}
+              label={`Map of ${plural(here.length, "flight")} to and from ${name}`}
+            />
+          </div>
+        ))}
 
       {here.length > 0 && (
         <section className="section" aria-labelledby="airport-flights">

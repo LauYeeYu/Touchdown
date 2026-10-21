@@ -3673,17 +3673,21 @@ a.card:hover {
 
 /* ---------- interactive globe ---------- */
 
+/* A link, or a button: a button loses the browser's two-tone border and its own font. */
 .legend__action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
   padding: 4px 12px;
+  border: 0;
   border-radius: 999px;
   background: var(--surface-high);
   color: var(--ink);
+  font: inherit;
   font-weight: 500;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .legend__action:hover {
@@ -3695,52 +3699,112 @@ a.card:hover {
   height: 15px;
 }
 
-.globe-page {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  min-height: calc(100dvh - 64px);
-}
-
-.globe-page__top {
-  display: flex;
-  flex-wrap: wrap;
+/* The globe in a page (components/GlobePanel.tsx): the legend row, then the stage. Expanded, the panel fills
+   the screen on the paper background and the stage takes the height left. */
+.globe-panel__head {
   align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-  padding-top: 20px;
-  padding-bottom: 16px;
 }
 
-.globe-page__top .period-host {
-  flex: 1 1 320px;
-}
-
-.globe-page__top .chip .swatch-line,
-.globe-page__top .chip .swatch-dot {
-  margin-right: 2px;
+/* A filter in the head row, like the list filters: a filled pill, as tall as the chips beside it. */
+.globe-panel__head .select {
+  width: auto;
+  max-width: 240px;
+  height: 34px;
+  padding: 0 38px 0 14px;
+  border-radius: 999px;
+  border-color: transparent;
+  background-color: var(--surface-high);
+  background-position: right 14px center;
+  font-size: 0.875rem;
 }
 
 .globe-stage {
   position: relative;
-  width: min(1280px, 100% - 2 * var(--gutter));
-  margin: 0 auto 24px;
-  min-height: 420px;
-  height: calc(100dvh - 64px - 108px - 24px);
+  height: clamp(340px, 58vh, 560px);
   border-radius: 28px;
   background: var(--globe-stage);
   overflow: hidden;
 }
 
+/* On a flight page the globe takes the flat route map's height (components/maps.tsx: 430px, 280px when the map
+   is narrower than 600px), so switching between them moves nothing. */
+.globe-panel--route {
+  container-type: inline-size;
+}
+
+.globe-panel--route .globe-stage {
+  height: 430px;
+}
+
+@container (max-width: 599px) {
+  .globe-panel--route .globe-stage {
+    height: 280px;
+  }
+}
+
+/* Expand and Collapse, inside the stage's top corner, styled like the zoom buttons. */
+.globe-expand {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-highest);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.globe-expand:hover {
+  background: var(--surface-high);
+}
+
+.globe-expand .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.globe-panel.is-full {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 16px var(--gutter) var(--gutter);
+  background: var(--paper);
+}
+
+.globe-panel.is-full .globe-stage {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .globe {
   position: absolute;
   inset: 0;
+  border-radius: inherit;
 }
 
 .globe__canvas {
   display: block;
   cursor: grab;
   touch-action: none;
-  border-radius: 28px;
+  border-radius: inherit;
+}
+
+/* In a page, a vertical swipe scrolls the page; sideways turns the globe. */
+.globe--contained .globe__canvas {
+  touch-action: pan-y;
 }
 
 .globe__canvas:focus-visible {
@@ -3778,23 +3842,43 @@ a.card:hover {
   pointer-events: none;
 }
 
-.globe-flat {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: var(--surface-highest);
-  border-color: transparent;
+/* Flat map or globe, at the end of a legend row (components/MapStyle.tsx); Expand follows it. */
+.segmented--small .seg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 0.8125rem;
 }
 
-/* Like the globe controls, the pill gets a tonal step on hover, not the quiet button's translucent layer. */
-.globe-flat:hover,
-.globe-flat:active {
-  background: var(--surface-high);
+.segmented--small .icon {
+  width: 15px;
+  height: 15px;
 }
+
+.map-style {
+  margin-left: auto;
+}
+
 
 @media (max-width: 720px) {
   .legend__action {
     margin-left: 0;
+  }
+
+  .map-style {
+    margin-left: 0;
+  }
+
+  .globe-stage {
+    height: clamp(320px, 50vh, 420px);
+    border-radius: 24px;
+  }
+
+  .globe-panel:not(.is-full) .globe-hint {
+    display: none;
   }
 }
 
@@ -4372,22 +4456,6 @@ a.card:hover {
   .nav__link[aria-current="page"] .icon {
     background: var(--selected-container);
     color: var(--on-selected-container);
-  }
-
-  .globe-page {
-    min-height: calc(100dvh - 56px);
-  }
-
-  .globe-stage {
-    width: 100%;
-    margin: 0;
-    border-radius: 24px 24px 0 0;
-    height: calc(100dvh - 56px - 132px - 76px);
-    min-height: 360px;
-  }
-
-  .globe__canvas {
-    border-radius: 24px 24px 0 0;
   }
 
   .globe-hint {

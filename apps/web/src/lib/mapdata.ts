@@ -39,9 +39,10 @@ const GAP_KM = 30;
 
 /**
  * Map marks for flights: the recorded track where there is one, else the great circle. A partial track is
- * joined to its airports with great-circle gaps, drawn dashed, so every route stays whole.
+ * joined to its airports with great-circle gaps, drawn dashed, so every route stays whole. Tracks are cut to
+ * `trackPoints` points; a map of one flight keeps them all.
  */
-export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["distanceUnit"], bothAirframes: Set<string> = new Set(), store?: Store): MapFlight[] {
+export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["distanceUnit"], bothAirframes: Set<string> = new Set(), store?: Store, trackPoints = OVERVIEW_TRACK_POINTS): MapFlight[] {
   const out: MapFlight[] = [];
   const tracks = store ? trackIndex(store) : new Map<string, [number, number][]>();
   for (const v of views) {
@@ -62,7 +63,7 @@ export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["d
       route: v.route ?? "",
       both: !!v.f.airframeId && bothAirframes.has(v.f.airframeId),
       tip: `<strong>${esc(v.f.flightNumber ?? "Flight")} · ${esc(v.fromCode)} → ${esc(v.toCode)}</strong><br><span class="muted">${v.day ? `${dayShort(v.day)} ${v.day.slice(0, 4)}` : "No date"}${v.km ? ` · ${distance(v.km, unit)}` : ""}</span>`,
-      ...overviewTrack(tracks.get(v.f.id), [a.lon, a.lat], [b.lon, b.lat]),
+      ...overviewTrack(tracks.get(v.f.id), [a.lon, a.lat], [b.lon, b.lat], trackPoints),
     });
   }
   return out;
@@ -101,9 +102,9 @@ export function mapSpots(sightings: Sighting[], ref: RefIndex, bothAirframes: Se
   return out;
 }
 
-function overviewTrack(full: [number, number][] | undefined, from: [number, number], to: [number, number]): Pick<MapFlight, "track" | "gaps"> {
+function overviewTrack(full: [number, number][] | undefined, from: [number, number], to: [number, number], points: number): Pick<MapFlight, "track" | "gaps"> {
   if (!full || full.length < 2) return { track: null, gaps: [] };
-  const simple = simplifyTrack(full.map(([lon, lat]) => ({ lon, lat })), OVERVIEW_TRACK_POINTS).map((p) => [p.lon, p.lat] as [number, number]);
+  const simple = full.length <= points ? full : simplifyTrack(full.map(([lon, lat]) => ({ lon, lat })), points).map((p) => [p.lon, p.lat] as [number, number]);
   const first = simple[0]!;
   const last = simple[simple.length - 1]!;
   const gaps: [number, number][][] = [];

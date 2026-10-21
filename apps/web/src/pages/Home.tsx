@@ -180,7 +180,7 @@ export function Home() {
             <span className="swatch-dot swatch-dot--ink" />
             Airports flown through
           </span>
-                  <Link className="legend__action" to="/globe">
+          <Link className="legend__action" to="/stats">
             <Icon name="globe" />
             Explore on a globe
           </Link>

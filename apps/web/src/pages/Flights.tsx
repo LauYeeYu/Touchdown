@@ -166,7 +166,7 @@ export function Flights() {
             </span>
           )}
           <span className="legend__item">Point at a row or an underlined route to find it</span>
-                  <Link className="legend__action" to="/globe">
+          <Link className="legend__action" to="/stats">
             <Icon name="globe" />
             Explore on a globe
           </Link>

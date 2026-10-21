@@ -6,10 +6,12 @@ import { daysBetween, flightDay, guessSeatPosition, parseDateTime, type Flight }
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
-import { trackIndex } from "../lib/mapdata.ts";
+import { mapFlights, trackIndex } from "../lib/mapdata.ts";
 import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, plural, REASON_LABEL, shortAirport, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
+import { GlobePanel } from "../components/GlobePanel.tsx";
+import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { AltitudeChart } from "../components/charts.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
@@ -57,6 +59,7 @@ export function FlightDetail() {
   const settings = app.settings();
   const unit = settings.distanceUnit ?? "km";
   const [showTicket, setShowTicket] = useState(false);
+  const mapStyle = useMapStyle();
 
   const all = sortedFlights(store, ref);
   const idx = all.findIndex((v) => v.f.id === id);
@@ -128,6 +131,49 @@ export function FlightDetail() {
       : [];
   const t0 = altitude[0]?.t ?? 0;
   const fromOffset = f.takeoffAt ? parseDateTime(f.takeoffAt)!.offsetMin : 0;
+
+  // The route on a flat map or a globe, under the same legend row, in a box of the same height (430px, 280px when
+  // narrow), so switching between them moves nothing. Both draw the great circle dashed beside a recorded track.
+  const mapHead = (
+    <>
+      {track ? (
+        <>
+          <span className="legend__item" title={trackRow?.attribution ?? undefined}>
+            <span className="swatch-line" />
+            Recorded track
+          </span>
+          <span className="legend__item">
+            <span className="swatch-line swatch-line--dashed" />
+            Great circle
+          </span>
+        </>
+      ) : (
+        <span className="legend__item">
+          <span className="swatch-line" />
+          Great circle · no recorded track for this flight
+        </span>
+      )}
+      <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
+    </>
+  );
+  const routeWhat = A && B ? `${f.flightNumber ?? "the flight"} from ${shortAirport(A.id, ref)} to ${shortAirport(B.id, ref)}` : "";
+  const routeMap =
+    !A || !B ? null : mapStyle.style === "globe" ? (
+      <GlobePanel
+        className="globe-panel--route"
+        flights={mapFlights([v], ref, unit, new Set(), store, Infinity)}
+        spots={[]}
+        greatCircles={track ? [[[A.lon, A.lat], [B.lon, B.lat]]] : undefined}
+        head={mapHead}
+        label={`Globe showing ${routeWhat}`}
+        onAirportClick={(airport) => navigate({ to: "/airports/$id", params: { id: airport } })}
+      />
+    ) : (
+      <div className="map-wrap">
+        <div className="legend">{mapHead}</div>
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} track={track} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${routeWhat}`} />
+      </div>
+    );
 
   return (
     <div className="page">
@@ -243,30 +289,7 @@ export function FlightDetail() {
         )}
       </p>
 
-      {A && B && (
-        <div className="map-wrap">
-          <div className="legend" aria-hidden="true">
-            {track ? (
-              <>
-                <span className="legend__item">
-                  <span className="swatch-line" />
-                  Recorded track{trackRow?.attribution ? ` · ${trackRow.attribution}` : ""}
-                </span>
-                <span className="legend__item">
-                  <span className="swatch-line swatch-line--dashed" />
-                  Great circle
-                </span>
-              </>
-            ) : (
-              <span className="legend__item">
-                <span className="swatch-line" />
-                Great circle · no recorded track for this flight
-              </span>
-            )}
-          </div>
-          <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} track={track} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${f.flightNumber ?? "the flight"} from ${shortAirport(A.id, ref)} to ${shortAirport(B.id, ref)}`} />
-        </div>
-      )}
+      {routeMap}
 
       {(f.boardingAt || f.takeoffAt || f.landingAt) && (
         <div className="times">
@@ -314,9 +337,8 @@ export function FlightDetail() {
             <h2 className="section__title" id="alt-title">
               Altitude
             </h2>
-            <span className="section__aside">
+            <span className="section__aside" title={trackRow?.attribution ?? undefined}>
               {plural(altitude.length, "point")}
-              {trackRow?.attribution ? ` · ${trackRow.attribution}` : ""}
             </span>
           </div>
           <div className="chart">

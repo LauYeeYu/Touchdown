@@ -13,7 +13,7 @@ const NAV: { to: string; label: string; icon: IconName; match: (p: string) => bo
   { to: "/flights", label: "Flights", icon: "plane", match: (p) => p.startsWith("/flights") },
   { to: "/spotting", label: "Spotting", icon: "camera", match: (p) => p.startsWith("/spotting") },
   { to: "/aircraft", label: "Aircraft", icon: "id-card", match: (p) => p.startsWith("/aircraft") },
-  { to: "/stats", label: "Statistics", icon: "chart-column", match: (p) => p.startsWith("/stats") || p.startsWith("/map") || p.startsWith("/globe") },
+  { to: "/stats", label: "Statistics", icon: "chart-column", match: (p) => p.startsWith("/stats") },
 ];
 
 const THEMES = ["system", "light", "dark"] as const;
@@ -107,8 +107,6 @@ export function Shell() {
               className="icon-btn"
               label="More"
               items={[
-                { label: "Map", icon: <Icon name="map" />, onSelect: () => navigate({ to: "/map" }) },
-                { label: "Globe", icon: <Icon name="globe" />, onSelect: () => navigate({ to: "/globe" }) },
                 { label: "Import", icon: <Icon name="upload" />, onSelect: () => navigate({ to: "/import" }) },
                 { label: "Issues", icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/issues" }) },
                 { label: "Settings", icon: <Icon name="settings" />, onSelect: () => navigate({ to: "/settings" }) },
@@ -155,7 +153,6 @@ export function Shell() {
       <main id="view" tabIndex={-1}>
         <Outlet />
       </main>
-      {!path.startsWith("/globe") && (
       <div className="fab-wrap">
         <MenuButton
           className="fab"
@@ -169,7 +166,6 @@ export function Shell() {
           <Icon name="plus" />
         </MenuButton>
       </div>
-      )}
       <footer className="site-foot">
         <div className="page">
           <p>Your log is stored in this browser. Export a backup from Settings.</p>

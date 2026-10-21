@@ -1,11 +1,13 @@
-// Stats (docs/24-statistics.md): flights, sightings and both together, and a custom view (a pivot) of any one or two
-// dimensions by one measure. Every number says what it left out.
+// Stats (docs/24-statistics.md): the period on a globe, then flights, sightings and both together, and a custom
+// view (a pivot) of any one or two dimensions by one measure. Every number says what it left out.
 
 import { useMemo } from "react";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, pivot, sightingStats, type Dataset, type Measure, type Measured, type Sighting, type StatsContext } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
+import { sortedFlights } from "../lib/views.ts";
+import { mapFlights, mapSpots } from "../lib/mapdata.ts";
 import { airlineLabel, CABIN_LABEL, countryName, distance, durShort, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
 import { airportWithCode, routeCodes } from "../lib/codes.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -15,6 +17,7 @@ import { Duration } from "../components/Duration.tsx";
 import { Tabs } from "../components/Tabs.tsx";
 import { Fact, LeftOut } from "../components/Facts.tsx";
 import { Ranked } from "../components/Ranked.tsx";
+import { GlobePanel } from "../components/GlobePanel.tsx";
 import { useViewState } from "../lib/viewState.ts";
 
 type Tab = "flights" | "sightings" | "both" | "pivot";
@@ -31,6 +34,10 @@ export function Stats() {
   const unit = settings.distanceUnit ?? "km";
   // Kept for Back (lib/viewState.ts), as are the custom view's choices.
   const [tab, setTab] = useViewState<Tab>("tab", "flights");
+  const [showFlights, setShowFlights] = useViewState("showFlights", true);
+  const [showSpots, setShowSpots] = useViewState("showSpots", true);
+  const [airline, setAirline] = useViewState("airline", "");
+  const navigate = useNavigate();
 
   const data = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
@@ -43,6 +50,24 @@ export function Stats() {
   }, [store, ref, version, year]);
   const { ctx, flights, sightings, fs, ss, cs } = data;
 
+  // The globe: the period's flights (recorded track where there is one) and spotting locations.
+  const globe = useMemo(() => {
+    const views = sortedFlights(store, ref).filter((v) => inPeriod(v.day, year));
+    const airlines = [...new Set(views.map((v) => v.f.airlineId).filter((x): x is string => !!x))].sort((a, b) => airlineLabel(a, ref).localeCompare(airlineLabel(b, ref)));
+    // An airline picked in another period may not fly in this one: then every airline shows.
+    const picked = airlines.includes(airline) ? airline : "";
+    const marks = mapFlights(
+      views.filter((v) => !picked || v.f.airlineId === picked),
+      ref,
+      unit,
+      new Set(),
+      store,
+    );
+    return { airlines, picked, marks, spots: mapSpots(sightings, ref) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, ref, version, year, unit, airline, sightings]);
+  const recorded = globe.marks.filter((f) => f.track).length;
+
   const op = (id: string) => airlineLabel(id, ref) || id;
   const ap = (id: string) => airportWithCode(id, ref) || id;
   const ty = (code: string) => `${typeName(code, ref)} (${code})`;
@@ -52,11 +77,42 @@ export function Stats() {
     <div className="page">
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
-        <Link className="btn btn--quiet hide-phone" to="/map">
-          <Icon name="map" />
-          Map
-        </Link>
       </div>
+      <GlobePanel
+        flights={showFlights ? globe.marks : []}
+        spots={showSpots ? globe.spots : []}
+        label={`Globe with ${plural(showFlights ? globe.marks.length : 0, "flight")} and ${plural(showSpots ? globe.spots.length : 0, "spotting location")}`}
+        note={`${year === "all" ? "all time" : year}${recorded ? ` · ${recorded} of ${plural(globe.marks.length, "flight")} with a recorded track` : ""}`}
+        onFlightClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
+        onAirportClick={(id) => navigate({ to: "/airports/$id", params: { id } })}
+        head={
+          <>
+            <div className="chips" role="group" aria-label="Show on the globe">
+              <button type="button" className="chip" aria-pressed={showFlights} onClick={() => setShowFlights((v) => !v)}>
+                <span className="swatch-line" />
+                Flights ({globe.marks.length})
+              </button>
+              <button type="button" className="chip" aria-pressed={showSpots} onClick={() => setShowSpots((v) => !v)}>
+                <span className="swatch-dot" />
+                Spotting ({globe.spots.length})
+              </button>
+            </div>
+            {globe.airlines.length > 1 && (
+              <label>
+                <span className="visually-hidden">Airline</span>
+                <select className="select" value={globe.picked} onChange={(e) => setAirline(e.target.value)}>
+                  <option value="">All airlines</option>
+                  {globe.airlines.map((a) => (
+                    <option key={a} value={a}>
+                      {airlineLabel(a, ref)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </>
+        }
+      />
       <Tabs
         label="Statistics"
         value={tab}

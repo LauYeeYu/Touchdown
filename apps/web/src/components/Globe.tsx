@@ -1,6 +1,7 @@
 // Interactive globe: drag to turn, scroll or pinch to zoom, point at a route or a spotting location for
 // details, click a route to open the flight. Arrow keys turn it and + / − zoom, for keyboard use.
-// Drawn on a canvas with d3-geo (orthographic), from the same marks as the flat maps.
+// Drawn on a canvas with d3-geo (orthographic), from the same marks as the flat maps. Inside a page that
+// scrolls (`contained`), scrolling and vertical swipes move the page; a pinch or Ctrl-scroll zooms.
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { geoDistance, geoGraticule10, geoInterpolate, geoOrthographic, geoPath } from "d3-geo";
@@ -27,6 +28,9 @@ interface Props {
   onFlightClick?: (f: MapFlight) => void;
   onAirportClick?: (airportId: string) => void;
   label: string;
+  contained?: boolean;
+  /** Great circles drawn dashed under the routes for reference, as on a flight's flat map; not clickable. */
+  greatCircles?: [LonLat, LonLat][];
 }
 
 interface AirportMark {
@@ -61,13 +65,14 @@ interface Colours {
   spotted: string;
   ink: string;
   ink2: string;
+  ink3: string;
   paper: string;
 }
 
 function readColours(): Colours {
   const cs = getComputedStyle(document.documentElement);
   const v = (n: string) => cs.getPropertyValue(n).trim();
-  return { sphere: v("--globe-sphere") || v("--sphere"), land: v("--land"), landEdge: v("--land-edge"), grid: v("--grid"), rule: v("--rule-strong"), flown: v("--flown"), spotted: v("--spotted"), ink: v("--ink"), ink2: v("--ink-2"), paper: v("--paper") };
+  return { sphere: v("--globe-sphere") || v("--sphere"), land: v("--land"), landEdge: v("--land-edge"), grid: v("--grid"), rule: v("--rule-strong"), flown: v("--flown"), spotted: v("--spotted"), ink: v("--ink"), ink2: v("--ink-2"), ink3: v("--ink-3"), paper: v("--paper") };
 }
 
 /** Points along a route, for hit testing and framing. */
@@ -97,7 +102,7 @@ function segmentDistance(px: number, py: number, ax: number, ay: number, bx: num
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label }, handle) {
+export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [] }, handle) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const state = useRef({
@@ -113,8 +118,8 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     velocity: [0, 0] as [number, number],
     inertia: 0,
   });
-  const data = useRef({ flights, spots, onFlightClick, onAirportClick });
-  data.current = { flights, spots, onFlightClick, onAirportClick };
+  const data = useRef({ flights, spots, onFlightClick, onAirportClick, contained, greatCircles });
+  data.current = { flights, spots, onFlightClick, onAirportClick, contained, greatCircles };
 
   const fit = () => {
     const st = state.current;
@@ -128,7 +133,10 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       const maxD = Math.max(...pts.map((p) => geoDistance(p, c)));
       const whole = (min / 2) * 0.9;
       st.fitRot = [-c[0], -c[1]];
-      st.fitScale = maxD >= Math.PI / 2 - 0.05 ? whole : Math.min(whole * 6, Math.max(whole, ((min / 2) * 0.82) / Math.sin(Math.max(maxD, 0.05))));
+      // Zoom in on routes close together, but only until the globe is as wide as the stage: its edge stays in view
+      // at the sides, so one short flight still sits on a round globe.
+      const edge = Math.max(whole, Math.max(st.width, st.height) * 0.46);
+      st.fitScale = maxD >= Math.PI / 2 - 0.05 ? whole : Math.min(edge, Math.max(whole, ((min / 2) * 0.82) / Math.sin(Math.max(maxD, 0.05))));
     }
     st.rot = [...st.fitRot];
     st.scale = st.fitScale;
@@ -187,7 +195,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
 
     const draw = () => {
       const c = st.colours!;
-      const { flights: fl, spots: sp } = data.current;
+      const { flights: fl, spots: sp, greatCircles: gc } = data.current;
       const proj = geoOrthographic()
         .clipAngle(90)
         .precision(0.4)
@@ -220,6 +228,16 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       ctx.lineWidth = 0.6;
       ctx.strokeStyle = c.landEdge;
       ctx.stroke();
+
+      if (gc.length) {
+        ctx.strokeStyle = c.ink3;
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        for (const [a, b] of gc) path({ type: "LineString", coordinates: [a, b] });
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
 
       const hoverId = st.hover?.kind === "flight" ? st.hover.f.id : null;
       const lineWidth = Math.min(3, 1.4 + Math.log2(Math.max(1, zoom)) * 0.4);
@@ -426,6 +444,9 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     };
 
     const down = (e: PointerEvent) => {
+      // Take focus for the arrow keys without the browser scrolling the globe into view.
+      e.preventDefault();
+      cv.focus({ preventScroll: true });
       cv.setPointerCapture(e.pointerId);
       const p = local(e);
       pointers.set(e.pointerId, p);
@@ -500,6 +521,8 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     };
 
     const wheel = (e: WheelEvent) => {
+      // A trackpad pinch arrives as a wheel event with ctrlKey set.
+      if (data.current.contained && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       st.scale = Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, st.scale * Math.exp(-e.deltaY * 0.0015)));
       st.dirty = true;
@@ -541,7 +564,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
   }, []);
 
   return (
-    <div className="globe" ref={wrap}>
+    <div className={`globe${contained ? " globe--contained" : ""}`} ref={wrap}>
       <canvas ref={canvas} className="globe__canvas" tabIndex={0} role="img" aria-label={label} />
     </div>
   );
