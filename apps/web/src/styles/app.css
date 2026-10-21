@@ -3568,10 +3568,48 @@ a.btn--primary {
   background: var(--surface-low);
 }
 
+/* A card or thumbnail that opens a page: its main link covers the whole of it, and the photo credit's link sits
+   above that, so neither link is inside the other. */
+.stretch {
+  position: relative;
+}
+
+.stretch__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.stretch__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.stretch .credit a {
+  position: relative;
+  z-index: 2;
+}
+
+.stretch:has(.stretch__link:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.stretch__link:focus-visible {
+  outline: none;
+}
+
 /* A linked card only changes shade on hover: darker on the light theme, lighter on the dark one (the ink mixed
    in is dark or light). No rise, no shadow; the photo stays as it is. */
-a.card:hover {
+.card.stretch:hover {
   background: color-mix(in srgb, var(--surface-low), var(--ink) 9%);
+}
+
+.thumb.stretch:hover b {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .thumb .photo {

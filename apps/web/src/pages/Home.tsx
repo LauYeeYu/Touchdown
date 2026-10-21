@@ -260,10 +260,16 @@ export function Home() {
                 </p>
                 <div className="thumbs">
                   {lastSession.sightings.slice(0, 3).map((s) => (
-                    <figure className="thumb" key={s.id}>
+                    <figure className={`thumb${s.airframeId ? " stretch" : ""}`} key={s.id}>
                       <Photo reg={s.registration} alt={`${s.registration ?? ""}, ${typeName(s.typeCode, ref)}`} />
                       <figcaption>
-                        <b>{s.registration ?? "No registration"}</b>
+                        {s.airframeId ? (
+                          <Link className="stretch__link" to="/aircraft/$id" params={{ id: s.airframeId }}>
+                            <b>{s.registration ?? "No registration"}</b>
+                          </Link>
+                        ) : (
+                          <b>{s.registration ?? "No registration"}</b>
+                        )}
                         <span>{typeName(s.typeCode, ref)}</span>
                         <Credit reg={s.registration} short />
                       </figcaption>
@@ -296,10 +302,12 @@ export function Home() {
         {both.length ? (
           <div className="gallery">
             {both.map(({ airframe, flight, sighting }) => (
-              <Link className="card" key={airframe.id} to="/aircraft/$id" params={{ id: airframe.id }}>
+              <article className="card stretch" key={airframe.id}>
                 <Photo reg={flight.registration} alt={`${flight.registration ?? ""}, ${typeName(airframe.typeCode, ref)}`} />
                 <div className="card__body">
-                  <span className="card__reg">{flight.registration}</span>
+                  <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
+                    {flight.registration}
+                  </Link>
                   <span className="card__type">
                     {typeName(airframe.typeCode, ref)}
                     {flight.airlineId && ` · ${airlineLabel(flight.airlineId, ref)}`}
@@ -318,7 +326,7 @@ export function Home() {
                   </ul>
                   <Credit reg={flight.registration} />
                 </div>
-              </Link>
+              </article>
             ))}
           </div>
         ) : (

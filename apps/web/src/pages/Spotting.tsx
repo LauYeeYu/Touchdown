@@ -168,7 +168,8 @@ export function Spotting() {
             <ul className="rows">
               {rows.map((s) => (
                 <li key={s.id}>
-                  <Link className="row row--sighting" to="/spotting/$id/edit" params={{ id: s.id }}>
+                  {/* The aircraft's page, like every list of aircraft; the sighting itself until it is matched to one. */}
+                  <Link className="row row--sighting" {...(s.airframeId ? { to: "/aircraft/$id", params: { id: s.airframeId } } : { to: "/spotting/$id/edit", params: { id: s.id } })}>
                     <span className="row__route-wrap">
                       <span className="row__route">
                         {s.registration ?? s.registrationRaw ?? "No registration"}
