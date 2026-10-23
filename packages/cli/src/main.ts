@@ -4,7 +4,7 @@
 // unless --out is given. Private fields (ticket number, booking reference) are never printed.
 
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, extname, join } from "node:path";
+import { basename, join } from "node:path";
 import {
   attachTrack,
   backupZip,
@@ -19,8 +19,6 @@ import {
   matchCandidates,
   parseSource,
   PRIVATE_FIELDS,
-  readCsv,
-  readXlsx,
   readBackup,
   operatorFromOverride,
   RefIndex,
@@ -31,52 +29,110 @@ import {
   Store,
   type Finding,
   type ParsedSource,
-  type SheetData,
   type Tally,
 } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
 import { writeJsonTables } from "./jsontables.ts";
+import { readSheets } from "./sheets.ts";
+import { CHECK_HELP, checkCommand } from "./check.ts";
+import { readSheetFile } from "./columns.ts";
+import { SPOT_HELP, spotCommand } from "./spot.ts";
+import { privatePath, shownPath, userPath } from "./paths.ts";
+import { AGENT_NAME, chooseAgent, installedVersion, saveAgent, savedAgent } from "./settings.ts";
+import { bold, dim } from "./term.ts";
 import { lookupAirframes, type LookupReport } from "./airframes.ts";
 import { PROVIDER_IDS, providers as allProviders } from "./providers/index.ts";
 
 const DEFAULT_CHROME_PORT = 9222;
 const DEFAULT_FR24_DELAY_S = 10;
-const DEFAULT_CACHE = "data/private/cache/airframes";
+const DEFAULT_CACHE = privatePath("cache/airframes");
 const CACHE_DAYS = 90;
 
 const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
 
-function usage(): never {
-  console.log(`Usage: touchdown import <file…> [--today YYYY-MM-DD] [--out DIR|FILE.zip] [--all-findings] [--apply-fixes]
-                        [--tracks DIR] [--tracks-adsblol DIR] [--airframes] [lookup options]
-       touchdown airframes <backup.zip> [--out FILE.zip] [lookup options]
+const MENU = `${bold("Touchdown")}: tools for your aircraft log, run in the Touchdown folder:
+  ./touchdown <command> [options]          (or: npm run touchdown -- <command> [options])
 
-Lookup options: [--sources ID,ID] [--all] [--only REG,REG] [--limit N]
+${bold("Log what you saw")}
+  spot        Type the aircraft you saw, one per line. Each registration is looked up, empty fields are
+              filled, an agent checks them and you are asked for what is missing. Saves a file for the
+              Import page.
+
+${bold("Check and import files")}
+  check       Have Claude Code or Codex check a spreadsheet, or a check request saved from the Import page.
+  import      Read your spreadsheets and Flightradar24 export, print findings and statistics, and write a
+              backup the web app can restore.
+  airframes   Fill serial numbers and first flight dates in a backup (OpenSky; Flightradar24 with --fr24).
+
+${bold("Settings")}
+  agent       Show or choose the agent that checks your records: claude, codex or none.
+
+  help        This list. "./touchdown help <command>" (or "<command> --help") shows a command's options.
+
+Your files stay in data/private/, which is never committed. Setting up and using the web app: README.md.`;
+
+const LOOKUP_HELP = `Lookup options: [--sources ID,ID] [--all] [--only REG,REG] [--limit N]
                 [--refresh] [--offline] [--overwrite-imported] [--cache DIR]
                 [--fr24] [--chrome-port N] [--fr24-delay SECONDS]
 
-Imports CSV or xlsx files (myFR24 export, flight log sheet, spotting sheet) in the order given,
-then prints findings and summary statistics. --apply-fixes accepts every single suggested fix for
-errors and model/type mismatches before the statistics. --out DIR writes the result as JSON tables;
---out FILE.zip writes a backup the web app can restore. --tracks reads Flightradar24 track CSVs
-(adsb.lol traces in the same layout with --tracks-adsblol) and keeps the best one per flight.
+Looks up the serial number and first flight date of every aircraft that lacks one (--all: every aircraft),
+checks each answer against your records and stores what fits. Sources: the OpenSky aircraft database
+(downloaded once), and with --fr24 Flightradar24 aircraft pages, read through your own Chrome started with
+--remote-debugging-port (default ${DEFAULT_CHROME_PORT}) and signed in, one page at a time, --fr24-delay seconds apart
+(default ${DEFAULT_FR24_DELAY_S}). FR24 answers are cached in --cache (default data/private/cache/airframes) for ${CACHE_DAYS} days;
+--refresh asks again, --offline uses the cache only. A value you typed in the app is never replaced; one
+from an imported sheet is replaced only with --overwrite-imported. --sources picks from: ${PROVIDER_IDS.join(", ")}.`;
 
-airframes (or import --airframes) looks up the serial number and first flight date of every aircraft
-that lacks one (--all: every aircraft), checks each answer against your records and stores what fits.
-Sources: the OpenSky aircraft database (downloaded once), and with --fr24 Flightradar24 aircraft
-pages, read through your own Chrome started with --remote-debugging-port (default ${DEFAULT_CHROME_PORT})
-and signed in, one page at a time, --fr24-delay seconds apart (default ${DEFAULT_FR24_DELAY_S}).
-FR24 answers are cached in --cache (default ${DEFAULT_CACHE}) for ${CACHE_DAYS} days;
---refresh asks again, --offline uses the cache only. A value you typed in the app is never
-replaced; one from an imported sheet is replaced only with --overwrite-imported.
---sources picks from: ${PROVIDER_IDS.join(", ")}.`);
-  process.exit(1);
+const IMPORT_HELP = `Usage: ./touchdown import <file…> [--today YYYY-MM-DD] [--out DIR|FILE.zip] [--all-findings] [--apply-fixes]
+                         [--tracks DIR] [--tracks-adsblol DIR] [--airframes] [lookup options]
+
+Imports CSV or xlsx files (the myFR24 export, or any spreadsheet of flights or sightings: its columns are worked
+out from the headers and values; --map "Header=field" sets one) in the order given, then prints
+findings and summary statistics. Nothing is written without --out. --apply-fixes accepts every single
+suggested fix for errors and model/type mismatches before the statistics. --out DIR writes the result as
+JSON tables; --out FILE.zip writes a backup the web app can restore (Settings, Restore). --tracks reads
+Flightradar24 track CSVs (adsb.lol traces in the same layout with --tracks-adsblol) and keeps the best one
+per flight. --airframes also looks up airframe facts, as the airframes command does.
+
+The backup holds only what these files give: restoring it replaces the log in the browser. To add new
+records to the log you have, use the Import page instead.
+
+${LOOKUP_HELP}`;
+
+const AIRFRAMES_HELP = `Usage: ./touchdown airframes <backup.zip> [--out FILE.zip] [lookup options]
+
+Fills serial numbers and first flight dates in an existing backup and writes it to --out.
+
+${LOOKUP_HELP}`;
+
+const AGENT_HELP = `Usage: ./touchdown agent [claude | codex | none]
+
+Shows the agent that checks your records in \`spot\` and \`check\`, and lets you choose another. With a name,
+saves that one. The choice is kept in data/private/touchdown-cli.json; --agent on a command overrides it
+for one run. Claude Code and Codex run on this computer with your own subscription, locked down.`;
+
+const HELP: Record<string, string> = { spot: SPOT_HELP, check: CHECK_HELP, import: IMPORT_HELP, airframes: AIRFRAMES_HELP, agent: AGENT_HELP };
+
+function usage(text = MENU, code = 1): never {
+  console.log(text);
+  process.exit(code);
 }
 
-function readSheets(path: string): SheetData[] {
-  const ext = extname(path).toLowerCase();
-  if (ext === ".xlsx") return readXlsx(new Uint8Array(readFileSync(path)));
-  return [readCsv(readFileSync(path, "utf8"), basename(path))];
+/** \`touchdown agent [name]\`: show the saved choice, or save a new one. */
+async function agentCommand(args: string[]) {
+  const name = args[0];
+  if (name === "--help" || name === "-h") usage(AGENT_HELP, 0);
+  if (name) {
+    if (name !== "claude" && name !== "codex" && name !== "none") usage(AGENT_HELP);
+    if (name !== "none" && !installedVersion(name)) console.log(dim(`${AGENT_NAME[name]} is not installed yet; install it and sign in before the next check.`));
+    saveAgent(name);
+    console.log(`Saved: ${AGENT_NAME[name]}.`);
+    return;
+  }
+  const saved = savedAgent();
+  console.log(saved ? `The agent is ${AGENT_NAME[saved]}${saved !== "none" ? ` (${installedVersion(saved) ? `version ${installedVersion(saved)}` : "not installed"})` : ""}.` : "No agent chosen yet.");
+  if (process.stdin.isTTY) await chooseAgent();
+  else console.log(dim("Choose with ./touchdown agent claude, codex or none."));
 }
 
 const fmt = new Intl.NumberFormat("en-GB");
@@ -111,7 +167,7 @@ function lookupArgs(args: string[]): { lookup: LookupArgs; rest: string[] } {
     else if (a === "--refresh") lookup.refresh = true;
     else if (a === "--offline") lookup.offline = true;
     else if (a === "--overwrite-imported") lookup.overwriteImported = true;
-    else if (a === "--cache") lookup.cache = args[++i]!;
+    else if (a === "--cache") lookup.cache = userPath(args[++i]!);
     else if (a === "--fr24") lookup.fr24 = true;
     else if (a === "--chrome-port") lookup.chromePort = Number(args[++i]);
     else if (a === "--fr24-delay") lookup.fr24DelayS = Number(args[++i]);
@@ -141,44 +197,52 @@ function printLookup(r: LookupReport) {
 
 async function main(argv: string[]) {
   const [cmd, ...all] = argv;
+  if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
+    const topic = all[0];
+    if (topic && !HELP[topic]) console.log(`There is no command "${topic}".\n`);
+    usage(topic && HELP[topic] ? HELP[topic] : MENU, topic && !HELP[topic] ? 1 : 0);
+  }
+  if (!HELP[cmd]) {
+    console.log(`There is no command "${cmd}".\n`);
+    usage();
+  }
+  if (cmd === "check") return checkCommand(all);
+  if (cmd === "spot") return spotCommand(all);
+  if (cmd === "agent") return agentCommand(all);
+  if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd], 0);
   const { lookup, rest } = lookupArgs(all);
   if (cmd === "airframes") return airframesCommand(rest, lookup);
-  if (cmd !== "import") usage();
   const files: string[] = [];
   let today: string | undefined;
   let out: string | undefined;
   let allFindings = false;
   let applyFixes = false;
   const trackDirs: { path: string; provider: "fr24_csv" | "adsblol" }[] = [];
+  const maps: string[] = [];
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i]!;
     if (a === "--today") today = rest[++i];
-    else if (a === "--out") out = rest[++i];
+    else if (a === "--out") out = userPath(rest[++i]!);
     else if (a === "--all-findings") allFindings = true;
     else if (a === "--apply-fixes") applyFixes = true;
-    else if (a === "--tracks") trackDirs.push({ path: rest[++i]!, provider: "fr24_csv" });
-    else if (a === "--tracks-adsblol") trackDirs.push({ path: rest[++i]!, provider: "adsblol" });
-    else files.push(a);
+    else if (a === "--map") maps.push(rest[++i]!);
+    else if (a === "--tracks") trackDirs.push({ path: userPath(rest[++i]!), provider: "fr24_csv" });
+    else if (a === "--tracks-adsblol") trackDirs.push({ path: userPath(rest[++i]!), provider: "adsblol" });
+    else files.push(userPath(a));
   }
-  if (!files.length) usage();
+  if (!files.length) usage(IMPORT_HELP);
 
   const ref = new RefIndex(loadRefTables());
   const store = new Store({ deviceId: "cli" });
 
   for (const file of files) {
-    const sheets = readSheets(file);
-    let parsed: ParsedSource | null = null;
-    for (const sheet of sheets) {
-      parsed = parseSource(sheet, basename(file), ref);
-      if (parsed) {
-        if (sheets.length > 1) console.log(`(${basename(file)}: using sheet "${sheet.name}")`);
-        break;
-      }
-    }
-    if (!parsed) {
-      console.log(`\n${basename(file)}: format not recognised (header: ${sheets[0]?.header.join(", ")})`);
+    // Any layout: the columns are worked out (a layout confirmed before, or --map, decides), not asked about.
+    const read = await readSheetFile(file, ref, { maps, agent: null, ask: false });
+    if ("error" in read) {
+      console.log(`\n${read.error}`);
       continue;
     }
+    const parsed = read.source;
     const matches = matchCandidates(store, parsed.candidates);
     const kinds = { new: 0, identical: 0, update: 0, conflict: 0, duplicate: 0 };
     for (const m of matches) kinds[m.kind]++;
@@ -244,10 +308,10 @@ async function airframesCommand(args: string[], lookup: LookupArgs) {
   let out: string | undefined;
   const files: string[] = [];
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--out") out = args[++i];
-    else files.push(args[i]!);
+    if (args[i] === "--out") out = userPath(args[++i]!);
+    else files.push(userPath(args[i]!));
   }
-  if (files.length !== 1 || !files[0]!.endsWith(".zip")) usage();
+  if (files.length !== 1 || !files[0]!.endsWith(".zip")) usage(AIRFRAMES_HELP);
   const ref = new RefIndex(loadRefTables());
   const store = new Store({ deviceId: "cli" });
   const backup = readBackup(new Uint8Array(readFileSync(files[0]!)));
@@ -266,7 +330,7 @@ async function airframesCommand(args: string[], lookup: LookupArgs) {
 function writeOut(store: Store, out: string | undefined) {
   if (out?.endsWith(".zip")) {
     writeFileSync(out, backupZip(store));
-    console.log(`\nWrote a Touchdown backup to ${out}. Restore it in the web app under Settings, Data.`);
+    console.log(`\nWrote a Touchdown backup to ${shownPath(out)}. Restore it in the web app under Settings, Data.`);
   } else if (out) {
     mkdirSync(out, { recursive: true });
     const n = writeJsonTables(store, out);
