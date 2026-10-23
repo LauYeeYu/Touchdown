@@ -77,7 +77,7 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 | Video encoding | WebCodecs + an MP4 muxer in the browser (supported in Chrome on desktop and Android); WebM via MediaRecorder as fallback; CLI with ffmpeg for long renders | No server needed. |
 | Charts | d3 scales and hand-drawn SVG | The few charts (months, altitude, ranked lists) follow the prototype's mark rules exactly; a chart library would add weight without saving code. |
 | CSV | Papa Parse | Handles quoting, encodings, large files. |
-| Google auth | Google Identity Services token flow, scope `drive.file` | No backend needed for auth. |
+| Google auth (Google Drive adapter) | Google Identity Services token flow, scope `drive.file` | No backend needed for auth. |
 | Offline | Service worker (PWA) | App loads without network; sync resumes later. |
 | Lookup service | The `/api/*` routes of the same Cloudflare Worker that serves the app; Cache API for caching | Free plan is enough (see Deployment). |
 | Hosting | One Cloudflare Worker with static assets | Cloudflare points new projects to Workers with static assets rather than Pages. Static file requests are free. |
@@ -86,11 +86,11 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 
 ## Security and privacy
 
-- Access gate (U3, decided, Q-ACCESS): Cloudflare Access sits in front of the whole Worker, so the app's files, every page, and `/api/*` all require sign-in. Only an allowlist of invited email addresses gets through. Sign-in methods: Google (the same account the user's Drive data lives in) or a one-time code by email. No login code in the app itself, and no passwords stored anywhere. Cloudflare Zero Trust is free for small teams; recheck the user limit before launch.
+- Access gate (U3, decided, Q-ACCESS): Cloudflare Access sits in front of the whole Worker, so the app's files, every page, and `/api/*` all require sign-in. Only an allowlist of invited email addresses gets through. Sign-in methods: Google or a one-time code by email; neither is tied to where the user keeps their data. No login code in the app itself, and no passwords stored anywhere. Cloudflare Zero Trust is free for small teams; recheck the user limit before launch.
 - Defence in depth: the Worker verifies the `Cf-Access-Jwt-Assertion` token on every `/api/*` request (signature, audience, expiry) and refuses requests without a valid one, so the lookup service cannot be called from outside even if its address leaks.
-- Inside the gate, each user still signs in to their own storage (Google sign-in for Drive, `drive.file` scope). The gate decides who may use the app; the storage sign-in decides whose data is read. Neither gives anyone access to another user's data.
+- Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
 - The installed app (PWA) keeps working offline from its cache; when the Access session expires, the next online request sends the user through sign-in again.
-- No user accounts on our side beyond the Access allowlist; Google sign-in only grants access to the user's own Drive files.
+- No user accounts on our side beyond the Access allowlist; connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
 - OAuth tokens stay in browser memory. No refresh tokens on any server.
 - Strict Content Security Policy. No third-party analytics or ads.
 - Private fields (ticket number, booking reference) never leave the user's storage and browser except in exports the user asks for with "include private fields".

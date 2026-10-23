@@ -29,7 +29,7 @@ Web app (Import page)                          User's computer
 - The CLI also takes the spreadsheet itself (`touchdown check file.xlsx`). It builds the same request (with the starting rule, or `--rules FILE`), so its result loads on the Import page for that file too.
 - Using a suggestion changes a copy of the file's rows; the review is prepared again from it, so the checks run on the corrected values and Undo puts the row back. A used value replaces what the log has for that field (it is taken as "use the file's value"), and the batch records `agentChecker` and the number of rows the agent changed (`rowsEdited`).
 - Spotting sessions (`touchdown spot`, [21](21-import-export.md)) use the same prompt, lockdown, self-test and answer checks on the lines the user types. Each record also carries `text`, the words of the line Touchdown could not place in a field, and `evidence`, what each lookup says about the registration. The agent may suggest `notes` for such a record, to keep only what is a real note once the words are sorted into fields.
-- Later: a local bridge (`touchdown serve`, listening on `127.0.0.1` only, with the app's origin and a pairing token) instead of saving and loading files; and the Drive folder `Touchdown/checks/` once sync exists.
+- Later: a local bridge (`touchdown serve`, listening on `127.0.0.1` only, with the app's origin and a pairing token) instead of saving and loading files; and the `checks` area of the user's storage once sync exists, whatever the backend ([12](12-storage-and-sync.md)).
 
 ## Choosing the agent
 
@@ -119,7 +119,7 @@ Assets: the user's computer (files, credentials), the user's private data, the i
 | Malicious project config in the working directory | A `.mcp.json` or hooks file in the current folder gets loaded by the agent CLI. | Always run in a new empty temp directory. Disable hooks. Use a strict, empty MCP config. Ignore user config where the CLI allows it. |
 | Cost runaway | A huge batch or a looping agent. | 50 rows per call, at most 5,000 per request, a 5-minute timeout per call, one retry, `--limit` for a trial run; the terminal shows the usage Claude Code reports. |
 | CSV/Sheets formula injection on export | A cell starting with `=` runs as a formula in Sheets. | Prefix risky cells with `'` on CSV export. |
-| Request file tampered with | Someone edits the request in Drive. | The CLI validates the request schema and size before running. |
+| Request file tampered with | Someone edits the request in the user's storage. | The CLI validates the request schema and size before running. |
 | Supply chain of the CLI | A compromised dependency. | Few dependencies, pinned lockfile, no install scripts, published with provenance. |
 
 This follows the "rule of two" for agents: the verifier has untrusted input, but no sensitive data and no ability to act. Detection-based prompt-injection defenses are not relied on.

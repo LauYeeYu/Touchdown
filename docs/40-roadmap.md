@@ -28,10 +28,11 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 3: Sync
 
-- Deliver: `packages/storage` with the backend interface, both file backends (JSON tables, SQLite file) and conversion between them, Google Drive adapter, sync engine with pending queue and conflict list, local-folder adapter, offline support (PWA), daily backups, schema migration mechanism. The CLI as a Drive client: `touchdown login`, `spot` uploading its sessions to `Touchdown/inbox/` and reading the log from Drive; the web app picking the inbox up during sync ([21](21-import-export.md)).
+- Deliver: `packages/storage` with the backend interface, both file backends (JSON tables, SQLite file) and conversion between them, Google Drive adapter, sync engine with pending queue and conflict list, local-folder adapter, offline support (PWA), daily backups, schema migration mechanism. The CLI as a storage client, through the same backend interface as the web app: `spot` writing its sessions to the inbox and reading the log from the user's storage (`touchdown login` for Google Drive); the web app picking the inbox up during sync ([21](21-import-export.md)).
 - Done when:
   - Two devices editing at the same time converge with no lost edits (scripted test with simulated races).
   - The app works offline and syncs on reconnect.
+  - Sync, the inbox and the CLI work the same with the Google Drive and the local-folder adapters (S7).
   - The Google OAuth app is published "In production" with `drive.file` only.
 
 ## Phase 4: Lookups and auto-fill
@@ -42,7 +43,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 5: Agent check
 
-- Deliver: `touchdown check` for Claude Code and Codex, request/result schemas, verifier prompt, user rules, version check, self-test with injection canaries, file hand-off through the Drive folder.
+- Deliver: `touchdown check` for Claude Code and Codex, request/result schemas, verifier prompt, user rules, version check, self-test with injection canaries, file hand-off through the user's storage.
 - Done when: injection test rows produce only schema-valid output with no side effects, and suggestions appear in the import review.
 
 ## Phase 6: Tracks and exports

@@ -174,11 +174,18 @@ A session's sightings are not in the log until the user reviews and imports them
 - the Import page lists the waiting sessions, each with Review and Discard;
 - the CLI checks whether the dev server is running and says where to go.
 
-**On the hosted site (Decided, built in phase 3 with sync).** The inbox is `Touchdown/inbox/` in the user's Google Drive ([12](12-storage-and-sync.md)):
-1. `touchdown login` signs the CLI in to Google once. It uses the installed-app flow, from the same Google Cloud project as the web app, with the same `drive.file` scope. The token stays in `data/private/`.
-2. `spot` uploads its session file to the inbox through the Drive API on every save. Writing into a Google Drive for Desktop folder would not do, because the web app's `drive.file` access does not reach files another app created (Q-DRIVE-CLI).
-3. The web app, on any device, lists the inbox during sync. It shows the same bar and list, and after an import it copies the file to `attachments/imports/<batchId>/` and deletes it from the inbox. If the session saves again after that, the CLI finds its file gone and uploads a new one.
-4. `spot` reads the user's log from Drive for its "your log" lookups, instead of the local backup file.
+**On the hosted site (Decided, built in phase 3 with sync).** The inbox is the `inbox` area of the user's storage, whatever the backend (S7, [12](12-storage-and-sync.md)). The CLI reaches that storage through the same backend interface as the web app:
+
+| Storage | How the CLI reaches it |
+|---------|------------------------|
+| Google Drive | `touchdown login` signs the CLI in to Google once, with the installed-app flow from the same Google Cloud project as the web app and the same `drive.file` scope. The token stays in `data/private/`. Writing into a Google Drive for Desktop folder would not do, because the web app's `drive.file` access does not reach files another app created (Q-DRIVE-CLI). |
+| Local folder | The CLI is given the folder's path once and writes into its `inbox/` directly. (Proposed) |
+| This browser only | There is no shared place. `spot` saves the session file and the user opens it on the Import page. (Proposed) |
+| Server backends (later) | The CLI signs in to the backend and writes to its `inbox` area. (Proposed) |
+
+1. `spot` writes its session file to the inbox on every save.
+2. The web app, on any device, lists the inbox during sync. It shows the same bar and list, and after an import it copies the file to `attachments/imports/<batchId>/` and deletes it from the inbox. If the session saves again after that, the CLI finds its file gone and writes a new one.
+3. `spot` reads the user's log from the same storage for its "your log" lookups, instead of the local backup file.
 
 **Importing.** The Import page reads the inbox like any other file (stages 4–10). What is still open shows as a warning on the row. The agent check panel is not shown, because the session already ran the check. On commit:
 - the records get `sourceKind` `manual`;

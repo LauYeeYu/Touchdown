@@ -1,6 +1,6 @@
 # 12 Storage and Sync
 
-Where each user's data lives, how it is stored, and how devices stay in sync (requirements S1–S6, U1–U2). The tables themselves are defined in [10](10-domain-model.md).
+Where each user's data lives, how it is stored, and how devices stay in sync (requirements S1–S7, U1–U2). The tables themselves are defined in [10](10-domain-model.md).
 
 ## Decisions
 
@@ -8,6 +8,7 @@ Where each user's data lives, how it is stored, and how devices stay in sync (re
 - No central database by default. Each user's data lives in storage the user owns. (Decided)
 - First backends, in the user's Google Drive, user's choice: **JSON tables** or a **SQLite file**. (Decided)
 - Later backends: local SQLite file, Postgres / Supabase, Cloudflare D1. The interface is designed for them now; they are built later. (Decided)
+- Google Drive is the first backend, not the platform (S7). Everything that reads or writes the user's data goes through the backend interface below, so it works on every backend: sync, the CLI's inbox, the agent check hand-off, import attachments, and anything added later. No feature relies on what only one service offers, such as Drive's file sharing or Drive for Desktop. Google's own APIs are used only where a Google product is the subject: importing a Google Sheet, exporting to Google Sheets. (Decided)
 - CSV import/export always works, whatever the backend. (Decided)
 - The browser always keeps a full local copy (IndexedDB), so the app works offline and loads fast. (Proposed)
 
@@ -49,6 +50,7 @@ Every backend implements the same row-level interface (TypeScript sketch):
 ```ts
 type Row = { table: string; id: string; rev: number; updatedAt: string; updatedBy: string;
              deleted: boolean; values: Record<string, Scalar> };   // values validated by the schema
+type FileArea = "inbox" | "checks" | "attachments";              // files kept with the log
 
 interface Backend {
   id: "json_tables" | "sqlite_file" | "sqlite_local" | "postgres" | "d1";
@@ -59,6 +61,10 @@ interface Backend {
   push(rows: Row[]): Promise<{ accepted: string[]; conflicts: Row[] }>;
   readTrack(trackId: string): Promise<TrackPoint[]>;            // large child data, loaded on demand
   writeTrack(trackId: string, points: TrackPoint[]): Promise<void>;
+  listFiles(area: FileArea): Promise<FileInfo[]>;                // the CLI's inbox, check hand-off, import sources
+  readFile(area: FileArea, name: string): Promise<Uint8Array | null>;
+  writeFile(area: FileArea, name: string, data: Uint8Array): Promise<void>;
+  removeFile(area: FileArea, name: string): Promise<void>;
 }
 
 interface FileAdapter {                                         // used by file backends only
@@ -71,6 +77,7 @@ interface FileAdapter {                                         // used by file 
 
 - File backends implement `pull`/`push` by reading whole files through a file adapter, merging, and writing them back.
 - Server backends implement them with SQL: `pull` selects rows with `updated_at` after the cursor; `push` uses conditional writes (`UPDATE … WHERE id = ? AND rev = ?`) so the database itself detects conflicts.
+- File areas (`inbox`, `checks`, `attachments`) are folders in file backends and a files table (or the provider's file storage) in server backends, so the CLI's inbox and the agent check hand-off work the same on every backend. (Proposed)
 - Validation runs on both sides of every backend: rows that do not match the schema are rejected, never stored.
 
 ## Sync algorithm
@@ -172,7 +179,7 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 | Adapter | How | Sync across devices | Notes |
 |---------|-----|---------------------|-------|
 | Google Drive | Drive API v3 from the browser, OAuth scope `drive.file`. | Yes | First adapter. Details below. |
-| Local folder | File System Access API (Chromium desktop browsers). | Yes, if the folder is inside a Dropbox / OneDrive / iCloud / Google Drive desktop sync folder. | Gives other sync services on desktop. Not available on Android, so on the phone the Google Drive adapter is the way to sync. |
+| Local folder | File System Access API (Chromium desktop browsers). | Yes, if the folder is inside a Dropbox / OneDrive / iCloud / Google Drive desktop sync folder. | Gives other sync services on desktop. Not available on Android, so a phone syncs through an adapter that reaches the storage over the internet: Google Drive first, later Dropbox, OneDrive or a server backend. |
 | Manual file | Export a `.zip` of the folder; import it on another device. | Manual | Works everywhere. |
 | Dropbox API, OneDrive API | Later, if a friend needs it. | Yes | Dropbox has an "App folder" mode. OneDrive has no per-file scope like `drive.file`. |
 

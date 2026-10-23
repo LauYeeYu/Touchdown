@@ -7,7 +7,7 @@ It has two parts:
 - **The web app** keeps your log in the browser: flights, spotting, aircraft, statistics, maps and the Import page.
 - **The command-line tools** (`./touchdown`) run on your computer. They log new spotting by typing, look registrations up, have an agent (Claude Code or Codex) check your records, and build backups the web app can restore.
 
-What works now: the web app on one device, and the command-line tools. Not yet: syncing to Google Drive, the hosted site and sign-in. Until sync arrives, your log lives in one browser; export a backup from Settings now and then. The plan and the reasons behind it are in [docs/](docs/README.md).
+What works now: the web app on one device, and the command-line tools. Not yet: syncing (Google Drive first), the hosted site and sign-in. Until sync arrives, your log lives in one browser; export a backup from Settings now and then. The plan and the reasons behind it are in [docs/](docs/README.md).
 
 ## Set up
 
@@ -132,7 +132,7 @@ Typing the same aircraft again for the same place and day replaces the earlier l
 
 Values from a lookup or the agent are saved with where they came from. The inbox only holds sessions you have not dealt with yet: each session is one file, and a file whose sightings are all in your log already is moved out by itself.
 
-Once the site is hosted, sessions will travel through your Google Drive instead. `./touchdown login` will sign the terminal in to Google once, `spot` will upload each session to `Touchdown/inbox/`, and the website will show them waiting on any device after it syncs. This comes with sync (phase 3).
+Once the site is hosted, sessions will travel through your storage instead (Google Drive or a local folder; more later). With Google Drive, `./touchdown login` will sign the terminal in to Google once. `spot` will write each session to the inbox in your storage, and the website will show them waiting on any device after it syncs. This comes with sync (phase 3).
 
 Other ways to run it:
 

@@ -34,6 +34,7 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 ## Data rules
 
 - Imports are not tied to anyone's spreadsheet layout. Only the my.flightradar24.com export has a fixed reader; every other sheet goes through the column mapping in `packages/core/src/import/mapping.ts`. To read a new layout, add header names or value rules there, not a new reader.
+- Features are not tied to one storage backend (S7). Google Drive is the first, not the only one: sync, the CLI's inbox, the agent check hand-off and anything added later go through the backend interface in `docs/12-storage-and-sync.md`, so they work on every backend. Do not build on what only one service offers (Drive's file sharing, Drive for Desktop). Google's own APIs are fine where a Google product is the subject, such as importing from or exporting to Google Sheets.
 - The schema in `packages/core/schema` is the single source of truth for stored data. No ad-hoc fields, no nested free-form JSON; lists are child tables. Storage code is generic over backends.
 - Every precise time is an ISO 8601 date-time with UTC offset (`2025-03-15T00:12+01:00`). Never store a time without its date. Plain dates (`YYYY-MM-DD`) only for values that are dates by nature or where only the day is known.
 

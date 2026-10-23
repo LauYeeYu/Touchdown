@@ -50,7 +50,7 @@ function localBackup(): Plugin {
 
 // Development only: the inbox of spotting sessions (`touchdown spot` writes data/private/inbox/*.json). The app
 // lists the sessions waiting; an imported one moves to inbox/imported/ (kept 30 days), a discarded one is deleted.
-// On the hosted site the inbox will be a folder in the user's Google Drive (docs/21, "Spotting session").
+// On the hosted site the inbox will be in the user's storage, whatever the backend (docs/21, "Spotting session").
 const INBOX = process.env.TOUCHDOWN_INBOX ?? resolve(import.meta.dirname, "../../data/private/inbox");
 const IMPORTED_KEEP_DAYS = 30;
 
