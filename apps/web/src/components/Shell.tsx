@@ -5,6 +5,9 @@ import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-route
 import { useApp } from "../data/context.tsx";
 import { Icon, type IconName } from "../lib/icons.tsx";
 import { MenuButton } from "./Menu.tsx";
+import { NoteBar } from "./NoteBar.tsx";
+import { sessionPhrase, useInboxWatcher, useWaitingSessions } from "../data/inbox.ts";
+import { plural } from "../lib/format.ts";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
 
@@ -29,7 +32,7 @@ function applyTheme(theme: (typeof THEMES)[number]) {
 }
 
 export function Shell() {
-  const { app } = useApp();
+  const { app, version } = useApp();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const theme = (app.settings().theme ?? "system") as (typeof THEMES)[number];
@@ -58,6 +61,14 @@ export function Shell() {
       });
     }
   }, []);
+
+  // Sightings from spotting sessions waiting to be reviewed and imported. "Not now" hides a session in this tab
+  // until it changes (more sightings saved to it).
+  useInboxWatcher(app, version);
+  const waiting = useWaitingSessions();
+  const [later, setLater] = useState<Set<string>>(() => new Set());
+  const shown = waiting.filter((w) => !later.has(`${w.name}@${w.modified}`));
+  const sightings = shown.reduce((n, w) => n + w.waiting, 0);
 
   // Re-render the save state once it settles.
   useEffect(() => {
@@ -130,25 +141,45 @@ export function Shell() {
           </div>
         </div>
       </header>
+      {shown.length > 0 && path !== "/import" && (
+        <NoteBar
+          icon="inbox"
+          actions={
+            <>
+              <Link to="/import" search={{ inbox: shown[0]!.name }} className="btn btn--quiet btn--small">
+                Review and import
+              </Link>
+              <button type="button" className="btn btn--ghost btn--small" onClick={() => setLater((s) => new Set([...s, ...shown.map((w) => `${w.name}@${w.modified}`)]))}>
+                Not now
+              </button>
+            </>
+          }
+        >
+          {plural(sightings, "sighting")} from {shown.length === 1 ? sessionPhrase(shown[0]!.name) : `${shown.length} spotting sessions`} {sightings === 1 ? "is" : "are"} waiting. They are not in your log until you import them.
+        </NoteBar>
+      )}
       {import.meta.env.DEV && newerBackup && (
-        <div className="dev-note" role="status">
-          <div className="page dev-note__bar">
-            <Icon name="hard-drive" />
-            <span>Your local backup was rebuilt {new Date(newerBackup).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}. Loading it replaces what is in this browser.</span>
-            <button
-              type="button"
-              className="btn btn--quiet btn--small"
-              onClick={() => {
-                if (import.meta.env.DEV) void import("../data/localBackup.ts").then((m) => m.loadLocalBackup(app));
-              }}
-            >
-              Load it
-            </button>
-            <button type="button" className="btn btn--ghost btn--small" onClick={() => setNewerBackup(null)}>
-              Not now
-            </button>
-          </div>
-        </div>
+        <NoteBar
+          icon="hard-drive"
+          actions={
+            <>
+              <button
+                type="button"
+                className="btn btn--quiet btn--small"
+                onClick={() => {
+                  if (import.meta.env.DEV) void import("../data/localBackup.ts").then((m) => m.loadLocalBackup(app));
+                }}
+              >
+                Load it
+              </button>
+              <button type="button" className="btn btn--ghost btn--small" onClick={() => setNewerBackup(null)}>
+                Not now
+              </button>
+            </>
+          }
+        >
+          Your local backup was rebuilt {new Date(newerBackup).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}. Loading it replaces what is in this browser.
+        </NoteBar>
       )}
       <main id="view" tabIndex={-1}>
         <Outlet />
@@ -170,7 +201,7 @@ export function Shell() {
         <div className="page">
           <p>Your log is stored in this browser. Export a backup from Settings.</p>
           <p>
-            Airports: OurAirports (public domain) and airportsdata (MIT). Airlines: Wikidata (CC0) and the Mictronics aircraft database (ODC-By). Map: Natural Earth (public domain) via world-atlas. Aircraft photos from{" "}
+            Airports: OurAirports (public domain) and airportsdata (MIT). Airlines: Wikidata (CC0) and the Mictronics aircraft database (ODC-By). Aircraft facts: the OpenSky Network aircraft database and adsbdb (data from PlaneBase). Map: Natural Earth (public domain) via world-atlas. Aircraft photos from{" "}
             <a href="https://www.planespotters.net/" rel="noopener" target="_blank">
               planespotters.net
             </a>

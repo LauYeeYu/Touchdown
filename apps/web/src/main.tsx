@@ -43,7 +43,8 @@ const stats = createRoute({ getParentRoute: () => root, path: "/stats", componen
 const map = createRoute({ getParentRoute: () => root, path: "/map", beforeLoad: () => { throw redirect({ to: "/stats", replace: true }); } });
 const airport = createRoute({ getParentRoute: () => root, path: "/airports/$id", component: AirportPage, params: airportParams });
 const globeR = createRoute({ getParentRoute: () => root, path: "/globe", beforeLoad: () => { throw redirect({ to: "/stats", replace: true }); } });
-const importR = createRoute({ getParentRoute: () => root, path: "/import", component: ImportPage });
+// ?inbox= opens a spotting session waiting in the inbox (src/data/inbox.ts).
+const importR = createRoute({ getParentRoute: () => root, path: "/import", component: ImportPage, validateSearch: (s: Record<string, unknown>): { inbox?: string } => (typeof s.inbox === "string" ? { inbox: s.inbox } : {}) });
 const issues = createRoute({ getParentRoute: () => root, path: "/issues", component: Issues });
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: SettingsPage });
 
