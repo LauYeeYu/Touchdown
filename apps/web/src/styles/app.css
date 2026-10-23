@@ -3704,9 +3704,9 @@ body:has(.column-mapping) .fab-wrap {
     grid-column: 1 / -1;
   }
 
-  .session-row .select,
-  .session-row input[aria-label^="Special"] {
-    grid-column: span 1;
+  /* Type and airline on one line, then phase, special livery and the remove button. */
+  .session-row input[aria-label^="Airline"] {
+    grid-column: 2 / -1;
   }
 
   .review-row__fills,
