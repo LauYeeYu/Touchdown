@@ -46,6 +46,31 @@ export interface TableFileProblem {
   message: string;
 }
 
+/** Changes between schema versions that older files are brought through when read (docs/12, "Schema migrations"). */
+export const MIGRATIONS: { to: number; addColumns: { table: TableName | "*"; column: string }[] }[] = [
+  // Every table with system columns gains basedOn.
+  { to: 2, addColumns: [{ table: "*", column: "basedOn" }] },
+];
+
+/** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */
+export function upgradeTableFile(file: TableFile, table: TableName): TableFile {
+  if (typeof file.schemaVersion !== "number" || file.schemaVersion >= SCHEMA_VERSION || !Array.isArray(file.columns)) return file;
+  const columns = [...file.columns];
+  let rows = file.rows ?? [];
+  for (const step of MIGRATIONS) {
+    if (step.to <= file.schemaVersion) continue;
+    for (const add of step.addColumns) {
+      if (add.table === "*" ? TABLES[table].kind === "points" : add.table !== table) continue;
+      if (columns.includes(add.column)) continue;
+      columns.push(add.column);
+      rows = rows.map((r) => ({ ...r, [add.column]: null }));
+    }
+  }
+  const expected = allColumns(TABLES[table]).map((c) => c.name);
+  const same = columns.length === expected.length && expected.every((c) => columns.includes(c));
+  return { ...file, schemaVersion: SCHEMA_VERSION, columns: same ? expected : columns, rows };
+}
+
 /** Check a table file: header, exact columns, and every row against the schema. */
 export function checkTableFile(file: unknown, table: TableName): TableFileProblem[] {
   const f = file as Partial<TableFile>;

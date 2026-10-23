@@ -22,6 +22,8 @@ export interface Change {
   id: string; // row key (see rowKey)
   before: Row<TableName> | null;
   after: Row<TableName> | null; // null when a row was purged
+  /** "sync" when the row came from the user's storage rather than an edit on this device. */
+  origin?: "sync";
 }
 
 export type Listener = (changes: Change[]) => void;
@@ -29,6 +31,11 @@ export type Listener = (changes: Change[]) => void;
 /** Key of a row in the store: its id, or track id and sequence for track points (which have no id). */
 export function rowKey(table: TableName, row: Record<string, unknown>): string {
   return TABLES[table].kind === "points" ? `${row.trackId}|${row.seq}` : String(row.id);
+}
+
+/** One string per version of a row: the same row edited twice, or on two devices, never shares one (docs/12). */
+export function rowVersion(row: Record<string, unknown>): string {
+  return `${String(row.updatedAt)}|${String(row.updatedBy)}|${String(row.rev)}`;
 }
 
 /** A row with every column present, missing values as null, in schema order. */
@@ -75,6 +82,11 @@ export class Store {
     return [...this.map(table).values()];
   }
 
+  /** A row by its key, tombstones included (sync). */
+  peek<N extends TableName>(table: N, key: string): Row<N> | null {
+    return this.map(table).get(key) ?? null;
+  }
+
   get<N extends TableName>(table: N, id: string | null | undefined): Row<N> | null {
     if (!id) return null;
     const r = this.map(table).get(id);
@@ -90,6 +102,7 @@ export class Store {
       rev: 1,
       updatedAt: toUtcIso(this.now()),
       updatedBy: this.deviceId,
+      basedOn: null,
       deleted: false,
     }) as Row<N>;
     return this.write(table, null, row);
@@ -104,9 +117,7 @@ export class Store {
     const after = {
       ...before,
       ...Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v ?? null])),
-      rev: (before as { rev: number }).rev + 1,
-      updatedAt: toUtcIso(this.now()),
-      updatedBy: this.deviceId,
+      ...this.stamp(before as Record<string, unknown>),
     } as Row<N>;
     return this.write(table, before, after);
   }
@@ -115,13 +126,17 @@ export class Store {
   remove(table: TableName, id: string): void {
     const before = this.map(table).get(id);
     if (!before || (before as { deleted?: boolean }).deleted) return;
-    this.write(table, before, {
-      ...before,
-      deleted: true,
-      rev: (before as { rev: number }).rev + 1,
+    this.write(table, before, { ...before, deleted: true, ...this.stamp(before as Record<string, unknown>) } as Row<TableName>);
+  }
+
+  /** System columns of a new version of `before`, edited on this device. */
+  private stamp(before: Record<string, unknown>) {
+    return {
+      rev: (before.rev as number) + 1,
       updatedAt: toUtcIso(this.now()),
       updatedBy: this.deviceId,
-    } as Row<TableName>);
+      basedOn: before.updatedBy === this.deviceId ? (before.basedOn ?? null) : rowVersion(before),
+    };
   }
 
   /** Put rows exactly as given (loading from storage, sync merges). Validated, not re-stamped. */
@@ -136,8 +151,8 @@ export class Store {
     }
   }
 
-  /** Add rows exactly as given and tell listeners (track points, which carry no system columns). */
-  putRaw<N extends TableName>(table: N, rows: Row<N>[]): void {
+  /** Put rows from the user's storage exactly as given and tell listeners, marked as coming from sync. */
+  applyRemote<N extends TableName>(table: N, rows: Row<N>[]): void {
     const changes: Change[] = [];
     for (const row of rows) {
       const full = completeRow(TABLES[table], row as Record<string, unknown>) as Row<N>;
@@ -148,22 +163,41 @@ export class Store {
       const key = rowKey(table, full as Record<string, unknown>);
       const before = this.map(table).get(key) ?? null;
       this.map(table).set(key, full);
-      changes.push({ table, id: key, before, after: full } as Change);
+      changes.push({ table, id: key, before, after: full, origin: "sync" } as Change);
     }
-    if (!changes.length) return;
-    if (this.pending) this.pending.push(...changes);
-    else this.emit(changes);
+    this.emitAll(changes);
+  }
+
+  /** Add rows exactly as given and tell listeners (track points, which carry no system columns). */
+  putRaw<N extends TableName>(table: N, rows: Row<N>[], origin?: "sync"): void {
+    const changes: Change[] = [];
+    for (const row of rows) {
+      const full = completeRow(TABLES[table], row as Record<string, unknown>) as Row<N>;
+      if (this.validate) {
+        const problems = validateRow(table, full);
+        if (problems.length) throw new RowValidationError(table, problems);
+      }
+      const key = rowKey(table, full as Record<string, unknown>);
+      const before = this.map(table).get(key) ?? null;
+      this.map(table).set(key, full);
+      changes.push({ table, id: key, before, after: full, ...(origin && { origin }) } as Change);
+    }
+    this.emitAll(changes);
   }
 
   /** Remove rows outright (track points are replaced with their track; they have no tombstones). */
-  purge(table: TableName, keys: string[]): void {
+  purge(table: TableName, keys: string[], origin?: "sync"): void {
     const changes: Change[] = [];
     for (const k of keys) {
       const before = this.map(table).get(k);
       if (!before) continue;
       this.map(table).delete(k);
-      changes.push({ table, id: k, before, after: null } as unknown as Change);
+      changes.push({ table, id: k, before, after: null, ...(origin && { origin }) } as unknown as Change);
     }
+    this.emitAll(changes);
+  }
+
+  private emitAll(changes: Change[]) {
     if (!changes.length) return;
     if (this.pending) this.pending.push(...changes);
     else this.emit(changes);

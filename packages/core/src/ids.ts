@@ -28,13 +28,29 @@ export function ulid(now = Date.now()): string {
   }
   lastTime = now;
   lastRandom = random;
+  return encodeTime(now) + random.map((r) => ENCODING[r]).join("");
+}
+
+function encodeTime(ms: number): string {
   let time = "";
-  let t = now;
+  let t = ms;
   for (let i = 0; i < 10; i++) {
     time = ENCODING[t % 32] + time;
     t = Math.floor(t / 32);
   }
-  return time + random.map((r) => ENCODING[r]).join("");
+  return time;
+}
+
+/**
+ * A ULID whose 80 "random" bits come from a hash of `seed`, so two devices that record the same thing make the
+ * same id (a sync conflict noticed on both sides is kept once). Not for security.
+ */
+export function ulidFrom(ms: number, seed: string): string {
+  let bits = "";
+  for (let round = 0; bits.length < 80; round++) bits += parseInt(fnv1a(`${round}|${seed}`), 16).toString(2).padStart(32, "0");
+  let rest = "";
+  for (let i = 0; i < 80; i += 5) rest += ENCODING[parseInt(bits.slice(i, i + 5), 2)];
+  return encodeTime(ms) + rest;
 }
 
 /** Stable short hash (FNV-1a, 32-bit, hex) for fingerprints and file hashes. Not for security. */

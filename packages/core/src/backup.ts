@@ -2,7 +2,7 @@
 // fields included, restorable into either file backend. CSV exports per table, flattened.
 
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
-import { FILE_TABLES, checkTableFile, manifestFor, stringifyTableFile, toTableFile, type TableFile } from "./jsontables.ts";
+import { FILE_TABLES, checkTableFile, manifestFor, stringifyTableFile, toTableFile, upgradeTableFile, type TableFile } from "./jsontables.ts";
 import { allColumns } from "./schema/columns.ts";
 import { PRIVATE_FIELDS, SCHEMA_NAME, SCHEMA_VERSION, TABLES, type TableName } from "./schema/tables.ts";
 import type { Store } from "./store.ts";
@@ -50,7 +50,7 @@ export function readBackup(data: Uint8Array): BackupContents {
   for (const t of FILE_TABLES) {
     const path = `${base}tables/${t}.json`;
     if (!files[path]) continue;
-    const file = JSON.parse(strFromU8(files[path]!)) as TableFile;
+    const file = upgradeTableFile(JSON.parse(strFromU8(files[path]!)) as TableFile, t);
     const problems = checkTableFile(file, t);
     if (problems.length) out.problems.push(...problems.map((p) => `${p.table}: ${p.message}`));
     else out.tables.set(t, file.rows);
@@ -58,7 +58,7 @@ export function readBackup(data: Uint8Array): BackupContents {
   const points: Record<string, unknown>[] = [];
   for (const path of Object.keys(files)) {
     if (!path.startsWith(`${base}tracks/`) || !path.endsWith(".json")) continue;
-    const file = JSON.parse(strFromU8(files[path]!)) as TableFile;
+    const file = upgradeTableFile(JSON.parse(strFromU8(files[path]!)) as TableFile, "track_points");
     const problems = checkTableFile(file, "track_points");
     if (problems.length) out.problems.push(...problems.map((p) => `${path}: ${p.message}`));
     else points.push(...file.rows);
@@ -80,7 +80,7 @@ export function tableCsv(store: Store, table: TableName, includePrivate = false)
   const cols = allColumns(TABLES[table])
     .map((c) => c.name)
     .filter((c) => includePrivate || !PRIVATE_FIELDS.includes(`${table}.${c}`))
-    .filter((c) => c !== "deleted");
+    .filter((c) => c !== "deleted" && c !== "basedOn");
   const lines = [cols.join(",")];
   for (const r of store.all(table)) lines.push(cols.map((c) => csvCell((r as Record<string, unknown>)[c])).join(","));
   return lines.join("\r\n") + "\r\n";

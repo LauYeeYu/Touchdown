@@ -174,6 +174,7 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 
 - The stored schema version is in `manifest.json` (JSON tables) or the `meta` table (SQLite, server backends).
 - Migration steps are defined once in core (add column, rename column, add table, transform values). Each backend has a runner: JSON tables rewrite the files; SQL backends run generated DDL plus data updates.
+- Built so far: adding columns (`MIGRATIONS` and `upgradeTableFile` in core). Table files and backups from an older version are upgraded as they are read, and written in the current version from then on; opening a JSON tables folder moves its manifest to the current version.
 - Before migrating, the app writes a backup. Rows' previous forms go to `record_history` with reason `migration` when values are transformed.
 - If the stored version is newer than the app understands, the app opens read-only and asks the user to reload.
 

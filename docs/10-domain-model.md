@@ -40,6 +40,7 @@ Every user table has these, in addition to its own columns:
 | `rev` | integer | +1 on every change. |
 | `updatedAt` | datetime | UTC (`Z`). |
 | `updatedBy` | text | Device id. |
+| `basedOn` | text | The version (its `updatedAt`, `updatedBy` and `rev`) of another device's row this one was edited from, kept through later edits on the same device; null for a row only this device has edited. Sync uses it to tell an edit made on top of a version from one made beside it ([12](12-storage-and-sync.md), "Sync algorithm"). |
 | `deleted` | boolean | Tombstone. Kept so deletes sync. |
 
 Reference tables and `track_points` do not have them (reference data is replaced as a whole; track points are replaced with their track).
@@ -291,3 +292,8 @@ The values of `storageBackend` and `storageAdapter` come from one registry in co
 ## Schema versions
 
 The schema has a single version number. Every change (new column, rename, new table, type change) bumps it and comes with a migration step defined once in core. Each backend applies the step in its own way ([12](12-storage-and-sync.md)).
+
+| Version | Change |
+|---------|--------|
+| 1 | First version. |
+| 2 | `basedOn` system column. |

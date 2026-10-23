@@ -47,6 +47,9 @@ export const systemColumns = [
   c.integer("rev", { required: true }),
   c.datetime("updatedAt", { required: true }),
   c.text("updatedBy", { required: true }),
+  // The version of another device's row this one was edited from, kept through later edits on this device, so sync
+  // can tell an edit made on top of a version from one made beside it (docs/12, "Sync algorithm").
+  c.text("basedOn"),
   c.boolean("deleted", { required: true }),
 ] as const;
 

@@ -66,3 +66,42 @@ describe("backups", () => {
     expect(tableCsv(store, "flights", true)).toContain("0000000000009/1");
   });
 });
+
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { rowVersion, SCHEMA_VERSION, Store } from "../src/index.ts";
+
+describe("schema versions", () => {
+  it("reads a backup written before basedOn existed", () => {
+    const store = newStore();
+    store.insert("flights", { flightNumber: "XY1" });
+    // Rewrite the backup as version 1 wrote it: no basedOn column, schema version 1.
+    const files = unzipSync(backupZip(store));
+    for (const [path, data] of Object.entries(files)) {
+      const json = JSON.parse(strFromU8(data));
+      json.schemaVersion = 1;
+      if (Array.isArray(json.columns)) {
+        json.columns = json.columns.filter((c: string) => c !== "basedOn");
+        for (const r of json.rows) delete r.basedOn;
+      }
+      files[path] = strToU8(JSON.stringify(json));
+    }
+    const back = readBackup(zipSync(files));
+    expect(SCHEMA_VERSION).toBeGreaterThan(1);
+    expect(back.problems).toEqual([]);
+    expect(back.tables.get("flights")?.[0]).toMatchObject({ flightNumber: "XY1", basedOn: null });
+  });
+
+  it("records which other device's version an edit was based on, through later edits", () => {
+    const a = new Store({ deviceId: "dev_a", now: () => Date.parse("2026-01-01T00:00:00Z") });
+    const b = new Store({ deviceId: "dev_b", now: () => Date.parse("2026-01-01T00:00:05Z") });
+    const f = a.insert("flights", { flightNumber: "XY1" });
+    expect(f.basedOn).toBeNull();
+    expect(a.update("flights", f.id, { seat: "1A" }).basedOn).toBeNull();
+    b.applyRemote("flights", [a.peek("flights", f.id)!]);
+    const fromA = rowVersion(a.peek("flights", f.id)!);
+    expect(b.update("flights", f.id, { seat: "2B" }).basedOn).toBe(fromA);
+    expect(b.update("flights", f.id, { seat: "3C" }).basedOn).toBe(fromA);
+    b.remove("flights", f.id);
+    expect(b.peek("flights", f.id)?.basedOn).toBe(fromA);
+  });
+});

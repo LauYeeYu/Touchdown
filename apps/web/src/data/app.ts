@@ -32,7 +32,7 @@ import {
 import { db } from "./db.ts";
 import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
 
-export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "deleted"> = {
+export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "deleted"> = {
   distanceUnit: "km",
   theme: "system",
   codeDisplay: "iata",
@@ -232,7 +232,7 @@ export class AppData {
 
   settings(): Settings {
     const row = this.store.get("settings", "settings");
-    return (row ?? { ...DEFAULT_SETTINGS, id: "settings", rev: 0, updatedAt: toUtcIso(0), updatedBy: "", deleted: false }) as Settings;
+    return (row ?? { ...DEFAULT_SETTINGS, id: "settings", rev: 0, updatedAt: toUtcIso(0), updatedBy: "", basedOn: null, deleted: false }) as Settings;
   }
 
   updateSettings(patch: Partial<Settings>) {
