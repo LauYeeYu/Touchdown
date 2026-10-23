@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RefIndex } from "@touchdown/core";
 import { refTables } from "../../core/test/fixtures.ts";
-import { openSkyFacts, parseOpenSkyRow, splitOpenSkyLine } from "../src/providers/opensky.ts";
+import { openSkyEvidence, openSkyFacts, parseOpenSkyRow, splitOpenSkyLine } from "../src/providers/opensky.ts";
 
 const ref = new RefIndex(refTables);
 
@@ -26,5 +26,10 @@ describe("OpenSky snapshot rows", () => {
   it("reads the end of a row whose middle has an extra comma", () => {
     const r = parseOpenSkyRow(shifted)!;
     expect(r).toMatchObject({ registration: "N2002X", serialNumber: "29001", typecode: "B752", lineNumber: "", model: "" });
+  });
+
+  it("gives a spotting session the type, model and operator, the operator only from a row that splits cleanly", () => {
+    expect(openSkyEvidence(parseOpenSkyRow(aligned)!, ref)).toMatchObject({ source: "opensky", typeCode: "A21N", model: "A321-271NX", operator: "DAL", operatorName: "Delta Air Lines", asOf: "2024-01-01" });
+    expect(openSkyEvidence(parseOpenSkyRow(shifted)!, ref)).toMatchObject({ typeCode: "B752", operator: null });
   });
 });

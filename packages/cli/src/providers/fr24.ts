@@ -9,7 +9,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { canonicalMaker, registrationMatchForm, type AirframeFacts, type RefIndex } from "@touchdown/core";
+import { canonicalMaker, modelFromSource, registrationMatchForm, type AirframeFacts, type Evidence, type RefIndex } from "@touchdown/core";
 import { ChromeTab } from "../chrome.ts";
 import type { Provider, ProviderResult } from "../airframes.ts";
 
@@ -70,6 +70,45 @@ export function fr24Facts(registration: string, page: Fr24Page, ref: RefIndex, u
   };
 }
 
+/** "BA / BAW" → "BAW": the ICAO code where the page gives one. */
+function codeOf(v: string | null, ref: RefIndex): string | null {
+  if (!v) return null;
+  const codes = v.split("/").map((c) => c.trim().toUpperCase()).filter((c) => /^[A-Z0-9]{2,3}$/.test(c));
+  const icao = codes.find((c) => c.length === 3 && ref.operatorByCode(c)?.icao === c);
+  if (icao) return icao;
+  const iata = codes.find((c) => c.length === 2 && ref.operatorByCode(c));
+  return iata ? (ref.operatorByCode(iata)!.icao ?? iata) : null;
+}
+
+/**
+ * What the page says for a spotting session. The airline is the brand the aircraft flies for (its colours);
+ * the operator holding the certificate, when different, goes in the note.
+ */
+export function fr24Evidence(registration: string, page: Fr24Page, ref: RefIndex, url: string): Evidence | null {
+  const get = (re: RegExp) => page.rows.find(([k, v]) => re.test(k) && v && v !== "-")?.[1] ?? null;
+  const code = get(/^TYPE CODE$/i);
+  const typeCode = code && ref.type(code) ? code.toUpperCase() : null;
+  const model = get(/^AIRCRAFT$/i);
+  // The first "Code" row belongs to the airline, the second to the operator.
+  const codes = page.rows.filter(([k]) => /^Code$/i.test(k)).map(([, v]) => v);
+  const airline = get(/^AIRLINE$/i);
+  const operator = get(/^OPERATOR$/i);
+  const airlineCode = codeOf(codes[0] ?? null, ref);
+  if (!typeCode && !model && !airlineCode) return null;
+  const facts = fr24Facts(registration, page, ref, url);
+  return {
+    source: "fr24",
+    typeCode,
+    model: modelFromSource(model, typeCode, ref),
+    operator: airlineCode,
+    operatorName: airline,
+    asOf: page.fetchedAt.slice(0, 10),
+    note: operator && airline && operator !== airline ? `operated by ${operator}${codes[1] ? ` (${codes[1]})` : ""}` : null,
+    facts,
+    url,
+  };
+}
+
 const READ_DETAILS = `JSON.stringify({
   title: document.title,
   rows: [...document.querySelectorAll("label")].map((l) => [l.textContent.trim(), (l.nextElementSibling?.textContent ?? "").trim()]).filter(([k]) => k)
@@ -77,9 +116,11 @@ const READ_DETAILS = `JSON.stringify({
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function fr24Provider(ref: RefIndex, opts: Fr24Options): Provider {
+export const fr24Url = (registration: string) => `https://www.flightradar24.com/data/aircraft/${encodeURIComponent(registration.toLowerCase())}`;
+
+/** Reads aircraft pages one at a time through the user's Chrome, with a pause between pages and a cache. */
+export function fr24Pages(opts: Fr24Options) {
   let tab: ChromeTab | null = null;
-  let stopped: string | null = null;
   let last = 0;
   const cachePath = (reg: string) => join(opts.cacheDir, "fr24", registrationMatchForm(reg) + ".json");
   const read = async (reg: string, url: string): Promise<Fr24Page | { blocked: string }> => {
@@ -103,14 +144,26 @@ export function fr24Provider(ref: RefIndex, opts: Fr24Options): Provider {
     return out;
   };
   return {
+    read,
+    async close() {
+      await tab?.close();
+      tab = null;
+    },
+  };
+}
+
+export function fr24Provider(ref: RefIndex, opts: Fr24Options): Provider {
+  const pages = fr24Pages(opts);
+  let stopped: string | null = null;
+  return {
     id: "fr24",
     name: "Flightradar24",
     prefer: [],
     gives: ["msn"],
     async lookup(registration): Promise<ProviderResult> {
       if (stopped) return { kind: "blocked", reason: stopped };
-      const url = `https://www.flightradar24.com/data/aircraft/${encodeURIComponent(registration.toLowerCase())}`;
-      const page = await read(registration, url);
+      const url = fr24Url(registration);
+      const page = await pages.read(registration, url);
       if ("blocked" in page) {
         stopped = page.blocked;
         return { kind: "blocked", reason: page.blocked };
@@ -118,8 +171,6 @@ export function fr24Provider(ref: RefIndex, opts: Fr24Options): Provider {
       const facts = fr24Facts(registration, page, ref, url);
       return facts ? { kind: "found", candidates: [facts] } : { kind: "none" };
     },
-    async close() {
-      await tab?.close();
-    },
+    close: pages.close,
   };
 }
