@@ -3144,6 +3144,88 @@ a.btn--primary {
   color: var(--ink-3);
 }
 
+.history-row > .history-row__actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.section--waiting + .dropzone {
+  margin-top: 24px;
+}
+
+/* ---------- column mapping (Import) ---------- */
+
+.column-mapping {
+  margin-top: 24px;
+}
+
+.column-mapping__kind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.column-mapping__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.column-mapping__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* An unclear column: the one the user should look at. */
+.column-mapping__row.is-unclear {
+  /* The shading reaches out past the row, so its text and select line up with the rows around it. */
+  margin: 4px -12px;
+  padding: 10px 12px;
+  border-bottom: 0;
+  border-radius: 12px;
+  background: var(--surface-low);
+}
+
+.column-mapping__name {
+  display: grid;
+  min-width: 0;
+}
+
+.column-mapping__name small {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.column-mapping__name .column-mapping__why {
+  color: var(--ink-2);
+  white-space: normal;
+}
+
+.column-mapping__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  .column-mapping__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .lead--flight + .chips {
   margin-top: 20px;
 }
@@ -3230,6 +3312,263 @@ a.btn--primary {
   color: var(--ink-2);
 }
 
+.commit-bar .btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* A page with a commit bar (the import review) has its own main action; the floating Add button would cover it. */
+body:has(.commit-bar) .fab-wrap,
+body:has(.column-mapping) .fab-wrap {
+  display: none;
+}
+
+.agent-panel + .chips {
+  margin-top: 16px;
+}
+
+.diff-note {
+  color: var(--ink-3);
+}
+
+/* ---------- agent check (components/AgentCheck.tsx, docs/22) ---------- */
+
+/* The panel on the Import page, between the summary and the row filters: a tonal box with numbered steps. */
+.agent-panel {
+  max-width: 880px;
+  margin: 20px 0 4px;
+  padding: 18px 20px 20px;
+  border-radius: 20px;
+  background: var(--surface-low);
+}
+
+.agent-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.agent-panel__lead {
+  max-width: 70ch;
+  margin: 6px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.agent-panel__note {
+  max-width: 78ch;
+  margin: 14px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.agent-panel__error {
+  margin: 10px 0 0;
+  font-size: 0.875rem;
+  color: var(--alert);
+}
+
+.agent-panel .button-row {
+  margin-top: 14px;
+}
+
+/* The steps carry their order, so they are numbered: a 28px tonal disc, the text, then the control under it. */
+.agent-steps {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.agent-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 12px;
+  counter-increment: step;
+}
+
+.agent-steps li::before {
+  content: counter(step);
+  grid-row: span 2;
+  align-self: start;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--surface-highest);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.agent-steps__text {
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.agent-steps li > .btn,
+.agent-command {
+  grid-column: 2;
+  justify-self: start;
+}
+
+/* The command to run, in a tonal box with a copy button at its end. The app's sans face, as everywhere. */
+.agent-command {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 4px 4px 14px;
+  border-radius: 12px;
+  background: var(--surface-highest);
+}
+
+.agent-command code {
+  overflow-x: auto;
+  font-family: inherit;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.agent-command__copy {
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+
+/* A row's suggestions, under its findings: tonal boxes with the change, the reason, and Use or Dismiss. */
+.suggestions {
+  display: grid;
+  gap: 6px;
+  width: calc(100% - 104px);
+  margin: 10px 0 0 104px;
+  padding: 0;
+  list-style: none;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 12px;
+  background: var(--surface-low);
+  transition: background-color 160ms var(--ease), opacity 160ms var(--ease);
+}
+
+.suggestion__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.suggestion__change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.suggestion__change b {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.suggestion__field {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.suggestion__old {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--rule-hover);
+  overflow-wrap: anywhere;
+}
+
+.suggestion__arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.suggestion__reason {
+  max-width: 80ch;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.suggestion__meta {
+  color: var(--ink-3);
+}
+
+.suggestion__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.suggestion__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.suggestion__state .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* Used: the selection tint, as for anything chosen. Dismissed: faded. */
+.suggestion.is-used {
+  background: var(--selected-container);
+}
+
+.suggestion.is-used .suggestion__change,
+.suggestion.is-used .suggestion__state {
+  color: var(--on-selected-container);
+}
+
+.suggestion.is-dismissed {
+  opacity: 0.6;
+}
+
+.suggestion--note {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+.form-subsection {
+  margin: 24px 0 4px;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.check--block {
+  display: flex;
+  margin-top: 16px;
+}
+
+.history-row--muted > span {
+  color: var(--ink-3);
+}
+
 .sources {
   margin: 8px 0 0;
   padding-left: 18px;
@@ -3249,14 +3588,14 @@ a.btn--primary {
   border-top: 2px dashed var(--flown);
 }
 
-.dev-note {
+.note-bar {
   border-bottom: 1px solid var(--rule);
   background: var(--paper-2);
   font-size: 0.875rem;
   color: var(--ink-2);
 }
 
-.dev-note__bar {
+.note-bar__bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -3264,7 +3603,7 @@ a.btn--primary {
   padding: 8px 0;
 }
 
-.dev-note__bar > span {
+.note-bar__bar > span {
   flex: 1 1 320px;
 }
 
@@ -3362,9 +3701,23 @@ a.btn--primary {
 
   .review-row__fills,
   .review-row .table--diff,
-  .review-row .findings {
+  .review-row .findings,
+  .suggestions {
     margin-left: 0;
     width: 100%;
+  }
+
+  .suggestion {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .suggestion__actions {
+    justify-content: flex-end;
+  }
+
+  .agent-panel {
+    padding: 16px;
   }
 
   .review-row__head {
@@ -3407,7 +3760,7 @@ a.btn--primary {
 }
 
 .sample-note,
-.dev-note {
+.note-bar {
   background: var(--surface-low);
   border-bottom-color: transparent;
 }

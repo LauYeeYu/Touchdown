@@ -91,7 +91,7 @@ describe("import pipeline", () => {
     expect(store.count("airframes")).toBe(2);
 
     const log = parseSource(readCsv(LOG), "log.csv", ref)!;
-    expect(log.format).toBe("flight_log_sheet");
+    expect(log.format).toBe("sheet");
     const c0 = log.candidates[0]!;
     expect(c0.values).toMatchObject({ bookingClass: "L", fareBrand: "Main Cabin", model: "777-322(ER)", ticketNumber: "0000000000001/1", boardingAt: "2025-03-14T10:00+00:00" });
     expect(c0.airframeFacts.firstFlightDate).toBe("2016-04-12");
@@ -125,7 +125,7 @@ N888ZZ,45001,KBOS,DLH,US,Boeing,B757,B752,B757-2Q8,Parked,,
 N777AA,,KBOS,Private Owner,US,Boeing,B737,B738,B737-8H4,Parked,Retro Livery,
 D-ABCD,45001,KBOS,DLH,Germany,Boeing,B757,B752,B757-2Q8,Parked,,`;
     const src = parseSource(readCsv(csv), "photos.csv", ref)!;
-    expect(src.format).toBe("spotting_sheet");
+    expect(src.format).toBe("sheet");
     const [a, b, us, c, de] = src.candidates as Extract<(typeof src.candidates)[number], { table: "sightings" }>[];
     expect(us!.issues).toEqual([]);
     expect(de!.issues).toEqual([]);
