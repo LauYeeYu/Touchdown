@@ -369,6 +369,26 @@ components:
   map-style-switch-selected:
     backgroundColor: "{colors.selected-container}"
     textColor: "{colors.on-selected-container}"
+  agent-panel:
+    backgroundColor: "{colors.surface-low}"
+    rounded: "{rounded.card}"
+    padding: "18px 20px 20px"
+  agent-step-number:
+    backgroundColor: "{colors.surface-highest}"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.pill}"
+    size: "28px"
+  agent-command:
+    backgroundColor: "{colors.surface-highest}"
+    textColor: "{colors.ink}"
+    rounded: "12px"
+  suggestion:
+    backgroundColor: "{colors.surface-low}"
+    rounded: "12px"
+    padding: "10px 10px 10px 14px"
+  suggestion-used:
+    backgroundColor: "{colors.selected-container}"
+    textColor: "{colors.on-selected-container}"
   card:
     backgroundColor: "{colors.surface-low}"
     textColor: "{colors.ink}"
@@ -642,6 +662,11 @@ Photo cards borrowed from a gallery: the photo sits flush on top, the caption bl
 - **Gallery:** auto-fill grid with 240px minimum columns and 20px by 16px gaps; a scroll-snap strip on phones.
 - **First run:** start items and the import drop zone are 24px tonal panels on `surface-low` (`surface-mid` on hover); the main start item uses the selection container. The drop zone keeps a dashed `rule-hover` outline.
 
+### Agent check
+On the Import page, between the summary sentence and the row filters, a `surface-low` panel with 20px corners, at most 880px wide: a 1rem 650 title, a 0.9375rem `ink-2` sentence, then three numbered steps. Each step has a 28px `surface-highest` disc with its number (0.8125rem, 650, `ink-2`), its sentence in ink, and its control below: a small quiet button (Save the request, Load the result), or the command in a 12px-cornered `surface-highest` box in the app's sans face at 0.875rem, scrolling sideways when long, with a 32px copy button at its end. A 0.8125rem `ink-3` line under the steps says what is sent and what never is. Once a result is loaded the panel shrinks to a sentence of counts, a note on rejected or missing answers, and a row of small buttons (use the high-confidence suggestions, show those rows, load another result, remove the check); errors are 0.875rem in `alert`.
+
+Each suggestion sits under its row's findings, indented like them (104px; none on phones): a `surface-low` box with 12px corners holding the field label (0.8125rem 600 `ink-3`), the current value struck through in `ink-3`, a 14px arrow, the suggested value in ink at 650, and below it the reason in 0.8125rem `ink-2` followed by the confidence and source in `ink-3`. Use (small quiet button) and Dismiss (small ghost button) sit at the right; on phones they move under the text, aligned right. A used suggestion takes the selection container with its text in `on-selected-container` and a "Used" mark with a check; a dismissed one fades to 60%; both offer Undo. A row the agent doubts without a suggestion shows its note in an outlined box (a 1px `rule` ring, no fill).
+
 ### Findings
 Check results as tonal boxes: 16px corners (12px in the compact list), no border, 12px 14px padding, `surface-low` fill, an 18px icon in `ink-3` beside the text at 0.9375rem. An error finding sits on the alert wash with its icon in alert red and a written word, never colour alone.
 
@@ -677,6 +702,12 @@ Four equal cells (boarding, takeoff, landing, duration) between hairlines, with 
 
 ### Tooltips and toasts
 Tooltips use their own tokens (`tip-bg`, `tip-ink`, `tip-edge`, `tip-muted`). On the light theme the tooltip and the toast are both inverted: ink background, paper text, pop shadow. On the dark theme the tooltip is not inverted (a bright box on a dark page glares): it sits on a raised dark surface (`tip-bg-dark` #3d3b33) with ink text, muted lines in `tip-muted-dark` (#c8c2b5) and a 1px edge at 10% ink; the toast stays inverted. Tooltips are 0.8125rem, 8px 10px padding, 10px corners, max 280px, with muted lines in `tip-muted`; they rise 4px into place over 120ms and never take the pointer. Toasts sit centred 28px above the bottom edge, 14px 20px padding, 12px corners, rising 12px over 180ms; they announce politely to assistive technology.
+
+### Column mapping
+The Import page's column step: a sentence ("The rows are") with a two-chip choice (Aircraft you saw / Flights you took), then one row per column: the header in 650 weight over three sample values in `ink-3` at 0.8125rem (cut with an ellipsis), and a 240px select at the right. An unclear column takes a `surface-low` band with 12px corners that reaches 12px past the row, so its text and select stay aligned, and a line "Unclear: …" in `ink-2`. On phones the select drops under the name. The primary "Read the rows" is disabled while the mapping cannot read rows, with the reason in a status line above it. One component (`ColumnMapping`).
+
+### Note bar
+A full-width band under the masthead for something waiting on the user (spotting sessions to import; in development, a newer local backup). `surface-low` ground, 0.875rem text in `ink-2`, an icon, the sentence, then a quiet button for the action and a ghost "Not now". It wraps on phones with the buttons under the text. One component (`NoteBar`) for every such note.
 
 ### Status lines
 A row of icon plus sentence at 0.9375rem in `ink-2`, the icon nudged 3px down to sit on the first line. Passed checks use a circle-check icon in `good`; a finding uses an info icon with the text in ink and a bold lead word ("Needs a look."). Import provenance uses the info icon in the default tone.

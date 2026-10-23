@@ -8,7 +8,7 @@ Every import, from any source, goes through the same stages. Nothing is written 
 
 ```
 1. Read        file or sheet → raw rows (kept in the ImportBatch)
-2. Detect      recognise the format by its header → column mapping (editable)
+2. Detect      the myFR24 export by its header; any other sheet → column mapping (worked out, editable, remembered)
 3. Parse       each row → candidate record: raw values + normalised values
 4. Match       compare with existing records → new | identical | update | conflict
 5. Resolve     link to airframes (11)
@@ -62,31 +62,46 @@ Seat number,Seat type,Flight class,Flight reason,Note,Dep_id,Arr_id,Airline_id,A
 
 Confirmed against a real export. The file starts with an empty line before the header; the parser must skip leading blank lines.
 
-## Source: the flight log and spotting spreadsheets
+## Source: any spreadsheet
 
-- The user picks each sheet with the Google Picker; this grants access to that file only (`drive.file`).
-- Read with the Sheets API as unformatted values, so dates arrive as serial numbers and are converted exactly.
-- Only the data tab is read (the `Data` tab of the spotting spreadsheet, the first tab of the flight log). Summary and pivot tabs are ignored; the app recomputes them.
-- Column mapping is preset from [01](01-existing-data.md).
-- If the spreadsheets are no longer available in Google, export them as CSV (or `.xlsx`) first; the file goes through the same preset mapping.
+Decided, built. Every spreadsheet other than the myFR24 export is read through a column mapping: which column holds which field. Nothing is fixed to one person's layout. The owner's two sheets were read by fixed readers until this reader gave the same result on both, field for field; they are now ordinary layouts like anyone's.
 
-Special parsing:
+**Working out the columns** (`guessMapping`, core `import/mapping.ts`):
+- A header the reader knows decides, when the values agree. Header names are compared lower case with punctuation removed, and each field has several ("Registration", "Reg", "Tail number"; "Location", "Airport", "Place"; "Misc", "Other", "Remarks" for notes or free text, …).
+- A column without a known header is placed by its values when most of them fit one field: registrations, type designators, flight numbers, models, phases, seats, dates, durations, clock times, airport codes, airline codes. Type designators are tried before flight numbers ("A21N" would pass for both).
+- A header the values contradict ("Aircraft type" holding type designators), a second column for a field that only one column can hold, a field of the other kind (a gate in a file of sightings), and a column nothing explains are marked **unclear** and not used until someone says what they are.
+- Whether the rows are flights or sightings follows from the columns placed with some confidence: a flight number, airports from and to, times, a seat or a class make flights.
+- Rows can be read when sightings have a registration column, and flights a date and a flight number (or both airports).
+
+**Settling unclear columns:**
+
+| Where | How |
+|-------|-----|
+| Import page | A column step lists every column with three of its values and what it was read as; unclear ones are marked with the reason. The user changes any of them, says whether the rows are sightings or flights, and reads the rows. Shown only when something is unclear or rows cannot be read; otherwise the review says how the columns were read, with "Change the columns". |
+| Terminal (`spot`, `check`, `import`) | The columns are printed. `--map "Header=field"` (or a column number) sets one. At a terminal, each unclear column is asked about. If the user has chosen an agent, it is asked first about the unclear columns only ([22](22-agent-verification.md), "Column help"); its readings are proposals the user confirms. `import` asks nothing: unclear columns are not used. |
+| Remembered | A layout the user confirms is kept by its headers: in the browser for the Import page, in `data/private/touchdown-cli.json` for the terminal. The same layout is then read without asking. |
+
+**Reading rows**, per field, whatever the column is called:
 
 | Field | Rule |
 |-------|------|
-| Class (flights) | Single letter → `bookingClass`. Text → `fareBrand`. A letter in parentheses inside text (`Main Classic (T)`) → both. |
-| Misc (flights) | Copied to `notes` as is. |
-| Misc (sightings) | Text ending in "Livery" while Special Livery is empty → suggest `livery` (regular variant, e.g. an airline's alternate standard colour scheme). "Partial body", "Too far" → tags. "Taken this aircraft..." → dropped after import, because the app derives it; kept in notes until the user confirms. Other text → `notes`. |
-| Status (sightings) | Touching-down → `landing`, Taking-off → `taking_off`, others lowercased. |
-| Boarding Time, Departure Time, Landing Time (flights) | Clock times only. Combined with the Date into full date-times `boardingAt`, `takeoffAt`, `landingAt`; see "Building date-times from clock times". Departure/Landing mean takeoff/touchdown, as in Flightradar24. |
-| Aircraft (both) | Parsed from the compact or standard style into the standard form (D4). |
-| Country (sightings) | Not stored; it is the registration country. Compared with the country derived from the registration prefix; differences are flagged. |
-| First Flight Date (flights) | Goes to the airframe as a user-supplied fact, not to the flight. |
-| ETKT (flights) | `ticketNumber` (private). |
+| Date | A date, a spreadsheet serial number, `15/03/2025` (day first) or `15-Mar-2025`. For flights, the scheduled date. |
+| Class or fare (flights) | Single letter → `bookingClass`. Text → `fareBrand`. A letter in parentheses inside text (`Main Classic (T)`) → both. |
+| Boarding, takeoff, landing times (flights) | Clock times only (or Excel day fractions). Combined with the date into full date-times `boardingAt`, `takeoffAt`, `landingAt`; see "Building date-times from clock times". Takeoff and landing mean wheels off and touchdown, as in Flightradar24. |
+| Model (both) | Parsed from the compact or standard style into the standard form (D4). |
+| Phase (sightings) | Touching-down → `landing`, Taking-off → `taking_off`, other known words; anything else is stored as `other` with a note. |
+| Notes and other text | Flights: copied to `notes`. Sightings: split into photo tags ("Partial body", "Too far", "Night", "Backlit", "Blurry"), a livery (a part ending in "Livery" while there is no special livery: a regular variant, such as an airline's alternate standard scheme) and notes. In `spot`, the agent also sorts it into fields. |
+| Registration country (sightings) | Not stored; it is the registration country. Compared with the country of the registration prefix; differences are flagged. |
+| Distance (flights) | Not stored; compared with the great-circle distance. |
+| Aircraft's first flight (flights) | Goes to the airframe as a fact the user supplied, not to the flight. |
+| Ticket number, booking reference (flights) | Private fields: stored, never shown in samples, never sent to an agent. |
+| Not used | Manufacturer and family (derived from the type), route (derived from the airports), photo links. |
+
+From Google Sheets (with sync, phase 3): the user picks each sheet with the Google Picker, which grants access to that file only (`drive.file`); it is read with the Sheets API as unformatted values, so dates arrive as serial numbers and are converted exactly. Until then, export the sheet as CSV or `.xlsx`.
 
 ## Building date-times from clock times
 
-The sheets and the myFR24 export store a date and separate clock times. Touchdown stores only full date-times ([10](10-domain-model.md)), so the importer combines them:
+Spreadsheets and the myFR24 export store a date and separate clock times. Touchdown stores only full date-times ([10](10-domain-model.md)), so the importer combines them:
 
 1. Start from the row's date, which is the **scheduled** departure date (`scheduledDate`).
 2. Takeoff: date + takeoff clock time in the origin airport's time zone.
@@ -120,11 +135,63 @@ The same flights are in both the FR24 export and the flight log spreadsheet. The
 
 Comparing the times of matched flights also answers Q-FR24-TIMES (local or UTC).
 
-## Source: generic CSV
+## Source: spotting session (`touchdown spot`)
 
-- Upload, pick a delimiter and encoding (auto-detected), map columns to fields.
-- Mappings can be saved as presets (in settings).
-- Known presets: Touchdown CSV export, myFR24, Flighty export (header known), the two sheets.
+Decided, built (CLI). Instead of typing a row into the spotting spreadsheet and looking each registration up by hand, the user types what they saw and the CLI fills in the rest. The agent is the one the user chose ([22](22-agent-verification.md), "Choosing the agent").
+
+```
+./touchdown spot [--at EGLL] [--on 2025-03-15] [--fr24] [--agent codex|none]
+```
+
+| Step | What happens |
+|------|--------------|
+| Type | One aircraft per line: the registration and anything else known, in any order (`G-ABCD landing`, `D-ABCD at EDDF DLH A20N "Retro livery"`). A line with only a place, date or phase sets it for the lines after it; `no phase` clears the phase. Lines can also be given as arguments or piped in. |
+| Read | Recognised: registrations (with or without the dash; without it only in capitals, so words are not read as registrations), airports (ICAO, or IATA after "at"), dates (`today`, `yesterday`, `2025-03-15`, `15/03/2025`), phases, airline codes (ICAO, or IATA in capitals), type designators and models. The rest is kept as text. |
+| Look up | Per registration: the user's log (a backup; `data/private/touchdown-backup.zip` by default, `--log FILE` for another), the OpenSky snapshot (downloaded once), adsbdb (answers cached for 90 days) and, with `--fr24`, Flightradar24 through the user's Chrome (Q-FR24-BROWSER). |
+| Fill | What the user typed is kept. An empty type code or model takes the value from the source kept most up to date (Flightradar24, adsbdb, OpenSky, then the user's log). An empty airline takes the value from the source whose date is nearest the sighting's, since aircraft change hands. A model is kept only when it fits the type (the model patterns in [13](13-reference-data.md)). The user's log never vouches for the sighting itself (the same aircraft, day and place). |
+| Compare | A source that says something else is listed, except where it is no real difference: a model given only as its series (`777-300(ER)` for a `777-31H(ER)`), under its type certificate's name (`BD-500-1A11` for an `A220-300`) or without a suffix (`(ER)`, `(BDSF)`, `SF`, `E`); and an airline from OpenSky or adsbdb against one the user typed, since those give the company that operates the aircraft, not the airline whose colours it wears (Q-SPOT-AIRLINE). A source whose type is of another family is flagged as probably another aircraft with the same registration (or a mistyped type); its model, airline and serial number are not used. |
+| Check | The agent ([22](22-agent-verification.md)) gets the batch with each source's answer and the words Touchdown could not place. It sorts those words into fields (special livery, livery, phase, …) and the rest into notes. It picks between sources that disagree, and notes anything doubtful, such as an aircraft retired before the date. |
+| Use or ask | Used straight away: values a source gave, words sorted into fields, and fixes from the reference data the agent is sure of. Asked about: a change to anything the user typed, anything from the agent's own knowledge, and wanted fields that are still empty (date, place, type code, airline, phase). The user can type a doubted line again to correct it. Without a terminal, these are listed instead of asked. |
+| Correct | ↑ and ↓ bring back earlier lines, also from earlier sessions (kept in `data/private/cache/spot-history.txt`). A line brought back and changed replaces the aircraft it came from; when the registration changed, the user is asked first. `edit N` brings back line N, `drop N` removes it, `list` shows the session's aircraft. The same aircraft typed again for the same place and day replaces the earlier line (one sighting, Q-SIGHTING-UNIT). Tab completes commands, phases, registrations from the log and airport codes after "at". |
+| Save | An empty line checks the lines typed so far and saves them to the session's inbox file, `data/private/inbox/spot-<date>-<time>.json` (or `--out`). |
+| A spreadsheet | `spot FILE.xlsx` (or `.csv`) reads a sheet of sightings in any layout ("Source: any spreadsheet") and treats each row as a typed line: lookups (adsbdb only for aircraft OpenSky does not know), the agent's check, no questions per row. Before an agent check of more than 50 rows it says how many calls that is and lets the user go on without the agent. Everything still open goes to the review in the web app. The inbox file is `sheet-<date>-<time>-<file name>.json`. |
+
+The inbox file (`touchdown-inbox`, version 1) has, per sighting:
+- the values, named as in the agent check;
+- where each value came from: `you`, `your_log`, `opensky`, `adsbdb`, `fr24`, `derived` (the type from a typed model), `claude` or `codex`;
+- what is still open, in words, and which fields the user left empty;
+- the airframe facts a lookup gave: serial number, maker, line number, first flight.
+
+### Getting a session to the web app
+
+A session's sightings are not in the log until the user reviews and imports them in the web app (Decided: review first, Q-SPOT-ARRIVAL). The CLI says so after every save and when the session ends.
+
+**The inbox is a queue.** Each session is one file, rewritten on every save and written only by its session; a session that saves nothing writes no file. A file leaves the inbox once it is imported (into `imported/`, kept 30 days), when the user discards it, or when all its sightings are in the log already (imported some other way). So the inbox holds only the sessions not dealt with yet. A session that goes on saving after its file was imported writes the file again; matching (stage 4) skips the sightings already in the log.
+
+**In development (Decided, built).** The dev server reads `data/private/inbox/` (`/__local/inbox`, requests from this computer carrying the app's header only). The web app looks at it when it opens, when its tab comes back into view, and every 30 seconds:
+- a bar under the masthead says how many sightings are waiting, with "Review and import" (opens the oldest session on the Import page) and "Not now" (hides it in this tab until the session saves more);
+- the Import page lists the waiting sessions, each with Review and Discard;
+- the CLI checks whether the dev server is running and says where to go.
+
+**On the hosted site (Decided, built in phase 3 with sync).** The inbox is `Touchdown/inbox/` in the user's Google Drive ([12](12-storage-and-sync.md)):
+1. `touchdown login` signs the CLI in to Google once. It uses the installed-app flow, from the same Google Cloud project as the web app, with the same `drive.file` scope. The token stays in `data/private/`.
+2. `spot` uploads its session file to the inbox through the Drive API on every save. Writing into a Google Drive for Desktop folder would not do, because the web app's `drive.file` access does not reach files another app created (Q-DRIVE-CLI).
+3. The web app, on any device, lists the inbox during sync. It shows the same bar and list, and after an import it copies the file to `attachments/imports/<batchId>/` and deletes it from the inbox. If the session saves again after that, the CLI finds its file gone and uploads a new one.
+4. `spot` reads the user's log from Drive for its "your log" lookups, instead of the local backup file.
+
+**Importing.** The Import page reads the inbox like any other file (stages 4–10). What is still open shows as a warning on the row. The agent check panel is not shown, because the session already ran the check. On commit:
+- the records get `sourceKind` `manual`;
+- each value that came from somewhere other than the user's typing gets a `field_provenance` row:
+
+  | Came from | `source` | `detail` |
+  |-----------|----------|----------|
+  | A lookup | `lookup` | the provider |
+  | The user's log | `derived` | `your log` |
+  | The agent | `agent` | `claude` or `codex` |
+- the airframe facts are checked against the user's records and stored on the airframe, as in [13](13-reference-data.md), "Airframe facts";
+- the batch records the agent (`agentChecker`) and how many rows the agent changed (`rowsEdited`).
+
+Open: typing in the web app instead of the terminal, which needs the local bridge or the lookup service (phase 4).
 
 ## Source: Touchdown backup
 

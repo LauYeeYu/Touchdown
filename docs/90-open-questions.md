@@ -18,7 +18,7 @@ None. Phase 1 test data is in `data/private/`.
 | Id | Check | Phase |
 |----|-------|-------|
 | Q-FR24-IMPORT | Does myFR24 import accept fewer than 19 columns? Must airline names match FR24's names exactly? Test with a 2-row file. | 7 |
-| Q-AGENT-FLAGS | Does Claude Code `--json-schema` work with all tools disabled? Which Codex features must be disabled in the installed version? | 5 |
+| Q-DRIVE-CLI | With the `drive.file` scope, does a file the CLI creates through its own OAuth client (installed-app type, same Google Cloud project as the web client) show up for the web app's token? If not, the web app must create the inbox folder and the CLI must be given access to it. Test before building the inbox upload. | 3 |
 | Q-DRIVE-QUOTA | Recheck Google's announced 2026 Drive API quota and charge changes before launch. | 3 |
 
 ## Answered
@@ -47,6 +47,10 @@ None. Phase 1 test data is in `data/private/`.
 | Q-FIRST-FLIGHT | Exact first flight dates can be read automatically only with a site's permission or paid data. Ask or pay, or keep the paste flow? | Keep the paste flow ([13](13-reference-data.md), "Airframe facts"). |
 | Q-FR24-MONTH | Store FR24's age month (a month, not a day), for example as a first-flight month column? | No. A first flight date is stored only when the exact day is known; FR24's month is used only as a loose check (it is not always the first flight). |
 | Q-FR24-BROWSER | Read Flightradar24 aircraft pages through the user's own signed-in Chrome (remote debugging), although FR24's terms allow only a human-operated browser? | Yes, as an opt-in CLI option (`--fr24`) for the user's own lookups, slow and cached, stopping at any bot check. Airfleets, aviation.flights and planespotters are not read this way. |
+| Q-SPOT-AIRLINE | When a lookup fills a sighting's airline and Flightradar24 names both an airline and a different operator (a regional company flying in a larger airline's colours), which one is the sighting's airline? | The airline whose colours the aircraft wears (FR24 "AIRLINE"). The operating company goes to the agent as a note. |
+| Q-SHEET-LAYOUT | Should importing depend on the owner's spreadsheet layouts? | No. Any spreadsheet is read through a column mapping worked out from headers and values; the user confirms unclear columns; the agent helps only with unclear columns, and only when one is chosen. The owner's two fixed readers were removed once the general reader gave the same result on both sheets. |
+| Q-AGENT-DEFAULT | Is an agent used by default? | No. The first run of `spot` or `check` asks, with no agent as the default; `./touchdown agent` changes it. |
+| Q-SPOT-ARRIVAL | How do sightings typed with `touchdown spot` reach the web app? | They wait for review: a bar and a list on the Import page, then Import. On the hosted site they travel through `Touchdown/inbox/` in the user's Google Drive; the CLI signs in to Google once and uploads each session. |
 | Q-PLANNED | Planned (future) flights? | Not supported. |
 | Q-MOBILE | Phone support? | Web app in Chrome on Android. No iOS support needed. |
 | Q-MODELS | Track die-cast models? | No. Misc is a note to the user; import it as notes. |
@@ -54,4 +58,5 @@ None. Phase 1 test data is in `data/private/`.
 | — | How generic is storage? | One structured schema for every backend; Drive backends JSON tables or SQLite file (user chooses); later local SQLite, Postgres / Supabase, Cloudflare D1. |
 | — | Spelling? | UK English in copy, docs, and comments. |
 | — | Type and colour constraints for the interface? | Sans-serif only; keep the warm paper ground #FAF8F1 (white acceptable, not preferred); support dark mode. |
+| Q-AGENT-FLAGS | Does Claude Code `--json-schema` work with all tools disabled? Which Codex features must be disabled? | Claude Code 2.1: the answer comes through the `StructuredOutput` tool, so `--disallowedTools "*"` blocks it; use `--tools "" --allowedTools StructuredOutput`. Codex 0.156: turn off every feature that is on except a short list of plumbing features; with that, structured output and stdin work. Details in [22](22-agent-verification.md). |
 | Q-ACCESS | How is the hosted site gated? | Cloudflare Access: allowlist of invited emails; sign in with Google or a one-time email code; the Worker also checks the Access token on `/api/*`. |

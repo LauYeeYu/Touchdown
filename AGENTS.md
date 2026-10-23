@@ -8,7 +8,7 @@ Touchdown is a personal aircraft log: flights the user has flown on and aircraft
 
 ## Status
 
-The plan in `docs/` is approved. Building phase 1 (core on real data) and phase 2 (web app on one device) from `docs/40-roadmap.md`. When the code and a doc disagree, ask the user which one is right, then fix the other.
+The plan in `docs/` is approved. Phase 1 (core on real data) and phase 2 (web app on one device) from `docs/40-roadmap.md` are built, and so are the agent check of phase 5 (file hand-off) and the CLI spotting session (`touchdown spot`, a first part of phase 4's lookups). When the code and a doc disagree, ask the user which one is right, then fix the other.
 
 ## Docs
 
@@ -33,6 +33,7 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 
 ## Data rules
 
+- Imports are not tied to anyone's spreadsheet layout. Only the my.flightradar24.com export has a fixed reader; every other sheet goes through the column mapping in `packages/core/src/import/mapping.ts`. To read a new layout, add header names or value rules there, not a new reader.
 - The schema in `packages/core/schema` is the single source of truth for stored data. No ad-hoc fields, no nested free-form JSON; lists are child tables. Storage code is generic over backends.
 - Every precise time is an ISO 8601 date-time with UTC offset (`2025-03-15T00:12+01:00`). Never store a time without its date. Plain dates (`YYYY-MM-DD`) only for values that are dates by nature or where only the day is known.
 
@@ -46,6 +47,8 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 
 One npm workspace (`packages/*`, `apps/*`). Packages are consumed as TypeScript source; there is no build step for them.
 
+Setup and day-to-day use for people are in `README.md`. `./touchdown <command>` (a launcher at the repo root) is the same as `npm run touchdown -- <command>` without npm's banner; `./touchdown help` lists the commands.
+
 | Command | Does |
 |---------|------|
 | `npm install` | Install all workspace dependencies. |
@@ -54,6 +57,9 @@ One npm workspace (`packages/*`, `apps/*`). Packages are consumed as TypeScript 
 | `npm run touchdown -- import <files…>` | Phase 1 CLI: import files, print findings and summary statistics. `--apply-fixes` accepts single suggested fixes first; `--out backup.zip` writes a backup the web app can restore. |
 | `npm run touchdown -- import <files…> --tracks DIR --tracks-adsblol DIR --airframes --out data/private/touchdown-backup.zip` | Build the owner's local backup, recorded tracks and airframe facts (OpenSky) included. |
 | `npm run touchdown -- airframes data/private/touchdown-backup.zip [--fr24] --out data/private/touchdown-backup.zip` | Fill serial numbers and first flight dates in an existing backup (docs/13, "Airframe facts"). `--fr24` also reads Flightradar24 through a Chrome started with `--remote-debugging-port=9222` and signed in. |
-| `npm run dev -w @touchdown/web` | Web app dev server at http://127.0.0.1:5173. In development only, an empty browser loads `data/private/touchdown-backup.zip` once; a hard refresh (Shift-reload) or the button in Settings loads it again; the production build contains none of this. |
+| `npm run dev -w @touchdown/web` | Web app dev server at http://127.0.0.1:5173. In development only, it lists spotting sessions waiting in `data/private/inbox/` for review and import, and an empty browser loads `data/private/touchdown-backup.zip` once; a hard refresh (Shift-reload) or the button in Settings loads it again; the production build contains none of this. |
+| `./touchdown check <request.json \| file.xlsx> [--agent claude\|codex] [--limit N] [--dry-run]` | Agent check (docs/22): runs Claude Code or Codex, locked down, over a check request saved from the Import page or over a spreadsheet, and writes `<name>.result.json` for the Import page. `--dry-run` shows what would be sent. Uses the user's own agent subscription. |
+| `./touchdown agent [claude\|codex\|none]` | Show or choose the agent for `spot` and `check` (saved in `data/private/touchdown-cli.json`; the first run of either asks, with no agent as the default). `--agent` overrides it for one run. |
+| `./touchdown spot [LINE… \| FILE.xlsx] [--at AIRPORT] [--fr24] [--agent codex\|none] [--map H=FIELD]` | Spotting session (docs/21): type aircraft one per line, or read a spreadsheet of sightings in any layout; each registration is looked up (the user's log, OpenSky, adsbdb, Flightradar24 with `--fr24`), empty fields are filled, the agent checks them, and what is still missing is asked for. Writes an inbox file in `data/private/inbox/` for the Import page. |
 | `npm run build -w @touchdown/web` | Type-check and build the web app into `apps/web/dist`. |
 | `npm run build-data -w @touchdown/refdata` | Rebuild the reference tables in `packages/refdata/data/`. |

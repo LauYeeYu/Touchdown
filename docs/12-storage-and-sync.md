@@ -104,6 +104,8 @@ Touchdown/
     imports/<batchId>/<original file name>   the source file of an import, unchanged
   checks/
     <batchId>.request.json / .result.json     agent check hand-off (22)
+  inbox/
+    spot-<date>-<time>.json   a spotting session from the CLI, waiting to be imported (21); removed once imported
   backups/
     <YYYY-MM-DD>/...       daily copy of manifest + tables, last 14 kept
 ```
@@ -129,7 +131,7 @@ Table file format:
 
 Size check: 1,000 flights ≈ 1 MB; 10,000 sightings ≈ 5 MB. One file per table is fine at that size. If a table passes 10 MB, it is split by year (`sightings.2026.json`), listed in the manifest.
 
-Why a visible folder and not Drive's hidden `appDataFolder`: the user can see, download, and back up the files, and the companion CLI can read them through Google Drive for Desktop.
+Why a visible folder and not Drive's hidden `appDataFolder`: the user can see, download, and back up the files, and the companion CLI can read them through Google Drive for Desktop. The CLI writes (the inbox) through the Drive API, signed in to the same Google Cloud project: with `drive.file`, the web app does not see files another app, such as Drive for Desktop, created (Q-DRIVE-CLI).
 
 ## File backend: SQLite file
 

@@ -28,7 +28,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 3: Sync
 
-- Deliver: `packages/storage` with the backend interface, both file backends (JSON tables, SQLite file) and conversion between them, Google Drive adapter, sync engine with pending queue and conflict list, local-folder adapter, offline support (PWA), daily backups, schema migration mechanism.
+- Deliver: `packages/storage` with the backend interface, both file backends (JSON tables, SQLite file) and conversion between them, Google Drive adapter, sync engine with pending queue and conflict list, local-folder adapter, offline support (PWA), daily backups, schema migration mechanism. The CLI as a Drive client: `touchdown login`, `spot` uploading its sessions to `Touchdown/inbox/` and reading the log from Drive; the web app picking the inbox up during sync ([21](21-import-export.md)).
 - Done when:
   - Two devices editing at the same time converge with no lost edits (scripted test with simulated races).
   - The app works offline and syncs on reconnect.
@@ -38,6 +38,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Deliver: Cloudflare Access gate and Access-token check in the Worker, airframe index build, lookup service, auto-fill suggestions, external rules (X-), reference links to airfleets / planespotters / aviation.flights.
 - Done when: most of the user's records link to confirmed airframes, the provisional share is reported, and auto-fill never overwrites a user value.
+- Built so far: `touchdown spot` looks registrations up from the CLI (the user's log, the OpenSky snapshot, adsbdb, Flightradar24 opt-in) and fills sightings typed in a session ([21](21-import-export.md)).
 
 ## Phase 5: Agent check
 

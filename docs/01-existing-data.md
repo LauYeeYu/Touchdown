@@ -2,6 +2,8 @@
 
 The formats of the data the owner kept before Touchdown, and how each maps to the new model. This doc is self-contained: the original spreadsheets will not stay available, so their structure and rules are recorded here.
 
+Touchdown has no reader fixed to these spreadsheets: they are read like any other through a column mapping ([21](21-import-export.md), "Source: any spreadsheet"), whose header names cover the columns below. The column tables here record what each column means.
+
 This doc contains no personal data. Examples are made up. The actual values, summary numbers, and issues found in the owner's data are kept in `data/private/` (git-ignored) and are used as test expectations in phase 1.
 
 ## Sources
