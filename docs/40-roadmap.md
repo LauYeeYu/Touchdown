@@ -28,7 +28,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 3: Sync
 
-- Deliver: `packages/storage` with the backend interface, both file backends (JSON tables, SQLite file) and conversion between them, Google Drive adapter, sync engine with pending queue and conflict list, local-folder adapter, offline support (PWA), daily backups, schema migration mechanism. The CLI as a storage client, through the same backend interface as the web app: `spot` writing its sessions to the inbox and reading the log from the user's storage (`touchdown login` for Google Drive); the web app picking the inbox up during sync ([21](21-import-export.md)).
+- Deliver: `packages/storage` with the backend interface, both file backends (JSON tables, SQLite file) and conversion between them, Google Drive adapter, sync engine with pending queue and conflict list, local-folder adapter, offline support (PWA), daily backups, schema migration mechanism. The CLI as a storage client, through the same backend interface as the web app: `spot` writing its sessions to the inbox and reading the log from the user's storage (`touchdown login` for Google Drive); the web app picking the inbox up during sync ([21](21-import-export.md)). The Private and Local modes, the mode choice at first run and the `dataMode` setting ([32](32-modes-and-sharing.md)); Standard is offered from phase 8.
 - Done when:
   - Two devices editing at the same time converge with no lost edits (scripted test with simulated races).
   - The app works offline and syncs on reconnect.
@@ -55,6 +55,16 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Deliver: pivot builder and saved views, combined stats, per-year summary, myFR24 export, Google Sheets export, onboarding guide for friends.
 - Done when: a friend can start from zero with their own Google account and import a myFR24 CSV.
+
+## Phase 8: Standard mode and sharing
+
+- Deliver: Standard mode ([32](32-modes-and-sharing.md)): connecting storage through the Worker (Google Drive first), encrypted keys in D1, the terms with recorded acceptance, mode changes in Settings, share links of the four kinds with the three audiences, the public share page, Settings "Sharing and access".
+- Needs: phase 3 (storage and sync) and the Access gate and Worker of phase 4. Does not depend on phases 5–7.
+- Done when:
+  - Leaving Standard stops every link at once, revokes the key with the provider and leaves no row for the user on the server (scripted test).
+  - A link opens only for its audience; any other request, a guessed id included, gets the same "not found".
+  - No token appears in logs, responses or the browser (test with a canary token).
+  - The public page serves nothing but public links' content.
 
 ## Later (not scheduled)
 

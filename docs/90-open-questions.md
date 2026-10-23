@@ -11,6 +11,8 @@ None. Phase 1 test data is in `data/private/`.
 | Id | Question | Phase | Proposed default |
 |----|----------|-------|------------------|
 | Q-SERVER-DB | For the later server backends (Postgres / Supabase, Cloudflare D1): does each user bring their own instance, or does the owner host one for friends (their data would then sit in the owner's account)? | Later | Each user brings their own. |
+| Q-TERMS-TEXT | The owner reviews the draft terms in [32](32-modes-and-sharing.md) before Standard mode launches. Does the text also need a lawyer's review? | 8 | The owner's review is enough for a small invited group. |
+| Q-USER-REMOVAL | When the owner removes someone from the allowlist, what happens to their Standard-mode data on the server? | 8 | Deleted with a command for the operator; their links stop. |
 | Q-PHOTO-PICKER | Use the Google Photos Picker to fill a sighting's date and time from a photo? (Google does not provide the photo's location.) | Later | Not in the first version. |
 
 ## Implementation checks (not for the user)
@@ -19,6 +21,8 @@ None. Phase 1 test data is in `data/private/`.
 |----|-------|-------|
 | Q-FR24-IMPORT | Does myFR24 import accept fewer than 19 columns? Must airline names match FR24's names exactly? Test with a 2-row file. | 7 |
 | Q-DRIVE-CLI | With the `drive.file` scope, does a file the CLI creates through its own OAuth client (installed-app type, same Google Cloud project as the web client) show up for the web app's token? If not, the web app must create the inbox folder and the CLI must be given access to it. Test before building the inbox upload. | 3 |
+| Q-ACCESS-BYPASS | Can a second Access application on `/p/*` with a Bypass policy sit beside the main application, the more specific path winning, with no other path left open? Test before building the public page. | 8 |
+| Q-DRIVE-SERVER | Does a refresh token from the authorisation-code flow (same web client, `drive.file`) reach the files the browser created with the token flow, and the other way round? | 8 |
 | Q-DRIVE-QUOTA | Recheck Google's announced 2026 Drive API quota and charge changes before launch. | 3 |
 
 ## Answered
@@ -50,6 +54,12 @@ None. Phase 1 test data is in `data/private/`.
 | Q-SPOT-AIRLINE | When a lookup fills a sighting's airline and Flightradar24 names both an airline and a different operator (a regional company flying in a larger airline's colours), which one is the sighting's airline? | The airline whose colours the aircraft wears (FR24 "AIRLINE"). The operating company goes to the agent as a note. |
 | Q-SHEET-LAYOUT | Should importing depend on the owner's spreadsheet layouts? | No. Any spreadsheet is read through a column mapping worked out from headers and values; the user confirms unclear columns; the agent helps only with unclear columns, and only when one is chosen. The owner's two fixed readers were removed once the general reader gave the same result on both sheets. |
 | Q-STORAGE-ANY | Should features rely on Google Drive? | No. Drive is the first storage backend, not the only one. Sync, the CLI's inbox, the agent check hand-off and anything added later go through the backend interface, so they work on every backend (S7). |
+| Q-MODES | How does the hosted site treat users' data? | Three modes: Standard (recommended; Touchdown's server keeps a key to the user's storage, for share links and easy sync), Private (sync, no key on the server, no sharing) and Local (this browser only). Private and Local are for users who want more privacy. Users can switch at any time. |
+| Q-MODE-DEFAULT | Which mode does a new user start in? | The first run asks, with Standard preselected. Declining its terms leads to Private or Local; Local warns that the log can be lost. |
+| Q-SHARE-AUDIENCE | Who can open a shared link? | The sharer chooses per link: chosen invited users, every invited user, or anyone with the link (a public page, the only route outside the sign-in). |
+| Q-SHARE-SCOPE | What can be shared? | One flight or sighting, an aircraft, statistics for a period, the whole log. |
+| Q-BACKEND-FIELD | Is the storage backend recorded? | Yes, in the user's settings and, in Standard mode, on the server, ready for new backends and for moving between them (S8). |
+| Q-CSS-VERSION | How does a new deployment's CSS reach browsers? | Every stylesheet link carries `?v=<build date-time>`, so it reloads without depending on the browser's cache. |
 | Q-AGENT-DEFAULT | Is an agent used by default? | No. The first run of `spot` or `check` asks, with no agent as the default; `./touchdown agent` changes it. |
 | Q-SPOT-LIVERY | When the log has an aircraft in a special livery, is a new sighting of it filled with that livery? | No, the user is asked each time (spot, quick add, session add), since special liveries are painted over. Records already in the log that lack a livery the aircraft surely wore are found by C-LIVERY-MISSING, with a fix. |
 | Q-SPOT-ARRIVAL | How do sightings typed with `touchdown spot` reach the web app? | They wait for review: a bar and a list on the Import page, then Import. On the hosted site they travel through the inbox in the user's storage, whatever the backend (with Google Drive, the CLI signs in to Google once and uploads each session). |

@@ -180,7 +180,7 @@ A session's sightings are not in the log until the user reviews and imports them
 |---------|------------------------|
 | Google Drive | `touchdown login` signs the CLI in to Google once, with the installed-app flow from the same Google Cloud project as the web app and the same `drive.file` scope. The token stays in `data/private/`. Writing into a Google Drive for Desktop folder would not do, because the web app's `drive.file` access does not reach files another app created (Q-DRIVE-CLI). |
 | Local folder | The CLI is given the folder's path once and writes into its `inbox/` directly. (Proposed) |
-| This browser only | There is no shared place. `spot` saves the session file and the user opens it on the Import page. (Proposed) |
+| Local mode (this browser only) | There is no shared place. `spot` saves the session file and the user opens it on the Import page. (Proposed) |
 | Server backends (later) | The CLI signs in to the backend and writes to its `inbox` area. (Proposed) |
 
 1. `spot` writes its session file to the inbox on every save.

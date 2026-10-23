@@ -28,6 +28,7 @@ How the parts fit together. Built on the decisions in [12](12-storage-and-sync.m
 | Storage package | Inside the web app and the CLI | Moves the user's rows between the local store and the chosen backend | Decided (generic, schema-driven; see 12) |
 | Companion CLI | User's computer | Reads check requests only | Decided (local CLI) |
 | Lookup service | Cloudflare Worker | No. It sees registrations and flight numbers being looked up, not who asked. | Decided (Q-LOOKUP) |
+| Accounts and sharing | The same Worker, with Cloudflare D1 | Standard mode only: the user's email, an encrypted key to their storage, the terms accepted, their links' settings. Never the log. | Decided ([32](32-modes-and-sharing.md)) |
 | Reference data build | Developer machine / CI | No | Proposed |
 
 ## Why a lookup service
@@ -86,12 +87,12 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 
 ## Security and privacy
 
-- Access gate (U3, decided, Q-ACCESS): Cloudflare Access sits in front of the whole Worker, so the app's files, every page, and `/api/*` all require sign-in. Only an allowlist of invited email addresses gets through. Sign-in methods: Google or a one-time code by email; neither is tied to where the user keeps their data. No login code in the app itself, and no passwords stored anywhere. Cloudflare Zero Trust is free for small teams; recheck the user limit before launch.
+- Access gate (U3, decided, Q-ACCESS): Cloudflare Access sits in front of the whole Worker, so the app's files, every page, and `/api/*` all require sign-in. Only an allowlist of invited email addresses gets through. Sign-in methods: Google or a one-time code by email; neither is tied to where the user keeps their data. No login code in the app itself, and no passwords stored anywhere. The one exception to the gate is the public share page `/p/<id>` ([32](32-modes-and-sharing.md)), which serves one public link's content and nothing else. Cloudflare Zero Trust is free for small teams; recheck the user limit before launch.
 - Defence in depth: the Worker verifies the `Cf-Access-Jwt-Assertion` token on every `/api/*` request (signature, audience, expiry) and refuses requests without a valid one, so the lookup service cannot be called from outside even if its address leaks.
-- Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
+- Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). In Standard mode the server makes the connection and keeps an encrypted key ([32](32-modes-and-sharing.md)). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
 - The installed app (PWA) keeps working offline from its cache; when the Access session expires, the next online request sends the user through sign-in again.
-- No user accounts on our side beyond the Access allowlist; connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
-- OAuth tokens stay in browser memory. No refresh tokens on any server.
+- No user accounts on our side beyond the Access allowlist, except a Standard-mode user's account row ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
+- Private mode: OAuth tokens stay in browser memory, and no refresh token is on any server. Standard mode: one refresh token per user, encrypted, never logged or returned to a browser ([32](32-modes-and-sharing.md)).
 - Strict Content Security Policy. No third-party analytics or ads.
 - Private fields (ticket number, booking reference) never leave the user's storage and browser except in exports the user asks for with "include private fields".
 - All imported text is treated as untrusted: escaped in the UI, never used as HTML, formula-guarded on CSV export.
@@ -105,7 +106,13 @@ Cloudflare Access         allowlist of invited users; sign in with Google or an 
      static assets        apps/web build output + reference JSON + airframe index shards
                           (single-page-app fallback for unknown paths)
      /api/*               lookup service (13); checks the Access token on every request
-     secrets              provider API keys, set by the owner with `wrangler secret put`
+     /api/storage/*       Standard mode: connecting storage, short-lived tokens (32)
+     /api/shares/*        Standard mode: links and their content (32)
+     /shared/<id>         a link for invited users, inside the app
+     /p/<id>              public share page; the only path outside Access (Bypass policy)
+     D1                   Standard-mode accounts, encrypted storage keys, link settings
+     secrets              provider API keys, token encryption key, OAuth client secret,
+                          set by the owner with `wrangler secret put`
 ```
 
 - One Worker serves both the app and the API, so they share one origin: no CORS setup, one deployment.
@@ -113,15 +120,16 @@ Cloudflare Access         allowlist of invited users; sign in with Google or an 
 - Free plan: static asset requests are free and not counted; API requests share 100,000 per day with 10 ms of CPU each. The lookup service mostly waits on upstream servers, which does not count as CPU. The paid plan ($5/month) is the fallback if limits are reached. Recheck the limits before launch.
 - Airframe index shards (about 1,300 small files) ship as static assets. If the plan's per-version file limit is too low, they move to R2.
 - Reference data and the airframe index are rebuilt weekly in GitHub Actions (the source files are about 100 MB, too heavy for a Worker cron), then deployed with `wrangler`.
-- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. Per-upload preview URLs change, so they are not used for sign-in.
+- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. For Standard mode, `/api/storage/callback` on the production origin is also registered under "Authorized redirect URIs" ([32](32-modes-and-sharing.md)). Per-upload preview URLs change, so they are not used for sign-in.
 - Headers: a strict Content Security Policy. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash. No `Cross-Origin-Opener-Policy: same-origin` / COEP isolation, because it would likely break the Google sign-in popup. The SQLite backend therefore uses the `opfs-sahpool` storage mode (or an in-memory database), which needs no cross-origin isolation.
+- Caching (Decided: the version stamp): `index.html` is served with `Cache-Control: no-cache`, so a browser always checks for a new version. Every stylesheet link in it carries `?v=<build date-time>` (UTC, basic ISO 8601, e.g. `20261023T153012Z`), added at build time, so a new deployment reloads the CSS without depending on the browser's cache. Built files also carry a content hash in their names. The service worker (phase 3) fetches `index.html` from the network first.
 - Logs: Worker logs for `/api/*` are kept minimal (no request bodies, no client identifiers), because lookups reveal which aircraft a user is interested in.
-- Cloudflare D1 (a later backend, Q-SERVER-DB) can live in the same account.
-- Not on Cloudflare: user data (each user's storage) and the companion CLI (each user's computer).
+- Cloudflare D1 holds the Standard-mode tables ([32](32-modes-and-sharing.md)). D1 as a storage backend (later, Q-SERVER-DB) can live in the same account.
+- Not on Cloudflare: the log (each user's storage) and the companion CLI (each user's computer). In Standard mode Cloudflare holds an encrypted key to the storage and the links' settings ([32](32-modes-and-sharing.md)).
 
 ## Multi-user
 
-Each friend uses the same hosted web app and their own storage. There is nothing to share between users, so there is no server-side user data. The only shared parts are the static app, the reference data, and the lookup service cache.
+Each friend uses the same hosted web app and their own storage. Server-side user data exists only in Standard mode: an encrypted key to the user's storage and their links' settings ([32](32-modes-and-sharing.md)); the log itself stays in the user's storage. Users see each other's data only through links shared with them. The other shared parts are the static app, the reference data, and the lookup service cache.
 
 ## Cost
 
@@ -129,6 +137,7 @@ Each friend uses the same hosted web app and their own storage. There is nothing
 |------|------|
 | Static hosting, lookup service | Free tier |
 | Access gate (Cloudflare Zero Trust) | Free for small teams |
+| Standard-mode accounts and links (Cloudflare D1) | Free tier |
 | Google Cloud project for OAuth | Free (non-sensitive scope, no verification) |
 | Domain | Optional, about $10/year |
 | Paid data providers | None in the app. Users who have an FR24 subscription can download tracks manually (see 13). |

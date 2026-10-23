@@ -1,6 +1,6 @@
 # 12 Storage and Sync
 
-Where each user's data lives, how it is stored, and how devices stay in sync (requirements S1–S7, U1–U2). The tables themselves are defined in [10](10-domain-model.md).
+Where each user's data lives, how it is stored, and how devices stay in sync (requirements S1–S8, U1–U2). The data modes (Standard, Private, Local) are in [32](32-modes-and-sharing.md). The tables themselves are defined in [10](10-domain-model.md).
 
 ## Decisions
 
@@ -9,6 +9,7 @@ Where each user's data lives, how it is stored, and how devices stay in sync (re
 - First backends, in the user's Google Drive, user's choice: **JSON tables** or a **SQLite file**. (Decided)
 - Later backends: local SQLite file, Postgres / Supabase, Cloudflare D1. The interface is designed for them now; they are built later. (Decided)
 - Google Drive is the first backend, not the platform (S7). Everything that reads or writes the user's data goes through the backend interface below, so it works on every backend: sync, the CLI's inbox, the agent check hand-off, import attachments, and anything added later. No feature relies on what only one service offers, such as Drive's file sharing or Drive for Desktop. Google's own APIs are used only where a Google product is the subject: importing a Google Sheet, exporting to Google Sheets. (Decided)
+- Three data modes ([32](32-modes-and-sharing.md)): Standard (recommended; the server keeps an encrypted key to the storage, for sync and share links), Private (the server keeps nothing) and Local (this browser only, with the manual-file adapter). (Decided)
 - CSV import/export always works, whatever the backend. (Decided)
 - The browser always keeps a full local copy (IndexedDB), so the app works offline and loads fast. (Proposed)
 
@@ -50,7 +51,7 @@ Every backend implements the same row-level interface (TypeScript sketch):
 ```ts
 type Row = { table: string; id: string; rev: number; updatedAt: string; updatedBy: string;
              deleted: boolean; values: Record<string, Scalar> };   // values validated by the schema
-type FileArea = "inbox" | "checks" | "attachments";              // files kept with the log
+type FileArea = "inbox" | "checks" | "attachments" | "shares";   // files kept with the log
 
 interface Backend {
   id: "json_tables" | "sqlite_file" | "sqlite_local" | "postgres" | "d1";
@@ -77,7 +78,7 @@ interface FileAdapter {                                         // used by file 
 
 - File backends implement `pull`/`push` by reading whole files through a file adapter, merging, and writing them back.
 - Server backends implement them with SQL: `pull` selects rows with `updated_at` after the cursor; `push` uses conditional writes (`UPDATE … WHERE id = ? AND rev = ?`) so the database itself detects conflicts.
-- File areas (`inbox`, `checks`, `attachments`) are folders in file backends and a files table (or the provider's file storage) in server backends, so the CLI's inbox and the agent check hand-off work the same on every backend. (Proposed)
+- File areas (`inbox`, `checks`, `attachments`, `shares`) are folders in file backends and a files table (or the provider's file storage) in server backends, so the CLI's inbox and the agent check hand-off work the same on every backend. (Proposed)
 - Validation runs on both sides of every backend: rows that do not match the schema are rejected, never stored.
 
 ## Sync algorithm
@@ -113,6 +114,8 @@ Touchdown/
     <batchId>.request.json / .result.json     agent check hand-off (22)
   inbox/
     spot-<date>-<time>.json   a spotting session from the CLI, waiting to be imported (21); removed once imported
+  shares/
+    <shareId>.json         what a shared link shows, private fields removed (Standard mode, 32)
   backups/
     <YYYY-MM-DD>/...       daily copy of manifest + tables, last 14 kept
 ```
@@ -180,7 +183,7 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 |---------|-----|---------------------|-------|
 | Google Drive | Drive API v3 from the browser, OAuth scope `drive.file`. | Yes | First adapter. Details below. |
 | Local folder | File System Access API (Chromium desktop browsers). | Yes, if the folder is inside a Dropbox / OneDrive / iCloud / Google Drive desktop sync folder. | Gives other sync services on desktop. Not available on Android, so a phone syncs through an adapter that reaches the storage over the internet: Google Drive first, later Dropbox, OneDrive or a server backend. |
-| Manual file | Export a `.zip` of the folder; import it on another device. | Manual | Works everywhere. |
+| Manual file | Export a `.zip` of the folder; import it on another device. | Manual | Works everywhere. The adapter of Local mode. |
 | Dropbox API, OneDrive API | Later, if a friend needs it. | Yes | Dropbox has an "App folder" mode. OneDrive has no per-file scope like `drive.file`. |
 
 CSV export/import per table is available with every backend. It is the fallback the user asked for, and it is lossy for some details (child tables are flattened).
@@ -191,7 +194,7 @@ CSV export/import per table is available with every backend. It is the fallback 
 - With only non-sensitive scopes, Google does not require app verification. Publish the OAuth app as **In production**, not **Testing**: in Testing mode, consent expires after 7 days.
 - Do not request `drive`, `drive.readonly` (restricted), or `spreadsheets` (sensitive). They would trigger verification and a 100-user cap on the unverified-app screen.
 - Reading a user's existing Google Sheets for a one-time import: the user picks the sheet with the Google Picker (with `setAppId` set to the Cloud project number). That grants `drive.file` access to that one file, and the Sheets API accepts it.
-- The OAuth token lives in memory in the browser (Google Identity Services token flow). Nothing is stored on a server.
+- Private mode: the OAuth token lives in memory in the browser (Google Identity Services token flow), and nothing is stored on a server. Standard mode: the server keeps an encrypted refresh token and gives the browser short-lived access tokens ([32](32-modes-and-sharing.md)).
 - Quotas (Drive: 325,000 quota units per minute per user) are far above what a personal log needs. Google announced quota changes and charges above "standard daily thresholds" later in 2026; recheck before launch.
 
 ## What is never stored in user data

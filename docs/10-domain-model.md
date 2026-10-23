@@ -273,9 +273,13 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 | `agentChecker` | enum | `claude`, `codex`, `none` |
 | `sendNotesToAgent` | boolean | Default `false`. |
 | `homeAirportId` | ref airports | Used for defaults. |
+| `dataMode` | enum | `standard`, `private`, `local` ([32](32-modes-and-sharing.md)). |
 | `storageBackend` | enum | `json_tables`, `sqlite_file` (later: `sqlite_local`, `postgres`, `d1`) |
-| `storageAdapter` | enum | `gdrive`, `localfs`, `manual` (file backends only) |
+| `storageAdapter` | enum | `gdrive`, `localfs`, `manual` (file backends only; later `dropbox`, `onedrive`). `manual` is Local mode. |
 | `storageLocation` | text | Folder id or path. Never a token or key. |
+| `storageAccount` | text | The storage account the log is in (for Google Drive, the account's email), so signing in to another account is noticed. Never a token or key. |
+
+The values of `storageBackend` and `storageAdapter` come from one registry in core; a new value is a schema change ([32](32-modes-and-sharing.md), "Recording the backend").
 
 **family_overrides**: `designator` (ref aircraft_types), `familyId` (ref families).
 **agent_rules**: `seq` (integer), `text` (text). The "Importing prompts" list ([22](22-agent-verification.md)).

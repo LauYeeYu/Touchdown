@@ -29,8 +29,12 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | ID | Requirement | Source | Status |
 |----|-------------|--------|--------|
 | U1 | Several users (the owner and friends). | Chat | Decided |
-| U2 | Each user's data is private. No sharing or social features. | Chat | Decided |
-| U3 | The hosted site is gated: nobody reaches the app, its pages, or its API without authenticating, and only invited users are let in. | Chat | Decided: Cloudflare Access (Q-ACCESS) |
+| U2 | Each user's data is private. The only sharing is the links a user in Standard mode makes (U6); no other social features. | Chat | Decided |
+| U3 | The hosted site is gated: nobody reaches the app, its pages, or its API without authenticating, and only invited users are let in. The one exception: a public share link (U6) opens without sign-in and shows only that link's content. | Chat | Decided: Cloudflare Access (Q-ACCESS); public links (Q-SHARE-AUDIENCE) |
+| U4 | Three data modes: Standard (recommended; Touchdown's server keeps a key to the user's storage), Private (no key on the server, no sharing) and Local (this browser only). Users can switch at any time. | Chat | Decided (Q-MODES) |
+| U5 | Before Standard mode is turned on, terms say that Touchdown will have access to the user's storage and how it protects the data; the acceptance is recorded. | Chat | Decided |
+| U6 | In Standard mode a user can share links to one flight or sighting, an aircraft, statistics for a period, or the whole log. The sharer chooses per link who can open it: chosen invited users, every invited user, or anyone with the link. | Chat | Decided (Q-SHARE-SCOPE, Q-SHARE-AUDIENCE) |
+| U7 | The first run asks for the mode, with Standard preselected. Declining its terms leads to Private or Local; Local warns that the log can be lost. | Chat | Decided (Q-MODE-DEFAULT) |
 | S1 | Think through how data is stored. | Doc | Done in [12](12-storage-and-sync.md) |
 | S2 | Data syncs across a user's devices. | Chat | Decided |
 | S3 | Each user's data lives in storage the user owns (Google Drive first), not in a central database. | Chat | Decided |
@@ -38,6 +42,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | S5 | Each user can pick their own sync method. CSV import/export is the fallback that always works. | Chat | Decided |
 | S6 | Storage is generic: one structured schema (typed, flat tables) for every backend, so database backends (local SQLite, Postgres / Supabase, Cloudflare D1) can be added later without changing the data model. | Chat | Decided |
 | S7 | No feature depends on one storage backend. Google Drive is the first backend, not the only one: sync, the CLI's inbox, the agent check hand-off and anything added later work on every backend. | Chat | Decided (Q-STORAGE-ANY) |
+| S8 | The storage backend is recorded, in the user's settings and, in Standard mode, on the server, and these records are ready for new backends and for moving between them. | Chat | Decided (Q-BACKEND-FIELD) |
 
 ## Aircraft identity
 
@@ -84,7 +89,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 ## Out of scope (for now)
 
 - Hosting or serving photos.
-- Social features, friend lists, public profiles (U2).
+- Social features beyond share links: friend lists, feeds, public profiles (U2).
 - A native mobile app. The web app must work in Chrome on Android. iOS is not a target. (Decided)
 - Planned (future) flights. Only flights already flown are logged. (Decided)
 - Tracking a die-cast model collection. The sheet's Misc column is only a note to the user. (Decided)
