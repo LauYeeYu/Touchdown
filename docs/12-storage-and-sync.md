@@ -46,22 +46,23 @@ Decided:
 
 ## Backend interface
 
-Every backend implements the same row-level interface (TypeScript sketch):
+Every backend implements the same row-level interface. Built in `packages/storage` (`src/types.ts`); the server backends' `id` values come later:
 
 ```ts
-type Row = { table: string; id: string; rev: number; updatedAt: string; updatedBy: string;
-             deleted: boolean; values: Record<string, Scalar> };   // values validated by the schema
+type StoredRow = Record<string, unknown>;   // a schema row, system columns included, validated by the schema
 type FileArea = "inbox" | "checks" | "attachments" | "shares";   // files kept with the log
 
 interface Backend {
-  id: "json_tables" | "sqlite_file" | "sqlite_local" | "postgres" | "d1";
+  id: "json_tables" | "sqlite_file";          // later: "sqlite_local" | "postgres" | "d1"
   kind: "file" | "server";
-  open(schema: Schema): Promise<{ schemaVersion: number }>;     // create, or report the stored version
-  migrate(from: number, to: number): Promise<void>;             // applies core migration steps
-  pull(cursor?: Cursor): Promise<{ rows: Row[]; cursor: Cursor }>;
-  push(rows: Row[]): Promise<{ accepted: string[]; conflicts: Row[] }>;
-  readTrack(trackId: string): Promise<TrackPoint[]>;            // large child data, loaded on demand
-  writeTrack(trackId: string, points: TrackPoint[]): Promise<void>;
+  open(): Promise<{ schemaVersion: number; created: boolean }>;  // create, or report the stored version
+  pull(cursor: Cursor): Promise<{
+    tables: Map<TableName, StoredRow[]>;     // every row of each table changed since the cursor
+    changedTracks: string[]; tracks: string[]; problems: string[]; cursor: Cursor }>;
+  push(items: { table: TableName; row: StoredRow; replaces: string[] }[]):
+    Promise<{ written: string[]; present: string[]; conflicts: string[] }>;
+  readTrack(trackId: string): Promise<StoredRow[]>;             // a track's points, replaced as a whole
+  writeTrack(trackId: string, points: StoredRow[]): Promise<void>;
   listFiles(area: FileArea): Promise<FileInfo[]>;                // the CLI's inbox, check hand-off, import sources
   readFile(area: FileArea, name: string): Promise<Uint8Array | null>;
   writeFile(area: FileArea, name: string, data: Uint8Array): Promise<void>;
@@ -86,11 +87,15 @@ interface FileAdapter {                                         // used by file 
 The same for every backend, because it works on rows:
 
 1. **Pull** rows changed since the last cursor (file backends: the whole file, when its version marker changed).
-2. **Merge per row.** Only on one side: keep it. On both sides: the higher `(updatedAt, updatedBy)` wins (last writer wins per row, not per file). If the same row was edited on two devices since the last sync, the losing version goes to `record_history` with reason `sync_conflict` and is listed for review.
+2. **Merge per row.** Only on one side: keep it. On both sides, in different versions:
+   - If one was edited on top of the other, the later one is kept. A row names the other device's version it was edited from (`basedOn`, [10](10-domain-model.md)), and one device's versions of a row follow each other.
+   - Otherwise the row was edited on two devices since they last agreed. The higher `(updatedAt, updatedBy, rev)` wins (last writer wins per row, not per file), and the losing version goes to `record_history` with reason `sync_conflict` and is listed for review. Both devices may notice the same conflict; the kept row's id is made from the conflict, so it is kept once.
 3. **Push** local rows the backend does not have yet.
-4. **Confirm.** A device keeps unsynced rows in a local pending queue until a later pull shows them in the backend. This covers file backends whose storage has no compare-and-swap (Google Drive): if two devices write at nearly the same moment and one write overwrites the other, the overwritten device still has its rows queued and pushes them again.
+4. **Confirm.** A device keeps the rows edited on it in a local queue until the storage shows them back: a later pull, or a push that finds them there already. This covers file backends whose storage has no compare-and-swap (Google Drive): if two devices write at nearly the same moment and one write overwrites the other, the overwritten device still has its rows queued and pushes them again. A confirmed row that an overwrite later removes is found by the next pull (the stored version is older, or was edited beside it) and handled by step 2.
 
-Sync runs on app start, a few seconds after edits, on focus, and every few minutes while the app is open.
+Sync runs on app start, a few seconds after edits, on focus, and every few minutes while the app is open. The first sync after the app starts reads every table file again, not only the changed ones, so an edit whose queue entry was lost (the browser closed before it was saved) is still found and sent.
+
+Built: the sync engine in `packages/storage` (`src/sync.ts`), with a test where three devices edit, sync at the same time with their file reads and writes interleaved, and sometimes write a stale copy back; every run ends with the same log on every device and no edit lost.
 
 ## File backend: JSON tables
 
