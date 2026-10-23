@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "upda
   theme: "system",
   codeDisplay: "iata",
   modelNaming: "standard",
-  agentChecker: "none",
+  agentChecker: "claude",
   sendNotesToAgent: false,
   homeAirportId: null,
   storageBackend: "json_tables",
@@ -397,8 +397,9 @@ export class AppData {
     });
   }
 
-  commitImport(source: ParsedSource, matches: Match[], decisions: Map<number, CommitDecision>) {
-    const r = commitImport(this.store, this.ref, source, matches, decisions);
+  /** `agent`: the fields each row's accepted agent suggestions set (docs/22), recorded with their provenance. */
+  commitImport(source: ParsedSource, matches: Match[], decisions: Map<number, CommitDecision>, agent?: { checker: "claude" | "codex"; fields: Map<number, string[]> }) {
+    const r = commitImport(this.store, this.ref, source, matches, decisions, { agent });
     this.resolve();
     this.notify();
     return r;

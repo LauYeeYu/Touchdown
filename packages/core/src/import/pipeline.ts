@@ -7,6 +7,7 @@ import type { Candidate, ParsedSource } from "./candidate.ts";
 import { flightDay } from "../derive.ts";
 import { addDays, instant, parseDateTime, toUtcIso } from "../time/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
+import { applyAirframeFacts as applyLookupFacts } from "../identity/facts.ts";
 
 export type MatchKind = "new" | "identical" | "update" | "conflict" | "duplicate";
 
@@ -230,24 +231,30 @@ export function commitImport(
   source: ParsedSource,
   matches: Match[],
   decisions: Map<number, CommitDecision> = new Map(),
-  opts: { fileHash?: string; now?: number } = {},
+  opts: {
+    fileHash?: string;
+    now?: number;
+    /** Values taken from an agent check (docs/22): the stored fields each row's accepted suggestions set, by row index. */
+    agent?: { checker: "claude" | "codex"; fields: Map<number, string[]> };
+  } = {},
 ): CommitResult {
   return store.batch(() => {
     const now = opts.now ?? Date.now();
     const batch = store.insert("import_batches", {
       createdAt: toUtcIso(now),
-      sourceKind: source.format === "fr24_csv" ? "fr24_csv" : "sheet",
+      sourceKind: source.format === "fr24_csv" ? "fr24_csv" : source.format === "touchdown_inbox" ? "manual" : "sheet",
       fileName: source.fileName,
       fileHash: opts.fileHash ?? null,
       mappingPreset: source.format,
       rowsRead: source.rowsRead,
-      agentChecker: "none",
+      agentChecker: opts.agent?.checker ?? source.agentChecker ?? "none",
       status: "committed",
     });
     const result: CommitResult = { batchId: batch.id, created: 0, updated: 0, skipped: 0, merged: 0 };
     addNamedOperators(store, ref, matches.map((m) => m.candidate));
     const facts: { table: "flights" | "sightings"; id: string; facts: Candidate["airframeFacts"] }[] = [];
     const recordOf = new Map<number, string>();
+    const agentRows = new Set<number>();
 
     matches.forEach((m, i) => {
       const d = decisions.get(i) ?? {};
@@ -258,6 +265,7 @@ export function commitImport(
       }
       const c = m.candidate;
       let id: string;
+      let written: Set<string>;
       const target = m.kind === "duplicate" && !d.keepSeparate && m.duplicateOf !== null ? recordOf.get(m.duplicateOf) : undefined;
       if (m.kind === "duplicate" && target && c.table === "sightings") {
         mergeSighting(store, target, c.values, c.tags, batch.id, now);
@@ -268,6 +276,7 @@ export function commitImport(
       if (m.kind === "new" || m.kind === "duplicate") {
         const row = store.insert(c.table, { ...c.values, sourceBatchId: batch.id } as never);
         id = row.id;
+        written = new Set(Object.entries(c.values).filter(([, v]) => v !== null && v !== undefined && v !== "").map(([k]) => k));
         result.created++;
       } else {
         const existing = store.get(c.table, m.existingId)!;
@@ -286,6 +295,7 @@ export function commitImport(
         for (const f of d.takeIncoming ?? []) patch[f] = (c.values as Record<string, unknown>)[f];
         store.update(c.table, existing.id, patch as never);
         id = existing.id;
+        written = new Set(Object.keys(patch));
         result.updated++;
       }
       recordOf.set(i, id);
@@ -298,16 +308,26 @@ export function commitImport(
         for (const tag of c.tags) if (!have.has(tag)) store.insert("sighting_tags", { sightingId: id, tag });
       }
       if (Object.keys(c.airframeFacts).length) facts.push({ table: c.table, id, facts: c.airframeFacts });
+      for (const field of opts.agent?.fields.get(i) ?? []) {
+        store.insert("field_provenance", { ownerTable: c.table, ownerId: id, field, source: "agent", detail: opts.agent!.checker, recordedAt: toUtcIso(now) });
+        agentRows.add(i);
+      }
+      // Values a spotting session took from a lookup or the agent, for the fields this row wrote.
+      for (const p of c.provenance ?? []) {
+        if (!written.has(p.field) || opts.agent?.fields.get(i)?.includes(p.field)) continue;
+        store.insert("field_provenance", { ownerTable: c.table, ownerId: id, field: p.field, source: p.source, detail: p.detail, recordedAt: toUtcIso(now) });
+        if (p.source === "agent") agentRows.add(i);
+      }
     });
 
     store.update("import_batches", batch.id, {
       rowsAccepted: result.created + result.updated,
       rowsRejected: result.skipped,
-      rowsEdited: 0,
+      rowsEdited: agentRows.size,
     });
 
     resolveAirframes(store, ref);
-    applyAirframeFacts(store, facts, source.fileName, now);
+    applyAirframeFacts(store, ref, facts, source.fileName, now);
     return result;
   });
 }
@@ -336,10 +356,12 @@ function addNamedOperators(store: Store, ref: RefIndex, candidates: Candidate[])
 /** Facts typed next to a record (the flight log's First Flight Date) belong to the airframe. */
 function applyAirframeFacts(
   store: Store,
+  ref: RefIndex,
   facts: { table: "flights" | "sightings"; id: string; facts: Candidate["airframeFacts"] }[],
   fileName: string,
   now: number,
 ) {
+  let looked = false;
   for (const f of facts) {
     const rec = store.get(f.table, f.id);
     const a = rec?.airframeId ? store.get("airframes", rec.airframeId) : null;
@@ -355,7 +377,13 @@ function applyAirframeFacts(
         recordedAt: toUtcIso(now),
       });
     }
+    // Facts a lookup gave (a spotting session): checked against the user's records before they are stored.
+    if (f.facts.lookup) {
+      applyLookupFacts(store, ref, a.id, f.facts.lookup);
+      looked = true;
+    }
   }
+  if (looked) resolveAirframes(store, ref);
 }
 
 export interface UndoResult {

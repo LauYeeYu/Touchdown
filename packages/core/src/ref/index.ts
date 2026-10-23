@@ -152,6 +152,11 @@ export class RefIndex {
     return list.some((p) => p.re.test(model));
   }
 
+  /** Example models in the standard form for a type ("A321-271NX"), as the model patterns give them. */
+  modelExamples(designator: string): string[] {
+    return (this.patterns.get(designator.toUpperCase()) ?? []).map((p) => p.source.example).filter(Boolean);
+  }
+
   /** Type designators whose patterns match a standard-form model. */
   typesForModel(model: string): string[] {
     const out: string[] = [];
