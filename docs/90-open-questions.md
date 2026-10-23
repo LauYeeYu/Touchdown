@@ -59,6 +59,7 @@ None. Phase 1 test data is in `data/private/`.
 | Q-SHARE-AUDIENCE | Who can open a shared link? | The sharer chooses per link: chosen invited users, every invited user, or anyone with the link (a public page, the only route outside the sign-in). |
 | Q-SHARE-SCOPE | What can be shared? | One flight or sighting, an aircraft, statistics for a period, the whole log. |
 | Q-BACKEND-FIELD | Is the storage backend recorded? | Yes, in the user's settings and, in Standard mode, on the server, ready for new backends and for moving between them (S8). |
+| Q-DEPLOY | How is the site deployed, and when? | Cloudflare (Worker with static assets, Access, later D1). GitHub Actions deploys on every push to `master`, with a Cloudflare API token kept as a GitHub secret. The Worker config, custom domain included, is committed. The first deployment comes after phase 3 (sync). |
 | Q-CSS-VERSION | How does a new deployment's CSS reach browsers? | Every stylesheet link carries `?v=<build date-time>`, so it reloads without depending on the browser's cache. |
 | Q-AGENT-DEFAULT | Is an agent used by default? | No. The first run of `spot` or `check` asks, with no agent as the default; `./touchdown agent` changes it. |
 | Q-SPOT-LIVERY | When the log has an aircraft in a special livery, is a new sighting of it filled with that livery? | No, the user is asked each time (spot, quick add, session add), since special liveries are painted over. Records already in the log that lack a livery the aircraft surely wore are found by C-LIVERY-MISSING, with a fix. |
