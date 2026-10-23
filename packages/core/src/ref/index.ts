@@ -25,6 +25,14 @@ export function looksLikeOperatorName(raw: string | null | undefined): boolean {
   return !PRIVATE_OWNER_RE.test(v) && (/[a-z]/.test(v) || /\s/.test(v) || v.length > 3);
 }
 
+/**
+ * The city to show. OurAirports often adds a district, province or another name in brackets
+ * ("Shanghai (Minhang)", "Foggia (FG)", "Gqeberha (Port Elizabeth)"); the table keeps them for search.
+ */
+export function cityName(a: Pick<Airport, "city"> | null | undefined): string | null {
+  return a?.city?.replace(/\s*\(.*\)\s*$/, "").replace(/\s+/g, " ").trim() || null;
+}
+
 function within(date: string | null | undefined, from: string | null, to: string | null): boolean {
   if (!date) return true;
   return (!from || from <= date) && (!to || date <= to);

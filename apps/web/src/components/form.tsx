@@ -2,7 +2,7 @@
 // the date next to the time (requirement G8).
 
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Airport, Operator, RefIndex } from "@touchdown/core";
+import { cityName, type Airport, type Operator, type RefIndex } from "@touchdown/core";
 
 export function Field({ label, hint, children, wide }: { label: string; hint?: ReactNode; children: ReactNode; wide?: boolean }) {
   return (
@@ -153,7 +153,7 @@ export function Picker({ value, onChange, options, placeholder, label, resolved,
 
 export function airportOptions(ref: RefIndex) {
   return (q: string) =>
-    searchAirports(ref, q).map((a) => ({ value: a.iata ?? a.icao ?? a.id, label: a.city ? `${a.city} · ${a.name}` : a.name, detail: [a.iata, a.icao, a.country].filter(Boolean).join(" · ") }));
+    searchAirports(ref, q).map((a) => ({ value: a.iata ?? a.icao ?? a.id, label: cityName(a) ? `${cityName(a)} · ${a.name}` : a.name, detail: [a.iata, a.icao, a.country].filter(Boolean).join(" · ") }));
 }
 
 export function operatorOptions(ref: RefIndex, prefer: "iata" | "icao") {

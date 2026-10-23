@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { daysBetween, flightDay, guessSeatPosition, parseDateTime, type Flight } from "@touchdown/core";
+import { cityName, daysBetween, flightDay, guessSeatPosition, parseDateTime, type Flight } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
@@ -205,7 +205,7 @@ export function FlightDetail() {
           <p className="route-hero__place">
             {A ? (
               <Link className="route-hero__city route-hero__link" to="/airports/$id" params={{ id: A.id }}>
-                {A.city ?? A.name}
+                {cityName(A) ?? A.name}
               </Link>
             ) : (
               <span className="route-hero__city">{f.fromRaw ?? "Unknown airport"}</span>
@@ -235,7 +235,7 @@ export function FlightDetail() {
           <p className="route-hero__place">
             {B ? (
               <Link className="route-hero__city route-hero__link" to="/airports/$id" params={{ id: B.id }}>
-                {B.city ?? B.name}
+                {cityName(B) ?? B.name}
               </Link>
             ) : (
               <span className="route-hero__city">{f.toRaw ?? "Unknown airport"}</span>
@@ -279,11 +279,11 @@ export function FlightDetail() {
           typeText && ` on ${article(typeText)} ${typeText}`
         )}
         {built && ` first flown in ${built}`}
-        {landing && B && `, landing in ${B.city ?? B.name} ${landing}`}.
+        {landing && B && `, landing in ${cityName(B) ?? B.name} ${landing}`}.
         {onThis.length > 1 && ` You have flown on it ${plural(onThis.length, "time")}.`}{" "}
         {spotted[0] && (
           <span className="phrase phrase--spotted" {...phraseProps}>
-            You photographed this aircraft{spotted[0].airportId ? ` at ${ref.airport(spotted[0].airportId)?.city ?? shortAirport(spotted[0].airportId, ref)}` : ""}
+            You photographed this aircraft{spotted[0].airportId ? ` at ${cityName(ref.airport(spotted[0].airportId)) ?? shortAirport(spotted[0].airportId, ref)}` : ""}
             {spotted[0].seenOn ? ` on ${dateOnly(spotted[0].seenOn, { day: "numeric", month: "long", year: "numeric" })}` : ""}.
           </span>
         )}

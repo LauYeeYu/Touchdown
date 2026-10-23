@@ -3,7 +3,7 @@
 
 import { Fragment, useMemo } from "react";
 import { Link, useNavigate, useParams, useRouter } from "@tanstack/react-router";
-import { airportVisits, arrivalAirportId, type Sighting } from "@touchdown/core";
+import { airportVisits, cityName, arrivalAirportId, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
@@ -157,7 +157,7 @@ export function AirportPage() {
       <div className="airport-hero">
         <h1 className="route-hero__code">{code}</h1>
         <p className="route-hero__place">
-          <span className="route-hero__city">{ap.city ?? ap.name}</span>
+          <span className="route-hero__city">{cityName(ap) ?? ap.name}</span>
           <span className="route-hero__name">
             {ap.name}
             {ap.country ? ` · ${countryName(ap.country)}` : ""}

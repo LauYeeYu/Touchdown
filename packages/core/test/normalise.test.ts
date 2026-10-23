@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatModel, guessSeatPosition, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel } from "../src/index.ts";
+import { cityName, formatModel, guessSeatPosition, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel } from "../src/index.ts";
 import { ref } from "./fixtures.ts";
 
 describe("registrations", () => {
@@ -66,5 +66,16 @@ describe("flight fields", () => {
     expect(guessSeatPosition("40E", "B777")).toBe("middle");
     expect(guessSeatPosition("40D", "A330")).toBe("aisle");
     expect(guessSeatPosition("12A", null)).toBeNull();
+  });
+});
+
+describe("airport cities", () => {
+  it("shows the city without what the source adds in brackets", () => {
+    expect(cityName({ city: "Shanghai (Minhang)" })).toBe("Shanghai");
+    expect(cityName({ city: "Kristiansand(Kjevik)" })).toBe("Kristiansand");
+    expect(cityName({ city: "Hanoi  (Long Bien)" })).toBe("Hanoi");
+    expect(cityName({ city: "Frankfurt am Main" })).toBe("Frankfurt am Main");
+    expect(cityName({ city: null })).toBeNull();
+    expect(cityName(undefined)).toBeNull();
   });
 });

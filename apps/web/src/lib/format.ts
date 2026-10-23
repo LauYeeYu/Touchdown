@@ -1,7 +1,7 @@
 // Display formatting. Stored date-times carry their local wall-clock time and offset, so times are shown
 // from the stored text, never converted through the viewer's time zone.
 
-import { parseDateTime, formatModel, type RefIndex, type Settings } from "@touchdown/core";
+import { cityName, parseDateTime, formatModel, type RefIndex, type Settings } from "@touchdown/core";
 
 export const nf = new Intl.NumberFormat("en-GB");
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -87,14 +87,13 @@ export function shortAirport(id: string | null | undefined, ref: RefIndex): stri
   const a = ref.airport(id);
   if (!a) return "";
   const name = a.name.replace(/\s+(International\s+)?Airport$/i, "").replace(/\s+International$/i, "");
-  // OurAirports sometimes adds the district to the city ("Shanghai (Minhang)"); compare and show the city alone.
-  const city = a.city?.replace(/\s*\(.*\)\s*$/, "") ?? "";
+  const city = cityName(a) ?? "";
   return city && !name.includes(city) ? `${city} ${name}` : name;
 }
 
 export function cityOf(id: string | null | undefined, ref: RefIndex): string {
   const a = ref.airport(id);
-  return a?.city ?? a?.name ?? "";
+  return cityName(a) ?? a?.name ?? "";
 }
 
 /** Maker and name, "Boeing 737-800", the same for every maker (a name that already starts with its maker is not doubled). */
