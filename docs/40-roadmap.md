@@ -34,7 +34,7 @@ The order puts the riskiest part first: the data model and identity rules are te
   - The app works offline and syncs on reconnect.
   - Sync, the inbox and the CLI work the same with the Google Drive and the local-folder adapters (S7).
   - The Google OAuth app is published "In production" with `drive.file` only.
-- Built so far: `packages/storage` with the backend interface, the JSON tables backend, an in-memory folder for tests, and the sync engine with its race test; schema version 2 (`basedOn`) with upgrading of older files.
+- Built so far: `packages/storage` with the backend interface, the JSON tables backend, an in-memory folder for tests, and the sync engine with its race test; schema version 2 (`basedOn`) with upgrading of older files. In the web app: the local-folder adapter, the Private and Local modes with the first-run choice and Settings, sync in the background with its state in the masthead, and Local's backup reminder; schema version 3 (`settings.dataMode`, `settings.storageAccount`).
 
 ## Phase 4: Lookups and auto-fill
 

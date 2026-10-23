@@ -29,7 +29,9 @@ import {
   type SuggestedFix,
   type TableName,
 } from "@touchdown/core";
+import { LAST_BACKUP, LAST_CHANGE, readConnection, saveConnection, setMeta, type Connection } from "./connection.ts";
 import { db } from "./db.ts";
+import { SyncController, type SyncInfo } from "./sync.ts";
 import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
 
 export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "deleted"> = {
@@ -82,6 +84,11 @@ export class AppData {
   private pending = new Map<string, { table: string; id: string; row: Record<string, unknown> | null }>();
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private cache: { version: number; findings: Finding[]; resolvedOverlaps: ReturnType<typeof resolveAirframes>["overlaps"] } | null = null;
+  /** How this browser keeps the log; null until the first run has asked (docs/32). */
+  connection: Connection | null = null;
+  /** Syncing, in Private mode. */
+  sync: SyncController | null = null;
+  private syncListeners = new Set<() => void>();
 
   private constructor(store: Store, ref: RefIndex) {
     this.store = store;
@@ -130,7 +137,9 @@ export class AppData {
       }
     }
     if (problems.length) console.warn("Rows that failed validation were not loaded:", problems);
-    return new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)));
+    const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)));
+    app.connection = await readConnection();
+    return app;
   }
 
   private static overridesFrom(store: Store) {
@@ -177,11 +186,12 @@ export class AppData {
       const changedTracks = new Set(batch.filter((r) => r.table === "track_points").map((r) => r.id.slice(0, r.id.lastIndexOf("|"))));
       const trackPuts = changedTracks.size ? groupTrackPoints(this.store.all("track_points").filter((p) => changedTracks.has(p.trackId)) as unknown as Record<string, unknown>[]) : [];
       const trackDels = [...changedTracks].filter((id) => !trackPuts.some((t) => t.trackId === id));
-      await db.transaction("rw", db.rows, db.trackPoints, async () => {
+      await db.transaction("rw", db.rows, db.trackPoints, db.meta, async () => {
         if (puts.length) await db.rows.bulkPut(puts);
         if (dels.length) await db.rows.bulkDelete(dels);
         if (trackPuts.length) await db.trackPoints.bulkPut(trackPuts);
         if (trackDels.length) await db.trackPoints.bulkDelete(trackDels);
+        await db.meta.put({ key: LAST_CHANGE, value: Date.now() });
       });
       this.saveState = this.pending.size ? "saving" : "saved";
       this.lastSavedAt = Date.now();
@@ -191,6 +201,44 @@ export class AppData {
       for (const r of batch) this.pending.set(`${r.table}|${r.id}`, r);
     }
     this.notify();
+  }
+
+  // ---------- where the log lives (docs/32) ----------
+
+  subscribeSync = (fn: () => void) => {
+    this.syncListeners.add(fn);
+    return () => this.syncListeners.delete(fn);
+  };
+
+  getSyncInfo = (): SyncInfo | null => this.sync?.info ?? null;
+
+  private syncChanged = () => {
+    for (const l of this.syncListeners) l();
+  };
+
+  /** Start syncing when this browser is in Private mode. Resolves after the first sync. */
+  startSync(): Promise<void> {
+    const c = this.connection;
+    if (c?.mode !== "private" || this.sync) return Promise.resolve();
+    this.sync = new SyncController(this.store, c);
+    this.sync.subscribe(this.syncChanged);
+    this.syncChanged();
+    return this.sync.start();
+  }
+
+  /** Change how this browser keeps the log. In Private mode the promise ends after the first sync. */
+  async connect(c: Connection): Promise<void> {
+    this.sync?.stop();
+    this.sync = null;
+    await saveConnection(c);
+    this.connection = c;
+    this.updateSettings({ dataMode: c.mode, storageBackend: "json_tables", storageAdapter: c.mode === "local" ? "manual" : c.adapter });
+    this.syncChanged();
+    await this.startSync();
+  }
+
+  markBackup() {
+    void setMeta(LAST_BACKUP, Date.now());
   }
 
   // ---------- derived ----------
@@ -427,18 +475,23 @@ export class AppData {
         else out.push({ table: name, id: rowKey(name, row), row });
       }
     }
-    await db.transaction("rw", db.rows, db.trackPoints, async () => {
+    await db.transaction("rw", db.rows, db.trackPoints, db.meta, async () => {
       await db.rows.clear();
       await db.trackPoints.clear();
       await db.rows.bulkPut(out);
       await db.trackPoints.bulkPut(groupTrackPoints(points));
+      // Sync starts over: the next one compares every row and track with the storage.
+      await db.meta.delete("sync");
     });
   }
 
+  /** Remove the log, sync state and connection from this browser; the next visit is a first run. */
   async deleteEverything() {
-    await db.transaction("rw", db.rows, db.trackPoints, async () => {
+    this.sync?.stop();
+    await db.transaction("rw", db.rows, db.trackPoints, db.meta, async () => {
       await db.rows.clear();
       await db.trackPoints.clear();
+      await db.meta.clear();
     });
   }
 }

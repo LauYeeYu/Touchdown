@@ -8,7 +8,7 @@ Touchdown is a personal aircraft log: flights the user has flown on and aircraft
 
 ## Status
 
-The plan in `docs/` is approved. Phase 1 (core on real data) and phase 2 (web app on one device) from `docs/40-roadmap.md` are built, and so are the agent check of phase 5 (file hand-off) and the CLI spotting session (`touchdown spot`, a first part of phase 4's lookups). Phase 3 (sync) is under way: `packages/storage` has the JSON tables backend and the sync engine, not yet used by the web app. When the code and a doc disagree, ask the user which one is right, then fix the other.
+The plan in `docs/` is approved. Phase 1 (core on real data) and phase 2 (web app on one device) from `docs/40-roadmap.md` are built, and so are the agent check of phase 5 (file hand-off) and the CLI spotting session (`touchdown spot`, a first part of phase 4's lookups). Phase 3 (sync) is under way: `packages/storage` has the JSON tables backend and the sync engine, and the web app syncs through a local folder in Private mode (Google Drive next). When the code and a doc disagree, ask the user which one is right, then fix the other.
 
 ## Docs
 

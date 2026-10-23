@@ -7,7 +7,7 @@ It has two parts:
 - **The web app** keeps your log in the browser: flights, spotting, aircraft, statistics, maps and the Import page.
 - **The command-line tools** (`./touchdown`) run on your computer. They log new spotting by typing, look registrations up, have an agent (Claude Code or Codex) check your records, and build backups the web app can restore.
 
-What works now: the web app on one device, and the command-line tools. Not yet: syncing (Google Drive first), the hosted site and sign-in. Until sync arrives, your log lives in one browser; export a backup from Settings now and then. The plan and the reasons behind it are in [docs/](docs/README.md).
+What works now: the web app, and the command-line tools. The web app asks where your log lives: Private syncs it through a folder on your computer (Chrome or Edge; put the folder in Dropbox, OneDrive, iCloud Drive or Google Drive for desktop to reach your other computers), Local keeps it in one browser. Not yet: syncing through Google Drive directly, the hosted site and sign-in. In Local mode, export a backup from Settings now and then. The plan and the reasons behind it are in [docs/](docs/README.md).
 
 ## Set up
 

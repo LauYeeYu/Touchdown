@@ -1,0 +1,146 @@
+// Syncing the log through the user's storage in Private mode (docs/12, "Sync algorithm"): when the app opens, a
+// few seconds after an edit, when the tab comes back into view or the network returns, and every few minutes.
+
+import type { Store } from "@touchdown/core";
+import { JsonTablesBackend, SyncEngine, type SyncState, type SyncStateStore } from "@touchdown/storage";
+import type { PrivateConnection } from "./connection.ts";
+import { db } from "./db.ts";
+import { folderAllowed, LocalFolder } from "./folder.ts";
+
+export interface SyncInfo {
+  /** "permission": the browser needs the user's click to use the folder again. */
+  state: "permission" | "syncing" | "synced" | "failed";
+  /** Where the log syncs to, as the user knows it. */
+  place: string;
+  /** When the last sync finished, in milliseconds. */
+  lastAt: number | null;
+  /** Rows changed here that the storage has not shown back yet. */
+  waiting: number;
+  /** Files in the storage that could not be read. */
+  problems: string[];
+  error: string | null;
+}
+
+const AFTER_EDIT_MS = 3000;
+const CONFIRM_MS = 1500;
+const EVERY_MS = 5 * 60_000;
+
+class StoredSyncState implements SyncStateStore {
+  async load() {
+    return ((await db.meta.get("sync"))?.value as SyncState | undefined) ?? null;
+  }
+  async save(state: SyncState) {
+    await db.meta.put({ key: "sync", value: state });
+  }
+}
+
+export class SyncController {
+  info: SyncInfo;
+  private engine: SyncEngine | null = null;
+  private listeners = new Set<() => void>();
+  private cleanups: (() => void)[] = [];
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private stopped = false;
+
+  constructor(
+    private readonly store: Store,
+    readonly connection: PrivateConnection,
+  ) {
+    this.info = { state: "syncing", place: connection.name, lastAt: null, waiting: 0, problems: [], error: null };
+  }
+
+  subscribe = (fn: () => void) => {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  };
+
+  private set(patch: Partial<SyncInfo>) {
+    this.info = { ...this.info, ...patch };
+    for (const l of this.listeners) l();
+  }
+
+  /** Start syncing. Without the folder permission, wait for `allow`. */
+  async start(): Promise<void> {
+    if (!(await folderAllowed(this.connection.folder, false))) {
+      this.set({ state: "permission" });
+      return;
+    }
+    await this.begin();
+  }
+
+  /** Ask for the folder permission again. Browsers only allow this inside a click. */
+  async allow(): Promise<boolean> {
+    if (!(await folderAllowed(this.connection.folder, true))) return false;
+    await this.begin();
+    return true;
+  }
+
+  private async begin() {
+    if (this.engine || this.stopped) return;
+    this.set({ state: "syncing" });
+    const backend = new JsonTablesBackend(new LocalFolder(this.connection.folder), this.store.deviceId);
+    try {
+      await backend.open();
+    } catch (e) {
+      this.set({ state: "failed", error: (e as Error).message });
+      return;
+    }
+    const engine = new SyncEngine(this.store, backend, new StoredSyncState());
+    await engine.start();
+    this.engine = engine;
+
+    const unsubscribe = this.store.subscribe((changes) => {
+      if (changes.some((c) => c.origin !== "sync")) this.later(AFTER_EDIT_MS);
+    });
+    const onShow = () => document.visibilityState === "visible" && void this.run();
+    const onOnline = () => void this.run();
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("online", onOnline);
+    const every = setInterval(() => void this.run(), EVERY_MS);
+    this.cleanups.push(
+      unsubscribe,
+      () => document.removeEventListener("visibilitychange", onShow),
+      () => window.removeEventListener("online", onOnline),
+      () => clearInterval(every),
+    );
+    // The first sync after opening reads every table, so an edit whose queue entry was lost is still sent.
+    await this.run(true);
+  }
+
+  private later(ms: number) {
+    this.set({ waiting: this.engine?.waiting ?? 0 });
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      void this.run();
+    }, ms);
+  }
+
+  /** Sync now. `full` reads every table file again. */
+  async run(full = false): Promise<void> {
+    if (!this.engine || this.stopped) return;
+    this.set({ state: "syncing" });
+    try {
+      const report = await this.engine.sync({ full });
+      const waiting = this.engine.waiting;
+      // Rows just written stay queued until the storage shows them back: look again shortly.
+      if (report.sent > 0 && waiting > 0) {
+        this.set({ waiting, problems: report.problems });
+        this.later(CONFIRM_MS);
+        return;
+      }
+      this.set({ state: "synced", lastAt: Date.now(), waiting, problems: report.problems, error: null });
+    } catch (e) {
+      this.set({ state: "failed", error: (e as Error).message, waiting: this.engine.waiting });
+    }
+  }
+
+  stop() {
+    this.stopped = true;
+    for (const c of this.cleanups) c();
+    this.cleanups = [];
+    if (this.timer) clearTimeout(this.timer);
+    this.engine?.stop();
+    this.engine = null;
+  }
+}

@@ -42,7 +42,9 @@ The Local warning (Decided that there is one; wording Proposed):
 
 > Your log will be kept only in this browser. Clearing the browser's data, using a private window, resetting or losing the device deletes it, and no other copy exists. Export a backup now and then (Settings, Data).
 
-Settings shows the same warning while the user is in Local mode. A note bar reminds the user to export a backup when the last one is more than 30 days old and the log has changed since (Proposed).
+Settings shows the same warning while the user is in Local mode. A note bar reminds the user to export a backup when the last one is more than 30 days old (counted from choosing Local when there has been none) and the log has changed since; it offers "Export a backup" and "Not now" (built).
+
+Until Standard exists (phase 8), the first run and Settings show it as coming later, and Private is preselected instead (built).
 
 ### Changing mode
 

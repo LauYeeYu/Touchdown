@@ -35,6 +35,17 @@ export function localDay(dt: string | null | undefined): string | null {
   return dt ? (parseDateTime(dt)?.date ?? null) : null;
 }
 
+/** A moment on this device's clock, with its date and UTC offset: "23 Oct 2026, 14:05 UTC+1". */
+export function momentLabel(ms: number): string {
+  const d = new Date(ms);
+  const off = -d.getTimezoneOffset();
+  const h = Math.floor(Math.abs(off) / 60);
+  const m = Math.abs(off) % 60;
+  const day = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  return `${day}, ${time} UTC${off < 0 ? "−" : "+"}${h}${m ? ":" + String(m).padStart(2, "0") : ""}`;
+}
+
 /** "UTC+8", "UTC−5", "UTC+5:30". */
 export function offsetLabel(dt: string): string {
   const m = /([+-])(\d{2}):(\d{2})$/.exec(dt);

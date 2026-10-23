@@ -1,14 +1,151 @@
-// Settings (docs/31-ui.md): display, data (backup, restore, CSV, delete), family overrides, the agent check
-// (docs/22: which agent, notes, the user's rules), sources.
+// Settings (docs/31-ui.md): display, where the log lives (docs/32), data (backup, restore, CSV, delete), family
+// overrides, the agent check (docs/22: which agent, notes, the user's rules), sources.
 
 import { useEffect, useState } from "react";
-import { backupZip, DEFAULT_AGENT_RULES, readBackup, tableCsv, todayIn, type Settings } from "@touchdown/core";
+import { backupZip, DEFAULT_AGENT_RULES, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
+import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
-import { plural } from "../lib/format.ts";
+import { canUseFolders, holdsLog, pickFolder } from "../data/folder.ts";
+import { momentLabel, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
+import { LocalWarning, ModeChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
 import { toast } from "../components/overlay.tsx";
 import { download } from "../lib/download.ts";
+import { FOLDERS_ONLY_HERE, STANDARD_LATER } from "./FirstRun.tsx";
+
+/** Where the log lives (docs/32): the mode, changing it, and how sync is going in Private mode. */
+function WhereTheLogLives({ app }: { app: AppData }) {
+  const current: Mode = app.connection?.mode ?? "local";
+  const [chosen, setChosen] = useState<Mode>(current);
+  const [understood, setUnderstood] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const sync = useSyncInfo(app);
+  const conflicts = app.store.all("record_history").filter((h) => h.reason === "sync_conflict").length;
+  const place = app.connection?.mode === "private" ? app.connection.name : null;
+
+  const toPrivate = async () => {
+    let picked;
+    try {
+      picked = await pickFolder();
+    } catch (e) {
+      toast(`The folder could not be opened: ${(e as Error).message}`);
+      return;
+    }
+    if (!picked) return;
+    const hasLog = app.store.count("flights") + app.store.count("sightings") > 0;
+    if (hasLog && (await holdsLog(picked.folder)) && !window.confirm(`${picked.name} already holds a Touchdown log. Your log in this browser and that one will be merged; where both changed the same entry, the later change is kept and the other is kept in the log's history. Continue?`)) return;
+    setBusy(true);
+    await app.connect({ mode: "private", adapter: "localfs", folder: picked.folder, name: picked.name, since: toUtcIso(Date.now()) });
+    setBusy(false);
+    const info = app.getSyncInfo();
+    toast(info?.state === "failed" ? `Could not sync with ${picked.name}.` : `Your log now syncs through ${picked.name}.`);
+  };
+
+  const toLocal = async () => {
+    const was = place;
+    await app.connect({ mode: "local", since: toUtcIso(Date.now()) });
+    setUnderstood(false);
+    toast(was ? `Your log is now kept in this browser only. The copy in ${was} is left as it is.` : "Your log is kept in this browser only.");
+  };
+
+  return (
+    <>
+      <h2 className="form-section">Where your log lives</h2>
+      <ModeChoice value={chosen} onChange={setChosen} unavailable={{ standard: STANDARD_LATER, ...(!canUseFolders() && current !== "private" && { private: FOLDERS_ONLY_HERE }) }} />
+      {chosen !== current && chosen === "private" && (
+        <>
+          <p className="form-sub">Choose a folder on this computer. Inside Dropbox, OneDrive, iCloud Drive or Google Drive for desktop, it carries your log to your other computers. Touchdown keeps its files in a Touchdown folder there.</p>
+          <div className="button-row">
+            <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void toPrivate()}>
+              {busy ? "Syncing…" : "Choose a folder"}
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => setChosen(current)}>
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+      {chosen !== current && chosen === "local" && (
+        <>
+          <LocalWarning understood={understood} onChange={setUnderstood} />
+          <div className="button-row">
+            <button type="button" className="btn btn--primary" disabled={!understood} onClick={() => void toLocal().then(() => setChosen("local"))}>
+              Keep the log in this browser only
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => setChosen(current)}>
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+      {chosen === current && current === "local" && <LocalWarning />}
+      {chosen === current && sync && (
+        <>
+          {sync.state === "permission" && (
+            <p className="status-line">
+              <Icon name="folder" />
+              <span>
+                Touchdown needs your permission to use {sync.place} again.{" "}
+                <button type="button" className="link-btn" onClick={() => void app.sync?.allow()}>
+                  Allow
+                </button>
+              </span>
+            </p>
+          )}
+          {sync.state === "syncing" && (
+            <p className="status-line">
+              <Icon name="refresh-cw" />
+              <span>Syncing with {sync.place}…</span>
+            </p>
+          )}
+          {sync.state === "synced" && (
+            <p className="status-line status-line--good">
+              <Icon name="circle-check" />
+              <span>
+                Synced with {sync.place}
+                {sync.lastAt ? `, ${momentLabel(sync.lastAt)}` : ""}.{sync.waiting > 0 && ` ${plural(sync.waiting, "change")} not synced yet.`}
+              </span>
+            </p>
+          )}
+          {sync.state === "failed" && (
+            <p className="status-line status-line--error">
+              <Icon name="circle-x" />
+              <span>
+                Could not sync with {sync.place}: {sync.error}. Your changes are kept in this browser and sent once it works.
+              </span>
+            </p>
+          )}
+          {sync.problems.length > 0 && (
+            <p className="status-line status-line--error">
+              <Icon name="circle-alert" />
+              <span>
+                Left alone because they could not be read: {sync.problems.slice(0, 3).join("; ")}
+                {sync.problems.length > 3 ? `; and ${sync.problems.length - 3} more` : ""}. Restore them from a backup in {sync.place}, or fix them there.
+              </span>
+            </p>
+          )}
+          {conflicts > 0 && (
+            <p className="status-line">
+              <Icon name="info" />
+              <span>
+                {plural(conflicts, "edit was", "edits were")} replaced by a later edit of the same entry on another device, and {conflicts === 1 ? "is" : "are"} kept in the log's history.
+              </span>
+            </p>
+          )}
+          {sync.state !== "permission" && (
+            <div className="button-row">
+              <button type="button" className="btn btn--quiet btn--small" disabled={sync.state === "syncing"} onClick={() => void app.sync?.run()}>
+                <Icon name="refresh-cw" />
+                Sync now
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
 
 export function SettingsPage() {
   const { app } = useApp();
@@ -48,7 +185,8 @@ export function SettingsPage() {
       return;
     }
     const n = (back.tables.get("flights")?.length ?? 0) + (back.tables.get("sightings")?.length ?? 0);
-    if (!window.confirm(`Replace everything in this browser with the backup (${plural(n, "flight or sighting", "flights and sightings")})? Export a backup of the current data first if you might need it.`)) return;
+    const merged = app.connection?.mode === "private" ? " Your folder's log is then merged in at the next sync; where both changed the same entry, the later change is kept." : "";
+    if (!window.confirm(`Replace everything in this browser with the backup (${plural(n, "flight or sighting", "flights and sightings")})?${merged} Export a backup of the current data first if you might need it.`)) return;
     await app.replaceAll(back.tables);
     location.reload();
   };
@@ -74,17 +212,26 @@ export function SettingsPage() {
         </Field>
       </div>
 
+      <WhereTheLogLives app={app} />
+
       <h2 className="form-section">Data</h2>
       <p className="status-line">
         <Icon name="hard-drive" />
         <span>
-          Your log is stored in this browser ({plural(store.count("flights"), "flight")}, {plural(store.count("sightings"), "sighting")}, {plural(store.count("airframes"), "aircraft", "aircraft")}).
+          This browser holds {app.connection?.mode === "private" ? "a copy of " : ""}your log ({plural(store.count("flights"), "flight")}, {plural(store.count("sightings"), "sighting")}, {plural(store.count("airframes"), "aircraft", "aircraft")}).
           {kept === true && " The browser keeps it until you delete it."}
-          {kept === false && " The browser may clear it if the disk runs low."} Syncing to your Google Drive comes in a later version; until then, export a backup now and then.
+          {kept === false && " The browser may clear it if the disk runs low."}
         </span>
       </p>
       <div className="button-row">
-        <button type="button" className="btn btn--quiet" onClick={() => download(`touchdown-backup-${todayIn()}.zip`, backupZip(store) as BlobPart, "application/zip")}>
+        <button
+          type="button"
+          className="btn btn--quiet"
+          onClick={() => {
+            download(`touchdown-backup-${todayIn()}.zip`, backupZip(store) as BlobPart, "application/zip");
+            app.markBackup();
+          }}
+        >
           <Icon name="download" />
           Export a backup (.zip)
         </button>
@@ -136,7 +283,8 @@ export function SettingsPage() {
           type="button"
           className="btn btn--danger btn--small"
           onClick={async () => {
-            if (!window.confirm("Delete every flight, sighting and setting in this browser? This cannot be undone here.")) return;
+            const place = app.connection?.mode === "private" ? ` The log in ${app.connection.name} is left as it is.` : " This cannot be undone here.";
+            if (!window.confirm(`Delete every flight, sighting and setting in this browser, and forget where the log lives?${place}`)) return;
             if (window.prompt('Type "delete" to confirm.') !== "delete") return;
             await app.deleteEverything();
             location.reload();

@@ -1,9 +1,12 @@
 // First run: nothing logged yet. Offer the import first, since most users arrive with an existing log.
 
 import { Link } from "@tanstack/react-router";
+import { useApp } from "../data/context.tsx";
 import { Icon } from "../lib/icons.tsx";
 
 export function EmptyLog() {
+  const { app } = useApp();
+  const c = app.connection;
   return (
     <div className="page">
       <div className="view-top" />
@@ -33,7 +36,7 @@ export function EmptyLog() {
       </div>
       <p className="status-line">
         <Icon name="hard-drive" />
-        <span>Your data stays in this browser. Export a backup from Settings at any time; syncing to your Google Drive comes later.</span>
+        <span>{c?.mode === "private" ? `What you add is saved in this browser and synced through ${c.name}.` : "Your data stays in this browser. Export a backup from Settings at any time."}</span>
       </p>
     </div>
   );

@@ -7,7 +7,12 @@ import { Icon, type IconName } from "../lib/icons.tsx";
 import { MenuButton } from "./Menu.tsx";
 import { NoteBar } from "./NoteBar.tsx";
 import { sessionPhrase, useInboxWatcher, useWaitingSessions } from "../data/inbox.ts";
-import { plural } from "../lib/format.ts";
+import { LAST_BACKUP, LAST_CHANGE, metaNumber } from "../data/connection.ts";
+import type { SyncInfo } from "../data/sync.ts";
+import { backupZip, todayIn } from "@touchdown/core";
+import { download } from "../lib/download.ts";
+import { momentLabel, plural } from "../lib/format.ts";
+import { useSyncInfo } from "./ModeChoice.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
 
@@ -18,6 +23,50 @@ const NAV: { to: string; label: string; icon: IconName; match: (p: string) => bo
   { to: "/aircraft", label: "Aircraft", icon: "id-card", match: (p) => p.startsWith("/aircraft") },
   { to: "/stats", label: "Statistics", icon: "chart-column", match: (p) => p.startsWith("/stats") },
 ];
+
+/** Local mode: remind the user to export a backup when the last one is older than this and the log changed since. */
+const BACKUP_DUE_DAYS = 30;
+
+/** The masthead's save and sync state: its words, its tooltip, its icon. */
+function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null): { text: string; title: string; icon: IconName; bad: boolean } {
+  if (saving === "error") return { text: "Could not save in this browser", title: "Could not save in this browser", icon: "hard-drive", bad: true };
+  if (!sync) return { text: saving === "saving" ? "Saving…" : "Saved in this browser", title: "Your log is kept in this browser only (Local).", icon: "hard-drive", bad: false };
+  const last = sync.lastAt ? ` Last synced ${momentLabel(sync.lastAt)}.` : "";
+  switch (sync.state) {
+    case "permission":
+      return { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.`, icon: "folder", bad: true };
+    case "failed":
+      return { text: "Not synced", title: `Could not sync with ${sync.place}: ${sync.error}.${last}`, icon: "refresh-cw", bad: true };
+    case "syncing":
+      return { text: "Syncing…", title: `Syncing with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
+    default:
+      return sync.waiting > 0 || saving === "saving"
+        ? { text: "Saved, not synced yet", title: `Saved in this browser; sent to ${sync.place} in a moment.${last}`, icon: "refresh-cw", bad: false }
+        : { text: "Synced", title: `Synced with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
+  }
+}
+
+/** Local mode's reminder, when a backup is due: when the last one was made, or null for never (docs/32). */
+function useBackupDue(local: boolean, since: string | null, version: number): { last: number | null } | null {
+  const [due, setDue] = useState<{ last: number | null } | null>(null);
+  useEffect(() => {
+    if (!local) {
+      setDue(null);
+      return;
+    }
+    let live = true;
+    void Promise.all([metaNumber(LAST_BACKUP), metaNumber(LAST_CHANGE)]).then(([last, changed]) => {
+      if (!live) return;
+      const from = last ?? (since ? Date.parse(since) : Date.now());
+      const old = Date.now() - from > BACKUP_DUE_DAYS * 86_400_000;
+      setDue(old && changed !== null && changed > (last ?? 0) ? { last } : null);
+    });
+    return () => {
+      live = false;
+    };
+  }, [local, since, version]);
+  return due;
+}
 
 const THEMES = ["system", "light", "dark"] as const;
 const THEME_LABEL = { system: "Theme: follows your device", light: "Theme: light", dark: "Theme: dark" };
@@ -76,13 +125,17 @@ export function Shell() {
     return () => clearInterval(t);
   }, []);
 
+  const sync = useSyncInfo(app);
+  const local = app.connection?.mode === "local";
+  const backupDue = useBackupDue(local, app.connection?.since ?? null, version);
+  const [backupLater, setBackupLater] = useState(false);
+  const state = saveState(app.saveState, sync);
+
   const cycleTheme = () => {
     const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!;
     app.updateSettings({ theme: next });
     toast(THEME_LABEL[next]);
   };
-
-  const saveText = app.saveState === "error" ? "Could not save in this browser" : app.saveState === "saving" ? "Saving…" : "Saved in this browser";
 
   return (
     <>
@@ -103,10 +156,10 @@ export function Shell() {
             ))}
           </nav>
           <div className="masthead__tools">
-            <span className={`sync${app.saveState === "error" ? " sync--error" : ""}`} title="Your data is kept in this browser. Sync to Google Drive comes later.">
-              <Icon name="hard-drive" />
-              <span className="sync__text">{saveText}</span>
-            </span>
+            <Link className={`sync${state.bad ? " sync--error" : ""}`} to="/settings" title={state.title}>
+              <Icon name={state.icon} />
+              <span className="sync__text">{state.text}</span>
+            </Link>
             <Link className="icon-btn issues-btn" to="/issues" aria-label={openIssues ? `Issues: ${openIssues} entries to review` : "Issues"} title={openIssues ? `${openIssues} entries to review` : "No open issues"}>
               <Icon name="list-checks" />
               {openIssues > 0 && <span className="badge">{openIssues > 99 ? "99+" : openIssues}</span>}
@@ -141,6 +194,43 @@ export function Shell() {
           </div>
         </div>
       </header>
+      {sync?.state === "permission" && (
+        <NoteBar
+          icon="folder"
+          actions={
+            <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.allow()}>
+              Allow
+            </button>
+          }
+        >
+          Touchdown needs your permission to use {sync.place} again. Until then, changes are kept in this browser.
+        </NoteBar>
+      )}
+      {backupDue && !backupLater && (
+        <NoteBar
+          icon="hard-drive"
+          actions={
+            <>
+              <button
+                type="button"
+                className="btn btn--quiet btn--small"
+                onClick={() => {
+                  download(`touchdown-backup-${todayIn()}.zip`, backupZip(app.store) as BlobPart, "application/zip");
+                  app.markBackup();
+                  setBackupLater(true);
+                }}
+              >
+                Export a backup
+              </button>
+              <button type="button" className="btn btn--ghost btn--small" onClick={() => setBackupLater(true)}>
+                Not now
+              </button>
+            </>
+          }
+        >
+          Your log is kept only in this browser{backupDue.last ? `, and your last backup is from ${new Date(backupDue.last).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ", and you have not exported a backup yet"}.
+        </NoteBar>
+      )}
       {shown.length > 0 && path !== "/import" && (
         <NoteBar
           icon="inbox"
@@ -199,7 +289,7 @@ export function Shell() {
       </div>
       <footer className="site-foot">
         <div className="page">
-          <p>Your log is stored in this browser. Export a backup from Settings.</p>
+          <p>{sync ? `Your log syncs through ${sync.place}; this browser holds a copy.` : "Your log is stored in this browser. Export a backup from Settings."}</p>
           <p>
             Airports: OurAirports (public domain) and airportsdata (MIT). Airlines: Wikidata (CC0) and the Mictronics aircraft database (ODC-By). Aircraft facts: the OpenSky Network aircraft database and adsbdb (data from PlaneBase). Map: Natural Earth (public domain) via world-atlas. Aircraft photos from{" "}
             <a href="https://www.planespotters.net/" rel="noopener" target="_blank">

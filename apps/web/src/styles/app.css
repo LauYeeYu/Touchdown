@@ -1809,6 +1809,10 @@ main {
   color: var(--ink);
 }
 
+.status-line--error .icon {
+  color: var(--alert);
+}
+
 .subhead {
   margin: 32px 0 4px;
   font-size: 1rem;
@@ -2116,6 +2120,19 @@ main {
   color: var(--alert);
 }
 
+/* The save state links to Settings, where the sync state is spelt out. */
+a.sync {
+  text-decoration: none;
+}
+
+a.sync:hover {
+  color: var(--ink-2);
+}
+
+a.sync.sync--error:hover {
+  color: var(--alert);
+}
+
 .issues-btn {
   position: relative;
 }
@@ -2306,6 +2323,131 @@ a.btn--primary {
 
 .start__item--main .icon {
   color: var(--flown);
+}
+
+/* ---------- where the log lives (docs/32): the mode choice ---------- */
+
+.modes {
+  display: grid;
+  gap: 8px;
+  max-width: 44rem;
+  margin: 24px 0 20px;
+}
+
+.mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--surface-low);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease);
+}
+
+.mode:hover {
+  background: var(--surface-mid);
+}
+
+.mode:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.mode > .icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  color: var(--ink-2);
+}
+
+.mode__text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mode__name {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.mode__name b {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mode__text > span:not(.mode__name) {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.mode__text small {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.mode__tag {
+  padding: 1px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.mode__mark {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.mode__mark .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.25;
+}
+
+.mode--on,
+.mode--on:hover {
+  background: var(--selected-container);
+}
+
+.mode--on > .icon,
+.mode--on .mode__name b,
+.mode--on .mode__text > span:not(.mode__name),
+.mode--on .mode__tag,
+.mode--on .mode__mark {
+  color: var(--on-selected-container);
+}
+
+.mode--on .mode__tag {
+  border-color: currentColor;
+}
+
+.mode--off,
+.mode--off:hover {
+  background: var(--surface-low);
+  cursor: default;
+}
+
+.mode--off > .icon,
+.mode--off .mode__name b,
+.mode--off .mode__text > span:not(.mode__name) {
+  color: var(--ink-3);
+}
+
+.local-warning {
+  max-width: 44rem;
+}
+
+.local-warning .status-line {
+  margin-top: 0;
+  color: var(--ink);
 }
 
 /* ---------- forms ---------- */

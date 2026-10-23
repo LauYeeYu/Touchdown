@@ -12,6 +12,7 @@
     "@tanstack/react-router": "^1.170.45",
     "@touchdown/core": "*",
     "@touchdown/refdata": "*",
+    "@touchdown/storage": "*",
     "d3-array": "^3.2.4",
     "d3-geo": "^3.1.1",
     "d3-scale": "^4.0.2",

@@ -192,6 +192,12 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 | Manual file | Export a `.zip` of the folder; import it on another device. | Manual | Works everywhere. The adapter of Local mode. |
 | Dropbox API, OneDrive API | Later, if a friend needs it. | Yes | Dropbox has an "App folder" mode. OneDrive has no per-file scope like `drive.file`. |
 
+Local folder (built, `apps/web/src/data/folder.ts`):
+- The user picks a folder. A folder that holds a Touchdown log (`manifest.json`) is used as it is; any other folder gets a `Touchdown` folder inside it, so picking Dropbox's top folder does not scatter files there.
+- A file's version is its modification time and size.
+- Browsers forget the permission between visits. The app then shows a bar asking the user to allow the folder again (a click is required), and keeps changes in the browser until they do.
+- In the browser, the connection (the folder handle and its name) is kept in IndexedDB, not in the synced settings, since it belongs to this browser.
+
 CSV export/import per table is available with every backend. It is the fallback the user asked for, and it is lossy for some details (child tables are flattened).
 
 ## Google Drive details

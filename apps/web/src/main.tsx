@@ -21,9 +21,11 @@ import { AirportPage } from "./pages/AirportPage.tsx";
 import { ImportPage } from "./pages/ImportPage.tsx";
 import { Issues } from "./pages/Issues.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
+import { FirstRun } from "./pages/FirstRun.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
 import { airportParams, slugParams, setSlugData } from "./lib/slugs.ts";
 import { setCodeStyle } from "./lib/codes.ts";
+import { toUtcIso } from "@touchdown/core";
 
 const root = createRootRoute({ component: Shell, notFoundComponent: () => <NotFound /> });
 
@@ -105,6 +107,10 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
         opened = await AppData.open((s, n) => s === "log" && n !== undefined && step(`Preparing ${nf.format(n)} records…`));
       }
     }
+    // A browser that held a log before the data modes existed keeps it here: Local (docs/32).
+    if (!opened.connection && (opened.store.count("flights") || opened.store.count("sightings"))) await opened.connect({ mode: "local", since: toUtcIso(Date.now()) });
+    // Private mode syncs in the background; the page shows the copy in this browser meanwhile.
+    void opened.startSync();
     report({ at: PREPARED, text: "Showing your log…" });
     setSlugData(opened);
     // Airport codes follow the setting on every page (lib/codes.ts).
@@ -131,9 +137,14 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<Progress>({ at: START, text: "Loading the app…" });
   const [finished, setFinished] = useState(false);
+  // Asked once per browser, before the app opens: where the log lives.
+  const [firstRun, setFirstRun] = useState(false);
   useEffect(() => {
     boot(setProgress)
-      .then(setApp)
+      .then((a) => {
+        setFirstRun(!a.connection);
+        setApp(a);
+      })
       .catch((e: Error) => setError(e.message));
   }, []);
   useEffect(() => {
@@ -147,7 +158,7 @@ function App() {
     <>
       {app && (
         <AppContext.Provider value={app}>
-          <RouterProvider router={router} />
+          {firstRun ? <FirstRun app={app} onDone={() => setFirstRun(false)} /> : <RouterProvider router={router} />}
         </AppContext.Provider>
       )}
       {!finished && <Boot progress={app ? 1 : progress.at} text={app ? "Ready" : progress.text} done={!!app} />}
