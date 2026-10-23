@@ -63,6 +63,7 @@ Severity:
 | C-FLIGHT-OVERLAP | Two of the user's flights overlap in time. | error |
 | C-CODE-VARIANTS | Codes that differ only by case or whitespace across records. | warning (auto-fix) |
 | C-LIVERY-NAME | Same special livery spelled differently on the same airframe (`Oneworld Livery` vs `oneworld livery`). | info |
+| C-LIVERY-MISSING | A flight or sighting with no special livery on a day the aircraft's other records show it wore one: the same livery is recorded before and after it, or the last record before it has one and is less than a year old. Fix: set that livery. | warning |
 | C-SAME-DAY | Sighting of an airframe at airport X on a day the user flew that airframe through X. Not a problem; shown as a link. | info |
 
 ## External rules (X-)

@@ -2,7 +2,8 @@
 // the date next to the time (requirement G8).
 
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { cityName, type Airport, type Operator, type RefIndex } from "@touchdown/core";
+import { cityName, type Airport, type Operator, type RefIndex, type WornLivery } from "@touchdown/core";
+import { dayMonthYear } from "../lib/format.ts";
 
 export function Field({ label, hint, children, wide }: { label: string; hint?: ReactNode; children: ReactNode; wide?: boolean }) {
   return (
@@ -196,5 +197,17 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
         </button>
       ))}
     </div>
+  );
+}
+
+/** Asks whether the aircraft still wore the special livery the log has for it; never filled in unasked (docs/21). */
+export function LiveryQuestion({ worn, onUse }: { worn: WornLivery; onUse: () => void }) {
+  return (
+    <>
+      Recorded in <b>{worn.name}</b> on {dayMonthYear(worn.on)}. Still in it?{" "}
+      <button type="button" className="link-btn" onClick={onUse} aria-label={`Add special livery ${worn.name}`}>
+        Yes, add it
+      </button>
+    </>
   );
 }

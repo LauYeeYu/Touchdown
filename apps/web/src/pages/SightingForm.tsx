@@ -9,7 +9,7 @@ import { draftFindings } from "../data/draft.ts";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
 import { airlineLabel, dayMonthYear, PHASE_LABEL, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
-import { airportOptions, Field, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
+import { airportOptions, Field, LiveryQuestion, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -40,7 +40,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
   const [d, setD] = useState(init);
   const set = <K extends keyof typeof d>(k: K, v: (typeof d)[K]) => setD((x) => ({ ...x, [k]: v }));
 
-  const known = useMemo(() => (d.registrationRaw.trim() ? knownFor(store, d.registrationRaw) : null), [store, d.registrationRaw]);
+  const known = useMemo(() => (d.registrationRaw.trim() ? knownFor(store, d.registrationRaw, d.seenOn, existing?.id) : null), [store, d.registrationRaw, d.seenOn, existing?.id]);
   const airport = ref.airportByCode(d.airportRaw);
   const operatorRaw = d.operatorRaw || (!existing ? (known?.operatorRaw ?? "") : "");
   const operator = ref.operatorByCode(operatorRaw, d.seenOn);
@@ -63,7 +63,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
     };
   }, [d, known, operatorRaw, existing]);
   const deferred = useDeferredValue(values);
-  const findings = useMemo(() => draftFindings(app, "sightings", deferred, existing?.id).filter((f) => f.ruleId !== "V-INCOMPLETE"), [app, deferred, existing?.id]);
+  const findings = useMemo(() => draftFindings(app, "sightings", deferred, existing?.id).filter((f) => f.ruleId !== "V-INCOMPLETE" && f.ruleId !== "C-LIVERY-MISSING"), [app, deferred, existing?.id]);
 
   if (edit && !existing) return <NotFound what="That sighting is not in your log." back={{ to: "/spotting", label: "Spotting" }} />;
 
@@ -125,7 +125,8 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
               <b>{known.typeCode ? typeName(known.typeCode, ref) : "Type not recorded"}</b>
               {known.operatorId && ` · ${airlineLabel(known.operatorId, ref)}`}.{" "}
               {others.length > 0 && `Seen ${others.length === 1 ? "once" : `${others.length} times`} before, last on ${others[0]!.seenOn ? dayMonthYear(others[0]!.seenOn) : "an unknown date"}. `}
-              {known.flights.length > 0 && `You flew on it on ${known.flights.map((f) => (flightDay(f) ? dayMonthYear(flightDay(f)!) : "an unknown date")).join(", ")}.`}
+              {known.flights.length > 0 && `You flew on it on ${known.flights.map((f) => (flightDay(f) ? dayMonthYear(flightDay(f)!) : "an unknown date")).join(", ")}. `}
+              {known.specialLivery && !d.specialLivery.trim() && <LiveryQuestion worn={known.specialLivery} onUse={() => set("specialLivery", known.specialLivery!.name)} />}
             </p>
           </div>
         )}

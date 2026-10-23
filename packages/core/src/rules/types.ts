@@ -59,6 +59,7 @@ export const RULES: Record<string, { title: string; severity: Severity | "varies
   "C-FLIGHT-OVERLAP": { title: "Flights overlap in time", severity: "error" },
   "C-CODE-VARIANTS": { title: "Code spelt in different ways", severity: "warning" },
   "C-LIVERY-NAME": { title: "Livery spelt in different ways", severity: "info" },
+  "C-LIVERY-MISSING": { title: "Special livery missing", severity: "warning" },
   "C-SAME-DAY": { title: "Flown and photographed on the same day", severity: "info" },
   // Found while importing: compares the source row with what the importer derived.
   "I-SOURCE-DIFF": { title: "Source values disagree", severity: "warning" },

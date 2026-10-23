@@ -12,6 +12,7 @@ import type { AirframeFacts } from "../identity/facts.ts";
 import type { AgentEvidence, AgentSuggestion } from "../agent/check.ts";
 import type { Store } from "../store.ts";
 import { registrationMatchForm } from "../normalise/registration.ts";
+import { nearestLivery, type WornLivery } from "../livery.ts";
 
 export type Phase = (typeof PHASES)[number];
 
@@ -296,22 +297,39 @@ export function evidenceForAgent(list: Evidence[]): AgentEvidence[] {
   return list.map((e) => ({ source: e.source, typeCode: e.typeCode, model: e.model, operator: e.operator, asOf: e.asOf, note: e.note }));
 }
 
-/**
- * What the user's own records say about a registration: the type, model and airline of the record nearest the
- * date, and how often the aircraft is in the log. null when it is not. `self` is the sighting being checked
- * (its date and place), left out so a row already in the log does not vouch for itself.
- */
-export function logEvidence(store: Store, ref: RefIndex, registration: string, date: string, self?: { date?: string | null; airport?: string | null }): Evidence | null {
+/** The sighting being checked (its date and place), left out of the log so a row already in it does not vouch for itself. */
+type Self = { date?: string | null; airport?: string | null };
+
+function logRecords(store: Store, ref: RefIndex, registration: string, self?: Self) {
   const key = registrationMatchForm(registration);
   const selfAirport = ref.airportByCode(self?.airport)?.id ?? null;
   const isSelf = (s: { seenOn: string | null; airportId: string | null }) => !!self && (s.seenOn ?? null) === (self.date ?? null) && s.airportId === selfAirport;
-  const recs = [
+  return [
     ...store
       .all("sightings")
       .filter((s) => s.registration && registrationMatchForm(s.registration) === key && !isSelf(s))
-      .map((s) => ({ date: s.seenOn, typeCode: s.typeCode, model: s.model, op: s.operatorId, flown: false })),
-    ...store.all("flights").filter((f) => f.registration && registrationMatchForm(f.registration) === key).map((f) => ({ date: f.scheduledDate, typeCode: f.typeCode, model: f.model, op: f.airlineId, flown: true })),
+      .map((s) => ({ date: s.seenOn, typeCode: s.typeCode, model: s.model, op: s.operatorId, specialLivery: s.specialLivery, flown: false })),
+    ...store
+      .all("flights")
+      .filter((f) => f.registration && registrationMatchForm(f.registration) === key)
+      .map((f) => ({ date: f.scheduledDate, typeCode: f.typeCode, model: f.model, op: f.airlineId, specialLivery: f.specialLivery, flown: true })),
   ];
+}
+
+/**
+ * The special livery the user's log has for a registration, recorded nearest the date. It is never filled in:
+ * the user is asked whether the aircraft still wore it (docs/21, "Special livery").
+ */
+export function logLivery(store: Store, ref: RefIndex, registration: string, date: string, self?: Self): WornLivery | null {
+  return nearestLivery(logRecords(store, ref, registration, self), date);
+}
+
+/**
+ * What the user's own records say about a registration: the type, model and airline of the record nearest the
+ * date, and how often the aircraft is in the log. null when it is not.
+ */
+export function logEvidence(store: Store, ref: RefIndex, registration: string, date: string, self?: Self): Evidence | null {
+  const recs = logRecords(store, ref, registration, self);
   if (!recs.length) return null;
   const dated = recs.filter((r): r is typeof r & { date: string } => !!r.date).sort((a, b) => a.date.localeCompare(b.date));
   const near = [...dated].sort((a, b) => Math.abs(daysBetween(a.date, date)) - Math.abs(daysBetween(b.date, date)))[0] ?? recs[0]!;

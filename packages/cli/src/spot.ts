@@ -19,6 +19,7 @@ import {
   INBOX_VERSION,
   inboxAircraft,
   logEvidence,
+  logLivery,
   missingFields,
   normaliseRegistration,
   operatorFromOverride,
@@ -48,6 +49,7 @@ import {
   type SpotSource,
   type SpotValues,
   type SightingCandidate,
+  type WornLivery,
 } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
 import { findAgent, runAgent, type Agent } from "./agents.ts";
@@ -91,7 +93,8 @@ Each registration is looked up in your log (data/private/touchdown-backup.zip), 
 2025, downloaded once, about 110 MB) and adsbdb, and in Flightradar24 through your Chrome with --fr24. Empty
 fields are filled from them. Then the agent you chose (asked the first time; ./touchdown agent changes it)
 checks every value and sorts out the words Touchdown could not place. Values the sources back are used; the
-agent's own guesses and changes to what you typed are asked about, and so is whatever is still missing.
+agent's own guesses and changes to what you typed are asked about, and so is whatever is still missing. When
+your log has the aircraft in a special livery, you are asked whether it still wore it.
 
 The sightings are saved to the inbox (data/private/inbox/spot-<date>-<time>.json, or --out). They are not
 in your log yet: the web app shows them as waiting, and you review and import them there.
@@ -185,6 +188,8 @@ interface Entry {
   /** Suggestions not used and not asked about (no terminal to ask at). */
   notAsked: AgentSuggestion[];
   missing: SpotField[];
+  /** The special livery the log has for the aircraft; the user is asked whether it still wore it. */
+  worn: WornLivery | null;
 }
 
 const BASIS: Record<AgentSuggestion["basis"], string> = {
@@ -425,6 +430,14 @@ export async function spotCommand(args: string[]): Promise<void> {
     }
   };
 
+  /** The special livery the log has for the aircraft, the sighting itself left out (as in lookUp). */
+  const wornIn = (registration: string, v: SpotValues): WornLivery | null => {
+    const date = v.date ?? today;
+    return log ? logLivery(log, ref, registration, date, { date, airport: v.airport ?? null }) : null;
+  };
+  /** Still to ask: the log has the aircraft in a special livery and none is given. */
+  const liveryOpen = (e: Entry) => !!e.worn && !e.choice.values.specialLivery;
+
   const sameSighting = (a: SpotValues, b: SpotValues) =>
     !!a.registration && !!b.registration && registrationMatchForm(a.registration) === registrationMatchForm(b.registration) && (a.date ?? "") === (b.date ?? "") && (a.airport ?? "") === (b.airport ?? "");
 
@@ -483,6 +496,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       ask: [],
       notAsked: [],
       missing: [],
+      worn: wornIn(parsed.typed.registration, typed),
     };
     const reg = normaliseRegistration(e.choice.values.registration, ref);
     if (reg && !reg.knownFormat) e.problems.push(`${reg.display} is not in any country's registration format; check it.`);
@@ -542,6 +556,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       ask: [],
       notAsked: [],
       missing: [],
+      worn: wornIn(registration, typed),
     };
     entries.push(e);
     pending.push(e);
@@ -711,6 +726,15 @@ export async function spotCommand(args: string[]): Promise<void> {
       }
     }
     e.ask = [];
+    if (liveryOpen(e)) {
+      const w = e.worn!;
+      const a = await ask(`${head(e)} Still in ${w.name}? ${dim(`(in your log on ${w.on}; y to use it, or type another special livery; Enter to leave it empty)`)} `);
+      if (a === null) return false;
+      const t = a.trim();
+      if (/^y(es)?$/i.test(t)) setValue(e, "specialLivery", w.name, "your_log");
+      else if (t && !/^no?$/i.test(t)) setValue(e, "specialLivery", t, "you");
+      e.worn = null;
+    }
     for (const f of missingFields(e.choice.values)) {
       for (let tries = 0; ; tries++) {
         const a = await ask(`${head(e)} ${SPOT_FIELD_LABEL[f]}? ${dim(`(${HINT[f]}; Enter to leave it empty)`)} `);
@@ -742,6 +766,7 @@ export async function spotCommand(args: string[]): Promise<void> {
     ...(e.checked ? [] : e.choice.disagreements.map(describeDisagreement)),
     ...(e.agentNote ? [`The agent: ${e.agentNote}`] : []),
     ...e.notAsked.map((s) => `The agent suggests ${SPOT_FIELD_LABEL[s.field as SpotField]} ${s.suggested || "(empty)"}: ${s.reason}`),
+    ...(liveryOpen(e) ? [`Your log has it in ${e.worn!.name} on ${e.worn!.on}; not asked whether it still wore it.`] : []),
   ];
 
   const toInbox = (e: Entry): InboxSighting => ({
@@ -790,7 +815,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       // At a terminal the note comes with its question below.
       if (e.agentNote && !ask) console.log(`       ${yellow(`The agent: ${e.agentNote}`)}`);
     }
-    const open = batch.filter((e) => e.agentNote || e.ask.length || missingFields(e.choice.values).length);
+    const open = batch.filter((e) => e.agentNote || e.ask.length || liveryOpen(e) || missingFields(e.choice.values).length);
     if (open.length && ask) {
       console.log(`\n${bold(`${plural(open.length, "aircraft", "aircraft")} need${open.length === 1 ? "s" : ""} you`)} ${dim("(press Enter to skip a question)")}`);
       for (const e of open) if (!(await askAbout(e, ask))) break;
@@ -1038,6 +1063,7 @@ ${bold("Typing an aircraft")}: the registration first, then anything you know, i
   phase     approaching, landing, taking off, taxiing, parked, towing, overflight
   airline   BAW, or BA in capitals           type    A320, B738          model   A320-232, 737-8K5
   Other words go to the agent, which puts them in a field (special livery, livery, …) or keeps them as notes.
+  When your log has the aircraft in a special livery, you are asked whether it still wore it.
 
 ${bold("For the lines after it")}: a line with only a place, date or phase, e.g. "at EGLL", "on yesterday" or
   "landing"; "no phase" clears the phase. The prompt shows what is set and how many aircraft are not saved.

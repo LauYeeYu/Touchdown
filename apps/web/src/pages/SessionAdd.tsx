@@ -9,7 +9,7 @@ import { useApp } from "../data/context.tsx";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
 import { typeName, airlineLabel, PHASE_LABEL, plural, shortAirport } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
-import { airportOptions, Field, Picker } from "../components/form.tsx";
+import { airportOptions, Field, LiveryQuestion, Picker } from "../components/form.tsx";
 import { toast } from "../components/overlay.tsx";
 
 type Phase = (typeof PHASES)[number];
@@ -79,7 +79,7 @@ export function SessionAdd() {
         if (n && !n.knownFormat) notes.push("Unknown registration format");
         if (r.typeCodeRaw && !ref.type(r.typeCodeRaw)) notes.push(`${r.typeCodeRaw.toUpperCase()} is not a type code`);
         if (r.operatorRaw && !ref.operatorByCode(r.operatorRaw, date)) notes.push(`${r.operatorRaw} is not an airline code`);
-        const k = knownFor(store, r.registrationRaw);
+        const k = knownFor(store, r.registrationRaw, date);
         if (k?.typeCode && r.typeCodeRaw && k.typeCode !== r.typeCodeRaw.toUpperCase()) notes.push(`Recorded before as ${k.typeCode}`);
         const dup = rows.filter((o) => normaliseRegistration(o.registrationRaw, ref)?.match === n?.match).length > 1;
         if (dup) notes.push("Twice in this session");
@@ -207,6 +207,11 @@ export function SessionAdd() {
                 <button type="button" className="icon-btn" onClick={() => remove(row.key)} aria-label={`Remove ${display}`}>
                   <Icon name="x" />
                 </button>
+                {known?.specialLivery && !row.specialLivery.trim() && (
+                  <span className="session-row__ask">
+                    <LiveryQuestion worn={known.specialLivery} onUse={() => update(row.key, { specialLivery: known.specialLivery!.name })} />
+                  </span>
+                )}
                 {notes.length > 0 && (
                   <span className="session-row__notes">
                     <Icon name="triangle-alert" />

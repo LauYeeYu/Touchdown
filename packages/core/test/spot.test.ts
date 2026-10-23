@@ -5,6 +5,7 @@ import {
   commitImport,
   describeDisagreement,
   logEvidence,
+  logLivery,
   matchCandidates,
   modelFromSource,
   modelsAgree,
@@ -153,6 +154,16 @@ describe("the user's own log as a source", () => {
     store.insert("sightings", { registration: "G-ABCD", seenOn: "2019-06-01", airportId: "ap_egll", typeCode: "A21N", operatorId: "op_baw" });
     expect(logEvidence(store, ref, "G-ABCD", "2019-06-01", { date: "2019-06-01", airport: "EGLL" })).toBeNull();
     expect(logEvidence(store, ref, "G-ABCD", "2019-06-01", { date: "2019-06-01", airport: "EDDF" })?.typeCode).toBe("A21N");
+  });
+
+  it("finds the special livery recorded nearest the date, however old, to ask about", () => {
+    const store = newStore();
+    store.insert("sightings", { registration: "G-ABCD", seenOn: "2019-06-01", airportId: "ap_egll", specialLivery: "Retro Livery" });
+    store.insert("sightings", { registration: "G-ABCD", seenOn: "2024-01-10" });
+    expect(logLivery(store, ref, "G-ABCD", "2025-07-01")).toEqual({ name: "Retro Livery", on: "2019-06-01" });
+    // The sighting being checked does not count.
+    expect(logLivery(store, ref, "G-ABCD", "2019-06-01", { date: "2019-06-01", airport: "EGLL" })).toBeNull();
+    expect(logLivery(store, ref, "D-ABCD", "2025-07-01")).toBeNull();
   });
 });
 

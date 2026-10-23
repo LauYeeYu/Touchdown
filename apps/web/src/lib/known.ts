@@ -1,6 +1,6 @@
 // What the log already knows about a registration: shown while a sighting is typed (docs/31-ui.md).
 
-import { flightDay, registrationMatchForm, type Flight, type Sighting, type Store } from "@touchdown/core";
+import { flightDay, nearestLivery, registrationMatchForm, todayIn, type Flight, type Sighting, type Store, type WornLivery } from "@touchdown/core";
 
 export interface Known {
   typeCode: string | null;
@@ -9,9 +9,12 @@ export interface Known {
   operatorId: string | null;
   sightings: Sighting[];
   flights: Flight[];
+  /** The special livery recorded nearest the date. Never filled in: the user is asked (docs/21, "Special livery"). */
+  specialLivery: WornLivery | null;
 }
 
-export function knownFor(store: Store, registration: string): Known | null {
+/** `date` is the sighting's day; `except` is the sighting being edited, left out. */
+export function knownFor(store: Store, registration: string, date?: string | null, except?: string): Known | null {
   const key = registrationMatchForm(registration);
   if (key.length < 3) return null;
   const sightings = store.all("sightings").filter((s) => s.registration && registrationMatchForm(s.registration) === key).sort((a, b) => (b.seenOn ?? "").localeCompare(a.seenOn ?? ""));
@@ -26,6 +29,10 @@ export function knownFor(store: Store, registration: string): Known | null {
     operatorId: latest?.operatorId ?? flights[0]?.operatingAirlineId ?? flights[0]?.airlineId ?? null,
     sightings,
     flights,
+    specialLivery: nearestLivery(
+      [...sightings.filter((s) => s.id !== except).map((s) => ({ date: s.seenOn, specialLivery: s.specialLivery })), ...flights.map((f) => ({ date: flightDay(f), specialLivery: f.specialLivery }))],
+      date || todayIn(),
+    ),
   };
 }
 

@@ -7,7 +7,8 @@ import type { Store } from "../store.ts";
 import type { Finding, RecordRef, Severity, SuggestedFix } from "./types.ts";
 import { fnv1a } from "../ids.ts";
 import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, greatCircleKm } from "../derive.ts";
-import { normaliseRegistration } from "../normalise/registration.ts";
+import { normaliseRegistration, registrationMatchForm } from "../normalise/registration.ts";
+import { liveryAround } from "../livery.ts";
 import { isSeatFormat, parseFlightNumber } from "../normalise/flight.ts";
 import { addDays, daysBetween, formatOffset, instant, localDateOf, offsetAt, parseDateTime, todayIn, zonedDateTime } from "../time/index.ts";
 
@@ -380,6 +381,27 @@ function checkCross(
       if (spellings.length > 1) {
         out.add("C-LIVERY-NAME", "info", same.map((x) => x.r), ["specialLivery"], `The same livery is spelt ${spellings.map((s) => `"${s}"`).join(" and ")}.`, [spellings.sort()]);
       }
+    }
+  }
+  // C-LIVERY-MISSING: no special livery on a day the aircraft's other records show it wore one.
+  const aircraftKey = (rec: Flight | Sighting) => rec.airframeId ?? (rec.registration ? `reg:${registrationMatchForm(rec.registration)}` : null);
+  for (const [, list] of groupBy(recs, (x) => aircraftKey(x.rec))) {
+    if (!list.some((x) => x.rec.specialLivery)) continue;
+    const dated = list.map((x) => ({ ...x, date: "seenOn" in x.rec ? x.rec.seenOn : flightDay(x.rec), specialLivery: x.rec.specialLivery }));
+    for (const x of dated) {
+      if (x.specialLivery || !x.date) continue;
+      const worn = liveryAround(dated, x.date);
+      if (!worn) continue;
+      const what = x.r.table === "flights" ? "this flight" : "this sighting";
+      out.add(
+        "C-LIVERY-MISSING",
+        "warning",
+        [x.r],
+        ["specialLivery"],
+        `${x.rec.registration ?? "The aircraft"} was in ${worn.name} on ${worn.on}, but ${what} has no special livery.`,
+        [worn.name],
+        [{ ...x.r, field: "specialLivery", value: worn.name, label: `Set special livery to ${worn.name}` }],
+      );
     }
   }
   // C-SAME-DAY: photographed an aircraft at an airport on a day the user flew it through there.

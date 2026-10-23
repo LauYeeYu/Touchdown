@@ -2907,6 +2907,16 @@ a.btn--primary {
   height: 14px;
 }
 
+.session-row__ask {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.session-row__ask b {
+  color: var(--ink);
+}
+
 /* ---------- tabs, stats ---------- */
 
 .tabs {

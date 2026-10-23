@@ -170,6 +170,20 @@ describe("cross-record rules", () => {
     expect(ids(run([], [{ ...goodSighting, specialLivery: "Oneworld Livery" }, { ...goodSighting, seenOn: "2025-09-20", specialLivery: "Oneworld Livery" }]).findings)).not.toContain("C-LIVERY-NAME");
   });
 
+  it("C-LIVERY-MISSING", () => {
+    const s = (seenOn: string, specialLivery: string | null = null): Partial<SightingValues> => ({ seenOn, airportRaw: "EGLL", registrationRaw: "G-ABCD", operatorRaw: "BAW", typeCodeRaw: "A21N", phase: "landing", specialLivery });
+    const missing = (list: Partial<SightingValues>[]) => run([], list).findings.filter((f) => f.ruleId === "C-LIVERY-MISSING");
+    // Between two records with the livery, and within a year after the last one.
+    const found = missing([s("2025-03-14", "Retro Livery"), s("2025-05-01"), s("2025-08-20", "Retro Livery"), s("2026-02-01")]);
+    expect(found).toHaveLength(2);
+    expect(found[0]!.message).toBe("G-ABCD was in Retro Livery on 2025-03-14, but this sighting has no special livery.");
+    expect(found[0]!.fixes[0]).toMatchObject({ field: "specialLivery", value: "Retro Livery" });
+    // More than a year after the last one, before the first one, or between two different liveries: not known.
+    expect(missing([s("2023-01-01", "Retro Livery"), s("2025-03-14")])).toHaveLength(0);
+    expect(missing([s("2025-01-01"), s("2025-03-14", "Retro Livery")])).toHaveLength(0);
+    expect(missing([s("2025-01-01", "Retro Livery"), s("2025-03-14"), s("2025-06-01", "Sports Livery")])).toHaveLength(0);
+  });
+
   it("C-SAME-DAY", () => {
     const s = { ...goodSighting, seenOn: "2025-04-02", registrationRaw: "N3001X", typeCodeRaw: "A21N", modelRaw: "A321-271NX" };
     expect(ids(run([goodFlight], [s]).findings)).toContain("C-SAME-DAY");
