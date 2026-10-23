@@ -109,8 +109,22 @@ function localInbox(): Plugin {
   };
 }
 
+// Every stylesheet link in index.html carries the build's date and time in UTC (`?v=20261023T153012Z`), so a new
+// deployment's CSS is fetched again instead of waiting on the browser's cache (docs/30, "Caching").
+function styleVersion(): Plugin {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  return {
+    name: "touchdown-style-version",
+    transformIndexHtml: {
+      order: "post",
+      handler: (html) =>
+        html.replace(/<link\b[^>]*>/g, (tag) => (/\brel="stylesheet"/.test(tag) ? tag.replace(/\bhref="(\/[^"?#]*)"/, `href="$1?v=${stamp}"`) : tag)),
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), localBackup(), localInbox()],
+  plugins: [react(), styleVersion(), localBackup(), localInbox()],
   server: { port: 5173, host: "127.0.0.1" },
   build: { target: "es2023", sourcemap: true },
 });
