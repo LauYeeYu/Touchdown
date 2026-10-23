@@ -40,9 +40,11 @@ export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "upda
   agentChecker: "claude",
   sendNotesToAgent: false,
   homeAirportId: null,
+  dataMode: null,
   storageBackend: "json_tables",
   storageAdapter: "manual",
   storageLocation: null,
+  storageAccount: null,
 };
 
 function deviceId(): string {

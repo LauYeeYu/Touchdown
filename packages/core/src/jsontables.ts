@@ -50,6 +50,8 @@ export interface TableFileProblem {
 export const MIGRATIONS: { to: number; addColumns: { table: TableName | "*"; column: string }[] }[] = [
   // Every table with system columns gains basedOn.
   { to: 2, addColumns: [{ table: "*", column: "basedOn" }] },
+  // Settings record the data mode and the storage account (docs/32, "Recording the backend").
+  { to: 3, addColumns: [{ table: "settings", column: "dataMode" }, { table: "settings", column: "storageAccount" }] },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */

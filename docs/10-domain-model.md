@@ -297,3 +297,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 |---------|--------|
 | 1 | First version. |
 | 2 | `basedOn` system column. |
+| 3 | `settings.dataMode` and `settings.storageAccount`. |

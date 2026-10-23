@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -15,6 +15,8 @@ export const TRACK_PROVIDERS = ["fr24_csv", "fr24_kml", "adsblol", "aeroapi", "g
 export const PROVENANCE_SOURCES = ["user", "import", "lookup", "agent", "derived"] as const;
 export const HISTORY_REASONS = ["edit", "import", "sync_conflict", "migration"] as const;
 export const AGENT_CHECKERS = ["claude", "codex", "none"] as const;
+/** Where the log lives and what Touchdown's server may do (docs/32-modes-and-sharing.md). */
+export const DATA_MODES = ["standard", "private", "local"] as const;
 
 const sourceColumns = [
   c.enum("sourceKind", SOURCE_KINDS),
@@ -217,9 +219,11 @@ export const settings = table("settings", "settings", [
   c.enum("agentChecker", AGENT_CHECKERS),
   c.boolean("sendNotesToAgent"),
   c.ref("homeAirportId", "airports"),
+  c.enum("dataMode", DATA_MODES),
   c.enum("storageBackend", ["json_tables", "sqlite_file", "sqlite_local", "postgres", "d1"]),
   c.enum("storageAdapter", ["gdrive", "localfs", "manual"]),
   c.text("storageLocation"),
+  c.text("storageAccount"),
 ]);
 
 export const familyOverrides = table("family_overrides", "user", [
