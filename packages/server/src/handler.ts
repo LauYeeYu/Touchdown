@@ -2,7 +2,7 @@
 // sign-in pages, and the /auth/ requests for accounts, sessions and invitations. Standard web Request and Response
 // only, so the same code runs in a Cloudflare Worker and in Node.
 
-import { hashToken, newSalt, openToken, passwordHash, randomToken, sameString, sealToken, TOKEN_RE } from "./crypto.ts";
+import { b64url, hashToken, newSalt, openToken, passwordHash, randomToken, sameString, sealToken, sha256, TOKEN_RE } from "./crypto.ts";
 import { siteId, type Database } from "./db.ts";
 import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
 import { withHeaders } from "./headers.ts";
@@ -46,6 +46,11 @@ const INVITE_DAYS = 7;
 const RESET_HOURS = 24;
 const FREE_TRIES = 5;
 const COOKIE = "td_session";
+/** The command line's session lasts until it is signed out (docs/33, "The command line"). */
+const CLI_FOREVER = "9999-12-31T00:00:00Z";
+const CLI_CODE_MINUTES = 5;
+/** What a command-line session may ask for: who it is, signing out, and Standard mode's access to Google Drive. */
+const CLI_ALLOWED = new Set(["GET /auth/me", "POST /auth/signout", "GET /api/storage", "POST /api/storage/token"]);
 /** The sign-in pages' own build; everything in it may be fetched without a session. */
 export const SIGNIN_FILES = "/signin-files/";
 const PUBLIC_PAGES = /^\/(signin|setup|join\/[^/]+|reset\/[^/]+)\/?$/;
@@ -66,6 +71,8 @@ interface Account {
 interface Session {
   account: Account;
   tokenHash: string;
+  /** The command line's session, sent as a bearer token rather than a cookie. */
+  cli: boolean;
   /** A Set-Cookie value when the session was extended. */
   renewed: string | null;
 }
@@ -94,6 +101,24 @@ function cookieOf(request: Request, name: string): string | null {
     if (k === name) return v.join("=");
   }
   return null;
+}
+
+/** The bearer token the command line sends, if any. */
+function bearerOf(request: Request): string | null {
+  const h = request.headers.get("Authorization");
+  return h?.startsWith("Bearer ") ? h.slice(7).trim() : null;
+}
+
+/** Changes from a browser must come from the site's own pages. A bearer token is never sent by a browser on its own. */
+function checkOrigin(request: Request, s: Server) {
+  if (request.method === "GET" || request.method === "HEAD" || bearerOf(request)) return;
+  const origin = request.headers.get("Origin");
+  if (!origin || !s.config.origins.includes(origin)) throw new Fail(403, "Not allowed from here.");
+}
+
+/** The command line may only do what CLI_ALLOWED lists. */
+function checkCli(session: Session | null, method: string, path: string) {
+  if (session?.cli && !CLI_ALLOWED.has(`${method} ${path}`)) throw new Fail(403, "The command line cannot do this. Use the web app.");
 }
 
 function sessionCookie(token: string, s: Server, maxAgeS: number): string {
@@ -188,6 +213,8 @@ export async function handle(request: Request, s: Server): Promise<Response> {
       return done(await s.assets.fetch(new Request(new URL(`${SIGNIN_FILES}signin.html`, url), { headers: request.headers })));
     }
     if (path.startsWith(SIGNIN_FILES) || path === "/favicon.svg") return done(await s.assets.fetch(request));
+    // The command line's session opens its few requests, not the app's pages and files.
+    if (session?.cli && !path.startsWith("/api/")) return withHeaders(json(401, { error: "Sign in first." }), path);
     if (!session) {
       const page = request.method === "GET" && (request.headers.get("Accept") ?? "").includes("text/html");
       if (page) return withHeaders(Response.redirect(new URL(`/signin?next=${encodeURIComponent(path + url.search)}`, url).toString(), 302), path);
@@ -205,30 +232,34 @@ export async function handle(request: Request, s: Server): Promise<Response> {
 // ---------- sessions ----------
 
 async function currentSession(request: Request, s: Server, now: number): Promise<Session | null> {
-  const t = cookieOf(request, COOKIE);
+  const bearer = bearerOf(request);
+  const t = bearer ?? cookieOf(request, COOKIE);
   if (!t || !TOKEN_RE.test(t)) return null;
   const tokenHash = await hashToken(t);
-  const row = await s.db.first<Account & { sCreatedAt: string; lastUsedAt: string; expiresAt: string }>(
-    `SELECT a.*, s.lastUsedAt, s.expiresAt FROM sessions s JOIN accounts a ON a.id = s.accountId WHERE s.tokenHash = ?`,
+  const row = await s.db.first<Account & { sCreatedAt: string; lastUsedAt: string; expiresAt: string; kind: string | null }>(
+    `SELECT a.*, s.lastUsedAt, s.expiresAt, s.kind FROM sessions s JOIN accounts a ON a.id = s.accountId WHERE s.tokenHash = ?`,
     [tokenHash],
   );
   if (!row) return null;
+  // A command line's token works only as a bearer token, a browser's only as its cookie.
+  const cli = row.kind === "cli";
+  if (cli !== !!bearer) return null;
   const nowIso = toUtcIso(now);
   if (row.expiresAt <= nowIso) {
     await s.db.run("DELETE FROM sessions WHERE tokenHash = ?", [tokenHash]);
     return null;
   }
-  const { lastUsedAt: _l, expiresAt: _e, sCreatedAt: _c, ...account } = row;
+  const { lastUsedAt: _l, expiresAt: _e, sCreatedAt: _c, kind: _k, ...account } = row;
   let renewed: string | null = null;
-  // Extended at most once a day, so most requests cost one read.
+  // Extended at most once a day, so most requests cost one read. The command line's session does not run out.
   if (Date.parse(row.lastUsedAt) < now - DAY) {
     await s.db.batch([
-      { sql: "UPDATE sessions SET lastUsedAt = ?, expiresAt = ? WHERE tokenHash = ?", params: [nowIso, toUtcIso(now + SESSION_DAYS * DAY), tokenHash] },
+      { sql: "UPDATE sessions SET lastUsedAt = ?, expiresAt = ? WHERE tokenHash = ?", params: [nowIso, cli ? CLI_FOREVER : toUtcIso(now + SESSION_DAYS * DAY), tokenHash] },
       { sql: "UPDATE accounts SET lastSeenAt = ? WHERE id = ?", params: [nowIso, account.id] },
     ]);
-    renewed = sessionCookie(t, s, SESSION_DAYS * 86_400);
+    if (!cli) renewed = sessionCookie(t, s, SESSION_DAYS * 86_400);
   }
-  return { account, tokenHash, renewed };
+  return { account, tokenHash, cli, renewed };
 }
 
 /** A new session for the account; returns the Set-Cookie value. */
@@ -251,12 +282,12 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
   const path = url.pathname;
   const method = request.method;
   const nowIso = toUtcIso(now);
+  // The command line exchanges its one-time code here; it holds no cookie, so there is nothing to forge.
+  if (method === "POST" && path === "/auth/cli/token") return cliToken(request, s, now);
   // Anything that changes something must come from the site's own pages.
-  if (method !== "GET" && method !== "HEAD") {
-    const origin = request.headers.get("Origin");
-    if (!origin || !s.config.origins.includes(origin)) throw new Fail(403, "Not allowed from here.");
-  }
+  checkOrigin(request, s);
   const session = await currentSession(request, s, now);
+  checkCli(session, method, path);
   const signedIn = () => {
     if (!session) throw new Fail(401, "Sign in first.");
     return session;
@@ -351,13 +382,41 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     return withRenewal(json(200, { ended: n }));
   }
 
+  // One device signed out from Settings, by its id from /auth/me.
+  if (method === "POST" && path === "/auth/sessions/end") {
+    const me = signedIn();
+    const b = await body(request);
+    const id = typeof b.id === "string" ? b.id : "";
+    const n = await s.db.run("DELETE FROM sessions WHERE accountId = ? AND tokenHash = ?", [me.account.id, id]);
+    if (id === me.tokenHash) return json(200, { ended: n }, { "Set-Cookie": sessionCookie("", s, 0) });
+    return withRenewal(json(200, { ended: n }));
+  }
+
+  // The user allows the command line on their computer (the page /cli/login): a one-time code for its challenge,
+  // which the page passes to the command line on 127.0.0.1 and which it exchanges at /auth/cli/token.
+  if (method === "POST" && path === "/auth/cli/approve") {
+    const me = signedIn();
+    const b = await body(request);
+    if (typeof b.challenge !== "string" || !TOKEN_RE.test(b.challenge)) throw new Fail(400, "The command line's request could not be read. Run ./touchdown login again.");
+    const system = typeof b.system === "string" && ["macOS", "Windows", "Linux"].includes(b.system) ? b.system : "another system";
+    const code = randomToken();
+    await s.db.batch([
+      { sql: "DELETE FROM cli_logins WHERE expiresAt <= ?", params: [nowIso] },
+      {
+        sql: "INSERT INTO cli_logins (codeHash, accountId, challenge, system, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?)",
+        params: [await hashToken(code), me.account.id, b.challenge, system, nowIso, toUtcIso(now + CLI_CODE_MINUTES * 60_000)],
+      },
+    ]);
+    return withRenewal(json(200, { code }));
+  }
+
   if (method === "GET" && path === "/auth/me") {
     const me = signedIn();
     const a = me.account;
     const [pw, google, sessions] = await Promise.all([
       s.db.first("SELECT accountId FROM password_credentials WHERE accountId = ?", [a.id]),
       s.db.first<{ email: string }>("SELECT email FROM google_identities WHERE accountId = ?", [a.id]),
-      s.db.all<{ tokenHash: string; device: string; createdAt: string; lastUsedAt: string }>("SELECT tokenHash, device, createdAt, lastUsedAt FROM sessions WHERE accountId = ? ORDER BY lastUsedAt DESC", [a.id]),
+      s.db.all<{ tokenHash: string; device: string; createdAt: string; lastUsedAt: string; kind: string | null }>("SELECT tokenHash, device, createdAt, lastUsedAt, kind FROM sessions WHERE accountId = ? ORDER BY lastUsedAt DESC", [a.id]),
     ]);
     return withRenewal(
       json(200, {
@@ -367,7 +426,8 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
         role: a.role,
         password: !!pw,
         google: google?.email ?? null,
-        sessions: sessions.map((x) => ({ device: x.device, createdAt: x.createdAt, lastUsedAt: x.lastUsedAt, current: x.tokenHash === me.tokenHash })),
+        // A session's id is the hash of its token, which does not open it.
+        sessions: sessions.map((x) => ({ id: x.tokenHash, device: x.device, cli: x.kind === "cli", createdAt: x.createdAt, lastUsedAt: x.lastUsedAt, current: x.tokenHash === me.tokenHash })),
       }),
     );
   }
@@ -541,6 +601,33 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
 }
 
 /** A new account, with a password key or a Google identity (or both). */
+/**
+ * The command line exchanges the one-time code for its session, proving with the PKCE verifier that it is the program
+ * that asked. The code works once and for a few minutes. Returns the session token, which the command line keeps.
+ */
+async function cliToken(request: Request, s: Server, now: number): Promise<Response> {
+  const b = await body(request);
+  const code = typeof b.code === "string" && TOKEN_RE.test(b.code) ? b.code : null;
+  const verifier = typeof b.verifier === "string" && /^[A-Za-z0-9._~-]{43,128}$/.test(b.verifier) ? b.verifier : null;
+  if (!code || !verifier) throw new Fail(400, "The sign-in could not be read. Run ./touchdown login again.");
+  const codeHash = await hashToken(code);
+  const row = await s.db.first<{ accountId: string; challenge: string; system: string; expiresAt: string }>("SELECT accountId, challenge, system, expiresAt FROM cli_logins WHERE codeHash = ?", [codeHash]);
+  await s.db.run("DELETE FROM cli_logins WHERE codeHash = ?", [codeHash]);
+  const nowIso = toUtcIso(now);
+  if (!row || row.expiresAt <= nowIso || !sameString(b64url(await sha256(verifier)), row.challenge)) throw new Fail(400, "This sign-in has run out or does not match. Run ./touchdown login again.");
+  const a = await s.db.first<{ name: string; email: string }>("SELECT name, email FROM accounts WHERE id = ?", [row.accountId]);
+  if (!a) throw new Fail(400, "This account no longer exists.");
+  const t = randomToken();
+  await s.db.batch([
+    {
+      sql: "INSERT INTO sessions (tokenHash, accountId, createdAt, lastUsedAt, expiresAt, device, kind) VALUES (?, ?, ?, ?, ?, ?, 'cli')",
+      params: [await hashToken(t), row.accountId, nowIso, nowIso, CLI_FOREVER, `Command line on ${row.system}`],
+    },
+    { sql: "UPDATE accounts SET lastSeenAt = ? WHERE id = ?", params: [nowIso, row.accountId] },
+  ]);
+  return json(200, { token: t, name: a.name, email: a.email });
+}
+
 async function createAccount(
   s: Server,
   a: { email: string; name: string; role: "owner" | "member"; key?: string; google?: GoogleIdentity },
@@ -572,6 +659,7 @@ async function createAccount(
 async function removeAccount(s: Server, id: string) {
   await s.db.batch([
     { sql: "DELETE FROM sessions WHERE accountId = ?", params: [id] },
+    { sql: "DELETE FROM cli_logins WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM password_credentials WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM google_identities WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM invites WHERE accountId = ?", params: [id] },
@@ -667,10 +755,8 @@ async function storage(request: Request, s: Server, url: URL, now: number, sessi
   const method = request.method;
   const me = session.account;
   const nowIso = toUtcIso(now);
-  if (method !== "GET" && method !== "HEAD") {
-    const origin = request.headers.get("Origin");
-    if (!origin || !s.config.origins.includes(origin)) throw new Fail(403, "Not allowed from here.");
-  }
+  checkOrigin(request, s);
+  checkCli(session, method, path);
   const row = await s.db.first<StorageRow>("SELECT * FROM storage_connections WHERE accountId = ?", [me.id]);
 
   if (method === "GET" && path === "/api/storage") {

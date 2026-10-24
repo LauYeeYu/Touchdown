@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { handle, safeNext, type Server } from "../src/index.ts";
 import { sqliteFile } from "../src/node.ts";
@@ -323,6 +324,94 @@ describe("signing in with Google", () => {
   });
 });
 
+describe("the command line", () => {
+  const VERIFIER = "a-made-up-pkce-verifier-of-the-command-line-0123456789";
+  const challengeOf = (v: string) => createHash("sha256").update(v).digest("base64url");
+
+  /** What the command line sends: its bearer token, no cookie and no Origin. */
+  async function asCli(s: Server, token: string, method: string, path: string, body?: unknown) {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    const res = await handle(new Request(SITE + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }), s);
+    return { status: res.status, json: (await res.json().catch(() => ({}))) as Record<string, unknown> };
+  }
+
+  async function exchange(s: Server, code: unknown, verifier = VERIFIER) {
+    const res = await handle(new Request(`${SITE}/auth/cli/token`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, verifier }) }), s);
+    return { status: res.status, json: (await res.json()) as Record<string, unknown> };
+  }
+
+  async function signedInCli() {
+    const t = await withOwner();
+    const approved = await call(t.s, t.owner, "POST", "/auth/cli/approve", { challenge: challengeOf(VERIFIER), system: "macOS" });
+    expect(approved.status).toBe(200);
+    const r = await exchange(t.s, approved.json.code);
+    expect(r.status).toBe(200);
+    expect(r.json).toMatchObject({ name: "Owner", email: "owner@example.org" });
+    return { ...t, token: String(r.json.token) };
+  }
+
+  it("signs in with a one-time code and its PKCE verifier, and is listed with the browsers", async () => {
+    const { s, owner, token, tick } = await signedInCli();
+    expect((await asCli(s, token, "GET", "/auth/me")).json).toMatchObject({ email: "owner@example.org" });
+    const me = await call(s, owner, "GET", "/auth/me");
+    expect((me.json.sessions as { device: string; cli: boolean }[]).map((x) => [x.device, x.cli]).sort()).toEqual([
+      ["Chrome on macOS", false],
+      ["Command line on macOS", true],
+    ]);
+    // The session does not run out.
+    tick(400 * 86_400_000);
+    expect((await asCli(s, token, "GET", "/auth/me")).status).toBe(200);
+  });
+
+  it("does only what the command line needs", async () => {
+    const { s, owner, token } = await signedInCli();
+    expect((await asCli(s, token, "GET", "/api/storage")).status).toBe(200);
+    expect((await asCli(s, token, "GET", "/auth/people")).status).toBe(403);
+    expect((await asCli(s, token, "POST", "/auth/name", { name: "Someone" })).status).toBe(403);
+    expect((await asCli(s, token, "POST", "/auth/cli/approve", { challenge: challengeOf(VERIFIER) })).status).toBe(403);
+    expect((await asCli(s, token, "POST", "/api/storage/terms", { version: 1 })).status).toBe(403);
+    expect((await asCli(s, token, "GET", "/settings")).status).toBe(401);
+    // A command line's token is no cookie, and a browser's cookie token is no bearer token.
+    expect((await call(s, { cookie: `td_session=${token}` }, "GET", "/auth/me")).status).toBe(401);
+    expect((await asCli(s, owner.cookie!.split("=")[1]!, "GET", "/auth/me")).status).toBe(401);
+  });
+
+  it("takes a code once, only with its verifier, and only for a few minutes", async () => {
+    const { s, owner, tick } = await withOwner();
+    const approve = async () => String((await call(s, owner, "POST", "/auth/cli/approve", { challenge: challengeOf(VERIFIER), system: "Linux" })).json.code);
+    const a = await approve();
+    expect((await exchange(s, a, "another-verifier-that-is-long-enough-to-be-read-0000")).status).toBe(400);
+    expect((await exchange(s, a)).status).toBe(400);
+    const b = await approve();
+    expect((await exchange(s, b)).status).toBe(200);
+    expect((await exchange(s, b)).status).toBe(400);
+    const c = await approve();
+    tick(6 * 60_000);
+    expect((await exchange(s, c)).status).toBe(400);
+    // Allowing needs the browser's own page and session.
+    const elsewhere = await handle(
+      new Request(`${SITE}/auth/cli/approve`, { method: "POST", headers: { Cookie: owner.cookie!, Origin: "https://elsewhere.example", "Content-Type": "application/json" }, body: JSON.stringify({ challenge: challengeOf(VERIFIER) }) }),
+      s,
+    );
+    expect(elsewhere.status).toBe(403);
+    expect((await call(s, { cookie: null }, "POST", "/auth/cli/approve", { challenge: challengeOf(VERIFIER) })).status).toBe(401);
+  });
+
+  it("is signed out from Settings, or by itself", async () => {
+    const { s, owner, token } = await signedInCli();
+    const id = (await call(s, owner, "GET", "/auth/me")).json.sessions as { id: string; cli: boolean }[];
+    expect((await call(s, owner, "POST", "/auth/sessions/end", { id: id.find((x) => x.cli)!.id })).json).toEqual({ ended: 1 });
+    expect((await asCli(s, token, "GET", "/auth/me")).status).toBe(401);
+    expect((await call(s, owner, "GET", "/auth/me")).status).toBe(200);
+
+    const again = await call(s, owner, "POST", "/auth/cli/approve", { challenge: challengeOf(VERIFIER) });
+    const second = String((await exchange(s, again.json.code)).json.token);
+    expect((await asCli(s, second, "POST", "/auth/signout")).status).toBe(200);
+    expect((await asCli(s, second, "GET", "/auth/me")).status).toBe(401);
+  });
+});
+
 describe("the privacy policy and the terms", () => {
   it("open without a session, and with one", async () => {
     const { s, served } = server();
@@ -389,6 +478,14 @@ describe("Standard mode's storage key", () => {
     expect(token.json).toMatchObject({ accessToken: "access-1", account: "owner@gmail.example" });
     expect(google.refreshed).toEqual(["refresh-1"]);
     expect(JSON.stringify(token.json)).not.toContain("refresh-1");
+
+    // The command line, signed in, gets the same short-lived access, without a browser.
+    const verifier = "a-made-up-pkce-verifier-of-the-command-line-0123456789";
+    const approved = await call(s, owner, "POST", "/auth/cli/approve", { challenge: createHash("sha256").update(verifier).digest("base64url"), system: "Linux" });
+    const signedIn = await handle(new Request(`${SITE}/auth/cli/token`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: approved.json.code, verifier }) }), s);
+    const cli = String(((await signedIn.json()) as { token: string }).token);
+    const forCli = await handle(new Request(`${SITE}/api/storage/token`, { method: "POST", headers: { Authorization: `Bearer ${cli}` } }), s);
+    expect(await forCli.json()).toMatchObject({ accessToken: "access-1", account: "owner@gmail.example" });
   });
 
   it("marks a key Google no longer accepts, and leaving revokes and deletes it", async () => {
@@ -461,10 +558,12 @@ describe("Standard mode's storage key", () => {
       { sql: "CREATE TABLE site (id TEXT PRIMARY KEY, createdAt TEXT NOT NULL, schemaVersion INTEGER NOT NULL)" },
       { sql: "INSERT INTO site VALUES ('old-site', '2026-10-24T00:00:00Z', 1)" },
       { sql: "CREATE TABLE google_logins (stateHash TEXT PRIMARY KEY, nonce TEXT NOT NULL, verifier TEXT NOT NULL, next TEXT, invite TEXT, name TEXT, linkAccountId TEXT, expiresAt TEXT NOT NULL)" },
+      { sql: "CREATE TABLE sessions (tokenHash TEXT PRIMARY KEY, accountId TEXT NOT NULL, createdAt TEXT NOT NULL, lastUsedAt TEXT NOT NULL, expiresAt TEXT NOT NULL, device TEXT)" },
     ]);
     const s: Server = { db, config: { origins: [SITE] }, assets: { fetch: async () => new Response("") } };
     expect((await call(s, { cookie: null }, "GET", "/auth/site")).json.siteId).toBe("old-site");
-    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 2 });
+    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 3 });
     await expect(db.first("SELECT purpose FROM google_logins LIMIT 1")).resolves.toBeNull();
+    await expect(db.first("SELECT kind FROM sessions LIMIT 1")).resolves.toBeNull();
   });
 });

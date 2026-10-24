@@ -17,7 +17,7 @@ export interface Database {
   batch(statements: Statement[]): Promise<void>;
 }
 
-export const SERVER_SCHEMA_VERSION = 2;
+export const SERVER_SCHEMA_VERSION = 3;
 
 /** The server's tables. Removing a row never relies on cascades: the code deletes dependent rows itself. */
 const TABLES = [
@@ -54,9 +54,19 @@ const TABLES = [
     createdAt TEXT NOT NULL,
     lastUsedAt TEXT NOT NULL,
     expiresAt TEXT NOT NULL,
-    device TEXT
+    device TEXT,
+    kind TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS sessions_account ON sessions (accountId)`,
+  // The command line's sign-in under way (docs/33, "The command line"): a one-time code for its PKCE challenge.
+  `CREATE TABLE IF NOT EXISTS cli_logins (
+    codeHash TEXT PRIMARY KEY,
+    accountId TEXT NOT NULL,
+    challenge TEXT NOT NULL,
+    system TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    expiresAt TEXT NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS invites (
     id TEXT PRIMARY KEY,
     tokenHash TEXT NOT NULL UNIQUE,
@@ -117,6 +127,17 @@ const MIGRATIONS: { to: number; run: (db: Database) => Promise<void> }[] = [
         await db.first("SELECT purpose FROM google_logins LIMIT 1");
       } catch {
         await db.run("ALTER TABLE google_logins ADD COLUMN purpose TEXT");
+      }
+    },
+  },
+  {
+    // Sessions say whether they are a browser's (NULL) or the command line's ('cli').
+    to: 3,
+    run: async (db) => {
+      try {
+        await db.first("SELECT kind FROM sessions LIMIT 1");
+      } catch {
+        await db.run("ALTER TABLE sessions ADD COLUMN kind TEXT");
       }
     },
   },
