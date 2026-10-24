@@ -27,6 +27,9 @@ const NAV: { to: string; label: string; icon: IconName; match: (p: string) => bo
 /** Local mode: remind the user to export a backup when the last one is older than this and the log changed since. */
 const BACKUP_DUE_DAYS = 30;
 
+/** An error message as a clause in a sentence: without its own full stop. */
+export const clause = (message: string | null) => (message ?? "").replace(/\.+$/, "");
+
 /** The masthead's save and sync state: its words, its tooltip, its icon. */
 function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null): { text: string; title: string; icon: IconName; bad: boolean } {
   if (saving === "error") return { text: "Could not save in this browser", title: "Could not save in this browser", icon: "hard-drive", bad: true };
@@ -34,11 +37,12 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null):
   const last = sync.lastAt ? ` Last synced ${momentLabel(sync.lastAt)}.` : "";
   switch (sync.state) {
     case "permission":
+      if (sync.mode === "standard") return { text: "Reconnect Google Drive", title: `${sync.error ?? `Touchdown cannot reach ${sync.place}.`}${last}`, icon: "cloud", bad: true };
       return sync.adapter === "gdrive"
         ? { text: "Sign in to sync", title: `Sign in to Google again to sync with ${sync.place}.${last}`, icon: "cloud", bad: true }
         : { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
     case "failed":
-      return { text: "Not synced", title: `Could not sync with ${sync.place}: ${sync.error}.${last}`, icon: "refresh-cw", bad: true };
+      return { text: "Not synced", title: `Could not sync with ${sync.place}: ${clause(sync.error)}.${last}`, icon: "refresh-cw", bad: true };
     case "syncing":
       return { text: "Syncing…", title: `Syncing with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
     default:
@@ -201,12 +205,12 @@ export function Shell() {
           icon={sync.adapter === "gdrive" ? "cloud" : "folder"}
           actions={
             <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.allow()}>
-              {sync.adapter === "gdrive" ? "Sign in" : "Allow"}
+              {sync.mode === "standard" ? "Connect again" : sync.adapter === "gdrive" ? "Sign in" : "Allow"}
             </button>
           }
         >
-          {sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`} Until then, changes are kept in this browser.
-          {sync.error && ` ${sync.error}`}
+          {sync.mode === "standard" ? (sync.error ?? `Touchdown cannot reach ${sync.place}.`) : sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`} Until then, changes are kept in this browser.
+          {sync.mode !== "standard" && sync.error && ` ${sync.error}`}
         </NoteBar>
       )}
       {backupDue && !backupLater && (

@@ -37,7 +37,7 @@ function LinkBox({ link, note }: { link: Link; note: string }) {
 async function signOut(app: AppData) {
   const c = app.connection;
   let keep = true;
-  if (c?.mode === "private") {
+  if (c && c.mode !== "local") {
     await app.sync?.run();
     const waiting = app.getSyncInfo()?.waiting ?? 0;
     if (waiting > 0) {

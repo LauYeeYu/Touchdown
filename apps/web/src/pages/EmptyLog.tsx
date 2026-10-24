@@ -36,7 +36,7 @@ export function EmptyLog() {
       </div>
       <p className="status-line">
         <Icon name="hard-drive" />
-        <span>{c?.mode === "private" ? `What you add is saved in this browser and synced through ${c.name}.` : "Your data stays in this browser. Export a backup from Settings at any time."}</span>
+        <span>{c && c.mode !== "local" ? `What you add is saved in this browser and synced through ${c.name}.` : "Your data stays in this browser. Export a backup from Settings at any time."}</span>
       </p>
     </div>
   );

@@ -5,6 +5,8 @@ import "./styles/app.css";
 import { AppData, type OpenStep } from "./data/app.ts";
 import { lastAccount, whoAmI } from "./data/account.ts";
 import { openAccountDb } from "./data/db.ts";
+import { standardConnection } from "./data/connection.ts";
+import { standard } from "./data/standard.ts";
 import { Boot, BootError, waitingProgress } from "./components/Boot.tsx";
 import { nf } from "./lib/format.ts";
 import { AppContext } from "./data/context.tsx";
@@ -70,6 +72,22 @@ declare module "@tanstack/react-router" {
 // read twice and the local backup could be loaded twice.
 let booting: Promise<AppData> | null = null;
 
+async function followStandard(app: AppData) {
+  const params = new URLSearchParams(location.search);
+  const back = params.get("storage") === "connected";
+  if (back) {
+    params.delete("storage");
+    history.replaceState(history.state, "", location.pathname + (params.size ? `?${params}` : "") + location.hash);
+  }
+  const c = app.connection;
+  if (c?.mode === "standard") return;
+  if (!back && c && !(c.mode === "private" && c.adapter === "gdrive")) return;
+  const st = await standard.status().catch(() => null);
+  if (!st?.connected || !st.account || st.status !== "ok") return;
+  if (!back && c?.mode === "private" && c.adapter === "gdrive" && c.account !== st.account) return;
+  await app.connect(standardConnection(st.account, toUtcIso(Date.now())));
+}
+
 /** Where the loading bar is (0 to 1) and what is being done. */
 interface Progress {
   at: number;
@@ -119,6 +137,9 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
         opened = await AppData.open((s, n) => s === "log" && n !== undefined && step(`Preparing ${nf.format(n)} records…`));
       }
     }
+    // Standard (docs/32): back from connecting Google Drive, or a browser that has not chosen yet, or one syncing the
+    // same Google Drive in Private, follows the account's Standard connection by itself.
+    if (typeof me === "object") await followStandard(opened);
     // A browser that held a log before the data modes existed keeps it here: Local (docs/32).
     if (!opened.connection && (opened.store.count("flights") || opened.store.count("sightings"))) await opened.connect({ mode: "local", since: toUtcIso(Date.now()) });
     // Private mode syncs in the background; the page shows the copy in this browser meanwhile.

@@ -14,10 +14,15 @@ import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
 import { toast } from "../components/overlay.tsx";
 import { AccountSection } from "../components/AccountSettings.tsx";
+import { clause } from "../components/Shell.tsx";
 import { download } from "../lib/download.ts";
-import { FOLDERS_ONLY_HERE, STANDARD_LATER } from "./FirstRun.tsx";
+import { connectStandard, FOLDERS_ONLY_HERE, STANDARD_NOTE, STANDARD_UNAVAILABLE, takeStandardError } from "./FirstRun.tsx";
+import { standard, type StandardStatus } from "../data/standard.ts";
+import { StandardTerms } from "../components/StandardTerms.tsx";
 
-/** Where the log lives (docs/32): the mode, changing it, and how sync is going in Private mode. */
+const LEAVE_STANDARD = "Leaving Standard revokes Touchdown's key to your Google Drive and deletes it from the server. Your log in Google Drive is left as it is. Continue?";
+
+/** Where the log lives (docs/32): the mode, changing it, and how sync is going in Private and Standard mode. */
 function WhereTheLogLives({ app }: { app: AppData }) {
   const c = app.connection;
   const current: Mode = c?.mode ?? "local";
@@ -27,16 +32,38 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   const [moving, setMoving] = useState(false);
   const [understood, setUnderstood] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [std, setStd] = useState<StandardStatus | null>(null);
+  const [termsProblem, setTermsProblem] = useState<string | null>(null);
   const sync = useSyncInfo(app);
   const conflicts = app.store.all("record_history").filter((h) => h.reason === "sync_conflict").length;
-  const place = c?.mode === "private" ? c.name : null;
+  const place = c && c.mode !== "local" ? c.name : null;
   const choosing = chosen === "private" && (current !== "private" || moving);
+
+  useEffect(() => {
+    const back = takeStandardError();
+    if (back) toast(back);
+    void standard.status().then(setStd, () => setStd(null));
+  }, []);
 
   useEffect(() => {
     if (choosing && storage === "gdrive") void loadGoogle().catch(() => undefined);
   }, [choosing, storage]);
 
+  /** Leaving Standard: the key is revoked and deleted first (docs/32, "Changing mode"). */
+  const leaveStandard = async (): Promise<boolean> => {
+    if (current !== "standard") return true;
+    if (!window.confirm(LEAVE_STANDARD)) return false;
+    try {
+      await standard.disconnect();
+      return true;
+    } catch (e) {
+      toast(`Could not leave Standard: ${(e as Error).message}`);
+      return false;
+    }
+  };
+
   const toPrivate = async () => {
+    if (!(await leaveStandard())) return;
     let picked;
     try {
       picked = await chooseStorage(storage);
@@ -57,6 +84,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   };
 
   const toLocal = async () => {
+    if (!(await leaveStandard())) return;
     const was = place;
     await app.connect({ mode: "local", since: toUtcIso(Date.now()) });
     setUnderstood(false);
@@ -71,7 +99,23 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   return (
     <>
       <h2 className="form-section">Sync mode</h2>
-      <ModeChoice value={chosen} onChange={setChosen} unavailable={{ standard: STANDARD_LATER }} />
+      <ModeChoice value={chosen} onChange={setChosen} unavailable={std?.available || current === "standard" ? {} : { standard: STANDARD_UNAVAILABLE }} notes={{ standard: STANDARD_NOTE }} />
+      {chosen === "standard" && current !== "standard" && std && (
+        <StandardTerms
+          busy={busy}
+          problem={termsProblem}
+          onAccept={() => {
+            setBusy(true);
+            void connectStandard(std, "/settings").then((p) => {
+              if (p) {
+                setTermsProblem(p);
+                setBusy(false);
+              }
+            });
+          }}
+          onDecline={cancel}
+        />
+      )}
       {choosing && (
         <>
           <h3 className="form-subsection">Storage</h3>
@@ -107,9 +151,9 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line">
               <Icon name={sync.adapter === "gdrive" ? "cloud" : "folder"} />
               <span>
-                {sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`}{" "}
+                {sync.mode === "standard" ? `Touchdown cannot reach ${sync.place} for you.` : sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`}{" "}
                 <button type="button" className="link-btn" onClick={() => void app.sync?.allow()}>
-                  {sync.adapter === "gdrive" ? "Sign in" : "Allow"}
+                  {sync.mode === "standard" ? "Connect Google Drive again" : sync.adapter === "gdrive" ? "Sign in" : "Allow"}
                 </button>
               </span>
             </p>
@@ -139,7 +183,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line status-line--error">
               <Icon name="circle-x" />
               <span>
-                Could not sync with {sync.place}: {sync.error}. Your changes are kept in this browser and sent once it works.
+                Could not sync with {sync.place}: {clause(sync.error)}. Your changes are kept in this browser and sent once it works.
               </span>
             </p>
           )}
@@ -167,9 +211,11 @@ function WhereTheLogLives({ app }: { app: AppData }) {
                 Sync now
               </button>
             )}
-            <button type="button" className="btn btn--quiet btn--small" onClick={() => setMoving(true)}>
-              Change storage
-            </button>
+            {sync.mode === "private" && (
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => setMoving(true)}>
+                Change storage
+              </button>
+            )}
           </div>
         </>
       )}
@@ -213,7 +259,7 @@ export function SettingsPage() {
       return;
     }
     const n = (back.tables.get("flights")?.length ?? 0) + (back.tables.get("sightings")?.length ?? 0);
-    const merged = app.connection?.mode === "private" ? " Your folder's log is then merged in at the next sync; where both changed the same entry, the later change is kept." : "";
+    const merged = app.connection && app.connection.mode !== "local" ? " Your folder's log is then merged in at the next sync; where both changed the same entry, the later change is kept." : "";
     if (!window.confirm(`Replace everything in this browser with the backup (${plural(n, "flight or sighting", "flights and sightings")})?${merged} Export a backup of the current data first if you might need it.`)) return;
     await app.replaceAll(back.tables);
     location.reload();
@@ -248,7 +294,7 @@ export function SettingsPage() {
       <p className="status-line">
         <Icon name="hard-drive" />
         <span>
-          This browser holds {app.connection?.mode === "private" ? "a copy of " : ""}your log ({plural(store.count("flights"), "flight")}, {plural(store.count("sightings"), "sighting")}, {plural(store.count("airframes"), "aircraft", "aircraft")}).
+          This browser holds {app.connection && app.connection.mode !== "local" ? "a copy of " : ""}your log ({plural(store.count("flights"), "flight")}, {plural(store.count("sightings"), "sighting")}, {plural(store.count("airframes"), "aircraft", "aircraft")}).
           {kept === true && " The browser keeps it until you delete it."}
           {kept === false && " The browser may clear it if the disk runs low."}
         </span>
@@ -313,7 +359,7 @@ export function SettingsPage() {
           type="button"
           className="btn btn--danger btn--small"
           onClick={async () => {
-            const place = app.connection?.mode === "private" ? ` The log in ${app.connection.name} is left as it is.` : " This cannot be undone here.";
+            const place = app.connection && app.connection.mode !== "local" ? ` The log in ${app.connection.name} is left as it is.` : " This cannot be undone here.";
             if (!window.confirm(`Delete every flight, sighting and setting in this browser, and forget where the log lives?${place}`)) return;
             if (window.prompt('Type "delete" to confirm.') !== "delete") return;
             await app.deleteEverything();

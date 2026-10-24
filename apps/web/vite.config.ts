@@ -147,10 +147,14 @@ function accounts(): Plugin {
       if (!existsSync(tokenFile)) writeFileSync(tokenFile, randomBytes(24).toString("base64url") + "\n", { mode: 0o600 });
       const db = sqliteFile(dbFile);
       const port = server.config.server.port ?? 5173;
-      // Signing in with Google needs the web client's secret, kept in data/private/google-client-secret.txt.
-      const secretFile = join(PRIVATE, "google-client-secret.txt");
+      // Signing in with Google and Standard mode need the web client's secret, kept next to the database
+      // (data/private/google-client-secret.txt).
+      const secretFile = join(dirname(dbFile), "google-client-secret.txt");
       const google = existsSync(secretFile) ? { clientId: GOOGLE_CLIENT_ID, clientSecret: readFileSync(secretFile, "utf8").trim() } : undefined;
-      const config = { origins: [`http://127.0.0.1:${port}`, `http://localhost:${port}`], setupToken: readFileSync(tokenFile, "utf8").trim(), secureCookies: false, google };
+      // Standard mode's storage keys are encrypted with a key made once, next to the database.
+      const keyFile = join(dirname(dbFile), "dev-token-key.txt");
+      if (!existsSync(keyFile)) writeFileSync(keyFile, randomBytes(32).toString("base64") + "\n", { mode: 0o600 });
+      const config = { origins: [`http://127.0.0.1:${port}`, `http://localhost:${port}`], setupToken: readFileSync(tokenFile, "utf8").trim(), secureCookies: false, google, tokenKey: readFileSync(keyFile, "utf8").trim() };
       server.middlewares.use(async (req, res, next) => {
         const url = req.url ?? "/";
         const policy = url.match(/^\/(privacy|terms)\/?(\?.*)?$/)?.[1] as Policy | undefined;
@@ -163,7 +167,7 @@ function accounts(): Plugin {
           req.url = "/signin.html";
           return next();
         }
-        if (!url.startsWith("/auth/")) return next();
+        if (!url.startsWith("/auth/") && !url.startsWith("/api/storage")) return next();
         const chunks: Buffer[] = [];
         for await (const c of req) chunks.push(c as Buffer);
         const headers = new Headers();

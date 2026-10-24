@@ -2325,6 +2325,31 @@ a.btn--primary {
   color: var(--flown);
 }
 
+/* ---------- Standard mode's terms (docs/32) ---------- */
+
+.terms {
+  max-width: 44rem;
+  margin: 4px 0 8px;
+  padding: 4px 20px 18px;
+  border-radius: 16px;
+  background: var(--surface-low);
+}
+
+.terms .form-section {
+  margin-top: 16px;
+}
+
+.terms p {
+  max-width: 62ch;
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.terms a {
+  color: inherit;
+}
+
 /* ---------- Settings: account and people (docs/33) ---------- */
 
 .account-form {

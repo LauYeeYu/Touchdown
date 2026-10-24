@@ -1,5 +1,6 @@
 // How this browser keeps the log (docs/32-modes-and-sharing.md): Local keeps it here only; Private syncs it
-// through the user's storage. Kept per browser in IndexedDB, since a folder handle belongs to this browser; the
+// through the user's storage with the browser's own access; Standard syncs it through Google Drive with access
+// from Touchdown's server, which keeps the key. Kept per browser in IndexedDB, since a folder handle belongs to this browser; the
 // mode is also recorded in the synced settings (`dataMode`).
 
 import { toUtcIso } from "@touchdown/core";
@@ -11,9 +12,14 @@ import { GoogleSignIn, SignInCancelled } from "./google.ts";
 export type Connection =
   | { mode: "local"; since: string }
   | { mode: "private"; adapter: "localfs"; folder: FileSystemDirectoryHandle; name: string; since: string }
-  | { mode: "private"; adapter: "gdrive"; account: string; name: string; since: string };
+  | { mode: "private"; adapter: "gdrive"; account: string; name: string; since: string }
+  | { mode: "standard"; adapter: "gdrive"; account: string; name: string; since: string };
 
 export type PrivateConnection = Extract<Connection, { mode: "private" }>;
+/** A connection that syncs: Private or Standard. */
+export type SyncedConnection = Exclude<Connection, { mode: "local" }>;
+
+export const standardConnection = (account: string, since: string): Connection => ({ mode: "standard", adapter: "gdrive", account, name: `Google Drive (${account})`, since });
 export type StorageKind = PrivateConnection["adapter"];
 
 /**

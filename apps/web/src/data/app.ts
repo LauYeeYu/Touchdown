@@ -218,10 +218,10 @@ export class AppData {
     for (const l of this.syncListeners) l();
   };
 
-  /** Start syncing when this browser is in Private mode. Resolves after the first sync. */
+  /** Start syncing when this browser is in Private or Standard mode. Resolves after the first sync. */
   startSync(): Promise<void> {
     const c = this.connection;
-    if (c?.mode !== "private" || this.sync) return Promise.resolve();
+    if (!c || c.mode === "local" || this.sync) return Promise.resolve();
     this.sync = new SyncController(this.store, c);
     this.sync.subscribe(this.syncChanged);
     this.syncChanged();
@@ -242,7 +242,7 @@ export class AppData {
     // Settings are a synced row: on a new device, written before the first sync they would replace the log's own.
     const record = () => {
       if (this.connection !== c) return;
-      this.updateSettings({ dataMode: c.mode, storageBackend: "json_tables", storageAdapter: adapter, storageAccount: c.mode === "private" && c.adapter === "gdrive" ? c.account : null });
+      this.updateSettings({ dataMode: c.mode, storageBackend: "json_tables", storageAdapter: adapter, storageAccount: c.mode !== "local" && c.adapter === "gdrive" ? c.account : null });
     };
     this.syncChanged();
     if (c.mode === "local") record();

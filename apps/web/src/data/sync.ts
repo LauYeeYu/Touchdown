@@ -4,10 +4,11 @@
 
 import type { Store } from "@touchdown/core";
 import { GoogleDrive, JsonTablesBackend, SignInNeeded, SyncEngine, type FileAdapter, type SyncState, type SyncStateStore } from "@touchdown/storage";
-import type { PrivateConnection, StorageKind } from "./connection.ts";
+import type { StorageKind, SyncedConnection } from "./connection.ts";
 import { db } from "./db.ts";
 import { folderAllowed, LocalFolder } from "./folder.ts";
 import { GoogleSignIn, loadGoogle, SignInCancelled } from "./google.ts";
+import { ServerDriveAuth, standard } from "./standard.ts";
 
 export interface SyncInfo {
   /**
@@ -15,6 +16,7 @@ export interface SyncInfo {
    * token lasts an hour).
    */
   state: "permission" | "syncing" | "synced" | "failed";
+  mode: SyncedConnection["mode"];
   adapter: StorageKind;
   /** Where the log syncs to, as the user knows it. */
   place: string;
@@ -37,7 +39,19 @@ interface Storage {
   ready(ask: boolean): Promise<boolean>;
 }
 
-function storageFor(c: PrivateConnection): Storage {
+function storageFor(c: SyncedConnection): Storage {
+  if (c.mode === "standard") {
+    // The server keeps the key; when it has none that works, connecting again goes through Google's page.
+    const auth = new ServerDriveAuth();
+    return {
+      files: new GoogleDrive(auth),
+      ready: async (ask) => {
+        if (await auth.ready()) return true;
+        if (ask) location.assign(standard.connectUrl(location.pathname));
+        return false;
+      },
+    };
+  }
   if (c.adapter === "localfs") return { files: new LocalFolder(c.folder), ready: (ask) => folderAllowed(c.folder, ask) };
   const google = new GoogleSignIn(c.account);
   // Ready before the user clicks Sign in, so Google's window opens at once.
@@ -77,10 +91,10 @@ export class SyncController {
 
   constructor(
     private readonly store: Store,
-    readonly connection: PrivateConnection,
+    readonly connection: SyncedConnection,
   ) {
     this.storage = storageFor(connection);
-    this.info = { state: "syncing", adapter: connection.adapter, place: connection.name, lastAt: null, waiting: 0, problems: [], error: null };
+    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: connection.name, lastAt: null, waiting: 0, problems: [], error: null };
   }
 
   subscribe = (fn: () => void) => {
@@ -95,8 +109,14 @@ export class SyncController {
 
   /** Start syncing. Without the folder permission or a Google token, wait for `allow`. */
   async start(): Promise<void> {
-    if (!(await this.storage.ready(false))) {
-      this.set({ state: "permission" });
+    // In Standard the first sync asks the server for access itself, so its reason shows when there is none.
+    try {
+      if (this.connection.mode !== "standard" && !(await this.storage.ready(false))) {
+        this.set({ state: "permission" });
+        return;
+      }
+    } catch (e) {
+      this.failed(e);
       return;
     }
     await this.begin();
@@ -116,7 +136,8 @@ export class SyncController {
   }
 
   private failed(e: unknown) {
-    if (e instanceof SignInNeeded) this.set({ state: "permission", error: null, waiting: this.engine?.waiting ?? 0 });
+    // In Standard the server says why its key does not work; in Private the bar's own words say it.
+    if (e instanceof SignInNeeded) this.set({ state: "permission", error: this.connection.mode === "standard" ? e.message : null, waiting: this.engine?.waiting ?? 0 });
     else this.set({ state: "failed", error: (e as Error).message, waiting: this.engine?.waiting ?? 0 });
   }
 

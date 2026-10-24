@@ -45,7 +45,7 @@ export class AuthError extends Error {
   }
 }
 
-async function call<T>(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<T> {
+export async function call<T>(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new AuthError(res.status, data.error ?? `Something went wrong (${res.status}).`);

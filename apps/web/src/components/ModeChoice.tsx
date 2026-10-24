@@ -36,8 +36,8 @@ export const STORAGE_NOTE: Record<StorageKind, string> = {
 
 export const STORAGE_BUTTON: Record<StorageKind, string> = { gdrive: "Connect Google Drive", localfs: "Choose a folder" };
 
-/** A choice of cards; `unavailable` says why an option cannot be chosen here. */
-function Choice<T extends string>({ label, name, options, value, onChange, unavailable = {} }: { label: string; name: string; options: Option<T>[]; value: T; onChange: (v: T) => void; unavailable?: Partial<Record<T, string>> }) {
+/** A choice of cards; `unavailable` says why an option cannot be chosen here, `notes` adds a line to one. */
+function Choice<T extends string>({ label, name, options, value, onChange, unavailable = {}, notes = {} }: { label: string; name: string; options: Option<T>[]; value: T; onChange: (v: T) => void; unavailable?: Partial<Record<T, string>>; notes?: Partial<Record<T, string>> }) {
   return (
     <div className="modes" role="radiogroup" aria-label={label}>
       {options.map((m) => {
@@ -53,7 +53,7 @@ function Choice<T extends string>({ label, name, options, value, onChange, unava
                 {m.tag && <span className="mode__tag">{m.tag}</span>}
               </span>
               <span>{m.line}</span>
-              {why && <small>{why}</small>}
+              {(why || notes[m.value]) && <small>{why || notes[m.value]}</small>}
             </span>
             <span className="mode__mark" aria-hidden="true">
               {on && <Icon name="check" />}
@@ -65,7 +65,7 @@ function Choice<T extends string>({ label, name, options, value, onChange, unava
   );
 }
 
-export function ModeChoice(props: { value: Mode; onChange: (m: Mode) => void; unavailable?: Partial<Record<Mode, string>> }) {
+export function ModeChoice(props: { value: Mode; onChange: (m: Mode) => void; unavailable?: Partial<Record<Mode, string>>; notes?: Partial<Record<Mode, string>> }) {
   return <Choice label="Sync mode" name="data-mode" options={MODES} {...props} />;
 }
 
