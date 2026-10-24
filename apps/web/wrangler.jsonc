@@ -24,9 +24,8 @@
     // `wrangler secret put`. Without the secret, Google sign-in is off.
     "GOOGLE_CLIENT_ID": "860644597040-p5m61042lk2pd763kdem1i0g77cuugvj.apps.googleusercontent.com"
   },
-  // Accounts, sessions and invitations (docs/33). Created once with `npx wrangler d1 create touchdown`, which
-  // prints the id to put here.
-  "d1_databases": [{ "binding": "DB", "database_name": "touchdown", "database_id": "00000000-0000-0000-0000-000000000000" }],
+  // Accounts, sessions and invitations (docs/33): the D1 database "touchdown", made once in the dashboard.
+  "d1_databases": [{ "binding": "DB", "database_name": "touchdown", "database_id": "77bbe0d9-4275-4a6d-aa5f-33884e81923f" }],
   // No request logs: page addresses show which aircraft a user looks at.
   "observability": { "enabled": false }
 }
