@@ -108,7 +108,7 @@ Decided (U5): the terms are shown when the user chooses Standard, at first run o
 >
 > **What we use it for.** The server opens only the file behind a link you made, when someone you allowed opens that link, and gives your own browser short-lived access for its sync. It does not read, copy, analyse or keep your log for anything else.
 >
-> **How we protect it.** The key is encrypted, and the encryption key is kept apart from the database. Both are held with Cloudflare, which hosts this site. Requests are not logged with their contents. No ads, no analytics, no selling, and nothing passed on to anyone unless the law requires it. Ticket numbers and booking references never go into a shared link.
+> **How we protect it.** The key is encrypted, and the encryption key is kept apart from the database. Both are held with Cloudflare, which hosts this site. Requests are not logged with their contents. No ads, no selling, and nothing passed on to anyone unless the law requires it. Page views are counted with Cloudflare Web Analytics, as the privacy policy describes. Ticket numbers and booking references never go into a shared link.
 >
 > **What others see.** Only what a link shows, and only the people you chose for it. A public link can be opened by anyone who has it.
 >

@@ -8,7 +8,7 @@ This policy covers the Touchdown website run from this repository by its owner, 
 
 - Your flight and spotting log is not kept on Touchdown's server. It is in your browser and, if you choose, in your own storage (your Google Drive or a folder on your computer).
 - The server keeps only what it needs to sign you in: your name, email address, a hash of your password key, your Google account id if you sign in with Google, and your sign-in sessions.
-- Touchdown never sees your password, sells nothing, shows no ads, and runs no analytics or tracking.
+- Touchdown never sees your password, sells nothing and shows no ads. It counts page views with Cloudflare Web Analytics, which sets no cookies and does not identify you (see Analytics).
 
 ## What the server keeps
 
@@ -50,10 +50,22 @@ You can remove Touchdown's access at any time in your Google account, under Secu
 
 - **planespotters.net**, for reference photos of aircraft: your browser sends the registration of the aircraft whose page you open.
 - **Google**, as above: when Google Drive is selected as your storage (the page then loads Google's sign-in), when you use Google Drive, and when you sign in with Google.
+- **Cloudflare Web Analytics**, on every page, as described under Analytics.
+
+## Analytics
+
+The site uses [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) to count how it is used. When a page opens, including moving between pages in the app, your browser sends Cloudflare:
+
+- the page's address, which can name an aircraft registration, or a flight's date and airports;
+- the address of the site that sent you there, if any;
+- your browser, system and type of device, and the country your connection comes from;
+- how long the page took to load.
+
+It sets no cookies, keeps no profile of you, and does not tie views to your account. The owner sees totals: views per page, per country, per device, and loading times. Cloudflare handles this under its [privacy policy](https://www.cloudflare.com/privacypolicy/).
 
 ## Cookies
 
-Touchdown sets one cookie to keep you signed in (`td_session`), and a short-lived one while you sign in with Google (`td_google`). It sets no other cookies. Your browser also stores your log and settings for the site (IndexedDB and local storage).
+Touchdown sets one cookie to keep you signed in (`td_session`), and a short-lived one while you sign in with Google (`td_google`). It sets no other cookies, and the analytics set none. Your browser also stores your log and settings for the site (IndexedDB and local storage).
 
 ## Keeping and deleting
 
