@@ -323,3 +323,11 @@ describe("signing in with Google", () => {
     expect(new URL(cancelled.headers.get("Location")!).search).toBe("?error=google-cancelled");
   });
 });
+
+describe("the privacy policy and the terms", () => {
+  it("open without a session, and with one", async () => {
+    const { s, served } = server();
+    for (const page of ["privacy", "terms"]) expect((await handle(new Request(`${SITE}/${page}`, { headers: { Accept: "text/html" } }), s)).status).toBe(200);
+    expect(served).toEqual(["/signin-files/privacy.html", "/signin-files/terms.html"]);
+  });
+});

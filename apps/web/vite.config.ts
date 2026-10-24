@@ -6,6 +6,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { SECURITY_HEADERS } from "@touchdown/server/headers";
 import { GOOGLE_CLIENT_ID } from "./src/config.ts";
+import { policyHtml, type Policy } from "./policies.ts";
 
 // Development only: serve the owner's local backup (written by `touchdown import … --out`) so an empty
 // browser can load it. The file stays in data/private/ (git-ignored); it is never part of a build, and the
@@ -127,7 +128,7 @@ export function styleVersion(): Plugin {
 }
 
 // Development only: the real server (packages/server) answers /auth/ with its own database in data/private/, and
-// the sign-in pages open at their addresses, so signing in can be tried here. The rest of the dev server is not
+// the sign-in pages, the privacy policy and the terms open at their addresses, so signing in can be tried here. The rest of the dev server is not
 // behind the sign-in; the Node server (`npm run serve`) is, like the hosted site.
 const PRIVATE = resolve(import.meta.dirname, "../../data/private");
 const SIGNIN_PAGES = /^\/(signin|setup|join\/[^/?]+|reset\/[^/?]+)\/?(\?.*)?$/;
@@ -152,6 +153,12 @@ function accounts(): Plugin {
       const config = { origins: [`http://127.0.0.1:${port}`, `http://localhost:${port}`], setupToken: readFileSync(tokenFile, "utf8").trim(), secureCookies: false, google };
       server.middlewares.use(async (req, res, next) => {
         const url = req.url ?? "/";
+        const policy = url.match(/^\/(privacy|terms)\/?(\?.*)?$/)?.[1] as Policy | undefined;
+        if (policy) {
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.end(policyHtml(policy, "/src/styles/app.css"));
+          return;
+        }
         if (SIGNIN_PAGES.test(url)) {
           req.url = "/signin.html";
           return next();

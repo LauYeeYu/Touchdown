@@ -300,6 +300,9 @@ export function Shell() {
             </a>
             , credited on each photo. Icons: Lucide (ISC).
           </p>
+          <p>
+            <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a>
+          </p>
         </div>
       </footer>
       <Overlays />

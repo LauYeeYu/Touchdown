@@ -63,6 +63,9 @@ function Frame({ title, sub, children }: { title: string; sub?: ReactNode; child
         <h1 className="lead">{title}</h1>
         {sub && <p className="form-sub">{sub}</p>}
         {children}
+        <p className="signin__policies">
+          <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a>
+        </p>
       </main>
     </>
   );

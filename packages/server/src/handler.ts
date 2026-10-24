@@ -44,6 +44,8 @@ const COOKIE = "td_session";
 /** The sign-in pages' own build; everything in it may be fetched without a session. */
 export const SIGNIN_FILES = "/signin-files/";
 const PUBLIC_PAGES = /^\/(signin|setup|join\/[^/]+|reset\/[^/]+)\/?$/;
+/** The privacy policy and the terms: static pages built from PRIVACY.md and TERMS.md, open to anyone. */
+const POLICY_PAGES = /^\/(privacy|terms)\/?$/;
 
 interface Account {
   id: string;
@@ -174,6 +176,8 @@ export async function handle(request: Request, s: Server): Promise<Response> {
       if (session?.renewed) out.headers.append("Set-Cookie", session.renewed);
       return out;
     };
+    const policy = path.match(POLICY_PAGES)?.[1];
+    if (policy) return done(await s.assets.fetch(new Request(new URL(`${SIGNIN_FILES}${policy}.html`, url), { headers: request.headers })));
     if (PUBLIC_PAGES.test(path)) {
       if (session && path.startsWith("/signin")) return done(Response.redirect(new URL(safeNext(url.searchParams.get("next")), url).toString(), 302));
       return done(await s.assets.fetch(new Request(new URL(`${SIGNIN_FILES}signin.html`, url), { headers: request.headers })));

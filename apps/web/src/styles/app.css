@@ -2380,6 +2380,89 @@ a.btn--primary {
   height: 32px;
 }
 
+/* ---------- the privacy policy and the terms (docs/33): pages built from PRIVACY.md and TERMS.md ---------- */
+
+a.wordmark {
+  color: inherit;
+}
+
+.policy {
+  padding-bottom: 64px;
+}
+
+.policy h1 {
+  margin: 24px 0 4px;
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.32;
+  letter-spacing: -0.02em;
+}
+
+.policy h2 {
+  margin: 36px 0 8px;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.policy p,
+.policy li {
+  max-width: 68ch;
+  line-height: 1.6;
+}
+
+.policy ul,
+.policy ol {
+  padding-left: 1.25rem;
+}
+
+.policy li + li {
+  margin-top: 4px;
+}
+
+.policy table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.policy th,
+.policy td {
+  padding: 10px 16px 10px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.policy th {
+  font-weight: 600;
+}
+
+.policy code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--surface-highest);
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+.policy a {
+  color: inherit;
+}
+
+.policy__links,
+.signin__policies {
+  margin-top: 40px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.policy__links a,
+.signin__policies a {
+  color: inherit;
+}
+
 /* ---------- the sign-in pages (docs/33) ---------- */
 
 .signin__form {

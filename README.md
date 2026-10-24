@@ -234,7 +234,7 @@ It listens on 127.0.0.1:8787 and keeps accounts in `data/private/server.sqlite`;
 
 ## Licence
 
-The hosted site's [privacy policy](PRIVACY.md) and [terms of service](TERMS.md) say what it keeps and on what terms.
+The hosted site's [privacy policy](PRIVACY.md) and [terms of service](TERMS.md) say what it keeps and on what terms. The site shows them at `/privacy` and `/terms`, built from these files.
 
 Touchdown is under the [Apache License 2.0](LICENSE). The reference data, the icons and the prototype's libraries come from others and keep their own licences; [NOTICE](NOTICE) lists them.
 

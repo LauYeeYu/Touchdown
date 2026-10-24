@@ -88,8 +88,8 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 
 ## Security and privacy
 
-- Sign-in (U3, Decided, Q-ACCESS): the site signs people in itself ([33](33-accounts-and-sign-in.md)), with email and password or Google, and only people the owner invites get an account. No sign-in service sits in front of it, so it is not tied to one host. Passwords are hashed in the browser and never reach the server. The one exception to the sign-in is the public share page `/p/<id>` ([32](32-modes-and-sharing.md)), which serves one public link's content and nothing else.
-- The gate (Decided, built in `packages/server`): every request, for a page, a file or `/api/*`, goes through the server first, which checks the session cookie; without a valid session only the sign-in pages answer ([33](33-accounts-and-sign-in.md)).
+- Sign-in (U3, Decided, Q-ACCESS): the site signs people in itself ([33](33-accounts-and-sign-in.md)), with email and password or Google, and only people the owner invites get an account. No sign-in service sits in front of it, so it is not tied to one host. Passwords are hashed in the browser and never reach the server. Besides the sign-in pages, only the privacy policy and the terms (`/privacy`, `/terms`) and, later, the public share page `/p/<id>` ([32](32-modes-and-sharing.md)) open without a session; the share page serves one public link's content and nothing else.
+- The gate (Decided, built in `packages/server`): every request, for a page, a file or `/api/*`, goes through the server first, which checks the session cookie; without a valid session only the sign-in pages, the privacy policy and the terms answer ([33](33-accounts-and-sign-in.md)).
 - Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). In Standard mode the server makes the connection and keeps an encrypted key ([32](32-modes-and-sharing.md)). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
 - The installed app (PWA) keeps working offline from its cache; when the session expires, the next online request sends the user to the sign-in page.
 - On the server, per user: the account (email, name, role), how they sign in (a hash of the browser's password key, the Google account id) and their sessions ([33](33-accounts-and-sign-in.md)); in Standard mode also an encrypted key to the storage and their links' settings ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
@@ -107,6 +107,7 @@ Built: the server (`packages/server`), the Worker that wraps it (`apps/web/worke
 Worker "touchdown" (or the same server on any machine, 33)
      every request       the session is checked first; without one, only the sign-in pages
      /signin, /join/<id>, /reset/<id>, /setup, /auth/*
+     /privacy, /terms     the privacy policy and the terms, built from PRIVACY.md and TERMS.md
                           the site's own sign-in, invitations and sessions (33)
      static assets        apps/web build output + reference JSON + airframe index shards
                           (single-page-app fallback for unknown paths)
@@ -114,7 +115,7 @@ Worker "touchdown" (or the same server on any machine, 33)
      /api/storage/*       Standard mode: connecting storage, short-lived tokens (32)
      /api/shares/*        Standard mode: links and their content (32)
      /shared/<id>         a link for invited users, inside the app
-     /p/<id>              public share page; the only app path outside the sign-in
+     /p/<id>              public share page; the only path with user content outside the sign-in
      D1                   accounts, sessions, invitations (33); Standard-mode storage keys
                           and link settings (32)
      secrets              setup secret, Google client secret, provider API keys,

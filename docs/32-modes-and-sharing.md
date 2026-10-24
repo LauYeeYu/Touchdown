@@ -155,7 +155,7 @@ Rules (Proposed):
 
 ### The public page
 
-Decided (U3, changed): the only route outside the sign-in is `/p/<id>`. It serves the content of one public link and nothing else.
+Decided (U3, changed): `/p/<id>` is the only route with user content outside the sign-in; the others are the sign-in pages, the privacy policy and the terms ([33](33-accounts-and-sign-in.md)). It serves the content of one public link and nothing else.
 
 - **Not the app.** It is a small separate viewer page with its own build entry. The app itself stays behind the sign-in.
 - **Two requests only.** It answers `GET /p/<id>` and `GET /p/<id>/content`, and offers no other API.
