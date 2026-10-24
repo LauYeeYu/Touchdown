@@ -69,11 +69,11 @@ function WhereTheLogLives({ app }: { app: AppData }) {
 
   return (
     <>
-      <h2 className="form-section">Where your log lives</h2>
+      <h2 className="form-section">Sync mode</h2>
       <ModeChoice value={chosen} onChange={setChosen} unavailable={{ standard: STANDARD_LATER }} />
       {choosing && (
         <>
-          <h3 className="form-subsection">Sync through</h3>
+          <h3 className="form-subsection">Storage</h3>
           <StorageChoice value={storage} onChange={setStorage} unavailable={canUseFolders() ? {} : { localfs: FOLDERS_ONLY_HERE }} />
           <p className="form-sub">{STORAGE_NOTE[storage]}</p>
           <div className="button-row">
@@ -167,7 +167,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               </button>
             )}
             <button type="button" className="btn btn--quiet btn--small" onClick={() => setMoving(true)}>
-              Change where it syncs
+              Change storage
             </button>
           </div>
         </>
@@ -294,7 +294,7 @@ export function SettingsPage() {
           </button>
         </div>
       )}
-      <p className="form-sub">A backup holds every table, including private fields, in the JSON tables format. The companion command writes the same file: <code>npm run touchdown -- import FILES --out backup.zip</code>.</p>
+      <p className="form-sub">A backup contains every table, including private fields.</p>
       <div className="button-row">
         {(["flights", "sightings", "airframes"] as const).map((t) => (
           <button key={t} type="button" className="btn btn--quiet btn--small" onClick={() => download(`touchdown-${t}-${todayIn()}.csv`, tableCsv(store, t, includePrivate), "text/csv")}>

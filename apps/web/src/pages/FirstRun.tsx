@@ -11,7 +11,7 @@ import { loadGoogle } from "../data/google.ts";
 import { Icon } from "../lib/icons.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, type Mode } from "../components/ModeChoice.tsx";
 
-export const STANDARD_LATER = "Comes with sharing, in a later version.";
+export const STANDARD_LATER = "Not available yet.";
 export const FOLDERS_ONLY_HERE = "Needs Chrome or Edge on a computer.";
 
 export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) {
@@ -67,12 +67,12 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
       </header>
       <main id="view" className="page page--form first-run">
         <div className="view-top" />
-        <h1 className="lead">Where should your log live?</h1>
-        <p className="form-sub">You can change this at any time in Settings.</p>
+        <h1 className="lead">Sync mode</h1>
+        <p className="form-sub">You can change it later in Settings.</p>
         <ModeChoice value={mode} onChange={setMode} unavailable={{ standard: STANDARD_LATER }} />
         {mode === "private" && (
           <>
-            <h2 className="form-section">Sync through</h2>
+            <h2 className="form-section">Storage</h2>
             <StorageChoice value={storage} onChange={setStorage} unavailable={canUseFolders() ? {} : { localfs: FOLDERS_ONLY_HERE }} />
             <p className="form-sub">{STORAGE_NOTE[storage]}</p>
           </>

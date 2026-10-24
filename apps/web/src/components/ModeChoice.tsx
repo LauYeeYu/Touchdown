@@ -1,5 +1,5 @@
 // Where the log lives: the three data modes as one choice (docs/32-modes-and-sharing.md), at first run and in
-// Settings; for Private, where it syncs; and the warning that comes with Local.
+// Settings; for Private, its storage; and the warning that comes with Local.
 
 import { useSyncExternalStore } from "react";
 import type { AppData } from "../data/app.ts";
@@ -18,20 +18,20 @@ interface Option<T> {
 }
 
 const MODES: Option<Mode>[] = [
-  { value: "standard", icon: "share-2", name: "Standard", tag: "Recommended", line: "Sync and share links. Touchdown keeps a key to your storage." },
-  { value: "private", icon: "lock", name: "Private", line: "For more privacy: sync across devices, Touchdown keeps no key, no sharing." },
-  { value: "local", icon: "hard-drive", name: "Local", line: "For the most privacy: nothing leaves this browser. Export a backup to move it." },
+  { value: "standard", icon: "share-2", name: "Standard", tag: "Recommended", line: "Sync and share links." },
+  { value: "private", icon: "lock", name: "Private", line: "Sync without sharing." },
+  { value: "local", icon: "hard-drive", name: "Local", line: "No sync. Saved in this browser only." },
 ];
 
 const STORAGES: Option<StorageKind>[] = [
-  { value: "gdrive", icon: "cloud", name: "Google Drive", line: "On every device, phones included. Touchdown can open only the files it makes there." },
-  { value: "localfs", icon: "folder", name: "A folder on this computer", line: "Inside Dropbox, OneDrive or iCloud Drive, it reaches your other computers." },
+  { value: "gdrive", icon: "cloud", name: "Google Drive", line: "Works on any device." },
+  { value: "localfs", icon: "folder", name: "A folder on this computer", line: "Put it in Dropbox, OneDrive or iCloud Drive to sync other computers." },
 ];
 
 /** What each storage asks of the user, shown under the choice. */
 export const STORAGE_NOTE: Record<StorageKind, string> = {
-  gdrive: "Touchdown keeps your log in a Touchdown folder in your Google Drive. A sign-in lasts an hour; after that, changes wait in this browser until you sign in again, which takes a click.",
-  localfs: "Choose a folder on this computer. Inside Dropbox, OneDrive, iCloud Drive or Google Drive for desktop, it carries your log to your other computers. Touchdown keeps its files in a Touchdown folder there.",
+  gdrive: "Touchdown makes a Touchdown folder in your Google Drive and can only open the files it creates. Each sign-in lasts an hour; sync then waits until you sign in again.",
+  localfs: "Touchdown makes a Touchdown folder inside the folder you choose.",
 };
 
 export const STORAGE_BUTTON: Record<StorageKind, string> = { gdrive: "Connect Google Drive", localfs: "Choose a folder" };
@@ -66,12 +66,12 @@ function Choice<T extends string>({ label, name, options, value, onChange, unava
 }
 
 export function ModeChoice(props: { value: Mode; onChange: (m: Mode) => void; unavailable?: Partial<Record<Mode, string>> }) {
-  return <Choice label="Where your log lives" name="data-mode" options={MODES} {...props} />;
+  return <Choice label="Sync mode" name="data-mode" options={MODES} {...props} />;
 }
 
 /** Where Private mode syncs. */
 export function StorageChoice(props: { value: StorageKind; onChange: (k: StorageKind) => void; unavailable?: Partial<Record<StorageKind, string>> }) {
-  return <Choice label="Where Private syncs" name="storage" options={STORAGES} {...props} />;
+  return <Choice label="Storage" name="storage" options={STORAGES} {...props} />;
 }
 
 /** Shown before the user chooses Local, and in Settings while it is chosen. */
@@ -80,12 +80,12 @@ export function LocalWarning({ understood, onChange }: { understood?: boolean; o
     <div className="local-warning">
       <p className="status-line">
         <Icon name="triangle-alert" />
-        <span>Your log will be kept only in this browser. Clearing the browser's data, using a private window, resetting or losing the device deletes it, and no other copy exists. Export a backup now and then (Settings, Data).</span>
+        <span>Your log is kept only in this browser. Clearing the browser's data, using a private window or losing the device deletes it. Export a backup from Settings now and then.</span>
       </p>
       {onChange && (
         <label className="check check--block">
           <input type="checkbox" checked={!!understood} onChange={(e) => onChange(e.target.checked)} />
-          I understand that this browser holds the only copy.
+          I understand this browser holds the only copy.
         </label>
       )}
     </div>

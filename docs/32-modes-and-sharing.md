@@ -19,15 +19,15 @@ All three sit behind the sign-in (U3). The mode decides where the data lives and
 
 Decided (U4): Standard is the recommended mode. Private and Local are for users who want more privacy and accept what they give up. A user can switch at any time ([Changing mode](#changing-mode)).
 
-Settings and the first run describe them in one line each (Proposed):
+The choice is titled "Sync mode", and each mode has one short line (Decided, built). What Standard means for the user's storage is in the terms, shown when they choose it.
 
 | Mode | Line |
 |------|------|
-| Standard (recommended) | Sync and share links. Touchdown keeps a key to your storage. |
-| Private | For more privacy: sync across devices, Touchdown keeps no key, no sharing. |
-| Local | For the most privacy: nothing leaves this browser. Export a backup to move it. |
+| Standard (recommended) | Sync and share links. |
+| Private | Sync without sharing. |
+| Local | No sync. Saved in this browser only. |
 
-Under the choice: "You can change this at any time in Settings."
+Under the title: "You can change it later in Settings."
 
 ### Choosing a mode at first run
 
@@ -40,7 +40,7 @@ Decided (Q-MODE-DEFAULT): the first run asks, with Standard preselected and mark
 
 The Local warning (Decided that there is one; wording Proposed):
 
-> Your log will be kept only in this browser. Clearing the browser's data, using a private window, resetting or losing the device deletes it, and no other copy exists. Export a backup now and then (Settings, Data).
+> Your log is kept only in this browser. Clearing the browser's data, using a private window or losing the device deletes it. Export a backup from Settings now and then.
 
 Settings shows the same warning while the user is in Local mode. A note bar reminds the user to export a backup when the last one is more than 30 days old (counted from choosing Local when there has been none) and the log has changed since; it offers "Export a backup" and "Not now" (built).
 
