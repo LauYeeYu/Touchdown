@@ -470,6 +470,8 @@ describe("Standard mode's storage key", () => {
     expect((await call(s, owner, "POST", "/api/storage/terms", { version: 1 })).status).toBe(200);
     expect((await connect()).location).toBe("/settings?storage=connected");
     expect((await call(s, owner, "GET", "/api/storage")).json).toMatchObject({ accepted: true, connected: true, account: "owner@gmail.example", status: "ok" });
+    // The Google account connected for Standard also signs in from now on.
+    expect((await call(s, owner, "GET", "/auth/me")).json.google).toBe("owner@gmail.example");
 
     const stored = (await s.db.first<{ tokenCiphertext: string; tokenIv: string }>("SELECT tokenCiphertext, tokenIv FROM storage_connections"))!;
     expect(JSON.stringify(stored)).not.toContain("refresh-1");
@@ -486,6 +488,15 @@ describe("Standard mode's storage key", () => {
     const cli = String(((await signedIn.json()) as { token: string }).token);
     const forCli = await handle(new Request(`${SITE}/api/storage/token`, { method: "POST", headers: { Authorization: `Bearer ${cli}` } }), s);
     expect(await forCli.json()).toMatchObject({ accessToken: "access-1", account: "owner@gmail.example" });
+  });
+
+  it("leaves the Google sign-in alone when the account has one already", async () => {
+    const { s, owner, connect } = await standardSite();
+    const me = (await call(s, owner, "GET", "/auth/me")).json;
+    await s.db.run("INSERT INTO google_identities (accountId, sub, email, linkedAt) VALUES (?, ?, ?, ?)", [String(me.id), "g-other", "other@gmail.example", "2026-10-24T09:00:00Z"]);
+    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    expect((await connect()).location).toBe("/settings?storage=connected");
+    expect((await call(s, owner, "GET", "/auth/me")).json.google).toBe("other@gmail.example");
   });
 
   it("marks a key Google no longer accepts, and leaving revokes and deletes it", async () => {

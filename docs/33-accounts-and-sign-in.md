@@ -59,7 +59,7 @@ Rules:
 - The account is matched by Google's account id (`sub`), not by email, so a changed Gmail address keeps working.
 - **Joining with Google:** the invitation and the name typed on the invitation page go with the sign-in under way, and the account is made with the Google address.
 - **A Google account with no Touchdown account** is refused: "No account for this Google account. Ask the owner for an invitation."
-- **Linking:** Settings → Account → "Connect Google" adds Google to a password account; "Remove" takes it away when a password is set.
+- **Linking:** Settings → Account → "Connect Google" adds Google to a password account; "Remove" takes it away when a password is set. Connecting Google Drive for Standard mode links that Google account as well, when the account has none yet and no other account uses it (built).
 - The redirect address `https://<site>/auth/google/callback` (and the development one) is registered in Google Cloud under "Authorized redirect URIs".
 - This is sign-in only. Private mode's access to Google Drive is still the browser's own token for `drive.file` ([12](12-storage-and-sync.md)); Standard mode's server connection to the storage is separate ([32](32-modes-and-sharing.md)).
 

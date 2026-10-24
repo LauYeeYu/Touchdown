@@ -7,7 +7,7 @@ This policy covers the Touchdown website run from this repository by its owner, 
 ## In short
 
 - Your flight and spotting log is not kept on Touchdown's server. It is in your browser and, if you choose, in your own storage (your Google Drive or a folder on your computer).
-- The server keeps only what it needs to sign you in: your name, email address, a hash of your password key, your Google account id if you sign in with Google, and your sign-in sessions. In Standard mode, if you choose it, it also keeps an encrypted key to your Google Drive.
+- The server keeps only what it needs to sign you in: your name, email address, a hash of your password key, your Google account id if you sign in with Google or connect Google Drive in Standard mode, and your sign-in sessions. In Standard mode, if you choose it, it also keeps an encrypted key to your Google Drive.
 - Touchdown never sees your password, sells nothing and shows no ads. It counts page views with Cloudflare Web Analytics, which sets no cookies and does not identify you (see Analytics).
 
 ## What the server keeps
@@ -19,7 +19,7 @@ The server runs on Cloudflare and keeps these, per account, in its database:
 | Name and email address | To show who you are, and to sign you in. |
 | Whether you are the owner or a member | The owner invites and removes people. |
 | A hash of your password key | To check your password. Your browser turns the password into a key before sending it; the password itself never leaves your browser, and the server stores only a hash of the key. |
-| Your Google account id and Google email address, if you sign in with Google | To recognise your Google account. |
+| Your Google account id and Google email address, if you sign in with Google, or connect Google Drive in Standard mode (that Google account then also signs you in) | To recognise your Google account. |
 | Your sign-in sessions: a hash of each session's random token, when it began and was last used, and a short device label such as "Chrome on macOS", or "Command line on macOS" for the command-line tools | To keep you signed in, and to list where you are signed in. |
 | When you last signed in, and how many wrong passwords were entered in a row | To show the owner when members were last active, and to slow down password guessing. |
 | Invitation and password reset links: a hash of each link, who it was for (a note by the owner), when it was made and used | So that each link works once and expires. |

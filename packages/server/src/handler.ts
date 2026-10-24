@@ -506,6 +506,13 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
       if (!scope.split(" ").includes(DRIVE_FILE)) return go(storageBack("no-drive"));
       if (!refreshToken) return go(storageBack("no-key"));
       await saveStorageKey(s, login.linkAccountId, identity.email, scope, refreshToken, nowIso);
+      // The Google account connected for Standard also signs in, unless the account has one already or another
+      // account uses this one.
+      const [mine, taken] = await Promise.all([
+        s.db.first("SELECT sub FROM google_identities WHERE accountId = ?", [login.linkAccountId]),
+        s.db.first("SELECT accountId FROM google_identities WHERE sub = ?", [identity.sub]),
+      ]);
+      if (!mine && !taken) await s.db.run("INSERT INTO google_identities (accountId, sub, email, linkedAt) VALUES (?, ?, ?, ?)", [login.linkAccountId, identity.sub, identity.email, nowIso]);
       return go(withParam(safeNext(login.next), "storage", "connected"));
     }
     const owner = await s.db.first<{ accountId: string }>("SELECT accountId FROM google_identities WHERE sub = ?", [identity.sub]);
