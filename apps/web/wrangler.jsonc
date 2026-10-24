@@ -5,8 +5,7 @@
   "name": "touchdown",
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
-  // Only the custom domain, which Cloudflare Access protects: no workers.dev address and no preview addresses
-  // that would skip the gate.
+  // Only the custom domain: no workers.dev address and no preview addresses.
   "workers_dev": false,
   "preview_urls": false,
   "routes": [{ "pattern": "touchdown.amwhatiam.org", "custom_domain": true }],
@@ -14,14 +13,20 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // Every request goes through the Worker, so the Access token is checked on files too.
+    // Files are served at exactly their names, as the Node server does (no .html tidying or redirects).
+    "html_handling": "none",
+    // Every request goes through the Worker, so the session is checked for files too.
     "run_worker_first": true
   },
   "vars": {
-    // Set once the Access application exists. Until then the Worker refuses every request.
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    "SITE_ORIGINS": "https://touchdown.amwhatiam.org",
+    // The "Touchdown web" client (src/config.ts); its secret is GOOGLE_CLIENT_SECRET, set with
+    // `wrangler secret put`. Without the secret, Google sign-in is off.
+    "GOOGLE_CLIENT_ID": "860644597040-p5m61042lk2pd763kdem1i0g77cuugvj.apps.googleusercontent.com"
   },
+  // Accounts, sessions and invitations (docs/33). Created once with `npx wrangler d1 create touchdown`, which
+  // prints the id to put here.
+  "d1_databases": [{ "binding": "DB", "database_name": "touchdown", "database_id": "00000000-0000-0000-0000-000000000000" }],
   // No request logs: page addresses show which aircraft a user looks at.
   "observability": { "enabled": false }
 }

@@ -1,42 +1,35 @@
-// The Worker that serves Touchdown (docs/30-architecture.md, "Deployment"): the built app from static assets, and
-// later the lookup service under /api/. Cloudflare Access signs users in before a request gets here; the Worker
-// checks Access's token on every request as well and refuses anything without a valid one.
+// The Cloudflare Worker that serves Touchdown (docs/33-accounts-and-sign-in.md, "Hosting"): a thin wrapper around
+// the server in packages/server, with Cloudflare's D1 database and the built app as static assets. The same server
+// runs on any machine with Node (packages/server/src/node.ts).
 
-import { AccessCheck } from "./access.ts";
-import { withHeaders } from "./headers.ts";
+import { d1Database, handle, type Assets, type D1Like, type Database } from "@touchdown/server";
 
 export interface Env {
-  ASSETS: { fetch(request: Request): Promise<Response> };
-  /** https://<team>.cloudflareaccess.com; until it is set, every request is refused. */
-  ACCESS_TEAM_DOMAIN: string;
-  /** The Access application's audience (AUD) tag; until it is set, every request is refused. */
-  ACCESS_AUD: string;
+  ASSETS: Assets;
+  DB: D1Like;
+  /** The site's addresses, comma-separated; the first is used in links. */
+  SITE_ORIGINS: string;
+  /** Secrets, set with `wrangler secret put`. */
+  SETUP_TOKEN?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }
 
-let check: { key: string; access: AccessCheck } | null = null;
+// One wrapper per binding, so the tables are checked once per Worker instance, not on every request.
+const databases = new WeakMap<D1Like, Database>();
 
-function accessFor(env: Env): AccessCheck {
-  const key = `${env.ACCESS_TEAM_DOMAIN}|${env.ACCESS_AUD}`;
-  if (check?.key !== key) check = { key, access: new AccessCheck({ teamDomain: env.ACCESS_TEAM_DOMAIN, audience: env.ACCESS_AUD }) };
-  return check.access;
-}
-
-function plain(status: number, text: string, path: string): Response {
-  return withHeaders(new Response(text, { status, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } }), path);
-}
-
-export async function handle(request: Request, env: Env, access: AccessCheck = accessFor(env)): Promise<Response> {
-  const path = new URL(request.url).pathname;
-  let user: string | null;
-  try {
-    user = await access.verify(request);
-  } catch {
-    // Access's keys could not be fetched: refuse rather than let the request through.
-    return plain(503, "Sign-in could not be checked. Try again in a minute.", path);
-  }
-  if (user === null) return plain(403, "Sign in to use Touchdown.", path);
-  if (path.startsWith("/api/")) return plain(404, "Not found.", path);
-  return withHeaders(await env.ASSETS.fetch(request), path);
-}
-
-export default { fetch: (request: Request, env: Env) => handle(request, env) };
+export default {
+  fetch(request: Request, env: Env): Promise<Response> {
+    let db = databases.get(env.DB);
+    if (!db) databases.set(env.DB, (db = d1Database(env.DB)));
+    return handle(request, {
+      db,
+      assets: env.ASSETS,
+      config: {
+        origins: env.SITE_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean),
+        setupToken: env.SETUP_TOKEN,
+        google: env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } : undefined,
+      },
+    });
+  },
+};

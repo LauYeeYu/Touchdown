@@ -1,4 +1,4 @@
-// Response headers for every page and file the site serves (docs/30-architecture.md, "Deployment"). The Worker
+// Response headers for every page and file the site serves (docs/30-architecture.md, "Deployment"). The server
 // sets them, and `vite preview` uses the same ones, so the built app can be tried locally under the same policy.
 
 /** The theme script inline in index.html, allowed by its hash. A test checks it against the file. */
@@ -9,7 +9,8 @@ export const THEME_SCRIPT_HASH = "sha256-9jcCkNSpCiFGIOUt2MFygNMOy98D457hWXLkNtb
 // Touchdown does not use; the browser blocks it and reports it, and the popup sign-in works without it.
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' '${THEME_SCRIPT_HASH}' https://accounts.google.com/gsi/client`,
+  // WebAssembly (the password hash, later SQLite) may be compiled; JavaScript eval stays forbidden.
+  `script-src 'self' '${THEME_SCRIPT_HASH}' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client`,
   "style-src 'self' https://accounts.google.com/gsi/style",
   "img-src 'self' data: blob: https://*.plnspttrs.net",
   "font-src 'self'",
