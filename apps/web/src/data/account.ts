@@ -10,7 +10,8 @@ export interface Me {
   role: "owner" | "member";
   password: boolean;
   google: string | null;
-  sessions: { device: string; createdAt: string; lastUsedAt: string; current: boolean }[];
+  /** `id` names a session for signing it out; `cli` marks the command line's. */
+  sessions: { id: string; device: string; cli: boolean; createdAt: string; lastUsedAt: string; current: boolean }[];
 }
 
 export interface Person {
@@ -96,6 +97,7 @@ export const account = {
   disconnectGoogle: () => call("DELETE", "/auth/google"),
   signOut: () => call("POST", "/auth/signout"),
   signOutOthers: () => call<{ ended: number }>("POST", "/auth/signout-others"),
+  endSession: (id: string) => call<{ ended: number }>("POST", "/auth/sessions/end", { id }),
   people: () => call<{ people: Person[]; invites: OpenInvite[] }>("GET", "/auth/people"),
   invite: (note: string) => call<Link>("POST", "/auth/invites", { note }),
   withdraw: (id: string) => call("DELETE", `/auth/invites/${encodeURIComponent(id)}`),

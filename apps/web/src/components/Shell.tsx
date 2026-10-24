@@ -6,12 +6,12 @@ import { useApp } from "../data/context.tsx";
 import { Icon, type IconName } from "../lib/icons.tsx";
 import { MenuButton } from "./Menu.tsx";
 import { NoteBar } from "./NoteBar.tsx";
-import { sessionPhrase, useInboxWatcher, useWaitingSessions } from "../data/inbox.ts";
+import { recordsText, sessionPhrase, useInboxWatcher, useWaitingSessions } from "../data/inbox.ts";
 import { LAST_BACKUP, LAST_CHANGE, metaNumber } from "../data/connection.ts";
 import type { SyncInfo } from "../data/sync.ts";
 import { backupZip, todayIn } from "@touchdown/core";
 import { download } from "../lib/download.ts";
-import { momentLabel, plural } from "../lib/format.ts";
+import { momentLabel } from "../lib/format.ts";
 import { useSyncInfo } from "./ModeChoice.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
@@ -117,13 +117,13 @@ export function Shell() {
     }
   }, []);
 
-  // Sightings from spotting sessions waiting to be reviewed and imported. "Not now" hides a session in this tab
-  // until it changes (more sightings saved to it).
+  // Records from the inbox (spotting sessions, ./touchdown add) waiting to be reviewed and imported. "Not now" hides
+  // a file in this tab until it changes (more sightings saved to it).
   useInboxWatcher(app, version);
   const waiting = useWaitingSessions();
   const [later, setLater] = useState<Set<string>>(() => new Set());
   const shown = waiting.filter((w) => !later.has(`${w.name}@${w.modified}`));
-  const sightings = shown.reduce((n, w) => n + w.waiting, 0);
+  const shownCount = shown.reduce((n, w) => n + w.waiting, 0);
 
   // Re-render the save state once it settles.
   useEffect(() => {
@@ -252,7 +252,11 @@ export function Shell() {
             </>
           }
         >
-          {plural(sightings, "sighting")} from {shown.length === 1 ? sessionPhrase(shown[0]!.name) : `${shown.length} spotting sessions`} {sightings === 1 ? "is" : "are"} waiting. They are not in your log until you import them.
+          {recordsText(
+            shown.reduce((n, w) => n + w.flights, 0),
+            shown.reduce((n, w) => n + w.sightings, 0),
+          )}{" "}
+          from {shown.length === 1 ? sessionPhrase(shown[0]!.name) : `${shown.length} files in the inbox`} {shownCount === 1 ? "is" : "are"} waiting. They are not in your log until you import them.
         </NoteBar>
       )}
       {import.meta.env.DEV && newerBackup && (

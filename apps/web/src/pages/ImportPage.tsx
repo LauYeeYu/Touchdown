@@ -42,14 +42,14 @@ import {
 import { useApp } from "../data/context.tsx";
 import { ColumnMapping, type ColumnChoice } from "../components/ColumnMapping.tsx";
 import { savedMapping, saveMapping } from "../data/mappings.ts";
-import { discardSession, markImported, sessionLabel, sessionPhrase, useWaitingSessions, type WaitingSession } from "../data/inbox.ts";
+import { discardSession, madeBy, markImported, recordsText, sessionLabel, useWaitingSessions, type WaitingSession } from "../data/inbox.ts";
 import type { AppData } from "../data/app.ts";
 import { dayMonthYear, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "../components/overlay.tsx";
 import { AgentCheckPanel, AgentSuggestions, choiceKey, type Choice } from "../components/AgentCheck.tsx";
 
-const FORMAT_LABEL = { fr24_csv: "my.flightradar24.com export", sheet: "spreadsheet", touchdown_inbox: "spotting session" } as const;
+const FORMAT_LABEL = { fr24_csv: "my.flightradar24.com export", sheet: "spreadsheet", touchdown_inbox: "file from the inbox" } as const;
 const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
 const FIELD_LABEL: Record<string, string> = {
   takeoffAt: "Takeoff",
@@ -109,7 +109,7 @@ function label(c: Candidate): { title: string; sub: string } {
   return { title: [v.registration, v.seenOn && dayMonthYear(v.seenOn)].filter(Boolean).join(" · ") || "Sighting", sub: [v.airportRaw, v.operatorRaw, v.typeCode].filter(Boolean).join(" · ") };
 }
 
-/** A spotting session's inbox (`touchdown spot`); a check request or result gets a pointer to where it belongs. */
+/** An inbox file (`touchdown spot`, `touchdown add`); a check request or result gets a pointer to where it belongs. */
 function readJsonFile(buf: Uint8Array, name: string, app: AppData): { source: ParsedSource } | { error: string } {
   let json: unknown;
   try {
@@ -283,7 +283,7 @@ export function ImportPage() {
     setBase(null);
     setAgent(null);
     setChoices(new Map());
-    if (origin) void markImported(app, origin);
+    if (origin) void markImported(app, origin, r.batchId);
     setOrigin(null);
     toast(`Imported: ${plural(r.created, "new record")}, ${plural(r.updated, "record")} filled in${r.merged ? `, ${plural(r.merged, "repeat")} merged` : ""}.`);
   };
@@ -377,7 +377,9 @@ export function ImportPage() {
         )}
         {source.format === "touchdown_inbox" ? (
           <p className="form-sub">
-            Filled and checked in a spotting session ({source.agentChecker ? `with ${source.agentChecker === "codex" ? "Codex" : "Claude Code"}` : "without an agent"}). Values from a lookup or the agent are saved with their source.
+            {source.fileName.startsWith("add-")
+              ? "Checked against your log by ./touchdown add. Values marked as coming from a lookup or an agent are saved with their source."
+              : `Filled and checked in a spotting session (${source.agentChecker ? `with ${source.agentChecker === "codex" ? "Codex" : "Claude Code"}` : "without an agent"}). Values from a lookup or the agent are saved with their source.`}
           </p>
         ) : (
         <AgentCheckPanel
@@ -566,7 +568,9 @@ export function ImportPage() {
               <li key={w.name} className="history-row">
                 <span>
                   <b>{sessionLabel(w.name)}</b>
-                  <small>{plural(w.waiting, "sighting")} not in your log yet, from ./touchdown spot</small>
+                  <small>
+                    {recordsText(w.flights, w.sightings)} not in your log yet, from {madeBy(w.name)}
+                  </small>
                 </span>
                 <span className="history-row__actions">
                   <button type="button" className="btn btn--primary btn--small" onClick={() => openSession(w)}>
@@ -576,7 +580,7 @@ export function ImportPage() {
                     type="button"
                     className="btn btn--ghost btn--small"
                     onClick={() => {
-                      if (window.confirm(`Discard ${sessionPhrase(w.name).replace(/^your /, "the ")}? Its ${plural(w.waiting, "sighting")} are not in your log, and the file is deleted.`)) void discardSession(app, w.name);
+                      if (window.confirm(`Discard this file? The ${recordsText(w.flights, w.sightings)} in it ${w.waiting === 1 ? "is" : "are"} not in your log, and the file is deleted.`)) void discardSession(app, w.name);
                     }}
                   >
                     Discard
@@ -591,7 +595,7 @@ export function ImportPage() {
         <Icon name="upload" />
         <span>
           <b>{busy ? "Reading…" : "Choose a file"}</b>
-          <span>A my.flightradar24.com CSV export, your flight log or spotting spreadsheet as CSV or Excel (.xlsx), or the inbox file of a spotting session (.json). Import the FR24 export first, then the flight log: matching flights are merged.</span>
+          <span>A my.flightradar24.com CSV export, your flight log or spotting spreadsheet as CSV or Excel (.xlsx), or a file from the inbox of ./touchdown spot or add (.json). Import the FR24 export first, then the flight log: matching flights are merged.</span>
         </span>
         <input
           type="file"

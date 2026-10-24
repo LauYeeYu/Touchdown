@@ -33,6 +33,15 @@ const AFTER_EDIT_MS = 3000;
 const CONFIRM_MS = 1500;
 const EVERY_MS = 5 * 60_000;
 
+/** The inbox in the user's storage (docs/21): files from `touchdown spot` and `touchdown add` waiting for review. */
+export interface StorageInbox {
+  list(): Promise<string[]>;
+  read(name: string): Promise<Uint8Array | null>;
+  /** An imported file is kept with its import (attachments/imports/<batchId>/) and leaves the inbox. */
+  imported(name: string, batchId: string, data: Uint8Array): Promise<void>;
+  remove(name: string): Promise<void>;
+}
+
 /** The storage's files, and whether this browser may use them now; with `ask`, inside a click, it may ask. */
 interface Storage {
   files: FileAdapter;
@@ -80,6 +89,7 @@ class StoredSyncState implements SyncStateStore {
 export class SyncController {
   info: SyncInfo;
   private engine: SyncEngine | null = null;
+  private backend: JsonTablesBackend | null = null;
   private listeners = new Set<() => void>();
   private cleanups: (() => void)[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -154,6 +164,7 @@ export class SyncController {
     const engine = new SyncEngine(this.store, backend, new StoredSyncState());
     await engine.start();
     this.engine = engine;
+    this.backend = backend;
 
     const unsubscribe = this.store.subscribe((changes) => {
       if (changes.some((c) => c.origin !== "sync")) this.later(AFTER_EDIT_MS);
@@ -205,6 +216,21 @@ export class SyncController {
     } catch (e) {
       this.failed(e);
     }
+  }
+
+  /** The storage's inbox, once sync has opened the storage and while it may use it; null otherwise. */
+  inbox(): StorageInbox | null {
+    const b = this.backend;
+    if (!b || this.stopped || this.info.state === "permission") return null;
+    return {
+      list: async () => (await b.listFiles("inbox")).map((f) => f.name).filter((n) => n.endsWith(".json")),
+      read: (name) => b.readFile("inbox", name),
+      imported: async (name, batchId, data) => {
+        await b.writeFile("attachments", `imports/${batchId}/${name}`, data);
+        await b.removeFile("inbox", name);
+      },
+      remove: (name) => b.removeFile("inbox", name),
+    };
   }
 
   stop() {

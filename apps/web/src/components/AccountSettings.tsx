@@ -231,13 +231,32 @@ export function AccountSection({ app }: { app: AppData }) {
 
       <h3 className="form-subsection">Signed in on</h3>
       <ul className="rows overrides">
-        {me.sessions.map((s, i) => (
-          <li key={i} className="history-row">
+        {me.sessions.map((s) => (
+          <li key={s.id} className="history-row">
             <span>
               {s.device}
               {s.current ? " (this browser)" : ""}
               <small>Last used {when(s.lastUsedAt)}</small>
             </span>
+            {!s.current && (
+              <span className="history-row__actions">
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() =>
+                    void account.endSession(s.id).then(
+                      () => {
+                        toast(`${s.device} is signed out.`);
+                        load();
+                      },
+                      (err: unknown) => toast(message(err)),
+                    )
+                  }
+                >
+                  Sign out
+                </button>
+              </span>
+            )}
           </li>
         ))}
       </ul>

@@ -60,7 +60,7 @@ export function loadGoogle(): Promise<Gis> {
   return loading;
 }
 
-interface SavedToken {
+export interface SavedToken {
   token: string;
   expiresAt: number;
   account: string;
@@ -101,38 +101,48 @@ export class GoogleSignIn implements DriveAuth {
 
   /** Sign in in Google's popup; call it from a click. Returns the account's email address. */
   async signIn(): Promise<string> {
-    const google = window.google ?? (await loadGoogle());
-    const response = await new Promise<TokenResponse>((resolve, reject) => {
-      google.accounts.oauth2
-        .initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: SCOPE,
-          login_hint: this.account ?? undefined,
-          callback: resolve,
-          error_callback: (e) =>
-            reject(
-              e.type === "popup_closed"
-                ? new SignInCancelled()
-                : new Error(e.type === "popup_failed_to_open" ? "The browser blocked Google's sign-in window. Allow pop-ups for this site and try again." : (e.message ?? "Google sign-in failed.")),
-            ),
-        })
-        .requestAccessToken();
-    });
-    if (response.error === "access_denied") throw new Error("Google Drive was not connected: Touchdown was not allowed to use it.");
-    if (response.error || !response.access_token) throw new Error(response.error_description ?? response.error ?? "Google did not sign you in.");
-    if (!google.accounts.oauth2.hasGrantedAllScopes(response, SCOPE)) {
-      throw new Error("Touchdown needs permission to use its files in Google Drive. Sign in again and tick the box for Google Drive.");
-    }
-    const token = response.access_token;
-    const expiresAt = Date.now() + Number(response.expires_in ?? 3600) * 1000;
-    const account = await new GoogleDrive({ token: async () => token, refused: () => {} }).account();
-    if (this.account && account !== this.account) {
-      throw new Error(`You signed in as ${account}, but this log is in the Google Drive of ${this.account}. Sign in as ${this.account}.`);
-    }
+    const { token, expiresAt, account } = await requestDriveToken(this.account);
     this.saved = { token, expiresAt, account };
     await db.meta.put({ key: KEY, value: this.saved });
     return account;
   }
+}
+
+/**
+ * An hour's access to Touchdown's files in Google Drive, from Google's popup; call it from a click. With `account`,
+ * signing in as another account is refused. Nothing is kept: GoogleSignIn keeps it for sync, and the command line's
+ * page (/cli/drive) passes it on.
+ */
+export async function requestDriveToken(account: string | null): Promise<SavedToken> {
+  const google = window.google ?? (await loadGoogle());
+  const response = await new Promise<TokenResponse>((resolve, reject) => {
+    google.accounts.oauth2
+      .initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: SCOPE,
+        login_hint: account ?? undefined,
+        callback: resolve,
+        error_callback: (e) =>
+          reject(
+            e.type === "popup_closed"
+              ? new SignInCancelled()
+              : new Error(e.type === "popup_failed_to_open" ? "The browser blocked Google's sign-in window. Allow pop-ups for this site and try again." : (e.message ?? "Google sign-in failed.")),
+          ),
+      })
+      .requestAccessToken();
+  });
+  if (response.error === "access_denied") throw new Error("Google Drive was not connected: Touchdown was not allowed to use it.");
+  if (response.error || !response.access_token) throw new Error(response.error_description ?? response.error ?? "Google did not sign you in.");
+  if (!google.accounts.oauth2.hasGrantedAllScopes(response, SCOPE)) {
+    throw new Error("Touchdown needs permission to use its files in Google Drive. Sign in again and tick the box for Google Drive.");
+  }
+  const token = response.access_token;
+  const expiresAt = Date.now() + Number(response.expires_in ?? 3600) * 1000;
+  const signedIn = await new GoogleDrive({ token: async () => token, refused: () => {} }).account();
+  if (account && signedIn !== account) {
+    throw new Error(`You signed in as ${signedIn}, but this log is in the Google Drive of ${account}. Sign in as ${account}.`);
+  }
+  return { token, expiresAt, account: signedIn };
 }
 
 /** Forget this browser's token when it stops using Google Drive. Google's permission stays, so other devices keep syncing. */

@@ -26,6 +26,7 @@ import { ImportPage } from "./pages/ImportPage.tsx";
 import { Issues } from "./pages/Issues.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { FirstRun } from "./pages/FirstRun.tsx";
+import { CliPage } from "./pages/CliPage.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
 import { airportParams, slugParams, setSlugData } from "./lib/slugs.ts";
 import { setCodeStyle } from "./lib/codes.ts";
@@ -199,8 +200,5 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+// The command line's pages stand on their own: they do not open the log (pages/CliPage.tsx).
+createRoot(document.getElementById("root")!).render(<StrictMode>{location.pathname.startsWith("/cli/") ? <CliPage /> : <App />}</StrictMode>);

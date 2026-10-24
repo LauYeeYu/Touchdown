@@ -20,7 +20,8 @@ const CSP = [
   "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'none'",
-  "form-action 'self'",
+  // The command line's page for Google Drive posts an hour's access to the command line on this computer (docs/33).
+  "form-action 'self' http://127.0.0.1:*",
   "frame-ancestors 'none'",
 ].join("; ");
 
