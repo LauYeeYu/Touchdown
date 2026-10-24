@@ -25,7 +25,10 @@ import { FirstRun } from "./pages/FirstRun.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
 import { airportParams, slugParams, setSlugData } from "./lib/slugs.ts";
 import { setCodeStyle } from "./lib/codes.ts";
-import { toUtcIso } from "@touchdown/core";
+import { toUtcIso, validateWithoutEval } from "@touchdown/core";
+
+// The hosted site's security policy forbids eval (docs/30).
+validateWithoutEval();
 
 const root = createRootRoute({ component: Shell, notFoundComponent: () => <NotFound /> });
 

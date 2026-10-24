@@ -9,6 +9,14 @@ export const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 export const DATETIME_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
 const ULID_RE = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 
+/**
+ * For pages whose Content Security Policy forbids eval (the hosted site, docs/30): Zod then skips its eval probe,
+ * which the browser would report as a violation, and validates without compiling code, as it would anyway there.
+ */
+export function validateWithoutEval(): void {
+  z.config({ jitless: true });
+}
+
 export function isValidDate(s: string): boolean {
   const m = DATE_RE.exec(s);
   if (!m) return false;

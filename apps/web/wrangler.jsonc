@@ -1,0 +1,27 @@
+// The Cloudflare Worker that serves Touchdown (docs/30-architecture.md, "Deployment"). Deployed by GitHub Actions
+// on every push to master once the repository variable DEPLOY is "on" (.github/workflows/deploy.yml).
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "touchdown",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  // Only the custom domain, which Cloudflare Access protects: no workers.dev address and no preview addresses
+  // that would skip the gate.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "touchdown.amwhatiam.org", "custom_domain": true }],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Every request goes through the Worker, so the Access token is checked on files too.
+    "run_worker_first": true
+  },
+  "vars": {
+    // Set once the Access application exists. Until then the Worker refuses every request.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  },
+  // No request logs: page addresses show which aircraft a user looks at.
+  "observability": { "enabled": false }
+}

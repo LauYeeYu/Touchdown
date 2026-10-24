@@ -88,21 +88,24 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 ## Security and privacy
 
 - Access gate (U3, decided, Q-ACCESS): Cloudflare Access sits in front of the whole Worker, so the app's files, every page, and `/api/*` all require sign-in. Only an allowlist of invited email addresses gets through. Sign-in methods: Google or a one-time code by email; neither is tied to where the user keeps their data. No login code in the app itself, and no passwords stored anywhere. The one exception to the gate is the public share page `/p/<id>` ([32](32-modes-and-sharing.md)), which serves one public link's content and nothing else. Cloudflare Zero Trust is free for small teams; recheck the user limit before launch.
-- Defence in depth: the Worker verifies the `Cf-Access-Jwt-Assertion` token on every `/api/*` request (signature, audience, expiry) and refuses requests without a valid one, so the lookup service cannot be called from outside even if its address leaks.
+- Defence in depth (Decided, built in `apps/web/worker/`): every request, for a page, a file or `/api/*`, goes through the Worker first, which verifies the `Cf-Access-Jwt-Assertion` token (RS256 signature against the team's published keys, audience, issuer, expiry) and refuses requests without a valid one. A mistake in the Access setup then gives a refusal, not an open site, and the lookup service cannot be called from outside even if its address leaks. Until the team's address and the application's audience tag are set in `wrangler.jsonc`, the Worker refuses every request. The public share page (phase 8) will be the one path it lets through without a token.
 - Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). In Standard mode the server makes the connection and keeps an encrypted key ([32](32-modes-and-sharing.md)). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
 - The installed app (PWA) keeps working offline from its cache; when the Access session expires, the next online request sends the user through sign-in again.
 - No user accounts on our side beyond the Access allowlist, except a Standard-mode user's account row ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
-- Private mode: OAuth tokens stay in browser memory, and no refresh token is on any server. Standard mode: one refresh token per user, encrypted, never logged or returned to a browser ([32](32-modes-and-sharing.md)).
+- Private mode: Google's access token stays in the browser until it expires (an hour), and no refresh token is on any server. Standard mode: one refresh token per user, encrypted, never logged or returned to a browser ([32](32-modes-and-sharing.md)).
 - Strict Content Security Policy. No third-party analytics or ads.
 - Private fields (ticket number, booking reference) never leave the user's storage and browser except in exports the user asks for with "include private fields".
 - All imported text is treated as untrusted: escaped in the UI, never used as HTML, formula-guarded on CSV export.
 - Dependencies pinned with a lockfile; no install scripts in the CLI.
 
-## Deployment (Cloudflare, proposed)
+## Deployment (Cloudflare)
+
+Built: the Worker (`apps/web/worker/`, config in `apps/web/wrangler.jsonc`) and the GitHub Actions workflow (`.github/workflows/deploy.yml`). The steps for the person running the site are in the README, "Running the hosted site".
 
 ```
 Cloudflare Access         allowlist of invited users; sign in with Google or an email one-time code
  └─ Worker "touchdown"
+     every request       the Access token is checked first, then the request is served
      static assets        apps/web build output + reference JSON + airframe index shards
                           (single-page-app fallback for unknown paths)
      /api/*               lookup service (13); checks the Access token on every request
@@ -116,16 +119,19 @@ Cloudflare Access         allowlist of invited users; sign in with Google or an 
 ```
 
 - One Worker serves both the app and the API, so they share one origin: no CORS setup, one deployment.
-- Cloudflare Access protects the Worker's hostname (custom domain, and the `workers.dev` and preview hostnames if they stay enabled; otherwise disable them so nothing bypasses the gate).
-- Free plan: static asset requests are free and not counted; API requests share 100,000 per day with 10 ms of CPU each. The lookup service mostly waits on upstream servers, which does not count as CPU. The paid plan ($5/month) is the fallback if limits are reached. Recheck the limits before launch.
+- Cloudflare Access protects the Worker's custom domain. The `workers.dev` and preview addresses are turned off in `wrangler.jsonc`, so nothing bypasses the gate (built).
+- Free plan: every request runs the Worker (the Access check), so pages and files count towards the 100,000 requests a day, with 10 ms of CPU each; a few users stay far below that. Checking a token takes well under a millisecond once the team's keys are cached (they are fetched again after an hour, or for a key id not seen yet, at most every 30 seconds). The lookup service mostly waits on upstream servers, which does not count as CPU. The paid plan ($5/month) is the fallback if limits are reached. Recheck the limits before launch.
 - Airframe index shards (about 1,300 small files) ship as static assets. If the plan's per-version file limit is too low, they move to R2.
-- Deploys (Decided): GitHub Actions on every push to `master` runs the tests, builds the app and deploys with `wrangler`, using a Cloudflare API token kept as a GitHub Actions secret. The first deployment waits until the Access application is in place, so the site is never open.
+- Deploys (Decided, built): GitHub Actions on every push to `master` runs the tests and the type check, builds the app and deploys with `wrangler` (pinned in `apps/web/package.json`), using a Cloudflare API token kept as a GitHub Actions secret. The deploy step runs only while the repository variable `DEPLOY` is `on`, which the owner sets once the Access application is in place, so the site is never open. Wrangler's telemetry is off in the workflow.
 - The Worker's config (`wrangler.jsonc`) names the custom domain and is committed (Decided): the address is not a secret, and the gate protects the site.
 - Reference data and the airframe index are rebuilt weekly in GitHub Actions (the source files are about 100 MB, too heavy for a Worker cron), then deployed with `wrangler`.
 - Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. For Standard mode, `/api/storage/callback` on the production origin is also registered under "Authorized redirect URIs" ([32](32-modes-and-sharing.md)). Per-upload preview URLs change, so they are not used for sign-in.
-- Headers: a strict Content Security Policy. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash. No `Cross-Origin-Opener-Policy: same-origin` / COEP isolation, because it would likely break the Google sign-in popup. The SQLite backend therefore uses the `opfs-sahpool` storage mode (or an in-memory database), which needs no cross-origin isolation.
-- Caching (Decided: the version stamp): `index.html` is served with `Cache-Control: no-cache`, so a browser always checks for a new version. Every stylesheet link in it carries `?v=<build date-time>` (UTC, basic ISO 8601, e.g. `20261023T153012Z`), added at build time, so a new deployment reloads the CSS without depending on the browser's cache. Built files also carry a content hash in their names. The service worker (phase 3) fetches `index.html` from the network first.
-- Logs: Worker logs for `/api/*` are kept minimal (no request bodies, no client identifiers), because lookups reveal which aircraft a user is interested in.
+- Headers (built, `apps/web/worker/headers.ts`; `vite preview` serves the build with the same ones):
+  - Content Security Policy: everything from the site itself, plus Google's sign-in script and the Drive API, and planespotters.net's API and photos. No eval (the app tells Zod not to probe for it), no inline styles, no frames of the site elsewhere. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash; a test checks the hash against `index.html`. Google's sign-in script adds an inline style for its own sign-in button, which Touchdown does not use; it is blocked.
+  - `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` turning off the camera, microphone, location and payment, and `X-Robots-Tag: noindex`.
+  - `Cross-Origin-Opener-Policy: same-origin-allow-popups`, which Google's sign-in popup needs. No full cross-origin isolation (COEP), because it would break that popup. The SQLite backend therefore uses the `opfs-sahpool` storage mode (or an in-memory database), which needs no cross-origin isolation.
+- Caching (Decided: the version stamp; built): `index.html` is served with `Cache-Control: no-cache`, so a browser always checks for a new version. Every stylesheet link in it carries `?v=<build date-time>` (UTC, basic ISO 8601, e.g. `20261023T153012Z`), added at build time, so a new deployment reloads the CSS without depending on the browser's cache. Built files also carry a content hash in their names and are served with `Cache-Control: public, max-age=31536000, immutable`. The service worker (phase 3) fetches `index.html` from the network first.
+- Logs: Worker logs are off (`observability` disabled), because page addresses and lookups reveal which aircraft a user is interested in. When `/api/*` needs logs, they stay minimal (no request bodies, no client identifiers).
 - Cloudflare D1 holds the Standard-mode tables ([32](32-modes-and-sharing.md)). D1 as a storage backend (later, Q-SERVER-DB) can live in the same account.
 - Not on Cloudflare: the log (each user's storage) and the companion CLI (each user's computer). In Standard mode Cloudflare holds an encrypted key to the storage and the links' settings ([32](32-modes-and-sharing.md)).
 

@@ -40,7 +40,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Deliver: the first deployment (Worker with static assets, custom domain, GitHub Actions deploys) behind the Cloudflare Access gate, the Access-token check in the Worker, airframe index build, lookup service, auto-fill suggestions, external rules (X-), reference links to airfleets / planespotters / aviation.flights.
 - Done when: most of the user's records link to confirmed airframes, the provisional share is reported, and auto-fill never overwrites a user value.
-- Built so far: `touchdown spot` looks registrations up from the CLI (the user's log, the OpenSky snapshot, adsbdb, Flightradar24 opt-in) and fills sightings typed in a session ([21](21-import-export.md)).
+- Built so far: the Worker that serves the app, checking the Access token on every request, with the security headers; the GitHub Actions deploy, off until the Access application is in place. `touchdown spot` looks registrations up from the CLI (the user's log, the OpenSky snapshot, adsbdb, Flightradar24 opt-in) and fills sightings typed in a session ([21](21-import-export.md)).
 
 ## Phase 5: Agent check
 

@@ -192,9 +192,30 @@ Sign in to Flightradar24 in that window, then run the command with `--fr24`. If 
 | `./touchdown agent [claude\|codex\|none]` | Show or choose the agent; `agent notes on\|off` and `agent rules` set what it is sent. |
 | `npm run dev -w @touchdown/web` | Run the web app at http://127.0.0.1:5173. |
 | `npm run build -w @touchdown/web` | Build the web app into `apps/web/dist`. |
+| `npm run preview -w @touchdown/web` | Serve the build at http://127.0.0.1:4173 with the hosted site's headers. |
 | `npm test`, `npm run typecheck` | Run the tests; type-check. |
 
 `./touchdown <command>` is the same as `npm run touchdown -- <command>`, without npm's extra output.
+
+## Running the hosted site
+
+The site runs as a Cloudflare Worker at the address in `apps/web/wrangler.jsonc`, behind Cloudflare Access: only the email addresses you invite can open it. GitHub Actions tests and builds every push to `master`, and deploys it once you turn deploying on. The design is in [docs/30](docs/30-architecture.md), "Deployment".
+
+Setting it up, once:
+
+1. **Domain:** the domain's nameservers point to Cloudflare.
+2. **Zero Trust:** in the Cloudflare dashboard, open Zero Trust, choose a team name and the Free plan. Your team's address is `https://<team>.cloudflareaccess.com`.
+3. **Access application:** Access → Applications → Add an application → Self-hosted.
+   - Name: Touchdown. Public hostname: the address in `wrangler.jsonc`.
+   - Session duration: how long a sign-in lasts before the next email code, for example 1 month.
+   - Policy: action Allow, Include → Emails, with the addresses you invite.
+   - Login method: One-time PIN (a code by email).
+4. **Tell the Worker:** copy the application's "Application Audience (AUD) Tag" and your team's address into `ACCESS_AUD` and `ACCESS_TEAM_DOMAIN` in `wrangler.jsonc`, and commit. Neither is a secret. Until both are set, the Worker refuses every request.
+5. **GitHub:** under Settings → Secrets and variables → Actions, add the secrets `CLOUDFLARE_API_TOKEN` (a Cloudflare API token from the "Edit Cloudflare Workers" template, for your account and the domain) and `CLOUDFLARE_ACCOUNT_ID`, then the variable `DEPLOY` with the value `on`. The next push deploys.
+6. **Google Cloud:** add the site's address to the "Touchdown web" client's Authorized JavaScript origins. While the consent screen is in Testing, only its test users can connect Google Drive; publish it ("In production") before friends use it.
+7. **Check:** in a private window the site asks for a sign-in, and an address you did not invite gets no code.
+
+Inviting someone: add their address to the application's policy (and, while the Google consent screen is in Testing, to its test users). Removing someone: take their address out of the policy, and revoke their session under Zero Trust → My Team → Users. The list of invited addresses lives only in Cloudflare, not in this repository.
 
 ## Privacy
 

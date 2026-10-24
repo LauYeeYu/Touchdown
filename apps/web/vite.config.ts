@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { basename, join, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { SECURITY_HEADERS } from "./worker/headers.ts";
 
 // Development only: serve the owner's local backup (written by `touchdown import … --out`) so an empty
 // browser can load it. The file stays in data/private/ (git-ignored); it is never part of a build, and the
@@ -126,5 +127,7 @@ function styleVersion(): Plugin {
 export default defineConfig({
   plugins: [react(), styleVersion(), localBackup(), localInbox()],
   server: { port: 5173, host: "127.0.0.1" },
+  // The built app with the hosted site's headers, so its security policy can be tried locally.
+  preview: { port: 4173, host: "127.0.0.1", headers: SECURITY_HEADERS },
   build: { target: "es2023", sourcemap: true },
 });
