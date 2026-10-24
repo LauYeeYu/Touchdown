@@ -3,7 +3,7 @@
 
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
-import { flightDay, RULES, SEVERITY_ORDER, type Finding, type RecordRef } from "@touchdown/core";
+import { flightDay, RULES, type Finding, type RecordRef } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import type { AppData } from "../data/app.ts";
 import { dayMonthYear, plural } from "../lib/format.ts";
@@ -11,6 +11,7 @@ import { Icon } from "../lib/icons.tsx";
 import { FindingItem } from "../components/Findings.tsx";
 import { Tabs } from "../components/Tabs.tsx";
 import { useViewState } from "../lib/viewState.ts";
+import { orderIssues } from "../lib/issueOrder.ts";
 
 type Sev = "error" | "warning" | "info";
 
@@ -39,6 +40,17 @@ function RecordLink({ r, app }: { r: RecordRef; app: AppData }) {
   return null;
 }
 
+/** A finding's date, for its place in its group: its first record's day. */
+function findingDate(f: Finding, app: AppData): string {
+  const r = f.records[0];
+  if (r?.table === "flights") {
+    const flight = app.store.get("flights", r.id);
+    return (flight && (flightDay(flight) ?? flight.scheduledDate)) ?? "";
+  }
+  if (r?.table === "sightings") return app.store.get("sightings", r.id)?.seenOn ?? "";
+  return "";
+}
+
 function sentence(errors: number, warnings: number): string {
   const e = errors ? `${plural(errors, "entry", "entries")} ${errors === 1 ? "looks" : "look"} wrong` : "";
   const w = warnings ? `${plural(warnings, "entry", "entries")} ${warnings === 1 ? "is" : "are"} worth a look` : "";
@@ -57,10 +69,11 @@ export function Issues() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const accepted = useMemo(() => app.acceptedFindings(), [app, version]);
   const count = (s: Sev) => open.filter((f) => f.severity === s).length;
-  const shown = open.filter((f) => sev.has(f.severity));
-  const groups = new Map<string, Finding[]>();
-  for (const f of shown) groups.set(f.ruleId, [...(groups.get(f.ruleId) ?? []), f]);
-  const ordered = [...groups].sort((a, b) => SEVERITY_ORDER[a[1][0]!.severity] - SEVERITY_ORDER[b[1][0]!.severity] || b[1].length - a[1].length);
+  // A fixed order, so accepting or fixing a finding brings the next one into its place (lib/issueOrder.ts).
+  const ordered = orderIssues(
+    open.filter((f) => sev.has(f.severity)),
+    (f) => findingDate(f, app),
+  );
   const toggle = (s: Sev) => setSev((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
 
   return (
