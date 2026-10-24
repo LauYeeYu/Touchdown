@@ -480,7 +480,7 @@ export class AppData {
       }
       this.resolve();
     });
-    return `${name.trim()} is now one of your operators; ${linked === 1 ? "1 entry is" : `${linked} entries are`} linked to it.`;
+    return `Added ${name.trim()} as an operator and linked ${linked === 1 ? "1 entry" : `${linked} entries`} to it.`;
   }
 
   acceptFinding(f: Finding, note: string | null = null) {

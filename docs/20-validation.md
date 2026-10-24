@@ -33,7 +33,7 @@ Severity:
 | V-DATE-SANE | date | Not before 1903; not in the future (only flown flights are logged). | error | |
 | V-AIRPORT-KNOWN | from, to, location | Code resolves to one airport (IATA or ICAO). | error | Case fix. Suggest closest match. |
 | V-AIRPORT-SAME | flight | `from` ≠ `to` (unless the user marks it as a return-to-gate or local flight). | warning | |
-| V-OPERATOR-KNOWN | airline, operator | Code resolves (IATA or ICAO, case-insensitive), or the name of an airline or of an operator of the user's own. `AAl` → `AAL`. | error | Case fix. A company's name that is no airline ("Example Motors"): "Add … as your own operator", which links every record with that name. Imports and saving in the app add such a name by themselves (built). |
+| V-OPERATOR-KNOWN | airline, operator | Code resolves (IATA or ICAO, case-insensitive), or the name of an airline or of an operator of the user's own. `AAl` → `AAL`. | error | Case fix. A company's name that is no airline ("Example Motors"): "Add … as an operator", which links every record with that name. Imports and saving in the app add such a name by themselves (built). |
 | V-TYPE-KNOWN | typeCode | Exists in the ICAO type list. | error | Suggest from model string. |
 | V-MODEL-TYPE | model, typeCode | Model matches one of the type's `modelPatterns` (e.g. `A321-271NX` → A21N). | warning | Suggest typeCode from model, or model naming fix. |
 | V-MODEL-PARSE | model | Can be parsed into the standard form from any accepted style (`B777-322ER`, `777-322(ER)`, `Boeing 777-322ER`). | warning | Store the parsed standard form. |

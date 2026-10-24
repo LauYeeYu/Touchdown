@@ -241,7 +241,7 @@ N1001X,45001,KBOS,Delta Air Lines,US,Boeing,B737,B738,B737-8H4,Parked,,`;
     const local = new RefIndex(refTables);
     const store = newStore();
     const src = parseSource(readCsv(csv), "photos.csv", local)!;
-    expect(src.candidates[0]!.issues.some((i) => i.message.includes("added as your own operator"))).toBe(true);
+    expect(src.candidates[0]!.issues.some((i) => i.message.includes("added as an operator"))).toBe(true);
     commitImport(store, local, src, matchCandidates(store, src.candidates));
     const ops = store.all("operator_overrides");
     expect(ops.map((o) => o.name)).toEqual(["Example Motors"]);
@@ -260,7 +260,7 @@ N1001X,45001,KBOS,Delta Air Lines,US,Boeing,B737,B738,B737-8H4,Parked,,`;
     const fixes = checkAll(store, local, { today: "2026-10-01" })
       .filter((f) => f.ruleId === "V-OPERATOR-KNOWN")
       .map((f) => f.fixes.map((x) => [x.operatorName, x.label]));
-    expect(fixes).toEqual([[["Example Motors", "Add Example Motors as your own operator"]], []]);
+    expect(fixes).toEqual([[["Example Motors", "Add Example Motors as an operator"]], []]);
 
     const op = namedOperator(store, local, "Example Motors")!;
     expect(namedOperator(store, local, "example  motors")!.id).toBe(op.id);

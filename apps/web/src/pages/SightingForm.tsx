@@ -143,7 +143,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
             <TextInput value={d.modelRaw} onChange={(e) => set("modelRaw", e.target.value)} placeholder={known?.model ?? "737-8H4"} />
           </Field>
           <Field label="Airline">
-            <Picker label="Airline" value={d.operatorRaw} onChange={(v) => set("operatorRaw", v)} options={operatorOptions(ref, "icao")} placeholder={known?.operatorRaw ?? "Code or name"} resolved={operatorRaw ? (operator ? operator.name : looksLikeOperatorName(operatorRaw) ? "Not an airline: saved as an operator of your own" : "Not a known airline code") : null} invalid={!!operatorRaw && !operator && !looksLikeOperatorName(operatorRaw)} />
+            <Picker label="Airline" value={d.operatorRaw} onChange={(v) => set("operatorRaw", v)} options={operatorOptions(ref, "icao")} placeholder={known?.operatorRaw ?? "Code or name"} resolved={operatorRaw ? (operator ? operator.name : looksLikeOperatorName(operatorRaw) ? "Not an airline: saved as an operator" : "Not a known airline code") : null} invalid={!!operatorRaw && !operator && !looksLikeOperatorName(operatorRaw)} />
           </Field>
           <Field label="Special livery" hint="Only real special liveries and stickers">
             <TextInput value={d.specialLivery} onChange={(e) => set("specialLivery", e.target.value)} />

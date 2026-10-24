@@ -374,7 +374,7 @@ function sightingRow(get: Get, raw: Record<string, string | null>, sourceRow: nu
   );
   if (status && !phaseOf(status)) issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "phase", message: `Status "${status}" is not a known phase; stored as "other".` });
   if (!values.operatorId && looksLikeOperatorName(values.operatorRaw)) {
-    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "operatorId", message: `"${values.operatorRaw}" is a name, not an airline code; it is added as your own operator.` });
+    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "operatorId", message: `"${values.operatorRaw}" is a name, not an airline code; it is added as an operator.` });
   }
   // The country is the registration country: compared with the prefix, not stored (Q-COUNTRY).
   const country = get("country");

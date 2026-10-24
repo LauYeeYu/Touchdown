@@ -58,7 +58,7 @@ function flightLabel(f: Flight): string {
 function namedOperatorFix(r: RecordRef, field: string, raw: string): SuggestedFix[] {
   if (!looksLikeOperatorName(raw)) return [];
   const name = raw.trim();
-  return [{ table: r.table, id: r.id, field, value: null, operatorName: name, label: `Add ${name} as your own operator` }];
+  return [{ table: r.table, id: r.id, field, value: null, operatorName: name, label: `Add ${name} as an operator` }];
 }
 
 function sightingLabel(s: Sighting): string {

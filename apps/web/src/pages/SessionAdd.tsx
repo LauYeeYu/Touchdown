@@ -78,7 +78,7 @@ export function SessionAdd() {
         const notes: string[] = [];
         if (n && !n.knownFormat) notes.push("Unknown registration format");
         if (r.typeCodeRaw && !ref.type(r.typeCodeRaw)) notes.push(`${r.typeCodeRaw.toUpperCase()} is not a type code`);
-        if (r.operatorRaw && !ref.operatorByCode(r.operatorRaw, date)) notes.push(looksLikeOperatorName(r.operatorRaw) ? `${r.operatorRaw.trim()} is added as an operator of your own` : `${r.operatorRaw} is not an airline code`);
+        if (r.operatorRaw && !ref.operatorByCode(r.operatorRaw, date)) notes.push(looksLikeOperatorName(r.operatorRaw) ? `${r.operatorRaw.trim()} is added as an operator` : `${r.operatorRaw} is not an airline code`);
         const k = knownFor(store, r.registrationRaw, date);
         if (k?.typeCode && r.typeCodeRaw && k.typeCode !== r.typeCodeRaw.toUpperCase()) notes.push(`Recorded before as ${k.typeCode}`);
         const dup = rows.filter((o) => normaliseRegistration(o.registrationRaw, ref)?.match === n?.match).length > 1;
