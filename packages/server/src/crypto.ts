@@ -49,3 +49,29 @@ export async function passwordHash(salt: string, key: string): Promise<string> {
 }
 
 export const newSalt = (): string => b64url(crypto.getRandomValues(new Uint8Array(16)));
+
+/**
+ * Standard mode's storage keys (docs/32, "What the server stores"): AES-256-GCM under TOKEN_KEY, a server secret
+ * (32 random bytes, base64). The row's ids are bound in as additional data, so a ciphertext cannot be moved to
+ * another row or account.
+ */
+async function aesKey(secret: string): Promise<CryptoKey> {
+  const raw = fromB64url(secret.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
+  if (raw.length !== 32) throw new Error("TOKEN_KEY must be 32 bytes, base64.");
+  return crypto.subtle.importKey("raw", raw as BufferSource, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+export async function sealToken(secret: string, plain: string, bound: string): Promise<{ ciphertext: string; iv: string }> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource, additionalData: encoder.encode(bound) as BufferSource }, await aesKey(secret), encoder.encode(plain) as BufferSource);
+  return { ciphertext: b64url(new Uint8Array(data)), iv: b64url(iv) };
+}
+
+export async function openToken(secret: string, sealed: { ciphertext: string; iv: string }, bound: string): Promise<string> {
+  const data = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: fromB64url(sealed.iv) as BufferSource, additionalData: encoder.encode(bound) as BufferSource },
+    await aesKey(secret),
+    fromB64url(sealed.ciphertext) as BufferSource,
+  );
+  return new TextDecoder().decode(data);
+}

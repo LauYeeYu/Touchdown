@@ -13,6 +13,8 @@ export interface Env {
   SETUP_TOKEN?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /** Encrypts Standard mode's storage keys: 32 random bytes, base64. */
+  TOKEN_KEY?: string;
 }
 
 // One wrapper per binding, so the tables are checked once per Worker instance, not on every request.
@@ -29,6 +31,7 @@ export default {
         origins: env.SITE_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean),
         setupToken: env.SETUP_TOKEN,
         google: env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } : undefined,
+        tokenKey: env.TOKEN_KEY,
       },
     });
   },

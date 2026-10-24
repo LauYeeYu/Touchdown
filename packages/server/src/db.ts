@@ -17,7 +17,7 @@ export interface Database {
   batch(statements: Statement[]): Promise<void>;
 }
 
-export const SERVER_SCHEMA_VERSION = 1;
+export const SERVER_SCHEMA_VERSION = 2;
 
 /** The server's tables. Removing a row never relies on cascades: the code deletes dependent rows itself. */
 const TABLES = [
@@ -78,8 +78,48 @@ const TABLES = [
     invite TEXT,
     name TEXT,
     linkAccountId TEXT,
-    expiresAt TEXT NOT NULL
+    expiresAt TEXT NOT NULL,
+    purpose TEXT
   )`,
+  // Standard mode (docs/32, "What the server stores"): one storage connection per account, its key encrypted.
+  `CREATE TABLE IF NOT EXISTS storage_connections (
+    id TEXT PRIMARY KEY,
+    accountId TEXT NOT NULL UNIQUE,
+    backend TEXT NOT NULL,
+    format TEXT NOT NULL,
+    location TEXT,
+    externalAccount TEXT,
+    scope TEXT NOT NULL,
+    tokenCiphertext TEXT NOT NULL,
+    tokenIv TEXT NOT NULL,
+    tokenKeyId TEXT NOT NULL,
+    tokenFormat INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('ok', 'broken')),
+    statusAt TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    lastUsedAt TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS consents (
+    accountId TEXT NOT NULL,
+    termsVersion INTEGER NOT NULL,
+    acceptedAt TEXT NOT NULL,
+    PRIMARY KEY (accountId, termsVersion)
+  )`,
+];
+
+/** Changes to tables made by an older version, by the version that brings them. New tables need none. */
+const MIGRATIONS: { to: number; run: (db: Database) => Promise<void> }[] = [
+  {
+    // Google sign-ins under way say what they are for: signing in, or connecting storage for Standard mode.
+    to: 2,
+    run: async (db) => {
+      try {
+        await db.first("SELECT purpose FROM google_logins LIMIT 1");
+      } catch {
+        await db.run("ALTER TABLE google_logins ADD COLUMN purpose TEXT");
+      }
+    },
+  },
 ];
 
 const ready = new WeakMap<Database, Promise<string>>();
@@ -91,7 +131,9 @@ export function siteId(db: Database, makeId: () => string, now: string): Promise
     p = (async () => {
       await db.batch(TABLES.map((sql) => ({ sql })));
       await db.run("INSERT OR IGNORE INTO site (id, createdAt, schemaVersion) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM site)", [makeId(), now, SERVER_SCHEMA_VERSION]);
-      const row = await db.first<{ id: string }>("SELECT id FROM site LIMIT 1");
+      const row = await db.first<{ id: string; schemaVersion: number }>("SELECT id, schemaVersion FROM site LIMIT 1");
+      for (const m of MIGRATIONS) if (m.to > row!.schemaVersion) await m.run(db);
+      if (row!.schemaVersion < SERVER_SCHEMA_VERSION) await db.run("UPDATE site SET schemaVersion = ?", [SERVER_SCHEMA_VERSION]);
       return row!.id;
     })();
     p.catch(() => ready.delete(db));

@@ -2,9 +2,9 @@
 // sign-in pages, and the /auth/ requests for accounts, sessions and invitations. Standard web Request and Response
 // only, so the same code runs in a Cloudflare Worker and in Node.
 
-import { hashToken, newSalt, passwordHash, randomToken, sameString, TOKEN_RE } from "./crypto.ts";
+import { hashToken, newSalt, openToken, passwordHash, randomToken, sameString, sealToken, TOKEN_RE } from "./crypto.ts";
 import { siteId, type Database } from "./db.ts";
-import { clearGoogleCookie, GOOGLE_COOKIE, GoogleError, googleFinish, googleStart, type GoogleIdentity } from "./google.ts";
+import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
 import { withHeaders } from "./headers.ts";
 
 export interface ServerConfig {
@@ -16,7 +16,12 @@ export interface ServerConfig {
   google?: { clientId: string; clientSecret: string };
   /** Mark cookies Secure. Off only for plain-http testing. */
   secureCookies?: boolean;
+  /** Encrypts Standard mode's storage keys: 32 random bytes, base64. Standard is offered only with it and Google. */
+  tokenKey?: string;
 }
+
+/** The version of Standard mode's terms (docs/32, "Terms"); the app shows its text. */
+export const TERMS_VERSION = 1;
 
 export interface Assets {
   fetch(request: Request): Promise<Response>;
@@ -188,6 +193,7 @@ export async function handle(request: Request, s: Server): Promise<Response> {
       if (page) return withHeaders(Response.redirect(new URL(`/signin?next=${encodeURIComponent(path + url.search)}`, url).toString(), 302), path);
       return withHeaders(json(401, { error: "Sign in first." }), path);
     }
+    if (path.startsWith("/api/storage")) return done(await storage(request, s, url, now, session));
     if (path.startsWith("/api/")) return done(json(404, { error: "Not found." }));
     return done(await s.assets.fetch(request));
   } catch (e) {
@@ -267,7 +273,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
 
   if (method === "GET" && path === "/auth/site") {
     const ownerRow = await s.db.first("SELECT id FROM accounts WHERE role = 'owner' LIMIT 1");
-    return withRenewal(json(200, { siteId: site, setupNeeded: !ownerRow, google: !!s.config.google, signedIn: !!session }));
+    return withRenewal(json(200, { siteId: site, setupNeeded: !ownerRow, google: !!s.config.google, standard: standardOn(s), signedIn: !!session }));
   }
 
   if (method === "POST" && path === "/auth/setup") {
@@ -403,6 +409,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     const invite = url.searchParams.get("invite");
     const typed = url.searchParams.get("name")?.trim().replace(/\s+/g, " ").slice(0, 80) || null;
     const start = await googleStart(s.db, google, siteOrigin(s, url), {
+      purpose: "signin",
       next: safeNext(url.searchParams.get("next")),
       invite: invite && TOKEN_RE.test(invite) ? invite : null,
       name: typed,
@@ -420,13 +427,26 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
       if (cookie) res.headers.append("Set-Cookie", cookie);
       return res;
     };
+    const started = await googlePurpose(s.db, url);
+    const storageBack = (code: string) => withParam(safeNext(started?.next), "storage-error", code);
     let identity: GoogleIdentity;
     let login;
+    let refreshToken: string | null;
+    let scope: string;
     try {
-      ({ identity, login } = await googleFinish(s.db, google, siteOrigin(s, url), url, cookieOf(request, GOOGLE_COOKIE), now, s.fetch ?? ((i, init) => fetch(i, init))));
+      ({ identity, login, refreshToken, scope } = await googleFinish(s.db, google, siteOrigin(s, url), url, cookieOf(request, GOOGLE_COOKIE), now, s.fetch ?? ((i, init) => fetch(i, init))));
     } catch (e) {
-      if (e instanceof GoogleError) return go(`/signin?error=google-${e.problem}`);
+      if (e instanceof GoogleError) return go(started?.purpose === "storage" ? storageBack(e.problem) : `/signin?error=google-${e.problem}`);
       throw e;
+    }
+
+    if (login.purpose === "storage") {
+      if (!login.linkAccountId || !standardOn(s)) return go(storageBack("failed"));
+      // The user may untick Drive on Google's screen, and Google gives a lasting key only with consent.
+      if (!scope.split(" ").includes(DRIVE_FILE)) return go(storageBack("no-drive"));
+      if (!refreshToken) return go(storageBack("no-key"));
+      await saveStorageKey(s, login.linkAccountId, identity.email, scope, refreshToken, nowIso);
+      return go(withParam(safeNext(login.next), "storage", "connected"));
     }
     const owner = await s.db.first<{ accountId: string }>("SELECT accountId FROM google_identities WHERE sub = ?", [identity.sub]);
 
@@ -512,6 +532,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     const me = owner();
     const id = personDelete[1]!;
     if (id === me.account.id) throw new Fail(400, "The owner cannot remove their own account.");
+    await dropStorageKey(s, id);
     await removeAccount(s, id);
     return withRenewal(json(200, { ok: true }));
   }
@@ -554,6 +575,8 @@ async function removeAccount(s: Server, id: string) {
     { sql: "DELETE FROM password_credentials WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM google_identities WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM invites WHERE accountId = ?", params: [id] },
+    { sql: "DELETE FROM storage_connections WHERE accountId = ?", params: [id] },
+    { sql: "DELETE FROM consents WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM accounts WHERE id = ?", params: [id] },
   ]);
 }
@@ -585,4 +608,115 @@ async function openInvite(s: Server, t: string, purpose: "join" | "reset" | null
   if (inv.usedAt) throw new Fail(410, "This link has been used.");
   if (inv.expiresAt <= nowIso) throw new Fail(410, "This link has expired. Ask the owner for a new one.");
   return inv;
+}
+
+// ---------- Standard mode: the storage key (docs/32, "Connecting storage") ----------
+
+const standardOn = (s: Server) => !!(s.config.google && s.config.tokenKey);
+
+function withParam(path: string, key: string, value: string): string {
+  return `${path}${path.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(value)}`;
+}
+
+interface StorageRow {
+  id: string;
+  accountId: string;
+  externalAccount: string | null;
+  tokenCiphertext: string;
+  tokenIv: string;
+  status: "ok" | "broken";
+}
+
+async function saveStorageKey(s: Server, accountId: string, externalAccount: string, scope: string, refreshToken: string, nowIso: string) {
+  // One connection per account: connecting again replaces the key in the same row. The old key is not revoked,
+  // because with Google that would also end the new one (it belongs to the same grant).
+  const existing = await s.db.first<{ id: string }>("SELECT id FROM storage_connections WHERE accountId = ?", [accountId]);
+  const id = existing?.id ?? newId();
+  const sealed = await sealToken(s.config.tokenKey!, JSON.stringify({ refresh_token: refreshToken }), `${id}|${accountId}`);
+  await s.db.run(
+    `INSERT OR REPLACE INTO storage_connections
+      (id, accountId, backend, format, location, externalAccount, scope, tokenCiphertext, tokenIv, tokenKeyId, tokenFormat, status, statusAt, createdAt, lastUsedAt)
+     VALUES (?, ?, 'gdrive', 'json_tables', NULL, ?, ?, ?, ?, '1', 1, 'ok', ?, ?, NULL)`,
+    [id, accountId, externalAccount, scope, sealed.ciphertext, sealed.iv, nowIso, nowIso],
+  );
+}
+
+async function storageKey(s: Server, row: StorageRow): Promise<string> {
+  const plain = await openToken(s.config.tokenKey!, { ciphertext: row.tokenCiphertext, iv: row.tokenIv }, `${row.id}|${row.accountId}`);
+  return (JSON.parse(plain) as { refresh_token: string }).refresh_token;
+}
+
+/** Revoke the account's key with Google and delete it, with the terms accepted. */
+async function dropStorageKey(s: Server, accountId: string) {
+  const row = await s.db.first<StorageRow>("SELECT * FROM storage_connections WHERE accountId = ?", [accountId]);
+  if (row && s.config.tokenKey) {
+    try {
+      await googleRevoke(await storageKey(s, row), s.fetch ?? ((i, init) => fetch(i, init)));
+    } catch {
+      // a key that cannot be opened cannot be used either; it is deleted below
+    }
+  }
+  await s.db.batch([
+    { sql: "DELETE FROM storage_connections WHERE accountId = ?", params: [accountId] },
+    { sql: "DELETE FROM consents WHERE accountId = ?", params: [accountId] },
+  ]);
+}
+
+async function storage(request: Request, s: Server, url: URL, now: number, session: Session): Promise<Response> {
+  const path = url.pathname;
+  const method = request.method;
+  const me = session.account;
+  const nowIso = toUtcIso(now);
+  if (method !== "GET" && method !== "HEAD") {
+    const origin = request.headers.get("Origin");
+    if (!origin || !s.config.origins.includes(origin)) throw new Fail(403, "Not allowed from here.");
+  }
+  const row = await s.db.first<StorageRow>("SELECT * FROM storage_connections WHERE accountId = ?", [me.id]);
+
+  if (method === "GET" && path === "/api/storage") {
+    const accepted = await s.db.first("SELECT accountId FROM consents WHERE accountId = ? AND termsVersion = ?", [me.id, TERMS_VERSION]);
+    return json(200, { available: standardOn(s), termsVersion: TERMS_VERSION, accepted: !!accepted, connected: !!row, account: row?.externalAccount ?? null, status: row?.status ?? null });
+  }
+
+  if (method === "POST" && path === "/api/storage/terms") {
+    const b = await body(request);
+    if (b.version !== TERMS_VERSION) throw new Fail(409, "These terms have changed. Reload the page to read the new ones.");
+    await s.db.run("INSERT OR IGNORE INTO consents (accountId, termsVersion, acceptedAt) VALUES (?, ?, ?)", [me.id, TERMS_VERSION, nowIso]);
+    return json(200, { ok: true });
+  }
+
+  if (method === "GET" && path === "/api/storage/connect") {
+    const back = safeNext(url.searchParams.get("next"));
+    const goBack = (code: string) => new Response(null, { status: 302, headers: { Location: new URL(withParam(back, "storage-error", code), url).toString(), "Cache-Control": "no-store" } });
+    if (!standardOn(s)) return goBack("unavailable");
+    if (!(await s.db.first("SELECT accountId FROM consents WHERE accountId = ? AND termsVersion = ?", [me.id, TERMS_VERSION]))) return goBack("terms");
+    const start = await googleStart(s.db, s.config.google!, siteOrigin(s, url), { purpose: "storage", next: back, invite: null, name: null, linkAccountId: me.id }, now, s.config.secureCookies !== false);
+    return new Response(null, { status: 302, headers: { Location: start.location, "Set-Cookie": start.cookie, "Cache-Control": "no-store" } });
+  }
+
+  if (method === "POST" && path === "/api/storage/token") {
+    if (!row) throw new Fail(404, "Standard mode is not connected for this account.");
+    if (row.status === "broken" || !standardOn(s)) throw new Fail(409, "The key to your Google Drive no longer works. Connect Google Drive again.");
+    let access: Awaited<ReturnType<typeof googleAccess>>;
+    try {
+      access = await googleAccess(s.config.google!, await storageKey(s, row), s.fetch ?? ((i, init) => fetch(i, init)));
+    } catch (e) {
+      // Google down or refusing for another reason than the key: the app shows "Not synced" and tries again later.
+      if (e instanceof GoogleError || e instanceof TypeError) throw new Fail(502, "Google did not answer. Touchdown tries again shortly.");
+      throw e;
+    }
+    if (access === "broken") {
+      await s.db.run("UPDATE storage_connections SET status = 'broken', statusAt = ? WHERE id = ?", [nowIso, row.id]);
+      throw new Fail(409, "The key to your Google Drive no longer works. Connect Google Drive again.");
+    }
+    await s.db.run("UPDATE storage_connections SET lastUsedAt = ? WHERE id = ?", [nowIso, row.id]);
+    return json(200, { accessToken: access.accessToken, expiresAt: toUtcIso(now + access.expiresIn * 1000), account: row.externalAccount });
+  }
+
+  if (method === "POST" && path === "/api/storage/disconnect") {
+    await dropStorageKey(s, me.id);
+    return json(200, { ok: true });
+  }
+
+  throw new Fail(404, "Not found.");
 }

@@ -33,10 +33,9 @@ async function call(s: Server, jar: Jar, method: string, path: string, body?: un
   if (jar.cookie) headers.Cookie = jar.cookie;
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const res = await handle(new Request(SITE + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }), s);
-  const set = res.headers.get("Set-Cookie");
-  if (set) {
-    const v = set.split(";")[0]!;
-    jar.cookie = /Max-Age=0/.test(set) ? null : v;
+  for (const set of res.headers.getSetCookie()) {
+    if (!set.startsWith("td_session=")) continue;
+    jar.cookie = /Max-Age=0/.test(set) ? null : set.split(";")[0]!;
   }
   const text = await res.text();
   let json: Record<string, unknown> = {};
@@ -329,5 +328,143 @@ describe("the privacy policy and the terms", () => {
     const { s, served } = server();
     for (const page of ["privacy", "terms"]) expect((await handle(new Request(`${SITE}/${page}`, { headers: { Accept: "text/html" } }), s)).status).toBe(200);
     expect(served).toEqual(["/signin-files/privacy.html", "/signin-files/terms.html"]);
+  });
+});
+
+describe("Standard mode's storage key", () => {
+  const CLIENT = "client-id.apps.googleusercontent.com";
+  const KEY = Buffer.alloc(32, 7).toString("base64");
+
+  async function standardSite() {
+    const t = await withOwner();
+    t.s.config.google = { clientId: CLIENT, clientSecret: "secret" };
+    t.s.config.tokenKey = KEY;
+    const google = { claims: {} as Record<string, unknown>, scope: "openid email https://www.googleapis.com/auth/drive.file", refresh: "refresh-1" as string | null, broken: false, revoked: [] as string[], refreshed: [] as string[] };
+    t.s.fetch = async (input, init) => {
+      const form = new URLSearchParams(String(init?.body));
+      if (String(input) === "https://oauth2.googleapis.com/revoke") {
+        google.revoked.push(form.get("token")!);
+        return new Response(null, { status: 200 });
+      }
+      if (form.get("grant_type") === "refresh_token") {
+        google.refreshed.push(form.get("refresh_token")!);
+        return google.broken ? Response.json({ error: "invalid_grant" }, { status: 400 }) : Response.json({ access_token: "access-1", expires_in: 3599 });
+      }
+      const part = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+      return Response.json({ id_token: `${part({ alg: "RS256" })}.${part(google.claims)}.sig`, scope: google.scope, ...(google.refresh ? { refresh_token: google.refresh } : {}) });
+    };
+    /** Connect from Settings, through Google; returns where the browser ends up. */
+    const connect = async (opts: { cancel?: boolean } = {}) => {
+      const begin = await call(t.s, t.owner, "GET", "/api/storage/connect?next=%2Fsettings");
+      if (begin.status !== 302) return { location: `${begin.status}` };
+      const to = new URL(begin.res.headers.get("Location")!);
+      if (to.host !== "accounts.google.com") return { location: to.pathname + to.search };
+      expect(to.searchParams.get("access_type")).toBe("offline");
+      expect(to.searchParams.get("prompt")).toBe("consent");
+      expect(to.searchParams.get("scope")).toContain("https://www.googleapis.com/auth/drive.file");
+      const state = to.searchParams.get("state")!;
+      google.claims = { iss: "https://accounts.google.com", aud: CLIENT, sub: "g-owner", email: "owner@gmail.example", email_verified: true, exp: Date.parse("2026-10-24T10:00:00Z") / 1000, nonce: to.searchParams.get("nonce") };
+      const query = opts.cancel ? `error=access_denied&state=${state}` : `code=abc&state=${state}`;
+      const back = await handle(new Request(`${SITE}/auth/google/callback?${query}`, { headers: { Cookie: `${t.owner.cookie}; td_google=${state}` } }), t.s);
+      const loc = new URL(back.headers.get("Location")!);
+      return { location: loc.pathname + loc.search };
+    };
+    return { ...t, google, connect };
+  }
+
+  it("needs the terms first, then keeps the key encrypted and gives the browser short-lived access", async () => {
+    const { s, owner, google, connect } = await standardSite();
+    expect((await call(s, owner, "GET", "/auth/site")).json.standard).toBe(true);
+    expect((await call(s, owner, "GET", "/api/storage")).json).toMatchObject({ available: true, termsVersion: 1, accepted: false, connected: false });
+    expect((await connect()).location).toBe("/settings?storage-error=terms");
+    expect((await call(s, owner, "POST", "/api/storage/terms", { version: 99 })).status).toBe(409);
+    expect((await call(s, owner, "POST", "/api/storage/terms", { version: 1 })).status).toBe(200);
+    expect((await connect()).location).toBe("/settings?storage=connected");
+    expect((await call(s, owner, "GET", "/api/storage")).json).toMatchObject({ accepted: true, connected: true, account: "owner@gmail.example", status: "ok" });
+
+    const stored = (await s.db.first<{ tokenCiphertext: string; tokenIv: string }>("SELECT tokenCiphertext, tokenIv FROM storage_connections"))!;
+    expect(JSON.stringify(stored)).not.toContain("refresh-1");
+
+    const token = await call(s, owner, "POST", "/api/storage/token");
+    expect(token.json).toMatchObject({ accessToken: "access-1", account: "owner@gmail.example" });
+    expect(google.refreshed).toEqual(["refresh-1"]);
+    expect(JSON.stringify(token.json)).not.toContain("refresh-1");
+  });
+
+  it("marks a key Google no longer accepts, and leaving revokes and deletes it", async () => {
+    const { s, owner, google, connect } = await standardSite();
+    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    await connect();
+    google.broken = true;
+    expect((await call(s, owner, "POST", "/api/storage/token")).status).toBe(409);
+    expect((await call(s, owner, "GET", "/api/storage")).json.status).toBe("broken");
+    // Connecting again replaces the key in the same row.
+    google.broken = false;
+    google.refresh = "refresh-2";
+    expect((await connect()).location).toBe("/settings?storage=connected");
+    expect((await call(s, owner, "POST", "/api/storage/token")).status).toBe(200);
+    expect(google.refreshed.at(-1)).toBe("refresh-2");
+
+    expect((await call(s, owner, "POST", "/api/storage/disconnect")).status).toBe(200);
+    expect(google.revoked).toEqual(["refresh-2"]);
+    expect((await call(s, owner, "GET", "/api/storage")).json).toMatchObject({ connected: false, accepted: false });
+    expect((await call(s, owner, "POST", "/api/storage/token")).status).toBe(404);
+  });
+
+  it("says Google did not answer when its token endpoint fails for another reason", async () => {
+    const { s, owner, connect } = await standardSite();
+    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    await connect();
+    const realFetch = s.fetch!;
+    s.fetch = async (input, init) => (new URLSearchParams(String(init?.body)).get("grant_type") === "refresh_token" ? Response.json({ error: "invalid_client" }, { status: 401 }) : realFetch(input, init));
+    const r = await call(s, owner, "POST", "/api/storage/token");
+    expect(r.status).toBe(502);
+    expect((await call(s, owner, "GET", "/api/storage")).json.status).toBe("ok");
+  });
+
+  it("returns to the page it came from when Drive is unticked, no key is given, or the user cancels", async () => {
+    const { s, owner, google, connect } = await standardSite();
+    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    google.scope = "openid email";
+    expect((await connect()).location).toBe("/settings?storage-error=no-drive");
+    google.scope = "openid email https://www.googleapis.com/auth/drive.file";
+    google.refresh = null;
+    expect((await connect()).location).toBe("/settings?storage-error=no-key");
+    expect((await connect({ cancel: true })).location).toBe("/settings?storage-error=cancelled");
+    expect((await call(s, owner, "GET", "/api/storage")).json.connected).toBe(false);
+  });
+
+  it("is not offered without the encryption key, and removing someone revokes theirs", async () => {
+    const { s, owner, google, connect } = await standardSite();
+    const t = await invite(s, owner);
+    const sam: Jar = { cookie: null };
+    await call(s, sam, "POST", "/auth/join", { invite: t, name: "Sam", email: "sam@example.org", key: keyOf("sam") });
+    await call(s, sam, "POST", "/api/storage/terms", { version: 1 });
+    const begin = await call(s, sam, "GET", "/api/storage/connect?next=%2F");
+    const to = new URL(begin.res.headers.get("Location")!);
+    google.claims = { iss: "https://accounts.google.com", aud: CLIENT, sub: "g-sam", email: "sam@gmail.example", email_verified: true, exp: Date.parse("2026-10-24T10:00:00Z") / 1000, nonce: to.searchParams.get("nonce") };
+    await handle(new Request(`${SITE}/auth/google/callback?code=abc&state=${to.searchParams.get("state")}`, { headers: { Cookie: `${sam.cookie}; td_google=${to.searchParams.get("state")}` } }), s);
+    expect((await call(s, sam, "GET", "/api/storage")).json.connected).toBe(true);
+    const samId = ((await call(s, owner, "GET", "/auth/people")).json.people as { id: string; name: string }[]).find((p) => p.name === "Sam")!.id;
+    await call(s, owner, "DELETE", `/auth/people/${samId}`);
+    expect(google.revoked).toEqual(["refresh-1"]);
+    expect(await s.db.first("SELECT id FROM storage_connections")).toBeNull();
+
+    s.config.tokenKey = undefined;
+    expect((await call(s, owner, "GET", "/auth/site")).json.standard).toBe(false);
+    expect((await connect()).location).toBe("/settings?storage-error=unavailable");
+  });
+
+  it("upgrades a database made by the first version of the server", async () => {
+    const db = sqliteFile(":memory:");
+    await db.batch([
+      { sql: "CREATE TABLE site (id TEXT PRIMARY KEY, createdAt TEXT NOT NULL, schemaVersion INTEGER NOT NULL)" },
+      { sql: "INSERT INTO site VALUES ('old-site', '2026-10-24T00:00:00Z', 1)" },
+      { sql: "CREATE TABLE google_logins (stateHash TEXT PRIMARY KEY, nonce TEXT NOT NULL, verifier TEXT NOT NULL, next TEXT, invite TEXT, name TEXT, linkAccountId TEXT, expiresAt TEXT NOT NULL)" },
+    ]);
+    const s: Server = { db, config: { origins: [SITE] }, assets: { fetch: async () => new Response("") } };
+    expect((await call(s, { cookie: null }, "GET", "/auth/site")).json.siteId).toBe("old-site");
+    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 2 });
+    await expect(db.first("SELECT purpose FROM google_logins LIMIT 1")).resolves.toBeNull();
   });
 });

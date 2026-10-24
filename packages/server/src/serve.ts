@@ -8,7 +8,8 @@
 //   TOUCHDOWN_DIST      the built app (default apps/web/dist)
 //   HOST, PORT          where to listen (default 127.0.0.1:8787)
 //   SETUP_TOKEN         the secret for /setup, the first account
-//   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET   signing in with Google (optional)
+//   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET   signing in with Google, and Standard mode (optional)
+//   TOKEN_KEY           encrypts Standard mode's storage keys: 32 random bytes, base64 (optional; no Standard without)
 //   TOUCHDOWN_INSECURE_COOKIES=1   cookies without Secure, only for trying it over plain http
 
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
@@ -66,6 +67,7 @@ const server = {
     setupToken: env.SETUP_TOKEN,
     google: env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } : undefined,
     secureCookies: env.TOUCHDOWN_INSECURE_COOKIES !== "1",
+    tokenKey: env.TOKEN_KEY,
   },
 };
 
