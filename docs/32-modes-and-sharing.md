@@ -44,7 +44,7 @@ The Local warning (Decided that there is one; wording Proposed):
 
 Settings shows the same warning while the user is in Local mode. A note bar reminds the user to export a backup when the last one is more than 30 days old (counted from choosing Local when there has been none) and the log has changed since; it offers "Export a backup" and "Not now" (built).
 
-Until Standard exists (phase 8), the first run and Settings show it as coming later, and Private is preselected instead (built).
+Built (basic Standard, without share links): where the site has the encryption key and Google configured (`TOKEN_KEY`, `GOOGLE_CLIENT_SECRET`), Standard is offered and preselected, with the note "Share links come in a later version."; elsewhere it shows "Not available on this site." and Private is preselected.
 
 ### Changing mode
 
@@ -78,19 +78,23 @@ Prepared for change (Proposed):
 
 ### Connecting storage
 
-Proposed, for Google Drive:
+Built, for Google Drive (`packages/server/src/handler.ts`, "Standard mode"):
 
-1. The app sends the browser to `/api/storage/connect?backend=gdrive`, behind the sign-in.
-2. The Worker redirects to Google's consent page. It uses the authorisation-code flow with PKCE, `access_type=offline`, the scope `drive.file` (the account's address comes from Drive's `about` request, as in Private), and a `state` value tied to the signed-in user.
-3. Google returns to `/api/storage/callback`. The Worker exchanges the code using the client secret (a Worker secret), then encrypts and stores the refresh token. The access token is not stored.
-4. From then on, the browser gets short-lived access tokens for its own sync from `/api/storage/token`, instead of Google's popup. The refresh token never leaves the server.
+1. The terms are accepted (`POST /api/storage/terms`), then the app sends the browser to `/api/storage/connect?next=<page>`, behind the sign-in. Without the current terms accepted, it returns to the page with `storage-error=terms`.
+2. The server redirects to Google's consent page: the authorisation-code flow with PKCE, the scopes `openid`, `email` and `drive.file`, `access_type=offline` and `prompt=consent` (Google gives a refresh token only with consent), and a sign-in under way tied to the signed-in account and this browser ([33](33-accounts-and-sign-in.md), "Google").
+3. Google returns to `/auth/google/callback`, the address sign-in with Google already uses, so no second redirect address is registered. The server exchanges the code using the client secret, checks that Drive was allowed and a refresh token given, then encrypts and stores it, and returns to the page with `storage=connected`. The access token is not stored.
+4. From then on, the browser gets short-lived access tokens for its own sync from `POST /api/storage/token`, instead of Google's popup. The refresh token never leaves the server. `GET /api/storage` says whether Standard is offered, the terms version and whether it was accepted, and the connection's Google account and state.
+5. A browser follows Standard by itself when it comes back with `storage=connected`, when it has not chosen a mode yet (a new device), or when it syncs the same Google Drive in Private.
+
+Problems on the way back (`storage-error=`): `cancelled`, `no-drive` (Drive was unticked on Google's screen), `no-key` (no refresh token), `expired`, `failed`, `terms`, `unavailable`; the page shows a sentence for each.
 
 Notes:
 - **Scope.** It stays `drive.file`, so the key opens only the files Touchdown created, not the rest of the user's Drive. No Google verification is needed ([12](12-storage-and-sync.md), "Google Drive details").
 - **Same Google client.** Private and Standard use the same Google Cloud project and web client, so files created in either mode stay reachable (implementation check Q-DRIVE-SERVER).
 - **Other providers.** Dropbox ("App folder" access with offline tokens) and OneDrive (app folder with `offline_access`) follow the same steps when they are added.
 - **Local folder.** It cannot be used in Standard, because the server cannot reach it.
-- **Broken key.** If the key stops working (the user revoked it, or Google expired it after six months unused), links show "not available right now", and the owner's app asks them to connect again.
+- **Broken key.** If the key stops working (the user revoked it, or Google expired it after six months unused), the server marks it `broken`, links show "not available right now", and the owner's app asks them to connect again ("Reconnect Google Drive"). Connecting again replaces the key in the same row; the old key is not revoked, because with Google that would end the new one too (they belong to the same grant).
+- **Testing status.** While the Google app is in Testing, Google ends refresh tokens after 7 days; publish it before using Standard.
 
 ### Terms
 
@@ -98,7 +102,7 @@ Decided (U5): the terms are shown when the user chooses Standard, at first run o
 
 - **Versions.** Each version has a number. The server records the version accepted and when, as a date-time with offset.
 - **Changes.** When the text changes, a user in Standard is asked again the next time they open the app. Declining offers Private or Local, as at first run. Until they answer, their links keep working.
-- **Status of the text.** The text below is version 1, a draft for the owner to review (Q-TERMS-TEXT).
+- **Status of the text.** Version 1 is built (`apps/web/src/components/StandardTerms.tsx`) and covers what basic Standard does: the key, its use for sync only, how it is protected, stopping, changes. The text below is the draft of version 2, which adds share links, for the owner to review (Q-TERMS-TEXT).
 
 > **Standard mode: what Touchdown can access**
 >
@@ -188,7 +192,7 @@ Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Sta
 
 Not stored on the server: the log or any part of it (share files stay in the user's storage), access tokens, who opened a link, and request contents.
 
-Leaving Standard deletes the user's rows in these tables; the account stays.
+Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data) and `consents`. `shares` and `share_people` come with share links.
 
 Protection (Proposed):
 - **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.

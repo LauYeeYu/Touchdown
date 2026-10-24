@@ -60,7 +60,8 @@ The order puts the riskiest part first: the data model and identity rules are te
 ## Phase 8: Standard mode and sharing
 
 - Deliver: Standard mode ([32](32-modes-and-sharing.md)): connecting storage through the Worker (Google Drive first), encrypted keys in D1, the terms with recorded acceptance, mode changes in Settings, share links of the four kinds with the three audiences, the public share page, Settings "Sharing and access".
-- Needs: phase 3 (storage and sync) and the sign-in and server of phase 4. Does not depend on phases 5–7.
+- Needs: phase 3 (storage and sync) and the sign-in and server of phase 4.
+- Built so far: basic Standard, without share links: terms version 1, connecting Google Drive through the server with the key encrypted (`storage_connections`, `consents`), short-lived access for sync, new devices following Standard, leaving it revokes and deletes the key. Does not depend on phases 5–7.
 - Done when:
   - Leaving Standard stops every link at once, revokes the key with the provider and leaves no row for the user on the server (scripted test).
   - A link opens only for its audience; any other request, a guessed id included, gets the same "not found".

@@ -103,7 +103,9 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packa
 | `sessions` | `tokenHash`, `accountId`, `createdAt`, `lastUsedAt`, `expiresAt`, `device` |
 | `invites` | `id`, `tokenHash`, `purpose` (`join`, `reset`), `accountId` (for a reset), `note`, `createdBy`, `createdAt`, `expiresAt`, `usedAt`, `usedBy` |
 
-| `google_logins` | `stateHash`, `nonce`, `verifier`, `next`, `invite`, `name`, `linkAccountId`, `expiresAt`: Google sign-ins under way |
+| `google_logins` | `stateHash`, `nonce`, `verifier`, `next`, `invite`, `name`, `linkAccountId`, `expiresAt`, `purpose` (`signin` or `storage`, for Standard): Google sign-ins under way |
+
+Standard mode's tables (`storage_connections`, `consents`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added them and `google_logins.purpose`, and the server upgrades an older database when it starts.
 
 Never stored: passwords, Google's tokens, IP addresses, request contents. No request logs.
 
@@ -123,7 +125,7 @@ The person running the site sets a long random setup secret on the server (`SETU
 | Entry | Worker (`apps/web/worker/`, config `apps/web/wrangler.jsonc`) | `npm run serve` (`packages/server/src/serve.ts`), behind any web server that handles HTTPS |
 | Database | D1 | `node:sqlite`, a file |
 | App files | the Worker's static assets | read from `apps/web/dist` |
-| Settings | `SITE_ORIGINS` and `GOOGLE_CLIENT_ID` in `wrangler.jsonc`; Worker secrets `SETUP_TOKEN`, `GOOGLE_CLIENT_SECRET` (later the token-encryption key) | environment variables: `TOUCHDOWN_ORIGINS`, `TOUCHDOWN_DB`, `PORT`, `HOST`, `SETUP_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| Settings | `SITE_ORIGINS` and `GOOGLE_CLIENT_ID` in `wrangler.jsonc`; Worker secrets `SETUP_TOKEN`, `GOOGLE_CLIENT_SECRET`, `TOKEN_KEY` (Standard mode's encryption key, [32](32-modes-and-sharing.md)) | environment variables: `TOUCHDOWN_ORIGINS`, `TOUCHDOWN_DB`, `PORT`, `HOST`, `SETUP_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_KEY` |
 
 Moving between them: export the SQLite tables (D1 can export to a SQL file) and import them on the other side. Sessions survive; passwords too, since the hash does not depend on the host.
 

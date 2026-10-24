@@ -54,7 +54,7 @@ Everything personal goes in `data/private/`. Git ignores this folder, so nothing
 | `data/private/reference/` | The OpenSky aircraft database, downloaded the first time it is needed (about 110 MB). |
 | `data/private/cache/` | Saved lookup answers, the agent's self-test, and the lines you typed in `spot` (for ↑). |
 | `data/private/touchdown-cli.json` | The agent you chose, your rules for it, and whether notes are sent. |
-| `data/private/dev-server.sqlite`, `dev-setup-token.txt` | Accounts for signing in during development, and the secret for their first account. |
+| `data/private/dev-server.sqlite`, `dev-setup-token.txt`, `dev-token-key.txt` | Accounts for signing in during development, the secret for their first account, and the key that encrypts Standard mode's Google Drive keys. |
 | `data/private/google-client-secret.txt` | The Google web client's secret, if you want Google sign-in in development. |
 | `data/private/server.sqlite` | Accounts for `npm run serve` (the site on your own machine). |
 
@@ -211,7 +211,10 @@ The site signs people in itself: email and password, or Google, and only people 
 1. **Domain:** the domain's nameservers point to Cloudflare.
 2. **Database:** in the Cloudflare dashboard, create a D1 database named `touchdown` (Storage & databases → D1). Put its id in `apps/web/wrangler.jsonc` (`database_id`) and commit. The id is not a secret.
 3. **Deploying:** create a Cloudflare API token from the "Edit Cloudflare Workers" template, add the permission Account → D1 → Edit, and limit it to your account and the domain. In GitHub, under Settings → Secrets and variables → Actions, add the secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then the variable `DEPLOY` with the value `on`. The next push deploys.
-4. **Secrets:** in the dashboard, Workers & Pages → touchdown → Settings → Variables and Secrets, add `SETUP_TOKEN` (a long random string) and, for Google sign-in, `GOOGLE_CLIENT_SECRET` (the web client's secret). Until `SETUP_TOKEN` is set nobody can make the first account, so the site stays closed.
+4. **Secrets:** in the dashboard, Workers & Pages → touchdown → Settings → Variables and Secrets, add these as type Secret:
+   - `SETUP_TOKEN`: a long random string. Until it is set nobody can make the first account, so the site stays closed.
+   - `GOOGLE_CLIENT_SECRET`: the web client's secret, for Google sign-in and Standard mode.
+   - `TOKEN_KEY`: Standard mode's encryption key, made with `openssl rand -base64 32`. Without it, Standard is not offered. Keep it: a new one makes every Standard key unreadable, and those users have to connect Google Drive again.
 5. **Google Cloud:** in the "Touchdown web" client, add the site's address under Authorized JavaScript origins, and `<address>/auth/google/callback` under Authorized redirect URIs. Publish the consent screen ("In production") before friends use Google.
 6. **First account:** open `<address>/setup`, enter the setup secret, and make yours. You can then remove `SETUP_TOKEN`.
 
@@ -222,7 +225,7 @@ npm ci && npm run build -w @touchdown/web
 TOUCHDOWN_ORIGINS=https://touchdown.example.org SETUP_TOKEN=… npm run serve
 ```
 
-It listens on 127.0.0.1:8787 and keeps accounts in `data/private/server.sqlite`; the other settings are at the top of `packages/server/src/serve.ts`.
+It listens on 127.0.0.1:8787 and keeps accounts in `data/private/server.sqlite`; for Standard mode also set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY`. The other settings are at the top of `packages/server/src/serve.ts`.
 
 **People:** invite someone in Settings → People: you get a link that works once, for 7 days, and send it yourself. "Reset link" there is for a forgotten password; "Remove" ends someone's account at once. While the Google consent screen is in Testing, only its test users can use Google.
 

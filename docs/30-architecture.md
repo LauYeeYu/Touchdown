@@ -118,8 +118,9 @@ Worker "touchdown" (or the same server on any machine, 33)
      /p/<id>              public share page; the only path with user content outside the sign-in
      D1                   accounts, sessions, invitations (33); Standard-mode storage keys
                           and link settings (32)
-     secrets              setup secret, Google client secret, provider API keys,
-                          token encryption key; set with `wrangler secret put`
+     /api/storage/*       Standard mode: terms, connecting Google Drive, short-lived access (32)
+     secrets              setup secret, Google client secret, token encryption key (TOKEN_KEY),
+                          provider API keys; set with `wrangler secret put` or the dashboard
 ```
 
 - One Worker serves both the app and the API, so they share one origin: no CORS setup, one deployment.
@@ -129,7 +130,7 @@ Worker "touchdown" (or the same server on any machine, 33)
 - Deploys (Decided, built): GitHub Actions on every push to `master` runs the tests and the type check, builds the app and deploys with `wrangler` (pinned in `apps/web/package.json`), using a Cloudflare API token kept as a GitHub Actions secret. The deploy step runs only while the repository variable `DEPLOY` is `on`, which the owner sets once the sign-in is built, so the site is never open. Wrangler's telemetry is off in the workflow.
 - The Worker's config (`wrangler.jsonc`) names the custom domain and is committed (Decided): the address is not a secret, and the gate protects the site.
 - Reference data and the airframe index are rebuilt weekly in GitHub Actions (the source files are about 100 MB, too heavy for a Worker cron), then deployed with `wrangler`.
-- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. Sign-in with Google registers `/auth/google/callback` under "Authorized redirect URIs" ([33](33-accounts-and-sign-in.md)); for Standard mode, `/api/storage/callback` is registered there too ([32](32-modes-and-sharing.md)). Per-upload preview URLs change, so they are not used for sign-in.
+- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. Sign-in with Google registers `/auth/google/callback` under "Authorized redirect URIs" ([33](33-accounts-and-sign-in.md)); Standard mode uses the same address, so nothing more is registered.md)). Per-upload preview URLs change, so they are not used for sign-in.
 - Headers (built, `packages/server/src/headers.ts`; `vite preview` serves the build with the same ones):
   - Content Security Policy: everything from the site itself, plus Google's sign-in script and the Drive API, and planespotters.net's API and photos, and Cloudflare Web Analytics (`static.cloudflareinsights.com`, reporting to `cloudflareinsights.com` or the site's own `/cdn-cgi/rum`). No eval (the app tells Zod not to probe for it), but WebAssembly may be compiled (`'wasm-unsafe-eval'`, for the password hash and later SQLite); no inline styles, no frames of the site elsewhere. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash; a test checks the hash against `index.html`. Google's sign-in script adds an inline style for its own sign-in button, which Touchdown does not use; it is blocked.
   - `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` turning off the camera, microphone, location and payment, and `X-Robots-Tag: noindex`.
