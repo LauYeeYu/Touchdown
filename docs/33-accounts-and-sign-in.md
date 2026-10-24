@@ -68,8 +68,28 @@ Rules:
 - A session is a random 256-bit token in the cookie `td_session`: `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`. It lasts 30 days from the last use; the cookie is renewed at most once a day.
 - The server stores the token's hash with the account, when it began and was last used, and a short device label from the browser ("Chrome on macOS") for Settings → Account → "Signed in on".
 - Requests that change something (`POST`, `PUT`, `PATCH`, `DELETE`) must carry an `Origin` header naming the site.
-- **Sign out** ends this session. **Sign out everywhere else** ends the others. Changing the password ends every other session.
+- **Sign out** ends this session. **Sign out everywhere else** ends the others, the command line's included. Each other device under "Signed in on" has its own **Sign out** (built). Changing the password ends every other session.
 - Signing out of the website does not remove the browser's copy of the log by itself; [31](31-ui.md), "Signing out", decides that.
+
+## The command line
+
+Decided, built. The command line (`./touchdown`) signs in to the site as a browser does, through the site's own sign-in, so no Google client secret is handed out and the command line reaches Google Drive the way the web app does.
+
+1. `./touchdown login` (the hosted site, set in the CLI's code and kept equal to the deployment's `SITE_ORIGINS` by a test; `./touchdown login SITE` for another, such as the dev server) listens on 127.0.0.1 at a free port and opens `/cli/login?challenge=…&system=…&port=…&state=…` in the browser. The page is behind the sign-in like any other.
+2. The page names the account and what the command line can do. **Allow** asks the server for a one-time code (`POST /auth/cli/approve`, with the browser's session; the code is stored hashed, with the PKCE challenge, for 5 minutes) and sends the browser to `http://127.0.0.1:<port>/?code=…&state=…`. **Cancel** sends `error=cancelled`. The page only ever sends to 127.0.0.1.
+3. The command line checks the state and exchanges the code with its PKCE verifier (`POST /auth/cli/token`) for a session token. The code works once. This request needs no `Origin`: the command line holds no cookie, so there is nothing to forge.
+4. The session has kind `cli` and the device label "Command line on macOS" (the system only, not the computer's name). It does not run out: it lasts until `./touchdown logout`, **Sign out** on its row in Settings, or **Sign out everywhere else**. The token is kept in `data/private/touchdown-session.json`, readable only by the user, sent as `Authorization: Bearer`, and never printed.
+5. It may only ask `GET /auth/me`, `POST /auth/signout`, `GET /api/storage` and `POST /api/storage/token`. Anything else, the app's pages and files included, is refused, so a copied token cannot change the account, invite people or open the app. A command line's token works only as a bearer token, and a browser's only as its cookie.
+
+Google Drive for the command line:
+
+| Mode | How the command line gets access |
+|---|---|
+| Standard | `POST /api/storage/token` with its session, as the browser does: an hour's access, with no browser, so an agent can run unattended. |
+| Private | The browser hands it over. The command line opens `/cli/drive?port=…&state=…` (with `account=` once it knows the account). **Give access** gets an hour's access from Google in the browser, with the web app's own client and `drive.file`, and posts it in a form to `http://127.0.0.1:<port>/`, never to the server. The command line keeps it in `data/private/google-access.json` until it runs out, then opens the page again. The security policy allows forms to `http://127.0.0.1:*` for this. |
+| A folder | No access needed: `./touchdown storage folder PATH`. |
+
+Both use the web app's Google client, so the command line reaches the same files as the web app ([21](21-import-export.md), "Getting a session to the web app").
 
 ## Server API
 
@@ -85,8 +105,11 @@ All under `/auth/` (built):
 | `POST /auth/join` | Invitation token, name, email, password key. |
 | `POST /auth/reset` | Reset token, new password key. |
 | `POST /auth/setup` | Setup secret, name, email, password key. |
-| `GET /auth/me` | The signed-in account: name, email, role, sign-in methods. |
+| `GET /auth/me` | The signed-in account: name, email, role, sign-in methods, and its sessions (an id, the device, whether it is the command line's). |
 | `POST /auth/signout`, `POST /auth/signout-others` | End this session, or the others. |
+| `POST /auth/sessions/end` | End one of the account's sessions, by its id from `/auth/me` (the hash of its token, which does not open it). |
+| `POST /auth/cli/approve` | The browser allows the command line: a one-time code for its PKCE challenge ("The command line"). |
+| `POST /auth/cli/token` | The command line's code and verifier; returns its session token. |
 | `POST /auth/name`, `POST /auth/password`, `POST /auth/email`, `DELETE /auth/google` | Account changes. |
 | `GET /auth/people`, `POST /auth/invites`, `DELETE /auth/invites/<id>`, `DELETE /auth/people/<id>`, `POST /auth/people/<id>/reset` | Owner only. |
 
@@ -100,12 +123,13 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packa
 | `accounts` | `id`, `email` (unique, lower case), `name`, `role` (`owner`, `member`), `createdAt`, `lastSeenAt`, `failedSignins`, `lockedUntil` |
 | `password_credentials` | `accountId`, `salt`, `hash`, `updatedAt` |
 | `google_identities` | `accountId`, `sub` (unique), `email`, `linkedAt` |
-| `sessions` | `tokenHash`, `accountId`, `createdAt`, `lastUsedAt`, `expiresAt`, `device` |
+| `sessions` | `tokenHash`, `accountId`, `createdAt`, `lastUsedAt`, `expiresAt`, `device`, `kind` (`cli` for the command line) |
+| `cli_logins` | `codeHash`, `accountId`, `challenge`, `system`, `createdAt`, `expiresAt`: the command line's sign-ins under way |
 | `invites` | `id`, `tokenHash`, `purpose` (`join`, `reset`), `accountId` (for a reset), `note`, `createdBy`, `createdAt`, `expiresAt`, `usedAt`, `usedBy` |
 
 | `google_logins` | `stateHash`, `nonce`, `verifier`, `next`, `invite`, `name`, `linkAccountId`, `expiresAt`, `purpose` (`signin` or `storage`, for Standard): Google sign-ins under way |
 
-Standard mode's tables (`storage_connections`, `consents`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added them and `google_logins.purpose`, and the server upgrades an older database when it starts.
+Standard mode's tables (`storage_connections`, `consents`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added them and `google_logins.purpose`, version 3 `sessions.kind` and `cli_logins`, and the server upgrades an older database when it starts.
 
 Never stored: passwords, Google's tokens, IP addresses, request contents. No request logs.
 

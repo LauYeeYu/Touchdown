@@ -196,7 +196,7 @@ Leaving Standard deletes the user's rows in these tables; the account stays. Bui
 
 Protection (Proposed):
 - **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.
-- **Handling.** A token is decrypted only inside the request that needs it. It is never logged and never returned to a browser.
+- **Handling.** A token is decrypted only inside the request that needs it. It is never logged and never returned to a browser or the command line; they get short-lived access made with it.
 - **Who can reach the database.** Only the server, and the operator through the hosting account (Cloudflare) or the machine. The operator holds both the database and the secret, and the terms say so.
 - **Removed users.** Removing someone in Settings → People deletes their account and these rows (Q-USER-REMOVAL).
 
@@ -207,6 +207,7 @@ As in [12](12-storage-and-sync.md):
 - **Server.** It keeps nothing about the user.
 - **Sharing.** There are no Share buttons.
 - **CLI inbox.** It works as in [21](21-import-export.md).
+- **Command line and Google Drive.** The command line gets an hour's access from the browser, which posts it to the command line on the same computer; the server never sees it ([33](33-accounts-and-sign-in.md), "The command line"). In Standard mode the command line gets it from the server with its own session, as the browser does.
 
 ## Local mode
 

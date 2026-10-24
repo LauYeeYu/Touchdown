@@ -5,7 +5,7 @@ A personal log of the flights you have flown on and the aircraft you have photog
 It has two parts:
 
 - **The web app** keeps your log in the browser: flights, spotting, aircraft, statistics, maps and the Import page.
-- **The command-line tools** (`./touchdown`) run on your computer. They log new spotting by typing, look registrations up, have an agent (Claude Code or Codex) check your records, and build backups the web app can restore.
+- **The command-line tools** (`./touchdown`) run on your computer. They log new spotting by typing, add flights and sightings given as JSON (by you or an agent), look registrations up, have an agent (Claude Code or Codex) check your records, and build backups the web app can restore.
 
 What works now: the web app, and the command-line tools. The web app asks where your log lives: Private syncs it through your Google Drive (any device) or a folder on your computer (Chrome or Edge; put the folder in Dropbox, OneDrive or iCloud Drive to reach your other computers), Local keeps it in one browser. Not yet: the hosted site and its sign-in. In development, Google sign-in works at `http://localhost:5173` and `http://127.0.0.1:5173`. In Local mode, export a backup from Settings now and then. The plan and the reasons behind it are in [docs/](docs/README.md).
 
@@ -48,12 +48,14 @@ Everything personal goes in `data/private/`. Git ignores this folder, so nothing
 
 | Path | What it is |
 |------|------------|
-| `data/private/touchdown-backup.zip` | Your log as a backup. `spot` looks registrations up in it, and the web app loads it in development. |
+| `data/private/touchdown-backup.zip` | Your log as a backup. Without a storage chosen, `spot` looks registrations up in it and `add` checks against it; the web app loads it in development. |
 | `data/private/sheets/` | A good place for your spreadsheets and Flightradar24 exports. |
-| `data/private/inbox/` | The files spotting sessions save for the Import page. |
+| `data/private/inbox/` | Without a storage chosen, the files `spot` and `add` save for the Import page (the dev server shows them). `inbox send` moves the ones it sent to `sent/`. |
 | `data/private/reference/` | The OpenSky aircraft database, downloaded the first time it is needed (about 110 MB). |
 | `data/private/cache/` | Saved lookup answers, the agent's self-test, and the lines you typed in `spot` (for ↑). |
-| `data/private/touchdown-cli.json` | The agent you chose, your rules for it, and whether notes are sent. |
+| `data/private/touchdown-cli.json` | The agent you chose, your rules for it, whether notes are sent, and the storage the CLI uses. |
+| `data/private/touchdown-session.json` | The CLI's sign-in to your Touchdown site (`./touchdown login`). `./touchdown logout` ends it. |
+| `data/private/google-access.json` | In Private mode, the hour of Google Drive access your browser gave the CLI; replaced when it runs out. |
 | `data/private/dev-server.sqlite`, `dev-setup-token.txt`, `dev-token-key.txt` | Accounts for signing in during development, the secret for their first account, and the key that encrypts Standard mode's Google Drive keys. |
 | `data/private/google-client-secret.txt` | The Google web client's secret, if you want Google sign-in in development. |
 | `data/private/server.sqlite` | Accounts for `npm run serve` (the site on your own machine). |
@@ -113,7 +115,7 @@ For each aircraft:
 2. **Fill:** the type, model and airline are filled in. A value you typed is never replaced without asking.
 3. **Check:** when you press Enter on an empty line, the agent checks the aircraft typed since the last save. It sorts your extra words into fields and points out anything doubtful, such as an aircraft retired before the date.
 4. **Questions:** you are asked about the agent's guesses and anything still missing; Enter skips a question. A line the agent doubts comes back for you to correct.
-5. **Save:** the aircraft go to the inbox (`data/private/inbox/`). Keep typing to add more to the same session; `quit` ends it. **Saved is not yet in your log:** you review and import them in the web app (below).
+5. **Save:** the aircraft go to the inbox: the one in your storage when you chose it (below), else `data/private/inbox/`. Keep typing to add more to the same session; `quit` ends it. **Saved is not yet in your log:** you review and import them in the web app (below).
 
 Correcting and moving around:
 
@@ -128,15 +130,13 @@ Correcting and moving around:
 
 Typing the same aircraft again for the same place and day replaces the earlier line, because it is one sighting.
 
-**Then, in the web app** (`npm run dev -w @touchdown/web` must be running; `spot` tells you if it is not):
+**Then, in the web app** (on any device when the inbox is in your storage; without a storage chosen, `npm run dev -w @touchdown/web` must be running, and `spot` tells you if it is not):
 
-1. A bar at the top says how many sightings are waiting. The app checks when it opens, when you come back to its tab, and every 30 seconds.
+1. A bar at the top says how many records are waiting. The app reads the inbox after each sync: when it opens, when you come back to its tab, and every few minutes. In development it also looks at `data/private/inbox/` every 30 seconds.
 2. **Review and import** opens the session on the Import page. Rows with something still open are under "Need a look".
-3. **Import** adds them to your log, and the session leaves the inbox (a copy is kept in `inbox/imported/` for 30 days). **Discard** on the Import page deletes a session you don't want.
+3. **Import** adds them to your log, and the session leaves the inbox. A copy is kept with the import in your storage (`attachments/imports/`), or in `inbox/imported/` for 30 days in development. **Discard** on the Import page deletes a session you don't want.
 
-Values from a lookup or the agent are saved with where they came from. The inbox only holds sessions you have not dealt with yet: each session is one file, and a file whose sightings are all in your log already is moved out by itself.
-
-Once the site is hosted, sessions will travel through your storage instead (Google Drive or a local folder; more later). With Google Drive, `./touchdown login` will sign the terminal in to Google once. `spot` will write each session to the inbox in your storage, and the website will show them waiting on any device after it syncs. This comes with sync (phase 3).
+Values from a lookup or the agent are saved with where they came from. The inbox only holds sessions you have not dealt with yet: each session is one file, and a file whose records are all in your log already is removed by itself.
 
 Other ways to run it:
 
@@ -145,6 +145,36 @@ Other ways to run it:
 - `./touchdown spot < list.txt` reads lines from a file. Without a terminal there are no questions; what is open is listed instead.
 
 Options: `--on DATE`, `--phase PHASE`, `--agent claude|codex|none` (for one run), `--fr24`, `--offline`, `--no-adsbdb`, `--dry-run` (shows what the agent would be sent). `./touchdown spot --help` lists them all.
+
+### The CLI and your storage (`./touchdown storage`)
+
+Choose the storage the web app syncs with, once on each computer, and the commands work with your log as it is now: `spot` looks registrations up in it and saves sessions to its inbox, and `add` checks against it. The web app shows what is in the inbox on any device after it syncs. The CLI only reads your log; it writes nothing but the inbox.
+
+```sh
+./touchdown login                              # once: sign the terminal in to Touchdown
+./touchdown storage drive                      # use the log in your Google Drive
+./touchdown storage folder ~/Dropbox/Touchdown  # or a folder the web app syncs with
+./touchdown storage                            # what is chosen, and what the log and the inbox hold
+./touchdown storage none                       # back to the backup file
+```
+
+`login` opens Touchdown in your browser, where you allow the command line. It signs in to the hosted site; `./touchdown login SITE` chooses another, such as the dev server (`./touchdown login http://127.0.0.1:5173`). The command line stays signed in until `./touchdown logout`, or until you sign it out in Settings under "Signed in on". With Google Drive, the CLI uses the access the web app uses: in Standard mode the site gives it, so nothing more is needed. In Private mode your browser gives it: a Touchdown page opens with **Give access**, and the CLI keeps that access for an hour, then opens the page again.
+
+### Adding records from the command line (`./touchdown add`)
+
+`./touchdown add` takes flights and sightings as JSON, checks them against your log as the Import page would, and puts them in the inbox for your review. It is made for agents as much as for people: Claude Code or Codex can run it, read the report (`--json`), fix what it says and run it again.
+
+```sh
+echo '{"sightings":[{"date":"2026-10-20","registration":"G-ABCD","airport":"EGLL","airline":"BAW","phase":"landing"}]}' | ./touchdown add --json
+```
+
+- **Fields:** flights take `date`, `flightNumber`, `airline`, `from`, `to`, `registration`, `typeCode`, `model`, `seat`, `class`, `boarding`, `takeoff`, `landing` (local times, HH:MM) and a few more; sightings take `date`, `registration`, `airport`, `airline`, `typeCode`, `model`, `phase`, `livery`, `specialLivery`, `notes`. `./touchdown add --help` lists them all.
+- **Checks:** unknown codes, impossible dates and times, overlapping flights and the other checks on the Issues page. Records already in your log, or already waiting in the inbox, are left out. With an error nothing is written (`--keep-errors` writes anyway); `--dry-run` only checks.
+- **Written and read back:** the file is read back from the inbox and read again as the web app will read it.
+- **Not taken:** ticket numbers and booking references. Add them in the web app.
+- **Exit status:** 0 written, or nothing new; 1 errors, nothing written; 2 the input or the storage could not be read.
+
+`./touchdown inbox` lists what is waiting for review. `inbox show NAME` shows a file, `inbox remove NAME` deletes one, and `inbox send` sends files saved in `data/private/inbox/` (before a storage was chosen, or while offline) to your storage.
 
 ### Check a file with an agent (`./touchdown check`)
 
@@ -194,6 +224,10 @@ Sign in to Flightradar24 in that window, then run the command with `--fr24`. If 
 | `./touchdown import <files…>` | Read files, print findings and statistics, and optionally write a backup (`--out`). |
 | `./touchdown airframes <backup.zip>` | Fill serial numbers and first flights in a backup. |
 | `./touchdown agent [claude\|codex\|none]` | Show or choose the agent; `agent notes on\|off` and `agent rules` set what it is sent. |
+| `./touchdown login [SITE]`, `./touchdown logout` | Sign the CLI in to your Touchdown site, or out. |
+| `./touchdown storage [drive\|folder PATH\|none]` | Show or choose the storage the CLI reads your log from and sends the inbox to. |
+| `./touchdown add [FILE.json]` | Check flights and sightings given as JSON and put them in the inbox (above). |
+| `./touchdown inbox [show\|remove\|send]` | List, show or remove what waits in the inbox; send files saved on this computer. |
 | `npm run dev -w @touchdown/web` | Run the web app at http://127.0.0.1:5173. |
 | `npm run build -w @touchdown/web` | Build the web app into `apps/web/dist`. |
 | `npm run preview -w @touchdown/web` | Serve the build at http://127.0.0.1:4173 with the hosted site's headers. |

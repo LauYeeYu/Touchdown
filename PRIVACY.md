@@ -20,7 +20,7 @@ The server runs on Cloudflare and keeps these, per account, in its database:
 | Whether you are the owner or a member | The owner invites and removes people. |
 | A hash of your password key | To check your password. Your browser turns the password into a key before sending it; the password itself never leaves your browser, and the server stores only a hash of the key. |
 | Your Google account id and Google email address, if you sign in with Google | To recognise your Google account. |
-| Your sign-in sessions: a hash of each session's random token, when it began and was last used, and a short device label such as "Chrome on macOS" | To keep you signed in, and to list where you are signed in. |
+| Your sign-in sessions: a hash of each session's random token, when it began and was last used, and a short device label such as "Chrome on macOS", or "Command line on macOS" for the command-line tools | To keep you signed in, and to list where you are signed in. |
 | When you last signed in, and how many wrong passwords were entered in a row | To show the owner when members were last active, and to slow down password guessing. |
 | Invitation and password reset links: a hash of each link, who it was for (a note by the owner), when it was made and used | So that each link works once and expires. |
 | A Google sign-in under way: random values that tie it to your browser, and where to go afterwards | To finish signing in with Google. Deleted when used, and kept 10 minutes at most. |
@@ -42,7 +42,7 @@ The owner can see the list of members: names, email addresses, how each signs in
 
 Touchdown uses Google in three ways, each only if you choose it:
 
-1. **Google Drive, to sync your log (Private mode).** Touchdown asks for the `drive.file` permission, which lets it see and change only the files it creates in your Drive (a Touchdown folder) or files you pick. It cannot see your other files. The access Google gives lasts an hour and stays in your browser; it is not sent to Touchdown's server.
+1. **Google Drive, to sync your log (Private mode).** Touchdown asks for the `drive.file` permission, which lets it see and change only the files it creates in your Drive (a Touchdown folder) or files you pick. It cannot see your other files. The access Google gives lasts an hour and stays in your browser; it is not sent to Touchdown's server. If you give it to Touchdown's command-line tools on your computer, your browser passes it to them directly, and they keep it on your computer until the hour is over.
 2. **Signing in with Google.** Touchdown asks for your Google account id and verified email address (the `openid` and `email` permissions). The server stores them to recognise your account. It does not keep any Google tokens for this.
 3. **Google Drive in Standard mode.** Touchdown asks Google for lasting access to the files it creates in your Drive (`drive.file`, with offline access), and keeps that key on the server, encrypted. It is described below.
 

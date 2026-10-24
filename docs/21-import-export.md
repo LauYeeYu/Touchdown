@@ -147,45 +147,50 @@ Decided, built (CLI). Instead of typing a row into the spotting spreadsheet and 
 |------|--------------|
 | Type | One aircraft per line: the registration and anything else known, in any order (`G-ABCD landing`, `D-ABCD at EDDF DLH A20N "Retro livery"`). A line with only a place, date or phase sets it for the lines after it; `no phase` clears the phase. Lines can also be given as arguments or piped in. |
 | Read | Recognised: registrations (with or without the dash; without it only in capitals, so words are not read as registrations), airports (ICAO, or IATA after "at"), dates (`today`, `yesterday`, `2025-03-15`, `15/03/2025`), phases, airline codes (ICAO, or IATA in capitals), type designators and models. The rest is kept as text. |
-| Look up | Per registration: the user's log (a backup; `data/private/touchdown-backup.zip` by default, `--log FILE` for another), the OpenSky snapshot (downloaded once), adsbdb (answers cached for 90 days) and, with `--fr24`, Flightradar24 through the user's Chrome (Q-FR24-BROWSER). |
+| Look up | Per registration: the user's log (from the storage chosen with `touchdown storage`; without one, a backup: `data/private/touchdown-backup.zip` by default, `--log FILE` for another), the OpenSky snapshot (downloaded once), adsbdb (answers cached for 90 days) and, with `--fr24`, Flightradar24 through the user's Chrome (Q-FR24-BROWSER). |
 | Fill | What the user typed is kept. An empty type code or model takes the value from the source kept most up to date (Flightradar24, adsbdb, OpenSky, then the user's log). An empty airline takes the value from the source whose date is nearest the sighting's, since aircraft change hands. A model is kept only when it fits the type (the model patterns in [13](13-reference-data.md)). The user's log never vouches for the sighting itself (the same aircraft, day and place). |
 | Compare | A source that says something else is listed, except where it is no real difference: a model given only as its series (`777-300(ER)` for a `777-31H(ER)`), under its type certificate's name (`BD-500-1A11` for an `A220-300`) or without a suffix (`(ER)`, `(BDSF)`, `SF`, `E`); and an airline from OpenSky or adsbdb against one the user typed, since those give the company that operates the aircraft, not the airline whose colours it wears (Q-SPOT-AIRLINE). A source whose type is of another family is flagged as probably another aircraft with the same registration (or a mistyped type); its model, airline and serial number are not used. |
 | Check | The agent ([22](22-agent-verification.md)) gets the batch with each source's answer and the words Touchdown could not place. It sorts those words into fields (special livery, livery, phase, …) and the rest into notes. It picks between sources that disagree, and notes anything doubtful, such as an aircraft retired before the date. |
 | Use or ask | Used straight away: values a source gave, words sorted into fields, and fixes from the reference data the agent is sure of. Asked about: a change to anything the user typed, anything from the agent's own knowledge, and wanted fields that are still empty (date, place, type code, airline, phase). The user can type a doubted line again to correct it. Without a terminal, these are listed instead of asked. |
 | Special livery | When the user's log has the aircraft in a special livery and none was typed, the user is asked whether it still wore the one recorded nearest the date (Q-SPOT-LIVERY). It is never filled in unasked: special liveries are painted over. The web app's quick add and session add ask the same. |
 | Correct | ↑ and ↓ bring back earlier lines, also from earlier sessions (kept in `data/private/cache/spot-history.txt`). A line brought back and changed replaces the aircraft it came from; when the registration changed, the user is asked first. `edit N` brings back line N, `drop N` removes it, `list` shows the session's aircraft. The same aircraft typed again for the same place and day replaces the earlier line (one sighting, Q-SIGHTING-UNIT). Tab completes commands, phases, registrations from the log and airport codes after "at". |
-| Save | An empty line checks the lines typed so far and saves them to the session's inbox file, `data/private/inbox/spot-<date>-<time>.json` (or `--out`). |
+| Save | An empty line checks the lines typed so far and saves them to the session's inbox file, `spot-<date>-<time>.json`: in the inbox of the chosen storage, else in `data/private/inbox/` (or `--out`). A file the storage does not take (offline) stays in `data/private/inbox/` for `touchdown inbox send`. |
 | A spreadsheet | `spot FILE.xlsx` (or `.csv`) reads a sheet of sightings in any layout ("Source: any spreadsheet") and treats each row as a typed line: lookups (adsbdb only for aircraft OpenSky does not know), the agent's check, no questions per row. Before an agent check of more than 50 rows it says how many calls that is and lets the user go on without the agent. Everything still open goes to the review in the web app. The inbox file is `sheet-<date>-<time>-<file name>.json`. |
 
-The inbox file (`touchdown-inbox`, version 1) has, per sighting:
+The inbox file (`touchdown-inbox`, version 2; version 1 files are still read) has, per sighting:
 - the values, named as in the agent check;
 - where each value came from: `you`, `your_log`, `opensky`, `adsbdb`, `fr24`, `derived` (the type from a typed model), `claude` or `codex`;
 - what is still open, in words, and which fields the user left empty;
 - the airframe facts a lookup gave: serial number, maker, line number, first flight.
 
+Version 2 adds flights (from `touchdown add`, below): per flight, the values named as in the column mapping (`date`, `flightNumber`, `airline`, `from`, `to`, `registration`, `typeCode`, `model`, `livery`, `specialLivery`, `seat`, `class`, `gate`, `boarding`, `takeoff`, `landing`, `duration`, `firstFlight`, `notes`), where values came from, and what is open. A flight is read as a spreadsheet row with those columns would be, so clock times become date-times with the airport's UTC offset. Ticket numbers and booking references are never in an inbox file.
+
 ### Getting a session to the web app
 
 A session's sightings are not in the log until the user reviews and imports them in the web app (Decided: review first, Q-SPOT-ARRIVAL). The CLI says so after every save and when the session ends.
 
-**The inbox is a queue.** Each session is one file, rewritten on every save and written only by its session; a session that saves nothing writes no file. A file leaves the inbox once it is imported (into `imported/`, kept 30 days), when the user discards it, or when all its sightings are in the log already (imported some other way). So the inbox holds only the sessions not dealt with yet. A session that goes on saving after its file was imported writes the file again; matching (stage 4) skips the sightings already in the log.
+**The inbox is a queue.** Each session is one file, rewritten on every save and written only by its session; a session that saves nothing writes no file. A file leaves the inbox once it is imported (kept with the import in the storage, or in `imported/` for 30 days in development), when the user discards it, or when all its records are in the log already (imported some other way). So the inbox holds only the sessions not dealt with yet. A session that goes on saving after its file was imported writes the file again; matching (stage 4) skips the sightings already in the log.
 
 **In development (Decided, built).** The dev server reads `data/private/inbox/` (`/__local/inbox`, requests from this computer carrying the app's header only). The web app looks at it when it opens, when its tab comes back into view, and every 30 seconds:
 - a bar under the masthead says how many sightings are waiting, with "Review and import" (opens the oldest session on the Import page) and "Not now" (hides it in this tab until the session saves more);
 - the Import page lists the waiting sessions, each with Review and Discard;
 - the CLI checks whether the dev server is running and says where to go.
 
-**On the hosted site (Decided, built in phase 3 with sync).** The inbox is the `inbox` area of the user's storage, whatever the backend (S7, [12](12-storage-and-sync.md)). The CLI reaches that storage through the same backend interface as the web app:
+**With the user's storage (Decided, built).** The inbox is the `inbox` area of the user's storage, whatever the backend (S7, [12](12-storage-and-sync.md)). The CLI reaches that storage through the same backend interface as the web app, after `touchdown storage` chose it once on that computer (kept in `data/private/touchdown-cli.json`):
 
 | Storage | How the CLI reaches it |
 |---------|------------------------|
-| Google Drive | `touchdown login` signs the CLI in to Google once, with the installed-app flow from the same Google Cloud project as the web app and the same `drive.file` scope. The token stays in `data/private/`. Writing into a Google Drive for Desktop folder would not do, because the web app's `drive.file` access does not reach files another app created (Q-DRIVE-CLI). |
-| Local folder | The CLI is given the folder's path once and writes into its `inbox/` directly. (Proposed) |
+| Google Drive | `touchdown login` signs the CLI in to the user's Touchdown site once, as a browser is signed in; `touchdown storage drive` then uses the access the web app uses ([33](33-accounts-and-sign-in.md), "The command line"): in Standard mode the site gives it, in Private mode the user's browser hands it over on the same computer. Both come from the web app's own Google client, so the CLI reaches the same Touchdown folder. Writing into a Google Drive for Desktop folder would not do, because the web app's `drive.file` access does not reach files another app created. |
+| Local folder | `touchdown storage folder PATH`: the folder the web app syncs with (or the folder holding its `Touchdown` folder). |
 | Local mode (this browser only) | There is no shared place. `spot` saves the session file and the user opens it on the Import page. (Proposed) |
 | Server backends (later) | The CLI signs in to the backend and writes to its `inbox` area. (Proposed) |
 
-1. `spot` writes its session file to the inbox on every save.
-2. The web app, on any device, lists the inbox during sync. It shows the same bar and list, and after an import it copies the file to `attachments/imports/<batchId>/` and deletes it from the inbox. If the session saves again after that, the CLI finds its file gone and writes a new one.
-3. `spot` reads the user's log from the same storage for its "your log" lookups, instead of the local backup file.
+The CLI reads the log and writes only to the inbox. It never creates the Touchdown folder or a log, and never upgrades one: without a log it can see, `touchdown storage` says so and changes nothing, and a log with a newer schema stops it with a message to update.
+
+1. `spot` writes its session file to the inbox on every save, and reads the user's log from the same storage for its "your log" lookups instead of the backup file. When the storage cannot be reached, the session is saved in `data/private/inbox/`, and `touchdown inbox send` sends it later.
+2. `touchdown add` (below) writes its file to the same inbox.
+3. The web app, on any device, reads the inbox after each sync and counts its files again whenever the log changes. It shows the same bar and list. After an import it copies the file to `attachments/imports/<batchId>/` and deletes it from the inbox; a file saved again since it was read stays, for the records added to it. If a session saves again after its file was imported, the CLI writes a new one.
+4. `touchdown inbox` lists the files waiting (with how many records are not in the log yet), shows one, or removes one.
 
 **Importing.** The Import page reads the inbox like any other file (stages 4–10). What is still open shows as a warning on the row. The agent check panel is not shown, because the session already ran the check. On commit:
 - the records get `sourceKind` `manual`;
@@ -200,6 +205,32 @@ A session's sightings are not in the log until the user reviews and imports them
 - the batch records the agent (`agentChecker`) and how many rows the agent changed (`rowsEdited`).
 
 Open: typing in the web app instead of the terminal, which needs the local bridge or the lookup service (phase 4).
+
+## Source: records from the command line (`touchdown add`)
+
+Decided, built (CLI). Flights and sightings given as JSON, by the user or by an agent working for them (Claude Code, Codex), checked as the Import page would check them and put in the inbox for review. Nothing reaches the log without that review (Q-SPOT-ARRIVAL). It lets an agent add records in a loop: run it, read the report, fix what it says, run it again.
+
+```
+./touchdown add [FILE.json | -] [--dry-run] [--json] [--keep-errors] [--log FILE]
+```
+
+```json
+{
+  "flights":   [{ "date": "2026-10-18", "flightNumber": "XY123", "from": "EGLL", "to": "KJFK", "takeoff": "11:40", "landing": "14:35" }],
+  "sightings": [{ "date": "2026-10-20", "registration": "G-ABCD", "airport": "EGLL", "airline": "BAW", "phase": "landing" }]
+}
+```
+
+| Step | What happens |
+|------|--------------|
+| Read | Flight fields as in the inbox file's flights (above). Sighting fields: `date`, `registration`, `airport`, `airline`, `typeCode`, `model`, `phase`, `livery`, `specialLivery`, `notes`. Dates are `YYYY-MM-DD`; times are local clock times at their airport. A record may name where values came from (`"sources": {"typeCode": "claude"}`), which becomes their provenance on import. An unknown field, another date form or an unknown phase stops it with a message. |
+| Refuse | Ticket numbers and booking references: they are added in the web app (AGENTS.md, "Data and privacy"). |
+| Check | Against the log as it is now (the chosen storage, else the backup, or `--log FILE`): the row checks, matching (stage 4), and every rule ([20](20-validation.md)) over the log with the records added, so cross-record findings such as overlapping flights show. Only findings the records bring are reported, not the log's own. |
+| Leave out | Records already in the log, and records already waiting in the inbox. |
+| Write | With an error in any record, nothing is written unless `--keep-errors`. Otherwise the file goes to the inbox as `add-<date>-<time>.json`, is read back, compared with what was written, and read again as the web app reads it. `--dry-run` writes nothing. |
+| Report | Per record: its status (new, fills a record, differs from one, already in the log, already waiting), the values as Touchdown read them (codes resolved, times with their UTC offsets) and the findings. `--json` prints it as JSON. Exit status 0 written or nothing new, 1 errors and nothing written, 2 the input, the log or the storage could not be read. |
+
+On the Import page the file reads like a spotting session's, with "Checked against your log by ./touchdown add" in place of the agent's line.
 
 ## Source: Touchdown backup
 

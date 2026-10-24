@@ -21,7 +21,6 @@ None. Phase 1 test data is in `data/private/`.
 | Id | Check | Phase |
 |----|-------|-------|
 | Q-FR24-IMPORT | Does myFR24 import accept fewer than 19 columns? Must airline names match FR24's names exactly? Test with a 2-row file. | 7 |
-| Q-DRIVE-CLI | With the `drive.file` scope, does a file the CLI creates through its own OAuth client (installed-app type, same Google Cloud project as the web client) show up for the web app's token? If not, the web app must create the inbox folder and the CLI must be given access to it. Test before building the inbox upload. | 3 |
 | Q-DRIVE-SERVER | Does a refresh token from the authorisation-code flow (same web client, `drive.file`) reach the files the browser created with the token flow, and the other way round? | 8 |
 | Q-DRIVE-QUOTA | Recheck Google's announced 2026 Drive API quota and charge changes before launch. | 3 |
 
@@ -30,6 +29,7 @@ None. Phase 1 test data is in `data/private/`.
 | Id | Question | Answer |
 |----|----------|--------|
 | — | Where does the app run? | Hosted web app; each user's data in storage they own. |
+| Q-DRIVE-CLI | Do the CLI's own Google client and the web app's reach each other's files with `drive.file`? | Not needed: the CLI signs in to the site and uses the web app's own Google access (from the server in Standard mode, handed over by the browser in Private mode), so it reaches the same files ([33](33-accounts-and-sign-in.md), "The command line"). |
 | — | Who uses it? | The user and some friends; data private per user. |
 | — | Storage format? | JSON files in the user's Google Drive; other sync methods pluggable; CSV fallback. Superseded by the generic schema decision below. |
 | — | Where does the agent check run? | Local companion CLI. |

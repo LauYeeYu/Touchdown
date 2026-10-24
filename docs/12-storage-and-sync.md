@@ -119,6 +119,7 @@ Touchdown/
     <batchId>.request.json / .result.json     agent check hand-off (22)
   inbox/
     spot-<date>-<time>.json   a spotting session from the CLI, waiting to be imported (21); removed once imported
+    add-<date>-<time>.json    flights and sightings from `touchdown add` (21), the same way
   shares/
     <shareId>.json         what a shared link shows, private fields removed (Standard mode, 32)
   backups/
@@ -146,7 +147,7 @@ Table file format:
 
 Size check: 1,000 flights ≈ 1 MB; 10,000 sightings ≈ 5 MB. One file per table is fine at that size. If a table passes 10 MB, it is split by year (`sightings.2026.json`), listed in the manifest.
 
-Why a visible folder and not Drive's hidden `appDataFolder`: the user can see, download, and back up the files, and the companion CLI can read them through Google Drive for Desktop. The CLI writes (the inbox) through the Drive API, signed in to the same Google Cloud project: with `drive.file`, the web app does not see files another app, such as Drive for Desktop, created (Q-DRIVE-CLI).
+Why a visible folder and not Drive's hidden `appDataFolder`: the user can see, download, and back up the files, and the companion CLI can read them through Google Drive for Desktop. The CLI reads the log and writes the inbox through the Drive API (`touchdown storage drive`, [21](21-import-export.md)) with the web app's own access, given by the site in Standard mode or handed over by the browser in Private mode ([33](33-accounts-and-sign-in.md), "The command line"): with `drive.file`, the web app does not see files another app, such as Drive for Desktop, created.
 
 ## File backend: SQLite file
 
@@ -193,8 +194,8 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 
 | Adapter | How | Sync across devices | Notes |
 |---------|-----|---------------------|-------|
-| Google Drive | Drive API v3 from the browser, OAuth scope `drive.file`. | Yes | First adapter, built. Details below. |
-| Local folder | File System Access API (Chromium desktop browsers). | Yes, if the folder is inside a Dropbox / OneDrive / iCloud / Google Drive desktop sync folder. | Gives other sync services on desktop. Not available on Android, so a phone syncs through an adapter that reaches the storage over the internet: Google Drive first, later Dropbox, OneDrive or a server backend. |
+| Google Drive | Drive API v3 from the browser and the CLI, OAuth scope `drive.file`. | Yes | First adapter, built. Details below. |
+| Local folder | File System Access API (Chromium desktop browsers); in the CLI, Node's file system (`packages/cli/src/folder.ts`). | Yes, if the folder is inside a Dropbox / OneDrive / iCloud / Google Drive desktop sync folder. | Gives other sync services on desktop. Not available on Android, so a phone syncs through an adapter that reaches the storage over the internet: Google Drive first, later Dropbox, OneDrive or a server backend. |
 | Manual file | Export a `.zip` of the folder; import it on another device. | Manual | Works everywhere. The adapter of Local mode. |
 | Dropbox API, OneDrive API | Later, if a friend needs it. | Yes | Dropbox has an "App folder" mode. OneDrive has no per-file scope like `drive.file`. |
 
