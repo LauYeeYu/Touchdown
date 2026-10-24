@@ -155,6 +155,28 @@ Moving between them: export the SQLite tables (D1 can export to a SQL file) and 
 
 The site's address (for cookies, the `Origin` check and Google's redirect) is set in the server's config. Cloudflare's static assets serve files at exactly their names (`html_handling: none`), as the Node server does.
 
+### Setting up on Cloudflare
+
+GitHub Actions tests and builds every push to `master`, and deploys the Worker while the repository variable `DEPLOY` is `on`. Once:
+
+1. **Domain:** the domain's nameservers point to Cloudflare.
+2. **Database:** create a D1 database named `touchdown` (Storage & databases → D1) and put its id in `apps/web/wrangler.jsonc` (`database_id`). The id is not a secret.
+3. **Deploying:** a Cloudflare API token from the "Edit Cloudflare Workers" template, with Account → D1 → Edit added, limited to the account and the domain. In GitHub (Settings → Secrets and variables → Actions): the secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then the variable `DEPLOY` set to `on`.
+4. **Secrets** (Workers & Pages → touchdown → Settings → Variables and Secrets, type Secret): `SETUP_TOKEN` (a long random string; until it is set nobody can make the first account), `GOOGLE_CLIENT_SECRET` (the web client's secret, for Google sign-in and Standard mode), `TOKEN_KEY` (`openssl rand -base64 32`; without it Standard is not offered; keep it, since a new one makes every Standard key unreadable).
+5. **Google Cloud:** in the "Touchdown web" client, the site's address under Authorized JavaScript origins and `<address>/auth/google/callback` under Authorized redirect URIs. The consent screen published ("In production") before others use Google.
+6. **First account:** `<address>/setup` with the setup secret ("The first owner").
+
+### Setting up on any machine
+
+Build the app and run the server behind a web server that handles HTTPS (Caddy, nginx):
+
+```sh
+npm ci && npm run build -w @touchdown/web
+TOUCHDOWN_ORIGINS=https://touchdown.example.org SETUP_TOKEN=… npm run serve
+```
+
+It listens on 127.0.0.1:8787 and keeps accounts in `data/private/server.sqlite`; Standard mode also needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY`. The other settings are at the top of `packages/server/src/serve.ts`.
+
 ## Development
 
 - The dev server (`npm run dev -w @touchdown/web`) runs the real server for `/auth/` with its own database, `data/private/dev-server.sqlite`, and opens the sign-in pages at their addresses. The setup secret is made on first start in `data/private/dev-setup-token.txt`. Google sign-in works when the web client's secret is in `data/private/google-client-secret.txt`.
