@@ -47,11 +47,14 @@ export interface TableFileProblem {
 }
 
 /** Changes between schema versions that older files are brought through when read (docs/12, "Schema migrations"). */
-export const MIGRATIONS: { to: number; addColumns: { table: TableName | "*"; column: string }[] }[] = [
+export const MIGRATIONS: { to: number; addColumns?: { table: TableName | "*"; column: string }[]; dropColumns?: { table: TableName; column: string }[] }[] = [
   // Every table with system columns gains basedOn.
   { to: 2, addColumns: [{ table: "*", column: "basedOn" }] },
   // Settings record the data mode and the storage account (docs/32, "Recording the backend").
   { to: 3, addColumns: [{ table: "settings", column: "dataMode" }, { table: "settings", column: "storageAccount" }] },
+  // The agent check's settings moved to the CLI on each computer (docs/22). The agent_rules table went too; files
+  // of tables the schema no longer has are not read.
+  { to: 4, dropColumns: [{ table: "settings", column: "agentChecker" }, { table: "settings", column: "sendNotesToAgent" }] },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */
@@ -61,11 +64,17 @@ export function upgradeTableFile(file: TableFile, table: TableName): TableFile {
   let rows = file.rows ?? [];
   for (const step of MIGRATIONS) {
     if (step.to <= file.schemaVersion) continue;
-    for (const add of step.addColumns) {
+    for (const add of step.addColumns ?? []) {
       if (add.table === "*" ? TABLES[table].kind === "points" : add.table !== table) continue;
       if (columns.includes(add.column)) continue;
       columns.push(add.column);
       rows = rows.map((r) => ({ ...r, [add.column]: null }));
+    }
+    for (const drop of step.dropColumns ?? []) {
+      const at = columns.indexOf(drop.column);
+      if (drop.table !== table || at < 0) continue;
+      columns.splice(at, 1);
+      rows = rows.map(({ [drop.column]: _, ...rest }) => rest);
     }
   }
   const expected = allColumns(TABLES[table]).map((c) => c.name);

@@ -147,7 +147,7 @@ Options: `--on DATE`, `--phase PHASE`, `--agent claude|codex|none` (for one run)
 On the Import page, after choosing a file, the **Check with an agent** panel:
 
 1. saves a request file to your downloads;
-2. shows the command to run, for example `./touchdown check ~/Downloads/touchdown-check-….json --agent claude`;
+2. shows the command to run, for example `./touchdown check ~/Downloads/touchdown-check-….json`;
 3. loads the result it writes.
 
 The suggestions then appear on each row, with **Use** and **Dismiss**. You can also run it on a spreadsheet directly with `./touchdown check data/private/sheets/spotting.xlsx`, then choose the same file on the Import page and load the result. In the terminal, `--map "Header=field"` says what a column holds when Touchdown cannot tell.
@@ -164,9 +164,10 @@ This fills serial numbers and first flight dates from the OpenSky database, and 
 
 Claude Code or Codex runs on your computer with your own subscription. Each check costs a few cents of usage.
 
-- **Choosing:** no agent is used unless you choose one. The first `spot` or `check` asks (no agent is the default), `./touchdown agent` shows or changes the choice, and `--agent` on a command overrides it for one run. The web app's Settings has its own choice, and the command it shows names that agent.
+- **Choosing:** no agent is used unless you choose one. The first `spot` or `check` asks (no agent is the default), `./touchdown agent` shows or changes the choice, and `--agent` on a command overrides it for one run. The choice belongs to this computer (it is kept in `data/private/touchdown-cli.json`), also for checks started from the web app's Import page.
+- **Your rules:** plain sentences added to the agent's instructions, for example how you want liveries written. `./touchdown agent rules` lists them, `./touchdown agent rules add "…"` adds one, `./touchdown agent rules remove N` removes one.
 - **Lockdown:** the agent runs with no tools, files, web access, MCP servers or hooks, in an empty folder. Before the first use of each version, a self-test sends it a record that tries to take it over; an agent that follows the instruction is not used.
-- **What it is sent:** dates, airports, registrations, types, models, airlines, liveries and phases, and what the lookups said. When it helps with a spreadsheet's unclear columns: their headers and up to five sample values. Never ticket numbers, booking references, seats or photo links. Notes are sent only if you allow it in Settings (or pass `--notes` to `check`); in `spot`, the agent gets the words of your line it has to sort.
+- **What it is sent:** dates, airports, registrations, types, models, airlines, liveries and phases, and what the lookups said. When it helps with a spreadsheet's unclear columns: their headers and up to five sample values. Never ticket numbers, booking references, seats or photo links. Notes are sent only after `./touchdown agent notes on` (or with `--notes` for one run); in `spot`, the agent gets the words of your line it has to sort.
 - **What it can change:** values backed by a lookup, and your own words sorted into fields, are used straight away. A guess from the agent's own knowledge, or a change to something you typed, is asked about first.
 
 ## Flightradar24 through Chrome (optional)
@@ -188,7 +189,7 @@ Sign in to Flightradar24 in that window, then run the command with `--fr24`. If 
 | `./touchdown check <file>` | Have the agent check a file or a request from the Import page. |
 | `./touchdown import <files…>` | Read files, print findings and statistics, and optionally write a backup (`--out`). |
 | `./touchdown airframes <backup.zip>` | Fill serial numbers and first flights in a backup. |
-| `./touchdown agent [claude\|codex\|none]` | Show or choose the agent. |
+| `./touchdown agent [claude\|codex\|none]` | Show or choose the agent; `agent notes on\|off` and `agent rules` set what it is sent. |
 | `npm run dev -w @touchdown/web` | Run the web app at http://127.0.0.1:5173. |
 | `npm run build -w @touchdown/web` | Build the web app into `apps/web/dist`. |
 | `npm test`, `npm run typecheck` | Run the tests; type-check. |

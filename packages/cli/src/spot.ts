@@ -12,7 +12,6 @@ import {
   CHECK_BATCH_SIZE,
   checkAgentAnswer,
   chooseValues,
-  DEFAULT_AGENT_RULES,
   describeDisagreement,
   evidenceForAgent,
   INBOX_SCHEMA,
@@ -59,7 +58,7 @@ import { adsbdb } from "./providers/adsbdb.ts";
 import { fr24Evidence, fr24Pages, fr24Url } from "./providers/fr24.ts";
 import { openSkyEvidence, openSkyIndex, type OpenSkyRow } from "./providers/opensky.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
-import { agentForRun, AGENT_NAME, type AgentChoice } from "./settings.ts";
+import { agentForRun, AGENT_NAME, agentRules, type AgentChoice } from "./settings.ts";
 import { bold, colour, dim, duration, fit, green, plural, red, width, wrap, yellow } from "./term.ts";
 
 const DEFAULT_LOG = privatePath("touchdown-backup.zip");
@@ -292,9 +291,8 @@ export async function spotCommand(args: string[]): Promise<void> {
     for (const op of log.all("operator_overrides")) ref.addOperator(operatorFromOverride(op));
     logSize = log.all("sightings").length + log.all("flights").length;
   }
-  // The user's own rules for the agent (Settings), from the log; the starting rule without them.
-  const own = (log?.all("agent_rules") ?? []).sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0)).map((r) => r.text?.trim() ?? "").filter(Boolean);
-  const rules = own.length ? own : DEFAULT_AGENT_RULES;
+  // The user's rules for the agent, kept with this computer's CLI settings.
+  const rules = agentRules();
   const logRegistrations = new Set([...(log?.all("sightings") ?? []), ...(log?.all("flights") ?? [])].map((r) => r.registration).filter((r): r is string => !!r));
 
   const said = new Set<string>();

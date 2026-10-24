@@ -101,9 +101,11 @@ export class JsonTablesBackend implements Backend {
     const version = Number(manifest.schemaVersion);
     if (version > SCHEMA_VERSION) throw new SchemaTooNewError(version);
     // Older table files are upgraded as they are read and written in the new version from then on; the manifest
-    // tells an older app on another device to update first.
+    // tells an older app on another device to update first. Files of tables the schema no longer has are left
+    // where they are and not read.
     if (version < SCHEMA_VERSION) {
-      await this.files.write("manifest.json", encoder.encode(JSON.stringify({ ...manifest, schemaVersion: SCHEMA_VERSION, lastWriter: this.deviceId }, null, 2) + "\n"));
+      const tables = Object.fromEntries(FILE_TABLES.map((t) => [t, tablePath(t)]));
+      await this.files.write("manifest.json", encoder.encode(JSON.stringify({ ...manifest, schemaVersion: SCHEMA_VERSION, tables, lastWriter: this.deviceId }, null, 2) + "\n"));
     }
     return { schemaVersion: version, created: false };
   }

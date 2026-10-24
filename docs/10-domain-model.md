@@ -61,7 +61,7 @@ User data
   flights ─< tracks ─< track_points
   any user row ─< field_provenance, external_ids, record_history
   import_batches        issue_acks ─< issue_ack_records
-  settings, family_overrides, agent_rules, saved_views ─< saved_view_filters
+  settings, family_overrides, saved_views ─< saved_view_filters
   airport_overrides, operator_overrides, aircraft_type_overrides
 ```
 
@@ -271,8 +271,6 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 | `theme` | enum | `system` (follow the device), `light`, `dark` |
 | `codeDisplay` | enum | `iata`, `icao`, `both` |
 | `modelNaming` | enum | `standard` (`Boeing 777-322(ER)`) or `compact` (`B777-322ER`). Display only (D4). |
-| `agentChecker` | enum | `claude`, `codex`, `none` |
-| `sendNotesToAgent` | boolean | Default `false`. |
 | `homeAirportId` | ref airports | Used for defaults. |
 | `dataMode` | enum | `standard`, `private`, `local` ([32](32-modes-and-sharing.md)). |
 | `storageBackend` | enum | `json_tables`, `sqlite_file` (later: `sqlite_local`, `postgres`, `d1`) |
@@ -283,7 +281,6 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 The values of `storageBackend` and `storageAdapter` come from one registry in core; a new value is a schema change ([32](32-modes-and-sharing.md), "Recording the backend").
 
 **family_overrides**: `designator` (ref aircraft_types), `familyId` (ref families).
-**agent_rules**: `seq` (integer), `text` (text). The "Importing prompts" list ([22](22-agent-verification.md)).
 **saved_views**: `name` (text), `dataset` (enum `flights`, `sightings`, `both`), `rowDimension`, `columnDimension`, `measure` (text, from the lists in [24](24-statistics.md)).
 **saved_view_filters**: `viewId` (ref saved_views), `dimension` (text), `operator` (enum `eq`, `in`, `between`), `value` (text).
 
@@ -298,3 +295,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 | 1 | First version. |
 | 2 | `basedOn` system column. |
 | 3 | `settings.dataMode` and `settings.storageAccount`. |
+| 4 | `settings.agentChecker`, `settings.sendNotesToAgent` and the `agent_rules` table removed: the agent check's settings belong to the CLI on each computer ([22](22-agent-verification.md)). Older files have the columns dropped when read; an `agent_rules` file is not read. |

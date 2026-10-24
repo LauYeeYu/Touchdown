@@ -15,6 +15,7 @@ import {
   type TrackPointInput,
   combinedStats,
   commitImport,
+  DEFAULT_AGENT_RULES,
   flightStats,
   matchCandidates,
   parseSource,
@@ -38,8 +39,8 @@ import { CHECK_HELP, checkCommand } from "./check.ts";
 import { readSheetFile } from "./columns.ts";
 import { SPOT_HELP, spotCommand } from "./spot.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
-import { AGENT_NAME, chooseAgent, installedVersion, saveAgent, savedAgent } from "./settings.ts";
-import { bold, dim } from "./term.ts";
+import { AGENT_NAME, chooseAgent, installedVersion, saveAgent, savedAgent, savedRules, savedSendNotes, saveRules, saveSendNotes } from "./settings.ts";
+import { bold, dim, red } from "./term.ts";
 import { lookupAirframes, type LookupReport } from "./airframes.ts";
 import { PROVIDER_IDS, providers as allProviders } from "./providers/index.ts";
 
@@ -106,10 +107,19 @@ Fills serial numbers and first flight dates in an existing backup and writes it 
 ${LOOKUP_HELP}`;
 
 const AGENT_HELP = `Usage: ./touchdown agent [claude | codex | none]
+       ./touchdown agent notes on | off
+       ./touchdown agent rules [add "SENTENCE" | remove N]
 
-Shows the agent that checks your records in \`spot\` and \`check\`, and lets you choose another. With a name,
-saves that one. The choice is kept in data/private/touchdown-cli.json; --agent on a command overrides it
-for one run. Claude Code and Codex run on this computer with your own subscription, locked down.`;
+Shows the agent that checks your records in \`spot\` and \`check\` (also for the website's Import page), and
+lets you choose another. Claude Code and Codex run on this computer with your own subscription, locked down.
+
+  claude, codex, none   the agent to use; --agent on a command overrides it for one run
+  notes on | off        send records' notes to the agent (off at first); --notes turns it on for one run
+  rules                 list your rules: plain sentences added to the agent's instructions
+  rules add "SENTENCE"  add one, for example how you want types or liveries written
+  rules remove N        remove rule N
+
+These settings belong to this computer and are kept in data/private/touchdown-cli.json.`;
 
 const HELP: Record<string, string> = { spot: SPOT_HELP, check: CHECK_HELP, import: IMPORT_HELP, airframes: AIRFRAMES_HELP, agent: AGENT_HELP };
 
@@ -118,10 +128,17 @@ function usage(text = MENU, code = 1): never {
   process.exit(code);
 }
 
-/** \`touchdown agent [name]\`: show the saved choice, or save a new one. */
+/** \`touchdown agent …\`: show or change the agent, whether notes are sent to it, and the user's rules. */
 async function agentCommand(args: string[]) {
   const name = args[0];
   if (name === "--help" || name === "-h") usage(AGENT_HELP, 0);
+  if (name === "notes") {
+    if (args[1] !== "on" && args[1] !== "off") usage(AGENT_HELP);
+    saveSendNotes(args[1] === "on");
+    console.log(args[1] === "on" ? "Notes are sent to the agent from now on." : "Notes are not sent to the agent.");
+    return;
+  }
+  if (name === "rules") return rulesCommand(args.slice(1));
   if (name) {
     if (name !== "claude" && name !== "codex" && name !== "none") usage(AGENT_HELP);
     if (name !== "none" && !installedVersion(name)) console.log(dim(`${AGENT_NAME[name]} is not installed yet; install it and sign in before the next check.`));
@@ -131,8 +148,47 @@ async function agentCommand(args: string[]) {
   }
   const saved = savedAgent();
   console.log(saved ? `The agent is ${AGENT_NAME[saved]}${saved !== "none" ? ` (${installedVersion(saved) ? `version ${installedVersion(saved)}` : "not installed"})` : ""}.` : "No agent chosen yet.");
+  console.log(savedSendNotes() ? "Notes are sent to it." : "Notes are not sent to it.");
+  printRules();
   if (process.stdin.isTTY) await chooseAgent();
   else console.log(dim("Choose with ./touchdown agent claude, codex or none."));
+}
+
+function printRules() {
+  const own = savedRules();
+  if (!own.length) {
+    console.log(`Rules: none of your own, so this one applies:\n  ${dim(DEFAULT_AGENT_RULES.join("\n  "))}`);
+    return;
+  }
+  console.log("Your rules:");
+  own.forEach((r, i) => console.log(`  ${i + 1}  ${r}`));
+}
+
+function rulesCommand(args: string[]) {
+  const own = savedRules();
+  if (args[0] === "add") {
+    const text = args.slice(1).join(" ").trim();
+    if (!text) usage(AGENT_HELP);
+    if (text.length > 500) {
+      console.error(red("Keep a rule under 500 characters."));
+      process.exit(1);
+    }
+    saveRules([...own, text]);
+    console.log(`Added rule ${own.length + 1}.`);
+    return;
+  }
+  if (args[0] === "remove") {
+    const n = Number(args[1]);
+    if (!Number.isInteger(n) || n < 1 || n > own.length) {
+      console.error(red(own.length ? `Give a rule number from 1 to ${own.length}.` : "There are no rules of your own to remove."));
+      process.exit(1);
+    }
+    saveRules(own.filter((_, i) => i !== n - 1));
+    console.log(`Removed rule ${n}.`);
+    return;
+  }
+  if (args.length) usage(AGENT_HELP);
+  printRules();
 }
 
 const fmt = new Intl.NumberFormat("en-GB");

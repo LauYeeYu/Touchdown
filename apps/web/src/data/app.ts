@@ -40,8 +40,6 @@ export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "upda
   theme: "system",
   codeDisplay: "iata",
   modelNaming: "standard",
-  agentChecker: "claude",
-  sendNotesToAgent: false,
   homeAirportId: null,
   dataMode: null,
   storageBackend: "json_tables",
@@ -126,6 +124,9 @@ export class AppData {
     const points = byTable.get("track_points") ?? [];
     for (const t of tracks) points.push(...t.rows);
     if (points.length) byTable.set("track_points", points);
+    // Tables the schema no longer has (agent_rules went to the CLI in schema version 4) are removed here.
+    const gone = [...byTable.keys()].filter((t) => !(t in TABLES));
+    if (gone.length) void db.rows.where("table").anyOf(gone).delete();
     const problems: string[] = [];
     for (const [table, list] of byTable) {
       if (!(table in TABLES)) continue;

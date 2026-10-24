@@ -10,7 +10,6 @@ import {
   checkAll,
   checkBatchId,
   commitImport,
-  DEFAULT_AGENT_RULES,
   matchCandidates,
   fieldsOf,
   guessMapping,
@@ -108,16 +107,6 @@ function label(c: Candidate): { title: string; sub: string } {
   }
   const v = c.values;
   return { title: [v.registration, v.seenOn && dayMonthYear(v.seenOn)].filter(Boolean).join(" · ") || "Sighting", sub: [v.airportRaw, v.operatorRaw, v.typeCode].filter(Boolean).join(" · ") };
-}
-
-/** The user's rules for the agent (Settings), or the starting rule when they have none. */
-function agentRules(app: AppData): string[] {
-  const own = app.store
-    .all("agent_rules")
-    .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
-    .map((r) => r.text?.trim() ?? "")
-    .filter(Boolean);
-  return own.length ? own : DEFAULT_AGENT_RULES;
 }
 
 /** A spotting session's inbox (`touchdown spot`); a check request or result gets a pointer to where it belongs. */
@@ -337,8 +326,6 @@ export function ImportPage() {
     const { source, matches, findings } = prepared;
     const counts = { new: 0, update: 0, identical: 0, conflict: 0, duplicate: 0 };
     for (const m of matches) counts[m.kind]++;
-    const settings = app.settings();
-    const checker = settings.agentChecker === "codex" ? "codex" : "claude";
     const agentOf = new Map((agent?.records ?? []).map((r) => [r.recordId, r]));
     const agentRow = (i: number) => agentOf.get(recordIdOf(matches[i]!.candidate));
     const pending = (i: number) => {
@@ -395,15 +382,14 @@ export function ImportPage() {
         ) : (
         <AgentCheckPanel
           batchId={base.batchId}
-          checker={checker}
-          includeNotes={!!settings.sendNotesToAgent}
           ref={app.ref}
           request={() =>
             buildCheckRequest(base.source, app.ref, {
               batchId: base.batchId,
               findings: new Map([...asRead.findings].map(([i, list]) => [i, list.map((f) => f.message)])),
-              rules: agentRules(app),
-              includeNotes: !!settings.sendNotesToAgent,
+              // The CLI adds its own rules and leaves notes out unless it is set to send them.
+              rules: [],
+              includeNotes: true,
             })
           }
           result={agent}

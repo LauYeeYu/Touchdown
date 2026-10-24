@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -216,8 +216,6 @@ export const settings = table("settings", "settings", [
   c.enum("theme", ["system", "light", "dark"]),
   c.enum("codeDisplay", ["iata", "icao", "both"]),
   c.enum("modelNaming", ["standard", "compact"]),
-  c.enum("agentChecker", AGENT_CHECKERS),
-  c.boolean("sendNotesToAgent"),
   c.ref("homeAirportId", "airports"),
   c.enum("dataMode", DATA_MODES),
   c.enum("storageBackend", ["json_tables", "sqlite_file", "sqlite_local", "postgres", "d1"]),
@@ -230,8 +228,6 @@ export const familyOverrides = table("family_overrides", "user", [
   c.ref("designator", "aircraft_types"),
   c.ref("familyId", "families"),
 ]);
-
-export const agentRules = table("agent_rules", "user", [c.integer("seq"), c.text("text")]);
 
 export const savedViews = table("saved_views", "user", [
   c.text("name"),
@@ -299,7 +295,6 @@ export const TABLES = {
   issue_ack_records: issueAckRecords,
   settings,
   family_overrides: familyOverrides,
-  agent_rules: agentRules,
   saved_views: savedViews,
   saved_view_filters: savedViewFilters,
   airport_overrides: airportOverrides,

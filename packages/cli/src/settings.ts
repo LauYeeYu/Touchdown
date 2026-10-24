@@ -1,13 +1,13 @@
-// The CLI's own settings (data/private/touchdown-cli.json): which agent checks imports and spotting sessions, and
-// the spreadsheet layouts the user confirmed (by their headers).
-// The web app keeps its settings in the browser, so the two are chosen separately; the Import page names its
-// agent on the command it shows.
+// The CLI's own settings (data/private/touchdown-cli.json): which agent checks imports and spotting sessions,
+// whether notes are sent to it, the user's rules for it, and the spreadsheet layouts the user confirmed (by their
+// headers). The agent runs on this computer, so these are kept here, not in the log: each computer can use its own
+// agent (docs/22).
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline/promises";
-import type { Checker, ColumnField, RowKind } from "@touchdown/core";
+import { DEFAULT_AGENT_RULES, type Checker, type ColumnField, type RowKind } from "@touchdown/core";
 import { privatePath } from "./paths.ts";
 import { bold, dim } from "./term.ts";
 
@@ -19,6 +19,10 @@ export const AGENT_NAME: Record<AgentChoice, string> = { claude: "Claude Code", 
 
 interface CliSettings {
   agent?: AgentChoice;
+  /** Send records' notes to the agent; off unless the user turns it on. */
+  sendNotes?: boolean;
+  /** Plain sentences added to the agent's instructions; the starting rule applies while there are none. */
+  rules?: string[];
   /** Confirmed column layouts, by header signature: the field of each column, by position. */
   mappings?: Record<string, { kind: RowKind; fields: ColumnField[] }>;
 }
@@ -43,6 +47,28 @@ function write(s: CliSettings) {
 
 export function saveAgent(agent: AgentChoice): void {
   write({ ...read(), agent });
+}
+
+export const savedSendNotes = (): boolean => read().sendNotes === true;
+
+export function saveSendNotes(sendNotes: boolean): void {
+  write({ ...read(), sendNotes });
+}
+
+/** The user's own rules, without the starting rule. */
+export function savedRules(): string[] {
+  const r = read().rules;
+  return Array.isArray(r) ? r.filter((x): x is string => typeof x === "string" && !!x.trim()) : [];
+}
+
+/** The rules the agent is given: the user's own, or the starting rule while there are none. */
+export function agentRules(): string[] {
+  const own = savedRules();
+  return own.length ? own : DEFAULT_AGENT_RULES;
+}
+
+export function saveRules(rules: string[]): void {
+  write({ ...read(), rules });
 }
 
 export function savedMapping(signature: string): { kind: RowKind; fields: ColumnField[] } | null {

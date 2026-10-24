@@ -91,6 +91,29 @@ describe("schema versions", () => {
     expect(back.tables.get("flights")?.[0]).toMatchObject({ flightNumber: "XY1", basedOn: null });
   });
 
+  it("reads a version 3 backup, leaving out the agent settings that moved to the CLI", () => {
+    const store = new Store({ deviceId: "dev_a" });
+    store.insert("settings", { theme: "dark" }, "settings");
+    // Rewrite the backup as version 3 wrote it: the agent settings in settings, and an agent_rules table.
+    const files = unzipSync(backupZip(store));
+    for (const [path, data] of Object.entries(files)) {
+      const json = JSON.parse(strFromU8(data));
+      json.schemaVersion = 3;
+      if (json.table === "settings") {
+        json.columns.push("agentChecker", "sendNotesToAgent");
+        for (const r of json.rows) Object.assign(r, { agentChecker: "codex", sendNotesToAgent: true });
+      }
+      files[path] = strToU8(JSON.stringify(json));
+    }
+    files["Touchdown/tables/agent_rules.json"] = strToU8(JSON.stringify({ schema: "touchdown", schemaVersion: 3, table: "agent_rules", columns: ["id", "seq", "text"], rows: [{ id: "r1", seq: 1, text: "A rule." }] }));
+    const back = readBackup(zipSync(files));
+    expect(back.problems).toEqual([]);
+    const settings = back.tables.get("settings")?.[0];
+    expect(settings).toMatchObject({ theme: "dark" });
+    expect(settings).not.toHaveProperty("agentChecker");
+    expect(back.tables.has("agent_rules" as never)).toBe(false);
+  });
+
   it("records which other device's version an edit was based on, through later edits", () => {
     const a = new Store({ deviceId: "dev_a", now: () => Date.parse("2026-01-01T00:00:00Z") });
     const b = new Store({ deviceId: "dev_b", now: () => Date.parse("2026-01-01T00:00:05Z") });

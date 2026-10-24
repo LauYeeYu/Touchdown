@@ -15,7 +15,6 @@ import {
   checkAll,
   checkBatchId,
   commitImport,
-  DEFAULT_AGENT_RULES,
   matchCandidates,
   parseSource,
   readCheckRequest,
@@ -36,7 +35,7 @@ import { loadRefTables } from "@touchdown/refdata";
 import { findAgent, runAgent, type Agent } from "./agents.ts";
 import { readSheetFile } from "./columns.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
-import { agentForRun, AGENT_NAME } from "./settings.ts";
+import { agentForRun, AGENT_NAME, agentRules, savedSendNotes } from "./settings.ts";
 import { bold, colour, dim, duration, fit, green, plural, red, width as termWidth, wrap, yellow } from "./term.ts";
 
 export const PROMPT_FILE = join(import.meta.dirname, "../../../prompts/verifier.md");
@@ -69,14 +68,16 @@ Has an agent check the rows of an import and suggest corrections: Claude Code or
 your own subscription. The input is the check request saved from the Import page ("Check with an agent"), or
 the spreadsheet itself. The agent runs locked down: no tools, no MCP servers, no hooks, in an empty folder.
 It sees dates, airports, flight numbers, registrations, types, models, operators, liveries and phases; never
-ticket numbers, booking references, seats or photo links, and notes only with --notes.
+ticket numbers, booking references, seats or photo links. Notes go only after ./touchdown agent notes on,
+or with --notes for one run. The agent is also given your rules (./touchdown agent rules).
 
 The result is written next to the input (<name>.result.json, or --out). On the Import page, choose the same
 file and load the result to review the suggestions. Nothing changes until you accept them there.
 
   --agent NAME    claude or codex for this run (the first run asks which one; ./touchdown agent changes it)
   --limit N       check only the first N rows
-  --rules FILE    your own rules for the agent, one per line (a request from the Import page has its own)
+  --rules FILE    rules for this run, one per line, instead of the ones saved with ./touchdown agent rules
+  --notes         send notes this run
   --map H=FIELD   say what a spreadsheet column holds, by header or number ("Misc=other", "7=ignore")
   --all           list every suggestion here, not only the first 30
   --self-test     run the injection self-test again (it runs once per agent version)
@@ -158,6 +159,14 @@ export function findingsOf(source: ParsedSource, ref: RefIndex): Map<number, str
   return out;
 }
 
+/** --rules for this run, else the rules saved on this computer (or the starting rule). */
+function rulesFor(o: Options): string[] {
+  if (!o.rules) return agentRules();
+  return readFileSync(o.rules, "utf8").split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+}
+
+const sendNotes = (o: Options) => o.notes || savedSendNotes();
+
 async function readInput(o: Options, ref: RefIndex, agent: Agent | null): Promise<{ request: CheckRequest; what: string } | { error: string }> {
   if (!existsSync(o.input)) return { error: `${o.input}: no such file` };
   if (extname(o.input).toLowerCase() === ".json") {
@@ -168,14 +177,16 @@ async function readInput(o: Options, ref: RefIndex, agent: Agent | null): Promis
       return { error: `${o.input} is not valid JSON` };
     }
     const r = readCheckRequest(json);
-    return "error" in r ? { error: `${basename(o.input)}: ${r.error}` } : { request: r.request, what: `a check request from the Import page` };
+    if ("error" in r) return { error: `${basename(o.input)}: ${r.error}` };
+    // The request carries every row's notes; this computer's settings decide whether they are sent.
+    const records = sendNotes(o) ? r.request.records : r.request.records.map(({ notes: _, ...rec }) => rec);
+    return { request: { ...r.request, rules: rulesFor(o), records }, what: `a check request from the Import page` };
   }
   const read = await readSheetFile(o.input, ref, { maps: o.maps, agent, model: o.model, ask: true });
   if ("error" in read) return read;
   const { source } = read;
-  const rules = o.rules ? readFileSync(o.rules, "utf8").split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#")) : DEFAULT_AGENT_RULES;
   const batchId = await checkBatchId(new Uint8Array(readFileSync(o.input)));
-  const request = buildCheckRequest(source, ref, { batchId, findings: findingsOf(source, ref), rules, includeNotes: o.notes });
+  const request = buildCheckRequest(source, ref, { batchId, findings: findingsOf(source, ref), rules: rulesFor(o), includeNotes: sendNotes(o) });
   return { request, what: read.kind === "fr24" ? "a my.flightradar24.com export" : `a spreadsheet of ${read.kind}` };
 }
 

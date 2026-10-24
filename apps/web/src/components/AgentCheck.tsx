@@ -41,8 +41,6 @@ const BASIS: Record<AgentSuggestion["basis"], string> = {
 
 interface PanelProps {
   batchId: string;
-  checker: "claude" | "codex";
-  includeNotes: boolean;
   /** Built when the user saves it, from the rows as read (before any suggestion is used). */
   request: () => CheckRequest;
   ref: RefIndex;
@@ -53,13 +51,13 @@ interface PanelProps {
   onShow: () => void;
 }
 
-export function AgentCheckPanel({ batchId, checker, includeNotes, request, ref, result, counts, onResult, onUseHigh, onShow }: PanelProps) {
+export function AgentCheckPanel({ batchId, request, ref, result, counts, onResult, onUseHigh, onShow }: PanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const name = `touchdown-check-${batchId}`;
-  // The agent chosen in Settings is named on the command, so the CLI's own saved choice does not override it.
-  const command = `./touchdown check ~/Downloads/${name}.json --agent ${checker}`;
+  // The agent, its rules and whether notes are sent are the CLI's settings on that computer (docs/22).
+  const command = `./touchdown check ~/Downloads/${name}.json`;
 
   const load = async (file: File) => {
     setError(null);
@@ -145,7 +143,7 @@ export function AgentCheckPanel({ batchId, checker, includeNotes, request, ref, 
       <h2 className="agent-panel__title" id="agent-title">
         Check with an agent
       </h2>
-      <p className="agent-panel__lead">{CHECKER_NAME[checker]} on your computer looks for values that are well-formed but wrong, such as a type that does not fit the model or a livery spelled two ways, and suggests corrections. Nothing changes until you use one.</p>
+      <p className="agent-panel__lead">The Touchdown command runs Claude Code or Codex on your computer. It looks for values that are well-formed but wrong, such as a type that does not fit the model or a livery spelled two ways, and suggests corrections. Nothing changes until you use one.</p>
       <ol className="agent-steps">
         <li>
           <span className="agent-steps__text">Save the request.</span>
@@ -185,7 +183,7 @@ export function AgentCheckPanel({ batchId, checker, includeNotes, request, ref, 
         </li>
       </ol>
       <p className="agent-panel__note">
-        Sent: dates, airports, flight numbers, registrations, types, models, operators, liveries and phases{includeNotes ? ", and notes" : ""}. Never ticket numbers, booking references, seats or photo links{includeNotes ? "" : "; notes only if you allow it in Settings"}.
+        Sent to the agent: dates, airports, flight numbers, registrations, types, models, operators, liveries and phases; notes only after <code>./touchdown agent notes on</code>. Never ticket numbers, booking references, seats or photo links. The agent and its rules are set with <code>./touchdown agent</code>.
       </p>
       {loader}
       {error && <p className="agent-panel__error" role="alert">{error}</p>}

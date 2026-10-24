@@ -131,6 +131,6 @@ The user's notes, copied word for word. Each line is mapped to the requirement i
 
 ### Importing prompts
 
-Rules the user wants given to the agent during import checks ([22](22-agent-verification.md)). This list is expected to grow; it becomes the default `settings.agentRules`.
+Rules the user wants given to the agent during import checks ([22](22-agent-verification.md)). This list is expected to grow; it is the starting rule until the user keeps rules of their own with the CLI (`touchdown agent rules`).
 
 1. The aircraft type is not standard. Please use a standard one (like the one on flightradar24).

@@ -1,8 +1,8 @@
-// Settings (docs/31-ui.md): display, where the log lives (docs/32), data (backup, restore, CSV, delete), family
-// overrides, the agent check (docs/22: which agent, notes, the user's rules), sources.
+// Settings (docs/31-ui.md): display, sync mode (docs/32), data (backup, restore, CSV, delete), family overrides,
+// sources. The agent check's settings belong to the CLI on each computer (docs/22).
 
 import { useEffect, useState } from "react";
-import { backupZip, DEFAULT_AGENT_RULES, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
+import { backupZip, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
@@ -183,7 +183,6 @@ export function SettingsPage() {
   const [includePrivate, setIncludePrivate] = useState(false);
   const [designator, setDesignator] = useState("");
   const [family, setFamily] = useState("");
-  const [rule, setRule] = useState("");
   const [sources, setSources] = useState<string[]>([]);
   const [refVersion, setRefVersion] = useState("");
   // Whether the browser keeps the log when the disk runs low (main.tsx asks for that).
@@ -205,7 +204,6 @@ export function SettingsPage() {
   const set = (patch: Partial<Settings>) => app.updateSettings(patch);
   const families = [...ref.families.values()].sort((a, b) => a.name.localeCompare(b.name));
   const overrides = store.all("family_overrides");
-  const rules = store.all("agent_rules").sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
 
   const restore = async (file: File) => {
     const back = readBackup(new Uint8Array(await file.arrayBuffer()));
@@ -380,69 +378,6 @@ export function SettingsPage() {
         </button>
       </form>
 
-      <h2 className="form-section">Agent check</h2>
-      <p className="form-sub">On the Import page, Claude Code or Codex on your computer can check the rows and suggest corrections before you import them. Nothing is sent unless you run the check. Choose which agent the command uses and what it is told.</p>
-      <div className="form-grid">
-        <Field label="Agent">
-          <Segmented
-            label="Agent"
-            value={s.agentChecker === "codex" ? "codex" : "claude"}
-            onChange={(v) => v && set({ agentChecker: v })}
-            options={[
-              { value: "claude", label: "Claude Code" },
-              { value: "codex", label: "Codex" },
-            ]}
-          />
-        </Field>
-      </div>
-      <label className="check check--block">
-        <input type="checkbox" checked={!!s.sendNotesToAgent} onChange={(e) => set({ sendNotesToAgent: e.target.checked })} />
-        Send notes too. Notes can hold anything you typed, so they are not sent unless you allow it.
-      </label>
-      <h3 className="form-subsection">Your rules</h3>
-      <p className="form-sub">Plain sentences added to the agent's instructions, for example how you want types or liveries written.{rules.length ? "" : " Until you add one, this rule applies:"}</p>
-      {rules.length > 0 ? (
-        <ul className="rows overrides">
-          {rules.map((r) => (
-            <li key={r.id} className="history-row">
-              <span>{r.text}</span>
-              <button type="button" className="btn btn--quiet btn--small" onClick={() => store.remove("agent_rules", r.id)}>
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <ul className="rows overrides">
-          {DEFAULT_AGENT_RULES.map((r) => (
-            <li key={r} className="history-row history-row--muted">
-              <span>{r}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form
-        className="inline-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const text = rule.trim();
-          if (!text) return;
-          if (text.length > 500) {
-            toast("Keep a rule under 500 characters.");
-            return;
-          }
-          store.insert("agent_rules", { seq: Math.max(0, ...rules.map((r) => r.seq ?? 0)) + 1, text });
-          setRule("");
-          toast("Rule added. It is sent with the next check request.");
-        }}
-      >
-        <Field label="Add a rule" wide>
-          <TextInput value={rule} onChange={(e) => setRule(e.target.value)} placeholder="Write special liveries the way the airline names them." />
-        </Field>
-        <button type="submit" className="btn btn--quiet btn--small">
-          Add
-        </button>
-      </form>
 
       <h2 className="form-section">Reference data</h2>
       <p className="form-sub">Airports, airlines and aircraft types{refVersion ? `, built ${refVersion}` : ""}. Sources:</p>

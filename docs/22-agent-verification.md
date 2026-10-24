@@ -37,7 +37,8 @@ Decided, built. No agent is used unless the user chooses one:
 - The first `touchdown spot` or `touchdown check` at a terminal asks. No agent (lookups only) is the first choice and the default; Claude Code and Codex follow, each marked when it is not installed. The answer is saved in `data/private/touchdown-cli.json`.
 - `touchdown agent` shows the choice and changes it; `--agent` on a command overrides it for one run.
 - Without a terminal and without a saved choice, the command stops and says how to choose.
-- The web app keeps its own choice (Settings), and the command the Import page shows always names that agent, so the CLI's saved choice does not override it.
+- The agent runs on the user's computer, never on the website, so its settings belong to the CLI on each computer and are kept in `data/private/touchdown-cli.json`, not in the log: which agent, whether notes are sent (`touchdown agent notes on|off`, off at first; `--notes` for one run), and the user's rules (`touchdown agent rules`). Each computer can use a different agent. (Decided, built; schema version 4 removed them from the log)
+- The website has no agent settings. The command the Import page shows names no agent, so the CLI's choice on that computer applies. The request it saves carries every row's notes; the CLI leaves them out unless it is set to send them.
 
 ## Column help
 
@@ -52,7 +53,7 @@ Only what verification needs:
 
 | Included | Excluded |
 |----------|----------|
-| Record id, kind (sighting or flight); date, airport (sightings), flight number, airline, from, to (flights), registration, type code, model, operator, livery, special livery, phase; the value as typed where it differs | Ticket number, booking reference, seat, cabin, times, notes (unless the user allows them in Settings, `sendNotesToAgent`), photo links, anything from records not in the batch |
+| Record id, kind (sighting or flight); date, airport (sightings), flight number, airline, from, to (flights), registration, type code, model, operator, livery, special livery, phase; the value as typed where it differs | Ticket number, booking reference, seat, cabin, times, notes (unless the CLI is set to send them: `touchdown agent notes on` or `--notes`), photo links, anything from records not in the batch |
 | The deterministic findings' messages for these rows | OAuth tokens, API keys, file paths, the file's name |
 | Per call, the slice of reference data it needs: every type in the families of the types and models named, with their names and up to three example models; the operators and airports named | |
 | The user's rules (see below) | |
@@ -101,7 +102,7 @@ The CLI and the app both check the result:
 
 ## Verification rules (the "Importing prompts" tab)
 
-The user keeps a list of plain-language rules in Settings (the `agent_rules` table). They go in the request and are added to the agent's instructions. With none of the user's own, the starting rule from the user's "Importing prompts" notes ([00, Appendix A](00-requirements.md#appendix-a-original-requirement-notes)) applies:
+The user keeps a list of plain-language rules with the CLI on each computer (`touchdown agent rules`, `add "…"`, `remove N`; `--rules FILE` for one run). The CLI adds them to every request, also one saved from the Import page, and they go into the agent's instructions. With none of the user's own, the starting rule from the user's "Importing prompts" notes ([00, Appendix A](00-requirements.md#appendix-a-original-requirement-notes)) applies:
 
 1. The aircraft type is not standard. Please use a standard one (like the one on flightradar24).
 
@@ -170,4 +171,4 @@ Optional later: a direct model API mode (Anthropic or OpenAI API key, structured
 
 ## Open items
 
-- Notes: sent only when the user allows it in Settings (Decided). A per-batch choice on the Import page is Proposed.
+- Notes: sent only when the CLI on that computer is set to send them, or with `--notes` for one run (Decided, built).
