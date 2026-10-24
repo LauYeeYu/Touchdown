@@ -1,6 +1,6 @@
 // First run (docs/31, "First run"; docs/32): where the log lives, asked once per browser before the app opens.
-// Standard, the recommended mode, is preselected where the site offers it: its terms, then Google's page through
-// Touchdown's server. Private syncs through Google Drive or a folder on this computer; Local keeps it here.
+// Standard, the recommended mode, is preselected where the site offers it: its terms in a dialog (when Standard is
+// chosen, or on Continue), then Google's page through Touchdown's server. Private syncs through Google Drive or a folder on this computer; Local keeps it here.
 
 import { useEffect, useState } from "react";
 import { toUtcIso } from "@touchdown/core";
@@ -43,6 +43,7 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
   const [mode, setMode] = useState<Mode>("private");
   const [storage, setStorage] = useState<StorageKind>("gdrive");
   const [understood, setUnderstood] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,11 +108,21 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
         <div className="view-top" />
         <h1 className="lead">Sync mode</h1>
         <p className="form-sub">You can change it later in Settings.</p>
-        <ModeChoice value={mode} onChange={setMode} unavailable={std?.available ? {} : { standard: STANDARD_UNAVAILABLE }} notes={{ standard: STANDARD_NOTE }} />
-        {mode === "standard" && std && (
+        <ModeChoice
+          value={mode}
+          onChange={(m) => {
+            setMode(m);
+            setError(null);
+            if (m === "standard") setTermsOpen(true);
+          }}
+          unavailable={std?.available ? {} : { standard: STANDARD_UNAVAILABLE }}
+          notes={{ standard: STANDARD_NOTE }}
+        />
+        {std && (
           <StandardTerms
+            open={termsOpen && mode === "standard"}
             busy={!!busy}
-            problem={error}
+            problem={termsOpen ? error : null}
             onAccept={() => {
               setBusy("Going to Google…");
               void connectStandard(std, "/").then((p) => {
@@ -122,6 +133,7 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
               });
             }}
             onDecline={() => {
+              setTermsOpen(false);
               setError(null);
               setMode("private");
             }}
@@ -135,21 +147,22 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
           </>
         )}
         {mode === "local" && <LocalWarning understood={understood} onChange={setUnderstood} />}
-        {mode !== "standard" && (
-          <>
-            {error && (
-              <p className="status-line status-line--error" role="alert">
-                <Icon name="circle-x" />
-                <span>{error}</span>
-              </p>
-            )}
-            <div className="button-row">
-              <button type="button" className="btn btn--primary" disabled={!!busy || (mode === "local" && !understood)} onClick={() => void go()}>
-                {busy ?? (mode === "private" ? STORAGE_BUTTON[storage] : "Continue")}
-              </button>
-            </div>
-          </>
+        {error && !termsOpen && (
+          <p className="status-line status-line--error" role="alert">
+            <Icon name="circle-x" />
+            <span>{error}</span>
+          </p>
         )}
+        <div className="button-row">
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={!!busy || (mode === "local" && !understood)}
+            onClick={() => (mode === "standard" ? setTermsOpen(true) : void go())}
+          >
+            {busy ?? (mode === "private" ? STORAGE_BUTTON[storage] : "Continue")}
+          </button>
+        </div>
       </main>
     </>
   );

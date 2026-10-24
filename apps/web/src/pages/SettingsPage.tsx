@@ -34,6 +34,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   const [busy, setBusy] = useState(false);
   const [std, setStd] = useState<StandardStatus | null>(null);
   const [termsProblem, setTermsProblem] = useState<string | null>(null);
+  const [termsOpen, setTermsOpen] = useState(false);
   const sync = useSyncInfo(app);
   const conflicts = app.store.all("record_history").filter((h) => h.reason === "sync_conflict").length;
   const place = c && c.mode !== "local" ? c.name : null;
@@ -99,9 +100,19 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   return (
     <>
       <h2 className="form-section">Sync mode</h2>
-      <ModeChoice value={chosen} onChange={setChosen} unavailable={std?.available || current === "standard" ? {} : { standard: STANDARD_UNAVAILABLE }} notes={{ standard: STANDARD_NOTE }} />
-      {chosen === "standard" && current !== "standard" && std && (
+      <ModeChoice
+        value={chosen}
+        onChange={(m) => {
+          setChosen(m);
+          // Choosing Standard opens its terms; nothing changes until they are accepted.
+          if (m === "standard" && current !== "standard") setTermsOpen(true);
+        }}
+        unavailable={std?.available || current === "standard" ? {} : { standard: STANDARD_UNAVAILABLE }}
+        notes={{ standard: STANDARD_NOTE }}
+      />
+      {std && (
         <StandardTerms
+          open={termsOpen && chosen === "standard" && current !== "standard"}
           busy={busy}
           problem={termsProblem}
           onAccept={() => {
@@ -113,7 +124,11 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               }
             });
           }}
-          onDecline={cancel}
+          onDecline={() => {
+            setTermsOpen(false);
+            setTermsProblem(null);
+            cancel();
+          }}
         />
       )}
       {choosing && (

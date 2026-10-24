@@ -19,7 +19,7 @@ All three sit behind the sign-in (U3). The mode decides where the data lives and
 
 Decided (U4): Standard is the recommended mode. Private and Local are for users who want more privacy and accept what they give up. A user can switch at any time ([Changing mode](#changing-mode)).
 
-The choice is titled "Sync mode", and each mode has one short line (Decided, built). What Standard means for the user's storage is in the terms, shown when they choose it.
+The choice is titled "Sync mode", and each mode has one short line (Decided, built). What Standard means for the user's storage is in the terms, shown in a dialog when they choose it.
 
 | Mode | Line |
 |------|------|
@@ -98,7 +98,7 @@ Notes:
 
 ### Terms
 
-Decided (U5): the terms are shown when the user chooses Standard, at first run or in Settings, and say that Touchdown will have access and how it protects the data.
+Decided (U5): the terms are shown when the user chooses Standard, at first run or in Settings, and say that Touchdown will have access and how it protects the data. Built: they open in a modal dialog when Standard is chosen, and again on Continue at first run while Standard is selected, so they cannot be scrolled past. The text scrolls inside the dialog; "Accept and connect Google Drive" and "Not now" stay in view. Nothing else on the page can be used until the user answers; Escape is "Not now".
 
 - **Versions.** Each version has a number. The server records the version accepted and when, as a date-time with offset.
 - **Changes.** When the text changes, a user in Standard is asked again the next time they open the app. Declining offers Private or Local, as at first run. Until they answer, their links keep working.
