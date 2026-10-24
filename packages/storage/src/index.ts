@@ -4,5 +4,6 @@
 export * from "./types.ts";
 export * from "./version.ts";
 export * from "./memory.ts";
+export * from "./drive.ts";
 export * from "./jsonTables.ts";
 export * from "./sync.ts";
