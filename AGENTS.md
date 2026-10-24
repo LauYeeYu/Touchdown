@@ -8,7 +8,7 @@ Touchdown is a personal aircraft log: flights the user has flown on and aircraft
 
 ## Status
 
-The plan in `docs/` is approved. Phase 1 (core on real data) and phase 2 (web app on one device) from `docs/40-roadmap.md` are built, and so are the agent check of phase 5 (file hand-off) and the CLI spotting session (`touchdown spot`, a first part of phase 4's lookups). Phase 3 (sync) is under way: `packages/storage` has the JSON tables backend, the sync engine and the Google Drive adapter, and the web app syncs through Google Drive or a local folder in Private mode. The site's own sign-in (`packages/server`, docs/33) is built; the first deployment is next. When the code and a doc disagree, ask the user which one is right, then fix the other.
+The plan in `docs/` is approved. Phase 1 (core on real data) and phase 2 (web app on one device) from `docs/40-roadmap.md` are built, and so are the agent check of phase 5 (file hand-off) and the CLI spotting session (`touchdown spot`, a first part of phase 4's lookups). Phase 3 (sync) is under way: `packages/storage` has the JSON tables backend, the sync engine and the Google Drive adapter, and the web app syncs through Google Drive or a local folder in Private mode. The site's own sign-in (`packages/server`, docs/33) is built, and the site is deployed by GitHub Actions. `PRIVACY.md` and `TERMS.md` describe the hosted site; keep them true when what it stores or sends changes. When the code and a doc disagree, ask the user which one is right, then fix the other.
 
 ## Docs
 
@@ -65,6 +65,6 @@ Setup and day-to-day use for people are in `README.md`. `./touchdown <command>` 
 | `./touchdown spot [LINE… \| FILE.xlsx] [--at AIRPORT] [--fr24] [--agent codex\|none] [--map H=FIELD]` | Spotting session (docs/21): type aircraft one per line, or read a spreadsheet of sightings in any layout; each registration is looked up (the user's log, OpenSky, adsbdb, Flightradar24 with `--fr24`), empty fields are filled, the agent checks them, and what is still missing is asked for. Writes an inbox file in `data/private/inbox/` for the Import page. |
 | `npm run build -w @touchdown/web` | Type-check and build the web app into `apps/web/dist`. |
 | `npm run serve` | The server on any machine (`packages/server/src/serve.ts`): the built app behind the sign-in, accounts in `data/private/server.sqlite`, settings from the environment (`TOUCHDOWN_ORIGINS`, `SETUP_TOKEN`, …). |
-| `npm run preview -w @touchdown/web` | Serve the build at http://127.0.0.1:4173 with the hosted site's headers (`apps/web/worker/headers.ts`), to try its Content Security Policy. |
+| `npm run preview -w @touchdown/web` | Serve the build at http://127.0.0.1:4173 with the hosted site's headers (`packages/server/src/headers.ts`), to try its Content Security Policy. |
 | (GitHub Actions) | `.github/workflows/deploy.yml` tests, type-checks and builds every push to `master`, and deploys the Worker (`apps/web/wrangler.jsonc`, `apps/web/worker/`) with `wrangler` while the repository variable `DEPLOY` is `on`. Do not deploy by hand. |
 | `npm run build-data -w @touchdown/refdata` | Rebuild the reference tables in `packages/refdata/data/`. |
