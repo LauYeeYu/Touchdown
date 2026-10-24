@@ -5,41 +5,54 @@ import { useEffect, useState } from "react";
 import { backupZip, DEFAULT_AGENT_RULES, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
-import { canUseFolders, holdsLog, pickFolder } from "../data/folder.ts";
+import { chooseStorage, type StorageKind } from "../data/connection.ts";
+import { canUseFolders } from "../data/folder.ts";
+import { loadGoogle } from "../data/google.ts";
 import { momentLabel, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
-import { LocalWarning, ModeChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
+import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
 import { toast } from "../components/overlay.tsx";
 import { download } from "../lib/download.ts";
 import { FOLDERS_ONLY_HERE, STANDARD_LATER } from "./FirstRun.tsx";
 
 /** Where the log lives (docs/32): the mode, changing it, and how sync is going in Private mode. */
 function WhereTheLogLives({ app }: { app: AppData }) {
-  const current: Mode = app.connection?.mode ?? "local";
+  const c = app.connection;
+  const current: Mode = c?.mode ?? "local";
   const [chosen, setChosen] = useState<Mode>(current);
+  const [storage, setStorage] = useState<StorageKind>(c?.mode === "private" && c.adapter === "gdrive" && canUseFolders() ? "localfs" : "gdrive");
+  // In Private: choosing other storage.
+  const [moving, setMoving] = useState(false);
   const [understood, setUnderstood] = useState(false);
   const [busy, setBusy] = useState(false);
   const sync = useSyncInfo(app);
   const conflicts = app.store.all("record_history").filter((h) => h.reason === "sync_conflict").length;
-  const place = app.connection?.mode === "private" ? app.connection.name : null;
+  const place = c?.mode === "private" ? c.name : null;
+  const choosing = chosen === "private" && (current !== "private" || moving);
+
+  useEffect(() => {
+    if (choosing && storage === "gdrive") void loadGoogle().catch(() => undefined);
+  }, [choosing, storage]);
 
   const toPrivate = async () => {
     let picked;
     try {
-      picked = await pickFolder();
+      picked = await chooseStorage(storage);
     } catch (e) {
-      toast(`The folder could not be opened: ${(e as Error).message}`);
+      toast(`${storage === "gdrive" ? "Google Drive could not be connected" : "The folder could not be opened"}: ${(e as Error).message}`);
       return;
     }
     if (!picked) return;
+    const { connection } = picked;
     const hasLog = app.store.count("flights") + app.store.count("sightings") > 0;
-    if (hasLog && (await holdsLog(picked.folder)) && !window.confirm(`${picked.name} already holds a Touchdown log. Your log in this browser and that one will be merged; where both changed the same entry, the later change is kept and the other is kept in the log's history. Continue?`)) return;
+    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged; where both changed the same entry, the later change is kept and the other is kept in the log's history. Continue?`)) return;
     setBusy(true);
-    await app.connect({ mode: "private", adapter: "localfs", folder: picked.folder, name: picked.name, since: toUtcIso(Date.now()) });
+    await app.connect(connection);
     setBusy(false);
+    setMoving(false);
     const info = app.getSyncInfo();
-    toast(info?.state === "failed" ? `Could not sync with ${picked.name}.` : `Your log now syncs through ${picked.name}.`);
+    toast(info?.state === "failed" ? `Could not sync with ${connection.name}.` : `Your log now syncs through ${connection.name}.${place && place !== connection.name ? ` The copy in ${place} is left as it is.` : ""}`);
   };
 
   const toLocal = async () => {
@@ -49,18 +62,25 @@ function WhereTheLogLives({ app }: { app: AppData }) {
     toast(was ? `Your log is now kept in this browser only. The copy in ${was} is left as it is.` : "Your log is kept in this browser only.");
   };
 
+  const cancel = () => {
+    setChosen(current);
+    setMoving(false);
+  };
+
   return (
     <>
       <h2 className="form-section">Where your log lives</h2>
-      <ModeChoice value={chosen} onChange={setChosen} unavailable={{ standard: STANDARD_LATER, ...(!canUseFolders() && current !== "private" && { private: FOLDERS_ONLY_HERE }) }} />
-      {chosen !== current && chosen === "private" && (
+      <ModeChoice value={chosen} onChange={setChosen} unavailable={{ standard: STANDARD_LATER }} />
+      {choosing && (
         <>
-          <p className="form-sub">Choose a folder on this computer. Inside Dropbox, OneDrive, iCloud Drive or Google Drive for desktop, it carries your log to your other computers. Touchdown keeps its files in a Touchdown folder there.</p>
+          <h3 className="form-subsection">Sync through</h3>
+          <StorageChoice value={storage} onChange={setStorage} unavailable={canUseFolders() ? {} : { localfs: FOLDERS_ONLY_HERE }} />
+          <p className="form-sub">{STORAGE_NOTE[storage]}</p>
           <div className="button-row">
             <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void toPrivate()}>
-              {busy ? "Syncing…" : "Choose a folder"}
+              {busy ? "Syncing…" : STORAGE_BUTTON[storage]}
             </button>
-            <button type="button" className="btn btn--ghost" onClick={() => setChosen(current)}>
+            <button type="button" className="btn btn--ghost" onClick={cancel}>
               Cancel
             </button>
           </div>
@@ -73,24 +93,30 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <button type="button" className="btn btn--primary" disabled={!understood} onClick={() => void toLocal().then(() => setChosen("local"))}>
               Keep the log in this browser only
             </button>
-            <button type="button" className="btn btn--ghost" onClick={() => setChosen(current)}>
+            <button type="button" className="btn btn--ghost" onClick={cancel}>
               Cancel
             </button>
           </div>
         </>
       )}
       {chosen === current && current === "local" && <LocalWarning />}
-      {chosen === current && sync && (
+      {chosen === current && !moving && sync && (
         <>
           {sync.state === "permission" && (
             <p className="status-line">
-              <Icon name="folder" />
+              <Icon name={sync.adapter === "gdrive" ? "cloud" : "folder"} />
               <span>
-                Touchdown needs your permission to use {sync.place} again.{" "}
+                {sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`}{" "}
                 <button type="button" className="link-btn" onClick={() => void app.sync?.allow()}>
-                  Allow
+                  {sync.adapter === "gdrive" ? "Sign in" : "Allow"}
                 </button>
               </span>
+            </p>
+          )}
+          {sync.state === "permission" && sync.error && (
+            <p className="status-line status-line--error">
+              <Icon name="circle-x" />
+              <span>{sync.error}</span>
             </p>
           )}
           {sync.state === "syncing" && (
@@ -133,14 +159,17 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               </span>
             </p>
           )}
-          {sync.state !== "permission" && (
-            <div className="button-row">
+          <div className="button-row">
+            {sync.state !== "permission" && (
               <button type="button" className="btn btn--quiet btn--small" disabled={sync.state === "syncing"} onClick={() => void app.sync?.run()}>
                 <Icon name="refresh-cw" />
                 Sync now
               </button>
-            </div>
-          )}
+            )}
+            <button type="button" className="btn btn--quiet btn--small" onClick={() => setMoving(true)}>
+              Change where it syncs
+            </button>
+          </div>
         </>
       )}
     </>

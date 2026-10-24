@@ -31,7 +31,8 @@ import {
 } from "@touchdown/core";
 import { LAST_BACKUP, LAST_CHANGE, readConnection, saveConnection, setMeta, type Connection } from "./connection.ts";
 import { db } from "./db.ts";
-import { SyncController, type SyncInfo } from "./sync.ts";
+import { forgetGoogleToken } from "./google.ts";
+import { forgetSyncPosition, SyncController, type SyncInfo } from "./sync.ts";
 import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
 
 export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "deleted"> = {
@@ -230,11 +231,23 @@ export class AppData {
   async connect(c: Connection): Promise<void> {
     this.sync?.stop();
     this.sync = null;
+    const drive = (x: Connection | null) => x?.mode === "private" && x.adapter === "gdrive";
+    if (drive(this.connection) && !drive(c)) await forgetGoogleToken();
+    // The sync position belongs to the old storage: kept, it would make tracks the new one lacks look deleted.
+    await forgetSyncPosition();
     await saveConnection(c);
     this.connection = c;
-    this.updateSettings({ dataMode: c.mode, storageBackend: "json_tables", storageAdapter: c.mode === "local" ? "manual" : c.adapter });
+    const adapter = c.mode === "local" ? "manual" : c.adapter;
+    // Settings are a synced row: on a new device, written before the first sync they would replace the log's own.
+    const record = () => {
+      if (this.connection !== c) return;
+      this.updateSettings({ dataMode: c.mode, storageBackend: "json_tables", storageAdapter: adapter, storageAccount: c.mode === "private" && c.adapter === "gdrive" ? c.account : null });
+    };
     this.syncChanged();
+    if (c.mode === "local") record();
     await this.startSync();
+    // startSync set it; TypeScript still holds it as the null set above.
+    void (this.sync as SyncController | null)?.synced.then(record);
   }
 
   markBackup() {

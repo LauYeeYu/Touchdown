@@ -81,7 +81,7 @@ Prepared for change (Proposed):
 Proposed, for Google Drive:
 
 1. The app sends the browser to `/api/storage/connect?backend=gdrive`, behind the sign-in.
-2. The Worker redirects to Google's consent page. It uses the authorisation-code flow with PKCE, `access_type=offline`, the scopes `drive.file`, `openid` and `email`, and a `state` value tied to the signed-in user.
+2. The Worker redirects to Google's consent page. It uses the authorisation-code flow with PKCE, `access_type=offline`, the scope `drive.file` (the account's address comes from Drive's `about` request, as in Private), and a `state` value tied to the signed-in user.
 3. Google returns to `/api/storage/callback`. The Worker exchanges the code using the client secret (a Worker secret), then encrypts and stores the refresh token. The access token is not stored.
 4. From then on, the browser gets short-lived access tokens for its own sync from `/api/storage/token`, instead of Google's popup. The refresh token never leaves the server.
 
@@ -200,7 +200,7 @@ Protection (Proposed):
 ## Private mode
 
 As in [12](12-storage-and-sync.md):
-- **Connecting.** The browser connects to the storage itself: Google sign-in with the token in memory, or a local folder through the browser.
+- **Connecting.** The browser connects to the storage itself: Google's sign-in popup, or a local folder through the browser (built). A Google token lasts an hour and stays in the browser until then; after that, sync waits until the user clicks "Sign in" ([12](12-storage-and-sync.md), "Google Drive details"). Not having to sign in again is one of the things Standard gives.
 - **Server.** It keeps nothing about the user.
 - **Sharing.** There are no Share buttons.
 - **CLI inbox.** It works as in [21](21-import-export.md).

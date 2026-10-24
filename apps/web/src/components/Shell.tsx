@@ -34,7 +34,9 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null):
   const last = sync.lastAt ? ` Last synced ${momentLabel(sync.lastAt)}.` : "";
   switch (sync.state) {
     case "permission":
-      return { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.`, icon: "folder", bad: true };
+      return sync.adapter === "gdrive"
+        ? { text: "Sign in to sync", title: `Sign in to Google again to sync with ${sync.place}.${last}`, icon: "cloud", bad: true }
+        : { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
     case "failed":
       return { text: "Not synced", title: `Could not sync with ${sync.place}: ${sync.error}.${last}`, icon: "refresh-cw", bad: true };
     case "syncing":
@@ -196,14 +198,15 @@ export function Shell() {
       </header>
       {sync?.state === "permission" && (
         <NoteBar
-          icon="folder"
+          icon={sync.adapter === "gdrive" ? "cloud" : "folder"}
           actions={
             <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.allow()}>
-              Allow
+              {sync.adapter === "gdrive" ? "Sign in" : "Allow"}
             </button>
           }
         >
-          Touchdown needs your permission to use {sync.place} again. Until then, changes are kept in this browser.
+          {sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`} Until then, changes are kept in this browser.
+          {sync.error && ` ${sync.error}`}
         </NoteBar>
       )}
       {backupDue && !backupLater && (

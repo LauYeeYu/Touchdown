@@ -11,6 +11,7 @@ None. Phase 1 test data is in `data/private/`.
 | Id | Question | Phase | Proposed default |
 |----|----------|-------|------------------|
 | Q-SERVER-DB | For the later server backends (Postgres / Supabase, Cloudflare D1): does each user bring their own instance, or does the owner host one for friends (their data would then sit in the owner's account)? | Later | Each user brings their own. |
+| Q-DRIVE-RENEW | In Private mode with Google Drive, a sign-in lasts an hour, and renewing it needs a click (browsers open Google's popup only on one). Keep the "Sign in" bar, or also renew when the app opens by sending the whole page to Google and back (no click while the user is signed in to Google, about a second's detour, and the redirect address registered in Google Cloud)? | 3 | Keep the bar; decide after using it. |
 | Q-TERMS-TEXT | The owner reviews the draft terms in [32](32-modes-and-sharing.md) before Standard mode launches. Does the text also need a lawyer's review? | 8 | The owner's review is enough for a small invited group. |
 | Q-USER-REMOVAL | When the owner removes someone from the allowlist, what happens to their Standard-mode data on the server? | 8 | Deleted with a command for the operator; their links stop. |
 | Q-PHOTO-PICKER | Use the Google Photos Picker to fill a sighting's date and time from a photo? (Google does not provide the photo's location.) | Later | Not in the first version. |

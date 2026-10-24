@@ -161,6 +161,12 @@ Touchdown/
 - Sync: download the file, merge its rows into the local store by the rules above, write a new file, upload it. The whole file is replaced on each push; the pending queue covers concurrent writes, as for JSON tables.
 - Users can open the file with any SQLite tool. Editing it outside the app is possible; the app validates every row on the next sync and rejects invalid ones.
 
+## Switching storage
+
+Moving the log to other storage (another folder, Google Drive, another account) starts sync over: the sync position (the versions of the files last read) is cleared, so every row is compared with the new storage, and edits still waiting stay queued. Kept, the old position would make tracks the new storage lacks look deleted. (Decided, built)
+
+On a device joining a log, the mode and storage account are written into `settings` after the first sync, so the log's settings row is edited, not replaced by the new device's defaults. (Decided, built)
+
 ## Switching backends
 
 Both file backends hold the same tables, so converting is lossless: the app reads everything from one backend and writes it to the other ("Convert to SQLite" / "Convert to JSON tables" in settings). The same path will move data to a server backend later.
@@ -187,7 +193,7 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 
 | Adapter | How | Sync across devices | Notes |
 |---------|-----|---------------------|-------|
-| Google Drive | Drive API v3 from the browser, OAuth scope `drive.file`. | Yes | First adapter. Details below. |
+| Google Drive | Drive API v3 from the browser, OAuth scope `drive.file`. | Yes | First adapter, built. Details below. |
 | Local folder | File System Access API (Chromium desktop browsers). | Yes, if the folder is inside a Dropbox / OneDrive / iCloud / Google Drive desktop sync folder. | Gives other sync services on desktop. Not available on Android, so a phone syncs through an adapter that reaches the storage over the internet: Google Drive first, later Dropbox, OneDrive or a server backend. |
 | Manual file | Export a `.zip` of the folder; import it on another device. | Manual | Works everywhere. The adapter of Local mode. |
 | Dropbox API, OneDrive API | Later, if a friend needs it. | Yes | Dropbox has an "App folder" mode. OneDrive has no per-file scope like `drive.file`. |
@@ -202,11 +208,16 @@ CSV export/import per table is available with every backend. It is the fallback 
 
 ## Google Drive details
 
-- Scope: `drive.file` only, plus `openid` and `email`. `drive.file` is a non-sensitive scope: the app can only see files it created or files the user picked with the Google Picker.
+- Scope: `drive.file` only. It is a non-sensitive scope: the app can only see files it created or files the user picked with the Google Picker. The account's address (`settings.storageAccount`) comes from Drive's own `about` request, so no sign-in scopes (`openid`, `email`) are asked for.
 - With only non-sensitive scopes, Google does not require app verification. Publish the OAuth app as **In production**, not **Testing**: in Testing mode, consent expires after 7 days.
 - Do not request `drive`, `drive.readonly` (restricted), or `spreadsheets` (sensitive). They would trigger verification and a 100-user cap on the unverified-app screen.
 - Reading a user's existing Google Sheets for a one-time import: the user picks the sheet with the Google Picker (with `setAppId` set to the Cloud project number). That grants `drive.file` access to that one file, and the Sheets API accepts it.
-- Private mode: the OAuth token lives in memory in the browser (Google Identity Services token flow), and nothing is stored on a server. Standard mode: the server keeps an encrypted refresh token and gives the browser short-lived access tokens ([32](32-modes-and-sharing.md)).
+- Private mode: the browser gets an access token with Google Identity Services' token flow, in a popup. The token lasts an hour and is kept in the browser (IndexedDB) until then, never on a server. Browsers open the popup only on a click, so when the token runs out, sync waits with a "Sign in" bar and the edits stay queued; while the user is signed in to Google, the popup closes by itself (Q-DRIVE-RENEW). Signing in as another Google account than the log's is refused. Standard mode: the server keeps an encrypted refresh token and gives the browser short-lived access tokens ([32](32-modes-and-sharing.md)).
+- Built (`packages/storage/src/drive.ts`, plain `fetch`, so the CLI can use it too; the browser's sign-in is `apps/web/src/data/google.ts`):
+  - The Touchdown folder is made in My Drive and carries an app property (`touchdown=log`), so it is found wherever the user moves it and whatever they rename it to.
+  - Drive finds files by id, and a folder may hold two files with the same name. Paths are looked up by name in their folder. When two devices create the same file or folder at the same moment, each checks right after, the older one is used, and the newer one is removed (its content written into the older one).
+  - A file's version is its MD5 checksum. A folder listed in the last 30 seconds answers "not there" without asking Drive again.
+  - Files over 5 MB go up as resumable uploads. Rate limits and server errors are retried four times, waiting 1, 2, 4 and 8 seconds. A refused token is dropped; with no other token, sync waits for sign-in.
 - Quotas (Drive: 325,000 quota units per minute per user) are far above what a personal log needs. Google announced quota changes and charges above "standard daily thresholds" later in 2026; recheck before launch.
 
 ## What is never stored in user data

@@ -1,15 +1,21 @@
-// Syncing the log through the user's storage in Private mode (docs/12, "Sync algorithm"): when the app opens, a
-// few seconds after an edit, when the tab comes back into view or the network returns, and every few minutes.
+// Syncing the log through the user's storage in Private mode (docs/12, "Sync algorithm"), a local folder or Google
+// Drive: when the app opens, a few seconds after an edit, when the tab comes back into view or the network returns,
+// and every few minutes.
 
 import type { Store } from "@touchdown/core";
-import { JsonTablesBackend, SyncEngine, type SyncState, type SyncStateStore } from "@touchdown/storage";
-import type { PrivateConnection } from "./connection.ts";
+import { GoogleDrive, JsonTablesBackend, SignInNeeded, SyncEngine, type FileAdapter, type SyncState, type SyncStateStore } from "@touchdown/storage";
+import type { PrivateConnection, StorageKind } from "./connection.ts";
 import { db } from "./db.ts";
 import { folderAllowed, LocalFolder } from "./folder.ts";
+import { GoogleSignIn, loadGoogle, SignInCancelled } from "./google.ts";
 
 export interface SyncInfo {
-  /** "permission": the browser needs the user's click to use the folder again. */
+  /**
+   * "permission": sync waits for the user's click, to use the folder again or to sign in to Google again (a
+   * token lasts an hour).
+   */
   state: "permission" | "syncing" | "synced" | "failed";
+  adapter: StorageKind;
   /** Where the log syncs to, as the user knows it. */
   place: string;
   /** When the last sync finished, in milliseconds. */
@@ -24,6 +30,29 @@ export interface SyncInfo {
 const AFTER_EDIT_MS = 3000;
 const CONFIRM_MS = 1500;
 const EVERY_MS = 5 * 60_000;
+
+/** The storage's files, and whether this browser may use them now; with `ask`, inside a click, it may ask. */
+interface Storage {
+  files: FileAdapter;
+  ready(ask: boolean): Promise<boolean>;
+}
+
+function storageFor(c: PrivateConnection): Storage {
+  if (c.adapter === "localfs") return { files: new LocalFolder(c.folder), ready: (ask) => folderAllowed(c.folder, ask) };
+  const google = new GoogleSignIn(c.account);
+  // Ready before the user clicks Sign in, so Google's window opens at once.
+  void loadGoogle().catch(() => undefined);
+  return {
+    files: new GoogleDrive(google),
+    ready: async (ask) => (await google.ready()) || (ask && !!(await google.signIn())),
+  };
+}
+
+/** Sync starts over with another storage: rows are compared again, and what is still to send stays queued. */
+export async function forgetSyncPosition(): Promise<void> {
+  const state = (await db.meta.get("sync"))?.value as SyncState | undefined;
+  if (state) await db.meta.put({ key: "sync", value: { ...state, cursor: {} } });
+}
 
 class StoredSyncState implements SyncStateStore {
   async load() {
@@ -41,12 +70,17 @@ export class SyncController {
   private cleanups: (() => void)[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  private readonly storage: Storage;
+  private markSynced!: () => void;
+  /** Resolves once a sync has finished, so the storage's rows are here. */
+  readonly synced = new Promise<void>((resolve) => (this.markSynced = resolve));
 
   constructor(
     private readonly store: Store,
     readonly connection: PrivateConnection,
   ) {
-    this.info = { state: "syncing", place: connection.name, lastAt: null, waiting: 0, problems: [], error: null };
+    this.storage = storageFor(connection);
+    this.info = { state: "syncing", adapter: connection.adapter, place: connection.name, lastAt: null, waiting: 0, problems: [], error: null };
   }
 
   subscribe = (fn: () => void) => {
@@ -59,30 +93,41 @@ export class SyncController {
     for (const l of this.listeners) l();
   }
 
-  /** Start syncing. Without the folder permission, wait for `allow`. */
+  /** Start syncing. Without the folder permission or a Google token, wait for `allow`. */
   async start(): Promise<void> {
-    if (!(await folderAllowed(this.connection.folder, false))) {
+    if (!(await this.storage.ready(false))) {
       this.set({ state: "permission" });
       return;
     }
     await this.begin();
   }
 
-  /** Ask for the folder permission again. Browsers only allow this inside a click. */
-  async allow(): Promise<boolean> {
-    if (!(await folderAllowed(this.connection.folder, true))) return false;
-    await this.begin();
-    return true;
+  /** Ask for the folder permission, or sign in to Google, again. Browsers only allow this inside a click. */
+  async allow(): Promise<void> {
+    try {
+      if (!(await this.storage.ready(true))) return;
+    } catch (e) {
+      if (!(e instanceof SignInCancelled)) this.set({ error: (e as Error).message });
+      return;
+    }
+    this.set({ error: null });
+    if (this.engine) await this.run();
+    else await this.begin();
+  }
+
+  private failed(e: unknown) {
+    if (e instanceof SignInNeeded) this.set({ state: "permission", error: null, waiting: this.engine?.waiting ?? 0 });
+    else this.set({ state: "failed", error: (e as Error).message, waiting: this.engine?.waiting ?? 0 });
   }
 
   private async begin() {
     if (this.engine || this.stopped) return;
     this.set({ state: "syncing" });
-    const backend = new JsonTablesBackend(new LocalFolder(this.connection.folder), this.store.deviceId);
+    const backend = new JsonTablesBackend(this.storage.files, this.store.deviceId);
     try {
       await backend.open();
     } catch (e) {
-      this.set({ state: "failed", error: (e as Error).message });
+      this.failed(e);
       return;
     }
     const engine = new SyncEngine(this.store, backend, new StoredSyncState());
@@ -119,6 +164,11 @@ export class SyncController {
   /** Sync now. `full` reads every table file again. */
   async run(full = false): Promise<void> {
     if (!this.engine || this.stopped) return;
+    // Without a token, wait for the user to sign in; edits stay queued meanwhile.
+    if (this.info.state === "permission" && !(await this.storage.ready(false))) {
+      this.set({ waiting: this.engine.waiting });
+      return;
+    }
     this.set({ state: "syncing" });
     try {
       const report = await this.engine.sync({ full });
@@ -130,8 +180,9 @@ export class SyncController {
         return;
       }
       this.set({ state: "synced", lastAt: Date.now(), waiting, problems: report.problems, error: null });
+      this.markSynced();
     } catch (e) {
-      this.set({ state: "failed", error: (e as Error).message, waiting: this.engine.waiting });
+      this.failed(e);
     }
   }
 
