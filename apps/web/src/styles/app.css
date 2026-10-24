@@ -3716,6 +3716,13 @@ a.wordmark {
   white-space: nowrap;
 }
 
+.commit-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* A page with a commit bar (the import review) has its own main action; the floating Add button would cover it. */
 body:has(.commit-bar) .fab-wrap,
 body:has(.column-mapping) .fab-wrap {

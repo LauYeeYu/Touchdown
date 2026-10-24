@@ -288,6 +288,16 @@ export function ImportPage() {
     toast(`Imported: ${plural(r.created, "new record")}, ${plural(r.updated, "record")} filled in${r.merged ? `, ${plural(r.merged, "repeat")} merged` : ""}.`);
   };
 
+  /** The file from the inbox under review is not wanted: it is deleted, and nothing goes into the log. */
+  const discardReviewed = (name: string) => {
+    const w = waiting.find((x) => x.name === name);
+    const what = w ? recordsText(w.flights, w.sightings) : plural(base?.source.rowsRead ?? 0, "record");
+    if (!window.confirm(`Discard this file? The ${what} in it ${(w?.waiting ?? base?.source.rowsRead) === 1 ? "is" : "are"} not added to your log, and the file is deleted from the inbox.`)) return;
+    setBase(null);
+    setOrigin(null);
+    void discardSession(app, name).then(() => toast("Discarded: the file is deleted from the inbox."));
+  };
+
   const setDecision = (i: number, patch: Partial<CommitDecision>) => setDecisions((d) => new Map(d).set(i, { ...(d.get(i) ?? {}), ...patch }));
 
   if (choosingColumns && columns) {
@@ -358,7 +368,14 @@ export function ImportPage() {
     return (
       <div className="page page--wide">
         <nav className="crumbs" aria-label="Back">
-          <button type="button" className="link-btn" onClick={() => setBase(null)}>
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => {
+              setBase(null);
+              setOrigin(null);
+            }}
+          >
             <Icon name="arrow-left" /> Choose another file
           </button>
         </nav>
@@ -544,10 +561,17 @@ export function ImportPage() {
             {plural(toImport, "row")} will be imported{skipped ? `, ${skipped} skipped` : ""}
             {agentCounts.used ? `, with ${plural(agentCounts.used, "agent suggestion")}` : ""}. Checks are saved with the records and can be fixed later under Issues. You can undo the whole import.
           </p>
-          <button type="button" className="btn btn--primary" onClick={commit} disabled={!toImport}>
-            <Icon name="check" />
-            Import {plural(toImport, "row")}
-          </button>
+          <div className="commit-bar__actions">
+            {origin && (
+              <button type="button" className="btn btn--ghost" onClick={() => discardReviewed(origin)}>
+                Discard this file
+              </button>
+            )}
+            <button type="button" className="btn btn--primary" onClick={commit} disabled={!toImport}>
+              <Icon name="check" />
+              Import {plural(toImport, "row")}
+            </button>
+          </div>
         </div>
       </div>
     );
