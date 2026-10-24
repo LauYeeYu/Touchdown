@@ -73,7 +73,8 @@ declare module "@tanstack/react-router" {
 // read twice and the local backup could be loaded twice.
 let booting: Promise<AppData> | null = null;
 
-async function followStandard(app: AppData) {
+/** Follows the account's Standard connection; `connecting` is called before the first sync, which can take a while. */
+async function followStandard(app: AppData, connecting: () => void) {
   const params = new URLSearchParams(location.search);
   const back = params.get("storage") === "connected";
   if (back) {
@@ -86,6 +87,7 @@ async function followStandard(app: AppData) {
   const st = await standard.status().catch(() => null);
   if (!st?.connected || !st.account || st.status !== "ok") return;
   if (!back && c?.mode === "private" && c.adapter === "gdrive" && c.account !== st.account) return;
+  connecting();
   await app.connect(standardConnection(st.account, toUtcIso(Date.now())));
 }
 
@@ -116,8 +118,17 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
             ? "Loading airports, airlines and aircraft types…"
             : `Preparing ${nf.format(records)} records…`;
     report({ at, text: text() });
+    // A step with no measure of its own (asking the server, the first sync of a log from Google Drive) moves the bar
+    // slowly towards `to`, so it never stands still. Returns the function that stops it.
+    const creep = (to: number, t: string) => {
+      report({ at, text: t });
+      const timer = setInterval(() => report({ at: (at += (to - at) * 0.06), text: t }), 300);
+      return () => clearInterval(timer);
+    };
     // Whose log to open (docs/33): each account has its own copy in the browser.
+    const checked = creep(START + 0.04, "Checking your account…");
     const me = await whoAmI();
+    checked();
     if (me === "signed-out" && !import.meta.env.DEV) {
       location.assign(`/signin?next=${encodeURIComponent(location.pathname + location.search)}`);
       return new Promise<AppData>(() => {});
@@ -140,7 +151,9 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     }
     // Standard (docs/32): back from connecting Google Drive, or a browser that has not chosen yet, or one syncing the
     // same Google Drive in Private, follows the account's Standard connection by itself.
-    if (typeof me === "object") await followStandard(opened);
+    let stopCreep = () => {};
+    if (typeof me === "object") await followStandard(opened, () => (stopCreep = creep(PREPARED - 0.02, "Reading your log from Google Drive…")));
+    stopCreep();
     // A browser that held a log before the data modes existed keeps it here: Local (docs/32).
     if (!opened.connection && (opened.store.count("flights") || opened.store.count("sightings"))) await opened.connect({ mode: "local", since: toUtcIso(Date.now()) });
     // Private mode syncs in the background; the page shows the copy in this browser meanwhile.
