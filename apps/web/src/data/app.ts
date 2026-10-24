@@ -8,6 +8,7 @@ import {
   commitImport,
   normaliseFlight,
   normaliseSighting,
+  namedOperator,
   operatorFromOverride,
   RefIndex,
   resolveAirframes,
@@ -332,9 +333,17 @@ export class AppData {
     });
   }
 
+  /** A company's name in the airline field ("Hyundai") becomes the user's own operator, as on import. */
+  private withNamedOperator<T extends Partial<FlightValues> | Partial<SightingValues>>(v: T, raw: "airlineRaw" | "operatorRaw", id: "airlineId" | "operatorId"): T {
+    const values = v as Record<string, unknown>;
+    if (values[id]) return v;
+    const op = namedOperator(this.store, this.ref, values[raw] as string | null);
+    return op ? ({ ...v, [id]: op.id } as T) : v;
+  }
+
   saveFlight(values: Partial<FlightValues>, id?: string): Row<"flights"> {
     return this.store.batch(() => {
-      const v = normaliseFlight(values, this.ref);
+      const v = this.withNamedOperator(normaliseFlight(values, this.ref), "airlineRaw", "airlineId");
       let row: Row<"flights">;
       if (id) {
         this.history("flights", id);
@@ -347,7 +356,7 @@ export class AppData {
 
   saveSighting(values: Partial<SightingValues>, id?: string, tags?: string[]): Row<"sightings"> {
     return this.store.batch(() => {
-      const v = normaliseSighting(values, this.ref);
+      const v = this.withNamedOperator(normaliseSighting(values, this.ref), "operatorRaw", "operatorId");
       let row: Row<"sightings">;
       if (id) {
         this.history("sightings", id);
@@ -362,7 +371,7 @@ export class AppData {
   saveSightings(list: { values: Partial<SightingValues>; tags?: string[] }[]): number {
     return this.store.batch(() => {
       for (const item of list) {
-        const row = this.store.insert("sightings", { sourceKind: "manual", ...normaliseSighting(item.values, this.ref) });
+        const row = this.store.insert("sightings", { sourceKind: "manual", ...this.withNamedOperator(normaliseSighting(item.values, this.ref), "operatorRaw", "operatorId") });
         if (item.tags?.length) this.setTags(row.id, item.tags);
       }
       this.resolve();
@@ -435,7 +444,9 @@ export class AppData {
     });
   }
 
-  applyFix(fix: SuggestedFix) {
+  /** Apply a suggested fix; returns what to tell the user when it did more than the one record. */
+  applyFix(fix: SuggestedFix): string | null {
+    if (fix.operatorName) return this.addNamedOperator(fix.operatorName);
     this.store.batch(() => {
       this.history(fix.table, fix.id);
       const patch: Record<string, unknown> = { [fix.field]: fix.value };
@@ -445,6 +456,31 @@ export class AppData {
       this.store.update(fix.table, fix.id, patch as never);
       this.resolve();
     });
+    return null;
+  }
+
+  /** Add a name as the user's own operator and link every flight and sighting that has it and no known operator. */
+  private addNamedOperator(name: string): string {
+    const key = (s: string | null) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    let linked = 0;
+    this.store.batch(() => {
+      const op = namedOperator(this.store, this.ref, name);
+      if (!op) return;
+      for (const f of this.store.all("flights")) {
+        if (this.ref.operator(f.airlineId) || key(f.airlineRaw) !== key(name)) continue;
+        this.history("flights", f.id);
+        this.store.update("flights", f.id, { airlineId: op.id });
+        linked++;
+      }
+      for (const s of this.store.all("sightings")) {
+        if (this.ref.operator(s.operatorId) || key(s.operatorRaw) !== key(name)) continue;
+        this.history("sightings", s.id);
+        this.store.update("sightings", s.id, { operatorId: op.id });
+        linked++;
+      }
+      this.resolve();
+    });
+    return `${name.trim()} is now one of your operators; ${linked === 1 ? "1 entry is" : `${linked} entries are`} linked to it.`;
   }
 
   acceptFinding(f: Finding, note: string | null = null) {

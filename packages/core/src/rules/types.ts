@@ -16,6 +16,11 @@ export interface SuggestedFix {
   value: string | number | boolean | null;
   also?: { field: string; value: string | number | boolean | null }[]; // further fields changed together
   label: string; // what accepting does, e.g. "Set type code to B752"
+  /**
+   * Add this name as the user's own operator, and set `field` to it on every record that has the name and no
+   * operator (`value` is unused). For an airline field holding a company's name ("Hyundai").
+   */
+  operatorName?: string;
 }
 
 export interface Finding {

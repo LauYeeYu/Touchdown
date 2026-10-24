@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFlightTimes, commitImport, matchCandidates, parseSource, readCsv, undoImport, checkAll } from "../src/index.ts";
 import { newStore, ref, refTables } from "./fixtures.ts";
-import { RefIndex } from "../src/index.ts";
+import { namedOperator, normaliseSighting, RefIndex } from "../src/index.ts";
 
 // Made-up rows in the myFR24 export format (19 columns, leading empty line).
 const FR24 = `
@@ -250,5 +250,23 @@ N1001X,45001,KBOS,Delta Air Lines,US,Boeing,B737,B738,B737-8H4,Parked,,`;
     expect(s[1]!.operatorId).toBe(ops[0]!.id);
     expect(s[2]!.operatorId).toBe("op_dal"); // a known airline's name resolves to it
     expect(checkAll(store, local, { today: "2026-10-01" }).some((f) => f.ruleId === "V-OPERATOR-KNOWN")).toBe(false);
+  });
+
+  it("offers a name typed in the app as the user's own operator, and adds it once", () => {
+    const local = new RefIndex(refTables);
+    const store = newStore();
+    store.insert("sightings", normaliseSighting({ seenOn: "2026-05-01", airportRaw: "KBOS", registrationRaw: "G-ABCD", operatorRaw: "Example Motors" }, local));
+    store.insert("sightings", normaliseSighting({ seenOn: "2026-05-01", airportRaw: "KBOS", registrationRaw: "G-ABCE", operatorRaw: "QQQ" }, local));
+    const fixes = checkAll(store, local, { today: "2026-10-01" })
+      .filter((f) => f.ruleId === "V-OPERATOR-KNOWN")
+      .map((f) => f.fixes.map((x) => [x.operatorName, x.label]));
+    expect(fixes).toEqual([[["Example Motors", "Add Example Motors as your own operator"]], []]);
+
+    const op = namedOperator(store, local, "Example Motors")!;
+    expect(namedOperator(store, local, "example  motors")!.id).toBe(op.id);
+    // Another device's reference index has not seen it yet: the stored operator is found, not added again.
+    expect(namedOperator(store, new RefIndex(refTables), "Example Motors")!.id).toBe(op.id);
+    expect(store.all("operator_overrides")).toHaveLength(1);
+    expect(namedOperator(store, local, "QQQ")).toBeNull();
   });
 });

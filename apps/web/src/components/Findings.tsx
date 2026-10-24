@@ -25,8 +25,7 @@ export function FindingItem({ f, showRule = false, children }: { f: Finding; sho
                 type="button"
                 className="btn btn--quiet btn--small"
                 onClick={() => {
-                  app.applyFix(fix);
-                  toast("Fixed. The raw value you typed is kept.");
+                  toast(app.applyFix(fix) ?? "Fixed. The raw value you typed is kept.");
                 }}
               >
                 <Icon name="check" />

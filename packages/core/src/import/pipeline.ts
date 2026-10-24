@@ -1,6 +1,6 @@
 // Match, commit and undo (docs/21-import-export.md, stages 4–10 and "Undo").
 
-import { looksLikeOperatorName, operatorFromOverride, type RefIndex } from "../ref/index.ts";
+import { looksLikeOperatorName, operatorFromOverride, type Operator, type RefIndex } from "../ref/index.ts";
 import type { Flight, FlightValues, Sighting, SightingValues } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Candidate, ParsedSource } from "./candidate.ts";
@@ -333,21 +333,30 @@ export function commitImport(
 }
 
 /**
- * An operator written by name that matches no reference operator ("Hyundai" for a company aircraft) is
- * added as the user's own operator, so its records are linked and counted instead of left unknown.
+ * An operator written by name that matches no reference operator ("Hyundai" for a company aircraft), as the
+ * user's own operator: found among theirs (one added on another device may not be in `ref` yet), or added once.
+ * Null for a value that is a code, not a name. Imports and saving in the app both use it, so its records are
+ * linked and counted instead of left unknown.
  */
+export function namedOperator(store: Store, ref: RefIndex, raw: string | null | undefined): Operator | null {
+  if (!looksLikeOperatorName(raw)) return null;
+  const known = ref.operatorByCode(raw);
+  if (known) return known;
+  const key = raw!.trim().toLowerCase().replace(/\s+/g, " ");
+  const row = store.all("operator_overrides").find((o) => o.name?.trim().toLowerCase().replace(/\s+/g, " ") === key) ?? store.insert("operator_overrides", { name: raw!.trim(), kind: "other" });
+  const op = operatorFromOverride(row);
+  ref.addOperator(op);
+  return op;
+}
+
 function addNamedOperators(store: Store, ref: RefIndex, candidates: Candidate[]) {
   for (const c of candidates) {
     const isFlight = c.table === "flights";
     const raw = isFlight ? (c.values as Partial<FlightValues>).airlineRaw : (c.values as Partial<SightingValues>).operatorRaw;
     const id = isFlight ? (c.values as Partial<FlightValues>).airlineId : (c.values as Partial<SightingValues>).operatorId;
-    if (id || !looksLikeOperatorName(raw)) continue;
-    let op = ref.operatorByCode(raw);
-    if (!op) {
-      const row = store.insert("operator_overrides", { name: raw!.trim(), kind: "other" });
-      op = operatorFromOverride(row);
-      ref.addOperator(op);
-    }
+    if (id) continue;
+    const op = namedOperator(store, ref, raw);
+    if (!op) continue;
     if (isFlight) (c.values as Partial<FlightValues>).airlineId = op.id;
     else (c.values as Partial<SightingValues>).operatorId = op.id;
   }

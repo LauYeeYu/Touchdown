@@ -1,7 +1,7 @@
 // Field rules (V-) and cross-record rules (C-) from docs/20-validation.md. External rules (X-) need the
 // lookup service and arrive in phase 4.
 
-import type { RefIndex } from "../ref/index.ts";
+import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Finding, RecordRef, Severity, SuggestedFix } from "./types.ts";
@@ -52,6 +52,13 @@ const FLIGHT_TIME_FIELDS = ["boardingAt", "departureAt", "takeoffAt", "landingAt
 
 function flightLabel(f: Flight): string {
   return [f.flightNumber, f.scheduledDate ?? flightDay(f)].filter(Boolean).join(" on ") || "This flight";
+}
+
+/** For a company's name in the airline field ("Hyundai"): add it as the user's own operator. */
+function namedOperatorFix(r: RecordRef, field: string, raw: string): SuggestedFix[] {
+  if (!looksLikeOperatorName(raw)) return [];
+  const name = raw.trim();
+  return [{ table: r.table, id: r.id, field, value: null, operatorName: name, label: `Add ${name} as your own operator` }];
 }
 
 function sightingLabel(s: Sighting): string {
@@ -139,7 +146,7 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
   }
 
   const airline = ref.operator(f.airlineId);
-  if (f.airlineRaw && !airline) out.add("V-OPERATOR-KNOWN", "error", [r], ["airlineId"], `${label}: airline code ${f.airlineRaw} is not known.`, [f.airlineRaw]);
+  if (f.airlineRaw && !airline) out.add("V-OPERATOR-KNOWN", "error", [r], ["airlineId"], `${label}: airline code ${f.airlineRaw} is not known.`, [f.airlineRaw], namedOperatorFix(F(f.id), "airlineId", f.airlineRaw));
 
   if (f.flightNumber) {
     const p = parseFlightNumber(f.flightNumber);
@@ -256,7 +263,7 @@ function checkSighting(out: Collector, s: Sighting, ref: RefIndex, today: string
   }
   if (s.airportRaw && !ref.airport(s.airportId)) out.add("V-AIRPORT-KNOWN", "error", [r], ["airportId"], `${label}: airport code ${s.airportRaw} is not known.`, [s.airportRaw]);
   const op = ref.operator(s.operatorId);
-  if (s.operatorRaw && !op) out.add("V-OPERATOR-KNOWN", "error", [r], ["operatorId"], `${label}: airline code ${s.operatorRaw} is not known.`, [s.operatorRaw]);
+  if (s.operatorRaw && !op) out.add("V-OPERATOR-KNOWN", "error", [r], ["operatorId"], `${label}: airline code ${s.operatorRaw} is not known.`, [s.operatorRaw], namedOperatorFix(r, "operatorId", s.operatorRaw));
   checkAircraftFields(out, r, s, ref, op && op.kind !== "private" ? op.country : null, label);
   checkFirstFlight(out, r, s.seenOn, airframes, s.airframeId, label);
   const missing = [!s.seenOn && "date", !s.airportId && "location", !s.registration && "registration"].filter(Boolean) as string[];

@@ -3,7 +3,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { cityName, parseDateTime, parseFlightNumber, todayIn, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
+import { cityName, looksLikeOperatorName, parseDateTime, parseFlightNumber, todayIn, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { textCode } from "../lib/codes.ts";
 import { draftFindings } from "../data/draft.ts";
@@ -179,7 +179,7 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
             <Picker label="To" value={d.toRaw} onChange={(v) => set("toRaw", v)} options={airportOptions(ref)} placeholder="Code, city or name" resolved={known(d.toRaw, to ? `${cityName(to) ?? ""} ${to.name}`.trim() : undefined, "airport")} invalid={!!d.toRaw.trim() && !to} />
           </Field>
           <Field label="Airline">
-            <Picker label="Airline" value={d.airlineRaw} onChange={(v) => set("airlineRaw", v)} options={operatorOptions(ref, settings.codeDisplay === "icao" ? "icao" : "iata")} placeholder={designator ? `${designator} (from the flight number)` : "Code or name"} resolved={known(airlineRaw, airline?.name, "airline")} invalid={!!airlineRaw && !airline} />
+            <Picker label="Airline" value={d.airlineRaw} onChange={(v) => set("airlineRaw", v)} options={operatorOptions(ref, settings.codeDisplay === "icao" ? "icao" : "iata")} placeholder={designator ? `${designator} (from the flight number)` : "Code or name"} resolved={airlineRaw && !airline && looksLikeOperatorName(airlineRaw) ? "Not an airline: saved as an operator of your own" : known(airlineRaw, airline?.name, "airline")} invalid={!!airlineRaw && !airline && !looksLikeOperatorName(airlineRaw)} />
           </Field>
           <Field label="Registration">
             <TextInput value={d.registrationRaw} onChange={(e) => set("registrationRaw", e.target.value)} placeholder="N123AB" />
