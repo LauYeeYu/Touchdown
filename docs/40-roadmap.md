@@ -38,9 +38,9 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 4: Lookups and auto-fill
 
-- Deliver: the first deployment (Worker with static assets, custom domain, GitHub Actions deploys) behind the Cloudflare Access gate, the Access-token check in the Worker, airframe index build, lookup service, auto-fill suggestions, external rules (X-), reference links to airfleets / planespotters / aviation.flights.
+- Deliver: the site's own sign-in ([33](33-accounts-and-sign-in.md): passwords and Google, invitations, sessions, People and Account in Settings) and the server that runs on Cloudflare or any machine; the first deployment (Worker with static assets and D1, custom domain, GitHub Actions deploys) behind it, airframe index build, lookup service, auto-fill suggestions, external rules (X-), reference links to airfleets / planespotters / aviation.flights.
 - Done when: most of the user's records link to confirmed airframes, the provisional share is reported, and auto-fill never overwrites a user value.
-- Built so far: the Worker that serves the app, checking the Access token on every request, with the security headers; the GitHub Actions deploy, off until the Access application is in place. `touchdown spot` looks registrations up from the CLI (the user's log, the OpenSky snapshot, adsbdb, Flightradar24 opt-in) and fills sightings typed in a session ([21](21-import-export.md)).
+- Built so far: the Worker that serves the app with the security headers, checking a Cloudflare Access token on every request (to be replaced by the site's own sign-in, [33](33-accounts-and-sign-in.md)); the GitHub Actions deploy, off until the sign-in is in place. `touchdown spot` looks registrations up from the CLI (the user's log, the OpenSky snapshot, adsbdb, Flightradar24 opt-in) and fills sightings typed in a session ([21](21-import-export.md)).
 
 ## Phase 5: Agent check
 
@@ -60,7 +60,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 ## Phase 8: Standard mode and sharing
 
 - Deliver: Standard mode ([32](32-modes-and-sharing.md)): connecting storage through the Worker (Google Drive first), encrypted keys in D1, the terms with recorded acceptance, mode changes in Settings, share links of the four kinds with the three audiences, the public share page, Settings "Sharing and access".
-- Needs: phase 3 (storage and sync) and the Access gate and Worker of phase 4. Does not depend on phases 5–7.
+- Needs: phase 3 (storage and sync) and the sign-in and server of phase 4. Does not depend on phases 5–7.
 - Done when:
   - Leaving Standard stops every link at once, revokes the key with the provider and leaves no row for the user on the server (scripted test).
   - A link opens only for its audience; any other request, a guessed id included, gets the same "not found".

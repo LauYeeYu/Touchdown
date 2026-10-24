@@ -22,7 +22,6 @@ None. Phase 1 test data is in `data/private/`.
 |----|-------|-------|
 | Q-FR24-IMPORT | Does myFR24 import accept fewer than 19 columns? Must airline names match FR24's names exactly? Test with a 2-row file. | 7 |
 | Q-DRIVE-CLI | With the `drive.file` scope, does a file the CLI creates through its own OAuth client (installed-app type, same Google Cloud project as the web client) show up for the web app's token? If not, the web app must create the inbox folder and the CLI must be given access to it. Test before building the inbox upload. | 3 |
-| Q-ACCESS-BYPASS | Can a second Access application on `/p/*` with a Bypass policy sit beside the main application, the more specific path winning, with no other path left open? Test before building the public page. | 8 |
 | Q-DRIVE-SERVER | Does a refresh token from the authorisation-code flow (same web client, `drive.file`) reach the files the browser created with the token flow, and the other way round? | 8 |
 | Q-DRIVE-QUOTA | Recheck Google's announced 2026 Drive API quota and charge changes before launch. | 3 |
 
@@ -73,4 +72,5 @@ None. Phase 1 test data is in `data/private/`.
 | — | Spelling? | UK English in copy, docs, and comments. |
 | — | Type and colour constraints for the interface? | Sans-serif only; keep the warm paper ground #FAF8F1 (white acceptable, not preferred); support dark mode. |
 | Q-AGENT-FLAGS | Does Claude Code `--json-schema` work with all tools disabled? Which Codex features must be disabled? | Claude Code 2.1: the answer comes through the `StructuredOutput` tool, so `--disallowedTools "*"` blocks it; use `--tools "" --allowedTools StructuredOutput`. Codex 0.156: turn off every feature that is on except a short list of plumbing features; with that, structured output and stdin work. Details in [22](22-agent-verification.md). |
-| Q-ACCESS | How is the hosted site gated? | Cloudflare Access: allowlist of invited emails; sign in with Google or a one-time email code; the Worker also checks the Access token on `/api/*`. |
+| Q-SIGNIN-DEFAULTS | The sign-in's values ([33](33-accounts-and-sign-in.md)). | Passwords hashed in the browser (Argon2id) before they are sent; at least 10 characters; invitations valid 7 days, reset links 24 hours; sessions 30 days from last use; one owner. |
+| Q-ACCESS | How is the hosted site gated? | The website signs people in itself, so it is not tied to Cloudflare: email and password, or Google; only people with an invitation link from the owner get an account; without a session only the sign-in pages (and later `/p/<id>`) open. The server runs on Cloudflare or any machine ([33](33-accounts-and-sign-in.md)). This replaced an earlier answer, Cloudflare Access. |

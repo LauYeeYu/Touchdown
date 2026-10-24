@@ -81,17 +81,17 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 | Google auth (Google Drive adapter) | Google Identity Services token flow, scope `drive.file` | No backend needed for auth. |
 | Offline | Service worker (PWA) | App loads without network; sync resumes later. |
 | Lookup service | The `/api/*` routes of the same Cloudflare Worker that serves the app; Cache API for caching | Free plan is enough (see Deployment). |
-| Hosting | One Cloudflare Worker with static assets | Cloudflare points new projects to Workers with static assets rather than Pages. Static file requests are free. |
+| Hosting | The server in `packages/server` ([33](33-accounts-and-sign-in.md)): a Cloudflare Worker with static assets and D1, or a Node server with a SQLite file on any machine | One codebase, so the site can move hosts. Starts on Cloudflare. |
 | Tests | Vitest (core, CLI), Playwright (web flows) | |
 | CLI packaging | Node, published to npm, run with `npx` | |
 
 ## Security and privacy
 
-- Access gate (U3, decided, Q-ACCESS): Cloudflare Access sits in front of the whole Worker, so the app's files, every page, and `/api/*` all require sign-in. Only an allowlist of invited email addresses gets through. Sign-in methods: Google or a one-time code by email; neither is tied to where the user keeps their data. No login code in the app itself, and no passwords stored anywhere. The one exception to the gate is the public share page `/p/<id>` ([32](32-modes-and-sharing.md)), which serves one public link's content and nothing else. Cloudflare Zero Trust is free for small teams; recheck the user limit before launch.
-- Defence in depth (Decided, built in `apps/web/worker/`): every request, for a page, a file or `/api/*`, goes through the Worker first, which verifies the `Cf-Access-Jwt-Assertion` token (RS256 signature against the team's published keys, audience, issuer, expiry) and refuses requests without a valid one. A mistake in the Access setup then gives a refusal, not an open site, and the lookup service cannot be called from outside even if its address leaks. Until the team's address and the application's audience tag are set in `wrangler.jsonc`, the Worker refuses every request. The public share page (phase 8) will be the one path it lets through without a token.
+- Sign-in (U3, Decided, Q-ACCESS): the site signs people in itself ([33](33-accounts-and-sign-in.md)), with email and password or Google, and only people the owner invites get an account. No sign-in service sits in front of it, so it is not tied to one host. Passwords are hashed in the browser and never reach the server. The one exception to the sign-in is the public share page `/p/<id>` ([32](32-modes-and-sharing.md)), which serves one public link's content and nothing else.
+- The gate (Decided): every request, for a page, a file or `/api/*`, goes through the server first, which checks the session cookie; without a valid session only the sign-in pages answer ([33](33-accounts-and-sign-in.md)). Built so far with a check of Cloudflare Access's token in `apps/web/worker/`, which the session check replaces.
 - Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). In Standard mode the server makes the connection and keeps an encrypted key ([32](32-modes-and-sharing.md)). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
-- The installed app (PWA) keeps working offline from its cache; when the Access session expires, the next online request sends the user through sign-in again.
-- No user accounts on our side beyond the Access allowlist, except a Standard-mode user's account row ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
+- The installed app (PWA) keeps working offline from its cache; when the session expires, the next online request sends the user to the sign-in page.
+- On the server, per user: the account (email, name, role), how they sign in (a hash of the browser's password key, the Google account id) and their sessions ([33](33-accounts-and-sign-in.md)); in Standard mode also an encrypted key to the storage and their links' settings ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
 - Private mode: Google's access token stays in the browser until it expires (an hour), and no refresh token is on any server. Standard mode: one refresh token per user, encrypted, never logged or returned to a browser ([32](32-modes-and-sharing.md)).
 - Strict Content Security Policy. No third-party analytics or ads.
 - Private fields (ticket number, booking reference) never leave the user's storage and browser except in exports the user asks for with "include private fields".
@@ -103,29 +103,31 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 Built: the Worker (`apps/web/worker/`, config in `apps/web/wrangler.jsonc`) and the GitHub Actions workflow (`.github/workflows/deploy.yml`). The steps for the person running the site are in the README, "Running the hosted site".
 
 ```
-Cloudflare Access         allowlist of invited users; sign in with Google or an email one-time code
- └─ Worker "touchdown"
-     every request       the Access token is checked first, then the request is served
+Worker "touchdown" (or the same server on any machine, 33)
+     every request       the session is checked first; without one, only the sign-in pages
+     /signin, /join/<id>, /reset/<id>, /setup, /auth/*
+                          the site's own sign-in, invitations and sessions (33)
      static assets        apps/web build output + reference JSON + airframe index shards
                           (single-page-app fallback for unknown paths)
-     /api/*               lookup service (13); checks the Access token on every request
+     /api/*               lookup service (13)
      /api/storage/*       Standard mode: connecting storage, short-lived tokens (32)
      /api/shares/*        Standard mode: links and their content (32)
      /shared/<id>         a link for invited users, inside the app
-     /p/<id>              public share page; the only path outside Access (Bypass policy)
-     D1                   Standard-mode accounts, encrypted storage keys, link settings
-     secrets              provider API keys, token encryption key, OAuth client secret,
-                          set by the owner with `wrangler secret put`
+     /p/<id>              public share page; the only app path outside the sign-in
+     D1                   accounts, sessions, invitations (33); Standard-mode storage keys
+                          and link settings (32)
+     secrets              setup secret, Google client secret, provider API keys,
+                          token encryption key; set with `wrangler secret put`
 ```
 
 - One Worker serves both the app and the API, so they share one origin: no CORS setup, one deployment.
-- Cloudflare Access protects the Worker's custom domain. The `workers.dev` and preview addresses are turned off in `wrangler.jsonc`, so nothing bypasses the gate (built).
-- Free plan: every request runs the Worker (the Access check), so pages and files count towards the 100,000 requests a day, with 10 ms of CPU each; a few users stay far below that. Checking a token takes well under a millisecond once the team's keys are cached (they are fetched again after an hour, or for a key id not seen yet, at most every 30 seconds). The lookup service mostly waits on upstream servers, which does not count as CPU. The paid plan ($5/month) is the fallback if limits are reached. Recheck the limits before launch.
+- The `workers.dev` and preview addresses are turned off in `wrangler.jsonc`, so the site has one address (built).
+- Free plan: every request runs the Worker (the session check, one database read), so pages and files count towards the 100,000 requests a day, with 10 ms of CPU each; a few users stay far below that. Password hashing happens in the browser, which keeps sign-in within the 10 ms ([33](33-accounts-and-sign-in.md)). The lookup service mostly waits on upstream servers, which does not count as CPU. The paid plan ($5/month) is the fallback if limits are reached. Recheck the limits before launch.
 - Airframe index shards (about 1,300 small files) ship as static assets. If the plan's per-version file limit is too low, they move to R2.
-- Deploys (Decided, built): GitHub Actions on every push to `master` runs the tests and the type check, builds the app and deploys with `wrangler` (pinned in `apps/web/package.json`), using a Cloudflare API token kept as a GitHub Actions secret. The deploy step runs only while the repository variable `DEPLOY` is `on`, which the owner sets once the Access application is in place, so the site is never open. Wrangler's telemetry is off in the workflow.
+- Deploys (Decided, built): GitHub Actions on every push to `master` runs the tests and the type check, builds the app and deploys with `wrangler` (pinned in `apps/web/package.json`), using a Cloudflare API token kept as a GitHub Actions secret. The deploy step runs only while the repository variable `DEPLOY` is `on`, which the owner sets once the sign-in is built, so the site is never open. Wrangler's telemetry is off in the workflow.
 - The Worker's config (`wrangler.jsonc`) names the custom domain and is committed (Decided): the address is not a secret, and the gate protects the site.
 - Reference data and the airframe index are rebuilt weekly in GitHub Actions (the source files are about 100 MB, too heavy for a Worker cron), then deployed with `wrangler`.
-- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. For Standard mode, `/api/storage/callback` on the production origin is also registered under "Authorized redirect URIs" ([32](32-modes-and-sharing.md)). Per-upload preview URLs change, so they are not used for sign-in.
+- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. Sign-in with Google registers `/auth/google/callback` under "Authorized redirect URIs" ([33](33-accounts-and-sign-in.md)); for Standard mode, `/api/storage/callback` is registered there too ([32](32-modes-and-sharing.md)). Per-upload preview URLs change, so they are not used for sign-in.
 - Headers (built, `apps/web/worker/headers.ts`; `vite preview` serves the build with the same ones):
   - Content Security Policy: everything from the site itself, plus Google's sign-in script and the Drive API, and planespotters.net's API and photos. No eval (the app tells Zod not to probe for it), no inline styles, no frames of the site elsewhere. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash; a test checks the hash against `index.html`. Google's sign-in script adds an inline style for its own sign-in button, which Touchdown does not use; it is blocked.
   - `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` turning off the camera, microphone, location and payment, and `X-Robots-Tag: noindex`.
@@ -144,8 +146,7 @@ Each friend uses the same hosted web app and their own storage. Server-side user
 | Item | Cost |
 |------|------|
 | Static hosting, lookup service | Free tier |
-| Access gate (Cloudflare Zero Trust) | Free for small teams |
-| Standard-mode accounts and links (Cloudflare D1) | Free tier |
+| Accounts, sessions, Standard-mode keys and links (Cloudflare D1) | Free tier |
 | Google Cloud project for OAuth | Free (non-sensitive scope, no verification) |
 | Domain | Optional, about $10/year |
 | Paid data providers | None in the app. Users who have an FR24 subscription can download tracks manually (see 13). |

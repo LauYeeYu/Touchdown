@@ -24,6 +24,7 @@ Docs are numbered from low level to high level. Each one depends only on lower n
 | 30 | [Architecture](30-architecture.md) | System | Components, tech stack, repo layout, security, cost. |
 | 31 | [UI](31-ui.md) | System | Pages and flows. |
 | 32 | [Data modes and sharing](32-modes-and-sharing.md) | System | Standard, Private and Local modes, the terms, share links, what the server stores. |
+| 33 | [Accounts and sign-in](33-accounts-and-sign-in.md) | System | The site's own sign-in (password or Google), invitations, sessions, the server that runs on Cloudflare or any machine. |
 | 40 | [Roadmap](40-roadmap.md) | Delivery | Phases and exit criteria. |
 | 90 | [Open questions](90-open-questions.md) | Tracking | Unanswered questions and recorded answers. |
 

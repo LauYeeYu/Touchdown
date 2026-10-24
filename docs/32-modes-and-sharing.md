@@ -161,7 +161,7 @@ Decided (U3, changed): the only route outside the sign-in is `/p/<id>`. It serve
 - **Two requests only.** It answers `GET /p/<id>` and `GET /p/<id>/content`, and offers no other API.
 - **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and the same strict Content Security Policy as the app.
 - **Rate limit.** Requests are limited per IP address.
-- **Access setup.** A second Access application covers the path `/p/*` with a Bypass policy, and the main application covers everything else (implementation check Q-ACCESS-BYPASS).
+- **The gate.** The server lets `/p/*` through without a session; every other address still needs one ([33](33-accounts-and-sign-in.md)).
 
 ### Settings: Sharing and access
 
@@ -176,11 +176,10 @@ Pages that can be shared (a flight, a sighting, an aircraft, Statistics, and the
 
 ## What the server stores
 
-Standard mode only. The tables are defined with the schema tools in `packages/core/schema`, as a separate set for the server, and live in Cloudflare D1 (Proposed).
+Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Standard mode adds the tables below. They are defined with the schema tools in `packages/core/schema`, as a separate set for the server, and live in the server's SQLite database: Cloudflare D1, or a file with the Node server (Proposed).
 
 | Table | Columns |
 |-------|---------|
-| `accounts` | `id`, `email` (from the sign-in, lower case), `createdAt`, `lastSeenAt` |
 | `storage_connections` | `id`, `accountId`, `backend`, `format`, `location`, `externalAccount`, `scope`, `tokenCiphertext`, `tokenIv`, `tokenKeyId`, `tokenFormat`, `status` (`ok`, `broken`), `statusAt`, `createdAt`, `lastUsedAt` |
 | `consents` | `accountId`, `termsVersion`, `acceptedAt` |
 | `shares` | `id`, `accountId`, `kind` (`flight`, `sighting`, `aircraft`, `period`, `log`), `subject` (the record's address or the period), `audience` (`people`, `invited`, `public`), `includeNotes`, `includePhotoLinks`, `fileName`, `createdAt`, `updatedAt`, `endsAt`, `timesOpened`, `lastOpenedAt` |
@@ -189,13 +188,13 @@ Standard mode only. The tables are defined with the schema tools in `packages/co
 
 Not stored on the server: the log or any part of it (share files stay in the user's storage), access tokens, who opened a link, and request contents.
 
-Leaving Standard deletes the user's rows in every table.
+Leaving Standard deletes the user's rows in these tables; the account stays.
 
 Protection (Proposed):
 - **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.
 - **Handling.** A token is decrypted only inside the request that needs it. It is never logged and never returned to a browser.
-- **Who can reach the database.** Only the Worker, and the operator through the Cloudflare account. The operator holds both the database and the secret, and the terms say so.
-- **Removed users.** Removing a user from the allowlist also deletes their server rows, with a command for the operator (Q-USER-REMOVAL).
+- **Who can reach the database.** Only the server, and the operator through the hosting account (Cloudflare) or the machine. The operator holds both the database and the secret, and the terms say so.
+- **Removed users.** Removing someone in Settings → People deletes their account and these rows (Q-USER-REMOVAL).
 
 ## Private mode
 
