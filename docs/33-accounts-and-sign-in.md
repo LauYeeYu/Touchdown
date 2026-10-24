@@ -34,6 +34,7 @@ These pages are a small separate bundle with its own build (`vite.signin.config.
 ## Invitations
 
 - The owner opens Settings → People → "Invite someone" and gets a link, `https://<site>/join/<token>`. It works once, for 7 days. The owner may note who it is for; the note is only for the owner's list.
+- With the link comes a message to send with it, with "Copy message" (built, `apps/web/src/lib/invitation.ts`): the link and when it ends, then the command line's first steps (cloning the code, `./touchdown login`, `./touchdown storage drive`, `./touchdown spot`, and a sentence to give an agent to use `./touchdown add`).
 - The token is 128 random bits. The server stores only its hash.
 - People lists the members (name, email, how they sign in, when they last signed in) and the open invitations, which can be withdrawn.
 - **Removing someone** deletes their account, sign-in methods and sessions at once, and their Standard-mode rows ([32](32-modes-and-sharing.md), Q-USER-REMOVAL). Their log stays in their own storage.

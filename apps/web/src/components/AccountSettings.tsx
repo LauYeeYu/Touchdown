@@ -9,6 +9,7 @@ import { momentLabel, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, TextInput } from "./form.tsx";
 import { toast } from "./overlay.tsx";
+import { invitationMessage } from "../lib/invitation.ts";
 
 const when = (iso: string | null) => (iso ? momentLabel(Date.parse(iso)) : "never");
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -29,6 +30,22 @@ function LinkBox({ link, note }: { link: Link; note: string }) {
         </button>
       </span>
       <small>{note}</small>
+    </div>
+  );
+}
+
+function InvitationMessage({ link }: { link: Link }) {
+  const text = invitationMessage(link.link, when(link.expiresAt));
+  return (
+    <div className="invite-message">
+      <small>A message to send with it, with how to start with the command line:</small>
+      <textarea className="input textarea invite-message__text" readOnly rows={15} value={text} onFocus={(e) => e.currentTarget.select()} aria-label="Invitation message" />
+      <div className="button-row">
+        <button type="button" className="btn btn--quiet btn--small" onClick={() => void navigator.clipboard?.writeText(text).then(() => toast("Message copied."), () => toast("Could not copy; select the message instead."))}>
+          <Icon name="copy" />
+          Copy message
+        </button>
+      </div>
     </div>
   );
 }
@@ -325,7 +342,12 @@ function PeopleSection({ me }: { me: Me }) {
           Make an invitation link
         </button>
       </form>
-      {made && <LinkBox link={made.link} note={`${made.for ? `For ${made.for}. ` : ""}Works once, until ${when(made.link.expiresAt)}.`} />}
+      {made && (
+        <>
+          <LinkBox link={made.link} note={`${made.for ? `For ${made.for}. ` : ""}Works once, until ${when(made.link.expiresAt)}.`} />
+          <InvitationMessage link={made.link} />
+        </>
+      )}
 
       {data.invites.length > 0 && (
         <>

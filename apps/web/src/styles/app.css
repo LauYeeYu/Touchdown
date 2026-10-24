@@ -2438,6 +2438,29 @@ a.btn--primary {
   height: 32px;
 }
 
+/* The message to send with an invitation link. */
+.invite-message {
+  display: grid;
+  gap: 6px;
+  max-width: 44rem;
+  margin-top: 14px;
+}
+
+.invite-message small {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.invite-message__text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.invite-message .button-row {
+  margin: 0;
+}
+
 /* ---------- the privacy policy and the terms (docs/33): pages built from PRIVACY.md and TERMS.md ---------- */
 
 a.wordmark {
