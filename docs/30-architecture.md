@@ -43,10 +43,11 @@ Most airframe facts do not need the service: the airframe index from [13](13-ref
 
 If the user prefers no server at all, the alternative is that each user enters their own provider keys in settings and the browser calls providers directly. That only works for providers that allow browser requests, and track backfill from adsb.lol would likely not work. See Q-LOOKUP.
 
-## Repo layout (proposed)
+## Repo layout
 
 ```
-apps/web/            web app
+apps/web/            web app; sign-in pages (signin.html); the Cloudflare Worker (worker/, wrangler.jsonc)
+packages/server/     the server: sign-in, invitations, sessions, the gate (33); D1 or SQLite file; Node entry
 packages/core/       schema (single source of truth) and generators, normalisation,
                      identity resolver, validation rules, stats, importers/exporters, geo/time math
 packages/storage/    backend interface, sync engine, backends: json_tables, sqlite_file
@@ -88,7 +89,7 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 ## Security and privacy
 
 - Sign-in (U3, Decided, Q-ACCESS): the site signs people in itself ([33](33-accounts-and-sign-in.md)), with email and password or Google, and only people the owner invites get an account. No sign-in service sits in front of it, so it is not tied to one host. Passwords are hashed in the browser and never reach the server. The one exception to the sign-in is the public share page `/p/<id>` ([32](32-modes-and-sharing.md)), which serves one public link's content and nothing else.
-- The gate (Decided): every request, for a page, a file or `/api/*`, goes through the server first, which checks the session cookie; without a valid session only the sign-in pages answer ([33](33-accounts-and-sign-in.md)). Built so far with a check of Cloudflare Access's token in `apps/web/worker/`, which the session check replaces.
+- The gate (Decided, built in `packages/server`): every request, for a page, a file or `/api/*`, goes through the server first, which checks the session cookie; without a valid session only the sign-in pages answer ([33](33-accounts-and-sign-in.md)).
 - Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). In Standard mode the server makes the connection and keeps an encrypted key ([32](32-modes-and-sharing.md)). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
 - The installed app (PWA) keeps working offline from its cache; when the session expires, the next online request sends the user to the sign-in page.
 - On the server, per user: the account (email, name, role), how they sign in (a hash of the browser's password key, the Google account id) and their sessions ([33](33-accounts-and-sign-in.md)); in Standard mode also an encrypted key to the storage and their links' settings ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
@@ -100,7 +101,7 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 
 ## Deployment (Cloudflare)
 
-Built: the Worker (`apps/web/worker/`, config in `apps/web/wrangler.jsonc`) and the GitHub Actions workflow (`.github/workflows/deploy.yml`). The steps for the person running the site are in the README, "Running the hosted site".
+Built: the server (`packages/server`), the Worker that wraps it (`apps/web/worker/`, config in `apps/web/wrangler.jsonc`, D1 bound as `DB`) and the GitHub Actions workflow (`.github/workflows/deploy.yml`). The steps for the person running the site are in the README, "Running the hosted site".
 
 ```
 Worker "touchdown" (or the same server on any machine, 33)
@@ -128,8 +129,8 @@ Worker "touchdown" (or the same server on any machine, 33)
 - The Worker's config (`wrangler.jsonc`) names the custom domain and is committed (Decided): the address is not a secret, and the gate protects the site.
 - Reference data and the airframe index are rebuilt weekly in GitHub Actions (the source files are about 100 MB, too heavy for a Worker cron), then deployed with `wrangler`.
 - Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. Sign-in with Google registers `/auth/google/callback` under "Authorized redirect URIs" ([33](33-accounts-and-sign-in.md)); for Standard mode, `/api/storage/callback` is registered there too ([32](32-modes-and-sharing.md)). Per-upload preview URLs change, so they are not used for sign-in.
-- Headers (built, `apps/web/worker/headers.ts`; `vite preview` serves the build with the same ones):
-  - Content Security Policy: everything from the site itself, plus Google's sign-in script and the Drive API, and planespotters.net's API and photos. No eval (the app tells Zod not to probe for it), no inline styles, no frames of the site elsewhere. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash; a test checks the hash against `index.html`. Google's sign-in script adds an inline style for its own sign-in button, which Touchdown does not use; it is blocked.
+- Headers (built, `packages/server/src/headers.ts`; `vite preview` serves the build with the same ones):
+  - Content Security Policy: everything from the site itself, plus Google's sign-in script and the Drive API, and planespotters.net's API and photos. No eval (the app tells Zod not to probe for it), but WebAssembly may be compiled (`'wasm-unsafe-eval'`, for the password hash and later SQLite); no inline styles, no frames of the site elsewhere. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash; a test checks the hash against `index.html`. Google's sign-in script adds an inline style for its own sign-in button, which Touchdown does not use; it is blocked.
   - `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` turning off the camera, microphone, location and payment, and `X-Robots-Tag: noindex`.
   - `Cross-Origin-Opener-Policy: same-origin-allow-popups`, which Google's sign-in popup needs. No full cross-origin isolation (COEP), because it would break that popup. The SQLite backend therefore uses the `opfs-sahpool` storage mode (or an in-memory database), which needs no cross-origin isolation.
 - Caching (Decided: the version stamp; built): `index.html` is served with `Cache-Control: no-cache`, so a browser always checks for a new version. Every stylesheet link in it carries `?v=<build date-time>` (UTC, basic ISO 8601, e.g. `20261023T153012Z`), added at build time, so a new deployment reloads the CSS without depending on the browser's cache. Built files also carry a content hash in their names and are served with `Cache-Control: public, max-age=31536000, immutable`. The service worker (phase 3) fetches `index.html` from the network first.

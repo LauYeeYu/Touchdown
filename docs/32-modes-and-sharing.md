@@ -176,7 +176,7 @@ Pages that can be shared (a flight, a sighting, an aircraft, Statistics, and the
 
 ## What the server stores
 
-Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Standard mode adds the tables below. They are defined with the schema tools in `packages/core/schema`, as a separate set for the server, and live in the server's SQLite database: Cloudflare D1, or a file with the Node server (Proposed).
+Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Standard mode adds the tables below. They are defined with the server's other tables in `packages/server/src/db.ts` and live in its SQLite database: Cloudflare D1, or a file with the Node server (Proposed).
 
 | Table | Columns |
 |-------|---------|

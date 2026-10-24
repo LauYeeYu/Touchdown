@@ -12,6 +12,7 @@ How people get into the hosted site (U3): the website signs them in itself, and 
 | The server runs on Cloudflare (a Worker with a D1 database) or on any machine (a Node server with a SQLite file), from one codebase. | Decided |
 | Someone who is not signed in sees only the sign-in pages, and later the public share page `/p/<id>` ([32](32-modes-and-sharing.md)). The app's own files need a session too. | Decided |
 | Passwords are hashed in the browser before they are sent (see Passwords). | Decided |
+| Built: the server (`packages/server`), the sign-in pages (`apps/web/signin.html`, `src/signin/`), Settings → Account and People, the Cloudflare Worker and the Node server. | Built |
 
 ## People and roles
 
@@ -27,7 +28,7 @@ How people get into the hosted site (U3): the website signs them in itself, and 
 | `/reset/<token>` | A reset link from the owner: set a new password. |
 | `/setup` | The first account (the owner). Asks for the setup secret; answers "not found" once an owner exists. |
 
-These pages are a small separate bundle with its own build entry. It holds no app code and no data. Anything else without a session: a page address goes to `/signin?next=<address>`, a file or `/api/*` request gets 401.
+These pages are a small separate bundle with its own build (`vite.signin.config.ts`), served from `/signin-files/`. It holds no app code and no data. Anything else without a session: a page address goes to `/signin?next=<address>`, a file or `/api/*` request gets 401. An address whose decoded path holds `..`, a backslash or an escaped slash is refused before the gate looks at it, so a public path cannot lead to a private file.
 
 ## Invitations
 
@@ -53,9 +54,9 @@ Rules:
 
 ## Google
 
-- OpenID Connect authorisation-code flow with PKCE, run by the server, with the scopes `openid` and `email`. `state` and `nonce` travel in a short-lived signed cookie. The server exchanges the code with the web client's secret (a server secret) and checks the ID token: Google's signature, issuer, audience (the web client id), expiry, nonce, and a verified email.
+- OpenID Connect authorisation-code flow with PKCE, run by the server, with the scopes `openid` and `email`. A sign-in under way is a row in `google_logins` (its state, nonce and PKCE verifier), used once within 10 minutes; a cookie holding the state ties it to the browser that started it, so a sign-in begun elsewhere cannot be finished here. The server exchanges the code with the web client's secret (a server secret). The ID token comes straight from Google's token endpoint over HTTPS, so its signature is not checked, as OpenID Connect allows; its issuer, audience (the web client id), expiry, nonce and verified email are.
 - The account is matched by Google's account id (`sub`), not by email, so a changed Gmail address keeps working.
-- **Joining with Google:** the invitation's token goes through Google's sign-in in `state`, and the account is made with the Google address.
+- **Joining with Google:** the invitation and the name typed on the invitation page go with the sign-in under way, and the account is made with the Google address.
 - **A Google account with no Touchdown account** is refused: "No account for this Google account. Ask the owner for an invitation."
 - **Linking:** Settings → Account → "Connect Google" adds Google to a password account; "Remove" takes it away when a password is set.
 - The redirect address `https://<site>/auth/google/callback` (and the development one) is registered in Google Cloud under "Authorized redirect URIs".
@@ -71,10 +72,12 @@ Rules:
 
 ## Server API
 
-All under `/auth/` (Proposed):
+All under `/auth/` (built):
 
 | Request | Does |
 |---|---|
+| `GET /auth/site` | The site's id (for password salts), whether setup is needed, whether Google is on, whether signed in. |
+| `GET /auth/invite/<token>` | What a link is for (`join` or `reset`; for a reset, the address). |
 | `POST /auth/signin` | Email and the browser's password key; sets the session cookie. |
 | `GET /auth/google/start` | Sends the browser to Google (`?invite=<token>` when joining, `?link=1` when connecting Google). |
 | `GET /auth/google/callback` | Google's answer; signs in, joins or links. |
@@ -83,12 +86,12 @@ All under `/auth/` (Proposed):
 | `POST /auth/setup` | Setup secret, name, email, password key. |
 | `GET /auth/me` | The signed-in account: name, email, role, sign-in methods. |
 | `POST /auth/signout`, `POST /auth/signout-others` | End this session, or the others. |
-| `POST /auth/password`, `POST /auth/email`, `DELETE /auth/google` | Account changes. |
+| `POST /auth/name`, `POST /auth/password`, `POST /auth/email`, `DELETE /auth/google` | Account changes. |
 | `GET /auth/people`, `POST /auth/invites`, `DELETE /auth/invites/<id>`, `DELETE /auth/people/<id>`, `POST /auth/people/<id>/reset` | Owner only. |
 
 ## Server tables
 
-SQLite, in Cloudflare D1 or in a file next to the Node server. Defined once with the other server tables ([32](32-modes-and-sharing.md), "What the server stores"); created and upgraded by the server when it starts.
+SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packages/server/src/db.ts`, with the other server tables to come ([32](32-modes-and-sharing.md), "What the server stores"); created by the server when it starts.
 
 | Table | Columns |
 |---|---|
@@ -97,9 +100,15 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined once with
 | `password_credentials` | `accountId`, `salt`, `hash`, `updatedAt` |
 | `google_identities` | `accountId`, `sub` (unique), `email`, `linkedAt` |
 | `sessions` | `tokenHash`, `accountId`, `createdAt`, `lastUsedAt`, `expiresAt`, `device` |
-| `invites` | `tokenHash`, `purpose` (`join`, `reset`), `accountId` (for a reset), `note`, `createdBy`, `createdAt`, `expiresAt`, `usedAt`, `usedBy` |
+| `invites` | `id`, `tokenHash`, `purpose` (`join`, `reset`), `accountId` (for a reset), `note`, `createdBy`, `createdAt`, `expiresAt`, `usedAt`, `usedBy` |
+
+| `google_logins` | `stateHash`, `nonce`, `verifier`, `next`, `invite`, `name`, `linkAccountId`, `expiresAt`: Google sign-ins under way |
 
 Never stored: passwords, Google's tokens, IP addresses, request contents. No request logs.
+
+## The browser's copy
+
+Built: each account has its own IndexedDB database in the browser, `touchdown-<account id>`, so people who share a browser never see each other's logs. The app asks the server who is signed in when it opens; offline, it opens the last account's copy. Signing out ([31](31-ui.md), "Signing out"): in Private mode, once every change has reached the storage, the account's database is deleted; with changes not synced yet, or in Local mode (the only copy), it stays.
 
 ## The first owner
 
@@ -110,11 +119,16 @@ The person running the site sets a long random setup secret on the server (`SETU
 | Part | Cloudflare | Any machine |
 |---|---|---|
 | Request handler | `packages/server`: standard web `Request` and `Response` only | the same |
-| Entry | Worker (`apps/web/worker/`) | Node server, behind any web server that handles HTTPS, or in Docker |
+| Entry | Worker (`apps/web/worker/`, config `apps/web/wrangler.jsonc`) | `npm run serve` (`packages/server/src/serve.ts`), behind any web server that handles HTTPS |
 | Database | D1 | `node:sqlite`, a file |
 | App files | the Worker's static assets | read from `apps/web/dist` |
-| Secrets | Worker secrets: `SETUP_TOKEN`, `GOOGLE_CLIENT_SECRET`, later the token-encryption key | environment variables, same names |
+| Settings | `SITE_ORIGINS` and `GOOGLE_CLIENT_ID` in `wrangler.jsonc`; Worker secrets `SETUP_TOKEN`, `GOOGLE_CLIENT_SECRET` (later the token-encryption key) | environment variables: `TOUCHDOWN_ORIGINS`, `TOUCHDOWN_DB`, `PORT`, `HOST`, `SETUP_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 
 Moving between them: export the SQLite tables (D1 can export to a SQL file) and import them on the other side. Sessions survive; passwords too, since the hash does not depend on the host.
 
-The site's address (for cookies, the `Origin` check and Google's redirect) is set in the server's config.
+The site's address (for cookies, the `Origin` check and Google's redirect) is set in the server's config. Cloudflare's static assets serve files at exactly their names (`html_handling: none`), as the Node server does.
+
+## Development
+
+- The dev server (`npm run dev -w @touchdown/web`) runs the real server for `/auth/` with its own database, `data/private/dev-server.sqlite`, and opens the sign-in pages at their addresses. The setup secret is made on first start in `data/private/dev-setup-token.txt`. Google sign-in works when the web client's secret is in `data/private/google-client-secret.txt`.
+- The rest of the dev server is not behind the sign-in: without signing in, the app uses the browser's database from before accounts existed. `npm run serve` runs the built app behind the sign-in, like the hosted site.

@@ -40,6 +40,7 @@ Open http://127.0.0.1:5173. Leave the terminal open while you use it.
 
 - Your log is stored in this browser. **Settings → Export a backup (.zip)** saves it to a file; **Restore from a backup** replaces the browser's log with one.
 - In development only: an empty browser loads `data/private/touchdown-backup.zip` once. A hard refresh (Shift-reload), or **Settings → Load the local backup**, loads it again and replaces what the browser has.
+- **Signing in, in development:** the dev server runs the real sign-in, with its own accounts. Make the first account at http://127.0.0.1:5173/setup with the secret in `data/private/dev-setup-token.txt`. Without signing in, the dev server still opens the app, with the log your browser already has; signed in, each account has its own copy. For "Continue with Google", save the web client's secret in `data/private/google-client-secret.txt`.
 
 ## Your files
 
@@ -52,7 +53,10 @@ Everything personal goes in `data/private/`. Git ignores this folder, so nothing
 | `data/private/inbox/` | The files spotting sessions save for the Import page. |
 | `data/private/reference/` | The OpenSky aircraft database, downloaded the first time it is needed (about 110 MB). |
 | `data/private/cache/` | Saved lookup answers, the agent's self-test, and the lines you typed in `spot` (for ↑). |
-| `data/private/touchdown-cli.json` | The agent you chose. |
+| `data/private/touchdown-cli.json` | The agent you chose, your rules for it, and whether notes are sent. |
+| `data/private/dev-server.sqlite`, `dev-setup-token.txt` | Accounts for signing in during development, and the secret for their first account. |
+| `data/private/google-client-secret.txt` | The Google web client's secret, if you want Google sign-in in development. |
+| `data/private/server.sqlite` | Accounts for `npm run serve` (the site on your own machine). |
 
 ## Getting your records in
 
@@ -193,13 +197,34 @@ Sign in to Flightradar24 in that window, then run the command with `--fr24`. If 
 | `npm run dev -w @touchdown/web` | Run the web app at http://127.0.0.1:5173. |
 | `npm run build -w @touchdown/web` | Build the web app into `apps/web/dist`. |
 | `npm run preview -w @touchdown/web` | Serve the build at http://127.0.0.1:4173 with the hosted site's headers. |
+| `npm run serve` | Serve the build behind the sign-in, as the hosted site does (http://127.0.0.1:8787). |
 | `npm test`, `npm run typecheck` | Run the tests; type-check. |
 
 `./touchdown <command>` is the same as `npm run touchdown -- <command>`, without npm's extra output.
 
 ## Running the hosted site
 
-Not running yet. The site will sign people in itself: email and password, or Google, and only people you invite get an account ([docs/33](docs/33-accounts-and-sign-in.md)). It will run as a Cloudflare Worker at the address in `apps/web/wrangler.jsonc`, or as a Node server on any machine. GitHub Actions already tests and builds every push to `master`; deploying stays off (the repository variable `DEPLOY`) until the sign-in is built. The setup steps will be here then.
+The site signs people in itself: email and password, or Google, and only people you invite get an account ([docs/33](docs/33-accounts-and-sign-in.md)). It runs as a Cloudflare Worker at the address in `apps/web/wrangler.jsonc`, or as a Node server on any machine. GitHub Actions tests and builds every push to `master`, and deploys to Cloudflare while the repository variable `DEPLOY` is `on`.
+
+**On Cloudflare**, once:
+
+1. **Domain:** the domain's nameservers point to Cloudflare.
+2. **Database:** in the Cloudflare dashboard, create a D1 database named `touchdown` (Storage & databases → D1). Put its id in `apps/web/wrangler.jsonc` (`database_id`) and commit. The id is not a secret.
+3. **Deploying:** create a Cloudflare API token from the "Edit Cloudflare Workers" template, add the permission Account → D1 → Edit, and limit it to your account and the domain. In GitHub, under Settings → Secrets and variables → Actions, add the secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then the variable `DEPLOY` with the value `on`. The next push deploys.
+4. **Secrets:** in the dashboard, Workers & Pages → touchdown → Settings → Variables and Secrets, add `SETUP_TOKEN` (a long random string) and, for Google sign-in, `GOOGLE_CLIENT_SECRET` (the web client's secret). Until `SETUP_TOKEN` is set nobody can make the first account, so the site stays closed.
+5. **Google Cloud:** in the "Touchdown web" client, add the site's address under Authorized JavaScript origins, and `<address>/auth/google/callback` under Authorized redirect URIs. Publish the consent screen ("In production") before friends use Google.
+6. **First account:** open `<address>/setup`, enter the setup secret, and make yours. You can then remove `SETUP_TOKEN`.
+
+**On any machine:** build the app and start the server behind a web server that handles HTTPS (Caddy, nginx), which forwards to it:
+
+```sh
+npm ci && npm run build -w @touchdown/web
+TOUCHDOWN_ORIGINS=https://touchdown.example.org SETUP_TOKEN=… npm run serve
+```
+
+It listens on 127.0.0.1:8787 and keeps accounts in `data/private/server.sqlite`; the other settings are at the top of `packages/server/src/serve.ts`.
+
+**People:** invite someone in Settings → People: you get a link that works once, for 7 days, and send it yourself. "Reset link" there is for a forgotten password; "Remove" ends someone's account at once. While the Google consent screen is in Testing, only its test users can use Google.
 
 ## Privacy
 
