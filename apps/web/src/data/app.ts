@@ -508,4 +508,10 @@ export class AppData {
       await db.meta.clear();
     });
   }
+
+  /** On signing out, once everything has reached the storage: this account's database leaves the browser. */
+  async removeThisBrowsersCopy() {
+    this.sync?.stop();
+    await db.delete();
+  }
 }

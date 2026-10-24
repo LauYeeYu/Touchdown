@@ -4,9 +4,7 @@
 
 import { GoogleDrive, SignInNeeded, type DriveAuth } from "@touchdown/storage";
 import { db } from "./db.ts";
-
-/** The "Touchdown web" client in Google Cloud. Not a secret: Google shows it to anyone who signs in. */
-export const GOOGLE_CLIENT_ID = "860644597040-p5m61042lk2pd763kdem1i0g77cuugvj.apps.googleusercontent.com";
+import { GOOGLE_CLIENT_ID } from "../config.ts";
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
 const KEY = "googleToken";
 /** A token this close to its end is not used: a sync started with it could fail halfway. */

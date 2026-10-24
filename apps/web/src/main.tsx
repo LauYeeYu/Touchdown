@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { createRootRoute, createRoute, createRouter, redirect, RouterProvider } from "@tanstack/react-router";
 import "./styles/app.css";
 import { AppData, type OpenStep } from "./data/app.ts";
+import { lastAccount, whoAmI } from "./data/account.ts";
+import { openAccountDb } from "./data/db.ts";
 import { Boot, BootError, waitingProgress } from "./components/Boot.tsx";
 import { nf } from "./lib/format.ts";
 import { AppContext } from "./data/context.tsx";
@@ -95,6 +97,13 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
             ? "Loading airports, airlines and aircraft types…"
             : `Preparing ${nf.format(records)} records…`;
     report({ at, text: text() });
+    // Whose log to open (docs/33): each account has its own copy in the browser.
+    const me = await whoAmI();
+    if (me === "signed-out" && !import.meta.env.DEV) {
+      location.assign(`/signin?next=${encodeURIComponent(location.pathname + location.search)}`);
+      return new Promise<AppData>(() => {});
+    }
+    openAccountDb(typeof me === "object" ? me.id : me === "offline" ? lastAccount() : null);
     let opened = await AppData.open((step, n) => {
       pending.delete(step);
       if (n !== undefined) records = n;

@@ -1,9 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { SECURITY_HEADERS } from "@touchdown/server/headers";
+import { GOOGLE_CLIENT_ID } from "./src/config.ts";
 
 // Development only: serve the owner's local backup (written by `touchdown import … --out`) so an empty
 // browser can load it. The file stays in data/private/ (git-ignored); it is never part of a build, and the
@@ -112,7 +114,7 @@ function localInbox(): Plugin {
 
 // Every stylesheet link in index.html carries the build's date and time in UTC (`?v=20261023T153012Z`), so a new
 // deployment's CSS is fetched again instead of waiting on the browser's cache (docs/30, "Caching").
-function styleVersion(): Plugin {
+export function styleVersion(): Plugin {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   return {
     name: "touchdown-style-version",
@@ -124,8 +126,55 @@ function styleVersion(): Plugin {
   };
 }
 
+// Development only: the real server (packages/server) answers /auth/ with its own database in data/private/, and
+// the sign-in pages open at their addresses, so signing in can be tried here. The rest of the dev server is not
+// behind the sign-in; the Node server (`npm run serve`) is, like the hosted site.
+const PRIVATE = resolve(import.meta.dirname, "../../data/private");
+const SIGNIN_PAGES = /^\/(signin|setup|join\/[^/?]+|reset\/[^/?]+)\/?(\?.*)?$/;
+
+function accounts(): Plugin {
+  return {
+    name: "touchdown-accounts",
+    apply: "serve",
+    async configureServer(server) {
+      const { handle } = await import("@touchdown/server");
+      const { sqliteFile } = await import("@touchdown/server/node");
+      const dbFile = process.env.TOUCHDOWN_DEV_DB ?? join(PRIVATE, "dev-server.sqlite");
+      mkdirSync(dirname(dbFile), { recursive: true });
+      // The secret for /setup, made once and kept next to the database.
+      const tokenFile = join(dirname(dbFile), "dev-setup-token.txt");
+      if (!existsSync(tokenFile)) writeFileSync(tokenFile, randomBytes(24).toString("base64url") + "\n", { mode: 0o600 });
+      const db = sqliteFile(dbFile);
+      const port = server.config.server.port ?? 5173;
+      // Signing in with Google needs the web client's secret, kept in data/private/google-client-secret.txt.
+      const secretFile = join(PRIVATE, "google-client-secret.txt");
+      const google = existsSync(secretFile) ? { clientId: GOOGLE_CLIENT_ID, clientSecret: readFileSync(secretFile, "utf8").trim() } : undefined;
+      const config = { origins: [`http://127.0.0.1:${port}`, `http://localhost:${port}`], setupToken: readFileSync(tokenFile, "utf8").trim(), secureCookies: false, google };
+      server.middlewares.use(async (req, res, next) => {
+        const url = req.url ?? "/";
+        if (SIGNIN_PAGES.test(url)) {
+          req.url = "/signin.html";
+          return next();
+        }
+        if (!url.startsWith("/auth/")) return next();
+        const chunks: Buffer[] = [];
+        for await (const c of req) chunks.push(c as Buffer);
+        const headers = new Headers();
+        for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string") headers.set(k, v);
+        const request = new Request(`http://${req.headers.host ?? "127.0.0.1:5173"}${url}`, { method: req.method, headers, body: chunks.length ? Buffer.concat(chunks) : undefined });
+        const response = await handle(request, { db, config, assets: { fetch: async () => new Response("Not found", { status: 404 }) } });
+        res.statusCode = response.status;
+        response.headers.forEach((v, k) => k !== "set-cookie" && res.setHeader(k, v));
+        const cookies = response.headers.getSetCookie();
+        if (cookies.length) res.setHeader("Set-Cookie", cookies);
+        res.end(Buffer.from(await response.arrayBuffer()));
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), styleVersion(), localBackup(), localInbox()],
+  plugins: [react(), styleVersion(), localBackup(), localInbox(), accounts()],
   server: { port: 5173, host: "127.0.0.1" },
   // The built app with the hosted site's headers, so its security policy can be tried locally.
   preview: { port: 4173, host: "127.0.0.1", headers: SECURITY_HEADERS },

@@ -21,8 +21,8 @@ class TouchdownDb extends Dexie {
   trackPoints!: Table<TrackPointsRecord, string>;
   meta!: Table<MetaRow, string>;
 
-  constructor() {
-    super("touchdown");
+  constructor(name: string) {
+    super(name);
     this.version(1).stores({ rows: "[table+id], table", meta: "key" });
     // Version 2 moves track points from one record per point to one per track. The move runs inside the
     // upgrade's own transaction and is checked against the original rows before they are removed: if the copy
@@ -39,4 +39,16 @@ class TouchdownDb extends Dexie {
   }
 }
 
-export const db = new TouchdownDb();
+/**
+ * The browser's copy of one account's log. Each account has its own database (docs/33), so people who share a
+ * browser never see each other's logs. Signed out in development, and before accounts existed, it is "touchdown".
+ */
+export let db = new TouchdownDb("touchdown");
+
+/** Use this account's database. Called once, before anything is read. */
+export function openAccountDb(accountId: string | null): void {
+  const name = accountId ? `touchdown-${accountId}` : "touchdown";
+  if (db.name === name) return;
+  db.close();
+  db = new TouchdownDb(name);
+}

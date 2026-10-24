@@ -1,5 +1,5 @@
-// Settings (docs/31-ui.md): display, sync mode (docs/32), data (backup, restore, CSV, delete), family overrides,
-// sources. The agent check's settings belong to the CLI on each computer (docs/22).
+// Settings (docs/31-ui.md): account and, for the owner, people (docs/33), display, sync mode (docs/32), data
+// (backup, restore, CSV, delete), family overrides, sources. The agent check's settings belong to the CLI on each computer (docs/22).
 
 import { useEffect, useState } from "react";
 import { backupZip, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
@@ -13,6 +13,7 @@ import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
 import { toast } from "../components/overlay.tsx";
+import { AccountSection } from "../components/AccountSettings.tsx";
 import { download } from "../lib/download.ts";
 import { FOLDERS_ONLY_HERE, STANDARD_LATER } from "./FirstRun.tsx";
 
@@ -222,6 +223,8 @@ export function SettingsPage() {
     <div className="page page--form">
       <div className="view-top" />
       <h1 className="form-title">Settings</h1>
+
+      <AccountSection app={app} />
 
       <h2 className="form-section">Display</h2>
       <div className="form-grid">

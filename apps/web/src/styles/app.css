@@ -2325,6 +2325,89 @@ a.btn--primary {
   color: var(--flown);
 }
 
+/* ---------- Settings: account and people (docs/33) ---------- */
+
+.account-form {
+  display: grid;
+  gap: 12px;
+  max-width: 26rem;
+  padding: 4px 0 16px;
+}
+
+.account-form .button-row {
+  margin-top: 0;
+}
+
+.button-row--tight {
+  margin-top: 0;
+  flex-wrap: nowrap;
+}
+
+.link-result {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.link-result small {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+/* A link to send, in a tonal box with a copy button at its end. */
+.link-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  justify-self: start;
+  padding: 4px 4px 4px 14px;
+  border-radius: 12px;
+  background: var(--surface-highest);
+}
+
+.link-box code {
+  overflow-x: auto;
+  font-family: inherit;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.link-box__copy {
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+
+/* ---------- the sign-in pages (docs/33) ---------- */
+
+.signin__form {
+  display: grid;
+  gap: 14px;
+  max-width: 26rem;
+  margin-top: 24px;
+}
+
+.signin__form .button-row {
+  margin-top: 4px;
+}
+
+.signin__or {
+  max-width: 26rem;
+  margin: 20px 0 0;
+  color: var(--ink-3);
+  font-size: 0.875rem;
+}
+
+.signin__or + .button-row {
+  margin-top: 8px;
+}
+
+.signin .signin__note {
+  margin-top: 28px;
+}
+
 /* ---------- where the log lives (docs/32): the mode choice ---------- */
 
 .modes {
