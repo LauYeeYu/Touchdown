@@ -1,0 +1,34 @@
+Touchdown
+Copyright 2026 Lau Yee-Yu
+
+Licensed under the Apache License, Version 2.0 (see LICENSE). The parts below come from
+others and keep their own licences.
+
+Reference data (packages/refdata/data), built from:
+- OurAirports (ourairports.com): airports. Public domain.
+- airportsdata by Mike Borsetti (github.com/mborsetti/airportsdata): airport time zones.
+  MIT License; its copyright notice and licence are in that repository.
+- Mictronics aircraft database (github.com/Mictronics/aircraft-database): operators and
+  aircraft types. Open Data Commons Attribution License (ODC-By) 1.0.
+- Virtual Radar Server standing data (github.com/vradarserver/standing-data): operators and
+  aircraft types. CC0.
+- Wikidata (wikidata.org): airlines. CC0.
+- Touchdown's own tables (aircraft families, model patterns, registration prefixes, curated
+  rows): Apache License 2.0, with the code.
+
+Icons (apps/web/src/lib/icons.tsx, prototype/icons): Lucide (lucide.dev). ISC License.
+  Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather
+  (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+  The full licence is in prototype/icons/LICENSE.txt.
+
+Prototype (prototype/vendor):
+- d3 v7.9.0, Copyright 2010-2023 Mike Bostock (d3js.org). ISC License.
+- topojson-client v3.1.0, Copyright 2019 Mike Bostock. ISC License.
+- countries-110m.js: world-atlas (github.com/topojson/world-atlas, ISC License), from
+  Natural Earth (naturalearthdata.com), public domain.
+
+Not in this repository, and not covered by its licence:
+- The OpenSky Network aircraft database, which the command-line tool downloads for each
+  user (data/private/reference), under the OpenSky Network's terms of use.
+- Answers from lookup services (adsbdb, Flightradar24, planespotters.net) and recorded
+  tracks (adsb.lol, ODbL), fetched by each user under those services' terms.

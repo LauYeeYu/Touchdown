@@ -232,6 +232,10 @@ It listens on 127.0.0.1:8787 and keeps accounts in `data/private/server.sqlite`;
 - Lookups send only a registration: to adsbdb (online, answers kept for 90 days), and to Flightradar24 if you use `--fr24`. The OpenSky database is a local file.
 - The agent runs on your computer under your own account, and sees only what is listed above.
 
+## Licence
+
+Touchdown is under the [Apache License 2.0](LICENSE). The reference data, the icons and the prototype's libraries come from others and keep their own licences; [NOTICE](NOTICE) lists them.
+
 ## More
 
 - [docs/README.md](docs/README.md): the plan, data model, import formats, the agent check's threat model and the roadmap.
