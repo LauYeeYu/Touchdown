@@ -260,4 +260,42 @@ describe("the inbox file", () => {
     expect(bad({}, { sources: { typeCode: "somewhere" } })).toMatch(/unknown source/);
     expect(bad({}, { values: { registration: "G-ABCD", ticketNumber: "x" } })).toMatch(/not allowed/);
   });
+
+  // Version 2 holds flights as well (`touchdown add`).
+  const withFlights = (flight: Record<string, unknown>): InboxFile =>
+    ({ schema: "touchdown-inbox", version: 2, createdAt: "2026-10-20T18:00Z", checker: null, sightings: [], flights: [{ values: {}, open: [], ...flight }] }) as InboxFile;
+
+  it("reads a flight as a spreadsheet row with these columns, local times with their offsets", () => {
+    const r = readInbox(
+      withFlights({
+        values: { date: "2026-10-18", flightNumber: "BA117", airline: "BAW", from: "EGLL", to: "KJFK", takeoff: "11:40", landing: "14:35", seat: "31K", class: "Economy", registration: "G-ABCD" },
+        sources: { registration: "fr24" },
+        open: ["Seat not on the boarding pass."],
+      }),
+      "add.json",
+      ref,
+    );
+    if ("error" in r) throw new Error(r.error);
+    const [c] = r.source.candidates;
+    expect(c!.table).toBe("flights");
+    expect(c!.values).toMatchObject({ scheduledDate: "2026-10-18", flightNumber: "BA117", airlineId: "op_baw", fromAirportId: "ap_egll", toAirportId: "ap_kjfk", seat: "31K", registration: "G-ABCD", sourceKind: "manual" });
+    expect(c!.values).toMatchObject({ takeoffAt: "2026-10-18T11:40+01:00", landingAt: "2026-10-18T14:35-04:00" });
+    expect(c!.issues).toContainEqual({ ruleId: "I-SOURCE-DIFF", severity: "warning", field: null, message: "Seat not on the boarding pass." });
+    expect(c!.provenance).toEqual([{ field: "registration", source: "lookup", detail: "fr24" }]);
+    expect(c!.raw).toEqual({ date: "2026-10-18", flightNumber: "BA117", airline: "BAW", from: "EGLL", to: "KJFK", takeoff: "11:40", landing: "14:35", seat: "31K", class: "Economy", registration: "G-ABCD" });
+  });
+
+  it("refuses private and unknown flight fields, and flights without a number, route or registration", () => {
+    const bad = (flight: Record<string, unknown>) => {
+      const r = readInbox(withFlights(flight), "add.json", ref);
+      return "error" in r ? r.error : null;
+    };
+    expect(bad({ values: { flightNumber: "BA117", ticketNumber: "x" } })).toMatch(/not allowed/);
+    expect(bad({ values: { flightNumber: "BA117", bookingRef: "x" } })).toMatch(/not allowed/);
+    expect(bad({ values: { date: "2026-10-18" } })).toMatch(/no flight number, route or registration/);
+    expect(bad({ values: { flightNumber: "BA117", date: "18/10/2026" } })).toMatch(/not a date/);
+    expect(bad({ values: { flightNumber: "BA117" }, extra: 1 })).toMatch(/unexpected keys/);
+    expect(readInbox({ ...withFlights({ values: { flightNumber: "BA117" } }), version: 1 }, "old.json", ref)).toEqual({ error: "unexpected keys: flights" });
+    expect(readInbox({ ...withFlights({}), flights: [] }, "empty.json", ref)).toMatchObject({ error: expect.stringMatching(/no records/) });
+  });
 });
