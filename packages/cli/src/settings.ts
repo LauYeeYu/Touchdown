@@ -1,7 +1,7 @@
 // The CLI's own settings (data/private/touchdown-cli.json): which agent checks imports and spotting sessions,
-// whether notes are sent to it, the user's rules for it, and the spreadsheet layouts the user confirmed (by their
-// headers). The agent runs on this computer, so these are kept here, not in the log: each computer can use its own
-// agent (docs/22).
+// whether notes are sent to it, the user's rules for it, the spreadsheet layouts the user confirmed (by their
+// headers), and where the log is (the storage the web app syncs with). The agent runs on this computer, so these
+// are kept here, not in the log: each computer can use its own agent (docs/22).
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -12,6 +12,12 @@ import { privatePath } from "./paths.ts";
 import { bold, dim } from "./term.ts";
 
 export type AgentChoice = Checker | "none";
+
+/**
+ * The storage holding the user's log, as the web app syncs it: Google Drive (the account, and whether the site gives
+ * the access, in Standard mode, or the user's browser does, in Private mode), or a folder.
+ */
+export type StorageChoice = { kind: "gdrive"; account: string; via: "standard" | "browser" } | { kind: "folder"; path: string };
 
 const FILE = privatePath("touchdown-cli.json");
 
@@ -25,6 +31,7 @@ interface CliSettings {
   rules?: string[];
   /** Confirmed column layouts, by header signature: the field of each column, by position. */
   mappings?: Record<string, { kind: RowKind; fields: ColumnField[] }>;
+  storage?: StorageChoice;
 }
 
 function read(): CliSettings {
@@ -79,6 +86,18 @@ export function savedMapping(signature: string): { kind: RowKind; fields: Column
 export function saveMapping(signature: string, mapping: { kind: RowKind; fields: ColumnField[] }): void {
   const s = read();
   write({ ...s, mappings: { ...s.mappings, [signature]: mapping } });
+}
+
+export function savedStorage(): StorageChoice | null {
+  const s = read().storage;
+  if (s?.kind === "gdrive" && typeof s.account === "string" && (s.via === "standard" || s.via === "browser")) return s;
+  if (s?.kind === "folder" && typeof s.path === "string") return s;
+  return null;
+}
+
+export function saveStorage(storage: StorageChoice | null): void {
+  const { storage: _, ...rest } = read();
+  write(storage ? { ...rest, storage } : rest);
 }
 
 /** The installed version of an agent's command, or null when it is not installed. */

@@ -21,10 +21,8 @@ import {
   logLivery,
   missingFields,
   normaliseRegistration,
-  operatorFromOverride,
   parseModel,
   parseSpotLine,
-  readBackup,
   readInbox,
   RefIndex,
   registrationMatchForm,
@@ -58,11 +56,11 @@ import { adsbdb } from "./providers/adsbdb.ts";
 import { fr24Evidence, fr24Pages, fr24Url } from "./providers/fr24.ts";
 import { openSkyEvidence, openSkyIndex, type OpenSkyRow } from "./providers/opensky.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
-import { agentForRun, AGENT_NAME, agentRules, type AgentChoice } from "./settings.ts";
+import { agentForRun, AGENT_NAME, agentRules, savedStorage, type AgentChoice } from "./settings.ts";
+import { INBOX_DIR, inboxPlace, loadLog, writeInboxFile } from "./log.ts";
+import { chosenStorage, type OpenedStorage } from "./storage.ts";
 import { bold, colour, dim, duration, fit, green, plural, red, width, wrap, yellow } from "./term.ts";
 
-const DEFAULT_LOG = privatePath("touchdown-backup.zip");
-const INBOX_DIR = privatePath("inbox");
 const CACHE = privatePath("cache/airframes");
 const HISTORY_FILE = privatePath("cache/spot-history.txt");
 const HISTORY_SIZE = 500;
@@ -88,15 +86,16 @@ A line with only a place, date or phase ("at EGLL", "on yesterday", "landing") s
 it; "no phase" clears the phase. An empty line checks the aircraft typed so far and saves them. Type "help"
 in the session for its commands and keys.
 
-Each registration is looked up in your log (data/private/touchdown-backup.zip), the OpenSky snapshot (August
-2025, downloaded once, about 110 MB) and adsbdb, and in Flightradar24 through your Chrome with --fr24. Empty
+Each registration is looked up in your log (in the storage chosen with ./touchdown storage, else
+data/private/touchdown-backup.zip), the OpenSky snapshot (August 2025, downloaded once, about 110 MB) and adsbdb, and in Flightradar24 through your Chrome with --fr24. Empty
 fields are filled from them. Then the agent you chose (asked the first time; ./touchdown agent changes it)
 checks every value and sorts out the words Touchdown could not place. Values the sources back are used; the
 agent's own guesses and changes to what you typed are asked about, and so is whatever is still missing. When
 your log has the aircraft in a special livery, you are asked whether it still wore it.
 
-The sightings are saved to the inbox (data/private/inbox/spot-<date>-<time>.json, or --out). They are not
-in your log yet: the web app shows them as waiting, and you review and import them there.
+The sightings are saved to the inbox as spot-<date>-<time>.json: the inbox in your storage, which the web app
+reads on any device, else data/private/inbox/ (or --out). They are not in your log yet: the web app shows
+them as waiting, and you review and import them there.
 
   FILE.xlsx|.csv        read the rows of a spreadsheet of sightings, in any layout, instead of typed lines:
                         each row is looked up, filled and checked; what is open goes to the web app's review
@@ -104,7 +103,7 @@ in your log yet: the web app shows them as waiting, and you review and import th
   --at, --on, --phase   the place, date and phase to start with (the date is today unless given)
   LINE…                 lines to read instead of typing them (one argument per line); also read from a pipe
   --agent NAME          the agent for this run: claude, codex, or none (lookups only)
-  --log FILE            a Touchdown backup to look registrations up in (in the web app: Settings, Back up)
+  --log FILE            a Touchdown backup to look registrations up in instead (in the web app: Settings, Back up)
   --fr24                also read Flightradar24 through Chrome started with --remote-debugging-port=9222 and
                         signed in (--chrome-port N); about 10 seconds per aircraft
   --no-adsbdb           do not ask adsbdb
@@ -122,7 +121,8 @@ interface Options {
   file?: string;
   maps: string[];
   settings: string[];
-  log: string | null;
+  /** A backup to read the log from; null for none; unset for the chosen storage, else the default backup. */
+  log?: string | null;
   fr24: boolean;
   chromePort: number;
   adsbdb: boolean;
@@ -134,7 +134,7 @@ interface Options {
 }
 
 function options(args: string[]): Options {
-  const o: Options = { lines: [], maps: [], settings: [], log: existsSync(DEFAULT_LOG) ? DEFAULT_LOG : null, fr24: false, chromePort: 9222, adsbdb: true, offline: false, dryRun: false };
+  const o: Options = { lines: [], maps: [], settings: [], fr24: false, chromePort: 9222, adsbdb: true, offline: false, dryRun: false };
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
     const next = () => args[++i] ?? usage();
@@ -274,23 +274,31 @@ export async function spotCommand(args: string[]): Promise<void> {
 
   // ---------- the sources ----------
 
+  // The storage chosen with ./touchdown storage: the log is read from it and the session saved to its inbox.
+  let storage: OpenedStorage | null = null;
+  if (o.log === undefined && savedStorage()) {
+    try {
+      storage = await chosenStorage();
+    } catch (e) {
+      console.log(yellow(`${(e as Error).message} Going on without it: the session is saved in data/private/inbox/, and ./touchdown inbox send sends it later.`));
+    }
+  }
   let log: Store | null = null;
   let logSize = 0;
-  if (o.log) {
-    if (!existsSync(o.log)) {
-      console.error(red(`${o.log}: no such file. Back up in the web app (Settings) and pass the file with --log, or use --no-log.`));
+  if (o.log !== null) {
+    try {
+      const loaded = await loadLog(ref, { file: o.log, storage });
+      log = loaded.store;
+      for (const p of loaded.problems) console.log(yellow(p));
+    } catch (e) {
+      console.error(red(`${(e as Error).message} Back up in the web app (Settings) and pass the file with --log, or use --no-log.`));
       process.exit(1);
     }
-    const backup = readBackup(new Uint8Array(readFileSync(o.log)));
-    if (backup.problems.length) {
-      console.error(red(`${o.log}: ${backup.problems.join("; ")}`));
-      process.exit(1);
-    }
-    log = new Store({ deviceId: "spot", validate: false });
-    for (const [table, rows] of backup.tables) log.load(table, rows as never);
-    for (const op of log.all("operator_overrides")) ref.addOperator(operatorFromOverride(op));
-    logSize = log.all("sightings").length + log.all("flights").length;
+    logSize = log ? log.all("sightings").length + log.all("flights").length : 0;
   }
+  // Saved to the storage's inbox unless --out says where.
+  const place = storage && !o.out ? inboxPlace(storage) : null;
+  let sentTo: string | null = null;
   // The user's rules for the agent, kept with this computer's CLI settings.
   const rules = agentRules();
   const logRegistrations = new Set([...(log?.all("sightings") ?? []), ...(log?.all("flights") ?? [])].map((r) => r.registration).filter((r): r is string => !!r));
@@ -784,12 +792,25 @@ export async function spotCommand(args: string[]): Promise<void> {
     sightings: list.map(toInbox),
   });
 
-  /** Writes what this session saved; removes the file when everything in it was dropped. */
-  const writeInbox = () => {
+  /**
+   * Writes what this session saved, to the storage's inbox when there is one, else to `out`; removes the file when
+   * everything in it was dropped. A file the storage did not take stays in `out` for ./touchdown inbox send.
+   */
+  const writeInbox = async () => {
     if (saved.length) {
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, JSON.stringify(inboxFile(saved), null, 2) + "\n");
     } else if (existsSync(out)) rmSync(out);
+    if (!place) return;
+    try {
+      if (saved.length) await writeInboxFile(place, basename(out), inboxFile(saved), ref);
+      else await place.remove(basename(out));
+      if (existsSync(out)) rmSync(out);
+      sentTo = place.name;
+    } catch (e) {
+      sentTo = null;
+      console.log(yellow(`Not saved to ${place.name}: ${(e as Error).message} Kept in ${outShown}; ./touchdown inbox send sends it later.`));
+    }
   };
 
   /** Check the aircraft typed since the last save, ask about what is open, and save them. */
@@ -828,8 +849,8 @@ export async function spotCommand(args: string[]): Promise<void> {
     }
     if (done.length) {
       saved.push(...done);
-      writeInbox();
-      console.log(`\n${green("Saved")} ${plural(done.length, "sighting")} to ${outShown}${saved.length > done.length ? ` (${saved.length} in this session)` : ""}.`);
+      await writeInbox();
+      console.log(`\n${green("Saved")} ${plural(done.length, "sighting")} to ${sentTo ? `${sentTo} (${basename(out)})` : outShown}${saved.length > done.length ? ` (${saved.length} in this session)` : ""}.`);
       const left = done.filter((e) => e.missing.length || openOf(e).length);
       if (left.length) console.log(bold(`Still open${left.length > 15 ? ` (the first 15 of ${left.length}; the web app lists them all when you review)` : ""}:`));
       for (const e of left.slice(0, 15)) {
@@ -850,6 +871,10 @@ export async function spotCommand(args: string[]): Promise<void> {
 
   /** Where the saved sightings are, and the step that adds them to the log. */
   const whereNext = async () => {
+    if (sentTo) {
+      console.log(`${yellow("Not in your log yet:")} open Touchdown on any device and use “Review and import” at the top, or the list on the Import page.`);
+      return;
+    }
     const start = (await webAppRunning()) ? `open ${WEB_APP}` : `start the web app (npm run dev -w @touchdown/web), open ${WEB_APP}`;
     // A file saved elsewhere (--out) is not in the inbox the web app watches.
     if (dirname(out) !== INBOX_DIR) console.log(`${yellow("Not in your log yet:")} ${start}, go to Import and choose ${outShown}.`);
@@ -865,10 +890,10 @@ export async function spotCommand(args: string[]): Promise<void> {
 
   console.log(bold("Touchdown spotting session"));
   console.log(`  Place     ${describeSettings()}`);
-  const sources = [log ? `your log (${plural(logSize, "record")})` : null, "OpenSky snapshot (August 2025)", adsb ? "adsbdb" : null, fr24 ? `Flightradar24 through Chrome on port ${o.chromePort}` : null].filter(Boolean);
+  const sources = [log ? `your log${storage ? ` in ${storage.name}` : ""} (${plural(logSize, "record")})` : null, "OpenSky snapshot (August 2025)", adsb ? "adsbdb" : null, fr24 ? `Flightradar24 through Chrome on port ${o.chromePort}` : null].filter(Boolean);
   console.log(`  Sources   ${sources.join(", ")}${o.offline ? dim(" (offline: cached answers only)") : ""}`);
   console.log(`  Agent     ${agent ? `${agent.name} ${agent.version}, locked down: no tools, no MCP servers, no hooks` : AGENT_NAME.none}  ${dim("(./touchdown agent to change)")}`);
-  console.log(`  Saves to  ${outShown} ${dim("(the web app shows it for you to review and import)")}`);
+  console.log(`  Saves to  ${place ? `${place.name} (${basename(out)})` : outShown} ${dim("(the web app shows it for you to review and import)")}`);
   const ready = await openSky();
   if (!(ready instanceof Map)) console.log(yellow(`  OpenSky: ${ready.error}; not used.`));
 
@@ -1032,8 +1057,8 @@ export async function spotCommand(args: string[]): Promise<void> {
       else {
         const wasSaved = saved.includes(e);
         remove(e);
-        if (wasSaved) writeInbox();
-        console.log(dim(`  Dropped line ${e.n} (${e.choice.values.registration})${wasSaved ? `, also from ${outShown}` : ""}.`));
+        if (wasSaved) await writeInbox();
+        console.log(dim(`  Dropped line ${e.n} (${e.choice.values.registration})${wasSaved ? `, also from ${sentTo ? basename(out) : outShown}` : ""}.`));
       }
     } else if (target && t === target.line.trim()) console.log(dim(`  Line ${target.n} left as it was.`));
     else {

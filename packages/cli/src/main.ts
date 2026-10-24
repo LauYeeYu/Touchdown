@@ -38,6 +38,10 @@ import { readSheets } from "./sheets.ts";
 import { CHECK_HELP, checkCommand } from "./check.ts";
 import { readSheetFile } from "./columns.ts";
 import { SPOT_HELP, spotCommand } from "./spot.ts";
+import { STORAGE_HELP, storageCommand } from "./storage.ts";
+import { LOGIN_HELP, loginCommand, logoutCommand } from "./site.ts";
+import { ADD_HELP, addCommand } from "./add.ts";
+import { INBOX_HELP, inboxCommand } from "./inbox.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { AGENT_NAME, chooseAgent, installedVersion, saveAgent, savedAgent, savedRules, savedSendNotes, saveRules, saveSendNotes } from "./settings.ts";
 import { bold, dim, red } from "./term.ts";
@@ -58,6 +62,9 @@ ${bold("Log what you saw")}
   spot        Type the aircraft you saw, one per line. Each registration is looked up, empty fields are
               filled, an agent checks them and you are asked for what is missing. Saves a file for the
               Import page.
+  add         Check flights and sightings given as JSON, by you or an agent, against your log, and put
+              them in the inbox for review in the web app.
+  inbox       List what waits in the inbox for review; show or remove a file; send files saved here.
 
 ${bold("Check and import files")}
   check       Have Claude Code or Codex check a spreadsheet, or a check request saved from the Import page.
@@ -67,6 +74,9 @@ ${bold("Check and import files")}
 
 ${bold("Settings")}
   agent       Show or choose the agent that checks your records: claude, codex or none.
+  login       Sign the command line in to your Touchdown site, as a browser is signed in.
+  logout      Sign the command line out.
+  storage     Show or choose where your log is: Google Drive or a folder, as the web app syncs it.
 
   help        This list. "./touchdown help <command>" (or "<command> --help") shows a command's options.
 
@@ -121,7 +131,7 @@ lets you choose another. Claude Code and Codex run on this computer with your ow
 
 These settings belong to this computer and are kept in data/private/touchdown-cli.json.`;
 
-const HELP: Record<string, string> = { spot: SPOT_HELP, check: CHECK_HELP, import: IMPORT_HELP, airframes: AIRFRAMES_HELP, agent: AGENT_HELP };
+const HELP: Record<string, string> = { spot: SPOT_HELP, check: CHECK_HELP, import: IMPORT_HELP, airframes: AIRFRAMES_HELP, agent: AGENT_HELP, storage: STORAGE_HELP, add: ADD_HELP, inbox: INBOX_HELP, login: LOGIN_HELP, logout: LOGIN_HELP };
 
 function usage(text = MENU, code = 1): never {
   console.log(text);
@@ -265,6 +275,11 @@ async function main(argv: string[]) {
   if (cmd === "check") return checkCommand(all);
   if (cmd === "spot") return spotCommand(all);
   if (cmd === "agent") return agentCommand(all);
+  if (cmd === "login") return loginCommand(all, (l) => console.log(dim(l)));
+  if (cmd === "logout") return logoutCommand();
+  if (cmd === "storage") return storageCommand(all, new RefIndex(loadRefTables()));
+  if (cmd === "add") return addCommand(all, new RefIndex(loadRefTables()));
+  if (cmd === "inbox") return inboxCommand(all, new RefIndex(loadRefTables()));
   if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd], 0);
   const { lookup, rest } = lookupArgs(all);
   if (cmd === "airframes") return airframesCommand(rest, lookup);

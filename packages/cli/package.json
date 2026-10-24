@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@touchdown/core": "*",
-    "@touchdown/refdata": "*"
+    "@touchdown/refdata": "*",
+    "@touchdown/storage": "*"
   }
 }

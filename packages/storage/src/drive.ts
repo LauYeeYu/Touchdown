@@ -1,6 +1,6 @@
 // Google Drive as a file adapter (docs/12, "Google Drive details"): Drive API v3 over HTTPS with the `drive.file`
 // scope, so Touchdown sees only the files it created. Plain `fetch`, so the browser and the CLI share it; getting a
-// token is the app's part (Google's popup in the browser, `touchdown login` in the CLI).
+// token is the app's part (Google's popup in the browser, `touchdown storage drive` in the CLI).
 //
 // Drive finds files by id, and a folder may hold two files with the same name. Paths are looked up by name, and
 // when two devices create the same file at the same moment, the older one is used and the newer one removed.

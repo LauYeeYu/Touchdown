@@ -5,7 +5,8 @@
 import { isAbsolute, join, relative, resolve } from "node:path";
 
 export const ROOT = resolve(import.meta.dirname, "../../..");
-export const PRIVATE_DIR = join(ROOT, "data/private");
+/** TOUCHDOWN_PRIVATE_DIR points the CLI at another folder, for tests and for trying commands on a copy. */
+export const PRIVATE_DIR = process.env.TOUCHDOWN_PRIVATE_DIR ? resolve(process.env.TOUCHDOWN_PRIVATE_DIR) : join(ROOT, "data/private");
 
 export const privatePath = (...parts: string[]) => join(PRIVATE_DIR, ...parts);
 
