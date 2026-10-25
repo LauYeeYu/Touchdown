@@ -6,6 +6,7 @@
 import { flightDay } from "../derive.ts";
 import { refOverridesOf, tagsOf } from "../edit.ts";
 import { applyChange, changeStatus, copyStore, currentFindings, type ChangeStatus, type InboxChange } from "../import/changes.ts";
+import { airframeFactsEffect } from "../identity/facts.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { RULES, type Finding } from "../rules/types.ts";
 import { DIMENSIONS } from "../stats/index.ts";
@@ -187,7 +188,10 @@ const ACTION: Record<InboxChange["op"], string> = {
   settings: "Settings",
   view: "Save a view",
   removeView: "Remove a view",
+  facts: "Looked-up facts",
 };
+
+const PROVIDER_LABEL: Record<string, string> = { opensky: "OpenSky", adsbdb: "adsbdb", fr24: "Flightradar24" };
 
 const MEASURE_LABEL: Record<string, string> = { records: "Number of records", aircraft: "Aircraft (each once)", distance: "Distance", time: "Time in the air" };
 
@@ -229,7 +233,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
   try {
     changes.forEach((c, index) => {
       // As the import goes: in order, after the changes taken before this one.
-      const { status, note } = changeStatus(taken, c, onTaken.get);
+      const { status, note } = changeStatus(taken, ref, c, onTaken.get);
       const p: PlannedChange = { index, change: o.showPrivate ? c : masked(c), action: ACTION[c.op], title: "", lines: [], status, note };
       const active = status === "pending" || status === "changed";
       // What the change is about, and the rows it touches, before it.
@@ -239,6 +243,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         return { ...r, ...(table === "sightings" && { tags: tagsOf(shown, id) }) } as Record<string, unknown>;
       };
       let before: Record<string, unknown> | null = null;
+      let mergedInto: string | null = null;
       switch (c.op) {
         case "edit":
         case "delete":
@@ -248,6 +253,11 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         case "airframe":
           p.title = aircraftTitle(shown, ref, c.id);
           before = rowOf("airframes", c.id);
+          break;
+        case "facts":
+          p.title = aircraftTitle(shown, ref, c.id);
+          before = rowOf("airframes", c.id);
+          if (active) mergedInto = airframeFactsEffect(shown, ref, c.id, c.facts, { overwriteImported: c.overwriteImported }).mergedInto;
           break;
         case "merge": {
           const moving = [...shown.all("flights"), ...shown.all("sightings")].filter((r) => r.airframeId === c.from).length;
@@ -319,6 +329,10 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         const after = rowOf(table, c.id);
         const show = table === "flights" ? FLIGHT_SHOW : table === "sightings" ? SIGHTING_SHOW : AIRFRAME_SHOW;
         p.lines = lines(show, before, ctx(shown), after, ctx(shown));
+      }
+      if (active && c.op === "facts") {
+        // Merged, the facts went on the other aircraft: shown on it.
+        p.lines = [...lines(AIRFRAME_SHOW, before, ctx(shown), rowOf("airframes", mergedInto ?? c.id), ctx(shown)), { field: "provider", label: "Source", before: "", after: PROVIDER_LABEL[c.facts.provider] ?? c.facts.provider, private: false }];
       }
       if (active && c.op === "delete" && before) p.lines = lines(c.table === "flights" ? FLIGHT_SHOW.slice(0, 5) : SIGHTING_SHOW.slice(0, 5), before, ctx(shown), null, ctx(shown)).map((l) => ({ ...l, after: "" }));
       planned.push(p);

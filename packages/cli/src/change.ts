@@ -35,11 +35,11 @@ import { askHidden, bold, dim, green, plural, red, yellow } from "./term.ts";
 
 const PRIVATE = new Set(["ticketNumber", "bookingRef"]);
 
-const changeOptions = (col: number) => `  ${"--dry-run".padEnd(col)}check only, write nothing
+export const changeOptions = (col: number) => `  ${"--dry-run".padEnd(col)}check only, write nothing
   ${"--keep-errors".padEnd(col)}write even when the changes bring errors; the review shows them again
 ${readOptions(col)}`;
 
-const AFTER = `The changes go to the inbox as one file (the storage chosen with ./touchdown storage, else
+export const AFTER = `The changes go to the inbox as one file (the storage chosen with ./touchdown storage, else
 data/private/inbox/), are read back, and wait there until you review and import them on the web app's Import
 page, or with ./touchdown review. Importing them is one import: undo it to put everything back.
 
@@ -153,7 +153,7 @@ ${changeOptions(15)}
 
 ${AFTER}`;
 
-interface Common {
+export interface Common {
   json: boolean;
   dryRun: boolean;
   force: boolean;
@@ -168,7 +168,7 @@ interface Common {
 }
 
 /** The arguments of a changing command: --set and --clear may repeat; --set F alone asks for a private value. */
-function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean; values?: string[] } = {}): Common {
+export function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean; values?: string[] } = {}): Common {
   const json = args.includes("--json");
   if (args.includes("--help") || args.includes("-h")) {
     console.log(help);
@@ -247,7 +247,7 @@ const severityMark = (f: Finding) => (f.severity === "error" ? red("!") : f.seve
  * Check the changes against the log, report them, and write those with something to do to the inbox as one file
  * named after the command. Never returns.
  */
-async function writeChanges(log: OpenedLog, command: string, changes: InboxChange[], c: Common, notes: string[] = []): Promise<never> {
+export async function writeChanges(log: OpenedLog, command: string, changes: InboxChange[], c: Common, notes: string[] = []): Promise<never> {
   const plan = planChanges(log.store, log.ref, changes, { codes: log.codes, unit: log.unit, models: log.models });
   const open = plan.changes.filter((p) => p.status === "pending");
   const errors = plan.findings.filter((f) => f.severity === "error");

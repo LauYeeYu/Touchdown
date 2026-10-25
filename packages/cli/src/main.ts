@@ -55,7 +55,9 @@ import { FLIGHT_HELP, FLIGHTS_HELP, flightCommand, flightsCommand, SESSIONS_HELP
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { AGENT_NAME, chooseAgent, installedVersion, saveAgent, savedAgent, savedRules, savedSendNotes, saveRules, saveSendNotes } from "./settings.ts";
 import { bold, dim, red } from "./term.ts";
-import { lookupAirframes, type LookupReport } from "./airframes.ts";
+import { lookupAirframes, lookupAsChanges, type LookupReport } from "./airframes.ts";
+import { changeOptions, parse as parseChange, writeChanges } from "./change.ts";
+import { fail as failRead, openOrFail } from "./read.ts";
 import { PROVIDER_IDS, providers as allProviders } from "./providers/index.ts";
 
 const DEFAULT_CHROME_PORT = 9222;
@@ -90,6 +92,7 @@ Import page or with ./touchdown review)
   edit        Change a flight or a sighting: --set FIELD=VALUE, --clear FIELD.
   delete      Delete flights or sightings.
   aircraft    edit REF --set msn=… for an aircraft's facts; merge INTO FROM for two entries of one aircraft.
+  airframes   Look up serial numbers and first flights for your aircraft (OpenSky; Flightradar24 with --fr24).
   issues      accept ID, reopen ID, or fix ID [N] with a suggested fix.
   undo        Undo an import (ids from ./touchdown imports).
   families    Count a type in another family in the statistics.
@@ -101,7 +104,6 @@ ${bold("Files")}
   backup      Download a backup of your log, as the web app's Settings does.
   export      A table of your log (flights, sightings, aircraft) as CSV.
   check       Have Claude Code or Codex check a spreadsheet, or a check request saved from the Import page.
-  airframes   Fill serial numbers and first flight dates in a backup (OpenSky; Flightradar24 with --fr24).
 
 ${bold("Settings")}
   agent       Show or choose the agent that checks your records: claude, codex or none.
@@ -159,9 +161,16 @@ replaces the log in the browser.
 
 ${LOOKUP_HELP}`;
 
-const AIRFRAMES_HELP = `Usage: ./touchdown airframes <backup.zip> [--out FILE.zip] [lookup options]
+const AIRFRAMES_HELP = `Usage: ./touchdown airframes [lookup options] [--dry-run] [--json] [--keep-errors] [--log FILE]
+       ./touchdown airframes <backup.zip> [--out FILE.zip] [lookup options]
 
-Fills serial numbers and first flight dates in an existing backup and writes it to --out.
+Looks up serial numbers and first flight dates for the aircraft in your log (from the storage chosen with
+./touchdown storage, else data/private/touchdown-backup.zip, or --log FILE). Your log is not changed: what the
+sources give goes to the inbox as one file of changes, for review on the Import page or with ./touchdown review,
+where each answer is checked against your records again. With a backup file instead, it fills the backup and
+writes it to --out.
+
+${changeOptions(15)}
 
 ${LOOKUP_HELP}`;
 
@@ -320,23 +329,45 @@ function lookupArgs(args: string[]): { lookup: LookupArgs; rest: string[] } {
   return { lookup, rest };
 }
 
-async function runLookup(store: Store, ref: RefIndex, args: LookupArgs): Promise<void> {
+/** The sources the lookup options choose; none when --sources names none of them. */
+function providersFor(ref: RefIndex, args: LookupArgs, say: (line: string) => void) {
   const fr24 = args.fr24 || args.sources?.includes("fr24") ? { port: args.chromePort, delayMs: Math.max(5, args.fr24DelayS) * 1000, cacheDir: args.cache, maxAgeDays: CACHE_DAYS, refresh: args.refresh, offline: args.offline } : null;
-  const known = allProviders(ref, (l) => console.log(l), fr24);
-  const providers = args.sources ? known.filter((p) => args.sources!.includes(p.id)) : known;
+  const known = allProviders(ref, say, fr24);
+  return args.sources ? known.filter((p) => args.sources!.includes(p.id)) : known;
+}
+
+async function runLookup(store: Store, ref: RefIndex, args: LookupArgs): Promise<void> {
+  const providers = providersFor(ref, args, (l) => console.log(l));
   if (!providers.length) {
     console.log(`\n== Airframe lookup: no sources (known: ${PROVIDER_IDS.join(", ")})`);
     return;
   }
   console.log(`\n== Airframe lookup`);
   const report = await lookupAirframes(store, ref, { providers, all: args.all, only: args.only, limit: args.limit, overwriteImported: args.overwriteImported, log: (l) => console.log(l) });
-  printLookup(report);
+  for (const line of lookupSummary(report)) console.log(`  ${line}`);
 }
 
-function printLookup(r: LookupReport) {
-  console.log(`  ${r.looked} aircraft looked up, ${r.filled} with facts stored, ${r.merged} merged with another entry, ${r.rejected.length} answers not used, ${r.notFound.length} not found.`);
-  if (r.differs.length) console.log(`  ${r.differs.length} values differ from yours (yours kept; --overwrite-imported replaces those from a sheet).`);
-  for (const [source, why] of r.blocked) console.log(`  ${source}: stopped: ${why}.`);
+function lookupSummary(r: LookupReport): string[] {
+  return [
+    `${r.looked} aircraft looked up, ${r.filled} with facts stored, ${r.merged} merged with another entry, ${r.rejected.length} answers not used, ${r.notFound.length} not found.`,
+    ...(r.differs.length ? [`${r.differs.length} values differ from yours (yours kept; --overwrite-imported replaces those from a sheet).`] : []),
+    ...[...r.blocked].map(([source, why]) => `${source}: stopped: ${why}.`),
+  ];
+}
+
+/** `touchdown airframes` without a backup: the answers for the log's aircraft go to the inbox as changes. */
+async function airframesIntoLog(args: string[], lookup: LookupArgs) {
+  const c = parseChange(args, AIRFRAMES_HELP);
+  if (c.positional.length) usage(AIRFRAMES_HELP);
+  const log = await openOrFail(c.json, c.log);
+  const say = (line: string) => {
+    if (!c.json) console.log(line);
+  };
+  const providers = providersFor(log.ref, lookup, say);
+  if (!providers.length) return failRead(c.json, `No sources: --sources picks from ${PROVIDER_IDS.join(", ")}.`);
+  const { report, changes } = await lookupAsChanges(log.store, log.ref, { providers, all: lookup.all, only: lookup.only, limit: lookup.limit, overwriteImported: lookup.overwriteImported, log: say });
+  say("");
+  return writeChanges(log, "airframes", changes, c, lookupSummary(report));
 }
 
 async function main(argv: string[]) {
@@ -473,6 +504,8 @@ async function main(argv: string[]) {
 
 /** `touchdown airframes <backup.zip>`: look up airframe facts for an existing backup. */
 async function airframesCommand(args: string[], lookup: LookupArgs) {
+  // A backup file given: it is filled, as in phase 1. Otherwise the log, through the inbox.
+  if (!args.some((a, i) => a.endsWith(".zip") && args[i - 1] !== "--log" && args[i - 1] !== "--out")) return airframesIntoLog(args, lookup);
   let out: string | undefined;
   const files: string[] = [];
   for (let i = 0; i < args.length; i++) {

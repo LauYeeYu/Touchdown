@@ -131,3 +131,53 @@ describe("applyAirframeFacts", () => {
   });
 });
 
+
+describe("looked-up facts as a change (touchdown airframes, docs/34)", () => {
+  it("are checked again when imported, applied with their source, merged when the serial number is known, and undone", async () => {
+    const { applyChanges, readChanges, undoImport } = await import("../src/index.ts");
+    const { planChanges } = await import("../src/view/index.ts");
+    const store = setup(sighting("N1001X", "2024-03-01"), sighting("N1002X", "2024-04-01"));
+    const one = airframeOf(store, "N1001X");
+    const two = airframeOf(store, "N1002X");
+    applyAirframeFacts(store, ref, two, facts({ registration: "N1002X", msn: "99002", firstFlightDate: null, deliveryDate: null }));
+
+    const changes = [
+      { op: "facts" as const, id: one, facts: facts() },
+      // The same serial number as N1002X's: one aircraft, merged.
+      { op: "facts" as const, id: airframeOf(store, "N1001X"), facts: facts({ msn: "099002", firstFlightDate: null, deliveryDate: null, url: null }) },
+    ];
+    expect(readChanges(JSON.parse(JSON.stringify(changes)))).toEqual({ changes: JSON.parse(JSON.stringify(changes)) });
+    expect(readChanges([{ ...changes[0], facts: { ...facts(), url: "javascript:alert(1)" } }])).toMatchObject({ error: expect.stringMatching(/malformed address/) });
+    expect(readChanges([{ ...changes[0], facts: { ...facts(), firstFlightDate: "2019-13-40" } }])).toMatchObject({ error: expect.stringMatching(/firstFlightDate is not a date/) });
+
+    const plan = planChanges(store, ref, [changes[0]!]);
+    expect(plan.changes[0]).toMatchObject({ action: "Looked-up facts", status: "pending" });
+    expect(plan.changes[0]!.lines.map((l) => [l.label, l.after])).toEqual(expect.arrayContaining([["Serial number", "99001"], ["First flight", "2019-05-02"], ["Source", "testsite"]]));
+
+    const r = applyChanges(store, ref, [changes[0]!], () => true, { fileName: "airframes-1.json", now: Date.UTC(2026, 9, 1) });
+    expect(r).toMatchObject({ applied: 1 });
+    expect(store.get("airframes", one)).toMatchObject({ msn: "99001", provisional: false, factsProvider: "testsite" });
+    expect(store.all("field_provenance").filter((p) => p.ownerId === one && p.source === "lookup").map((p) => p.detail)).toContain("testsite");
+    expect(planChanges(store, ref, [changes[0]!]).changes[0]!.status).toBe("done");
+    undoImport(store, ref, r.batchId);
+    expect(store.get("airframes", one)).toMatchObject({ msn: null, provisional: true });
+    expect(store.all("field_provenance").filter((p) => p.ownerId === one && p.source === "lookup")).toEqual([]);
+
+    const merged = applyChanges(store, ref, [changes[1]!], () => true, { fileName: "airframes-2.json", now: Date.UTC(2026, 9, 2) });
+    expect(merged.messages).toEqual([expect.stringMatching(/merged/)]);
+    expect(store.get("airframes", one)).toBeNull();
+    expect(store.all("sightings").every((s) => s.airframeId === two)).toBe(true);
+    undoImport(store, ref, merged.batchId);
+    expect(store.get("airframes", one)).not.toBeNull();
+    expect(store.all("sightings").find((s) => s.registration === "N1001X")!.airframeId).toBe(one);
+  });
+
+  it("are not applied when they no longer fit the records, or would change only the user's own values", async () => {
+    const { changeStatus, updateAirframe } = await import("../src/index.ts");
+    const store = setup(sighting("N1001X", "2015-03-01"));
+    const id = airframeOf(store, "N1001X");
+    expect(changeStatus(store, ref, { op: "facts", id, facts: facts() }, () => [])).toMatchObject({ status: "missing", note: expect.stringMatching(/no longer fit your records: .*2019-05-02/) });
+    updateAirframe(store, ref, id, { msn: "12345", firstFlightDate: "2010-01-01" });
+    expect(changeStatus(store, ref, { op: "facts", id, facts: facts({ firstFlightDate: "2011-01-01", deliveryDate: null, status: null }) }, () => [])).toMatchObject({ status: "done" });
+  });
+});

@@ -88,7 +88,7 @@ async function count(app: AppData): Promise<void> {
     const open = matchCandidates(app.store, r.source.candidates).filter((m) => m.kind === "new" || m.kind === "update" || m.kind === "conflict");
     // A change still to do, or one whose record was changed since (the user decides): without copying the log.
     const changing = r.changes.filter((c) => {
-      const s = changeStatus(app.store, c, () => app.allFindings()).status;
+      const s = changeStatus(app.store, app.ref, c, () => app.allFindings()).status;
       return s === "pending" || s === "changed";
     }).length;
     if (!open.length && !changing) {
@@ -201,7 +201,7 @@ export function recordsText(flights: number, sightings: number, changes = 0): st
 }
 
 /** The commands that write change files (docs/34), by the name they give them. */
-const CHANGE_FILE = /^(edit|delete|aircraft|issues|undo|families|settings|stats)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/;
+const CHANGE_FILE = /^(edit|delete|aircraft|airframes|issues|undo|families|settings|stats)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/;
 
 /** Which command made the file, from the name it gave it. */
 export const madeBy = (name: string) =>

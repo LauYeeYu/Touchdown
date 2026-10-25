@@ -1,8 +1,9 @@
 // Airframe facts lookup (docs/13-reference-data.md, "Airframe facts"): for each aircraft in the log that lacks
 // a serial number or a first flight date, ask the sources in turn, check each answer against the user's records
-// and store what fits. Runs on the user's machine.
+// and store what fits. Runs on the user's machine: on a backup file, or on a copy of the log, whose answers then
+// go to the inbox as changes for review (docs/34).
 
-import { applyAirframeFacts, factsMismatch, recordDatesOf, registrationMatchForm, resolveAirframes, type AirframeFacts, type FactsOutcome, type RefIndex, type Store } from "@touchdown/core";
+import { applyAirframeFacts, copyStore, factsMismatch, recordDatesOf, refOverridesOf, registrationMatchForm, resolveAirframes, type AirframeFacts, type FactsOutcome, type InboxChange, type RefIndex, type Store } from "@touchdown/core";
 
 export type ProviderResult =
   | { kind: "found"; candidates: AirframeFacts[] }
@@ -41,6 +42,8 @@ export interface LookupReport {
   differs: { registration: string; provider: string; field: string; yours: string; lookup: string }[];
   notFound: string[];
   blocked: Map<string, string>;
+  /** Each answer stored, in order: the aircraft it was for (before any merge) and the facts. */
+  stored: { airframeId: string; facts: AirframeFacts }[];
 }
 
 const label = (field: string) => ({ msn: "serial", lineNumber: "line", firstFlightDate: "first flight", deliveryDate: "delivered", status: "status", manufacturer: "maker" })[field] ?? field;
@@ -55,7 +58,7 @@ function registrationsOf(store: Store, airframeId: string): string[] {
 }
 
 export async function lookupAirframes(store: Store, ref: RefIndex, opts: LookupOptions): Promise<LookupReport> {
-  const report: LookupReport = { looked: 0, filled: 0, merged: 0, rejected: [], differs: [], notFound: [], blocked: new Map() };
+  const report: LookupReport = { looked: 0, filled: 0, merged: 0, rejected: [], differs: [], notFound: [], blocked: new Map(), stored: [] };
   const only = opts.only?.length ? new Set(opts.only.map(registrationMatchForm)) : null;
   const targets = store
     .all("airframes")
@@ -105,6 +108,7 @@ export async function lookupAirframes(store: Store, ref: RefIndex, opts: LookupO
           continue;
         }
         const out: FactsOutcome = applyAirframeFacts(store, ref, id, fit, { overwriteImported: opts.overwriteImported });
+        if (out.applied.length || out.mergedInto) report.stored.push({ airframeId: id, facts: fit });
         if (out.mergedInto) {
           report.merged++;
           id = out.mergedInto;
@@ -133,4 +137,19 @@ export async function lookupAirframes(store: Store, ref: RefIndex, opts: LookupO
 function rank(p: Provider, maker: string | null): number {
   if (!p.prefer.length) return 0;
   return maker && p.prefer.some((m) => m.toLowerCase() === maker.toLowerCase()) ? 1 : -1;
+}
+
+/**
+ * Look up facts for the aircraft in the log without changing it: on a copy, whose stored answers become changes
+ * (`facts`), applied in the same order when the user imports them, and checked against the records again then.
+ */
+export async function lookupAsChanges(log: Store, ref: RefIndex, opts: LookupOptions): Promise<{ report: LookupReport; changes: InboxChange[] }> {
+  const copy = copyStore(log);
+  try {
+    const report = await lookupAirframes(copy, ref, opts);
+    const changes: InboxChange[] = report.stored.map((x) => ({ op: "facts", id: x.airframeId, facts: x.facts, ...(opts.overwriteImported && { overwriteImported: true }) }));
+    return { report, changes };
+  } finally {
+    ref.setUserOverrides(refOverridesOf(log));
+  }
 }

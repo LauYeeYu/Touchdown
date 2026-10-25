@@ -43,7 +43,7 @@ npm run dev -w @touchdown/web     # http://127.0.0.1:5173
 | `./touchdown check FILE` | Have the agent check a spreadsheet, or a request saved from the Import page. |
 | `./touchdown backup`, `export flights` | Download a backup of your log, or a table as CSV, as Settings does. |
 | `./touchdown import FILES… --out FILE.zip` | Read files and write a backup from them alone, to restore in Settings (with `--airframes`, serial numbers and first flights). |
-| `./touchdown airframes BACKUP.zip` | Fill serial numbers and first flight dates in a backup. |
+| `./touchdown airframes` | Look up serial numbers and first flight dates for your aircraft; they wait in the inbox for review. With `BACKUP.zip`, fill a backup file instead. |
 | `./touchdown agent [claude \| codex \| none]` | Choose the agent, its rules, and whether notes are sent. |
 
 What `spot`, `add` and `import` save is not in your log yet: it waits in the inbox, and the web app shows a bar to review and import it, on any device after it syncs. Without `storage`, files go to `data/private/inbox/`, which only the dev server reads. `./touchdown help COMMAND` lists each command's options; [docs/21](docs/21-import-export.md) has the details.

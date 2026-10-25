@@ -173,39 +173,19 @@ export function applyAirframeFacts(store: Store, ref: RefIndex, airframeId: stri
       out.rejected = why;
       return out;
     }
-    const manufacturer = a.manufacturer ?? (facts.manufacturer ? canonicalMaker(facts.manufacturer, ref) : null) ?? ref.manufacturerOf(facts.typeCode ?? a.typeCode);
-    const mine = userValues(store, a.id);
-    const locked = (field: string) => mine.get(field) === "typed" || (mine.get(field) === "imported" && !opts.overwriteImported);
+    const manufacturer = makerFor(ref, a, facts);
+    const locked = lockedFields(store, a.id, opts);
 
     // The serial number first: it can show that this airframe is one already in the log.
-    if (facts.msn && manufacturer && !locked("msn")) {
-      const key = identityKeyFor(manufacturer, facts.msn);
-      const other = store.all("airframes").find((x) => x.identityKey === key && x.id !== a!.id);
-      if (other) {
-        mergeAirframeInto(store, other.id, a.id);
-        out.mergedInto = other.id;
-        out.airframeId = other.id;
-        a = store.get("airframes", other.id)!;
-      }
+    const other = sameAircraft(store, a, facts, manufacturer, locked);
+    if (other) {
+      mergeAirframeInto(store, other.id, a.id);
+      out.mergedInto = other.id;
+      out.airframeId = other.id;
+      a = store.get("airframes", other.id)!;
     }
 
-    const patch: Partial<Airframe> = {};
-    for (const field of FACT_FIELDS) {
-      const value = field === "msn" && facts.msn ? normaliseMsn(facts.msn) : facts[field];
-      if (!value) continue;
-      const cur = a[field as FactField] as string | null;
-      if (cur === value || (field === "msn" && cur && normaliseMsn(cur) === value)) continue;
-      if (locked(field)) {
-        if (cur) out.differs.push({ field, yours: cur, lookup: value });
-        continue;
-      }
-      (patch as Record<string, unknown>)[field] = value;
-      out.applied.push({ field, from: cur, to: value });
-    }
-    if (!a.manufacturer && manufacturer) {
-      patch.manufacturer = manufacturer;
-      out.applied.push({ field: "manufacturer", from: null, to: manufacturer });
-    }
+    const patch = factPatch(a, facts, manufacturer, locked, out);
     const msn = patch.msn ?? a.msn;
     const maker = patch.manufacturer ?? a.manufacturer;
     if (msn && maker && (a.provisional || !a.identityKey?.startsWith("msn:"))) {
@@ -226,6 +206,61 @@ export function applyAirframeFacts(store: Store, ref: RefIndex, airframeId: stri
     }
     return out;
   });
+}
+
+/**
+ * What `applyAirframeFacts` would do, without doing it (the review of looked-up facts, docs/34): why the facts do
+ * not fit, the aircraft they would merge this one with, and the fields they would set.
+ */
+export function airframeFactsEffect(store: Store, ref: RefIndex, airframeId: string, facts: AirframeFacts, opts: ApplyOptions = {}): Omit<FactsOutcome, "airframeId"> {
+  const out: Omit<FactsOutcome, "airframeId"> = { applied: [], differs: [], rejected: null, mergedInto: null };
+  const a = store.get("airframes", airframeId);
+  if (!a) return { ...out, rejected: "the aircraft is no longer in the log" };
+  out.rejected = factsMismatch(store, ref, a, facts);
+  if (out.rejected) return out;
+  const manufacturer = makerFor(ref, a, facts);
+  const locked = lockedFields(store, a.id, opts);
+  const other = sameAircraft(store, a, facts, manufacturer, locked);
+  out.mergedInto = other?.id ?? null;
+  factPatch(other ?? a, facts, manufacturer, locked, out);
+  return out;
+}
+
+const makerFor = (ref: RefIndex, a: Airframe, facts: AirframeFacts) => a.manufacturer ?? (facts.manufacturer ? canonicalMaker(facts.manufacturer, ref) : null) ?? ref.manufacturerOf(facts.typeCode ?? a.typeCode);
+
+/** The fields a lookup may not change: typed by the user, or imported from their own file unless overwritten. */
+function lockedFields(store: Store, airframeId: string, opts: ApplyOptions) {
+  const mine = userValues(store, airframeId);
+  return (field: string) => mine.get(field) === "typed" || (mine.get(field) === "imported" && !opts.overwriteImported);
+}
+
+/** Another airframe in the log with the serial number the facts give: the same aircraft. */
+function sameAircraft(store: Store, a: Airframe, facts: AirframeFacts, manufacturer: string | null, locked: (field: string) => boolean): Airframe | null {
+  if (!facts.msn || !manufacturer || locked("msn")) return null;
+  const key = identityKeyFor(manufacturer, facts.msn);
+  return store.all("airframes").find((x) => x.identityKey === key && x.id !== a.id) ?? null;
+}
+
+/** The facts' values for `a`, recording what they set and where the user's own value is kept. */
+function factPatch(a: Airframe, facts: AirframeFacts, manufacturer: string | null, locked: (field: string) => boolean, out: Pick<FactsOutcome, "applied" | "differs">): Partial<Airframe> {
+  const patch: Partial<Airframe> = {};
+  for (const field of FACT_FIELDS) {
+    const value = field === "msn" && facts.msn ? normaliseMsn(facts.msn) : facts[field];
+    if (!value) continue;
+    const cur = a[field as FactField] as string | null;
+    if (cur === value || (field === "msn" && cur && normaliseMsn(cur) === value)) continue;
+    if (locked(field)) {
+      if (cur) out.differs.push({ field, yours: cur, lookup: value });
+      continue;
+    }
+    (patch as Record<string, unknown>)[field] = value;
+    out.applied.push({ field, from: cur, to: value });
+  }
+  if (!a.manufacturer && manufacturer) {
+    patch.manufacturer = manufacturer;
+    out.applied.push({ field: "manufacturer", from: null, to: manufacturer });
+  }
+  return patch;
 }
 
 /**

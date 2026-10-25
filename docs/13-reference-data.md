@@ -115,7 +115,7 @@ When a source knows several airframes for a registration, the first that passes 
 
 ### Running it
 
-`npm run touchdown -- airframes <backup.zip> --out <backup.zip>` looks up every aircraft that lacks a serial number or first flight; `import … --airframes` does the same while building a backup. Options:
+`./touchdown airframes` looks up every aircraft in the user's log that lacks a serial number or first flight, on a copy of the log: what fits goes to the inbox as one file of changes ([34](34-command-line.md)), each answer with its source, checked against the records again when the user imports it and applied with the same code (`applyAirframeFacts`), merges included; undoing the import takes them back. `airframes <backup.zip> --out <backup.zip>` fills a backup file instead, and `import … --airframes` does the same while building a backup. Options:
 
 | Option | Does |
 |--------|------|

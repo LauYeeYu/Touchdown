@@ -1,12 +1,13 @@
 // Changes to what is in the log already, made on the command line and imported only after a review (docs/34,
 // "Change files"): edits, deletions, aircraft facts and merges, accepted and reopened findings, suggested fixes,
-// undone imports, family choices, settings and saved Statistics views. They travel in an inbox file (version 3) and are applied with the
+// undone imports, family choices, settings, saved Statistics views and facts looked up for an aircraft. They travel in an inbox file (version 3) and are applied with the
 // same code as the web app's own changes (edit.ts), as one import batch that can be undone like any other.
 
 import { flightDay } from "../derive.ts";
 import { acceptFinding, applyFix, deleteRecord, mergeAirframes, removeView, reopenFinding, saveFlight, saveSighting, saveView, setFamily, tagsOf, updateAirframe, updateSettings, type EditOptions, type SavedView } from "../edit.ts";
 import { DIMENSIONS } from "../stats/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
+import { airframeFactsEffect, applyAirframeFacts, type AirframeFacts } from "../identity/facts.ts";
 import { normaliseAircraft } from "../normalise/record.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { checkAll } from "../rules/check.ts";
@@ -35,10 +36,38 @@ export type InboxChange =
   | { op: "family"; designator: string; familyId: string | null }
   | { op: "settings"; set: LogSettings }
   | ({ op: "view" } & SavedView)
-  | { op: "removeView"; id: string };
+  | { op: "removeView"; id: string }
+  /** Facts a lookup found for an aircraft (`touchdown airframes`), checked against its records again when imported. */
+  | { op: "facts"; id: string; facts: AirframeFacts; overwriteImported?: boolean };
 
 export type ChangeOp = InboxChange["op"];
-export const CHANGE_OPS: readonly ChangeOp[] = ["edit", "delete", "airframe", "merge", "accept", "reopen", "fix", "undo", "family", "settings", "view", "removeView"];
+export const CHANGE_OPS: readonly ChangeOp[] = ["edit", "delete", "airframe", "merge", "accept", "reopen", "fix", "undo", "family", "settings", "view", "removeView", "facts"];
+
+const text = (v: unknown, max: number) => v === null || (typeof v === "string" && v.length <= max);
+const dateOrNull = (v: unknown) => v === null || v === undefined || (typeof v === "string" && isValidDate(v));
+
+/** What is wrong with looked-up facts in a change file, or null. */
+function factsProblem(f: Record<string, unknown> | null): string | null {
+  if (!f || typeof f !== "object" || Array.isArray(f)) return "facts is not an object";
+  const allowed = ["provider", "url", "fetchedAt", "registration", "manufacturer", "msn", "lineNumber", "typeText", "typeCode", "firstFlightDate", "deliveryDate", "status", "notBefore", "notBeforeLabel", "registrations"];
+  const extra = Object.keys(f).filter((k) => !allowed.includes(k));
+  if (extra.length) return `unexpected keys in facts: ${extra.join(", ")}`;
+  if (typeof f.provider !== "string" || !/^[a-z0-9_]{1,30}$/.test(f.provider)) return "malformed provider";
+  if (!(f.url === null || (typeof f.url === "string" && /^https:\/\/[^\s]{1,500}$/.test(f.url)))) return "malformed address";
+  if (typeof f.fetchedAt !== "string" || !isValidDateTime(f.fetchedAt)) return "malformed time of the lookup";
+  if (typeof f.registration !== "string" || !f.registration || f.registration.length > 20) return "malformed registration";
+  for (const k of ["manufacturer", "msn", "lineNumber", "typeText", "typeCode"]) if (!text(f[k], 200)) return `malformed ${k}`;
+  for (const k of ["firstFlightDate", "deliveryDate", "notBefore"]) if (!dateOrNull(f[k])) return `${k} is not a date`;
+  if (!(f.notBeforeLabel === undefined || text(f.notBeforeLabel, 200))) return "malformed notBeforeLabel";
+  if (!(f.status === null || (AIRFRAME_STATUSES as readonly unknown[]).includes(f.status))) return "unknown status";
+  const regs = f.registrations;
+  if (!Array.isArray(regs) || regs.length > 50) return "malformed registrations";
+  for (const r of regs as Record<string, unknown>[]) {
+    if (!r || typeof r !== "object" || Object.keys(r).some((k) => !["registration", "from", "to", "operator"].includes(k))) return "malformed registrations";
+    if (typeof r.registration !== "string" || r.registration.length > 20 || !dateOrNull(r.from) || !dateOrNull(r.to) || !text(r.operator ?? null, 200)) return "malformed registrations";
+  }
+  return null;
+}
 
 const MEASURES = ["records", "aircraft", "distance", "time"] as const;
 
@@ -154,6 +183,12 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
       case "removeView":
         if (keys(["id"]).length || !isId(c.id)) return bad("malformed");
         break;
+      case "facts": {
+        if (keys(["id", "facts", "overwriteImported"]).length || !isId(c.id) || (c.overwriteImported !== undefined && typeof c.overwriteImported !== "boolean")) return bad("malformed");
+        const problem = factsProblem(c.facts as Record<string, unknown> | null);
+        if (problem) return bad(problem);
+        break;
+      }
     }
     out.push(c as unknown as InboxChange);
   }
@@ -430,7 +465,7 @@ function editedValues(cur: object, c: Extract<InboxChange, { op: "edit" }>) {
 const findingOf = (findings: Finding[], ruleId: string, fingerprint: string) => findings.find((f) => f.ruleId === ruleId && f.fingerprint === fingerprint) ?? null;
 
 /** Whether a change still has something to do, in the log as it is now. */
-export function changeStatus(store: Store, c: InboxChange, findings: () => Finding[]): { status: ChangeStatus; note: string | null } {
+export function changeStatus(store: Store, ref: RefIndex, c: InboxChange, findings: () => Finding[]): { status: ChangeStatus; note: string | null } {
   const ok = { status: "pending" as const, note: null };
   const done = (note: string | null = null) => ({ status: "done" as const, note });
   switch (c.op) {
@@ -487,6 +522,12 @@ export function changeStatus(store: Store, c: InboxChange, findings: () => Findi
         : ok;
     case "removeView":
       return store.get("saved_views", c.id) ? ok : done("It is not saved.");
+    case "facts": {
+      if (!store.get("airframes", c.id)) return { status: "missing", note: "The aircraft is no longer in the log." };
+      const e = airframeFactsEffect(store, ref, c.id, c.facts, { overwriteImported: c.overwriteImported });
+      if (e.rejected) return { status: "missing", note: `These facts no longer fit your records: ${e.rejected}.` };
+      return e.applied.length || e.mergedInto ? ok : done("The aircraft has these facts already, or your own values, which are kept.");
+    }
   }
 }
 
@@ -540,6 +581,10 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
     case "removeView":
       removeView(store, c.id);
       return null;
+    case "facts": {
+      const out = applyAirframeFacts(store, ref, c.id, c.facts, { overwriteImported: c.overwriteImported });
+      return out.mergedInto ? "It has the serial number of another aircraft in your log, so the two were merged." : null;
+    }
   }
 }
 
@@ -585,7 +630,7 @@ export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[]
       let cached: Finding[] | null = null;
       const findings = () => (cached ??= currentFindings(store, ref));
       changes.forEach((c, i) => {
-        const { status } = changeStatus(store, c, findings);
+        const { status } = changeStatus(store, ref, c, findings);
         if (status === "done" || status === "missing" || !take(i, status)) {
           result.skipped++;
           return;
@@ -610,4 +655,4 @@ export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[]
   return result;
 }
 
-export const tableOfChange = (c: InboxChange): TableName | null => (c.op === "edit" || c.op === "delete" ? c.table : c.op === "airframe" || c.op === "merge" ? "airframes" : null);
+export const tableOfChange = (c: InboxChange): TableName | null => (c.op === "edit" || c.op === "delete" ? c.table : c.op === "airframe" || c.op === "merge" || c.op === "facts" ? "airframes" : null);
