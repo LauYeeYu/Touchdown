@@ -52,7 +52,8 @@
   --state-press: rgba(31, 29, 26, 0.12);
   --globe-stage: #ede8dd;
   --globe-sphere: #fffdf8;
-  --shadow-1: 0 1px 2px rgba(31, 29, 26, 0.12), 0 4px 14px rgba(31, 29, 26, 0.08);
+  /* The globe's buttons: flat, the sphere's own white with its edge, so they read on the stage, land and sea. */
+  --globe-control: #fffdf8;
   --shadow-2: 0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1);
   --radius: 20px;
   --shadow-pop: 0 6px 18px rgba(31, 29, 26, 0.14), 0 1px 3px rgba(31, 29, 26, 0.08);
@@ -107,7 +108,7 @@
     --state-press: rgba(241, 238, 230, 0.12);
     --globe-stage: #1d1c15;
     --globe-sphere: #1d1c19;
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+    --globe-control: #36352d;
     --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35);
     --good: #63b886;
     --land: #2a2823;
@@ -161,7 +162,7 @@
   --state-press: rgba(241, 238, 230, 0.12);
   --globe-stage: #1d1c15;
   --globe-sphere: #1d1c19;
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+  --globe-control: #36352d;
   --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35);
   --good: #63b886;
   --land: #2a2823;
@@ -544,6 +545,7 @@ main {
   align-items: center;
   gap: 10px;
   height: 40px;
+  white-space: nowrap;
   padding: 0 14px 0 10px;
   border: 0;
   border-radius: 8px;
@@ -3723,12 +3725,6 @@ a.wordmark {
   gap: 8px;
 }
 
-/* A page with a commit bar (the import review) has its own main action; the floating Add button would cover it. */
-body:has(.commit-bar) .fab-wrap,
-body:has(.column-mapping) .fab-wrap {
-  display: none;
-}
-
 .agent-panel + .chips {
   margin-top: 16px;
 }
@@ -4457,11 +4453,6 @@ body:has(.column-mapping) .fab-wrap {
   padding-inline: 4px;
 }
 
-/* Floating action button for adding on phones (Material's FAB). */
-.fab-wrap {
-  display: none;
-}
-
 @media (max-width: 720px) {
   .map-wrap .map {
     border-radius: 24px;
@@ -4539,7 +4530,7 @@ body:has(.column-mapping) .fab-wrap {
   }
 }
 
-/* Expand and Collapse, inside the stage's top corner, styled like the zoom buttons. */
+/* Expand and Collapse, inside the stage's top corner, styled like the zoom buttons: flat, no shadow. */
 .globe-expand {
   position: absolute;
   top: 16px;
@@ -4549,19 +4540,23 @@ body:has(.column-mapping) .fab-wrap {
   gap: 6px;
   height: 36px;
   padding: 0 14px;
-  border: 0;
+  border: 1px solid var(--rule-strong);
   border-radius: 999px;
-  background: var(--surface-highest);
+  background: var(--globe-control);
   color: var(--ink);
-  box-shadow: var(--shadow-1);
   font: inherit;
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
+  transition: background-color 160ms var(--ease);
 }
 
 .globe-expand:hover {
-  background: var(--surface-high);
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 8%);
+}
+
+.globe-expand:active {
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 12%);
 }
 
 .globe-expand .icon {
@@ -4616,16 +4611,21 @@ body:has(.column-mapping) .fab-wrap {
   gap: 8px;
 }
 
+/* Zoom and turn back: Material's filled tonal icon buttons, which rest on their surface without a shadow. */
 .globe-btn {
   width: 44px;
   height: 44px;
-  background: var(--surface-highest);
+  border-color: var(--rule-strong);
+  background: var(--globe-control);
   color: var(--ink);
-  box-shadow: var(--shadow-1);
 }
 
 .globe-btn:hover {
-  background: var(--surface-high);
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 8%);
+}
+
+.globe-btn:active {
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 12%);
 }
 
 .globe-hint {
@@ -5170,51 +5170,6 @@ body:has(.column-mapping) .fab-wrap {
     gap: 4px;
   }
 
-  .masthead__tools .btn--primary span {
-    display: none;
-  }
-
-  .masthead__tools .btn--primary {
-    width: 36px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .masthead__tools .add-menu {
-    display: none;
-  }
-
-  .fab-wrap {
-    display: block;
-    position: fixed;
-    right: 16px;
-    bottom: calc(92px + env(safe-area-inset-bottom));
-    z-index: 35;
-  }
-
-  .fab {
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    border: 0;
-    border-radius: 16px;
-    background: var(--selected-container);
-    color: var(--on-selected-container);
-    box-shadow: var(--shadow-2);
-    cursor: pointer;
-  }
-
-  .fab .icon {
-    width: 24px;
-    height: 24px;
-  }
-
-  .fab-wrap .menu {
-    top: auto;
-    bottom: calc(100% + 10px);
-  }
-
   /* Navigation bar: a pill behind the current tab's icon, label below. */
   .nav {
     padding-top: 10px;
@@ -5266,6 +5221,25 @@ body:has(.column-mapping) .fab-wrap {
    The bar tightens in steps rather than overflowing: the save status keeps only its icon (the words stay in its
    tooltip), gaps and link padding shrink, and below 1000px Add keeps only its plus. */
 
+/* Narrow phones: the top bar's five buttons close up so the wordmark keeps its room; below 360px the theme
+   button gives way (Settings has the same choice). */
+@media (max-width: 400px) {
+  .masthead__tools {
+    gap: 0;
+  }
+
+  .masthead__tools .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 359px) {
+  .masthead__tools .theme-btn {
+    display: none;
+  }
+}
+
 @media (min-width: 841px) and (max-width: 1180px) {
   .masthead__bar {
     gap: 20px;
@@ -5288,14 +5262,3 @@ body:has(.column-mapping) .fab-wrap {
   }
 }
 
-@media (min-width: 841px) and (max-width: 1000px) {
-  .masthead__tools .btn--primary span {
-    display: none;
-  }
-
-  .masthead__tools .btn--primary {
-    width: 40px;
-    padding: 0;
-    justify-content: center;
-  }
-}

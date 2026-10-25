@@ -47,6 +47,7 @@ colors:
   state-press: "rgba(31, 29, 26, 0.12)"
   globe-stage: "#ede8dd"
   globe-sphere: "#fffdf8"
+  globe-control: "#fffdf8"
   paper-dark: "#171613"
   paper-band-dark: "#201f1b"
   paper-deep-dark: "#2b2924"
@@ -92,6 +93,7 @@ colors:
   state-press-dark: "rgba(241, 238, 230, 0.12)"
   globe-stage-dark: "#1d1c15"
   globe-sphere-dark: "#1d1c19"
+  globe-control-dark: "#36352d"
 typography:
   display:
     fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
@@ -227,11 +229,6 @@ components:
     size: "40px"
   icon-button-hover:
     backgroundColor: "{colors.state-hover}"
-  fab:
-    backgroundColor: "{colors.selected-container}"
-    textColor: "{colors.on-selected-container}"
-    rounded: "{rounded.surface}"
-    size: "56px"
   nav-link:
     textColor: "{colors.ink-2}"
     rounded: "{rounded.pill}"
@@ -430,12 +427,10 @@ components:
     backgroundColor: "{colors.globe-stage}"
     rounded: "{rounded.map}"
   globe-button:
-    backgroundColor: "{colors.surface-highest}"
+    backgroundColor: "{colors.globe-control}"
     textColor: "{colors.ink}"
     rounded: "{rounded.pill}"
     size: "44px"
-  globe-button-hover:
-    backgroundColor: "{colors.surface-high}"
   tooltip:
     backgroundColor: "{colors.tip-bg}"
     textColor: "{colors.tip-ink}"
@@ -466,7 +461,7 @@ Each view states its main point as one plain sentence with the figures inside it
 
 On that ground sits a layer borrowed from Material You, deliberately not exact Material: its shapes (pill buttons, round icon buttons, large rounded containers), its tonal surfaces (a warm neutral palette at the page's hue) and its state layers. Material's colour roles are not borrowed: buttons stay ink and neutral, and gold and blue stay data only. The one non-data tint is a muted gold container that marks what is selected. This document describes the shipped web app (`apps/web`); the prototype in `prototype/` is the earlier reference and does not have the Material layer.
 
-Colour is reserved for data. Flown is gold, spotted is blue, and everything else is paper, tonal surface and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips, toasts, the floating Add button, the globe's controls). A linked card under the pointer changes shade; it does not rise. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.
+Colour is reserved for data. Flown is gold, spotted is blue, and everything else is paper, tonal surface and ink. The page is flat and calm; depth appears only on things that float above it (menus, tooltips and toasts). Controls are flat, as Material's icon buttons are, the globe's included. A linked card under the pointer changes shade; it does not rise. Density is moderate: generous vertical spacing between sections, compact rows inside lists, and tabular figures wherever numbers line up.
 
 The system refuses the KPI-tile grid and the flight-tracker wall of panels. A statistic belongs in a sentence or a chart with its own counted-what subtitle, not in a box of its own.
 
@@ -495,7 +490,7 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 - **Spotted Text Blue** (`spotted-ink`, `spotted-ink-dark`): spotted blue as readable text, for example the "new to your log" count.
 
 - **Focus Gold** (`focus` #b58a00, `focus-dark` #d5a400, with `focus-wash`): focus rings, the text caret and the input focus border with its 3px halo. A yellower Material tone (hue 88) than the flown ink, because the flown gold's pale halo reads as peach on the cream page.
-- **Selection Container** (`selected-container` #eee1c5, `selected-container-dark` #4e4631, text in `on-selected-container` #211b0a / #eee1c5): a muted gold tint for what is selected. The current page in the desktop navigation, the pill behind the current tab's icon in the bottom navigation bar, a selected segment, a selected chip, the main first-run item and the floating Add button. It is a tint at low chroma, not a data ink, and it never marks flights.
+- **Selection Container** (`selected-container` #eee1c5, `selected-container-dark` #4e4631, text in `on-selected-container` #211b0a / #eee1c5): a muted gold tint for what is selected. The current page in the desktop navigation, the pill behind the current tab's icon in the bottom navigation bar, a selected segment, a selected chip and the main first-run item. It is a tint at low chroma, not a data ink, and it never marks flights.
 
 ### Tertiary
 - **Check Green** (`good`, `good-dark`): the icon of a passed-checks status line only. Never a fill, never a chart colour.
@@ -503,14 +498,14 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 
 ### Neutral
 - **Warm Paper** (`paper`): the page ground in light theme. Fixed by the brand; plain white is a fallback, not a choice.
-- **Tonal surfaces** (`surface-lowest`, `surface-low`, `surface-mid`, `surface-high`, `surface-highest`): five steps from a warm neutral palette at HCT hue 105, chroma 5, after Material's surface containers. Lowest (#fffdf8) is the focused search field; low (#f5f0e5) is card caption blocks, findings, first-run items, the drop zone and the map container; mid (#f2ede2) is the header band, the phone navigation bar, menus and pickers, and the hovered or active row, and is also the browser theme colour; high (#ede8dd) is the search field, filter selects and the legend's globe link; highest (#e7e2d7) is their hover and the globe's buttons. In dark theme the steps run from #0f0e08 to #36352d.
+- **Tonal surfaces** (`surface-lowest`, `surface-low`, `surface-mid`, `surface-high`, `surface-highest`): five steps from a warm neutral palette at HCT hue 105, chroma 5, after Material's surface containers. Lowest (#fffdf8) is the focused search field; low (#f5f0e5) is card caption blocks, findings, first-run items, the drop zone and the map container; mid (#f2ede2) is the header band, the phone navigation bar, menus and pickers, and the hovered or active row, and is also the browser theme colour; high (#ede8dd) is the search field, filter selects and the legend's globe link; highest (#e7e2d7) is their hover. In dark theme the steps run from #0f0e08 to #36352d.
 - **Paper Band** (`paper-band`) and **Deep Paper** (`paper-deep`): older tonal steps kept for small fills (inline code, small pills) and the photo placeholder with its shimmer.
 - **Field** (`field`): text inputs and selects, a touch lighter than the page.
 - **Hairline** (`rule`): section rules, row dividers, the times strip.
 - **Strong Hairline** (`rule-strong`) and **Hover Hairline** (`rule-hover`): outlines of controls at rest (segmented control, chips, inputs) and of quiet buttons, which use the hover shade at rest.
 - **Ink** (`ink`), **Ink 2** (`ink-2`), **Ink 3** (`ink-3`): primary text; secondary text and inactive controls; labels, captions, credits, and axis text.
 - **Map neutrals** (`land`, `land-edge`, `sphere`, `chart-grid`): land fill, coastline stroke in the paper colour, the globe disc on phone maps, and chart gridlines and graticule.
-- **Globe neutrals** (`globe-stage`, `globe-sphere`): the rounded stage behind the interactive globe (#ede8dd, dark #1d1c15) and the globe's ocean disc (#fffdf8, dark #1d1c19).
+- **Globe neutrals** (`globe-stage`, `globe-sphere`, `globe-control`): the rounded stage behind the interactive globe (#ede8dd, dark #1d1c15), the globe's ocean disc (#fffdf8, dark #1d1c19), and the fill of the globe's buttons: the ocean's white on the light theme, #36352d (the highest surface) on the dark one.
 - **Tooltip surfaces** (`tip-bg`, `tip-ink`, `tip-edge`, `tip-muted`): on the light theme the tooltip is inverted, ink fill (#1f1d1a) with paper text (#faf8f1) and no edge. On the dark theme it is a raised dark surface (`tip-bg-dark` #3d3b33) with light ink text (`tip-ink-dark` #f1eee6), a 1px edge at 10% ink (`tip-edge-dark`) and muted lines in `tip-muted-dark` (#c8c2b5); a bright box on a dark page glares.
 - **Select chevron** (`--select-chevron`): not a colour but a 12px data-URI image, a chevron drawn with a 1.6px stroke in the `ink-2` value of each theme. Selects and the Disclosure summary use it.
 - **State layers** (`state-hover`, `state-press`): ink at 8% and 12% over a control on hover and press. The older washes (`hover-wash` 5%, `selected-wash` 7%) remain only on controls the Material layer does not cover.
@@ -557,9 +552,10 @@ A single centred column: `min(1120px, 100% - 2 × gutter)`, gutter 32px, 16px on
 Spacing runs on 4px steps, mainly 4, 8, 12, 16, 20, 24, 32, 48 and 64px.
 
 **Responsive rules.**
-- **Above 1180px:** the full top bar: wordmark, navigation links, save status with its words, theme button and the Add button with its label.
-- **1180px to 841px:** the top bar tightens instead of overflowing. The save status keeps only its icon (its words move to the tooltip), the bar's gap drops from 32px to 20px, link gaps to 2px and link padding to 8px 12px. Below 1000px the Add button keeps only its plus (a 40px round button).
-- **840px and below (compact navigation):** Material's compact and medium widths. The header shrinks to 56px with the wordmark, sync icon and theme button; navigation moves to a fixed bottom bar; the header's Add menu is replaced by the floating Add button, 16px from the right edge and 92px (plus the safe area) above the bottom so it clears the bar; the globe stage runs edge to edge with 24px top corners only and a minimum height of 360px. This applies whatever the device.
+- **Above 1180px:** the full top bar: wordmark, navigation links, save status with its words, then the issues, theme, Add and More icon buttons.
+- **1180px to 841px:** the top bar tightens instead of overflowing. The save status keeps only its icon (its words move to the tooltip), the bar's gap drops from 32px to 20px, link gaps to 2px and link padding to 8px 12px.
+- **840px and below (compact navigation):** Material's compact and medium widths. The header shrinks to 56px with the wordmark, sync icon and the same icon buttons; navigation moves to a fixed bottom bar; the globe stage runs edge to edge with 24px top corners only and a minimum height of 360px. This applies whatever the device.
+- **Up to 400px:** the top bar's icon buttons close up to 36px with no gap, so the wordmark keeps its room; below 360px the theme button leaves the bar (Settings has the same choice).
 - **Up to 960px:** the flight list drops the aircraft and distance columns; the first-run items stack.
 - **Up to 720px (phone layout):** the gutter becomes 16px; views open 24px below the header; split, chart and ranked grids stack to one column (36px gap between split and chart columns); the fact list becomes two columns; the gallery becomes a horizontal scroll-snap strip with cards at 78% width; list rows become a two-line layout (route and duration on top, date and meta below); the times strip becomes two by two; breadcrumbs lose the pager; the pager centres; map containers drop to 24px corners.
 - **Maps under 600px wide:** the Flights and flight maps become a disc centred on the period (an orthographic globe when everything fits on one hemisphere, an azimuthal equal-area disc otherwise) about as tall as it is wide, rather than a shallow world strip. Home keeps the full-width world cropped to the period's latitudes.
@@ -575,8 +571,7 @@ The page is flat. Depth comes from tonal surfaces (the five `surface-*` steps) a
 
 ### Shadow Vocabulary
 - **Pop** (`0 6px 18px rgba(31, 29, 26, 0.14), 0 1px 3px rgba(31, 29, 26, 0.08)`; dark `0 6px 18px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3)`): tooltips and toasts.
-- **Menu** (`--shadow-2`: `0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1)`; dark `0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35)`): menus and pickers on their tonal fill, and the floating Add button.
-- **Raised** (`--shadow-1`: `0 1px 2px rgba(31, 29, 26, 0.12), 0 4px 14px rgba(31, 29, 26, 0.08)`; dark `0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3)`): the round zoom buttons floating over the globe.
+- **Menu** (`--shadow-2`: `0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1)`; dark `0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35)`): menus and pickers on their tonal fill.
 - **Tooltip edge** (`0 0 0 1px` in `tip-edge`, under the pop shadow): a 1px ring that separates the dark-theme tooltip from the page; transparent on the light theme.
 - **Focus halo** (`0 0 0 3px` in `focus-wash`): the ring around a focused field, with its focus-gold border. A state, not elevation.
 - **Flash** (a 6px ring in `flown-wash` that fades over 1.2s): the aircraft card when a lead-sentence phrase points at it.
@@ -586,7 +581,7 @@ The page is flat. Depth comes from tonal surfaces (the five `surface-*` steps) a
 
 ## Shapes
 
-Rounded in the Material way, with corners that grow with the size of the thing: everything you press is a pill, containers are large and soft, and nothing is sharp. Buttons, icon buttons, nav links, segments, the search field, filter selects and the legend's globe link are pills (999px). Chips use 8px corners, as do skip links and small thumbnails. Menu items, tooltips and the tab focus ring use 10px; fields, compact findings and toasts 12px; rows and merge-list items 14px; findings, menus, pickers, textareas and the floating Add button 16px; cards 20px (`--radius`); first-run items and the drop zone 24px; map containers and the globe stage 28px (24px on phones). Bar-chart tops and focus outlines 4px; ranked bars and the phrase highlight 2px; the tab indicator rounds only its top corners (3px). Small outlined pills (Review, +1 day) keep their 1px outline. Borders are 1px hairlines; there are no thick strokes outside the data. Photos are cropped to 3:2 in cards and thumbnails and 16:10 on the aircraft card. Icons are Lucide line icons at 1.75 stroke (2.25 for checks), inline SVG, sized to the text.
+Rounded in the Material way, with corners that grow with the size of the thing: everything you press is a pill, containers are large and soft, and nothing is sharp. Buttons, icon buttons, nav links, segments, the search field, filter selects and the legend's globe link are pills (999px). Chips use 8px corners, as do skip links and small thumbnails. Menu items, tooltips and the tab focus ring use 10px; fields, compact findings and toasts 12px; rows and merge-list items 14px; findings, menus, pickers and textareas 16px; cards 20px (`--radius`); first-run items and the drop zone 24px; map containers and the globe stage 28px (24px on phones). Bar-chart tops and focus outlines 4px; ranked bars and the phrase highlight 2px; the tab indicator rounds only its top corners (3px). Small outlined pills (Review, +1 day) keep their 1px outline. Borders are 1px hairlines; there are no thick strokes outside the data. Photos are cropped to 3:2 in cards and thumbnails and 16:10 on the aircraft card. Icons are Lucide line icons at 1.75 stroke (2.25 for checks), inline SVG, sized to the text.
 
 ### Named Rules
 **The Borrowed Shapes Rule.** The Material layer borrows shapes, tonal surfaces and state layers, never Material's colour roles. Buttons are ink (primary) or neutral (quiet, ghost); no button, tab or control is filled with a data ink. Selection uses the muted gold container; gold and blue stay data only.
@@ -603,7 +598,7 @@ Pills in ink and neutral; the only filled button is the primary action.
 - **Ghost:** transparent, no outline, `ink-2` text; same state layers.
 - **Danger:** quiet outline with alert text; hover adds the alert wash.
 - **Icon button:** 40px round, transparent, `ink-2` icon at 18px; hover and press add the state layers.
-- **Floating Add button (840px and below):** 56px square with 16px corners, the selection container with a 24px plus icon, the Menu shadow. It opens the Add menu upwards.
+- **Add:** an icon button in the header like its neighbours (a plus, before More), at every width. It opens the Add menu (Flight, Sighting, Spotting session). Nothing in the header is filled: the black primary pill belongs to a page's own main action, not to the bar.
 - **Text link with arrow:** 600 weight, no underline at rest, underline on hover.
 - **Transitions:** 160ms on background, border and transform with the standard ease.
 
@@ -644,8 +639,8 @@ No rules, icons, colons or cards. Hairlines are kept only where rows are too wid
 `GlobePanel` shows a canvas orthographic globe inside a 28px rounded stage (`globe-stage`, 24px on phones), with the ocean disc in `globe-sphere`, land in `land` with `land-edge` coastlines, a 10° graticule in `chart-grid` and a `rule-strong` outline. It heads Statistics (the period) and replaces the flat map on flight and airport pages when the Map / Globe switch says Globe. The legend row above it is the same as the flat map's, and on flight and airport pages the stage takes the flat map's height (430px for a route, 280px when narrower than 600px; an airport's map as it was measured), so switching moves nothing. Elsewhere the stage is `clamp(340px, 58vh, 560px)` tall (`clamp(320px, 50vh, 420px)` on phones).
 - **Content:** flown routes in gold, recorded tracks where they exist and dashed great circles for the missing stretches; on a flight page the route's great circle is drawn too, 1.4px dashed (4 4) in `ink-3` under the track, as on the flat route map; line width grows gently with zoom (1.4px up to 3px). Spotting locations are blue dots with a 2px paper ring, sized by aircraft seen; points on the far side are hidden. Airports flown through are 3.5px ink dots with a paper ring, labelled with 11px 600 codes in `ink-2` with a paper stroke, placed greedily so labels never overlap or leave the frame.
 - **Interaction:** drag to turn, with inertia after a quick release; pinch to zoom; arrow keys turn and + / − zoom when the canvas has focus (focus ring inset 4px). In a page the globe leaves scrolling to the page: the wheel and vertical swipes scroll, Ctrl-scroll (and a trackpad pinch) zooms. Expanded, the wheel zooms. Framing zooms in on close routes but stops when the globe is as wide as the stage (radius 46% of its longer side), so its edge stays in view at the sides. Hovering a route, an airport or a spotting dot shows its tooltip; the hovered route redraws 1.6px thicker at full opacity while the others drop to 22% and spots to 35%, and a hovered airport dot grows to 5.5px. Clicking a route opens the flight; clicking an airport or a spotting dot opens the airport page.
-- **Controls:** zoom in, zoom out and "turn back to show everything" as a column of 44px round buttons on `surface-highest` (`surface-high` on hover) with the Raised shadow, 16px from the bottom right, 8px apart. A hint line ("Drag to turn · pinch or Ctrl-scroll to zoom · click a route or an airport to open it", then a note such as the period and how many flights have a recorded track) sits bottom left in label size, `ink-3`; hidden on phones until expanded.
-- **Expand:** a 36px pill inside the stage, 16px from the top right: `surface-highest` (`surface-high` on hover) with the Raised shadow, a 15px expand icon and "Expand" at 0.8125rem and 500.
+- **Controls:** zoom in, zoom out and "turn back to show everything" as a column of 44px round buttons, 16px from the bottom right, 8px apart. They are flat, Material's filled tonal icon buttons: `globe-control` fill with a 1px `rule-strong` edge (the sphere's own outline, so they read on the stage, land and sea alike), no shadow; hover and press mix 8% and 12% ink into the fill. A hint line ("Drag to turn · pinch or Ctrl-scroll to zoom · click a route or an airport to open it", then a note such as the period and how many flights have a recorded track) sits bottom left in label size, `ink-3`; hidden on phones until expanded.
+- **Expand:** a 36px pill inside the stage, 16px from the top right, flat like the zoom buttons: `globe-control` with the `rule-strong` edge and the same state layers, a 15px expand icon and "Expand" at 0.8125rem and 500.
 - **Head row:** the page's legend items or switches. On Statistics it holds two chips, Flights and Spotting, each with its legend swatch and count, and the airline filter as a 34px filled pill.
 - **Expanded:** the whole panel goes full screen (the Fullscreen API; a fixed overlay where there is none) on the paper background with 16px padding at the top and the gutter elsewhere; the stage takes the height left. The Expand pill reads Collapse with a collapse icon; Esc and Back on Android also return. Clicking the globe gives it keyboard focus without scrolling the page. The tooltip moves into the panel while it is full screen.
 
@@ -723,10 +718,10 @@ A row of icon plus sentence at 0.9375rem in `ink-2`, the icon nudged 3px down to
 - **Checkboxes:** native, 16px, accent in flown gold.
 
 ### Navigation
-- **Header band:** sticky, `surface-mid` with no bottom hairline, 64px high (56px at 840px and below): wordmark, nav links, then sync state, theme button and Add on the right (Add moves to the floating button at 840px and below).
+- **Header band:** sticky, `surface-mid` with no bottom hairline, 64px high (56px at 840px and below): wordmark, nav links, then sync state and the issues, theme, Add and More icon buttons on the right.
 - **Desktop links:** 0.9375rem `ink-2`, 8px 16px padding, pill corners; hover adds the state layer; the current page sits in a pill of the selection container with `on-selected-container` text at 600. Unavailable sections stay visible in `ink-3` and do nothing on hover.
 - **Stable widths:** each label reserves the width of its bold form (a hidden copy at 650 under it), so marking the current page never moves the links after it.
-- **Widths:** above 1180px the full top bar. From 1180px down to 841px it tightens in steps: the save status keeps only its icon (words in its tooltip), gaps shrink to 20px and links to 8px 12px padding, and below 1000px Add keeps only its plus. At 840px and below (Material's compact and medium widths) the navigation moves to the bottom bar and Add becomes the floating button, whatever the device.
+- **Widths:** above 1180px the full top bar. From 1180px down to 841px it tightens in steps: the save status keeps only its icon (words in its tooltip), gaps shrink to 20px and links to 8px 12px padding, At 840px and below (Material's compact and medium widths) the navigation moves to the bottom bar and the icon buttons stay in the header, whatever the device; up to 400px they close up, and below 360px the theme button leaves.
 - **Bottom navigation bar (840px and below):** fixed to the bottom, `surface-mid` with no top hairline, 10px top padding, icons at 22px above 0.75rem labels at 500, safe-area padding below. The current tab gets a pill of the selection container behind its icon (5px 20px padding, fading in over 180ms) and an ink label at 650. The bar's colour continues below the screen edge so the page never shows through while the browser toolbar moves.
 
 ### Motion

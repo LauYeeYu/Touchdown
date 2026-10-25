@@ -170,9 +170,20 @@ export function Shell() {
               <Icon name="list-checks" />
               {openIssues > 0 && <span className="badge">{openIssues > 99 ? "99+" : openIssues}</span>}
             </Link>
-            <button type="button" className="icon-btn" onClick={cycleTheme} aria-label={`${THEME_LABEL[theme]}. Change theme`} title={THEME_LABEL[theme]}>
+            <button type="button" className="icon-btn theme-btn" onClick={cycleTheme} aria-label={`${THEME_LABEL[theme]}. Change theme`} title={THEME_LABEL[theme]}>
               <Icon name={THEME_ICON[theme]} />
             </button>
+            <MenuButton
+              className="icon-btn"
+              label="Add"
+              items={[
+                { label: "Flight", icon: <Icon name="plane" />, onSelect: () => navigate({ to: "/flights/new" }) },
+                { label: "Sighting", icon: <Icon name="camera" />, onSelect: () => navigate({ to: "/spotting/new" }) },
+                { label: "Spotting session", icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/spotting/session" }) },
+              ]}
+            >
+              <Icon name="plus" />
+            </MenuButton>
             <MenuButton
               className="icon-btn"
               label="More"
@@ -183,19 +194,6 @@ export function Shell() {
               ]}
             >
               <Icon name="ellipsis" />
-            </MenuButton>
-            <MenuButton
-              className="btn btn--primary"
-              anchorClassName="add-menu"
-              label="Add"
-              items={[
-                { label: "Flight", icon: <Icon name="plane" />, onSelect: () => navigate({ to: "/flights/new" }) },
-                { label: "Sighting", icon: <Icon name="camera" />, onSelect: () => navigate({ to: "/spotting/new" }) },
-                { label: "Spotting session", icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/spotting/session" }) },
-              ]}
-            >
-              <Icon name="plus" />
-              <span>Add</span>
             </MenuButton>
           </div>
         </div>
@@ -285,19 +283,6 @@ export function Shell() {
       <main id="view" tabIndex={-1}>
         <Outlet />
       </main>
-      <div className="fab-wrap">
-        <MenuButton
-          className="fab"
-          label="Add"
-          items={[
-            { label: "Flight", icon: <Icon name="plane" />, onSelect: () => navigate({ to: "/flights/new" }) },
-            { label: "Sighting", icon: <Icon name="camera" />, onSelect: () => navigate({ to: "/spotting/new" }) },
-            { label: "Spotting session", icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/spotting/session" }) },
-          ]}
-        >
-          <Icon name="plus" />
-        </MenuButton>
-      </div>
       <footer className="site-foot">
         <div className="page">
           <p>{sync ? `Your log syncs through ${sync.place}; this browser holds a copy.` : "Your log is stored in this browser. Export a backup from Settings."}</p>
