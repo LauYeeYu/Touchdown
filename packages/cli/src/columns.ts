@@ -39,9 +39,20 @@ export interface ReadOptions {
   model?: string;
   /** Ask the user about unclear columns and to confirm a new layout (needs a terminal). */
   ask: boolean;
+  /** Where the columns are shown; standard output when not given. */
+  say?: (line: string) => void;
 }
 
-export type SheetRead = { source: ParsedSource; kind: RowKind | "fr24"; sheetName: string } | { error: string };
+export type SheetRead =
+  | {
+      source: ParsedSource;
+      kind: RowKind | "fr24";
+      sheetName: string;
+      /** The sheet read, and its columns as settled: null for the Flightradar24 export. */
+      sheet: SheetData;
+      mapping: { kind: RowKind; fields: ColumnField[] } | null;
+    }
+  | { error: string };
 
 const label = (f: ColumnField) => FIELD_DEFS[f].label;
 
@@ -59,7 +70,7 @@ export function mayShowAgent(v: string, ref: RefIndex): boolean {
 }
 
 /** Asks the agent what the unclear columns hold. Its answers are proposals the user confirms. */
-async function askAgent(agent: Agent, model: string | undefined, sheet: SheetData, m: SheetMapping, ref: RefIndex): Promise<Map<number, { field: ColumnField; reason: string }>> {
+async function askAgent(agent: Agent, model: string | undefined, sheet: SheetData, m: SheetMapping, ref: RefIndex, say: (line: string) => void): Promise<Map<number, { field: ColumnField; reason: string }>> {
   const unsure = unsureColumns(m);
   const allowed = choices(m.kind).filter((f) => !FIELD_DEFS[f].private);
   const payload = {
@@ -98,24 +109,25 @@ async function askAgent(agent: Agent, model: string | undefined, sheet: SheetDat
       out.set(a.index, { field, reason: String(a.reason ?? "").slice(0, 160) });
     }
   } catch (e) {
-    console.log(yellow(`  The agent could not help with the columns: ${(e as Error).message}.`));
+    say(yellow(`  The agent could not help with the columns: ${(e as Error).message}.`));
   }
   return out;
 }
 
-function printColumns(m: SheetMapping, fields: ColumnField[], fromAgent: Set<number>) {
+function printColumns(m: SheetMapping, fields: ColumnField[], fromAgent: Set<number>, say: (line: string) => void) {
   for (const c of m.columns) {
     if (!c.header && !c.samples.length) continue;
     const f = fields[c.index]!;
     const sample = c.samples.slice(0, 3).join(", ");
     const tone = c.confidence === "unsure" && f === "ignore" ? yellow : (s: string) => s;
     const note = fromAgent.has(c.index) ? dim(" (the agent's reading)") : "";
-    console.log(`  ${dim(String(c.index + 1).padStart(2))}  ${fit(c.header || "(no header)", 22)} ${tone(fit(label(f), 26))} ${dim(fit(sample, 40))}${note}`);
+    say(`  ${dim(String(c.index + 1).padStart(2))}  ${fit(c.header || "(no header)", 22)} ${tone(fit(label(f), 26))} ${dim(fit(sample, 40))}${note}`);
   }
 }
 
 /** Reads `path` as rows of sightings or flights, settling its columns first. */
 export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions): Promise<SheetRead> {
+  const say = o.say ?? ((line: string) => console.log(line));
   let sheets: SheetData[];
   try {
     sheets = readSheets(path);
@@ -123,7 +135,7 @@ export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions)
     return { error: `${basename(path)} could not be read: ${(e as Error).message}` };
   }
   for (const sheet of sheets) {
-    if (isFr24Export(sheet.header)) return { source: parseSource(sheet, basename(path), ref)!, kind: "fr24", sheetName: sheet.name };
+    if (isFr24Export(sheet.header)) return { source: parseSource(sheet, basename(path), ref)!, kind: "fr24", sheetName: sheet.name, sheet, mapping: null };
   }
   // The first sheet (tab) whose columns hold enough to read rows.
   const pick = sheets.map((sheet) => ({ sheet, m: guessMapping(sheet, ref) })).find((x) => !mappingProblem(fieldsOf(x.m)));
@@ -132,8 +144,8 @@ export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions)
   const signature = headerSignature(sheet.header);
   const saved = savedMapping(signature);
   if (saved) {
-    console.log(dim(`  Columns as you confirmed them for this layout before (${saved.kind}).`));
-    return { source: readMapped(sheet, saved, basename(path), ref), kind: saved.kind, sheetName: sheet.name };
+    say(dim(`  Columns as you confirmed them for this layout before (${saved.kind}).`));
+    return { source: readMapped(sheet, saved, basename(path), ref), kind: saved.kind, sheetName: sheet.name, sheet, mapping: saved };
   }
 
   const fields = m.columns.map((c) => c.field);
@@ -145,11 +157,11 @@ export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions)
     m.columns[col]!.confidence = "sure";
   }
 
-  console.log(`\n${bold(`Columns of ${basename(path)}${sheets.length > 1 ? ` (tab "${sheet.name}")` : ""}`)}: read as ${m.kind}`);
+  say(`\n${bold(`Columns of ${basename(path)}${sheets.length > 1 ? ` (tab "${sheet.name}")` : ""}`)}: read as ${m.kind}`);
   const unsure = unsureColumns(m);
-  const proposals = unsure.length && o.agent ? await askAgent(o.agent, o.model, sheet, m, ref) : new Map<number, { field: ColumnField; reason: string }>();
+  const proposals = unsure.length && o.agent ? await askAgent(o.agent, o.model, sheet, m, ref, say) : new Map<number, { field: ColumnField; reason: string }>();
   for (const [i, p] of proposals) fields[i] = p.field;
-  printColumns(m, fields, new Set(proposals.keys()));
+  printColumns(m, fields, new Set(proposals.keys()), say);
 
   if (o.ask && process.stdin.isTTY) {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -178,9 +190,9 @@ export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions)
       rl.close();
     }
   } else if (unsure.some((c) => fields[c.index] === "ignore")) {
-    console.log(dim(`  Unclear columns are not used. Set one with --map "Header=field".`));
+    say(dim(`  Unclear columns are not used. Set one with --map "Header=field".`));
   }
   const problem = mappingProblem({ kind: m.kind, fields });
   if (problem) return { error: problem };
-  return { source: readMapped(sheet, { kind: m.kind, fields }, basename(path), ref), kind: m.kind, sheetName: sheet.name };
+  return { source: readMapped(sheet, { kind: m.kind, fields }, basename(path), ref), kind: m.kind, sheetName: sheet.name, sheet, mapping: { kind: m.kind, fields } };
 }

@@ -6,7 +6,7 @@
 // Private values (ticket numbers, booking references) are never printed.
 
 import { createInterface } from "node:readline/promises";
-import { applyChanges, commitImport, INBOX_PRIVATE_FIELDS, prepareImport, readInbox, settingsOf, type ChangeStatus, type CommitDecision, type FieldDiff, type Finding, type InboxChange, type Match, type ParsedSource, type PreparedImport } from "@touchdown/core";
+import { applyChanges, commitImport, INBOX_PRIVATE_FIELDS, prepareImport, readInbox, settingsOf, type ChangeStatus, type CommitDecision, type FieldDiff, type Finding, type InboxChange, type Match, type ParsedSource, type PreparedImport, type RefIndex } from "@touchdown/core";
 import { airlineLabel, airportWithCode, CABIN_LABEL, dateTimeLabel, FIELD_LABEL, PHASE_LABEL, planChanges, takeByDefault, type ChangePlan } from "@touchdown/core/view";
 import { fileLabel } from "./inbox.ts";
 import { inboxPlace } from "./log.ts";
@@ -42,22 +42,22 @@ be read.`;
 
 const PRIVATE = new Set<string>(INBOX_PRIVATE_FIELDS);
 
-/** A value of a stored field as the review shows it. */
-function shown(w: WritableLog, field: string, v: unknown): string {
+/** A value of a stored field as the review shows it; a private one only as "(private)". */
+export function shownValue(ref: RefIndex, field: string, v: unknown): string {
   if (v === null || v === undefined || v === "") return "empty";
   if (PRIVATE.has(field)) return "(private)";
-  if (field === "airlineId" || field === "operatorId" || field === "operatingAirlineId") return airlineLabel(v as string, w.ref) || String(v);
-  if (/AirportId$|^airportId$/.test(field)) return plain(airportWithCode(v as string, w.ref, null)) || String(v);
+  if (field === "airlineId" || field === "operatorId" || field === "operatingAirlineId") return airlineLabel(v as string, ref) || String(v);
+  if (/AirportId$|^airportId$/.test(field)) return plain(airportWithCode(v as string, ref, null)) || String(v);
   if (field.endsWith("At")) return plain(dateTimeLabel(v as string)) || String(v);
   if (field === "phase") return PHASE_LABEL[v as string] ?? String(v);
   if (field === "cabinClass") return CABIN_LABEL[v as string] ?? String(v);
   return String(v);
 }
 
-const label = (field: string) => FIELD_LABEL[field] ?? field;
+export const label = (field: string) => FIELD_LABEL[field] ?? field;
 
 /** What a row is: "Flight BA117 on 2026-10-18, LHR → JFK", "Sighting G-ABCD at EGLL on 2026-10-20". */
-function rowTitle(m: Match): string {
+export function rowTitle(m: Match): string {
   const c = m.candidate;
   if (c.table === "flights") {
     const v = c.values;
@@ -84,7 +84,7 @@ const RESOLVED: Record<string, string> = {
 const RAW_OF = Object.fromEntries(Object.entries(RESOLVED).map(([raw, field]) => [field, raw]));
 
 /** A conflict's fields as the user decides them: a raw value and its resolved form are one question. */
-function questions(m: Match): FieldDiff[] {
+export function questions(m: Match): FieldDiff[] {
   const fields = new Set(m.conflicts.map((d) => d.field));
   return m.conflicts.filter((d) => !(RESOLVED[d.field] && fields.has(RESOLVED[d.field]!)));
 }
@@ -183,12 +183,12 @@ export async function reviewCommand(args: string[]) {
         }
         const d: CommitDecision = {};
         for (const q of questions(m)) {
-          if (!json) console.log(`    ${label(q.field)}: your log ${shown(w, q.field, q.existing)}, the file ${shown(w, q.field, q.incoming)}`);
+          if (!json) console.log(`    ${label(q.field)}: your log ${shownValue(w.ref, q.field, q.existing)}, the file ${shownValue(w.ref, q.field, q.incoming)}`);
           const pair = [q.field, RAW_OF[q.field], RESOLVED[q.field]].filter((f): f is string => !!f && f in c.values);
           if (await ask(`    Take the file's ${label(q.field).toLowerCase()}?`, false)) d.takeIncoming = [...(d.takeIncoming ?? []), ...new Set(pair)];
         }
         if (m.corrections.length) {
-          if (!json) console.log(`    ${m.corrections[0]!.reason} ${m.corrections.map((x) => `${label(x.field)} ${shown(w, x.field, x.existing)} → ${shown(w, x.field, x.incoming)}`).join(", ")}`);
+          if (!json) console.log(`    ${m.corrections[0]!.reason} ${m.corrections.map((x) => `${label(x.field)} ${shownValue(w.ref, x.field, x.existing)} → ${shownValue(w.ref, x.field, x.incoming)}`).join(", ")}`);
           if (!(await ask("    Keep the move to the next day?", true))) d.rejectCorrections = m.corrections.map((x) => x.field);
         }
         if (Object.keys(d).length) decisions.set(i, d);
@@ -229,8 +229,8 @@ export async function reviewCommand(args: string[]) {
           kind: m.kind,
           title: rowTitle(m),
           fills: m.fills,
-          differs: questions(m).map((q) => ({ field: q.field, label: label(q.field), yours: shown(w, q.field, q.existing), file: shown(w, q.field, q.incoming) })),
-          corrections: m.corrections.map((x) => ({ field: x.field, from: shown(w, x.field, x.existing), to: shown(w, x.field, x.incoming), reason: x.reason })),
+          differs: questions(m).map((q) => ({ field: q.field, label: label(q.field), yours: shownValue(w.ref, q.field, q.existing), file: shownValue(w.ref, q.field, q.incoming) })),
+          corrections: m.corrections.map((x) => ({ field: x.field, from: shownValue(w.ref, x.field, x.existing), to: shownValue(w.ref, x.field, x.incoming), reason: x.reason })),
           findings: (prepared!.findings.get(i) ?? []).map(findingJson),
         })),
         changes: (plan?.changes ?? []).map((p) => ({ action: p.action, title: p.title, status: p.status, note: p.note, lines: p.lines.map(({ label: l, before, after }) => ({ label: l, before, after })) })),

@@ -78,7 +78,7 @@ Decided, built. Every spreadsheet other than the myFR24 export is read through a
 | Where | How |
 |-------|-----|
 | Import page | A column step lists every column with three of its values and what it was read as; unclear ones are marked with the reason. The user changes any of them, says whether the rows are sightings or flights, and reads the rows. Shown only when something is unclear or rows cannot be read; otherwise the review says how the columns were read, with "Change the columns". |
-| Terminal (`spot`, `check`, `import`) | The columns are printed. `--map "Header=field"` (or a column number) sets one. At a terminal, each unclear column is asked about. If the user has chosen an agent, it is asked first about the unclear columns only ([22](22-agent-verification.md), "Column help"); its readings are proposals the user confirms. `import` asks nothing: unclear columns are not used. |
+| Terminal (`spot`, `check`, `import`) | The columns are printed. `--map "Header=field"` (or a column number) sets one. At a terminal, each unclear column is asked about. If the user has chosen an agent, it is asked first about the unclear columns only ([22](22-agent-verification.md), "Column help"); its readings are proposals the user confirms. `import --out` (building a backup) and `import --json` ask nothing: unclear columns are not used. |
 | Remembered | A layout the user confirms is kept by its headers: in the browser for the Import page, in `data/private/touchdown-cli.json` for the terminal. The same layout is then read without asking. |
 
 **Reading rows**, per field, whatever the column is called:
@@ -167,6 +167,8 @@ Version 2 adds flights (from `touchdown add`, below): per flight, the values nam
 
 Version 3 adds a flight's `ticketNumber` and `bookingRef`, only when the user gave them to `touchdown add` (never printed on the command line; [34](34-command-line.md), "Private fields"), and changes to records already in the log, from `touchdown edit` and the other changing commands ([34](34-command-line.md), "Change files").
 
+Version 3 also lets a file hold a spreadsheet instead of records, from `touchdown import FILE` ([34](34-command-line.md), "Changing"): `sheet` with the file's name, the sheet (tab) read, its header, its rows and the row number of the first, and the columns as the user settled them (`mapping`: rows of flights or sightings, and a field per column), or none for the my.flightradar24.com export, which has its own reader. Only the columns used are kept. The review reads it with the same readers as the file itself, so the import is the same whether the file was chosen on the Import page or put in the inbox from the terminal. Such a file is named `import-<date>-<time>-<file name>.json`.
+
 ### Getting a session to the web app
 
 A session's sightings are not in the log until the user reviews and imports them in the web app, or in the terminal with `touchdown review` ([34](34-command-line.md), "The review") (Decided: review first, Q-SPOT-ARRIVAL). The CLI says so after every save and when the session ends.
@@ -238,14 +240,14 @@ On the Import page the file reads like a spotting session's, with "Checked again
 
 A `.zip` of the user's Touchdown folder from [12](12-storage-and-sync.md) (JSON tables or SQLite file, plus tracks and attachments). Restores everything exactly. Used for moving between storage backends and for the manual-file adapter.
 
-The companion CLI writes the same file (`touchdown import FILES --out backup.zip`), so data imported or added with a local command can be loaded into the web app with Restore in Settings, until sync arrives in phase 3.
+The companion CLI writes the same file: `touchdown backup` downloads the log from the user's storage as the web app's "Export a backup" does, and `touchdown import FILES --out backup.zip` builds one from files alone, to load into the web app with Restore in Settings. The CLI does not restore (Q-CLI-RESTORE).
 
 ## Exports
 
 | Export | Content | Notes |
 |--------|---------|-------|
 | Backup (`.zip`) | All tables, tracks, attachments, in the user's current backend format (JSON tables or SQLite file) | Full fidelity. Private fields included. Restores into either backend. |
-| CSV per table | Flights, sightings, airframes | Flattened; lists joined with ` \| `. Private fields only with "include private fields". Cells starting with `= + - @`, tab, or CR are prefixed with `'`. |
+| CSV per table | Flights, sightings, airframes | Flattened; lists joined with ` \| `. Private fields only with "include private fields" (`touchdown export TABLE --private`, to a file only). Cells starting with `= + - @`, tab, or CR are prefixed with `'`. |
 | Google Sheets | Same as CSV, uploaded to Drive and converted to a Sheet | Works with `drive.file` (the app creates the file). |
 | myFR24 import CSV | The 19-column format | Date = `scheduledDate` (or the local takeoff date if unknown); Dep/Arr time = local clock time of takeoff/landing. Airports written as `IATA/ICAO`, which myFR24 accepts. Original FR24 ids kept where known. Option: only flights not exported before (`external.fr24.exportedAt`). Whether myFR24 accepts a subset of columns and whether airline names must match its names exactly are unverified; test with a small file first. |
 | Stats | Any table as CSV; any chart as PNG/SVG | |

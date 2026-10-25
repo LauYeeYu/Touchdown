@@ -1,7 +1,8 @@
 #!/usr/bin/env -S npx tsx
-// Touchdown companion CLI. Phase 1: `touchdown import <files…>` imports files in the order given, merges
-// them, resolves airframes, runs the checks and prints findings and summary statistics. Nothing is written
-// unless --out is given. Private fields (ticket number, booking reference) are never printed.
+// Touchdown companion CLI: the menu, the help and the commands' dispatch. Here too, from phase 1, `touchdown import
+// <files…> --out FILE` builds a backup from files alone: imports them in the order given, merges them, resolves
+// airframes, runs the checks and prints findings and summary statistics. Without --out, import puts each file in the
+// inbox for review (importfile.ts). Private fields (ticket number, booking reference) are never printed.
 
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
@@ -46,6 +47,8 @@ import { AIRCRAFT_HELP, aircraftCommand } from "./aircraft.ts";
 import { AIRPORT_HELP, airportCommand } from "./airport.ts";
 import { STATS_HELP, statsCommand } from "./stats.ts";
 import { REVIEW_HELP, reviewCommand } from "./review.ts";
+import { importCommand } from "./importfile.ts";
+import { BACKUP_HELP, backupCommand, EXPORT_HELP, exportCommand } from "./backup.ts";
 import { DELETE_HELP, deleteCommand, EDIT_HELP, editCommand, FAMILIES_HELP, familiesCommand, SETTINGS_HELP, settingsCommand, UNDO_HELP, undoCommand } from "./change.ts";
 import { IMPORTS_HELP, importsCommand, ISSUES_HELP, issuesCommand } from "./issues.ts";
 import { FLIGHT_HELP, FLIGHTS_HELP, flightCommand, flightsCommand, SESSIONS_HELP, sessionsCommand, SIGHTINGS_HELP, sightingsCommand } from "./records.ts";
@@ -91,11 +94,12 @@ Import page or with ./touchdown review)
   undo        Undo an import (ids from ./touchdown imports).
   families    Count a type in another family in the statistics.
   settings    The codes, distance unit and model names your log shows.
+  import      A spreadsheet or your Flightradar24 export, checked against your log; --out builds a backup instead.
 
-${bold("Check and import files")}
+${bold("Files")}
+  backup      Download a backup of your log, as the web app's Settings does.
+  export      A table of your log (flights, sightings, aircraft) as CSV.
   check       Have Claude Code or Codex check a spreadsheet, or a check request saved from the Import page.
-  import      Read your spreadsheets and Flightradar24 export, print findings and statistics, and write a
-              backup the web app can restore.
   airframes   Fill serial numbers and first flight dates in a backup (OpenSky; Flightradar24 with --fr24).
 
 ${bold("Settings")}
@@ -120,19 +124,37 @@ checks each answer against your records and stores what fits. Sources: the OpenS
 --refresh asks again, --offline uses the cache only. A value you typed in the app is never replaced; one
 from an imported sheet is replaced only with --overwrite-imported. --sources picks from: ${PROVIDER_IDS.join(", ")}.`;
 
-const IMPORT_HELP = `Usage: ./touchdown import <file…> [--today YYYY-MM-DD] [--out DIR|FILE.zip] [--all-findings] [--apply-fixes]
-                         [--tracks DIR] [--tracks-adsblol DIR] [--airframes] [lookup options]
+const IMPORT_HELP = `Usage: ./touchdown import FILE… [--map "Header=field"] [--dry-run] [--json] [--keep-errors] [--log FILE]
+       ./touchdown import FILE… --out FILE.zip|DIR [--today YYYY-MM-DD] [--all-findings] [--apply-fixes]
+                              [--tracks DIR] [--tracks-adsblol DIR] [--airframes] [lookup options]
 
-Imports CSV or xlsx files (the myFR24 export, or any spreadsheet of flights or sightings: its columns are worked
-out from the headers and values; --map "Header=field" sets one) in the order given, then prints
-findings and summary statistics. Nothing is written without --out. --apply-fixes accepts every single
-suggested fix for errors and model/type mismatches before the statistics. --out DIR writes the result as
-JSON tables; --out FILE.zip writes a backup the web app can restore (Settings, Restore). --tracks reads
-Flightradar24 track CSVs (adsb.lol traces in the same layout with --tracks-adsblol) and keeps the best one
-per flight. --airframes also looks up airframe facts, as the airframes command does.
+Reads CSV or xlsx files: the my.flightradar24.com export, or any spreadsheet of flights or sightings. Its columns
+are worked out from the headers and values; a layout you confirmed before is used again, --map "Header=field" (or
+"3=field" for the third column) sets one, and at a terminal you are asked about unclear columns and to confirm a
+new layout, which is then remembered on this computer.
 
-The backup holds only what these files give: restoring it replaces the log in the browser. To add new
-records to the log you have, use the Import page instead.
+Each file is checked as the Import page checks it, against your log as it is now (from the storage chosen with
+./touchdown storage, else data/private/touchdown-backup.zip, or --log FILE): which rows are new, fill in a
+record of your log or differ from one, the row checks, and the findings the rows would bring. It then goes to
+the inbox as one file, for review on the Import page or with ./touchdown review, which read it as they read the
+file itself. A file with an error is not written, unless --keep-errors; one whose rows are all in your log or
+waiting in the inbox already is left out. Ticket numbers and booking references in a file are never printed.
+
+  --map "H=FIELD"   set a column; may be given more than once
+  --dry-run         check only, write nothing
+  --json            print the report as JSON, for agents and scripts (no questions are asked)
+  --keep-errors     write a file with errors as well; the review shows them again
+  --log FILE        check against this backup instead of the storage
+
+Exit status: 0 written, or nothing new; 1 errors found, a file not written; 2 a file, the log or the storage
+could not be read.
+
+With --out, it builds a backup from the files alone instead, imported in the order given, and prints findings
+and summary statistics: --out FILE.zip writes a backup the web app can restore (Settings, Restore), --out DIR
+JSON tables. --apply-fixes accepts every single suggested fix for errors and model/type mismatches. --tracks
+reads Flightradar24 track CSVs (adsb.lol traces in the same layout with --tracks-adsblol) and keeps the best one
+per flight. --airframes also looks up airframe facts, as the airframes command does. Restoring such a backup
+replaces the log in the browser.
 
 ${LOOKUP_HELP}`;
 
@@ -183,6 +205,8 @@ const HELP: Record<string, string> = {
   families: FAMILIES_HELP,
   settings: SETTINGS_HELP,
   review: REVIEW_HELP,
+  backup: BACKUP_HELP,
+  export: EXPORT_HELP,
 };
 
 function usage(text = MENU, code = 1): never {
@@ -347,7 +371,11 @@ async function main(argv: string[]) {
   if (cmd === "families") return familiesCommand(all);
   if (cmd === "settings") return settingsCommand(all);
   if (cmd === "review") return reviewCommand(all);
+  if (cmd === "backup") return backupCommand(all);
+  if (cmd === "export") return exportCommand(all);
   if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd], 0);
+  // Without --out, import puts the files in the inbox for review (docs/34); with it, it builds a backup.
+  if (cmd === "import" && !all.includes("--out")) return importCommand(all, new RefIndex(loadRefTables()), IMPORT_HELP);
   const { lookup, rest } = lookupArgs(all);
   if (cmd === "airframes") return airframesCommand(rest, lookup);
   const files: string[] = [];

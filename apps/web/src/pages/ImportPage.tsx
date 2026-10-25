@@ -374,7 +374,7 @@ export function ImportPage() {
         </nav>
         <h1 className="form-title">Review {source.fileName}</h1>
         <p className="lead lead--flight">
-          A {FORMAT_LABEL[source.format]} with {plural(source.rowsRead, "row")}: {plural(counts.new, "new record")}, {plural(counts.update, "record")} that fill gaps, {plural(counts.conflict, "record")} that disagree with your log, and {counts.identical} already there.
+          A {FORMAT_LABEL[source.format]} with {plural(source.rowsRead, "row")}: {plural(counts.new, "new record")}, {plural(counts.update, "record")} that {counts.update === 1 ? "fills" : "fill"} gaps, {plural(counts.conflict, "record")} that {counts.conflict === 1 ? "disagrees" : "disagree"} with your log, and {counts.identical} already there.
           {counts.duplicate > 0 && ` ${plural(counts.duplicate, "row repeats", "rows repeat")} an aircraft already seen at the same place that day; ${counts.duplicate === 1 ? "it is" : "they are"} merged into the first row.`}
         </p>
         {source.format === "sheet" && columns && (
@@ -612,7 +612,7 @@ export function ImportPage() {
         <Icon name="upload" />
         <span>
           <b>{busy ? "Reading…" : "Choose a file"}</b>
-          <span>A my.flightradar24.com CSV export, your flight log or spotting spreadsheet as CSV or Excel (.xlsx), or a file from the inbox of ./touchdown spot or add (.json). Import the FR24 export first, then the flight log: matching flights are merged.</span>
+          <span>A my.flightradar24.com CSV export, your flight log or spotting spreadsheet as CSV or Excel (.xlsx), or a file the command line saved for the inbox (.json). Import the FR24 export first, then the flight log: matching flights are merged.</span>
         </span>
         <input
           type="file"

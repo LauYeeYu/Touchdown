@@ -299,3 +299,40 @@ describe("the inbox file", () => {
     expect(readInbox({ ...withFlights({}), flights: [] }, "empty.json", ref)).toMatchObject({ error: expect.stringMatching(/no records/) });
   });
 });
+
+// Version 3 may hold a spreadsheet's rows instead (`touchdown import`). Every value is made up.
+describe("a spreadsheet in the inbox", () => {
+  const FR24 = ["Date", "Flight number", "From", "To", "Dep time", "Arr time", "Duration", "Airline", "Aircraft", "Registration"];
+  const withSheet = (sheet: Record<string, unknown>, over: Record<string, unknown> = {}) =>
+    ({ schema: "touchdown-inbox", version: 3, createdAt: "2026-10-20T18:00Z", checker: null, sightings: [], sheet: { fileName: "flights.csv", name: "flights.csv", firstRow: 2, ...sheet }, ...over }) as unknown as InboxFile;
+  const mapped = { header: ["Date", "Flight", "From", "To", "Seat"], rows: [["2026-10-18", "BA117", "EGLL", "KJFK", "31K"]], mapping: { kind: "flights", fields: ["date", "flightNumber", "from", "to", "seat"] } };
+
+  it("reads as the Import page reads the file: with its columns, or as the Flightradar24 export", () => {
+    const r = readInbox(withSheet(mapped), "import-a.json", ref);
+    if ("error" in r) throw new Error(r.error);
+    expect(r.source).toMatchObject({ format: "sheet", fileName: "flights.csv", rowsRead: 1 });
+    expect(r.source.candidates[0]).toMatchObject({ table: "flights", sourceRow: 2, values: { scheduledDate: "2026-10-18", flightNumber: "BA117", fromAirportId: "ap_egll", toAirportId: "ap_kjfk", seat: "31K" } });
+    expect(r.changes).toEqual([]);
+
+    const fr24 = readInbox(withSheet({ header: FR24, rows: [["2026-10-18", "BA117", "London (LHR/EGLL)", "New York (JFK/KJFK)", "11:40:00", "14:35:00", "07:55:00", "British Airways (BA/BAW)", "Airbus A321neo (A21N)", "G-ABCD"]], mapping: null }), "import-b.json", ref);
+    if ("error" in fr24) throw new Error(fr24.error);
+    expect(fr24.source).toMatchObject({ format: "fr24_csv", rowsRead: 1 });
+    expect(fr24.source.candidates[0]!.values).toMatchObject({ flightNumber: "BA117", fromAirportId: "ap_egll", registration: "G-ABCD" });
+  });
+
+  it("is refused when malformed, without its columns, or with anything besides it", () => {
+    const bad = (sheet: Record<string, unknown>, over: Record<string, unknown> = {}) => {
+      const r = readInbox(withSheet({ ...mapped, ...sheet }, over), "import.json", ref);
+      return "error" in r ? r.error : null;
+    };
+    expect(bad({ mapping: null })).toMatch(/not the Flightradar24 export/);
+    expect(bad({ mapping: { kind: "flights", fields: ["date", "flightNumber"] } })).toMatch(/malformed columns/);
+    expect(bad({ mapping: { kind: "flights", fields: ["date", "flightNumber", "from", "to", "wingspan"] } })).toMatch(/malformed columns/);
+    expect(bad({ mapping: { kind: "flights", fields: ["ignore", "ignore", "ignore", "ignore", "seat"] } })).toMatch(/^spreadsheet: /);
+    expect(bad({ rows: [["2026-10-18", "BA117"]] })).toMatch(/row 1 is malformed/);
+    expect(bad({ rows: [] })).toMatch(/no rows/);
+    expect(bad({ extra: 1 })).toMatch(/unexpected keys extra/);
+    expect(bad({}, { flights: [{ values: { flightNumber: "BA118" }, open: [] }] })).toMatch(/holds nothing else/);
+    expect(bad({}, { version: 2 })).toMatch(/unexpected keys: sheet/);
+  });
+});

@@ -1,8 +1,9 @@
 // The inbox file (docs/21-import-export.md, "Source: spotting session"): the sightings `touchdown spot` filled and
 // checked, or the flights and sightings `touchdown add` checked, with where each value came from and what is still
 // open. The Import page reads it like any other file; values from a lookup or an agent get a `field_provenance` row
-// on commit. Version 2 added flights; version 3 changes to records in the log (import/changes.ts, docs/34) and a
-// flight's ticket number and booking reference, given by the user. Versions 1 and 2 are still read.
+// on commit. Version 2 added flights; version 3 changes to records in the log (import/changes.ts, docs/34), a
+// flight's ticket number and booking reference, given by the user, and a spreadsheet's rows (`touchdown import`).
+// Versions 1 and 2 are still read.
 
 import type { RefIndex } from "../ref/index.ts";
 import { PHASES, type PROVENANCE_SOURCES, type SightingValues } from "../schema/tables.ts";
@@ -12,12 +13,15 @@ import type { AirframeFacts } from "../identity/facts.ts";
 import { SPOT_FIELDS, type SpotField, type SpotSource, type SpotValues } from "../spot/entry.ts";
 import { storedFields } from "../agent/check.ts";
 import type { Candidate, FlightCandidate, ImportIssue, ParsedSource, SightingCandidate } from "./candidate.ts";
-import { readMapped, type ColumnField } from "./mapping.ts";
+import { COLUMN_FIELDS, mappingProblem, readMapped, type ColumnField, type RowKind } from "./mapping.ts";
 import { readChanges, type InboxChange } from "./changes.ts";
+import { isFr24Export, parseSource } from "./formats.ts";
+import type { Cell } from "./read.ts";
 
 export const INBOX_SCHEMA = "touchdown-inbox";
 export const INBOX_VERSION = 3;
 const MAX_RECORDS = 5000;
+const MAX_SHEET_ROWS = 50_000;
 
 /** A flight's fields, named as in the column mapping. */
 export const INBOX_FLIGHT_FIELDS = [
@@ -78,6 +82,23 @@ export interface InboxFlight {
   open: string[];
 }
 
+/**
+ * A spreadsheet or Flightradar24 export as `touchdown import` read it (version 3, docs/34): the rows, with the
+ * columns the user confirmed. The review reads it as the Import page reads the file itself.
+ */
+export interface InboxSheet {
+  /** The file it came from: "flights.xlsx". */
+  fileName: string;
+  /** The sheet (tab) read; a CSV file's name. */
+  name: string;
+  header: string[];
+  rows: Cell[][];
+  /** The row number of the first row in the file, from 1. */
+  firstRow: number;
+  /** What each column holds; null for the Flightradar24 export, which has its own reader. */
+  mapping: { kind: RowKind; fields: ColumnField[] } | null;
+}
+
 export interface InboxFile {
   schema: typeof INBOX_SCHEMA;
   version: 1 | 2 | typeof INBOX_VERSION;
@@ -88,6 +109,8 @@ export interface InboxFile {
   flights?: InboxFlight[];
   /** Version 3: changes to records in the log. */
   changes?: InboxChange[];
+  /** Version 3: a spreadsheet's rows. A file with one holds no records or changes besides. */
+  sheet?: InboxSheet;
 }
 
 const SOURCES = new Set<SpotSource>(["you", "your_log", "opensky", "adsbdb", "fr24", "derived", "claude", "codex"]);
@@ -124,8 +147,13 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
   if (f.checker !== null && f.checker !== "claude" && f.checker !== "codex") return { error: "unknown checker" };
   const flights = f.version === 1 ? [] : (f.flights ?? []);
   if (!Array.isArray(f.sightings) || !Array.isArray(flights)) return { error: "malformed: no list of sightings or flights" };
-  const extra = Object.keys(f).filter((k) => !["schema", "version", "createdAt", "checker", "sightings", ...(f.version === 1 ? [] : ["flights"]), ...(f.version === 3 ? ["changes"] : [])].includes(k));
+  const extra = Object.keys(f).filter((k) => !["schema", "version", "createdAt", "checker", "sightings", ...(f.version === 1 ? [] : ["flights"]), ...(f.version === 3 ? ["changes", "sheet"] : [])].includes(k));
   if (extra.length) return { error: `unexpected keys: ${extra.join(", ")}` };
+  if (f.version === 3 && f.sheet !== undefined) {
+    if (f.sightings.length || flights.length || f.changes?.length) return { error: "a file with a spreadsheet holds nothing else" };
+    const read = readSheet(f.sheet, ref);
+    return "error" in read ? read : { source: read, changes: [] };
+  }
   const read = f.version === 3 ? readChanges(f.changes ?? []) : { changes: [] };
   if ("error" in read) return read;
   const total = f.sightings.length + flights.length;
@@ -194,6 +222,29 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
     candidates.push(inboxFlight(fl, f.sightings.length + n, fileName, ref));
   }
   return { source: { format: "touchdown_inbox", fileName, candidates, rowsRead: candidates.length, agentChecker: f.checker ?? null }, changes: read.changes };
+}
+
+/** A spreadsheet's rows, checked and read as the Import page reads the file. */
+function readSheet(sh: InboxSheet, ref: RefIndex): ParsedSource | { error: string } {
+  if (!sh || typeof sh !== "object") return { error: "malformed spreadsheet" };
+  const keys = Object.keys(sh).filter((k) => !["fileName", "name", "header", "rows", "firstRow", "mapping"].includes(k));
+  if (keys.length) return { error: `spreadsheet: unexpected keys ${keys.join(", ")}` };
+  if (typeof sh.fileName !== "string" || !sh.fileName || sh.fileName.length > 200 || typeof sh.name !== "string" || sh.name.length > 200) return { error: "spreadsheet: malformed file or sheet name" };
+  if (!Array.isArray(sh.header) || !sh.header.length || sh.header.length > 200 || sh.header.some((h) => typeof h !== "string" || h.length > 200)) return { error: "spreadsheet: malformed header" };
+  if (!Array.isArray(sh.rows) || !sh.rows.length || sh.rows.length > MAX_SHEET_ROWS) return { error: `spreadsheet: no rows, or more than ${MAX_SHEET_ROWS}` };
+  if (!Number.isInteger(sh.firstRow) || sh.firstRow < 1) return { error: "spreadsheet: malformed first row" };
+  const cell = (c: unknown) => c === null || typeof c === "boolean" || (typeof c === "number" && Number.isFinite(c)) || (typeof c === "string" && c.length <= 2000);
+  for (const [i, row] of sh.rows.entries()) if (!Array.isArray(row) || row.length !== sh.header.length || !row.every(cell)) return { error: `spreadsheet: row ${i + 1} is malformed` };
+  const m = sh.mapping;
+  if (m === null) {
+    if (!isFr24Export(sh.header)) return { error: "spreadsheet: no columns given, and it is not the Flightradar24 export" };
+  } else {
+    if (!m || typeof m !== "object" || (m.kind !== "flights" && m.kind !== "sightings") || !Array.isArray(m.fields) || m.fields.length !== sh.header.length || m.fields.some((x) => !(COLUMN_FIELDS as readonly string[]).includes(x))) return { error: "spreadsheet: malformed columns" };
+    const problem = mappingProblem(m);
+    if (problem) return { error: `spreadsheet: ${problem}` };
+  }
+  const source = parseSource({ name: sh.name, header: sh.header, rows: sh.rows, firstRow: sh.firstRow }, sh.fileName, ref, m ?? undefined);
+  return source ?? { error: "spreadsheet: its columns do not hold enough to read rows" };
 }
 
 /** The stored fields a flight's value sets, for its provenance rows. */

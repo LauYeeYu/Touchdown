@@ -4,7 +4,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from "node:fs";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { INBOX_PRIVATE_FIELDS, matchCandidates, readInbox, Store, type InboxFile, type RefIndex } from "@touchdown/core";
+import { FIELD_DEFS, INBOX_PRIVATE_FIELDS, matchCandidates, readInbox, Store, type InboxFile, type RefIndex } from "@touchdown/core";
 import { planChanges } from "@touchdown/core/view";
 import { INBOX_DIR, inboxPlace, loadLog, writeInboxFile, type InboxPlace } from "./log.ts";
 import { shownPath, userPath } from "./paths.ts";
@@ -13,9 +13,9 @@ import { bold, dim, green, plural, red } from "./term.ts";
 
 export const INBOX_HELP = `Usage: ./touchdown inbox [show NAME | remove NAME [--yes] | send [FILE…]] [--json]
 
-The inbox holds what spot and add saved, waiting for review in the web app. With storage chosen
-(./touchdown storage) it is the inbox in your storage, which the web app reads on any device; without, it is
-data/private/inbox/, which only the web app's dev server reads.
+The inbox holds what spot, add, import and the changing commands saved, waiting for review in the web app or
+with ./touchdown review. With storage chosen (./touchdown storage) it is the inbox in your storage, which the web
+app reads on any device; without, it is data/private/inbox/, which only the web app's dev server reads.
 
   (nothing)      list the files: what each holds, and how many records are not in your log yet
   show NAME      the records in a file, as the web app will read them
@@ -29,6 +29,8 @@ export const CHANGE_COMMANDS = ["edit", "delete", "aircraft", "issues", "undo", 
 
 /** "Spotting session, 2026-10-22 23:37", "Changes from ./touchdown edit, …", from the names the commands give their files. */
 export function fileLabel(name: string): string {
+  const file = /^import-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})\d{2}-(.+?)(?:-\d+)?\.json$/.exec(name);
+  if (file) return `File ${file[4]} from ./touchdown import, ${file[1]} ${file[2]}:${file[3]}`;
   const m = new RegExp(`^(spot|sheet|add|${CHANGE_COMMANDS.join("|")})-(\\d{4}-\\d{2}-\\d{2})-(\\d{2})(\\d{2})`).exec(name);
   if (!m) return name;
   const when = `${m[2]} ${m[3]}:${m[4]}`;
@@ -38,8 +40,9 @@ export function fileLabel(name: string): string {
   return `Changes from ./touchdown ${m[1]}, ${when}`;
 }
 
-/** A record's values to show: a private one only as given. */
-const shownValues = (raw: Record<string, string | null>) => Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null).map(([k, v]) => [k, (INBOX_PRIVATE_FIELDS as readonly string[]).includes(k) ? "(given)" : v]));
+/** A record's values to show: a private one (by its field, or a spreadsheet column holding one) only as given. */
+const shownValues = (raw: Record<string, string | null>, privateColumns: Set<string>) =>
+  Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null).map(([k, v]) => [k, (INBOX_PRIVATE_FIELDS as readonly string[]).includes(k) || privateColumns.has(k) ? "(given)" : v]));
 
 const plainName = (name: string) => /^[A-Za-z0-9._-]+\.json$/.test(name);
 
@@ -52,7 +55,12 @@ async function readFile(place: InboxPlace, name: string, ref: RefIndex) {
   } catch {
     return { error: "not valid JSON" } as const;
   }
-  return readInbox(json, name, ref);
+  const r = readInbox(json, name, ref);
+  if ("error" in r) return r;
+  // A spreadsheet from ./touchdown import: its columns, and which of them hold private fields.
+  const sheet = (json as InboxFile).sheet ?? null;
+  const columns = sheet?.mapping ? sheet.mapping.fields.map((field, i) => ({ header: sheet.header[i]!, field })).filter((c) => c.field !== "ignore") : null;
+  return { ...r, sheet, columns, privateColumns: new Set((columns ?? []).filter((c) => FIELD_DEFS[c.field].private).map((c) => c.header)) };
 }
 
 export async function inboxCommand(args: string[], ref: RefIndex): Promise<void> {
@@ -111,7 +119,8 @@ export async function inboxCommand(args: string[], ref: RefIndex): Promise<void>
     if ("error" in r && r.error === "not in the inbox") return fail(`${name} is not in ${place.name}.`);
     if (what === "show") {
       if ("error" in r) return fail(`${name} does not read: ${r.error}.`);
-      const records = r.source.candidates.map((c) => ({ kind: c.table === "flights" ? "flight" : "sighting", values: shownValues(c.raw), open: c.issues.map((i) => i.message) }));
+      const records = r.source.candidates.map((c) => ({ kind: c.table === "flights" ? "flight" : "sighting", values: shownValues(c.raw, r.privateColumns), open: c.issues.map((i) => i.message) }));
+      const sheet = r.sheet ? { file: r.sheet.fileName, sheet: r.sheet.name, rows: r.sheet.rows.length, columns: r.columns } : null;
       // Changes are shown as the review shows them, against the log as it is now; private values only as changed.
       let changes: ReturnType<typeof planChanges>["changes"] = [];
       if (r.changes.length) {
@@ -123,9 +132,13 @@ export async function inboxCommand(args: string[], ref: RefIndex): Promise<void>
         }
         changes = planChanges(log.store ?? new Store({ deviceId: "cli", validate: false }), ref, r.changes).changes;
       }
-      if (json) console.log(JSON.stringify({ ok: true, name, place: place.name, records, changes: changes.map((c) => ({ action: c.action, title: c.title, status: c.status, note: c.note, lines: c.lines.map(({ label, before, after }) => ({ label, before, after })) })) }, null, 2));
+      if (json) console.log(JSON.stringify({ ok: true, name, place: place.name, ...(sheet ? { sheet } : {}), records, changes: changes.map((c) => ({ action: c.action, title: c.title, status: c.status, note: c.note, lines: c.lines.map(({ label, before, after }) => ({ label, before, after })) })) }, null, 2));
       else {
         console.log(`${bold(fileLabel(name))} ${dim(`(${name}, ${place.name})`)}`);
+        if (sheet) {
+          console.log(`  ${sheet.file}${sheet.sheet !== sheet.file ? `, tab "${sheet.sheet}"` : ""}: ${plural(sheet.rows, "row")}`);
+          console.log(dim(`  ${sheet.columns ? `Columns: ${sheet.columns.map((c) => `${c.header} → ${c.field}`).join(", ")}` : "The my.flightradar24.com export"}`));
+        }
         for (const rec of records) {
           console.log(`  ${rec.kind}: ${Object.entries(rec.values).map(([k, v]) => `${k} ${v}`).join(", ")}`);
           for (const o of rec.open) console.log(dim(`    open: ${o}`));

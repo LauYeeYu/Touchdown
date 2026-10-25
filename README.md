@@ -35,16 +35,18 @@ npm run dev -w @touchdown/web     # http://127.0.0.1:5173
 | `./touchdown storage [drive \| folder PATH \| none]` | Use your log where the web app syncs it. With Google Drive, Standard mode needs nothing more; in Private mode your browser gives the command line an hour's access at a time. |
 | `./touchdown spot [--at AIRPORT]` | Type the aircraft you saw, one per line. Each registration is looked up, empty fields are filled, the agent checks them, and you are asked for what is missing. |
 | `./touchdown add [FILE.json \| -] [--json] [--dry-run]` | Check flights and sightings given as JSON against your log, as the Import page would. Made for agents too: a JSON report, and exit status 0 written, 1 errors, 2 unreadable. |
-| `./touchdown inbox [show \| remove \| send]` | What `spot`, `add` and the changing commands saved, waiting for review. |
+| `./touchdown import FILE…` | Check a spreadsheet or your myFR24 export against your log, as the Import page does, and put it in the inbox for review. |
+| `./touchdown inbox [show \| remove \| send]` | What `spot`, `add`, `import` and the changing commands saved, waiting for review. |
 | `./touchdown review` | Review the oldest file waiting here in the terminal, and import it into your log, as the Import page does. |
 | `./touchdown flights`, `stats`, `issues`, … | Your log as the web app shows it: also `flight REF`, `sightings`, `sessions`, `aircraft`, `airport CODE`, `imports`. `--json` for agents. |
 | `./touchdown edit REF --set seat=14A`, `delete`, `undo`, … | Change your log: also `aircraft edit` and `merge`, `issues accept`, `reopen` and `fix`, `families`, `settings`. Each change waits in the inbox until you review and import it, on the Import page or with `./touchdown review`. |
 | `./touchdown check FILE` | Have the agent check a spreadsheet, or a request saved from the Import page. |
-| `./touchdown import FILES… --out FILE.zip` | Read files and write a backup to restore in Settings (with `--airframes`, serial numbers and first flights). |
+| `./touchdown backup`, `export flights` | Download a backup of your log, or a table as CSV, as Settings does. |
+| `./touchdown import FILES… --out FILE.zip` | Read files and write a backup from them alone, to restore in Settings (with `--airframes`, serial numbers and first flights). |
 | `./touchdown airframes BACKUP.zip` | Fill serial numbers and first flight dates in a backup. |
 | `./touchdown agent [claude \| codex \| none]` | Choose the agent, its rules, and whether notes are sent. |
 
-What `spot` and `add` save is not in your log yet: it waits in the inbox, and the web app shows a bar to review and import it, on any device after it syncs. Without `storage`, files go to `data/private/inbox/`, which only the dev server reads. `./touchdown help COMMAND` lists each command's options; [docs/21](docs/21-import-export.md) has the details.
+What `spot`, `add` and `import` save is not in your log yet: it waits in the inbox, and the web app shows a bar to review and import it, on any device after it syncs. Without `storage`, files go to `data/private/inbox/`, which only the dev server reads. `./touchdown help COMMAND` lists each command's options; [docs/21](docs/21-import-export.md) has the details.
 
 **The agent** runs on your computer with your own Claude Code or Codex subscription, only if you choose one. It runs locked down (no tools, files, web or MCP servers) and is never sent ticket numbers, booking references or seats ([docs/22](docs/22-agent-verification.md)).
 

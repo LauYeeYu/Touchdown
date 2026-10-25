@@ -35,7 +35,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 
 ### Changing
 
-Built, apart from `import FILE`, `backup` and `export` (step 5). Each writes one inbox file and checks it first, as `add` does: against the log as it is now, with every rule, reporting what each change would do (before and after) and the findings it would bring. With an error among those, nothing is written unless `--keep-errors`; `--dry-run` writes nothing. A change with nothing left to do is reported and left out. The code is `packages/cli/src/change.ts`.
+Built, all of them. Each writes one inbox file and checks it first, as `add` does: against the log as it is now, with every rule, reporting what each change would do (before and after) and the findings it would bring. With an error among those, nothing is written unless `--keep-errors`; `--dry-run` writes nothing. A change with nothing left to do is reported and left out. The code is `packages/cli/src/change.ts`.
 
 | In the web app | Command |
 |---|---|
@@ -45,11 +45,11 @@ Built, apart from `import FILE`, `backup` and `export` (step 5). Each writes one
 | Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…` |
 | Merge two aircraft | `aircraft merge INTO FROM` |
 | Issues: "This looks right", Reopen, a suggested fix | `issues accept ID [--note TEXT]`, `issues reopen ID`, `issues fix ID [N]` |
-| Import a file (myFR24, any spreadsheet) | `import FILE…`: the rows read (with the column mapping remembered on this computer) go to the inbox. With `--out backup.zip` it keeps building a backup instead (built). |
+| Import a file (myFR24, any spreadsheet) | `import FILE… [--map "Header=field"]`: each file is read as the Import page reads it (the columns worked out; a layout confirmed before used again; at a terminal, unclear columns asked about and a new layout confirmed and remembered on this computer), checked against the log, and put in the inbox as one file holding its rows and columns ([21](21-import-export.md), "Source: spotting session", version 3). The review reads it as it would read the file itself. A file whose rows are all in the log or waiting in the inbox already is left out. With `--out backup.zip` it builds a backup from the files alone instead, as before. The code is `packages/cli/src/importfile.ts`. |
 | Undo an import | `undo BATCH [--force]`: a record changed after the import is left as it is unless `--force`, as the web app asks before undoing it |
 | Aircraft families | `families [set TYPE FAMILY \| remove TYPE]` |
 | Settings kept in the log | `settings [codes iata\|icao\|both] [distance km\|mi\|nm] [models standard\|compact]` |
-| Download a backup, a table as CSV | `backup --out FILE`, `export TABLE [--out FILE] [--private]` (these write nothing to the log, so they need no review). The backup holds everything, as the web app's does; `export` leaves the private fields out unless `--private`, which needs `--out`. |
+| Download a backup, a table as CSV | `backup [--out FILE.zip]`, `export flights\|sightings\|aircraft [--out FILE.csv] [--private]` (these write nothing to the log, so they need no review). The backup holds everything, as the web app's does: every table, private fields and recorded tracks, read from the storage; by default it goes to `data/private/touchdown-backup-DATE.zip`. `export` prints the CSV, or writes it with `--out`; it leaves the private fields out unless `--private`, which needs `--out`. Files are written readable only by the user and replace nothing without `--force`. The code is `packages/cli/src/backup.ts`. |
 | Restore a backup over the log | Not in the CLI: it replaces everything, and the web app asks twice. (Decided, Q-CLI-RESTORE) |
 | Theme | Not in the CLI: it belongs to each browser. |
 
@@ -137,4 +137,4 @@ Each step is usable on its own.
 2. The reading commands, with `--json`. (Built)
 3. Change files (version 3), the changing commands, and their review on the Import page. (Built)
 4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`. (Built)
-5. `import FILE` to the inbox, `backup` and `export`.
+5. `import FILE` to the inbox, `backup` and `export`. (Built)

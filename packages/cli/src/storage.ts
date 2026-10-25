@@ -74,11 +74,20 @@ export async function chosenStorage(): Promise<OpenedStorage | null> {
   return c ? openStorage(c) : null;
 }
 
-/** The whole log, read-only. The user's own operators are added to `ref`. */
-export async function readLog(s: OpenedStorage, ref: RefIndex): Promise<{ store: Store; problems: string[] }> {
+/** The whole log, read-only; with `tracks`, every track's points as well. The user's own operators are added to `ref`. */
+export async function readLog(s: OpenedStorage, ref: RefIndex, opts: { tracks?: boolean } = {}): Promise<{ store: Store; problems: string[] }> {
   const pulled = await s.backend.pull({});
   const store = new Store({ deviceId: "cli", validate: false });
   for (const [table, rows] of pulled.tables) store.load(table, rows as never);
+  if (opts.tracks) {
+    for (const id of pulled.tracks) {
+      try {
+        store.load("track_points", (await s.backend.readTrack(id)) as never);
+      } catch (e) {
+        pulled.problems.push(`tracks/${id}.json: ${(e as Error).message}`);
+      }
+    }
+  }
   for (const op of store.all("operator_overrides")) ref.addOperator(operatorFromOverride(op));
   return { store, problems: pulled.problems };
 }

@@ -204,17 +204,21 @@ export function recordsText(flights: number, sightings: number, changes = 0): st
 const CHANGE_FILE = /^(edit|delete|aircraft|issues|undo|families|settings)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/;
 
 /** Which command made the file, from the name it gave it. */
-export const madeBy = (name: string) => (name.startsWith("add-") ? "./touchdown add" : CHANGE_FILE.test(name) ? `./touchdown ${CHANGE_FILE.exec(name)![1]}` : "./touchdown spot");
+export const madeBy = (name: string) =>
+  name.startsWith("add-") ? "./touchdown add" : name.startsWith("import-") ? "./touchdown import" : CHANGE_FILE.test(name) ? `./touchdown ${CHANGE_FILE.exec(name)![1]}` : "./touchdown spot";
 
 /**
- * "Spotting session, 22 Oct 2026 at 23:37", "Spreadsheet spotting.xlsx, read on …" or "Added from the command line,
- * 24 Oct 2026 at 10:15", from the file name `spot` or `add` gives it; the name itself otherwise.
+ * "Spotting session, 22 Oct 2026 at 23:37", "Spreadsheet spotting, read on …", "File flights.xlsx, read on …" or
+ * "Added from the command line, 24 Oct 2026 at 10:15", from the name the command gives the file; the name itself
+ * otherwise.
  */
 export function sessionLabel(name: string): string {
   const typed = /^spot-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
   if (typed) return `Spotting session, ${dayMonthYear(typed[1]!)} at ${typed[2]}:${typed[3]}`;
-  const sheet = /^sheet-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})-(.+)\.json$/.exec(name);
+  const sheet = /^sheet-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})\d{2}-(.+)\.json$/.exec(name);
   if (sheet) return `Spreadsheet ${sheet[4]}, read on ${dayMonthYear(sheet[1]!)} at ${sheet[2]}:${sheet[3]}`;
+  const file = /^import-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})\d{2}-(.+?)(?:-\d+)?\.json$/.exec(name);
+  if (file) return `File ${file[4]}, read on ${dayMonthYear(file[1]!)} at ${file[2]}:${file[3]}`;
   const added = /^add-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
   if (added) return `Added from the command line, ${dayMonthYear(added[1]!)} at ${added[2]}:${added[3]}`;
   const changed = CHANGE_FILE.exec(name);
@@ -230,6 +234,7 @@ export function sessionPhrase(name: string): string {
   const label = sessionLabel(name);
   if (label.startsWith("Spotting session, ")) return label.replace(/^Spotting session, /, "your spotting session of ");
   if (label.startsWith("Spreadsheet ")) return label.replace(/^Spreadsheet (.+), read on (.+)$/, "the spreadsheet $1 (read on $2)");
+  if (label.startsWith("File ")) return label.replace(/^File (.+), read on (.+)$/, "the file $1 (read on $2)");
   if (label.startsWith("Added from the command line, ")) return label.replace(/^Added from the command line, /, "the command line on ");
   if (label.startsWith("Changes from the command line, ")) return label.replace(/^Changes from the command line, /, "the command line on ");
   return label;
