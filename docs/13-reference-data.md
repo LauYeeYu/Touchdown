@@ -110,7 +110,7 @@ When a source knows several airframes for a registration, the first that passes 
 - A serial number makes the airframe confirmed (`identityKey = msn:<maker>:<msn>`, [11](11-aircraft-identity.md)). If another airframe already has that key, the two are merged.
 - Serial numbers are compared and stored without leading zeros when they are all digits (FR24 writes "038" where the maker writes "38").
 - A value the user typed in the app always wins; a different lookup value is reported, not stored. A value imported from the user's own sheet also wins unless the CLI runs with `--overwrite-imported`.
-- Pasted values are saved as values the user entered (`field_provenance` source `user`).
+- Pasted values are saved as values the user entered (`field_provenance` source `user`): on the aircraft page, or with `touchdown aircraft edit REF --paste FILE` through the inbox ([34](34-command-line.md)).
 - The aircraft page shows where each fact came from ("from OpenSky", "from your sheet", "entered by you"), linking to the page when there is one.
 
 ### Running it

@@ -8,6 +8,7 @@ import type { Store } from "../store.ts";
 import { recordDate } from "../derive.ts";
 import { registrationMatchForm } from "../normalise/registration.ts";
 import { addDays } from "../time/index.ts";
+import { parsePastedFacts, type PastedFacts } from "./paste.ts";
 
 export type AirframeStatus = (typeof AIRFRAME_STATUSES)[number];
 
@@ -255,4 +256,34 @@ export function mergeAirframeInto(store: Store, into: string, from: string): voi
     if (Object.keys(fill).length) store.update("airframes", into, fill);
     store.remove("airframes", from);
   });
+}
+
+/** The facts that text pasted from an airframe page gives an aircraft, and the fields they would change. */
+export interface PastedForAircraft {
+  pasted: PastedFacts;
+  /** The values that differ from the aircraft's, with its maker when a serial number comes without one. */
+  patch: Partial<Pick<Airframe, "msn" | "lineNumber" | "firstFlightDate" | "deliveryDate" | "manufacturer">>;
+  /** Why the page may be about another aircraft (the same checks as for lookups), or null. */
+  problem: string | null;
+}
+
+/**
+ * Read text the user copied off an airframe page for aircraft `a`, which they know by `registration` (the aircraft
+ * page and `touchdown aircraft edit --paste`). The values are the user's: saved with source `user` once confirmed.
+ */
+export function pastedFactsFor(store: Store, ref: RefIndex, a: Airframe, registration: string, text: string): PastedForAircraft {
+  const pasted = parsePastedFacts(text);
+  const patch: PastedForAircraft["patch"] = {};
+  if (pasted.msn && pasted.msn !== a.msn) patch.msn = pasted.msn;
+  if (pasted.lineNumber && pasted.lineNumber !== a.lineNumber) patch.lineNumber = pasted.lineNumber;
+  if (pasted.firstFlightDate && pasted.firstFlightDate !== a.firstFlightDate) patch.firstFlightDate = pasted.firstFlightDate;
+  if (pasted.deliveryDate && pasted.deliveryDate !== a.deliveryDate) patch.deliveryDate = pasted.deliveryDate;
+  if (patch.msn && !a.manufacturer) {
+    const maker = ref.manufacturerOf(a.typeCode);
+    if (maker) patch.manufacturer = maker;
+  }
+  // A page about an aircraft that first flew after the user's record is about another aircraft that later carried
+  // the registration.
+  const problem = factsMismatch(store, ref, a, { provider: "paste", url: null, fetchedAt: "", registration, manufacturer: null, msn: pasted.msn, lineNumber: pasted.lineNumber, typeText: pasted.typeText, typeCode: null, firstFlightDate: pasted.firstFlightDate, deliveryDate: pasted.deliveryDate, status: null, registrations: [] });
+  return { pasted, patch, problem };
 }

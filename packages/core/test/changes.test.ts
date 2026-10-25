@@ -173,3 +173,33 @@ describe("importing a change file", () => {
     expect(store.get("import_batches", first.batchId)!.status).toBe("undone");
   });
 });
+
+describe("saved Statistics views in a change file", () => {
+  it("are checked, saved and removed with their filters, and undo puts them back", () => {
+    const { ref, store } = aLog();
+    expect(readChanges([{ op: "view", name: "Mine", dataset: "flights", rowDimension: "phase", columnDimension: null, measure: "records" }])).toMatchObject({ error: expect.stringMatching(/phase is for sightings/) });
+    expect(readChanges([{ op: "view", name: "Mine", dataset: "sightings", rowDimension: "airline", columnDimension: null, measure: "distance" }])).toMatchObject({ error: expect.stringMatching(/flights only/) });
+    expect(readChanges([{ op: "view", name: "Mine", dataset: "flights", rowDimension: "airline", columnDimension: "airline", measure: "records" }])).toMatchObject({ error: expect.stringMatching(/two different/) });
+    expect(readChanges([{ op: "view", name: "", dataset: "flights", rowDimension: "airline", columnDimension: null, measure: "records" }])).toMatchObject({ error: expect.stringMatching(/malformed name/) });
+
+    const save: InboxChange = { op: "view", name: "Airlines by family", dataset: "flights", rowDimension: "airline", columnDimension: "family", measure: "records" };
+    expect(readChanges([save])).toEqual({ changes: [save] });
+    const plan = planChanges(store, ref, [save]);
+    expect(plan.changes[0]).toMatchObject({ action: "Save a view", title: "“Airlines by family”", status: "pending" });
+    expect(plan.changes[0]!.lines.map((l) => [l.label, l.after])).toEqual([["From", "Flights"], ["Count", "Number of flights"], ["Group by", "Airline"], ["Split by", "Family"]]);
+    const saved = applyChanges(store, ref, [save], () => true, { fileName: "stats-1.json", now: NOW });
+    const view = store.all("saved_views")[0]!;
+    expect(view).toMatchObject({ name: "Airlines by family", dataset: "flights", rowDimension: "airline", columnDimension: "family", measure: "records" });
+    expect(planChanges(store, ref, [save]).changes[0]!.status).toBe("done");
+
+    store.insert("saved_view_filters", { viewId: view.id, dimension: "airline", operator: "eq", value: "op_baw" });
+    const removed = applyChanges(store, ref, [{ op: "removeView", id: view.id }], () => true, { fileName: "stats-2.json", now: NOW + 1000 });
+    expect(store.all("saved_views")).toEqual([]);
+    expect(store.all("saved_view_filters")).toEqual([]);
+    undoImport(store, ref, removed.batchId);
+    expect(store.all("saved_views")).toMatchObject([{ id: view.id, name: "Airlines by family" }]);
+    expect(store.all("saved_view_filters")).toHaveLength(1);
+    undoImport(store, ref, saved.batchId, true);
+    expect(store.all("saved_views")).toEqual([]);
+  });
+});

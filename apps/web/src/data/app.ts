@@ -18,6 +18,9 @@ import {
   saveSighting,
   saveSightings,
   setFamily,
+  saveView,
+  removeView,
+  type SavedView,
   settingsOf,
   Store,
   TABLES,
@@ -381,6 +384,14 @@ export class AppData {
 
   setFamily(designator: string, familyId: string | null) {
     setFamily(this.store, designator, familyId);
+  }
+
+  saveView(v: SavedView) {
+    saveView(this.store, v);
+  }
+
+  removeView(id: string) {
+    removeView(this.store, id);
   }
 
   /** `agent`: the fields each row's accepted agent suggestions set (docs/22), recorded with their provenance. */

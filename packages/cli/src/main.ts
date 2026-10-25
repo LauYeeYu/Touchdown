@@ -49,7 +49,7 @@ import { STATS_HELP, statsCommand } from "./stats.ts";
 import { REVIEW_HELP, reviewCommand } from "./review.ts";
 import { importCommand } from "./importfile.ts";
 import { BACKUP_HELP, backupCommand, EXPORT_HELP, exportCommand } from "./backup.ts";
-import { DELETE_HELP, deleteCommand, EDIT_HELP, editCommand, FAMILIES_HELP, familiesCommand, SETTINGS_HELP, settingsCommand, UNDO_HELP, undoCommand } from "./change.ts";
+import { DELETE_HELP, deleteCommand, EDIT_HELP, editCommand, FAMILIES_HELP, familiesCommand, SETTINGS_HELP, settingsCommand, UNDO_HELP, undoCommand, VIEWS_HELP } from "./change.ts";
 import { IMPORTS_HELP, importsCommand, ISSUES_HELP, issuesCommand } from "./issues.ts";
 import { FLIGHT_HELP, FLIGHTS_HELP, flightCommand, flightsCommand, SESSIONS_HELP, sessionsCommand, SIGHTINGS_HELP, sightingsCommand } from "./records.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
@@ -94,6 +94,7 @@ Import page or with ./touchdown review)
   undo        Undo an import (ids from ./touchdown imports).
   families    Count a type in another family in the statistics.
   settings    The codes, distance unit and model names your log shows.
+  stats       views save NAME --by DIM, or views remove NAME: the Statistics page's saved views.
   import      A spreadsheet or your Flightradar24 export, checked against your log; --out builds a backup instead.
 
 ${bold("Files")}
@@ -206,6 +207,7 @@ const HELP: Record<string, string> = {
   settings: SETTINGS_HELP,
   review: REVIEW_HELP,
   backup: BACKUP_HELP,
+  views: VIEWS_HELP,
   export: EXPORT_HELP,
 };
 

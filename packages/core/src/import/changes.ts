@@ -1,10 +1,11 @@
 // Changes to what is in the log already, made on the command line and imported only after a review (docs/34,
 // "Change files"): edits, deletions, aircraft facts and merges, accepted and reopened findings, suggested fixes,
-// undone imports, family choices and settings. They travel in an inbox file (version 3) and are applied with the
+// undone imports, family choices, settings and saved Statistics views. They travel in an inbox file (version 3) and are applied with the
 // same code as the web app's own changes (edit.ts), as one import batch that can be undone like any other.
 
 import { flightDay } from "../derive.ts";
-import { acceptFinding, applyFix, deleteRecord, mergeAirframes, reopenFinding, saveFlight, saveSighting, setFamily, tagsOf, updateAirframe, updateSettings, type EditOptions } from "../edit.ts";
+import { acceptFinding, applyFix, deleteRecord, mergeAirframes, removeView, reopenFinding, saveFlight, saveSighting, saveView, setFamily, tagsOf, updateAirframe, updateSettings, type EditOptions, type SavedView } from "../edit.ts";
+import { DIMENSIONS } from "../stats/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
 import { normaliseAircraft } from "../normalise/record.ts";
 import type { RefIndex } from "../ref/index.ts";
@@ -32,10 +33,32 @@ export type InboxChange =
   | { op: "fix"; ruleId: string; fingerprint: string; fix: number }
   | { op: "undo"; batchId: string; force?: boolean }
   | { op: "family"; designator: string; familyId: string | null }
-  | { op: "settings"; set: LogSettings };
+  | { op: "settings"; set: LogSettings }
+  | ({ op: "view" } & SavedView)
+  | { op: "removeView"; id: string };
 
 export type ChangeOp = InboxChange["op"];
-export const CHANGE_OPS: readonly ChangeOp[] = ["edit", "delete", "airframe", "merge", "accept", "reopen", "fix", "undo", "family", "settings"];
+export const CHANGE_OPS: readonly ChangeOp[] = ["edit", "delete", "airframe", "merge", "accept", "reopen", "fix", "undo", "family", "settings", "view", "removeView"];
+
+const MEASURES = ["records", "aircraft", "distance", "time"] as const;
+
+/** What is wrong with a view, or null: dimensions of its dataset, two different ones, distance and time for flights. */
+export function viewProblem(v: { dataset: unknown; rowDimension: unknown; columnDimension: unknown; measure: unknown }): string | null {
+  if (v.dataset !== "flights" && v.dataset !== "sightings") return "a view counts flights or sightings";
+  const dim = (id: unknown) => DIMENSIONS.find((d) => d.id === id);
+  const row = dim(v.rowDimension);
+  if (!row) return `${String(v.rowDimension)} is not a dimension`;
+  if (!row.datasets.includes(v.dataset)) return `${row.id} is for ${row.datasets.join(" and ")}, not ${v.dataset}`;
+  if (v.columnDimension !== null) {
+    const col = dim(v.columnDimension);
+    if (!col) return `${String(v.columnDimension)} is not a dimension`;
+    if (!col.datasets.includes(v.dataset)) return `${col.id} is for ${col.datasets.join(" and ")}, not ${v.dataset}`;
+    if (col.id === row.id) return "the rows and the columns need two different dimensions";
+  }
+  if (!(MEASURES as readonly unknown[]).includes(v.measure)) return `the count is one of ${MEASURES.join(", ")}`;
+  if (v.dataset === "sightings" && (v.measure === "distance" || v.measure === "time")) return "distance and time are measured for flights only";
+  return null;
+}
 
 const NOT_EDITABLE = new Set(["airframeId", "sourceKind", "sourceBatchId", "sourceRow"]);
 const columnsOf = (t: RecordTable) => new Set(TABLES[t].columns.map((c) => c.name).filter((n) => !NOT_EDITABLE.has(n)));
@@ -121,6 +144,16 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
         for (const [k, v] of Object.entries(set)) if (!(k in SETTING_VALUES) || !SETTING_VALUES[k as keyof LogSettings].includes(v as string)) return bad(`${k} cannot be ${String(v)}`);
         break;
       }
+      case "view": {
+        if (keys(["name", "dataset", "rowDimension", "columnDimension", "measure"]).length) return bad("unexpected keys");
+        if (typeof c.name !== "string" || !c.name.trim() || c.name.length > 80) return bad("malformed name");
+        const problem = viewProblem({ dataset: c.dataset, rowDimension: c.rowDimension, columnDimension: c.columnDimension ?? null, measure: c.measure });
+        if (problem) return bad(problem);
+        break;
+      }
+      case "removeView":
+        if (keys(["id"]).length || !isId(c.id)) return bad("malformed");
+        break;
     }
     out.push(c as unknown as InboxChange);
   }
@@ -448,6 +481,12 @@ export function changeStatus(store: Store, c: InboxChange, findings: () => Findi
       const s = store.get("settings", "settings") as Record<string, unknown> | null;
       return Object.entries(c.set).every(([k, v]) => (s?.[k] ?? null) === v) ? done("The settings are so already.") : ok;
     }
+    case "view":
+      return store.all("saved_views").some((v) => v.name === c.name && v.dataset === c.dataset && v.rowDimension === c.rowDimension && (v.columnDimension ?? null) === c.columnDimension && v.measure === c.measure)
+        ? done("This view is saved already.")
+        : ok;
+    case "removeView":
+      return store.get("saved_views", c.id) ? ok : done("It is not saved.");
   }
 }
 
@@ -494,6 +533,12 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       return null;
     case "settings":
       updateSettings(store, c.set);
+      return null;
+    case "view":
+      saveView(store, { name: c.name, dataset: c.dataset, rowDimension: c.rowDimension, columnDimension: c.columnDimension, measure: c.measure });
+      return null;
+    case "removeView":
+      removeView(store, c.id);
       return null;
   }
 }

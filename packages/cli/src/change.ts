@@ -1,5 +1,5 @@
 // The changing commands (docs/34, "Changing"): edit, delete, aircraft edit and merge, issues accept, reopen and fix,
-// undo, families and settings. Each works out its changes against the log as it is now, reports what they would do
+// undo, families, settings and saved Statistics views. Each works out its changes against the log as it is now, reports what they would do
 // and the findings they would bring, and writes them to the inbox as one file, for review in the web app: nothing
 // reaches the log without that review. Ticket numbers and booking references are never printed (docs/34,
 // "Private fields"); typed, they are asked for at a prompt that does not show them.
@@ -21,8 +21,12 @@ import {
   type InboxChange,
   type InboxFile,
   type LogSettings,
+  type SavedView,
+  type Store,
+  viewProblem,
+  pastedFactsFor,
 } from "@touchdown/core";
-import { planChanges, typeName } from "@touchdown/core/view";
+import { aircraftViews, planChanges, typeName } from "@touchdown/core/view";
 import { freeName, inboxPlace, stamp, writeInboxFile } from "./log.ts";
 import { userPath } from "./paths.ts";
 import { EXIT, fail, findAircraft, findFlight, findSighting, notFound, openOrFail, plain, printJson, readOptions, type Found, type OpenedLog } from "./read.ts";
@@ -75,7 +79,7 @@ ${changeOptions(15)}
 
 ${AFTER}`;
 
-export const AIRCRAFT_CHANGE_HELP = `Usage: ./touchdown aircraft edit REF [--set FIELD=VALUE]… [--clear FIELD]… [options]
+export const AIRCRAFT_CHANGE_HELP = `Usage: ./touchdown aircraft edit REF [--set FIELD=VALUE]… [--clear FIELD]… [--paste FILE | -] [options]
        ./touchdown aircraft merge INTO FROM [options]
 
 edit changes what is known about an aircraft: a serial number makes it confirmed. merge moves every flight and
@@ -83,6 +87,9 @@ sighting of FROM to INTO and removes FROM: two entries for one physical aircraft
 registration change.
 
   REF, INTO, FROM  the aircraft's id, or a registration (G-ABCD), on a date when it was reused (G-ABCD@2019-05-01)
+  --paste FILE     text copied off the aircraft's page on airfleets.net, aviation.flights, planespotters.net or
+                   Flightradar24 (select all, copy), from a file or standard input (-): the serial number, line
+                   number, first flight and delivery dates are read from it, as on the aircraft page
 ${changeOptions(17)}
 
 Fields: ${AIRFRAME_EDIT_FIELDS.join(", ")} (dates YYYY-MM-DD; status: active, stored, retired, written_off)
@@ -134,6 +141,18 @@ ${changeOptions(15)}
 
 ${AFTER}`;
 
+export const VIEWS_HELP = `Usage: ./touchdown stats views [--log FILE] [--json]
+       ./touchdown stats views save NAME --by DIM [--cols DIM] [--of flights | sightings] [--measure M] [options]
+       ./touchdown stats views remove NAME [options]
+
+The views saved on the Statistics page's Custom tab: without arguments, listed; save keeps a table as
+./touchdown stats --by shows it (the same options) under NAME; remove removes one. Show one with
+./touchdown stats --view NAME.
+
+${changeOptions(15)}
+
+${AFTER}`;
+
 interface Common {
   json: boolean;
   dryRun: boolean;
@@ -143,17 +162,19 @@ interface Common {
   sets: [string, string | null][];
   clears: string[];
   note?: string;
+  /** Options that take a value, of the command's own. */
+  values: Map<string, string>;
   positional: string[];
 }
 
 /** The arguments of a changing command: --set and --clear may repeat; --set F alone asks for a private value. */
-function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean } = {}): Common {
+function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean; values?: string[] } = {}): Common {
   const json = args.includes("--json");
   if (args.includes("--help") || args.includes("-h")) {
     console.log(help);
     process.exit(EXIT.ok);
   }
-  const c: Common = { json, dryRun: false, force: false, keepErrors: false, sets: [], clears: [], positional: [] };
+  const c: Common = { json, dryRun: false, force: false, keepErrors: false, sets: [], clears: [], values: new Map(), positional: [] };
   const bad = (problem: string): never => {
     if (json) return fail(json, problem);
     console.error(red(problem));
@@ -172,6 +193,7 @@ function parse(args: string[], help: string, opts: { sets?: boolean; note?: bool
     else if (a === "--force" && opts.force) c.force = true;
     else if (a === "--log") c.log = value();
     else if (a === "--note" && opts.note) c.note = value();
+    else if (opts.values?.includes(a)) c.values.set(a, value());
     else if ((a === "--set" || a === "--clear") && opts.sets) {
       const v = value();
       if (a === "--clear") c.clears.push(v);
@@ -354,7 +376,7 @@ export async function deleteCommand(args: string[]) {
 /** `aircraft edit` and `aircraft merge`. */
 export async function aircraftChangeCommand(args: string[]) {
   const [what, ...rest] = args;
-  const c = parse(rest, AIRCRAFT_CHANGE_HELP, { sets: what === "edit" });
+  const c = parse(rest, AIRCRAFT_CHANGE_HELP, { sets: what === "edit", values: what === "edit" ? ["--paste"] : [] });
   const log = await openOrFail(c.json, c.log);
   const aircraft = (text: string) => {
     const found = findAircraft(log.store, text);
@@ -368,11 +390,32 @@ export async function aircraftChangeCommand(args: string[]) {
     return writeChanges(log, "aircraft", [{ op: "merge", into: into.id, from: from.id }], c);
   }
   if (c.positional.length !== 1) return fail(c.json, "Which aircraft? Give its REF.");
-  const input = await inputOf(c);
-  if (!Object.keys(input).length) return fail(c.json, "Nothing to change: give --set FIELD=VALUE or --clear FIELD.");
-  const built = airframeEdit(aircraft(c.positional[0]!), input);
+  const a = aircraft(c.positional[0]!);
+  const input: EditInput = {};
+  const notes: string[] = [];
+  const pasteFrom = c.values.get("--paste");
+  if (pasteFrom !== undefined) {
+    let text: string;
+    try {
+      text = pasteFrom === "-" ? await readStdin() : readFileSync(userPath(pasteFrom), "utf8");
+    } catch (e) {
+      return fail(c.json, `${pasteFrom} could not be read: ${(e as Error).message}`);
+    }
+    const reg = aircraftViews(log.store).find((v) => v.airframe.id === a.id)?.registration ?? c.positional[0]!.split("@")[0]!;
+    const { pasted, patch, problem } = pastedFactsFor(log.store, log.ref, a, reg, text);
+    if (!pasted.msn && !pasted.lineNumber && !pasted.firstFlightDate && !pasted.deliveryDate) return fail(c.json, `No serial number, line number or dates found in the text${pasted.firstFlightMonth ? ` (the first flight is given only as a month, ${pasted.firstFlightMonth}; a date needs the day)` : ""}.`, EXIT.notFound);
+    const named: Record<string, string> = { msn: "msn", lineNumber: "lineNumber", firstFlightDate: "firstFlight", deliveryDate: "delivered", manufacturer: "manufacturer" };
+    for (const [field, value] of Object.entries(patch)) if (value) input[named[field]!] = value;
+    if (pasted.site) notes.push(`Read from text copied off ${pasted.site}.`);
+    if (pasted.firstFlightMonth && !pasted.firstFlightDate) notes.push(`The page gives only the month of the first flight (${pasted.firstFlightMonth}); a date needs the day.`);
+    if (problem) notes.push(`This may be another aircraft: ${problem}.`);
+  }
+  // What --set and --clear give wins over the pasted text.
+  Object.assign(input, await inputOf(c));
+  if (!Object.keys(input).length) return fail(c.json, pasteFrom !== undefined ? "Nothing new: the aircraft has these values already." : "Nothing to change: give --set FIELD=VALUE, --clear FIELD or --paste FILE.");
+  const built = airframeEdit(a, input);
   if ("error" in built) return fail(c.json, built.error);
-  return writeChanges(log, "aircraft", isEmptyChange(built.change) ? [] : [built.change], c);
+  return writeChanges(log, "aircraft", isEmptyChange(built.change) ? [] : [built.change], c, notes);
 }
 
 /** `issues accept`, `reopen` and `fix`. */
@@ -455,4 +498,45 @@ export async function settingsCommand(args: string[]) {
     (set as Record<string, string>)[s[0]] = value;
   }
   return writeChanges(log, "settings", [{ op: "settings", set }], c);
+}
+
+/** A saved view by its name, as typed (case aside). */
+export function savedViewNamed(store: Store, name: string) {
+  const views = store.all("saved_views");
+  return views.find((v) => v.name === name) ?? views.find((v) => v.name?.toLowerCase() === name.toLowerCase()) ?? null;
+}
+
+/** `./touchdown stats views …` */
+export async function viewsCommand(args: string[]) {
+  const c = parse(args, VIEWS_HELP, { values: ["--by", "--cols", "--of", "--measure"] });
+  const log = await openOrFail(c.json, c.log);
+  const [what, name, ...more] = c.positional;
+  if (!what) {
+    if (c.values.size) return fail(c.json, VIEWS_HELP);
+    const list = log.store.all("saved_views").map((v) => ({ id: v.id, name: v.name, of: v.dataset, by: v.rowDimension, cols: v.columnDimension ?? null, measure: v.measure }));
+    if (c.json) return printJson({ ok: true, from: log.from, views: list });
+    if (!list.length) console.log("No views are saved. Save one with ./touchdown stats views save NAME --by DIM, or on the Statistics page.");
+    for (const v of list) console.log(`  ${bold(v.name ?? "")}  ${dim(`${v.of} by ${v.by}${v.cols ? ` and ${v.cols}` : ""}, ${v.measure}`)}`);
+    return;
+  }
+  if ((what !== "save" && what !== "remove") || !name || more.length) return fail(c.json, VIEWS_HELP);
+  if (what === "remove") {
+    if (c.values.size) return fail(c.json, VIEWS_HELP);
+    const v = savedViewNamed(log.store, name);
+    if (!v) return fail(c.json, `No view is saved as "${name}". See ./touchdown stats views.`, EXIT.notFound);
+    return writeChanges(log, "stats", [{ op: "removeView", id: v.id }], c);
+  }
+  if (!c.values.has("--by")) return fail(c.json, `A view needs its rows: --by DIM.\n\n${VIEWS_HELP}`);
+  if (name.length > 80) return fail(c.json, "A view's name is at most 80 characters.");
+  if (savedViewNamed(log.store, name)) return fail(c.json, `A view is saved as "${name}" already. Remove it first, or choose another name.`);
+  const view: SavedView = {
+    name,
+    dataset: (c.values.get("--of") ?? "flights") as SavedView["dataset"],
+    rowDimension: c.values.get("--by")!,
+    columnDimension: c.values.get("--cols") ?? null,
+    measure: (c.values.get("--measure") ?? "records") as SavedView["measure"],
+  };
+  const problem = viewProblem(view);
+  if (problem) return fail(c.json, `${problem[0]!.toUpperCase()}${problem.slice(1)}.`);
+  return writeChanges(log, "stats", [{ op: "view", ...view }], c);
 }

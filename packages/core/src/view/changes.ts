@@ -8,6 +8,7 @@ import { refOverridesOf, tagsOf } from "../edit.ts";
 import { applyChange, changeStatus, copyStore, currentFindings, type ChangeStatus, type InboxChange } from "../import/changes.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { RULES, type Finding } from "../rules/types.ts";
+import { DIMENSIONS } from "../stats/index.ts";
 import type { Row, Settings } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { airportWithCode, type CodeStyle } from "./codes.ts";
@@ -184,7 +185,24 @@ const ACTION: Record<InboxChange["op"], string> = {
   undo: "Undo an import",
   family: "Aircraft family",
   settings: "Settings",
+  view: "Save a view",
+  removeView: "Remove a view",
 };
+
+const MEASURE_LABEL: Record<string, string> = { records: "Number of records", aircraft: "Aircraft (each once)", distance: "Distance", time: "Time in the air" };
+
+/** A saved Statistics view's settings as the Custom tab names them. */
+function viewLines(v: { dataset: string | null; rowDimension: string | null; columnDimension: string | null; measure: string | null }, side: "before" | "after"): PlannedLine[] {
+  const dim = (id: string | null) => (id ? (DIMENSIONS.find((d) => d.id === id)?.label ?? id) : "Nothing");
+  const count = v.measure === "records" ? (v.dataset === "flights" ? "Number of flights" : "Number of sightings") : (MEASURE_LABEL[v.measure ?? ""] ?? v.measure ?? "");
+  const rows: [string, string, string][] = [
+    ["dataset", "From", v.dataset === "flights" ? "Flights" : "Sightings"],
+    ["measure", "Count", count],
+    ["rowDimension", "Group by", dim(v.rowDimension)],
+    ["columnDimension", "Split by", dim(v.columnDimension)],
+  ];
+  return rows.map(([field, label, value]) => ({ field, label, before: side === "before" ? value : "", after: side === "after" ? value : "", private: false }));
+}
 
 const SETTING_LABEL: Record<string, [string, Record<string, string>]> = {
   codeDisplay: ["Codes", { iata: "IATA", icao: "ICAO", both: "Both" }],
@@ -263,6 +281,16 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
           const now = shown.all("family_overrides").find((x) => x.designator === c.designator)?.familyId ?? ref.types.get(c.designator)?.familyId ?? null;
           const after = c.familyId ?? ref.types.get(c.designator)?.familyId ?? null;
           p.lines.push({ field: "family", label: "Family", before: (now && ref.family(now)?.name) ?? now ?? "", after: (after && ref.family(after)?.name) ?? after ?? "", private: false });
+          break;
+        }
+        case "view":
+          p.title = `“${c.name}”`;
+          p.lines = viewLines(c, "after");
+          break;
+        case "removeView": {
+          const v = shown.peek("saved_views", c.id);
+          p.title = v?.name ? `“${v.name}”` : "A saved view";
+          if (v && !(v as { deleted?: boolean }).deleted) p.lines = viewLines(v, "before");
           break;
         }
         case "settings": {

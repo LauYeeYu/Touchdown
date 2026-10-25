@@ -10,6 +10,7 @@ import { loadRefTables } from "@touchdown/refdata";
 const dir = mkdtempSync(join(tmpdir(), "touchdown-change-"));
 process.env.TOUCHDOWN_PRIVATE_DIR = dir;
 const { deleteCommand, editCommand, familiesCommand, settingsCommand, undoCommand } = await import("../src/change.ts");
+const { statsCommand } = await import("../src/stats.ts");
 const { aircraftCommand } = await import("../src/aircraft.ts");
 const { importsCommand, issuesCommand } = await import("../src/issues.ts");
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -150,5 +151,47 @@ describe("changing the log from the command line", () => {
   it("says when there is nothing to change", async () => {
     expect((await run(editCommand, "BA9001@2025-03-14", "--set", "seat=12A", "--json")).json()).toMatchObject({ notWritten: "nothing to change", written: null });
     expect((await run(familiesCommand, "remove", "E75L", "--json")).json()).toMatchObject({ notWritten: "nothing to change" });
+  });
+
+  it("saves and removes a Statistics view through the inbox, and shows a saved one", async () => {
+    const saved = await run(statsCommand, "views", "save", "Airlines by family", "--by", "airline", "--cols", "family", "--json");
+    expect(saved.json()).toMatchObject({ ok: true, written: { changes: 1 }, changes: [{ action: "Save a view", title: "“Airlines by family”" }] });
+    expect((await run(statsCommand, "views", "save", "Wrong", "--by", "phase", "--json")).json()).toMatchObject({ ok: false, error: "Phase is for sightings, not flights." });
+    const [name] = inbox();
+    expect(name).toMatch(/^stats-/);
+
+    // Imported as the web app would, then shown from the log.
+    const { ref, store } = theLog();
+    const read = readInbox(fileOf(name!), name!, ref);
+    if ("error" in read) throw new Error(read.error);
+    applyChanges(store, ref, read.changes, () => true, { fileName: name! });
+    rmSync(join(INBOX, name!));
+    writeFileSync(LOG, backupZip(store));
+    expect((await run(statsCommand, "views", "--json")).json().views).toMatchObject([{ name: "Airlines by family", of: "flights", by: "airline", cols: "family", measure: "records" }]);
+    const shown = (await run(statsCommand, "--view", "airlines by family", "--year", "all", "--json")).json();
+    expect(shown).toMatchObject({ view: "Airlines by family", of: "flights", by: "airline", cols: "family" });
+    expect(shown.rows.map((r: { label: string }) => r.label)).toEqual(expect.arrayContaining(["British Airways", "Delta Air Lines"]));
+    expect(await run(statsCommand, "--view", "Nothing", "--json")).toMatchObject({ code: 1 });
+    expect((await run(statsCommand, "views", "save", "Airlines by family", "--by", "airline", "--json")).json()).toMatchObject({ ok: false, error: expect.stringMatching(/already/) });
+    expect((await run(statsCommand, "views", "remove", "Airlines by family", "--json")).json()).toMatchObject({ written: { changes: 1 }, changes: [{ action: "Remove a view" }] });
+    for (const n of inbox()) rmSync(join(INBOX, n));
+  });
+
+  it("reads an aircraft's facts from text copied off its page, warning when the page may be about another aircraft", async () => {
+    const page = join(dir, "page.txt");
+    writeFileSync(page, "airfleets.net\nSerial number\t30002\nLine number\t1234\nFirst flight date\t17/09/2011\n");
+    const r = (await run(aircraftCommand, "edit", "G-ZZZA", "--paste", page, "--json")).json();
+    expect(r).toMatchObject({ written: { changes: 1 }, notes: ["Read from text copied off airfleets.net."] });
+    expect(r.changes[0].lines.map((l: { label: string; after: string }) => [l.label, l.after])).toEqual(expect.arrayContaining([["Serial number", "30002"], ["Line number", "1234"], ["First flight", "2011-09-17"]]));
+    const file = inbox().find((n) => n.startsWith("aircraft-"))!;
+    expect(fileOf(file).changes![0]).toMatchObject({ op: "airframe", set: { msn: "30002", lineNumber: "1234", firstFlightDate: "2011-09-17" } });
+    rmSync(join(INBOX, file));
+
+    writeFileSync(page, "Serial number: 30003\nFirst flight: 2026-01-01\n");
+    const later = (await run(aircraftCommand, "edit", "G-ZZZA", "--paste", page, "--set", "msn=30004", "--dry-run", "--json")).json();
+    expect(later.notes).toEqual([expect.stringMatching(/^This may be another aircraft: /)]);
+    expect(later.changes[0].lines).toContainEqual(expect.objectContaining({ label: "Serial number", after: "30004" }));
+    writeFileSync(page, "Nothing here\n");
+    expect(await run(aircraftCommand, "edit", "G-ZZZA", "--paste", page, "--json")).toMatchObject({ code: 1 });
   });
 });

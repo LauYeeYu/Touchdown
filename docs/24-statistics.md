@@ -57,7 +57,7 @@ Shown in the app as the "Custom view" tab, with plain controls: From (flights or
 | Manufacturer by Airlines | rows = airline, columns = manufacturer, measure = aircraft |
 | Family by Location | rows = airport, columns = family, measure = aircraft |
 
-Saved views: the user can save a custom view (dimensions, measure, filters) under a name ("Save this view"). Saved views are stored in `settings.json`.
+Saved views: the user can save a custom view (dimensions, measure, filters) under a name ("Save this view"). They are kept in the log's `saved_views` table ([10](10-domain-model.md)), so every device has them. The CLI shows one with `touchdown stats --view NAME`, and saves or removes one through the inbox (`stats views save` and `remove`, [34](34-command-line.md)).
 
 ## Sightings summary (requirement P1)
 

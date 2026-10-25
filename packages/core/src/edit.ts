@@ -228,6 +228,27 @@ export function setFamily(store: Store, designator: string, familyId: string | n
   });
 }
 
+/** A view of the Statistics page's Custom tab, kept by name (docs/24). */
+export interface SavedView {
+  name: string;
+  dataset: "flights" | "sightings";
+  rowDimension: string;
+  columnDimension: string | null;
+  measure: "records" | "aircraft" | "distance" | "time";
+}
+
+export function saveView(store: Store, v: SavedView): Row<"saved_views"> {
+  return store.insert("saved_views", v);
+}
+
+/** Remove a saved view, with its filters. */
+export function removeView(store: Store, id: string) {
+  store.batch(() => {
+    for (const f of store.all("saved_view_filters")) if (f.viewId === id) store.remove("saved_view_filters", f.id);
+    store.remove("saved_views", id);
+  });
+}
+
 /** The user's own operators and family choices, for the reference index (RefIndex.setUserOverrides). */
 export function refOverridesOf(store: Store) {
   return {

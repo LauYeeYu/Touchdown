@@ -4,7 +4,8 @@
 
 import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightStats, pivot, sightingStats, todayIn, type Dataset, type Measure, type Measured, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
 import { airlineLabel, airportWithCode, CABIN_LABEL, countryName, distance, durShort, flownAndPhotographed, inPeriod, nf, PHASE_LABEL, routeCodes, sortedFlights, typeName, yearsIn } from "@touchdown/core/view";
-import { argsOrHelp, fail, openOrFail, periodLabel, periodOf, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
+import { savedViewNamed, viewsCommand } from "./change.ts";
+import { argsOrHelp, EXIT, fail, openOrFail, periodLabel, periodOf, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
 import { bold, dim, plural } from "./term.ts";
 
 const DIMENSION_IDS = DIMENSIONS.map((d) => d.id);
@@ -12,6 +13,8 @@ const DIMENSION_IDS = DIMENSIONS.map((d) => d.id);
 export const STATS_HELP = `Usage: ./touchdown stats [flights | spotting | both] [--year Y | all] [--top N | all] [--log FILE] [--json]
        ./touchdown stats --by DIM [--cols DIM] [--of flights | sightings] [--measure M] [--year Y | all]
                          [--top N] [--log FILE] [--json]
+       ./touchdown stats --view NAME [--year Y | all] [--top N] [--log FILE] [--json]
+       ./touchdown stats views [save NAME --by DIM [--cols DIM] [--of DATA] [--measure M] | remove NAME]
 
 Without --by: the Home page's sentence and facts for the period, then the Statistics page's figures and ranked
 lists: flights, spotting and both (or only the part named). With --by: a table as in the Statistics page's
@@ -24,7 +27,11 @@ Custom view, one row per value of DIM (and one column per value of --cols).
   --of DATA     flights (the default) or sightings; airport and phase are for sightings, from, to, route,
                 cabin and seatPosition for flights
   --measure M   records (the default), aircraft, distance or time (distance and time for flights)
-${readOptions(14)}`;
+  --view NAME   a view saved on the Statistics page's Custom tab, or with stats views save
+${readOptions(14)}
+
+stats views lists the saved views; save and remove change them as the other changing commands do: through the
+inbox, for review (./touchdown help views).`;
 
 interface Ctx {
   log: OpenedLog;
@@ -70,7 +77,8 @@ const factLines = (facts: [string, string, string | null][]) => {
 };
 
 export async function statsCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--year", "--top", "--by", "--cols", "--of", "--measure"] }, STATS_HELP, [0, 1]);
+  if (args[0] === "views") return viewsCommand(args.slice(1));
+  const a = argsOrHelp(args, { values: ["--year", "--top", "--by", "--cols", "--of", "--measure", "--view"] }, STATS_HELP, [0, 1]);
   const json = a.flags.has("--json");
   const part = a.positional[0];
   if (part && !["flights", "spotting", "both"].includes(part)) return fail(json, `stats shows flights, spotting or both, not "${part}".`);
@@ -82,6 +90,18 @@ export async function statsCommand(args: string[]) {
   if (typeof year !== "string") return fail(json, year.error);
   const c: Ctx = { log, top };
   const ctx: StatsContext = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])) };
+  const viewName = a.values.get("--view");
+  if (viewName !== undefined) {
+    if (["--by", "--cols", "--of", "--measure"].some((o) => a.values.has(o))) return fail(json, "--view gives the rows, columns and count itself; leave out --by, --cols, --of and --measure.");
+    const v = savedViewNamed(log.store, viewName);
+    if (!v) return fail(json, `No view is saved as "${viewName}". See ./touchdown stats views.`, EXIT.notFound);
+    const values = new Map(a.values);
+    values.set("--by", v.rowDimension ?? "");
+    if (v.columnDimension) values.set("--cols", v.columnDimension);
+    values.set("--of", v.dataset ?? "flights");
+    values.set("--measure", v.measure ?? "records");
+    return pivotTable(c, ctx, json, year, values, v.name);
+  }
   if (a.values.has("--by")) return pivotTable(c, ctx, json, year, a.values);
   if (a.values.has("--cols") || a.values.has("--of") || a.values.has("--measure")) return fail(json, "--cols, --of and --measure go with --by.");
 
@@ -255,7 +275,7 @@ export async function statsCommand(args: string[]) {
   for (const line of out) console.log(line);
 }
 
-function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, values: Map<string, string>) {
+function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, values: Map<string, string>, viewName: string | null = null) {
   const { log } = c;
   const dataset = (values.get("--of") ?? "flights") as Dataset;
   if (dataset !== "flights" && dataset !== "sightings") return fail(json, "--of takes flights or sightings.");
@@ -282,6 +302,7 @@ function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, valu
     return printJson({
       ok: true,
       from: log.from,
+      ...(viewName !== null && { view: viewName }),
       year,
       of: dataset,
       measure: measure === "distance" ? "distanceKm" : measure === "time" ? "minutes" : measure,
@@ -297,7 +318,7 @@ function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, valu
   const cols = colDim ? r.columns : [];
   const head = [{ head: rowDim.label, flex: true }, ...cols.map((k) => ({ head: keyLabel(log, colDim!.id, k), align: "right" as const })), { head: colDim ? "Total" : measure === "records" ? (dataset === "flights" ? "Flights" : "Sightings") : measure === "aircraft" ? "Aircraft" : measure === "distance" ? "Distance" : "Time", align: "right" as const }];
   const body = rows.map((k) => [keyLabel(log, rowDim.id, k), ...cols.map((col) => (cell(k, col) ? fmt(cell(k, col)) : "")), fmt(r.rowTotals.get(k) ?? 0)]);
-  console.log(bold(`${dataset === "flights" ? "Flights" : "Sightings"} by ${rowDim.label.toLowerCase()}${colDim ? ` and ${colDim.label.toLowerCase()}` : ""}, ${periodLabel(year)}`));
+  console.log(bold(`${viewName !== null ? `${viewName}: ` : ""}${dataset === "flights" ? "Flights" : "Sightings"} by ${rowDim.label.toLowerCase()}${colDim ? ` and ${colDim.label.toLowerCase()}` : ""}, ${periodLabel(year)}`));
   console.log("");
   for (const line of table(head, body)) console.log(line);
   if (r.rows.length > rows.length) console.log(dim(`and ${r.rows.length - rows.length} more`));

@@ -23,7 +23,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 
 | In the web app | Command | Shows |
 |---|---|---|
-| Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM]]` | The lead sentence's figures, the fact list and the ranked lists; with `--by`, a pivot ([24](24-statistics.md)). |
+| Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM]]`, `stats --view NAME`, `stats views` | The lead sentence's figures, the fact list and the ranked lists; with `--by`, a pivot ([24](24-statistics.md)); with `--view`, a view saved on the Custom tab; `stats views` lists them. |
 | Flights | `flights [--year Y] [--airline X] [--airport X] [--type X] [--search TEXT]` | The flight list, with the same filters. |
 | A flight | `flight REF` | Every field, the aircraft, its findings, the track's source. A private field shows only whether it is recorded. |
 | Spotting | `sightings [filters]`, `sessions [--year Y]` | Sightings; days out with their counts. |
@@ -42,13 +42,14 @@ Built, all of them. Each writes one inbox file and checks it first, as `add` doe
 | Add a flight, a sighting, a session | `add` (built), `spot` (built) |
 | Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits (a file, or `-` for stdin): `[{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]` |
 | Delete one | `delete REF…` |
-| Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…` |
+| Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…`, or `--paste FILE` (or `-`): text copied off the aircraft's page, read and checked as the aircraft page's "Paste from a web page" does (`pastedFactsFor` in core), with the same warning when the page may be about another aircraft |
 | Merge two aircraft | `aircraft merge INTO FROM` |
 | Issues: "This looks right", Reopen, a suggested fix | `issues accept ID [--note TEXT]`, `issues reopen ID`, `issues fix ID [N]` |
 | Import a file (myFR24, any spreadsheet) | `import FILE… [--map "Header=field"]`: each file is read as the Import page reads it (the columns worked out; a layout confirmed before used again; at a terminal, unclear columns asked about and a new layout confirmed and remembered on this computer), checked against the log, and put in the inbox as one file holding its rows and columns ([21](21-import-export.md), "Source: spotting session", version 3). The review reads it as it would read the file itself. A file whose rows are all in the log or waiting in the inbox already is left out. With `--out backup.zip` it builds a backup from the files alone instead, as before. The code is `packages/cli/src/importfile.ts`. |
 | Undo an import | `undo BATCH [--force]`: a record changed after the import is left as it is unless `--force`, as the web app asks before undoing it |
 | Aircraft families | `families [set TYPE FAMILY \| remove TYPE]` |
 | Settings kept in the log | `settings [codes iata\|icao\|both] [distance km\|mi\|nm] [models standard\|compact]` |
+| Save or remove a view on the Statistics page's Custom tab | `stats views save NAME --by DIM [--cols DIM] [--of DATA] [--measure M]`, `stats views remove NAME` |
 | Download a backup, a table as CSV | `backup [--out FILE.zip]`, `export flights\|sightings\|aircraft [--out FILE.csv] [--private]` (these write nothing to the log, so they need no review). The backup holds everything, as the web app's does: every table, private fields and recorded tracks, read from the storage; by default it goes to `data/private/touchdown-backup-DATE.zip`. `export` prints the CSV, or writes it with `--out`; it leaves the private fields out unless `--private`, which needs `--out`. Files are written readable only by the user and replace nothing without `--force`. The code is `packages/cli/src/backup.ts`. |
 | Restore a backup over the log | Not in the CLI: it replaces everything, and the web app asks twice. (Decided, Q-CLI-RESTORE) |
 | Theme | Not in the CLI: it belongs to each browser. |

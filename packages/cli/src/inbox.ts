@@ -25,7 +25,7 @@ app reads on any device; without, it is data/private/inbox/, which only the web 
   --json         print JSON, for agents and scripts`;
 
 /** The commands that write change files (docs/34), by the name they give them. */
-export const CHANGE_COMMANDS = ["edit", "delete", "aircraft", "issues", "undo", "families", "settings"] as const;
+export const CHANGE_COMMANDS = ["edit", "delete", "aircraft", "issues", "undo", "families", "settings", "stats"] as const;
 
 /** "Spotting session, 2026-10-22 23:37", "Changes from ./touchdown edit, …", from the names the commands give their files. */
 export function fileLabel(name: string): string {

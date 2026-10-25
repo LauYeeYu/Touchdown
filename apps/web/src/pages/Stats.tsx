@@ -331,7 +331,7 @@ function Pivot({ ctx, flights, sightings, label }: { ctx: StatsContext; flights:
           onClick={() => {
             const n = window.prompt("Name this view", `${rowDim.label}${colDim ? ` by ${colDim.label}` : ""}`);
             if (!n) return;
-            app.store.insert("saved_views", { name: n, dataset, rowDimension: rowDim.id, columnDimension: colDim?.id ?? null, measure });
+            app.saveView({ name: n, dataset, rowDimension: rowDim.id, columnDimension: colDim?.id ?? null, measure });
             toast("View saved.");
           }}
         >
@@ -345,7 +345,7 @@ function Pivot({ ctx, flights, sightings, label }: { ctx: StatsContext; flights:
               <button type="button" className="link-btn" onClick={() => apply(v)}>
                 {v.name}
               </button>
-              <button type="button" className="chip__x" aria-label={`Remove ${v.name}`} onClick={() => app.store.remove("saved_views", v.id)}>
+              <button type="button" className="chip__x" aria-label={`Remove ${v.name}`} onClick={() => app.removeView(v.id)}>
                 <Icon name="x" />
               </button>
             </span>

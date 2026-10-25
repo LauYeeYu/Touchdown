@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { factsMismatch, flightDay, isValidDate, parsePastedFacts, type Flight, type Sighting } from "@touchdown/core";
+import { flightDay, isValidDate, pastedFactsFor, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -106,17 +106,11 @@ export function AircraftDetail() {
     { href: `https://www.planespotters.net/search?q=${encodeURIComponent(reg)}`, label: "planespotters.net" },
     { href: `https://www.flightradar24.com/data/aircraft/${encodeURIComponent(reg.toLowerCase())}`, label: "Flightradar24" },
   ];
-  const pasted = paste.trim() ? parsePastedFacts(paste) : null;
-  const pastedPatch: { msn?: string; lineNumber?: string; firstFlightDate?: string; deliveryDate?: string } = {};
-  if (pasted?.msn && pasted.msn !== a.msn) pastedPatch.msn = pasted.msn;
-  if (pasted?.lineNumber && pasted.lineNumber !== a.lineNumber) pastedPatch.lineNumber = pasted.lineNumber;
-  if (pasted?.firstFlightDate && pasted.firstFlightDate !== a.firstFlightDate) pastedPatch.firstFlightDate = pasted.firstFlightDate;
-  if (pasted?.deliveryDate && pasted.deliveryDate !== a.deliveryDate) pastedPatch.deliveryDate = pasted.deliveryDate;
-  // The same check as for lookups: a page about an aircraft that first flew after the user's record is about
-  // another aircraft that later carried the registration.
-  const pastedProblem = pasted
-    ? factsMismatch(store, ref, a, { provider: "paste", url: null, fetchedAt: "", registration: reg, manufacturer: null, msn: pasted.msn, lineNumber: pasted.lineNumber, typeText: pasted.typeText, typeCode: null, firstFlightDate: pasted.firstFlightDate, deliveryDate: pasted.deliveryDate, status: null, registrations: [] })
-    : null;
+  // The same reading and checks as `touchdown aircraft edit --paste` (core: pastedFactsFor).
+  const fromPaste = paste.trim() ? pastedFactsFor(store, ref, a, reg, paste) : null;
+  const pasted = fromPaste?.pasted ?? null;
+  const pastedPatch = fromPaste?.patch ?? {};
+  const pastedProblem = fromPaste?.problem ?? null;
 
   return (
     <div className="page">
@@ -291,7 +285,7 @@ export function AircraftDetail() {
                     type="button"
                     className="btn btn--quiet btn--small"
                     onClick={() => {
-                      app.updateAirframe(a.id, { ...pastedPatch, ...(pastedPatch.msn ? { manufacturer: a.manufacturer ?? ref.manufacturerOf(a.typeCode) } : {}) });
+                      app.updateAirframe(a.id, pastedPatch);
                       setPaste("");
                       toast("Saved from the pasted page.");
                     }}
