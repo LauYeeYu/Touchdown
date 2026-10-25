@@ -288,7 +288,7 @@ export function SettingsPage() {
       <AccountSection app={app} />
 
       <h2 className="form-section">Display</h2>
-      <div className="form-grid">
+      <div className="form-grid form-grid--choices">
         <Field label="Theme">
           <Segmented label="Theme" value={s.theme ?? "system"} onChange={(v) => set({ theme: v ?? "system" })} options={[{ value: "system", label: "Follow the device" }, { value: "light", label: "Light" }, { value: "dark", label: "Dark" }]} />
         </Field>

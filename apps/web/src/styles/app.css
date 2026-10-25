@@ -2753,6 +2753,11 @@ a.wordmark {
   margin-top: 16px;
 }
 
+/* Settings' choices: wide enough for each row of chips to stay on one line, two to a row. */
+.form-grid--choices {
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+}
+
 .field {
   display: grid;
   gap: 6px;
