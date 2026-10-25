@@ -10,7 +10,7 @@
 | Not the account | The account and the site stay in the web app: password, signed-in sessions, invitations, the Google link, the storage mode and Standard's terms. The CLI's session can reach only sign-in, sign-out and the storage access ([33](33-accounts-and-sign-in.md), "The command line"), so a leaked session file cannot change the password or invite anyone. (Decided) |
 | Review first | Every change the CLI makes is written to the inbox as a file. The user reviews it in the web app's Import page, as now, or in the terminal with `touchdown review`. The CLI writes to the log only when a review imports a file. (Decided) |
 | One implementation | A change is applied by the same code in both: importing and undoing an import (`packages/core/src/import/pipeline.ts`), and saving and deleting records, suggested fixes, accepting and reopening findings, airframe edits and merges, families and settings (`packages/core/src/edit.ts`). The web app's `AppData` only wraps them. (Decided, built) |
-| For agents too | Every command takes `--json` and has documented exit statuses, so an agent can run it, read the answer and go on. Reports never include the log's private fields. (Proposed) |
+| For agents too | Every command an agent would run takes `--json` and has documented exit statuses, so an agent can run it, read the answer and go on: the reading and changing commands, `add`, `import`, `inbox`, `review`, `backup`, `airframes`, and `storage` and `agent` when they show the settings. `spot`, `check` and `login` are for a person at a terminal (an agent adds records with `add`). `export` prints CSV. Reports never include the log's private fields. (Decided, built) |
 | Private fields | Ticket numbers and booking references can be added, changed and removed from the CLI, but it never shows them. (Decided, Q-CLI-PRIVATE) How, below in "Private fields". |
 
 ## Commands
@@ -53,6 +53,7 @@ Built, all of them. Each writes one inbox file and checks it first, as `add` doe
 | Save or remove a view on the Statistics page's Custom tab | `stats views save NAME --by DIM [--cols DIM] [--of DATA] [--measure M]`, `stats views remove NAME` |
 | Download a backup, a table as CSV | `backup [--out FILE.zip]`, `export flights\|sightings\|aircraft [--out FILE.csv] [--private]` (these write nothing to the log, so they need no review). The backup holds everything, as the web app's does: every table, private fields and recorded tracks, read from the storage; by default it goes to `data/private/touchdown-backup-DATE.zip`. `export` prints the CSV, or writes it with `--out`; it leaves the private fields out unless `--private`, which needs `--out`. Files are written readable only by the user and replace nothing without `--force`. The code is `packages/cli/src/backup.ts`. |
 | Restore a backup over the log | Not in the CLI: it replaces everything, and the web app asks twice. (Decided, Q-CLI-RESTORE) |
+| Delete everything, remove this browser's copy | Not in the CLI, for the same reason as restoring. |
 | Theme | Not in the CLI: it belongs to each browser. |
 
 Field names in `--set` and in JSON are the ones `add` takes ([21](21-import-export.md), "Source: records from the command line"), read the same way (codes resolved, clock times at their airport's UTC offset on the record's date), and the ones the web app's forms set besides: for a flight `seatPosition`, `cabin`, `bookingClass`, `fare`, `reason` and `terminal`; for a sighting `time`, `spot`, `photos` and `tags`. An aircraft takes `manufacturer`, `msn`, `lineNumber`, `typeCode`, `model`, `firstFlight`, `delivered`, `status` and `notes`. The change records the stored fields this sets (`takeoffAt`, `airlineId`, …), worked out against the log when the command runs (`packages/core/src/import/changes.ts`).
@@ -140,3 +141,4 @@ Each step is usable on its own.
 3. Change files (version 3), the changing commands, and their review on the Import page. (Built)
 4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`. (Built)
 5. `import FILE` to the inbox, `backup` and `export`. (Built)
+6. What remained: saved Statistics views (`stats --view`, `stats views`), facts pasted from an aircraft's page (`aircraft edit --paste`), lookups of aircraft facts into the log (`airframes`, as `facts` changes), and `--json` for `storage` and `agent`. (Built)

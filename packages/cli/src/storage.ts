@@ -10,11 +10,11 @@ import { GoogleDrive, JsonTablesBackend, type FileAdapter } from "@touchdown/sto
 import { NodeFolder } from "./folder.ts";
 import { BrowserDriveAuth, forgetDriveAccess, StandardDriveAuth } from "./google.ts";
 import { savedSession, siteFetch } from "./site.ts";
-import { shownPath, userPath } from "./paths.ts";
+import { privatePath, shownPath, userPath } from "./paths.ts";
 import { savedStorage, saveStorage, type StorageChoice } from "./settings.ts";
 import { bold, dim, green, plural, red } from "./term.ts";
 
-export const STORAGE_HELP = `Usage: ./touchdown storage [drive | folder PATH | none]
+export const STORAGE_HELP = `Usage: ./touchdown storage [drive | folder PATH | none | --json]
 
 Where the CLI finds your log and sends what you add: the storage the web app syncs with. With it, spot
 looks registrations up in your log as it is now, and spot and add put their files in the log's inbox, which
@@ -28,6 +28,7 @@ the web app shows for review on any device. The CLI only reads your log; it writ
   folder PATH   use the log in a folder on this computer: the folder the web app syncs with
   none          no storage: spot reads data/private/touchdown-backup.zip and files are saved in
                 data/private/inbox/ (the web app's dev server picks them up)
+  --json        show the storage and what it holds as JSON (exit status 2 when it cannot be read)
 
 The choice belongs to this computer (data/private/touchdown-cli.json). Private mode's hour of access is
 kept in data/private/google-access.json until it runs out.`;
@@ -97,6 +98,20 @@ export async function inboxFiles(s: OpenedStorage): Promise<string[]> {
   return (await s.backend.listFiles("inbox")).map((f) => f.name).filter((n) => n.endsWith(".json")).sort();
 }
 
+/** `storage --json`: the storage chosen and what it holds, for agents and scripts. Exit 2 when it cannot be read. */
+async function storageJson(ref: RefIndex) {
+  const c = savedStorage();
+  if (!c) return void console.log(JSON.stringify({ ok: true, storage: null, inbox: shownPath(privatePath("inbox")) }, null, 2));
+  try {
+    const s = await openStorage(c);
+    const { store, problems } = await readLog(s, ref);
+    console.log(JSON.stringify({ ok: true, storage: { kind: c.kind, name: s.name, schemaVersion: s.schemaVersion }, log: { flights: store.count("flights"), sightings: store.count("sightings") }, inbox: (await inboxFiles(s)).length, problems }, null, 2));
+  } catch (e) {
+    console.log(JSON.stringify({ ok: false, storage: { kind: c.kind, name: storageName(c) }, error: (e as Error).message }, null, 2));
+    process.exit(2);
+  }
+}
+
 async function describe(s: OpenedStorage, ref: RefIndex) {
   const { store, problems } = await readLog(s, ref);
   const waiting = await inboxFiles(s);
@@ -108,6 +123,7 @@ async function describe(s: OpenedStorage, ref: RefIndex) {
 
 /** `./touchdown storage …`: show or choose where the log is. */
 export async function storageCommand(args: string[], ref: RefIndex): Promise<void> {
+  if (args[0] === "--json" && args.length === 1) return storageJson(ref);
   const [what, ...rest] = args;
   if (what === "--help" || what === "-h" || (what && !["drive", "folder", "none"].includes(what)) || (what !== "folder" && rest.length) || (what === "folder" && rest.length !== 1)) {
     console.log(STORAGE_HELP);

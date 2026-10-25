@@ -174,7 +174,7 @@ ${changeOptions(15)}
 
 ${LOOKUP_HELP}`;
 
-const AGENT_HELP = `Usage: ./touchdown agent [claude | codex | none]
+const AGENT_HELP = `Usage: ./touchdown agent [claude | codex | none | --json]
        ./touchdown agent notes on | off
        ./touchdown agent rules [add "SENTENCE" | remove N]
 
@@ -182,6 +182,7 @@ Shows the agent that checks your records in \`spot\` and \`check\` (also for the
 lets you choose another. Claude Code and Codex run on this computer with your own subscription, locked down.
 
   claude, codex, none   the agent to use; --agent on a command overrides it for one run
+  --json                print the agent, its version, whether notes are sent and the rules as JSON
   notes on | off        send records' notes to the agent (off at first); --notes turns it on for one run
   rules                 list your rules: plain sentences added to the agent's instructions
   rules add "SENTENCE"  add one, for example how you want types or liveries written
@@ -229,6 +230,13 @@ function usage(text = MENU, code = 1): never {
 async function agentCommand(args: string[]) {
   const name = args[0];
   if (name === "--help" || name === "-h") usage(AGENT_HELP, 0);
+  if (name === "--json") {
+    if (args.length > 1) usage(AGENT_HELP);
+    const saved = savedAgent();
+    const own = savedRules();
+    console.log(JSON.stringify({ ok: true, agent: saved ?? null, version: saved && saved !== "none" ? (installedVersion(saved) ?? null) : null, sendNotes: savedSendNotes(), rules: own.length ? own : DEFAULT_AGENT_RULES, ownRules: own.length > 0 }, null, 2));
+    return;
+  }
   if (name === "notes") {
     if (args[1] !== "on" && args[1] !== "off") usage(AGENT_HELP);
     saveSendNotes(args[1] === "on");

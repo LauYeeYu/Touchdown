@@ -18,6 +18,7 @@ const { importCommand } = await import("../src/importfile.ts");
 const { inboxCommand } = await import("../src/inbox.ts");
 const { reviewCommand } = await import("../src/review.ts");
 const { backupCommand, exportCommand } = await import("../src/backup.ts");
+const { storageCommand } = await import("../src/storage.ts");
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 // Every flight number, date and registration here is made up; the ticket number is a canary no command may print.
@@ -137,6 +138,12 @@ describe("importing a file to the inbox", () => {
   it("asks for --out with the options that build a backup, and reports a file it cannot read", async () => {
     expect(await run(importing, ["x.csv", "--tracks", "dir"])).toMatchObject({ code: 2, text: expect.stringMatching(/--tracks is for building a backup/) });
     expect((await run(importing, [join(dir, "missing.csv"), "--json"])).json()).toMatchObject({ ok: false, files: [{ file: "missing.csv", error: expect.stringMatching(/could not be read/) }] });
+  });
+});
+
+describe("the storage, for agents", () => {
+  it("is shown as JSON with what it holds", async () => {
+    expect((await run(storageCommand, ["--json"])).json()).toMatchObject({ ok: true, storage: { kind: "folder", schemaVersion: expect.any(Number) }, log: { flights: expect.any(Number) }, problems: [] });
   });
 });
 
