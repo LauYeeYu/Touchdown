@@ -35,9 +35,10 @@ npm run dev -w @touchdown/web     # http://127.0.0.1:5173
 | `./touchdown storage [drive \| folder PATH \| none]` | Use your log where the web app syncs it. With Google Drive, Standard mode needs nothing more; in Private mode your browser gives the command line an hour's access at a time. |
 | `./touchdown spot [--at AIRPORT]` | Type the aircraft you saw, one per line. Each registration is looked up, empty fields are filled, the agent checks them, and you are asked for what is missing. |
 | `./touchdown add [FILE.json \| -] [--json] [--dry-run]` | Check flights and sightings given as JSON against your log, as the Import page would. Made for agents too: a JSON report, and exit status 0 written, 1 errors, 2 unreadable. |
-| `./touchdown inbox [show \| remove \| send]` | What `spot` and `add` saved, waiting for review. |
+| `./touchdown inbox [show \| remove \| send]` | What `spot`, `add` and the changing commands saved, waiting for review. |
+| `./touchdown review` | Review the oldest file waiting here in the terminal, and import it into your log, as the Import page does. |
 | `./touchdown flights`, `stats`, `issues`, … | Your log as the web app shows it: also `flight REF`, `sightings`, `sessions`, `aircraft`, `airport CODE`, `imports`. `--json` for agents. |
-| `./touchdown edit REF --set seat=14A`, `delete`, `undo`, … | Change your log: also `aircraft edit` and `merge`, `issues accept`, `reopen` and `fix`, `families`, `settings`. Each change waits in the inbox until you review and import it on the Import page. |
+| `./touchdown edit REF --set seat=14A`, `delete`, `undo`, … | Change your log: also `aircraft edit` and `merge`, `issues accept`, `reopen` and `fix`, `families`, `settings`. Each change waits in the inbox until you review and import it, on the Import page or with `./touchdown review`. |
 | `./touchdown check FILE` | Have the agent check a spreadsheet, or a request saved from the Import page. |
 | `./touchdown import FILES… --out FILE.zip` | Read files and write a backup to restore in Settings (with `--airframes`, serial numbers and first flights). |
 | `./touchdown airframes BACKUP.zip` | Fill serial numbers and first flight dates in a backup. |
@@ -55,7 +56,7 @@ open -na "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir="$H
 
 ## Your files
 
-Everything personal goes in `data/private/`, which Git ignores: your backup (`touchdown-backup.zip`), spreadsheets, the inbox, lookup caches and the OpenSky database (about 110 MB, downloaded once), the CLI's settings (`touchdown-cli.json`) and sign-in (`touchdown-session.json`), and the accounts of the dev and Node servers.
+Everything personal goes in `data/private/`, which Git ignores: your backup (`touchdown-backup.zip`), spreadsheets, the inbox, lookup caches and the OpenSky database (about 110 MB, downloaded once), the CLI's settings (`touchdown-cli.json`), sign-in (`touchdown-session.json`) and rows `review` has not finished sending (`cli-sync.json`), and the accounts of the dev and Node servers.
 
 ## Running the hosted site
 

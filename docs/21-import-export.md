@@ -169,7 +169,7 @@ Version 3 adds a flight's `ticketNumber` and `bookingRef`, only when the user ga
 
 ### Getting a session to the web app
 
-A session's sightings are not in the log until the user reviews and imports them in the web app, or in the terminal with `touchdown review` once it is built ([34](34-command-line.md)) (Decided: review first, Q-SPOT-ARRIVAL). The CLI says so after every save and when the session ends.
+A session's sightings are not in the log until the user reviews and imports them in the web app, or in the terminal with `touchdown review` ([34](34-command-line.md), "The review") (Decided: review first, Q-SPOT-ARRIVAL). The CLI says so after every save and when the session ends.
 
 **The inbox is a queue.** Each session is one file, rewritten on every save and written only by its session; a session that saves nothing writes no file. A file leaves the inbox once it is imported (kept with the import in the storage, or in `imported/` for 30 days in development), when the user discards it, or when all its records are in the log already (imported some other way). So the inbox holds only the sessions not dealt with yet. A session that goes on saving after its file was imported writes the file again; matching (stage 4) skips the sightings already in the log.
 
@@ -187,7 +187,7 @@ A session's sightings are not in the log until the user reviews and imports them
 | Local mode (this browser only) | There is no shared place. `spot` saves the session file and the user opens it on the Import page. (Proposed) |
 | Server backends (later) | The CLI signs in to the backend and writes to its `inbox` area. (Proposed) |
 
-The CLI reads the log and writes only to the inbox; the one planned exception is `touchdown review`, which imports a file the user has reviewed ([34](34-command-line.md), "Writing the log from the command line"). It never creates the Touchdown folder or a log, and never upgrades one: without a log it can see, `touchdown storage` says so and changes nothing, and a log with a newer schema stops it with a message to update.
+The CLI reads the log and writes only to the inbox; the one exception is `touchdown review`, which imports a file the user has reviewed ([34](34-command-line.md), "Writing the log from the command line"). It never creates the Touchdown folder or a log, and never upgrades one: without a log it can see, `touchdown storage` says so and changes nothing, and a log with a newer schema stops it with a message to update.
 
 1. `spot` writes its session file to the inbox on every save, and reads the user's log from the same storage for its "your log" lookups instead of the backup file. When the storage cannot be reached, the session is saved in `data/private/inbox/`, and `touchdown inbox send` sends it later.
 2. `touchdown add` (below) writes its file to the same inbox.

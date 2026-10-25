@@ -254,7 +254,8 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         case "undo": {
           const b = shown.peek("import_batches", c.batchId);
           p.title = b ? `${b.fileName ?? "An import"}${b.createdAt ? `, ${dayMonthYear(b.createdAt.slice(0, 10))}` : ""}` : "An import no longer in the log";
-          if (b && active) p.lines.push({ field: "rows", label: "Rows imported", before: String(b.rowsAccepted ?? 0), after: "removed", private: false });
+          if (b && active) p.lines.push({ field: "rows", label: b.mappingPreset === "touchdown_changes" ? "Changes made" : "Rows imported", before: String(b.rowsAccepted ?? 0), after: "undone", private: false });
+          if (b && active && c.force) p.lines.push({ field: "force", label: "Records changed since", before: "", after: "undone too, losing those changes", private: false });
           break;
         }
         case "family": {
@@ -276,7 +277,9 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         }
       }
       if (active) {
-        applyChange(shown, ref, c, onShown.get);
+        // What the change says it did beyond itself (a named operator added, records an undo left) is its note.
+        const said = applyChange(shown, ref, c, onShown.get);
+        if (said) p.note = said;
         onShown.reset();
         if (take(index, status)) {
           applyChange(taken, ref, c, onTaken.get);

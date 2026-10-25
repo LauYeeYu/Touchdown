@@ -29,5 +29,6 @@ export {
   REASON_LABEL,
   TAG_LABEL,
   TRACK_SOURCE,
+  FIELD_LABEL,
   countryName,
 } from "@touchdown/core/view";

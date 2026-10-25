@@ -37,7 +37,7 @@ ${readOptions(col)}`;
 
 const AFTER = `The changes go to the inbox as one file (the storage chosen with ./touchdown storage, else
 data/private/inbox/), are read back, and wait there until you review and import them on the web app's Import
-page. Importing them is one import: undo it there to put everything back.
+page, or with ./touchdown review. Importing them is one import: undo it to put everything back.
 
 Exit status: 0 written, or nothing to change; 1 no such record, or the changes bring errors and nothing was
 written; 2 a wrong option, or the log or the storage could not be read.`;
@@ -101,11 +101,13 @@ ${changeOptions(15)}
 
 ${AFTER}`;
 
-export const UNDO_HELP = `Usage: ./touchdown undo BATCH [options]
+export const UNDO_HELP = `Usage: ./touchdown undo BATCH [--force] [options]
 
-Undoes an import: records it created are removed, and records it changed get their earlier values back.
+Undoes an import: records it created are removed, and records it changed get their earlier values back. A record
+changed after the import (in the web app, or by a later import) is left as it is, unless --force.
 
   BATCH          the import's id, from ./touchdown imports
+  --force        undo the records changed since too, losing those changes
 ${changeOptions(15)}
 
 ${AFTER}`;
@@ -135,6 +137,7 @@ ${AFTER}`;
 interface Common {
   json: boolean;
   dryRun: boolean;
+  force: boolean;
   keepErrors: boolean;
   log?: string;
   sets: [string, string | null][];
@@ -144,13 +147,13 @@ interface Common {
 }
 
 /** The arguments of a changing command: --set and --clear may repeat; --set F alone asks for a private value. */
-function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean } = {}): Common {
+function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean } = {}): Common {
   const json = args.includes("--json");
   if (args.includes("--help") || args.includes("-h")) {
     console.log(help);
     process.exit(EXIT.ok);
   }
-  const c: Common = { json, dryRun: false, keepErrors: false, sets: [], clears: [], positional: [] };
+  const c: Common = { json, dryRun: false, force: false, keepErrors: false, sets: [], clears: [], positional: [] };
   const bad = (problem: string): never => {
     if (json) return fail(json, problem);
     console.error(red(problem));
@@ -166,6 +169,7 @@ function parse(args: string[], help: string, opts: { sets?: boolean; note?: bool
     if (a === "--json") continue;
     else if (a === "--dry-run") c.dryRun = true;
     else if (a === "--keep-errors") c.keepErrors = true;
+    else if (a === "--force" && opts.force) c.force = true;
     else if (a === "--log") c.log = value();
     else if (a === "--note" && opts.note) c.note = value();
     else if ((a === "--set" || a === "--clear") && opts.sets) {
@@ -258,6 +262,7 @@ async function writeChanges(log: OpenedLog, command: string, changes: InboxChang
     for (const p of plan.changes) {
       const mark = p.status === "pending" ? green("✓") : dim("–");
       console.log(`${mark} ${bold(p.action)}  ${plain(p.title)}${p.status === "pending" ? "" : dim(`  ${p.note ?? p.status}`)}`);
+      if (p.status === "pending" && p.note) console.log(`    ${yellow(p.note)}`);
       const w = Math.max(0, ...p.lines.map((l) => l.label.length));
       for (const l of p.lines) console.log(`    ${dim(l.label.padEnd(w))}  ${plain(l.before) || dim("-")} → ${plain(l.after) || dim("-")}`);
     }
@@ -268,7 +273,7 @@ async function writeChanges(log: OpenedLog, command: string, changes: InboxChang
     }
     if (written) {
       console.log(`\n${green("Written")} ${plural(written.changes, "change")} to ${written.place}: ${written.file}. Read back and checked.`);
-      console.log(`${yellow("Not in your log yet:")} ${place.shared ? "open Touchdown on any device and use “Review and import” at the top, or the list on the Import page." : "start the web app (npm run dev -w @touchdown/web) and use “Review and import” at the top."}`);
+      console.log(`${yellow("Not in your log yet:")} ${place.shared ? "run ./touchdown review, or open Touchdown on any device and use “Review and import” at the top." : "start the web app (npm run dev -w @touchdown/web) and use “Review and import” at the top."}`);
     } else if (notWritten === "errors") console.log(`\n${red("Nothing written:")} the changes bring ${plural(errors.length, "error")}. Fix them, or write the changes anyway with --keep-errors.`);
     else if (notWritten === "dry-run") console.log(dim("\nDry run: nothing written."));
     else console.log("\nNothing written: there is nothing to change.");
@@ -397,12 +402,12 @@ export async function issuesChangeCommand(args: string[]) {
 }
 
 export async function undoCommand(args: string[]) {
-  const c = parse(args, UNDO_HELP);
+  const c = parse(args, UNDO_HELP, { force: true });
   if (c.positional.length !== 1) return fail(c.json, "Give the import's id, from ./touchdown imports.");
   const log = await openOrFail(c.json, c.log);
   const batch = log.store.get("import_batches", c.positional[0]!);
   if (!batch) return fail(c.json, `No import is ${c.positional[0]}. See ./touchdown imports.`, EXIT.notFound);
-  return writeChanges(log, "undo", [{ op: "undo", batchId: batch.id }], c);
+  return writeChanges(log, "undo", [{ op: "undo", batchId: batch.id, ...(c.force && { force: true }) }], c);
 }
 
 export async function familiesCommand(args: string[]) {

@@ -25,6 +25,7 @@ export * from "./import/mapping.ts";
 export * from "./import/pipeline.ts";
 export * from "./import/inbox.ts";
 export * from "./import/changes.ts";
+export * from "./import/review.ts";
 export * from "./jsontables.ts";
 export * from "./backup.ts";
 export * from "./edit.ts";

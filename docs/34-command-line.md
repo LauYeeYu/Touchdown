@@ -46,7 +46,7 @@ Built, apart from `import FILE`, `backup` and `export` (step 5). Each writes one
 | Merge two aircraft | `aircraft merge INTO FROM` |
 | Issues: "This looks right", Reopen, a suggested fix | `issues accept ID [--note TEXT]`, `issues reopen ID`, `issues fix ID [N]` |
 | Import a file (myFR24, any spreadsheet) | `import FILE…`: the rows read (with the column mapping remembered on this computer) go to the inbox. With `--out backup.zip` it keeps building a backup instead (built). |
-| Undo an import | `undo BATCH` |
+| Undo an import | `undo BATCH [--force]`: a record changed after the import is left as it is unless `--force`, as the web app asks before undoing it |
 | Aircraft families | `families [set TYPE FAMILY \| remove TYPE]` |
 | Settings kept in the log | `settings [codes iata\|icao\|both] [distance km\|mi\|nm] [models standard\|compact]` |
 | Download a backup, a table as CSV | `backup --out FILE`, `export TABLE [--out FILE] [--private]` (these write nothing to the log, so they need no review). The backup holds everything, as the web app's does; `export` leaves the private fields out unless `--private`, which needs `--out`. |
@@ -60,7 +60,7 @@ Field names in `--set` and in JSON are the ones `add` takes ([21](21-import-expo
 | Command | Does |
 |---|---|
 | `inbox` (built) | Lists the files waiting, shows one, removes one, sends files saved on this computer. |
-| `review [NAME]` | Reviews the oldest file waiting, or NAME, in the terminal, then imports it on confirmation. |
+| `review [NAME]` (built) | Reviews the oldest file waiting, or NAME, in the terminal, then imports it on confirmation. |
 
 ### Private fields
 
@@ -115,17 +115,17 @@ The same steps in both places, from the same core code:
 3. The user decides what the Import page lets them decide now: leave a record out, take or keep each differing value, keep or reject a time moved past midnight, take the change to a record edited since.
 4. Import: one import batch, recorded in the log's history, so it can be undone like any import. The file is then moved to `attachments/imports/<batchId>/`, as the web app does.
 
-In the terminal, `review` lists the records with their numbers and asks one question at a time, with the safe answer as the default (leave it, keep the stored value). `--yes` imports with every default; `--json` prints the review without importing, for an agent to read. (Proposed, step 4)
+In the terminal (built, `packages/cli/src/review.ts`), `review` shows each row as new, filling in a record or differing from one, with its findings, and each change before and after, then asks one question at a time with the safe answer as the default: take the file's value where it differs (no), keep a takeoff moved past midnight (yes), make a change to a record edited since (no), and import (no). `--yes` imports with every default without asking; `--json` prints the review without importing, for an agent to read, and with `--yes` imports and prints the result. Private values print only as "(private)" or as given. A file with nothing left to do leaves the inbox, as the web app removes it. Exit status 0 imported or nothing to import, 1 not imported, 2 the storage or the file could not be read.
 
 In the web app (built, `apps/web/src/components/ChangeReview.tsx`), a change file opens on the Import page from the inbox list or the "Review and import" bar, or when chosen as a file. Each change is a tonal box with a checkbox: what it is (Edit, Delete, Aircraft facts, …) and what it is about, a note when it has nothing left to do or its record was changed since (that one starts unticked), and its values as before → after lines, as the agent's suggestions show theirs. Below come the findings the changes taken would bring, without their fixes, and "Import N changes" with "Discard this file". The import history names such an import "N changes made", and Undo puts them back.
 
 ## Writing the log from the command line
 
-So far the CLI reads the log and never writes it ([21](21-import-export.md), "With the user's storage"). `review` is the one exception, and it writes as the web app does: (Proposed)
+Apart from `review`, the CLI reads the log and never writes it ([21](21-import-export.md), "With the user's storage"). `review` writes as the web app does (Decided, built, `packages/cli/src/write.ts`):
 
 - It reads the whole log from the storage (a few MB; a few seconds on Google Drive), applies the import in memory, and sends the changed rows with the sync engine ([12](12-storage-and-sync.md), "Sync algorithm"), so a change made at the same time in the web app is merged row by row, and the later of two edits to the same row wins with the other kept as a sync conflict.
 - Its device id (each row records which device last edited it) is made once per computer and kept in `data/private/touchdown-cli.json`.
-- Rows not yet shown back by the storage are kept in `data/private/cli-sync.json` and sent again on the next command, as the browser keeps its queue in IndexedDB. A review that stops halfway (offline, the laptop closed) is finished by the next run, not lost.
+- After sending, it reads the storage again: rows the storage shows are confirmed. Rows not yet shown back are kept, with their values, in `data/private/cli-sync.json` (readable only by the user, as they may hold private fields) and sent again by the next `review`, as the browser keeps its queue in IndexedDB. A review that stops halfway (offline, the laptop closed) is finished by the next run, with nothing lost or written twice (scripted test).
 - It still never creates the Touchdown folder or a log, and never upgrades one. It writes only to a log at its own schema version: an older log asks the user to open the web app once (which upgrades it); a newer one asks them to update the CLI.
 - In Local mode there is no storage it can reach, so `review` is not available; files are reviewed in the web app.
 
@@ -136,5 +136,5 @@ Each step is usable on its own.
 1. Move the web app's operations to the core package; the web app uses them unchanged. (Built)
 2. The reading commands, with `--json`. (Built)
 3. Change files (version 3), the changing commands, and their review on the Import page. (Built)
-4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`.
+4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`. (Built)
 5. `import FILE` to the inbox, `backup` and `export`.

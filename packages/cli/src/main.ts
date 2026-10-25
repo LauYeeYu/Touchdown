@@ -45,6 +45,7 @@ import { INBOX_HELP, inboxCommand } from "./inbox.ts";
 import { AIRCRAFT_HELP, aircraftCommand } from "./aircraft.ts";
 import { AIRPORT_HELP, airportCommand } from "./airport.ts";
 import { STATS_HELP, statsCommand } from "./stats.ts";
+import { REVIEW_HELP, reviewCommand } from "./review.ts";
 import { DELETE_HELP, deleteCommand, EDIT_HELP, editCommand, FAMILIES_HELP, familiesCommand, SETTINGS_HELP, settingsCommand, UNDO_HELP, undoCommand } from "./change.ts";
 import { IMPORTS_HELP, importsCommand, ISSUES_HELP, issuesCommand } from "./issues.ts";
 import { FLIGHT_HELP, FLIGHTS_HELP, flightCommand, flightsCommand, SESSIONS_HELP, sessionsCommand, SIGHTINGS_HELP, sightingsCommand } from "./records.ts";
@@ -71,6 +72,7 @@ ${bold("Log what you saw")}
   add         Check flights and sightings given as JSON, by you or an agent, against your log, and put
               them in the inbox for review in the web app.
   inbox       List what waits in the inbox for review; show or remove a file; send files saved here.
+  review      Review a file waiting in the inbox here in the terminal, and import it into your log.
 
 ${bold("Read your log")} (as the web app shows it; --json for agents and scripts)
   flights     Your flights, with the Flights page's filters.          flight REF   one flight
@@ -80,7 +82,8 @@ ${bold("Read your log")} (as the web app shows it; --json for agents and scripts
   issues      Open findings with their ids and fixes; --accepted for the ones marked right.
   imports     The imports into your log, for undoing one.
 
-${bold("Change your log")} (checked, then put in the inbox: nothing changes until you review and import it)
+${bold("Change your log")} (checked, then put in the inbox: nothing changes until you review and import it, on the
+Import page or with ./touchdown review)
   edit        Change a flight or a sighting: --set FIELD=VALUE, --clear FIELD.
   delete      Delete flights or sightings.
   aircraft    edit REF --set msn=… for an aircraft's facts; merge INTO FROM for two entries of one aircraft.
@@ -179,6 +182,7 @@ const HELP: Record<string, string> = {
   undo: UNDO_HELP,
   families: FAMILIES_HELP,
   settings: SETTINGS_HELP,
+  review: REVIEW_HELP,
 };
 
 function usage(text = MENU, code = 1): never {
@@ -342,6 +346,7 @@ async function main(argv: string[]) {
   if (cmd === "undo") return undoCommand(all);
   if (cmd === "families") return familiesCommand(all);
   if (cmd === "settings") return settingsCommand(all);
+  if (cmd === "review") return reviewCommand(all);
   if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd], 0);
   const { lookup, rest } = lookupArgs(all);
   if (cmd === "airframes") return airframesCommand(rest, lookup);

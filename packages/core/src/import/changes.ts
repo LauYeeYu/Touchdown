@@ -30,7 +30,7 @@ export type InboxChange =
   | { op: "accept"; ruleId: string; fingerprint: string; note: string | null }
   | { op: "reopen"; ackId: string }
   | { op: "fix"; ruleId: string; fingerprint: string; fix: number }
-  | { op: "undo"; batchId: string }
+  | { op: "undo"; batchId: string; force?: boolean }
   | { op: "family"; designator: string; familyId: string | null }
   | { op: "settings"; set: LogSettings };
 
@@ -110,7 +110,7 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
         if (keys(["ackId"]).length || !isId(c.ackId)) return bad("malformed");
         break;
       case "undo":
-        if (keys(["batchId"]).length || !isId(c.batchId)) return bad("malformed");
+        if (keys(["batchId", "force"]).length || !isId(c.batchId) || (c.force !== undefined && typeof c.force !== "boolean")) return bad("malformed");
         break;
       case "family":
         if (keys(["designator", "familyId"]).length || typeof c.designator !== "string" || !/^[A-Z0-9]{2,4}$/.test(c.designator) || !(c.familyId === null || isId(c.familyId))) return bad("malformed");
@@ -483,9 +483,12 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       const fix = findingOf(findings(), c.ruleId, c.fingerprint)?.fixes[c.fix];
       return fix ? applyFix(store, ref, fix, opts).message : null;
     }
-    case "undo":
-      undoImport(store, ref, c.batchId);
-      return null;
+    case "undo": {
+      // Records changed after the import are left, unless the change says to undo them too (as the web app asks).
+      const r = undoImport(store, ref, c.batchId, c.force ?? false);
+      const left = new Set(r.editedSince).size;
+      return left ? `${left === 1 ? "1 record" : `${left} records`} changed after that import ${left === 1 ? "was" : "were"} left as ${left === 1 ? "it is" : "they are"}; the import stays to undo.` : null;
+    }
     case "family":
       setFamily(store, c.designator, c.familyId);
       return null;

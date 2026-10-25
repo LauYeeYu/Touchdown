@@ -1,13 +1,13 @@
 // The CLI's own settings (data/private/touchdown-cli.json): which agent checks imports and spotting sessions,
 // whether notes are sent to it, the user's rules for it, the spreadsheet layouts the user confirmed (by their
-// headers), and where the log is (the storage the web app syncs with). The agent runs on this computer, so these
+// headers), where the log is (the storage the web app syncs with), and this computer's device id. The agent runs on this computer, so these
 // are kept here, not in the log: each computer can use its own agent (docs/22).
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { DEFAULT_AGENT_RULES, type Checker, type ColumnField, type RowKind } from "@touchdown/core";
+import { DEFAULT_AGENT_RULES, ulid, type Checker, type ColumnField, type RowKind } from "@touchdown/core";
 import { privatePath } from "./paths.ts";
 import { bold, dim } from "./term.ts";
 
@@ -32,6 +32,8 @@ interface CliSettings {
   /** Confirmed column layouts, by header signature: the field of each column, by position. */
   mappings?: Record<string, { kind: RowKind; fields: ColumnField[] }>;
   storage?: StorageChoice;
+  /** This computer's device id: each row records the device that last changed it (`touchdown review`, docs/34). */
+  deviceId?: string;
 }
 
 function read(): CliSettings {
@@ -50,6 +52,15 @@ export function savedAgent(): AgentChoice | null {
 function write(s: CliSettings) {
   mkdirSync(dirname(FILE), { recursive: true });
   writeFileSync(FILE, JSON.stringify(s, null, 2) + "\n");
+}
+
+/** This computer's device id, made the first time the CLI writes the log: "cli_" and ten letters and digits. */
+export function cliDeviceId(): string {
+  const saved = read().deviceId;
+  if (saved && /^cli_[0-9a-z]{10}$/.test(saved)) return saved;
+  const deviceId = `cli_${ulid().slice(-10).toLowerCase()}`;
+  write({ ...read(), deviceId });
+  return deviceId;
 }
 
 export function saveAgent(agent: AgentChoice): void {

@@ -7,10 +7,7 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   applySuggestions,
   buildCheckRequest,
-  checkAll,
   checkBatchId,
-  commitImport,
-  matchCandidates,
   fieldsOf,
   guessMapping,
   headerSignature,
@@ -24,28 +21,25 @@ import {
   readInbox,
   readXlsx,
   recordIdOf,
-  resolveAirframes,
   storedFields,
-  Store,
   type AgentField,
   type AgentSuggestion,
   type Candidate,
   type CheckResultFile,
+  prepareImport,
   type CommitDecision,
-  type Finding,
   type InboxChange,
-  type Match,
+  type PreparedImport,
   type ParsedSource,
   type SheetData,
   type SheetMapping,
-  type TableName,
 } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { ColumnMapping, type ColumnChoice } from "../components/ColumnMapping.tsx";
 import { savedMapping, saveMapping } from "../data/mappings.ts";
 import { discardSession, madeBy, markImported, recordsText, sessionLabel, useWaitingSessions, type WaitingSession } from "../data/inbox.ts";
 import type { AppData } from "../data/app.ts";
-import { dayMonthYear, plural } from "../lib/format.ts";
+import { dayMonthYear, FIELD_LABEL, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "../components/overlay.tsx";
 import { AgentCheckPanel, AgentSuggestions, choiceKey, type Choice } from "../components/AgentCheck.tsx";
@@ -53,56 +47,11 @@ import { ChangeReview } from "../components/ChangeReview.tsx";
 
 const FORMAT_LABEL = { fr24_csv: "my.flightradar24.com export", sheet: "spreadsheet", touchdown_inbox: "file from the inbox" } as const;
 const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
-const FIELD_LABEL: Record<string, string> = {
-  takeoffAt: "Takeoff",
-  landingAt: "Landing",
-  boardingAt: "Boarding",
-  typeCode: "Type code",
-  typeCodeRaw: "Type code as typed",
-  registration: "Registration",
-  registrationRaw: "Registration as typed",
-  seat: "Seat",
-  airlineId: "Airline",
-  airlineRaw: "Airline code",
-  model: "Model",
-  modelRaw: "Model as typed",
-  notes: "Notes",
-  ticketNumber: "Ticket number",
-};
 
-interface Prepared {
-  source: ParsedSource;
-  matches: Match[];
-  findings: Map<number, Finding[]>; // by match index
-}
+type Prepared = PreparedImport;
 
-/** Run the import on a scratch copy of the log to get every check before anything is saved. */
-function prepare(app: AppData, source: ParsedSource): Prepared {
-  const matches = matchCandidates(app.store, source.candidates);
-  const scratch = new Store({ deviceId: "preview", validate: false });
-  for (const t of ["flights", "sightings", "airframes", "registration_periods", "field_provenance", "sighting_tags", "external_ids", "issue_acks"] as TableName[]) scratch.load(t, app.store.allWithDeleted(t) as never);
-  const r = commitImport(scratch, app.ref, source, matches);
-  const res = resolveAirframes(scratch, app.ref);
-  const all = checkAll(scratch, app.ref, { overlaps: res.overlaps });
-  // Operators written by name were added to the index for the scratch copy; the log has none of them yet.
-  app.refreshUserOverrides();
-  const idOf = new Map<number, string>();
-  const created = new Map<string, string>();
-  for (const t of ["flights", "sightings"] as const) for (const row of scratch.all(t)) if (row.sourceBatchId === r.batchId && row.sourceRow !== null) created.set(`${t}:${row.sourceRow}`, row.id);
-  matches.forEach((m, i) => {
-    const id = m.existingId ?? created.get(`${m.candidate.table}:${m.candidate.sourceRow}`);
-    if (id) idOf.set(i, id);
-  });
-  const acked = new Set(app.store.all("issue_acks").map((a) => `${a.ruleId}|${a.fingerprint}`));
-  const findings = new Map<number, Finding[]>();
-  matches.forEach((m, i) => {
-    const id = idOf.get(i);
-    if (!id) return;
-    const list = all.filter((f) => !acked.has(`${f.ruleId}|${f.fingerprint}`) && f.severity !== "info" && f.records.some((x) => x.table === m.candidate.table && x.id === id));
-    if (list.length) findings.set(i, list);
-  });
-  return { source, matches, findings };
-}
+/** Run the import on a copy of the log to get every check before anything is saved (core: prepareImport). */
+const prepare = (app: AppData, source: ParsedSource): Prepared => prepareImport(app.store, app.ref, source);
 
 function label(c: Candidate): { title: string; sub: string } {
   if (c.table === "flights") {

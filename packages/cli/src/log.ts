@@ -2,6 +2,7 @@
 // (`./touchdown storage`), both are there; without, the log is a backup file and the inbox is data/private/inbox/.
 
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { operatorFromOverride, readBackup, readInbox, Store, type InboxFile, type RefIndex } from "@touchdown/core";
 import { NodeFolder } from "./folder.ts";
 import { privatePath, shownPath } from "./paths.ts";
@@ -50,6 +51,8 @@ export interface InboxPlace {
   read(name: string): Promise<Uint8Array | null>;
   write(name: string, data: Uint8Array): Promise<void>;
   remove(name: string): Promise<void>;
+  /** An imported file is kept with its import and leaves the inbox, as the web app keeps it. */
+  imported(name: string, batchId: string, data: Uint8Array): Promise<void>;
 }
 
 export function inboxPlace(storage: OpenedStorage | null): InboxPlace {
@@ -62,6 +65,10 @@ export function inboxPlace(storage: OpenedStorage | null): InboxPlace {
       read: (name) => b.readFile("inbox", name),
       write: (name, data) => b.writeFile("inbox", name, data),
       remove: (name) => b.removeFile("inbox", name),
+      imported: async (name, batchId, data) => {
+        await b.writeFile("attachments", `imports/${batchId}/${name}`, data);
+        await b.removeFile("inbox", name);
+      },
     };
   }
   const folder = new NodeFolder(INBOX_DIR);
@@ -72,6 +79,11 @@ export function inboxPlace(storage: OpenedStorage | null): InboxPlace {
     read: async (name) => (await folder.read(name))?.data ?? null,
     write: async (name, data) => void (await folder.write(name, data)),
     remove: (name) => folder.remove(name),
+    // As the dev server keeps an imported file: in imported/.
+    imported: async (name, _batchId, data) => {
+      await new NodeFolder(join(INBOX_DIR, "imported")).write(name, data);
+      await folder.remove(name);
+    },
   };
 }
 

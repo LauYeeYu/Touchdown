@@ -397,7 +397,7 @@ export async function addCommand(args: string[], ref: RefIndex): Promise<void> {
     if (written) {
       const what = [written.flights ? plural(written.flights, "flight") : null, written.sightings ? plural(written.sightings, "sighting") : null].filter(Boolean).join(" and ");
       console.log(`\n${green("Written")} ${what} to ${written.place}: ${written.file}. Read back and checked.`);
-      console.log(`${yellow("Not in your log yet:")} ${place.shared ? "open Touchdown on any device and use “Review and import” at the top, or the list on the Import page." : "start the web app (npm run dev -w @touchdown/web) and use “Review and import” at the top."}`);
+      console.log(`${yellow("Not in your log yet:")} ${place.shared ? "run ./touchdown review, or open Touchdown on any device and use “Review and import” at the top." : "start the web app (npm run dev -w @touchdown/web) and use “Review and import” at the top."}`);
     } else if (reason === "errors") console.log(`\n${red("Nothing written:")} ${plural(errors.length, "record has", "records have")} errors. Fix them, or write them anyway with --keep-errors.`);
     else if (reason === "dry-run") console.log(dim("\nDry run: nothing written."));
     else if (reason === "nothing new") console.log("\nNothing written: everything is in your log or waiting in the inbox already.");

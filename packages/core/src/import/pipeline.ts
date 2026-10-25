@@ -283,23 +283,27 @@ export function commitImport(
         result.created++;
       } else {
         const existing = store.get(c.table, m.existingId)!;
-        store.insert("record_history", {
-          tableName: c.table,
-          recordId: existing.id,
-          recordRev: existing.rev,
-          row: existing as unknown as Record<string, unknown>,
-          changedAt: toUtcIso(now),
-          batchId: batch.id,
-          reason: "import",
-        });
         const patch: Record<string, unknown> = {};
         for (const f of m.fills) patch[f] = (c.values as Record<string, unknown>)[f];
         for (const x of m.corrections) if (!d.rejectCorrections?.includes(x.field)) patch[x.field] = x.incoming;
         for (const f of d.takeIncoming ?? []) patch[f] = (c.values as Record<string, unknown>)[f];
-        store.update(c.table, existing.id, patch as never);
+        // A row whose differing values were all kept changes nothing: no history, so it does not count as a later
+        // change of the record when an earlier import is undone.
+        if (Object.keys(patch).length) {
+          store.insert("record_history", {
+            tableName: c.table,
+            recordId: existing.id,
+            recordRev: existing.rev,
+            row: existing as unknown as Record<string, unknown>,
+            changedAt: toUtcIso(now),
+            batchId: batch.id,
+            reason: "import",
+          });
+          store.update(c.table, existing.id, patch as never);
+          result.updated++;
+        } else result.skipped++;
         id = existing.id;
         written = new Set(Object.keys(patch));
-        result.updated++;
       }
       recordOf.set(i, id);
       for (const e of c.external) {

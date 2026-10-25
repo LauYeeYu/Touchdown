@@ -150,6 +150,18 @@ describe("importing a change file", () => {
     expect(store.get("flights", flight.id)).toMatchObject({ seat: "12A", notes: null });
   });
 
+  it("says what an undo leaves, and undoes it too when forced", () => {
+    const { ref, store, flight } = aLog();
+    const first = applyChanges(store, ref, [{ op: "edit", table: "flights", id: flight.id, rev: flight.rev, set: { seat: "14A" }, clear: [] }], () => true, { fileName: "edit-1.json", now: NOW });
+    // Changed in the web app afterwards.
+    saveFlight(store, ref, { ...store.get("flights", flight.id)!, notes: "later" }, flight.id, { now: NOW + 60_000 });
+    const left = applyChanges(store, ref, [{ op: "undo", batchId: first.batchId }], () => true, { fileName: "undo-1.json", now: NOW + 120_000 });
+    expect(left.messages).toEqual(["1 record changed after that import was left as it is; the import stays to undo."]);
+    expect(store.get("flights", flight.id)!.seat).toBe("14A");
+    applyChanges(store, ref, [{ op: "undo", batchId: first.batchId, force: true }], () => true, { fileName: "undo-2.json", now: NOW + 180_000 });
+    expect(store.get("flights", flight.id)).toMatchObject({ seat: "12A", notes: null });
+  });
+
   it("applies a suggested fix and undoes an earlier import", () => {
     const { ref, store } = aLog();
     const s = saveSighting(store, ref, { seenOn: "2026-05-01", airportRaw: "KBOS", registrationRaw: "N9003Z", typeCodeRaw: "B73X", modelRaw: "B737-8H4" }).row;

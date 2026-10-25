@@ -232,6 +232,23 @@ N1001X,45000,KBOS,DAL,US,Boeing,B737,B738,B737-8H4,Taking-off,,`;
   });
 });
 
+describe("a row whose differing values are all kept", () => {
+  it("changes nothing and leaves no history, so it is not a later change of the record", () => {
+    const csv = `Registration,Date,Location,Airlines,Country,Manufacturer,Plane Family,Type Code,Aircraft,Status,Special Livery,Misc
+N1001X,45000,KBOS,DAL,US,Boeing,B737,B738,B737-8H4,Parked,,`;
+    const store = newStore();
+    const src = parseSource(readCsv(csv), "first.csv", ref)!;
+    commitImport(store, ref, src, matchCandidates(store, src.candidates));
+    const again = parseSource(readCsv(csv.replace("Parked", "Taxiing")), "second.csv", ref)!;
+    const matches = matchCandidates(store, again.candidates);
+    expect(matches[0]).toMatchObject({ kind: "conflict" });
+    const r = commitImport(store, ref, again, matches);
+    expect(r).toMatchObject({ updated: 0, skipped: 1 });
+    expect(store.all("record_history").filter((h) => h.batchId === r.batchId)).toEqual([]);
+    expect(store.all("sightings")[0]!.phase).toBe("parked");
+  });
+});
+
 describe("operators written by name", () => {
   it("adds an unknown operator name as the user's own operator and links the records", () => {
     const csv = `Registration,Date,Location,Airlines,Country,Manufacturer,Plane Family,Type Code,Aircraft,Status,Special Livery,Misc
