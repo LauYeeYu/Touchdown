@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFlightTimes, commitImport, matchCandidates, parseSource, readCsv, undoImport, checkAll } from "../src/index.ts";
 import { newStore, ref, refTables } from "./fixtures.ts";
-import { namedOperator, normaliseSighting, RefIndex } from "../src/index.ts";
+import { namedOperator, normaliseSighting, operatorFromOverride, RefIndex, type Store } from "../src/index.ts";
 
 // Made-up rows in the myFR24 export format (19 columns, leading empty line).
 const FR24 = `
@@ -268,5 +268,42 @@ N1001X,45001,KBOS,Delta Air Lines,US,Boeing,B737,B738,B737-8H4,Parked,,`;
     expect(namedOperator(store, new RefIndex(refTables), "Example Motors")!.id).toBe(op.id);
     expect(store.all("operator_overrides")).toHaveLength(1);
     expect(namedOperator(store, local, "QQQ")).toBeNull();
+  });
+
+  const own = (store: Store) => store.all("operator_overrides").map((o) => operatorFromOverride(o));
+
+  it("reaches an index built before the log arrived, as in a browser signed in again", () => {
+    const store = newStore();
+    const op = namedOperator(store, new RefIndex(refTables), "Example Motors")!;
+    store.insert("sightings", { ...normaliseSighting({ seenOn: "2026-05-01", airportRaw: "KBOS", registrationRaw: "G-ABCD", operatorRaw: "Example Motors" }, ref), operatorId: op.id });
+    // The index was built while the browser was empty; the rows came later by sync.
+    const later = new RefIndex(refTables);
+    const unknown = () => checkAll(store, later, { today: "2026-10-01" }).filter((f) => f.ruleId === "V-OPERATOR-KNOWN");
+    expect(unknown()).toHaveLength(1);
+    later.setUserOverrides({ operators: own(store), familyOverrides: [{ designator: "E75L", familyId: "A320" }] });
+    expect(unknown()).toHaveLength(0);
+    expect(later.familyIdOf("E75L")).toBe("A320");
+    // Removed on another device: unknown again, and the reference operators are still there.
+    later.setUserOverrides({});
+    expect(unknown()).toHaveLength(1);
+    expect(later.familyIdOf("E75L")).toBe("E175");
+    expect(later.operatorByCode("Delta Air Lines")!.id).toBe("op_dal");
+  });
+
+  it("links the import to the log's own operator after a preview into a scratch copy", () => {
+    const csv = `Registration,Date,Location,Airlines,Country,Manufacturer,Plane Family,Type Code,Aircraft,Status,Special Livery,Misc
+G-ABCD,45000,KBOS,Example Motors,GB,Boeing,B737,B738,B737-8H4,Parked,,`;
+    const local = new RefIndex(refTables);
+    const store = newStore();
+    const src = parseSource(readCsv(csv), "photos.csv", local)!;
+    const matches = matchCandidates(store, src.candidates);
+    // The Import page's preview: the same matches committed into a scratch copy, then the index set back to the log's.
+    commitImport(newStore(), local, src, matches);
+    expect((src.candidates[0]!.values as { operatorId?: string | null }).operatorId ?? null).toBeNull();
+    local.setUserOverrides({ operators: own(store) });
+    commitImport(store, local, src, matches);
+    const ops = store.all("operator_overrides");
+    expect(ops.map((o) => o.name)).toEqual(["Example Motors"]);
+    expect(store.all("sightings")[0]!.operatorId).toBe(ops[0]!.id);
   });
 });

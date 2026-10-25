@@ -95,6 +95,9 @@ export class AppData {
     this.ref = ref;
     store.subscribe((changes) => {
       for (const c of changes) this.pending.set(`${c.table}|${c.id}`, { table: c.table, id: c.id, row: c.after as unknown as Record<string, unknown> | null });
+      // The user's own operators and family choices reach the reference index as they change, by sync too:
+      // a browser signed in again starts empty, and they arrive after the index was built.
+      if (changes.some((c) => c.table === "operator_overrides" || c.table === "family_overrides")) this.refreshUserOverrides();
       this.scheduleFlush();
       this.version++;
       for (const l of this.listeners) l();
@@ -143,6 +146,11 @@ export class AppData {
     const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)));
     app.connection = await readConnection();
     return app;
+  }
+
+  /** Set the reference index's own operators and family choices to the ones the log holds now. */
+  refreshUserOverrides() {
+    this.ref.setUserOverrides(AppData.overridesFrom(this.store));
   }
 
   private static overridesFrom(store: Store) {

@@ -401,7 +401,6 @@ export function SettingsPage() {
                 className="btn btn--quiet btn--small"
                 onClick={() => {
                   store.remove("family_overrides", o.id);
-                  toast("Reload to apply the change everywhere.");
                 }}
               >
                 Remove
@@ -421,7 +420,6 @@ export function SettingsPage() {
           }
           store.insert("family_overrides", { designator: d, familyId: family });
           setDesignator("");
-          toast("Saved. Reload to apply it everywhere.");
         }}
       >
         <Field label="Type code">

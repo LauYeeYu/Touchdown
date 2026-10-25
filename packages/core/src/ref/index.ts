@@ -51,8 +51,10 @@ export class RefIndex {
   private patterns = new Map<string, { re: RegExp; source: ModelPattern }[]>();
   private familyOverride = new Map<string, string>();
   private prefixes: (RegistrationPrefix & { re: RegExp; bare: string; dashAt: number })[] = [];
+  private referenceOperators: Operator[];
 
   constructor(tables: RefTables, overrides: RefOverrides = {}) {
+    this.referenceOperators = tables.operators;
     for (const a of [...tables.airports, ...(overrides.airports ?? [])]) this.addAirport(a);
     for (const o of [...tables.operators, ...(overrides.operators ?? [])]) this.addOperator(o);
     for (const t of [...tables.aircraftTypes, ...(overrides.aircraftTypes ?? [])]) this.types.set(t.designator, t);
@@ -90,6 +92,20 @@ export class RefIndex {
     // A name maps to one operator: the user's own wins, then one still operating.
     const cur = this.operatorsByName.get(key);
     if (!cur || o.id.startsWith("op_") === false || (cur.validTo && !o.validTo)) this.operatorsByName.set(key, o);
+  }
+
+  /**
+   * Replace the user's own operators and family choices with the ones the log holds now. They change after the
+   * index is built: by sync (a browser signed in again starts empty and the log arrives later) and by edits.
+   */
+  setUserOverrides(overrides: Pick<RefOverrides, "operators" | "familyOverrides">) {
+    this.operators.clear();
+    this.operatorsByIata.clear();
+    this.operatorsByIcao.clear();
+    this.operatorsByName.clear();
+    for (const o of [...this.referenceOperators, ...(overrides.operators ?? [])]) this.addOperator(o);
+    this.familyOverride.clear();
+    for (const o of overrides.familyOverrides ?? []) this.familyOverride.set(o.designator, o.familyId);
   }
 
   /** Airport by IATA (3 letters) or ICAO (4 characters) code, any case. */

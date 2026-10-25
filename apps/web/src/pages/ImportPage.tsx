@@ -82,6 +82,8 @@ function prepare(app: AppData, source: ParsedSource): Prepared {
   const r = commitImport(scratch, app.ref, source, matches);
   const res = resolveAirframes(scratch, app.ref);
   const all = checkAll(scratch, app.ref, { overlaps: res.overlaps });
+  // Operators written by name were added to the index for the scratch copy; the log has none of them yet.
+  app.refreshUserOverrides();
   const idOf = new Map<number, string>();
   const created = new Map<string, string>();
   for (const t of ["flights", "sightings"] as const) for (const row of scratch.all(t)) if (row.sourceBatchId === r.batchId && row.sourceRow !== null) created.set(`${t}:${row.sourceRow}`, row.id);

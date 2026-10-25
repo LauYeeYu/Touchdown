@@ -189,11 +189,12 @@ function readValues(c: Candidate, ref: RefIndex): Record<string, string> {
   if (c.table === "flights") {
     const v = c.values;
     for (const [k, x] of [["boarding", v.boardingAt], ["takeoff", v.takeoffAt], ["landing", v.landingAt], ["seat", v.seat], ["cabinClass", v.cabinClass], ["bookingClass", v.bookingClass], ["gate", v.departureGate], ["notes", v.notes]] as const) if (x) out[k] = String(x);
-    const a = ref.operator(v.airlineId);
+    // An airline written by name is linked when the record is written; the index has it by then.
+    const a = ref.operator(v.airlineId) ?? ref.operatorByCode(v.airlineRaw);
     if (a) out.airlineName = a.name;
   } else {
     if (c.values.notes) out.notes = c.values.notes;
-    const a = ref.operator(c.values.operatorId);
+    const a = ref.operator(c.values.operatorId) ?? ref.operatorByCode(c.values.operatorRaw);
     if (a) out.operatorName = a.name;
   }
   return out;

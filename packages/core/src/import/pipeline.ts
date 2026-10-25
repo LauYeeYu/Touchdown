@@ -251,7 +251,10 @@ export function commitImport(
       status: "committed",
     });
     const result: CommitResult = { batchId: batch.id, created: 0, updated: 0, skipped: 0, merged: 0 };
-    addNamedOperators(store, ref, matches.map((m) => m.candidate));
+    // Operators written by name are linked in this commit's own copy of the values: the Import page first
+    // commits into a scratch copy of the log, and the operator made there must not reach the real import.
+    const candidates = matches.map((m) => ({ ...m.candidate, values: { ...m.candidate.values } }) as Candidate);
+    addNamedOperators(store, ref, candidates);
     const facts: { table: "flights" | "sightings"; id: string; facts: Candidate["airframeFacts"] }[] = [];
     const recordOf = new Map<number, string>();
     const agentRows = new Set<number>();
@@ -263,7 +266,7 @@ export function commitImport(
         result.skipped++;
         return;
       }
-      const c = m.candidate;
+      const c = candidates[i]!;
       let id: string;
       let written: Set<string>;
       const target = m.kind === "duplicate" && !d.keepSeparate && m.duplicateOf !== null ? recordOf.get(m.duplicateOf) : undefined;
