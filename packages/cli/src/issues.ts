@@ -1,6 +1,6 @@
 // `touchdown issues` and `touchdown imports` (docs/34, "Reading"): the Issues page, and the Import page's history.
 
-import { checkAll, flightDay, openConflicts, PRIVATE_FIELDS, RULES, type Finding, type Row, type Severity } from "@touchdown/core";
+import { checkAll, flightDay, conflictsToShow, PRIVATE_FIELDS, RULES, type Finding, type Row, type Severity } from "@touchdown/core";
 import { FIELD_LABEL, orderIssues } from "@touchdown/core/view";
 import { findingJson, openFindings } from "./shape.ts";
 import { argsOrHelp, fail, flightRefLabel, openOrFail, printJson, readOptions, section, sightingRefLabel, table, type OpenedLog } from "./read.ts";
@@ -97,7 +97,7 @@ export async function issuesCommand(args: string[]) {
 
   if (a.flags.has("--accepted")) return accepted(log, json);
   const open = openFindings(log);
-  const conflicts = openConflicts(log.store);
+  const conflicts = conflictsToShow(log.store);
   const count = (s: Severity) => open.filter((f) => f.severity === s).length;
   const shown = orderIssues(
     open.filter((f) => severities.includes(f.severity) && (!rule || f.ruleId === rule)),

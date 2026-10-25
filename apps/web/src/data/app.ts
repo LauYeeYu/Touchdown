@@ -9,7 +9,8 @@ import {
   commitImport,
   deleteRecord,
   mergeAirframes,
-  openConflicts,
+  conflictsToShow,
+  reconcile,
   resolveConflict,
   operatorFromOverride,
   RefIndex,
@@ -114,6 +115,8 @@ export class AppData {
       // The user's own operators and family choices reach the reference index as they change, by sync too:
       // a browser signed in again starts empty, and they arrive after the index was built.
       if (changes.some((c) => c.table === "operator_overrides" || c.table === "family_overrides")) this.refreshUserOverrides();
+      // Rows from another device: settle what both made side by side (core reconcile.ts), once the sync has finished.
+      if (changes.some((c) => c.origin === "sync")) this.scheduleReconcile();
       this.scheduleFlush();
       this.version++;
       for (const l of this.listeners) l();
@@ -191,6 +194,16 @@ export class AppData {
   private notify() {
     this.version++;
     for (const l of this.listeners) l();
+  }
+
+  private reconcileTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private scheduleReconcile() {
+    if (this.reconcileTimer) return;
+    this.reconcileTimer = setTimeout(() => {
+      this.reconcileTimer = null;
+      this.keep(reconcile(this.store, this.ref).resolved);
+    }, 0);
   }
 
   private scheduleFlush() {
@@ -317,7 +330,7 @@ export class AppData {
 
   /** Fields edited on two devices, waiting for the user to choose (docs/12). */
   conflicts(): Row<"sync_conflicts">[] {
-    return openConflicts(this.store);
+    return conflictsToShow(this.store);
   }
 
   resolveConflict(id: string, use: "kept" | "other") {

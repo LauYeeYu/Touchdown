@@ -104,6 +104,32 @@ Sync runs on app start, a few seconds after edits, on focus, and every few minut
 
 Built: the sync engine in `packages/storage` (`src/sync.ts`, `src/merge.ts`), with a test where three devices add, change fields of and delete entries, sync at the same time with their file reads and writes interleaved, and sometimes write a stale copy back; every run ends with the same log on every device, and every value set is in the log, was changed further by a device that had it, or is listed for the user. A browser that restores a backup becomes a new device for sync (a new device id), since its copy no longer includes every version it made; so does one whose data is deleted.
 
+## Settling what two devices made
+
+Sync merges versions of one row. Some rows mean the same thing but were made twice, once on each device before either saw the other's. After every sync that brings rows in, each device settles them the same way (`reconcile` in `packages/core/src/reconcile.ts`; the browser after each sync, the command line after reading the log), so the result syncs without new conflicts. It changes nothing when there is nothing to settle. Decided, built:
+
+| Made on both devices | Settled as |
+|---|---|
+| An aircraft for a registration new to the log | One aircraft (the smallest id), with every record linked to it ([11](11-aircraft-identity.md), "Identity key"). |
+| Two aircraft with one serial number | One aircraft (a confirmed one, else the smallest id); facts the other had and this one lacks are taken, and a fact the user set differently on each is listed. |
+| The user's own operator (named in the airline field, or one code) | One operator; every flight, sighting and operator period points at it. A field set differently on each is listed. |
+| A type moved to a family | The later choice stays; a different one is listed. |
+| A finding accepted ("This looks right") | One acceptance, with both notes. Reopening reopens every acceptance of the finding. |
+| The same tag, photo link, registration or operator period, provenance, identifier, view filter | One row. |
+| Two saved views of one name | The first keeps it; the others are numbered: "By year (2)". |
+| A track attached to one flight | The better one stays (complete, more points, newer), with its points. |
+| The same file imported (one file name, kind and size) | A record the later import made that the earlier one made too (the same row of the file, the same values) goes; its tags, photos and track move to the earlier one's. Records that differ stay, and the duplicate checks list them. |
+
+Rows whose parent went on another device:
+
+- Registration and operator periods of a deleted aircraft go too.
+- A tag or photo link added to an entry deleted elsewhere (after the deletion, on another device) keeps the entry, and the deletion is listed. Deleting an entry also deletes its tags and photo links, so older leftovers are left alone.
+- A record linked by hand to an aircraft deleted elsewhere is linked again from its registration.
+
+What is listed: only what the user could have set (`conflictMatters` in `packages/core/src/conflicts.ts`). Not listed, because the app works it out again or keeps it itself: a record's aircraft link unless set by hand, an aircraft's facts unless set by the user, the deletion of an aircraft nobody set anything on, import bookkeeping, where each device keeps the log (the storage settings), history, periods, provenance, identifiers and tracks. A value as typed and its normalised form (`registrationRaw`, `registration`) show as one item and are settled together. A listed conflict closes by itself when the entry already has the other value or when it stops mattering (the entry is deleted, a link set by hand is not any more).
+
+Left for the user, as checks on the Issues page: the same flight or sighting logged by hand on two devices ("Duplicate flight", "Duplicate sighting"). The app cannot tell a second entry made on purpose from a repeat, so it does not merge them.
+
 ## File backend: JSON tables
 
 A visible folder in the user's storage, created by the app:

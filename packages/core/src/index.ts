@@ -10,6 +10,8 @@ export * from "./normalise/index.ts";
 export * from "./normalise/record.ts";
 export * from "./store.ts";
 export * from "./versionVector.ts";
+export * from "./conflicts.ts";
+export * from "./reconcile.ts";
 export * from "./derive.ts";
 export * from "./livery.ts";
 export * from "./identity/resolve.ts";

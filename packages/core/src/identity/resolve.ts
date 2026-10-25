@@ -4,10 +4,13 @@
 // gets a provisional airframe.
 
 import type { RefIndex } from "../ref/index.ts";
-import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
+import { TABLES, type Airframe, type Flight, type Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { recordDate } from "../derive.ts";
 import { registrationMatchForm } from "../normalise/registration.ts";
+import { listConflict } from "../conflicts.ts";
+import { ulidFrom } from "../ids.ts";
+import { toUtcIso } from "../time/index.ts";
 
 export interface RegOverlap {
   table: "flights" | "sightings";
@@ -20,6 +23,8 @@ export interface ResolveResult {
   linked: number;
   created: number;
   removed: number;
+  /** Aircraft made twice (on two devices) and merged into one. */
+  merged: number;
   overlaps: RegOverlap[];
 }
 
@@ -47,9 +52,101 @@ function userFields(store: Store, airframeId: string): Set<string> {
   return out;
 }
 
+type Values = Record<string, unknown>;
+
+const sameValue = (a: unknown, b: unknown) => (a ?? null) === (b ?? null);
+
+/** An aircraft's own facts: what a merge fills in from the other. */
+const AIRFRAME_FACTS = TABLES.airframes.columns.map((c) => c.name as string).filter((f) => f !== "identityKey" && f !== "provisional");
+
+/** Move everything of airframe `fromId` to `intoId`, as one aircraft, and remove `fromId`. */
+function mergeAirframeInto(store: Store, intoId: string, fromId: string, now: number) {
+  const target = store.get("airframes", intoId)! as unknown as Values;
+  const source = store.get("airframes", fromId)! as unknown as Values;
+  for (const table of ["flights", "sightings"] as const) {
+    for (const r of store.all(table)) if (r.airframeId === fromId) store.update(table, r.id, { airframeId: intoId });
+  }
+  for (const p of store.all("registration_periods")) {
+    if (p.airframeId !== fromId) continue;
+    const held = store.all("registration_periods").some((q) => q.airframeId === intoId && q.registration === p.registration && q.validFrom === p.validFrom && q.validTo === p.validTo);
+    if (held) store.remove("registration_periods", p.id);
+    else store.update("registration_periods", p.id, { airframeId: intoId });
+  }
+  for (const p of store.all("operator_periods")) {
+    if (p.airframeId !== fromId) continue;
+    const held = store.all("operator_periods").some((q) => q.airframeId === intoId && q.operatorId === p.operatorId && q.validFrom === p.validFrom && q.validTo === p.validTo);
+    if (held) store.remove("operator_periods", p.id);
+    else store.update("operator_periods", p.id, { airframeId: intoId });
+  }
+  // Facts the user set: kept, and listed when the user set one differently on each.
+  const setInto = new Set(store.all("field_provenance").filter((p) => p.ownerTable === "airframes" && p.ownerId === intoId && p.source === "user").map((p) => p.field));
+  const patch: Values = {};
+  for (const p of store.all("field_provenance")) {
+    if (p.ownerTable !== "airframes" || p.ownerId !== fromId) continue;
+    const f = p.field;
+    if (p.source === "user" && f && setInto.has(f)) {
+      if (!sameValue(target[f], source[f])) listConflict(store, { tableName: "airframes", recordId: intoId, field: f, kept: target[f], other: source[f], keptRow: target, otherRow: source, seed: fromId, now });
+      store.remove("field_provenance", p.id);
+      continue;
+    }
+    if (p.source === "user" && f) patch[f] = source[f];
+    store.update("field_provenance", p.id, { ownerId: intoId });
+  }
+  for (const f of AIRFRAME_FACTS) if (!(f in patch) && target[f] == null && source[f] != null) patch[f] = source[f];
+  for (const e of store.all("external_ids")) if (e.ownerTable === "airframes" && e.ownerId === fromId) store.update("external_ids", e.id, { ownerId: intoId });
+  if (Object.keys(patch).length) store.update("airframes", intoId, patch as never);
+  const historyId = ulidFrom(Date.parse(String(source.updatedAt)) || 0, `merged|airframes|${fromId}`);
+  if (!store.peek("record_history", historyId)) {
+    store.insert("record_history", { tableName: "airframes", recordId: fromId, recordRev: Number(source.rev), row: source, changedAt: toUtcIso(now), reason: "sync_conflict" }, historyId);
+  }
+  store.remove("airframes", fromId);
+}
+
+/**
+ * Aircraft made twice, once on each of two devices before either saw the other's (docs/12, "Settling what two
+ * devices made"): the same identity key, or provisional aircraft holding the same registration with no dates. Each
+ * group becomes one aircraft, the same on every device (a confirmed one, else the smallest id): its records,
+ * registrations and facts move to it, and a fact the user set differently on two of them is listed.
+ */
+export function mergeDuplicateAirframes(store: Store, now: number = Date.now()): number {
+  const live = store.all("airframes");
+  if (live.length < 2) return 0;
+  const parent = new Map(live.map((a) => [a.id, a.id] as [string, string]));
+  const root = (x: string): string => {
+    let r = x;
+    while (parent.get(r) !== r) r = parent.get(r)!;
+    return r;
+  };
+  const first = new Map<string, string>();
+  const meet = (key: string, id: string) => {
+    const other = first.get(key);
+    if (!other) return void first.set(key, id);
+    const [a, b] = [root(other), root(id)].sort();
+    if (a !== b) parent.set(b!, a!);
+  };
+  for (const a of live) if (a.identityKey) meet(`key:${a.identityKey}`, a.id);
+  const provisional = new Set(live.filter((a) => a.provisional).map((a) => a.id));
+  for (const p of store.all("registration_periods")) {
+    if (p.registration && provisional.has(p.airframeId) && !p.validFrom && !p.validTo) meet(`reg:${registrationMatchForm(p.registration)}`, p.airframeId);
+  }
+  const groups = new Map<string, Airframe[]>();
+  for (const a of live) groups.set(root(a.id), [...(groups.get(root(a.id)) ?? []), a]);
+  let merged = 0;
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => Number(!!a.provisional) - Number(!!b.provisional) || (a.id < b.id ? -1 : 1));
+    const [into, ...rest] = list;
+    for (const from of rest) {
+      mergeAirframeInto(store, into!.id, from.id, now);
+      merged++;
+    }
+  }
+  return merged;
+}
+
 export function resolveAirframes(store: Store, ref: RefIndex): ResolveResult {
   return store.batch(() => {
-    const result: ResolveResult = { linked: 0, created: 0, removed: 0, overlaps: [] };
+    const result: ResolveResult = { linked: 0, created: 0, removed: 0, merged: mergeDuplicateAirframes(store), overlaps: [] };
     const pinned = userPinnedAirframes(store);
 
     // Registration (match form) → periods.

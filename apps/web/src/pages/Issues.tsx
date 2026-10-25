@@ -96,6 +96,9 @@ function ConflictRecord({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) 
   }
   if (table === "settings") return <Link to="/settings">Settings</Link>;
   if (table === "saved_views") return <>Saved view “{app.store.get("saved_views", c.recordId)?.name ?? ""}”</>;
+  if (table === "operator_overrides") return <>Your operator “{app.store.get("operator_overrides", c.recordId)?.name ?? ""}”</>;
+  if (table === "family_overrides") return <>Family of {app.store.get("family_overrides", c.recordId)?.designator ?? "a type"}</>;
+  if (table === "issue_acks") return <>An accepted warning</>;
   return <>{table.replace(/_/g, " ")}</>;
 }
 

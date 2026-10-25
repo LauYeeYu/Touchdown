@@ -7,7 +7,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { RefIndex, refOverridesOf, SCHEMA_VERSION, Store, type TableName } from "@touchdown/core";
+import { reconcile, RefIndex, refOverridesOf, SCHEMA_VERSION, Store, type TableName } from "@touchdown/core";
 import { SyncEngine, type SyncState, type SyncStateStore } from "@touchdown/storage";
 import { loadRefTables } from "@touchdown/refdata";
 import { privatePath } from "./paths.ts";
@@ -88,6 +88,8 @@ export async function openForWriting(say: (line: string) => void = () => {}, sto
   const report = await engine.sync({ full: true });
   const ref = new RefIndex(loadRefTables());
   ref.setUserOverrides(refOverridesOf(store));
+  // What two devices made side by side is settled here as in the web app, and sent with the review.
+  reconcile(store, ref);
   // Rows sent by this pull and push were left waiting by an earlier run.
   return { store, ref, storage: s, engine, resent: before ? report.sent : 0, problems: report.problems };
 }

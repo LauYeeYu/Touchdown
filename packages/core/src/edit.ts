@@ -110,12 +110,13 @@ export function saveSightings(store: Store, ref: RefIndex, list: { values: Parti
   });
 }
 
-/** Delete a flight or a sighting (a sighting's tags go with it). */
+/** Delete a flight or a sighting: a sighting's tags and the record's photo links go with it. */
 export function deleteRecord(store: Store, ref: RefIndex, table: "flights" | "sightings", id: string, opts: EditOptions = {}): { resolved: ResolveResult } {
   return store.batch(() => {
     keepHistory(store, table, id, opts);
     store.remove(table, id);
     if (table === "sightings") for (const t of store.all("sighting_tags")) if (t.sightingId === id) store.remove("sighting_tags", t.id);
+    for (const p of store.all("photo_links")) if (p.ownerTable === table && p.ownerId === id) store.remove("photo_links", p.id);
     return { resolved: resolveAirframes(store, ref) };
   });
 }
@@ -213,22 +214,33 @@ export function acceptFinding(store: Store, f: Finding, note: string | null = nu
   });
 }
 
+/** Reopen an accepted finding: every acceptance of it goes, also one made on another device at the same time. */
 export function reopenFinding(store: Store, ackId: string) {
   store.batch(() => {
-    for (const r of store.all("issue_ack_records")) if (r.ackId === ackId) store.remove("issue_ack_records", r.id);
-    store.remove("issue_acks", ackId);
+    const ack = store.get("issue_acks", ackId);
+    const all = store.all("issue_acks").filter((a) => a.id === ackId || (!!ack && a.ruleId === ack.ruleId && a.fingerprint === ack.fingerprint));
+    for (const a of all) {
+      for (const r of store.all("issue_ack_records")) if (r.ackId === a.id) store.remove("issue_ack_records", r.id);
+      store.remove("issue_acks", a.id);
+    }
   });
 }
 
 /**
  * Fields edited on two devices before either saw the other's edit, not settled yet (docs/12, "Sync algorithm"), the
- * oldest first. Those whose record is gone are left out.
+ * oldest first. Those whose record is deleted or gone are left out.
  */
 export function openConflicts(store: Store): Row<"sync_conflicts">[] {
   return store
     .all("sync_conflicts")
-    .filter((c) => !c.resolvedAt && c.tableName in TABLES && store.peek(c.tableName as TableName, c.recordId))
+    .filter((c) => !c.resolvedAt && c.tableName in TABLES && store.get(c.tableName as TableName, c.recordId))
     .sort((a, b) => String(a.detectedAt).localeCompare(String(b.detectedAt)) || a.id.localeCompare(b.id));
+}
+
+/** Open conflicts as the user sees them: a value as typed ("registrationRaw") goes with its normalised field. */
+export function conflictsToShow(store: Store): Row<"sync_conflicts">[] {
+  const all = openConflicts(store);
+  return all.filter((c) => !(c.field.endsWith("Raw") && all.some((x) => x.tableName === c.tableName && x.recordId === c.recordId && x.field === c.field.slice(0, -3))));
 }
 
 /**
@@ -239,15 +251,23 @@ export function resolveConflict(store: Store, ref: RefIndex, id: string, use: "k
   const c = store.get("sync_conflicts", id);
   if (!c || !(c.tableName in TABLES)) return null;
   const table = c.tableName as TableName;
+  // A value as typed and its normalised form ("registrationRaw" and "registration") are settled together.
+  const pair = (f: string) => (f.endsWith("Raw") ? f.slice(0, -3) : `${f}Raw`);
+  const together = [c, ...openConflicts(store).filter((x) => x.id !== c.id && x.tableName === c.tableName && x.recordId === c.recordId && x.field === pair(c.field))];
   return store.batch(() => {
     if (use === "other") {
       keepHistory(store, table, c.recordId, opts);
-      const other = JSON.parse(c.otherValue ?? "null") as unknown;
-      if (c.field === "deleted") {
-        if (other === true) store.remove(table, c.recordId);
-      } else if (store.get(table, c.recordId)) store.update(table, c.recordId, { [c.field]: other } as never);
+      for (const x of together) {
+        const other = JSON.parse(x.otherValue ?? "null") as unknown;
+        if (x.field === "deleted") {
+          if (other !== true) continue;
+          // As a deletion by the user: a sighting's tags go with it.
+          if (table === "flights" || table === "sightings") deleteRecord(store, ref, table, c.recordId, { ...opts, history: false });
+          else store.remove(table, c.recordId);
+        } else if (store.get(table, c.recordId)) store.update(table, c.recordId, { [x.field]: other } as never);
+      }
     }
-    store.update("sync_conflicts", id, { resolvedAt: toUtcIso(opts.now ?? Date.now()), resolution: use });
+    for (const x of together) store.update("sync_conflicts", x.id, { resolvedAt: toUtcIso(opts.now ?? Date.now()), resolution: use });
     return { resolved: resolveAirframes(store, ref) };
   });
 }

@@ -21,6 +21,7 @@ The physical airframe is identified by **manufacturer + manufacturer serial numb
 
 - Known MSN: `identityKey = msn:<manufacturer>:<msn>`, e.g. `msn:airbus:10741`.
 - Unknown MSN: the airframe is **provisional**, `identityKey = prov:<registration>:<first date seen>`. A provisional airframe is upgraded when a lookup or the user supplies the MSN ([13](13-reference-data.md), "Airframe facts"). If another airframe already has that MSN, the two are merged.
+- Two devices may each make a provisional airframe for the same new registration before syncing. Linking records first merges airframes that are the same: one identity key, or provisional airframes holding the same registration with no dates. The one kept is the same on every device (a confirmed one, else the smallest id), so the merge itself syncs without conflicts ([12](12-storage-and-sync.md), "Settling what two devices made"). Decided, built.
 - MSNs that are all digits are compared and stored without leading zeros ("038" and "38" are the same airframe).
 
 The registration is not the key. It is a time-bound attribute: an airframe has a list of `RegistrationPeriod {registration, from, to}`.

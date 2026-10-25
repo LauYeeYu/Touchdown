@@ -5,6 +5,7 @@
 import {
   flightDay,
   normaliseFlightNumber,
+  reconcile,
   RefIndex,
   refOverridesOf,
   registrationMatchForm,
@@ -87,6 +88,8 @@ export async function openLog(file?: string): Promise<OpenedLog> {
   if (!log.store) throw new Error("There is no log to read. Choose your storage with ./touchdown storage, or give a backup with --log FILE.");
   const store = log.store;
   ref.setUserOverrides(refOverridesOf(store));
+  // Shown as the web app shows it: what two devices made side by side settled, in this copy only (core reconcile.ts).
+  reconcile(store, ref);
   const s = settingsOf(store);
   return { store, ref, from: log.from, storage, codes: s.codeDisplay ?? "iata", unit: s.distanceUnit ?? "km", models: s.modelNaming ?? "standard" };
 }

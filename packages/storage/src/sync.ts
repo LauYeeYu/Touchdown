@@ -7,7 +7,7 @@
 // with each field edited on both devices kept as the later version has it and the other value listed in
 // sync_conflicts for the user to choose on the Issues page.
 
-import { rowKey, toUtcIso, ulidFrom, type Change, type Row, type Store, type TableName } from "@touchdown/core";
+import { conflictMatters, rowKey, toUtcIso, ulidFrom, type Change, type Row, type Store, type TableName } from "@touchdown/core";
 import { dataFields, mergeRow, type FieldConflict } from "./merge.ts";
 import type { Backend, Cursor, PushItem, StoredRow } from "./types.ts";
 import { isBasedOn, isNewer, versionOf } from "./version.ts";
@@ -264,6 +264,8 @@ export class SyncEngine {
    * it from the two versions.
    */
   private keepConflict({ table, key, conflict, mine, theirs }: Found) {
+    // Values the app works out again, and its own bookkeeping, are not the user's to settle (core conflicts.ts).
+    if (!conflictMatters(this.store, table, key, conflict.field)) return;
     const [kept, other] = conflict.keptMine ? [mine, theirs] : [theirs, mine];
     const versions = [versionOf(mine), versionOf(theirs)].sort();
     const at = Math.max(Date.parse(String(mine.updatedAt)) || 0, Date.parse(String(theirs.updatedAt)) || 0) || this.now();

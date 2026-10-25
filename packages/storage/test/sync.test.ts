@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { SCHEMA_VERSION, Store, TABLES, updateSettings, type TableName } from "@touchdown/core";
+import { commitImport, matchCandidates, parseSource, reconcile, RefIndex, saveFlight, SCHEMA_VERSION, Store, TABLES, updateSettings, type TableName } from "@touchdown/core";
+import { loadRefTables } from "@touchdown/refdata";
 import { JsonTablesBackend, MemoryFolder, MemorySyncState, mergeText, SchemaTooNewError, SyncEngine } from "../src/index.ts";
-import { conflicts, device, FLIGHTS, race, settle, snapshot, testClock } from "./helpers.ts";
+import { conflicts, device, FLIGHTS, race, settle, snapshot, testClock, type Device } from "./helpers.ts";
 
 describe("sync between devices", () => {
   it("sends a log to empty storage and brings it to another device", async () => {
@@ -259,6 +260,67 @@ describe("sync between devices", () => {
     const b = await device(folder, "dev_b", clock.now);
     await settle([b]);
     expect(b.store.get("flights", f.id)?.seat).toBe("4D");
+  });
+});
+
+describe("settling what two devices made side by side", () => {
+  const ref = new RefIndex(loadRefTables());
+  /** As the web app does: sync, then settle what arrived (core reconcile.ts). */
+  async function settleAndReconcile(devices: Device[], rounds = 4) {
+    for (let i = 0; i < rounds; i++) {
+      for (const d of devices) {
+        const report = await d.engine.sync();
+        if (report.received) reconcile(d.store, ref);
+      }
+    }
+  }
+
+  it("ends with one aircraft when both devices log a new registration, and it stays", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    saveFlight(a.store, ref, { scheduledDate: "2026-03-14", flightNumber: "BA9001", airlineRaw: "BA", fromRaw: "EGLL", toRaw: "KJFK", registrationRaw: "G-ZZZQ", typeCodeRaw: "B77W" });
+    clock.tick();
+    saveFlight(b.store, ref, { scheduledDate: "2026-03-20", flightNumber: "BA9002", airlineRaw: "BA", fromRaw: "KJFK", toRaw: "EGLL", registrationRaw: "G-ZZZQ", typeCodeRaw: "B77W" });
+    await settleAndReconcile([a, b]);
+
+    for (const d of [a, b]) {
+      expect(d.store.all("airframes")).toHaveLength(1);
+      const id = d.store.all("airframes")[0]!.id;
+      expect(d.store.all("flights").map((f) => f.airframeId)).toEqual([id, id]);
+    }
+    expect(snapshot(a.store)).toEqual(snapshot(b.store));
+    expect(conflicts(a.store)).toHaveLength(0);
+
+    // Later edits on either device leave the one aircraft alone.
+    clock.tick();
+    saveFlight(a.store, ref, { scheduledDate: "2026-04-01", flightNumber: "BA9003", airlineRaw: "BA", fromRaw: "EGLL", toRaw: "KJFK" });
+    saveFlight(b.store, ref, { scheduledDate: "2026-04-02", flightNumber: "BA9004", airlineRaw: "BA", fromRaw: "KJFK", toRaw: "EGLL" });
+    await settleAndReconcile([a, b]);
+    expect(a.store.all("airframes")).toHaveLength(1);
+    expect(snapshot(a.store)).toEqual(snapshot(b.store));
+  });
+
+  it("keeps one copy of a file both devices imported, and lists no aircraft link edited on both", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const sheet = { name: "Sheet1", header: ["Date", "Registration", "Airport"], rows: [["2026-04-02", "N905ZZ", "KBOS"], ["2026-04-02", "N906ZZ", "KBOS"]], firstRow: 2 };
+    for (const d of [a, b]) {
+      const source = parseSource(sheet as never, "spotting.csv", ref)!;
+      commitImport(d.store, ref, source, matchCandidates(d.store, source.candidates));
+      clock.tick();
+    }
+    await settleAndReconcile([a, b]);
+
+    for (const d of [a, b]) {
+      expect(d.store.all("sightings")).toHaveLength(2);
+      expect(d.store.all("airframes")).toHaveLength(2);
+    }
+    expect(snapshot(a.store)).toEqual(snapshot(b.store));
+    expect(conflicts(a.store)).toHaveLength(0);
   });
 });
 
