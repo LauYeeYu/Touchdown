@@ -36,6 +36,7 @@ npm run dev -w @touchdown/web     # http://127.0.0.1:5173
 | `./touchdown spot [--at AIRPORT]` | Type the aircraft you saw, one per line. Each registration is looked up, empty fields are filled, the agent checks them, and you are asked for what is missing. |
 | `./touchdown add [FILE.json \| -] [--json] [--dry-run]` | Check flights and sightings given as JSON against your log, as the Import page would. Made for agents too: a JSON report, and exit status 0 written, 1 errors, 2 unreadable. |
 | `./touchdown inbox [show \| remove \| send]` | What `spot` and `add` saved, waiting for review. |
+| `./touchdown flights`, `stats`, `issues`, … | Your log as the web app shows it: also `flight REF`, `sightings`, `sessions`, `aircraft`, `airport CODE`, `imports`. `--json` for agents. |
 | `./touchdown check FILE` | Have the agent check a spreadsheet, or a request saved from the Import page. |
 | `./touchdown import FILES… --out FILE.zip` | Read files and write a backup to restore in Settings (with `--airframes`, serial numbers and first flights). |
 | `./touchdown airframes BACKUP.zip` | Fill serial numbers and first flight dates in a backup. |

@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { useApp } from "../data/context.tsx";
 import type { FlightView } from "../lib/views.ts";
 import type { TrackInfo } from "../lib/mapdata.ts";
-import { airlineLabel, cityOf, dateOnly, distance } from "../lib/format.ts";
+import { airlineLabel, cityOf, dateOnly, distance, TRACK_SOURCE } from "../lib/format.ts";
 import { ArrowGlyph, Icon } from "../lib/icons.tsx";
 import { esc, hideTip, showTip } from "./overlay.tsx";
 import { Duration } from "./Duration.tsx";
@@ -24,8 +24,6 @@ export function FlightCols() {
     </div>
   );
 }
-
-const TRACK_SOURCE: Record<string, string> = { fr24_csv: "a Flightradar24 track file", fr24_kml: "a Flightradar24 track file", adsblol: "adsb.lol", aeroapi: "FlightAware", gpx: "a GPX file" };
 
 /** What the track icon means, for its tooltip and for screen readers. */
 function trackText(track: TrackInfo | null): { title: string; detail: string } {

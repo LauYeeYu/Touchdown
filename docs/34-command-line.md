@@ -19,6 +19,8 @@ Built commands are marked; the rest are Proposed. `REF` names a record: its id, 
 
 ### Reading
 
+Built, all of them. What they show is worked out by the code the web app's pages use (`@touchdown/core/view` and the statistics in the core package), so the figures and labels are the same, in the codes, distance unit and model names the log's settings choose. Lists default to all years; `stats` and `airport` open on this year when it has records, else the latest, as the pages do. Exit status 0 shown, 1 no such record (several are listed with their ids), 2 a wrong option or a log that cannot be read.
+
 | In the web app | Command | Shows |
 |---|---|---|
 | Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM]]` | The lead sentence's figures, the fact list and the ranked lists; with `--by`, a pivot ([24](24-statistics.md)). |
@@ -127,7 +129,7 @@ So far the CLI reads the log and never writes it ([21](21-import-export.md), "Wi
 Each step is usable on its own.
 
 1. Move the web app's operations to the core package; the web app uses them unchanged. (Built)
-2. The reading commands, with `--json`.
+2. The reading commands, with `--json`. (Built)
 3. Change files (version 3), the changing commands, and their review on the Import page.
 4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`.
 5. `import FILE` to the inbox, `backup` and `export`.

@@ -42,6 +42,11 @@ import { STORAGE_HELP, storageCommand } from "./storage.ts";
 import { LOGIN_HELP, loginCommand, logoutCommand } from "./site.ts";
 import { ADD_HELP, addCommand } from "./add.ts";
 import { INBOX_HELP, inboxCommand } from "./inbox.ts";
+import { AIRCRAFT_HELP, aircraftCommand } from "./aircraft.ts";
+import { AIRPORT_HELP, airportCommand } from "./airport.ts";
+import { STATS_HELP, statsCommand } from "./stats.ts";
+import { IMPORTS_HELP, importsCommand, ISSUES_HELP, issuesCommand } from "./issues.ts";
+import { FLIGHT_HELP, FLIGHTS_HELP, flightCommand, flightsCommand, SESSIONS_HELP, sessionsCommand, SIGHTINGS_HELP, sightingsCommand } from "./records.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { AGENT_NAME, chooseAgent, installedVersion, saveAgent, savedAgent, savedRules, savedSendNotes, saveRules, saveSendNotes } from "./settings.ts";
 import { bold, dim, red } from "./term.ts";
@@ -65,6 +70,14 @@ ${bold("Log what you saw")}
   add         Check flights and sightings given as JSON, by you or an agent, against your log, and put
               them in the inbox for review in the web app.
   inbox       List what waits in the inbox for review; show or remove a file; send files saved here.
+
+${bold("Read your log")} (as the web app shows it; --json for agents and scripts)
+  flights     Your flights, with the Flights page's filters.          flight REF   one flight
+  sightings   The aircraft you photographed.                          sessions     your days out
+  aircraft    The aircraft in your log, or one with its timeline.     airport CODE one airport
+  stats       Home's sentence and the Statistics page; --by for a table as in its Custom view.
+  issues      Open findings with their ids and fixes; --accepted for the ones marked right.
+  imports     The imports into your log, for undoing one.
 
 ${bold("Check and import files")}
   check       Have Claude Code or Codex check a spreadsheet, or a check request saved from the Import page.
@@ -131,7 +144,27 @@ lets you choose another. Claude Code and Codex run on this computer with your ow
 
 These settings belong to this computer and are kept in data/private/touchdown-cli.json.`;
 
-const HELP: Record<string, string> = { spot: SPOT_HELP, check: CHECK_HELP, import: IMPORT_HELP, airframes: AIRFRAMES_HELP, agent: AGENT_HELP, storage: STORAGE_HELP, add: ADD_HELP, inbox: INBOX_HELP, login: LOGIN_HELP, logout: LOGIN_HELP };
+const HELP: Record<string, string> = {
+  spot: SPOT_HELP,
+  check: CHECK_HELP,
+  import: IMPORT_HELP,
+  airframes: AIRFRAMES_HELP,
+  agent: AGENT_HELP,
+  storage: STORAGE_HELP,
+  add: ADD_HELP,
+  inbox: INBOX_HELP,
+  login: LOGIN_HELP,
+  logout: LOGIN_HELP,
+  flights: FLIGHTS_HELP,
+  flight: FLIGHT_HELP,
+  sightings: SIGHTINGS_HELP,
+  sessions: SESSIONS_HELP,
+  aircraft: AIRCRAFT_HELP,
+  airport: AIRPORT_HELP,
+  stats: STATS_HELP,
+  issues: ISSUES_HELP,
+  imports: IMPORTS_HELP,
+};
 
 function usage(text = MENU, code = 1): never {
   console.log(text);
@@ -280,6 +313,15 @@ async function main(argv: string[]) {
   if (cmd === "storage") return storageCommand(all, new RefIndex(loadRefTables()));
   if (cmd === "add") return addCommand(all, new RefIndex(loadRefTables()));
   if (cmd === "inbox") return inboxCommand(all, new RefIndex(loadRefTables()));
+  if (cmd === "flights") return flightsCommand(all);
+  if (cmd === "flight") return flightCommand(all);
+  if (cmd === "sightings") return sightingsCommand(all);
+  if (cmd === "sessions") return sessionsCommand(all);
+  if (cmd === "aircraft") return aircraftCommand(all);
+  if (cmd === "airport") return airportCommand(all);
+  if (cmd === "stats") return statsCommand(all);
+  if (cmd === "issues") return issuesCommand(all);
+  if (cmd === "imports") return importsCommand(all);
   if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd], 0);
   const { lookup, rest } = lookupArgs(all);
   if (cmd === "airframes") return airframesCommand(rest, lookup);

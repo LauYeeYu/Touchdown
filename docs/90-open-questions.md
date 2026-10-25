@@ -23,6 +23,7 @@ None. Phase 1 test data is in `data/private/`.
 | Q-FR24-IMPORT | Does myFR24 import accept fewer than 19 columns? Must airline names match FR24's names exactly? Test with a 2-row file. | 7 |
 | Q-DRIVE-SERVER | Does a refresh token from the authorisation-code flow (same web client, `drive.file`) reach the files the browser created with the token flow, and the other way round? | 8 |
 | Q-DRIVE-QUOTA | Recheck Google's announced 2026 Drive API quota and charge changes before launch. | 3 |
+| Q-OVERLAPS-OPEN | The web app works out airframe overlaps (one registration held by two aircraft on a date, C-REG-OVERLAP) only after the first change in a session, so the Issues page can miss those findings until then; `touchdown issues` links airframes in memory first and shows them. Work them out when the log opens, without writing. | 9 |
 
 ## Answered
 

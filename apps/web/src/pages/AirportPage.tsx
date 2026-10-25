@@ -3,11 +3,11 @@
 
 import { Fragment, useMemo } from "react";
 import { Link, useNavigate, useParams, useRouter } from "@tanstack/react-router";
-import { airportVisits, cityName, arrivalAirportId, type Sighting } from "@touchdown/core";
+import { cityName } from "@touchdown/core";
+import { airportSummary } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
-import { inPeriod, usePeriod } from "../lib/period.ts";
-import { sortedFlights } from "../lib/views.ts";
-import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
+import { usePeriod } from "../lib/period.ts";
+import { airportWithCode, codeStyle, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, mapSpots, trackInfo } from "../lib/mapdata.ts";
 import { airlineLabel, countryName, dateOnly, distance, plural, shortAirport } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -30,18 +30,6 @@ function times(n: number): string {
   return n === 1 ? "once" : n === 2 ? "twice" : `${n} times`;
 }
 
-interface Spotted {
-  key: string;
-  airframeId: string | null;
-  sightingId: string;
-  registration: string;
-  operatorId: string | null;
-  operatorRaw: string | null;
-  typeCode: string | null;
-  days: Set<string>;
-  count: number;
-  last: string | null;
-}
 
 export function AirportPage() {
   const { id } = useParams({ from: "/airports/$id" });
@@ -55,49 +43,8 @@ export function AirportPage() {
   const mapStyle = useMapStyle();
 
   const data = useMemo(() => {
-    const all = sortedFlights(store, ref);
-    const touches = (f: (typeof all)[number]["f"]) => f.fromAirportId === id || arrivalAirportId(f) === id;
-    const everFlown = all.some((v) => touches(v.f));
-    const allSightings = store.all("sightings").filter((s) => s.airportId === id);
-    const inYear = all.filter((v) => inPeriod(v.day, year));
-    const here = inYear.filter((v) => touches(v.f));
-    // A transit needs the user's very next flight, so the visits are worked out over all the period's flights.
-    const visits = airportVisits(
-      inYear.map((v) => v.f),
-      id,
-    );
-    const transitIds = new Set(visits.transits.flatMap((t) => [t.arrive.id, t.depart.id]));
-    const sightings = allSightings.filter((s) => inPeriod(s.seenOn, year));
-    const flownOn = new Map<string, number>();
-    for (const f of store.all("flights")) if (f.airframeId) flownOn.set(f.airframeId, (flownOn.get(f.airframeId) ?? 0) + 1);
-    const byAirframe = new Map<string, Spotted>();
-    for (const s of sightings) {
-      const key = s.airframeId ?? `s:${s.id}`;
-      const e = byAirframe.get(key) ?? newSpotted(key, s);
-      e.count++;
-      if (s.seenOn) {
-        e.days.add(s.seenOn);
-        if (!e.last || s.seenOn > e.last) e.last = s.seenOn;
-      }
-      // The registration and operator as last seen here.
-      if (s.seenOn && s.seenOn === e.last) {
-        e.registration = s.registration ?? s.registrationRaw ?? e.registration;
-        e.operatorId = s.operatorId ?? e.operatorId;
-      }
-      byAirframe.set(key, e);
-    }
-    const spotted = [...byAirframe.values()].sort((a, b) => (b.last ?? "").localeCompare(a.last ?? "") || a.registration.localeCompare(b.registration));
-    const days = new Set(sightings.map((s) => s.seenOn).filter(Boolean));
-    // Where the user flew to and from here, most often first.
-    const others = new Map<string, number>();
-    for (const v of here) {
-      const other = v.f.fromAirportId === id ? arrivalAirportId(v.f) : v.f.fromAirportId;
-      if (other && other !== id) others.set(other, (others.get(other) ?? 0) + 1);
-    }
-    const topOther = [...others].sort((a, b) => b[1] - a[1])[0] ?? null;
-    const firstDay = [...here.map((v) => v.day), ...sightings.map((s) => s.seenOn)].filter((d): d is string => !!d).sort()[0] ?? null;
     const review = new Set(app.findings().filter((f) => f.severity !== "info").flatMap((f) => f.records.filter((r) => r.table === "flights").map((r) => r.id)));
-    return { here, visits, transitIds, sightings, spotted, days, flownOn, topOther, firstDay, everFlown, everSpotted: allSightings.length > 0, trackMeta: trackInfo(store), review };
+    return { ...airportSummary(store, ref, id, year, codeStyle()), trackMeta: trackInfo(store), review };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, year, id]);
 
@@ -346,17 +293,3 @@ export function AirportPage() {
   );
 }
 
-function newSpotted(key: string, s: Sighting): Spotted {
-  return {
-    key,
-    airframeId: s.airframeId,
-    sightingId: s.id,
-    registration: s.registration ?? s.registrationRaw ?? "",
-    operatorId: s.operatorId,
-    operatorRaw: s.operatorRaw,
-    typeCode: s.typeCode,
-    days: new Set(),
-    count: 0,
-    last: null,
-  };
-}

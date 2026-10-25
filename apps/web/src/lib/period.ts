@@ -1,7 +1,10 @@
 // The period shared by Home, Flights, Spotting and Stats: a year or "all". Remembered per browser.
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { flightDay, todayIn, type Store } from "@touchdown/core";
+import { todayIn, type Store } from "@touchdown/core";
+import { yearsIn } from "@touchdown/core/view";
+
+export { inPeriod, yearsIn } from "@touchdown/core/view";
 
 const KEY = "td-year";
 const listeners = new Set<() => void>();
@@ -21,21 +24,6 @@ function setStored(v: string) {
     /* storage unavailable: keep it for this session */
   }
   for (const l of listeners) l();
-}
-
-export function yearsIn(store: Store): string[] {
-  const set = new Set<string>();
-  for (const f of store.all("flights")) {
-    const d = flightDay(f);
-    if (d) set.add(d.slice(0, 4));
-  }
-  for (const s of store.all("sightings")) if (s.seenOn) set.add(s.seenOn.slice(0, 4));
-  return [...set].sort();
-}
-
-export function inPeriod(ymd: string | null | undefined, year: string): boolean {
-  if (year === "all") return true;
-  return !!ymd && ymd.startsWith(year);
 }
 
 export function usePeriod(store: Store, version: number) {

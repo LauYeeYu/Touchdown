@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Finding } from "@touchdown/core";
-import { orderIssues } from "./issueOrder.ts";
+import { orderIssues } from "../src/view/index.ts";
 
 const finding = (ruleId: string, severity: Finding["severity"], id: string): Finding => ({ ruleId, severity, records: [{ table: "sightings", id }], fields: [], message: id, fixes: [], fingerprint: `fp-${id}` });
 const dates: Record<string, string> = { a1: "2026-05-01", a2: "2026-05-17", a3: "2026-04-02", b1: "2026-03-01", b2: "2026-03-02", b3: "2026-03-03", b4: "2026-03-04" };
