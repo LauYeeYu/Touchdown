@@ -9,6 +9,8 @@ import {
   commitImport,
   deleteRecord,
   mergeAirframes,
+  openConflicts,
+  resolveConflict,
   operatorFromOverride,
   RefIndex,
   reopenFinding,
@@ -61,6 +63,18 @@ function deviceId(): string {
     return id;
   } catch {
     return `dev_${ulid().slice(-10).toLowerCase()}`;
+  }
+}
+
+/**
+ * This browser becomes a new device for sync. After its copy is replaced (a backup restored), its rows no longer
+ * include every version it made, and its next edits must not count on from those (version vectors, docs/12).
+ */
+function renewDeviceId() {
+  try {
+    localStorage.setItem("td-device", `dev_${ulid().slice(-10).toLowerCase()}`);
+  } catch {
+    // A new id is made on the next visit anyway when storage is unavailable.
   }
 }
 
@@ -301,6 +315,16 @@ export class AppData {
       .map((finding) => ({ finding, ackId: acked.get(`${finding.ruleId}|${finding.fingerprint}`)! }));
   }
 
+  /** Fields edited on two devices, waiting for the user to choose (docs/12). */
+  conflicts(): Row<"sync_conflicts">[] {
+    return openConflicts(this.store);
+  }
+
+  resolveConflict(id: string, use: "kept" | "other") {
+    const out = resolveConflict(this.store, this.ref, id, use);
+    if (out) this.keep(out.resolved);
+  }
+
   findingsFor(table: TableName, id: string): Finding[] {
     return this.findings().filter((f) => f.records.some((r) => r.table === table && r.id === id));
   }
@@ -438,6 +462,7 @@ export class AppData {
       // Sync starts over: the next one compares every row and track with the storage.
       await db.meta.delete("sync");
     });
+    renewDeviceId();
   }
 
   /** Remove the log, sync state and connection from this browser; the next visit is a first run. */
@@ -448,6 +473,7 @@ export class AppData {
       await db.trackPoints.clear();
       await db.meta.clear();
     });
+    renewDeviceId();
   }
 
   /** On signing out, once everything has reached the storage: this account's database leaves the browser. */

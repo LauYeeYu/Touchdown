@@ -43,6 +43,8 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null):
         : { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
     case "failed":
       return { text: "Not synced", title: `Could not sync with ${sync.place}: ${clause(sync.error)}.${last}`, icon: "refresh-cw", bad: true };
+    case "update":
+      return { text: "Reload to update", title: `A newer version of Touchdown has changed your log in ${sync.place}. Reload to update the app.${last}`, icon: "refresh-cw", bad: true };
     case "syncing":
       return { text: "Syncing…", title: `Syncing with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
     default:
@@ -91,7 +93,7 @@ export function Shell() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const theme = (app.settings().theme ?? "system") as (typeof THEMES)[number];
-  const openIssues = app.findings().filter((f) => f.severity !== "info").length;
+  const openIssues = app.findings().filter((f) => f.severity !== "info").length + app.conflicts().length;
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -209,6 +211,18 @@ export function Shell() {
         >
           {sync.mode === "standard" ? (sync.error ?? `Touchdown cannot reach ${sync.place}.`) : sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`} Until then, changes are kept in this browser.
           {sync.mode !== "standard" && sync.error && ` ${sync.error}`}
+        </NoteBar>
+      )}
+      {sync?.state === "update" && (
+        <NoteBar
+          icon="refresh-cw"
+          actions={
+            <button type="button" className="btn btn--quiet btn--small" onClick={() => location.reload()}>
+              Reload
+            </button>
+          }
+        >
+          A newer version of Touchdown has changed your log in {sync.place}. Reload to update the app. Until then, changes are kept in this browser.
         </NoteBar>
       )}
       {backupDue && !backupLater && (

@@ -2,6 +2,7 @@
 // (backup, restore, CSV, delete), family overrides, sources. The agent check's settings belong to the CLI on each computer (docs/22).
 
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
@@ -36,7 +37,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   const [termsProblem, setTermsProblem] = useState<string | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
   const sync = useSyncInfo(app);
-  const conflicts = app.store.all("record_history").filter((h) => h.reason === "sync_conflict").length;
+  const conflicts = app.conflicts().length;
   const place = c && c.mode !== "local" ? c.name : null;
   const choosing = chosen === "private" && (current !== "private" || moving);
 
@@ -202,6 +203,12 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               </span>
             </p>
           )}
+          {sync.state === "update" && (
+            <p className="status-line status-line--error">
+              <Icon name="refresh-cw" />
+              <span>A newer version of Touchdown has changed your log in {sync.place}. Reload the page to update the app; your changes are kept in this browser and sent after the reload.</span>
+            </p>
+          )}
           {sync.problems.length > 0 && (
             <p className="status-line status-line--error">
               <Icon name="circle-alert" />
@@ -213,9 +220,9 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           )}
           {conflicts > 0 && (
             <p className="status-line">
-              <Icon name="info" />
+              <Icon name="merge" />
               <span>
-                {plural(conflicts, "edit was", "edits were")} replaced by a later edit of the same entry on another device, and {conflicts === 1 ? "is" : "are"} kept in the log's history.
+                {plural(conflicts, "field was", "fields were")} changed on two devices before either saw the other's change. <Link to="/issues">Choose which to keep</Link>.
               </span>
             </p>
           )}

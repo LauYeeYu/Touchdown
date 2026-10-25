@@ -3124,6 +3124,37 @@ a.wordmark {
   margin-top: 0;
 }
 
+/* Fields changed on two devices come first on the Issues page, closer to the tabs, and apart from the findings. */
+.issue-group--conflicts {
+  margin-top: 32px;
+  margin-bottom: 48px;
+}
+
+/* A field changed on two devices: the value in the log and the other change, one under the other. */
+.conflict {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.conflict dt {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  padding-top: 1px;
+}
+
+.conflict dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.conflict__when {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
 /* ---------- flight and aircraft pages ---------- */
 
 .flight-date-row {

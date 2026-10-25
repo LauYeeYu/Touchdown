@@ -1,12 +1,14 @@
-// The sync engine (docs/12-storage-and-sync.md, "Sync algorithm"): pull, merge per row, push, confirm. It works on
-// rows, so it is the same for every backend.
+// The sync engine (docs/12-storage-and-sync.md, "Sync algorithm"): pull, merge, push, confirm. It works on rows, so
+// it is the same for every backend.
 //
-// Each row edited on this device waits in a queue until the storage shows it back. When the stored and local
-// versions of a row differ, one was edited on top of the other (`basedOn`, or one device's versions following each
-// other) and the later one is kept; otherwise they were edited side by side, the later edit wins, and the other is
-// kept in record_history as a sync conflict for the user to review.
+// Each row edited on this device waits in a queue, with the version the edits started from, until the storage shows
+// it back. When the stored and local versions of a row differ and one was made on top of the other (version vectors),
+// that one is kept. Versions made side by side are merged field by field (merge.ts): a new version on top of both,
+// with each field edited on both devices kept as the later version has it and the other value listed in
+// sync_conflicts for the user to choose on the Issues page.
 
 import { rowKey, toUtcIso, ulidFrom, type Change, type Row, type Store, type TableName } from "@touchdown/core";
+import { dataFields, mergeRow, type FieldConflict } from "./merge.ts";
 import type { Backend, Cursor, PushItem, StoredRow } from "./types.ts";
 import { isBasedOn, isNewer, versionOf } from "./version.ts";
 
@@ -15,6 +17,11 @@ export interface QueuedRow {
   key: string;
   /** Stored versions this device's row beat in a conflict, and so may replace. */
   replaces: string[];
+  /**
+   * The version this device's unsent edits started from, to merge them field by field with another device's; null
+   * for a row made here, or when not known (a queue from before this was kept).
+   */
+  base?: StoredRow | null;
 }
 
 export interface SyncState {
@@ -45,7 +52,7 @@ export interface SyncReport {
   received: number;
   /** Rows written to the storage (or found there already). */
   sent: number;
-  /** Rows edited here and elsewhere since the last sync. */
+  /** Fields edited here and elsewhere since the last sync, listed for the user. */
   conflicts: number;
   /** Files that could not be read. */
   problems: string[];
@@ -53,6 +60,18 @@ export interface SyncReport {
 
 const queueKey = (table: TableName, key: string) => `${table}|${key}`;
 const trackOf = (pointKey: string) => pointKey.slice(0, pointKey.lastIndexOf("|"));
+
+// Tables whose versions made side by side are not merged field by field or listed: history is only ever added to,
+// and a sync conflict one device resolved stays resolved. The later version is kept, or the resolved one.
+const QUIET = new Set<TableName>(["record_history", "sync_conflicts"]);
+
+interface Found {
+  table: TableName;
+  key: string;
+  conflict: FieldConflict;
+  mine: StoredRow;
+  theirs: StoredRow;
+}
 
 export class SyncEngine {
   private queue = new Map<string, QueuedRow>();
@@ -100,7 +119,7 @@ export class SyncEngine {
       }
       const k = queueKey(c.table, c.id);
       if (this.queue.has(k)) continue;
-      this.queue.set(k, { table: c.table, key: c.id, replaces: [] });
+      this.queue.set(k, { table: c.table, key: c.id, replaces: [], base: (c.before as StoredRow | null) ?? null });
       noted = true;
     }
     if (noted) void this.save();
@@ -131,10 +150,10 @@ export class SyncEngine {
     report.problems.push(...pulled.problems);
 
     this.store.batch(() => {
-      const losers: { table: TableName; key: string; row: StoredRow }[] = [];
-      for (const [table, rows] of pulled.tables) losers.push(...this.merge(table, rows, report));
-      // After every table is merged, so a conflict the other device kept already is found and not kept twice.
-      for (const l of losers) this.keepLoser(l.table, l.key, l.row);
+      const found: Found[] = [];
+      for (const [table, rows] of pulled.tables) found.push(...this.merge(table, rows, report));
+      // After every table is merged, so a conflict the other device listed already is found and not listed twice.
+      for (const f of found) this.keepConflict(f);
     });
     await this.mergeTracks(pulled.changedTracks, pulled.tracks, report);
     this.cursor = pulled.cursor;
@@ -170,10 +189,10 @@ export class SyncEngine {
     return report;
   }
 
-  /** Merge one table's stored rows into the local copy. Returns the versions that lost a conflict. */
-  private merge(table: TableName, stored: StoredRow[], report: SyncReport) {
+  /** Merge one table's stored rows into the local copy. Returns the fields edited on both sides. */
+  private merge(table: TableName, stored: StoredRow[], report: SyncReport): Found[] {
     const take: StoredRow[] = [];
-    const losers: { table: TableName; key: string; row: StoredRow }[] = [];
+    const found: Found[] = [];
     const seen = new Set<string>();
     for (const theirs of stored) {
       const key = rowKey(table, theirs);
@@ -190,46 +209,80 @@ export class SyncEngine {
         this.queue.delete(k);
         continue;
       }
-      let mineWins: boolean;
-      if (isBasedOn(theirs, mine)) mineWins = false;
-      // The stored row is older than this one: not sent yet, or the storage lost it to an overwrite.
-      else if (isBasedOn(mine, theirs) || queued?.replaces.includes(theirVersion)) mineWins = true;
-      else {
-        mineWins = isNewer(mine, theirs);
-        // History rows are never edited, only made twice (a conflict kept on both devices): nothing to keep.
-        if (table !== "record_history") {
-          report.conflicts++;
-          losers.push({ table, key, row: mineWins ? theirs : mine });
-        }
-      }
-      if (mineWins) {
+      const keepMine = () => {
         if (queued) queued.replaces = [...new Set([...queued.replaces, theirVersion])];
-        else this.queue.set(k, { table, key, replaces: [theirVersion] });
-      } else {
+        else this.queue.set(k, { table, key, replaces: [theirVersion], base: null });
+      };
+      const takeTheirs = () => {
         take.push(theirs);
         this.queue.delete(k);
+      };
+      if (isBasedOn(theirs, mine)) {
+        takeTheirs();
+        continue;
       }
+      // The stored row is older than this one: not sent yet, or the storage lost it to an overwrite.
+      if (isBasedOn(mine, theirs) || queued?.replaces.includes(theirVersion)) {
+        keepMine();
+        continue;
+      }
+      // Made side by side. What is kept becomes a new version on top of both, even when the two hold the same values,
+      // so each device's versions of a row follow one another and its next edit counts on from its last.
+      const mineLater = isNewer(mine, theirs);
+      let merged: { values: Record<string, unknown>; conflicts: FieldConflict[] };
+      if (QUIET.has(table)) {
+        const resolved = table === "sync_conflicts" && !!mine.resolvedAt !== !!theirs.resolvedAt;
+        const kept = (resolved ? !!mine.resolvedAt : mineLater) ? mine : theirs;
+        merged = { values: Object.fromEntries([...dataFields(table), "deleted"].map((f) => [f, kept[f]])), conflicts: [] };
+      } else {
+        // The version this device's edits started from is where the two parted only if the stored one was made on
+        // top of it. A stale copy written back is not: then every field that differs is listed.
+        const base = queued?.base && (versionOf(queued.base) === theirVersion || isBasedOn(theirs, queued.base)) ? queued.base : null;
+        merged = mergeRow(table, base, mine, theirs, mineLater);
+      }
+      // This device's edits now start from the stored version.
+      this.queue.set(k, { table, key, replaces: [...new Set([...(queued?.replaces ?? []), theirVersion])], base: theirs });
+      this.store.merged(table, key, merged.values, theirs);
+      report.conflicts += merged.conflicts.length;
+      for (const conflict of merged.conflicts) found.push({ table, key, conflict, mine, theirs });
     }
     // Rows only here: queued ones are sent anyway; any other went missing from the storage and is sent again.
     for (const mine of this.store.allWithDeleted(table)) {
       const key = rowKey(table, mine as unknown as StoredRow);
       const k = queueKey(table, key);
-      if (!seen.has(key) && !this.queue.has(k)) this.queue.set(k, { table, key, replaces: [] });
+      if (!seen.has(key) && !this.queue.has(k)) this.queue.set(k, { table, key, replaces: [], base: null });
     }
     if (take.length) {
       this.store.applyRemote(table, take as unknown as Row<TableName>[]);
       report.received += take.length;
     }
-    return losers;
+    return found;
   }
 
-  /** Keep the losing version once: both devices may notice the same conflict, and they make the same id for it. */
-  private keepLoser(table: TableName, key: string, loser: StoredRow) {
-    const id = ulidFrom(Date.parse(String(loser.updatedAt)) || this.now(), `${table}|${key}|${versionOf(loser)}`);
-    if (this.store.peek("record_history", id)) return;
+  /**
+   * List a field edited on both sides once: both devices may find the same conflict, and they make the same id for
+   * it from the two versions.
+   */
+  private keepConflict({ table, key, conflict, mine, theirs }: Found) {
+    const [kept, other] = conflict.keptMine ? [mine, theirs] : [theirs, mine];
+    const versions = [versionOf(mine), versionOf(theirs)].sort();
+    const at = Math.max(Date.parse(String(mine.updatedAt)) || 0, Date.parse(String(theirs.updatedAt)) || 0) || this.now();
+    const id = ulidFrom(at, `${table}|${key}|${conflict.field}|${versions.join("|")}`);
+    if (this.store.peek("sync_conflicts", id)) return;
     this.store.insert(
-      "record_history",
-      { tableName: table, recordId: key, recordRev: Number(loser.rev), row: loser, changedAt: toUtcIso(this.now()), reason: "sync_conflict" },
+      "sync_conflicts",
+      {
+        tableName: table,
+        recordId: key,
+        field: conflict.field,
+        keptValue: JSON.stringify(conflict.kept ?? null),
+        otherValue: JSON.stringify(conflict.other ?? null),
+        keptBy: String(kept.updatedBy),
+        keptAt: String(kept.updatedAt),
+        otherBy: String(other.updatedBy),
+        otherAt: String(other.updatedAt),
+        detectedAt: toUtcIso(this.now()),
+      },
       id,
     );
   }

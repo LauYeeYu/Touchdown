@@ -9,6 +9,7 @@ export * from "./ref/index.ts";
 export * from "./normalise/index.ts";
 export * from "./normalise/record.ts";
 export * from "./store.ts";
+export * from "./versionVector.ts";
 export * from "./derive.ts";
 export * from "./livery.ts";
 export * from "./identity/resolve.ts";

@@ -80,7 +80,7 @@ export function tableCsv(store: Store, table: TableName, includePrivate = false)
   const cols = allColumns(TABLES[table])
     .map((c) => c.name)
     .filter((c) => includePrivate || !PRIVATE_FIELDS.includes(`${table}.${c}`))
-    .filter((c) => c !== "deleted" && c !== "basedOn");
+    .filter((c) => c !== "deleted" && c !== "basedOn" && c !== "versionVector");
   const lines = [cols.join(",")];
   for (const r of store.all(table)) lines.push(cols.map((c) => csvCell((r as Record<string, unknown>)[c])).join(","));
   return lines.join("\r\n") + "\r\n";

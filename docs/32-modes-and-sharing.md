@@ -68,7 +68,7 @@ Decided (S8): the backend is recorded wherever the data or a key to it is kept, 
 
 Prepared for change (Proposed):
 - **One list of backends.** The values come from one registry in core, used by the web app, the CLI and the Worker. Adding a backend means adding an entry and an adapter; stored data keeps working.
-- **New values in user data.** There they are enums under the schema version. A new value bumps the version, and an older app that meets it opens read-only and asks to reload ([12](12-storage-and-sync.md), "Schema migrations").
+- **New values in user data.** There they are enums under the schema version. A new value bumps the version, and an older app that meets it stops syncing and asks for a reload, keeping edits made meanwhile ([12](12-storage-and-sync.md), "Schema migrations").
 - **New values on the server.** There they are text checked against the registry, so a new backend needs no database change.
 - **Provider token changes.** `tokenFormat` numbers what is inside the encrypted token, so a provider change is handled row by row.
 - **Moving to other storage.** The app reads the whole log from the current storage and writes it to the new one, the same path as converting formats in 12. In Standard, the server connects the new storage first and then revokes the old key. Links keep their addresses, and their files are written again in the new storage.

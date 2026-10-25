@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -14,6 +14,8 @@ export const AIRFRAME_STATUSES = ["active", "stored", "retired", "written_off", 
 export const TRACK_PROVIDERS = ["fr24_csv", "fr24_kml", "adsblol", "aeroapi", "gpx", "other"] as const;
 export const PROVENANCE_SOURCES = ["user", "import", "lookup", "agent", "derived"] as const;
 export const HISTORY_REASONS = ["edit", "import", "sync_conflict", "migration"] as const;
+/** How the user settled a sync conflict: the value kept stays, or the other device's value is used. */
+export const CONFLICT_RESOLUTIONS = ["kept", "other"] as const;
 export const AGENT_CHECKERS = ["claude", "codex", "none"] as const;
 /** Where the log lives and what Touchdown's server may do (docs/32-modes-and-sharing.md). */
 export const DATA_MODES = ["standard", "private", "local"] as const;
@@ -189,6 +191,26 @@ export const recordHistory = table("record_history", "child", [
   c.enum("reason", HISTORY_REASONS),
 ]);
 
+/**
+ * One field edited on two devices before either saw the other's edit (docs/12, "Sync algorithm"). Sync keeps one value
+ * and the other waits here until the user chooses on the Issues page. Values are JSON text ("\"12A\"", "null").
+ */
+export const syncConflicts = table("sync_conflicts", "child", [
+  c.text("tableName", { required: true }),
+  // The row's key: an id, or a fixed one such as the settings row's.
+  c.text("recordId", { required: true }),
+  c.text("field", { required: true }),
+  c.text("keptValue"),
+  c.text("otherValue"),
+  c.text("keptBy"),
+  c.datetime("keptAt"),
+  c.text("otherBy"),
+  c.datetime("otherAt"),
+  c.datetime("detectedAt"),
+  c.datetime("resolvedAt"),
+  c.enum("resolution", CONFLICT_RESOLUTIONS),
+]);
+
 export const importBatches = table("import_batches", "user", [
   c.datetime("createdAt"),
   c.enum("sourceKind", SOURCE_KINDS),
@@ -290,6 +312,7 @@ export const TABLES = {
   field_provenance: fieldProvenance,
   external_ids: externalIds,
   record_history: recordHistory,
+  sync_conflicts: syncConflicts,
   import_batches: importBatches,
   issue_acks: issueAcks,
   issue_ack_records: issueAckRecords,
@@ -317,6 +340,7 @@ export type TrackPoint = Row<"track_points">;
 export type FieldProvenance = Row<"field_provenance">;
 export type ExternalId = Row<"external_ids">;
 export type ImportBatch = Row<"import_batches">;
+export type SyncConflict = Row<"sync_conflicts">;
 export type IssueAck = Row<"issue_acks">;
 export type Settings = Row<"settings">;
 

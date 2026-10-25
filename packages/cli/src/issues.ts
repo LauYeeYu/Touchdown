@@ -1,7 +1,7 @@
 // `touchdown issues` and `touchdown imports` (docs/34, "Reading"): the Issues page, and the Import page's history.
 
-import { checkAll, flightDay, RULES, type Finding, type Severity } from "@touchdown/core";
-import { orderIssues } from "@touchdown/core/view";
+import { checkAll, flightDay, openConflicts, PRIVATE_FIELDS, RULES, type Finding, type Row, type Severity } from "@touchdown/core";
+import { FIELD_LABEL, orderIssues } from "@touchdown/core/view";
 import { findingJson, openFindings } from "./shape.ts";
 import { argsOrHelp, fail, flightRefLabel, openOrFail, printJson, readOptions, section, sightingRefLabel, table, type OpenedLog } from "./read.ts";
 import { bold, dim, green, plural, red, yellow } from "./term.ts";
@@ -10,8 +10,10 @@ import { issuesChangeCommand, ISSUES_CHANGE_HELP } from "./change.ts";
 export const ISSUES_HELP = `Usage: ./touchdown issues [--severity S[,S…] | all] [--rule ID] [--log FILE] [--json]
        ./touchdown issues --accepted [--log FILE] [--json]
 
-The Issues page: every open finding, grouped by rule in the page's order, with the records it is about and its
-suggested fixes. Each finding's id is the one to name it by. With --accepted, the warnings you marked as right.
+The Issues page: fields changed on two devices before either saw the other's change (choose which to keep on the
+Issues page in the web app), then every open finding, grouped by rule in the page's order, with the records it is
+about and its suggested fixes. Each finding's id is the one to name it by. With --accepted, the warnings you marked
+as right.
 
   --severity S   error, warning, info (notes), comma-separated, or all; errors and warnings by default
   --rule ID      one rule only, such as C-FLIGHT-OVERLAP
@@ -52,6 +54,34 @@ function recordLabel(log: OpenedLog, r: { table: string; id: string }): string {
   return `${r.table} ${r.id}`;
 }
 
+const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
+
+/** A value of a sync conflict (JSON text) as shown: private values never are. */
+function conflictValue(field: string, json: string | null): string {
+  if (PRIVATE.has(field)) return "(private)";
+  const v = json === null ? null : (JSON.parse(json) as unknown);
+  return v === null || v === "" ? "—" : String(v);
+}
+
+function conflictJson(log: OpenedLog, c: Row<"sync_conflicts">) {
+  const hidden = PRIVATE.has(c.field);
+  const row = log.store.peek(c.tableName as never, c.recordId) as Record<string, unknown> | null;
+  return {
+    id: c.id,
+    table: c.tableName,
+    record: c.recordId,
+    recordLabel: recordLabel(log, { table: c.tableName, id: c.recordId }),
+    field: c.field,
+    private: hidden,
+    inLog: hidden ? null : (row?.[c.field] ?? null),
+    other: hidden ? null : (JSON.parse(c.otherValue ?? "null") as unknown),
+    keptBy: c.keptBy,
+    keptAt: c.keptAt,
+    otherBy: c.otherBy,
+    otherAt: c.otherAt,
+  };
+}
+
 const mark = (s: Severity) => (s === "error" ? red("!") : s === "warning" ? yellow("?") : dim("i"));
 
 export async function issuesCommand(args: string[]) {
@@ -67,6 +97,7 @@ export async function issuesCommand(args: string[]) {
 
   if (a.flags.has("--accepted")) return accepted(log, json);
   const open = openFindings(log);
+  const conflicts = openConflicts(log.store);
   const count = (s: Severity) => open.filter((f) => f.severity === s).length;
   const shown = orderIssues(
     open.filter((f) => severities.includes(f.severity) && (!rule || f.ruleId === rule)),
@@ -77,15 +108,28 @@ export async function issuesCommand(args: string[]) {
     return printJson({
       ok: true,
       from: log.from,
-      open: { errors: count("error"), warnings: count("warning"), notes: count("info") },
+      open: { changedOnTwoDevices: conflicts.length, errors: count("error"), warnings: count("warning"), notes: count("info") },
+      changedOnTwoDevices: conflicts.map((c) => conflictJson(log, c)),
       groups: shown.map(([ruleId, list]) => ({ rule: ruleId, title: RULES[ruleId]?.title ?? ruleId, findings: list.map((f) => ({ ...findingJson(f), date: findingDate(log, f) || null, recordLabels: f.records.map((r) => recordLabel(log, r)) })) })),
     });
 
   const e = count("error");
   const w = count("warning");
-  const head = e + w === 0 ? "Nothing to review. Every check passed or was accepted." : [e && `${plural(e, "entry", "entries")} ${e === 1 ? "looks" : "look"} wrong`, w && `${plural(w, "entry", "entries")} ${w === 1 ? "is" : "are"} worth a look`].filter(Boolean).join(" and ") + ".";
+  const c = conflicts.length;
+  const parts = [c && `${plural(c, "field was", "fields were")} changed on two devices`, e && `${plural(e, "entry", "entries")} ${e === 1 ? "looks" : "look"} wrong`, w && `${plural(w, "entry", "entries")} ${w === 1 ? "is" : "are"} worth a look`].filter(Boolean) as string[];
+  const head = !parts.length ? "Nothing to review. Every check passed or was accepted." : (parts.length > 2 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts.join(" and ")) + ".";
   const notes = count("info");
   console.log(`${bold(head.charAt(0).toUpperCase() + head.slice(1))} ${dim(`${notes ? `${plural(notes, "note")} besides (--severity info). ` : ""}Read from ${log.from}.`)}`);
+  if (c) {
+    const lines: string[] = [];
+    for (const x of conflicts) {
+      const label = x.field === "deleted" ? "Deleted on one device and changed on another; the entry was kept" : `${FIELD_LABEL[x.field] ?? x.field}: ${conflictValue(x.field, JSON.stringify((log.store.peek(x.tableName as never, x.recordId) as Record<string, unknown> | null)?.[x.field] ?? null))} in your log, ${conflictValue(x.field, x.otherValue)} from the other change`;
+      lines.push(`${yellow("≠")} ${label}`);
+      lines.push(dim(`    ${recordLabel(log, { table: x.tableName, id: x.recordId })} · id ${x.id}`));
+    }
+    lines.push(dim("Choose which to keep on the Issues page in the web app."));
+    for (const line of section(`Changed on two devices ${dim(`· ${plural(c, "field")}`)}`, lines)) console.log(line);
+  }
   for (const [ruleId, list] of shown) {
     const lines: string[] = [];
     for (const f of list) {

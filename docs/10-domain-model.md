@@ -40,7 +40,8 @@ Every user table has these, in addition to its own columns:
 | `rev` | integer | +1 on every change. |
 | `updatedAt` | datetime | UTC (`Z`). |
 | `updatedBy` | text | Device id. |
-| `basedOn` | text | The version (its `updatedAt`, `updatedBy` and `rev`) of another device's row this one was edited from, kept through later edits on the same device; null for a row only this device has edited. Sync uses it to tell an edit made on top of a version from one made beside it ([12](12-storage-and-sync.md), "Sync algorithm"). |
+| `basedOn` | text | The version (its `updatedAt`, `updatedBy` and `rev`) of another device's row this one was edited from, kept through later edits on the same device; null for a row only this device has edited. Sync uses it for rows last written before `versionVector` existed. |
+| `versionVector` | text | For each device, how many of its edits this version includes: `dev_a=3,cli_b=1`, devices in order. Every new version counts one more for the device that makes it, on top of the versions it was made from. A version whose vector includes every count of another's was made on top of it; otherwise the two were made side by side and sync merges them ([12](12-storage-and-sync.md), "Sync algorithm"). No clock is involved. |
 | `deleted` | boolean | Tombstone. Kept so deletes sync. |
 
 Reference tables and `track_points` do not have them (reference data is replaced as a whole; track points are replaced with their track).
@@ -59,7 +60,7 @@ User data
   sightings ─< sighting_tags
   flights / sightings ─< photo_links
   flights ─< tracks ─< track_points
-  any user row ─< field_provenance, external_ids, record_history
+  any user row ─< field_provenance, external_ids, record_history, sync_conflicts
   import_batches        issue_acks ─< issue_ack_records
   settings, family_overrides, saved_views ─< saved_view_filters
   airport_overrides, operator_overrides, aircraft_type_overrides
@@ -256,6 +257,8 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 
 **record_history**: previous versions of rows, for undo and conflict review. `tableName` (text), `recordId` (id), `recordRev` (integer; the version of the row that was replaced, named so it does not clash with the system column `rev`), `row` (json), `changedAt` (datetime), `batchId` (ref import_batches, optional), `reason` (enum `edit`, `import`, `sync_conflict`, `migration`). A user's own edits write a row with reason `edit`; undoing an import uses this to leave records edited since alone.
 
+**sync_conflicts**: one field changed on two devices before either saw the other's change ([12](12-storage-and-sync.md), "Sync algorithm"). Sync keeps one value, the later version's, and lists the other here until the user chooses on the Issues page. `tableName` (text), `recordId` (text: the row's key, an id or a fixed key such as `settings`), `field` (text: a column, or `deleted` for an entry deleted on one device and changed on the other), `keptValue` and `otherValue` (text: the values as JSON, `"12A"`, `null`), `keptBy`, `otherBy` (text: device ids), `keptAt`, `otherAt` (datetime: when each version was made), `detectedAt` (datetime), `resolvedAt` (datetime, null while open), `resolution` (enum `kept`, `other`). Both devices may find the same conflict; its id is made from the two versions, so it is listed once.
+
 **import_batches**: `createdAt` (datetime), `sourceKind` (enum), `fileName` (text), `fileHash` (text), `mappingPreset` (text), `rowsRead`, `rowsAccepted`, `rowsEdited`, `rowsRejected` (integer), `agentChecker` (enum `claude`, `codex`, `none`), `status` (enum `committed`, `undone`). The original source file is kept next to the data as an attachment ([12](12-storage-and-sync.md)).
 
 **issue_acks**: a warning the user accepted ([20](20-validation.md)). `ruleId` (text), `fingerprint` (text; hash of the values that triggered it; if they change, the warning returns), `note` (text).
@@ -296,3 +299,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 | 2 | `basedOn` system column. |
 | 3 | `settings.dataMode` and `settings.storageAccount`. |
 | 4 | `settings.agentChecker`, `settings.sendNotesToAgent` and the `agent_rules` table removed: the agent check's settings belong to the CLI on each computer ([22](22-agent-verification.md)). Older files have the columns dropped when read; an `agent_rules` file is not read. |
+| 5 | `versionVector` system column and the `sync_conflicts` table, for merging edits field by field ([12](12-storage-and-sync.md)). Older rows have no vector until they are next changed. |

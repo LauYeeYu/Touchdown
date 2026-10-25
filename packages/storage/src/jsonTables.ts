@@ -61,9 +61,9 @@ function parseTable(data: Uint8Array, table: TableName): { rows: StoredRow[] } |
   } catch {
     return { problems: ["not valid JSON"] };
   }
-  if (typeof file.schemaVersion === "number" && file.schemaVersion > SCHEMA_VERSION) {
-    return { problems: [`written with schema version ${file.schemaVersion}, newer than this app's ${SCHEMA_VERSION}`] };
-  }
+  // A newer version of the app has changed the log since this one opened it: stop until this app is updated, and
+  // never write over the file.
+  if (typeof file.schemaVersion === "number" && file.schemaVersion > SCHEMA_VERSION) throw new SchemaTooNewError(file.schemaVersion);
   file = upgradeTableFile(file, table);
   const problems = checkTableFile(file, table);
   return problems.length ? { problems: problems.map((p) => p.message) } : { rows: file.rows };

@@ -55,6 +55,9 @@ export const MIGRATIONS: { to: number; addColumns?: { table: TableName | "*"; co
   // The agent check's settings moved to the CLI on each computer (docs/22). The agent_rules table went too; files
   // of tables the schema no longer has are not read.
   { to: 4, dropColumns: [{ table: "settings", column: "agentChecker" }, { table: "settings", column: "sendNotesToAgent" }] },
+  // Every table with system columns gains versionVector, for merging edits field by field (docs/12). The new
+  // sync_conflicts table starts empty: a missing table file is an empty table.
+  { to: 5, addColumns: [{ table: "*", column: "versionVector" }] },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */

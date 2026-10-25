@@ -7,6 +7,7 @@ import { TABLES, type Row, type TableName, type Values } from "./schema/tables.t
 import { validateRow, type RowProblem } from "./schema/validate.ts";
 import { ulid } from "./ids.ts";
 import { toUtcIso } from "./time/index.ts";
+import { nextVector } from "./versionVector.ts";
 
 export class RowValidationError extends Error {
   constructor(
@@ -103,6 +104,7 @@ export class Store {
       updatedAt: toUtcIso(this.now()),
       updatedBy: this.deviceId,
       basedOn: null,
+      versionVector: nextVector(this.deviceId),
       deleted: false,
     }) as Row<N>;
     return this.write(table, null, row);
@@ -128,7 +130,7 @@ export class Store {
    */
   restore<N extends TableName>(table: N, id: string, earlier: Record<string, unknown>): Row<N> {
     const before = this.map(table).get(id) ?? null;
-    const values = Object.fromEntries(Object.entries(earlier).filter(([k]) => !["id", "rev", "updatedAt", "updatedBy", "basedOn", "deleted"].includes(k)));
+    const values = Object.fromEntries(Object.entries(earlier).filter(([k]) => !["id", "rev", "updatedAt", "updatedBy", "basedOn", "versionVector", "deleted"].includes(k)));
     if (!before) return this.insert(table, values as Partial<Values<N>>, id);
     const after = { ...before, ...values, deleted: false, ...this.stamp(before as Record<string, unknown>) } as Row<N>;
     return this.write(table, before, after);
@@ -148,7 +150,28 @@ export class Store {
       updatedAt: toUtcIso(this.now()),
       updatedBy: this.deviceId,
       basedOn: before.updatedBy === this.deviceId ? (before.basedOn ?? null) : rowVersion(before),
+      versionVector: nextVector(this.deviceId, before.versionVector),
     };
+  }
+
+  /**
+   * A version of a row merged on this device from its own version and another device's (sync, docs/12): the given
+   * values, made on top of both, so every device takes it. Listeners see it as an edit made here.
+   */
+  merged<N extends TableName>(table: N, key: string, values: Record<string, unknown>, theirs: Record<string, unknown>): Row<N> {
+    const before = this.map(table).get(key);
+    if (!before) throw new Error(`${table}: no row ${key}`);
+    const mine = before as Record<string, unknown>;
+    const after = {
+      ...before,
+      ...values,
+      rev: Math.max(Number(mine.rev), Number(theirs.rev)) + 1,
+      updatedAt: toUtcIso(this.now()),
+      updatedBy: this.deviceId,
+      basedOn: rowVersion(theirs),
+      versionVector: nextVector(this.deviceId, mine.versionVector, theirs.versionVector),
+    } as Row<N>;
+    return this.write(table, before, after);
   }
 
   /** Put rows exactly as given (loading from storage, sync merges). Validated, not re-stamped. */

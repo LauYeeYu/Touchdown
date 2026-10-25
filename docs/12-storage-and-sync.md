@@ -87,15 +87,22 @@ interface FileAdapter {                                         // used by file 
 The same for every backend, because it works on rows:
 
 1. **Pull** rows changed since the last cursor (file backends: the whole file, when its version marker changed).
-2. **Merge per row.** Only on one side: keep it. On both sides, in different versions:
-   - If one was edited on top of the other, the later one is kept. A row names the other device's version it was edited from (`basedOn`, [10](10-domain-model.md)), and one device's versions of a row follow each other.
-   - Otherwise the row was edited on two devices since they last agreed. The higher `(updatedAt, updatedBy, rev)` wins (last writer wins per row, not per file), and the losing version goes to `record_history` with reason `sync_conflict` and is listed for review. Both devices may notice the same conflict; the kept row's id is made from the conflict, so it is kept once.
+2. **Merge per row.** Only on one side: keep it. On both sides, in different versions (Decided, built):
+   - **One made on top of the other.** A version whose version vector (`versionVector`, [10](10-domain-model.md)) includes every count of the other's was made on top of it, and is kept. No clock is involved, so this holds however long a device was away and however many devices edited in between. Rows last written before vectors existed fall back to `basedOn` and to one device's versions following each other.
+   - **Made side by side** (neither includes the other). The device merges them into a new version on top of both, field by field, as a spreadsheet merges cells, against the version its own unsent edits started from (kept with each row in its queue):
+     - a field changed on one side only takes that change, so two devices changing different fields of one entry both keep their changes;
+     - notes (`notes`, `note`) changed on both sides are merged as text when the two edits change different words, as a shared document is;
+     - a field changed on both sides to different values keeps the later version's value (`updatedAt`, then `updatedBy`, then `rev`); the other value goes to `sync_conflicts` and the user chooses on the Issues page ([31](31-ui.md), "Issues"). Both devices may find the same conflict; its id is made from the two versions, so it is listed once;
+     - an entry deleted on one side and changed on the other stays, with the changes, and the deletion is listed;
+     - when the stored version was not made on top of that starting version (a stale copy written back, or a queue from before starting versions were kept), every field that differs is listed.
+   
+   The merged version's vector counts on from both, so every other device takes it. A device writes such a version even when the two held the same values, so its own versions of a row always follow one another and its next edit counts on from its last. `record_history` and `sync_conflicts` are not merged field by field: the later version is kept, or the one that resolves the conflict. Clocks only decide which value stays until the user chooses.
 3. **Push** local rows the backend does not have yet.
 4. **Confirm.** A device keeps the rows edited on it in a local queue until the storage shows them back: a later pull, or a push that finds them there already. This covers file backends whose storage has no compare-and-swap (Google Drive): if two devices write at nearly the same moment and one write overwrites the other, the overwritten device still has its rows queued and pushes them again. A confirmed row that an overwrite later removes is found by the next pull (the stored version is older, or was edited beside it) and handled by step 2.
 
 Sync runs on app start, a few seconds after edits, on focus, and every few minutes while the app is open. The first sync after the app starts reads every table file again, not only the changed ones, so an edit whose queue entry was lost (the browser closed before it was saved) is still found and sent.
 
-Built: the sync engine in `packages/storage` (`src/sync.ts`), with a test where three devices edit, sync at the same time with their file reads and writes interleaved, and sometimes write a stale copy back; every run ends with the same log on every device and no edit lost.
+Built: the sync engine in `packages/storage` (`src/sync.ts`, `src/merge.ts`), with a test where three devices add, change fields of and delete entries, sync at the same time with their file reads and writes interleaved, and sometimes write a stale copy back; every run ends with the same log on every device, and every value set is in the log, was changed further by a device that had it, or is listed for the user. A browser that restores a backup becomes a new device for sync (a new device id), since its copy no longer includes every version it made; so does one whose data is deleted.
 
 ## File backend: JSON tables
 
@@ -190,7 +197,7 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 - Migration steps are defined once in core (add column, rename column, add table, transform values). Each backend has a runner: JSON tables rewrite the files; SQL backends run generated DDL plus data updates.
 - Built so far: adding columns (`MIGRATIONS` and `upgradeTableFile` in core). Table files and backups from an older version are upgraded as they are read, and written in the current version from then on; opening a JSON tables folder moves its manifest to the current version.
 - Before migrating, the app writes a backup. Rows' previous forms go to `record_history` with reason `migration` when values are transformed.
-- If the stored version is newer than the app understands, the app opens read-only and asks the user to reload.
+- If the log, or a table file in it, was written by a newer version than the app understands, the app stops syncing and asks for a reload (built): a bar under the masthead, "A newer version of Touchdown has changed your log … Reload to update the app", with a Reload button, and "Reload to update" as the save state. The app is not read-only: edits made meanwhile are kept in the browser and sent after the reload, which loads the new version. Such a file is never written over. Table files of an older version are upgraded as they are read, so a newer app reads what an older one wrote. The command line refuses a log newer than itself ("git pull, then npm install"), and `review` refuses an older one until the web app has opened it once.
 
 ## File adapters
 

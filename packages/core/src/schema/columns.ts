@@ -50,6 +50,9 @@ export const systemColumns = [
   // The version of another device's row this one was edited from, kept through later edits on this device, so sync
   // can tell an edit made on top of a version from one made beside it (docs/12, "Sync algorithm").
   c.text("basedOn"),
+  // For each device, how many of its edits this version includes ("dev_a=3,cli_b=1"; versionVector.ts), so sync can
+  // tell versions made on top of each other from versions made side by side without relying on clocks.
+  c.text("versionVector"),
   c.boolean("deleted", { required: true }),
 ] as const;
 

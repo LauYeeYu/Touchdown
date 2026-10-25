@@ -3,7 +3,7 @@
 // and every few minutes.
 
 import type { Store } from "@touchdown/core";
-import { GoogleDrive, JsonTablesBackend, SignInNeeded, SyncEngine, type FileAdapter, type SyncState, type SyncStateStore } from "@touchdown/storage";
+import { GoogleDrive, JsonTablesBackend, SchemaTooNewError, SignInNeeded, SyncEngine, type FileAdapter, type SyncState, type SyncStateStore } from "@touchdown/storage";
 import type { StorageKind, SyncedConnection } from "./connection.ts";
 import { db } from "./db.ts";
 import { folderAllowed, LocalFolder } from "./folder.ts";
@@ -13,9 +13,9 @@ import { ServerDriveAuth, standard } from "./standard.ts";
 export interface SyncInfo {
   /**
    * "permission": sync waits for the user's click, to use the folder again or to sign in to Google again (a
-   * token lasts an hour).
+   * token lasts an hour). "update": a newer version of the app has changed the log; sync waits for a reload.
    */
-  state: "permission" | "syncing" | "synced" | "failed";
+  state: "permission" | "syncing" | "synced" | "failed" | "update";
   mode: SyncedConnection["mode"];
   adapter: StorageKind;
   /** Where the log syncs to, as the user knows it. */
@@ -148,6 +148,7 @@ export class SyncController {
   private failed(e: unknown) {
     // In Standard the server says why its key does not work; in Private the bar's own words say it.
     if (e instanceof SignInNeeded) this.set({ state: "permission", error: this.connection.mode === "standard" ? e.message : null, waiting: this.engine?.waiting ?? 0 });
+    else if (e instanceof SchemaTooNewError) this.set({ state: "update", error: null, waiting: this.engine?.waiting ?? 0 });
     else this.set({ state: "failed", error: (e as Error).message, waiting: this.engine?.waiting ?? 0 });
   }
 

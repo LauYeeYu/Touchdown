@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SCHEMA_VERSION, Store, TABLES, type TableName } from "@touchdown/core";
-import { JsonTablesBackend, MemoryFolder, MemorySyncState, SchemaTooNewError, SyncEngine, type StoredRow } from "../src/index.ts";
+import { SCHEMA_VERSION, Store, TABLES, updateSettings, type TableName } from "@touchdown/core";
+import { JsonTablesBackend, MemoryFolder, MemorySyncState, mergeText, SchemaTooNewError, SyncEngine } from "../src/index.ts";
 import { conflicts, device, FLIGHTS, race, settle, snapshot, testClock } from "./helpers.ts";
 
 describe("sync between devices", () => {
@@ -47,7 +47,7 @@ describe("sync between devices", () => {
     expect(conflicts(a.store)).toHaveLength(0);
   });
 
-  it("keeps the later of two edits to one row everywhere and lists the other for review", async () => {
+  it("keeps both edits when two devices change different fields of one row", async () => {
     const clock = testClock();
     const folder = new MemoryFolder();
     const a = await device(folder, "dev_a", clock.now);
@@ -58,14 +58,164 @@ describe("sync between devices", () => {
     clock.tick();
     a.store.update("flights", f.id, { seat: "1A" });
     clock.tick();
+    b.store.update("flights", f.id, { departureGate: "B7", cabinClass: "business" });
+    await settle([a, b]);
+
+    expect(a.store.get("flights", f.id)).toMatchObject({ seat: "1A", departureGate: "B7", cabinClass: "business" });
+    expect(snapshot(a.store)).toEqual(snapshot(b.store));
+    expect(conflicts(a.store)).toHaveLength(0);
+  });
+
+  it("keeps the later of two edits to one field everywhere and lists the other once for review", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100" });
+    await settle([a, b]);
+
+    clock.tick();
+    a.store.update("flights", f.id, { seat: "1A", departureGate: "C1" });
+    clock.tick();
     b.store.update("flights", f.id, { seat: "2B" });
     await settle([a, b]);
 
-    expect(a.store.get("flights", f.id)?.seat).toBe("2B");
+    expect(a.store.get("flights", f.id)).toMatchObject({ seat: "2B", departureGate: "C1" });
     expect(snapshot(a.store)).toEqual(snapshot(b.store));
-    const kept = conflicts(a.store);
-    expect(kept).toHaveLength(1);
-    expect((kept[0]!.row as StoredRow).seat).toBe("1A");
+    const listed = conflicts(a.store);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toMatchObject({ tableName: "flights", recordId: f.id, field: "seat", keptValue: '"2B"', otherValue: '"1A"', keptBy: "dev_b", otherBy: "dev_a", resolvedAt: null });
+  });
+
+  it("merges notes changed in different places, and lists notes changed in the same place", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const s = a.store.insert("sightings", { registration: "G-XYZA", notes: "Taxiing to runway 27L in the rain" });
+    await settle([a, b]);
+
+    clock.tick();
+    a.store.update("sightings", s.id, { notes: "Taxiing to runway 27R in the rain" });
+    b.store.update("sightings", s.id, { notes: "Taxiing to runway 27L in heavy rain" });
+    await settle([a, b]);
+    expect(a.store.get("sightings", s.id)?.notes).toBe("Taxiing to runway 27R in heavy rain");
+    expect(conflicts(a.store)).toHaveLength(0);
+
+    clock.tick();
+    a.store.update("sightings", s.id, { notes: "Lined up on runway 27R" });
+    b.store.update("sightings", s.id, { notes: "Took off from runway 27R" });
+    await settle([a, b]);
+    expect(conflicts(b.store).map((c) => c.field)).toEqual(["notes"]);
+    expect(snapshot(a.store)).toEqual(snapshot(b.store));
+  });
+
+  it("keeps an entry deleted on one device and edited on the other, and lists the deletion", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100" });
+    await settle([a, b]);
+
+    clock.tick();
+    a.store.remove("flights", f.id);
+    clock.tick();
+    b.store.update("flights", f.id, { seat: "5E" });
+    await settle([a, b]);
+
+    expect(a.store.get("flights", f.id)?.seat).toBe("5E");
+    expect(conflicts(a.store)).toMatchObject([{ field: "deleted", keptValue: "false", otherValue: "true", otherBy: "dev_a" }]);
+    expect(snapshot(a.store)).toEqual(snapshot(b.store));
+  });
+
+  it("takes edits made in turn on other devices without listing a conflict, however long a device was away", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const c = await device(folder, "dev_c", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100" });
+    await settle([a, b, c]);
+
+    // A is away while B edits, then C edits B's version.
+    clock.tick();
+    b.store.update("flights", f.id, { seat: "7A" });
+    await settle([b, c]);
+    clock.tick();
+    c.store.update("flights", f.id, { seat: "8B" });
+    await settle([c]);
+    await settle([a, b, c]);
+
+    expect(a.store.get("flights", f.id)?.seat).toBe("8B");
+    expect(conflicts(a.store)).toHaveLength(0);
+  });
+
+  it("merges edits to a row written before version vectors, as an existing log has", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100" });
+    // As an older version of the app wrote it.
+    a.store.load("flights", [{ ...a.store.peek("flights", f.id)!, versionVector: null }]);
+    await settle([a, b]);
+    expect(b.store.get("flights", f.id)?.versionVector).toBeNull();
+
+    clock.tick();
+    a.store.update("flights", f.id, { seat: "1A" });
+    b.store.update("flights", f.id, { departureGate: "B7" });
+    await settle([a, b]);
+    expect(a.store.get("flights", f.id)).toMatchObject({ seat: "1A", departureGate: "B7" });
+    expect(conflicts(a.store)).toHaveLength(0);
+
+    clock.tick();
+    a.store.update("flights", f.id, { seat: "2B" });
+    await settle([a, b]);
+    expect(b.store.get("flights", f.id)?.seat).toBe("2B");
+    expect(snapshot(a.store)).toEqual(snapshot(b.store));
+  });
+
+  it("lists a setting changed on two devices", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    updateSettings(a.store, { theme: "light" });
+    await settle([a, b]);
+
+    clock.tick();
+    updateSettings(a.store, { theme: "dark", distanceUnit: "mi" });
+    clock.tick();
+    updateSettings(b.store, { theme: "system" });
+    await settle([a, b]);
+
+    expect(a.store.get("settings", "settings")).toMatchObject({ theme: "system", distanceUnit: "mi" });
+    expect(conflicts(b.store)).toMatchObject([{ tableName: "settings", recordId: "settings", field: "theme", keptValue: '"system"', otherValue: '"dark"' }]);
+  });
+
+  it("keeps a conflict resolved on one device resolved everywhere", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100" });
+    await settle([a, b]);
+    clock.tick();
+    a.store.update("flights", f.id, { seat: "1A" });
+    b.store.update("flights", f.id, { seat: "2B" });
+    await settle([a, b]);
+    const id = conflicts(a.store)[0]!.id;
+
+    clock.tick();
+    a.store.update("sync_conflicts", id, { resolvedAt: "2026-01-01T00:00:03Z", resolution: "kept" });
+    // B touches its copy later without having seen the resolution.
+    clock.tick(5);
+    b.store.update("sync_conflicts", id, { detectedAt: "2026-01-01T00:00:08Z" });
+    await settle([b, a]);
+
+    expect(a.store.get("sync_conflicts", id)?.resolution).toBe("kept");
+    expect(b.store.get("sync_conflicts", id)?.resolution).toBe("kept");
   });
 
   it("sends a write again when another device's stale write overwrote it", async () => {
@@ -100,7 +250,7 @@ describe("sync between devices", () => {
     clock.tick();
     const reopened = new Store({ deviceId: "dev_a", now: clock.now });
     for (const t of Object.keys(TABLES) as TableName[]) reopened.load(t, a.store.allWithDeleted(t) as never);
-    reopened.load("flights", [{ ...a.store.peek("flights", f.id)!, seat: "4D", rev: 2, updatedAt: "2026-01-01T00:00:01Z" }] as never);
+    reopened.load("flights", [{ ...a.store.peek("flights", f.id)!, seat: "4D", rev: 2, updatedAt: "2026-01-01T00:00:01Z", versionVector: "dev_a=2" }] as never);
     const engine = new SyncEngine(reopened, new JsonTablesBackend(folder, "dev_a"), new MemorySyncState(), clock.now);
     await engine.start();
     await engine.sync({ full: true });
@@ -109,6 +259,15 @@ describe("sync between devices", () => {
     const b = await device(folder, "dev_b", clock.now);
     await settle([b]);
     expect(b.store.get("flights", f.id)?.seat).toBe("4D");
+  });
+});
+
+describe("merging text", () => {
+  it("applies both edits when they change different words, and gives up when they overlap", () => {
+    expect(mergeText("a quiet morning at the fence", "a quiet sunny morning at the fence", "a quiet morning at the north fence")).toBe("a quiet sunny morning at the north fence");
+    expect(mergeText("seen on short final", "seen on long final", "seen on very short final")).toBeNull();
+    expect(mergeText("", "first", "second")).toBeNull();
+    expect(mergeText("same change", "same edit", "same edit")).toBe("same edit");
   });
 });
 
@@ -125,6 +284,23 @@ describe("storage files", () => {
     expect(report.problems.join(" ")).toMatch(/flights\.json/);
     expect(new TextDecoder().decode(folder.files.get(FLIGHTS)!.data)).toBe("{ not json");
     expect(a.store.all("flights")).toHaveLength(1);
+    expect(a.engine.waiting).toBeGreaterThan(0);
+  });
+
+  it("stops syncing at a table file written by a newer version of the app, keeping local edits and the file", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    a.store.insert("flights", { flightNumber: "XY100" });
+    await settle([a]);
+    const newer = JSON.parse(new TextDecoder().decode(folder.files.get(FLIGHTS)!.data));
+    const written = new TextEncoder().encode(JSON.stringify({ ...newer, schemaVersion: SCHEMA_VERSION + 1 }));
+    await folder.write(FLIGHTS, written);
+
+    clock.tick();
+    a.store.insert("flights", { flightNumber: "XY200" });
+    await expect(a.engine.sync({ full: true })).rejects.toBeInstanceOf(SchemaTooNewError);
+    expect(folder.files.get(FLIGHTS)!.data).toEqual(written);
     expect(a.engine.waiting).toBeGreaterThan(0);
   });
 

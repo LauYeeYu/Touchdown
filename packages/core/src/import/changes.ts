@@ -434,7 +434,7 @@ export function isEmptyChange(c: InboxChange): boolean {
 
 export type ChangeStatus = "pending" | "done" | "changed" | "missing";
 
-const SYSTEM = new Set(["id", "rev", "updatedAt", "updatedBy", "basedOn", "deleted"]);
+const SYSTEM = new Set(["id", "rev", "updatedAt", "updatedBy", "basedOn", "versionVector", "deleted"]);
 const valuesOf = (row: object) => Object.fromEntries(Object.entries(row).filter(([k]) => !SYSTEM.has(k)));
 
 /** Raw values the record lacks are filled from the normalised ones, so normalising again keeps them. */

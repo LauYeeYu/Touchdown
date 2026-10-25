@@ -5,7 +5,9 @@ import {
   checkAll,
   deleteRecord,
   mergeAirframes,
+  openConflicts,
   RefIndex,
+  resolveConflict,
   reopenFinding,
   saveFlight,
   saveSighting,
@@ -119,5 +121,30 @@ describe("changes to the log", () => {
     updateSettings(store, { codeDisplay: "icao" });
     updateSettings(store, { distanceUnit: "nm" });
     expect(settingsOf(store)).toMatchObject({ codeDisplay: "icao", distanceUnit: "nm" });
+  });
+});
+
+describe("fields changed on two devices", () => {
+  it("lists the open ones, and settles one by keeping the log's value or using the other", () => {
+    const ref = new RefIndex(refTables);
+    const store = newStore();
+    const f = saveFlight(store, ref, { scheduledDate: "2025-04-02", flightNumber: "DL300", airlineRaw: "DL", fromRaw: "BOS", toRaw: "SEA", seat: "12A" }).row;
+    const g = saveFlight(store, ref, { scheduledDate: "2025-04-03", flightNumber: "DL301", airlineRaw: "DL", fromRaw: "SEA", toRaw: "BOS" }).row;
+    const base = { tableName: "flights", keptBy: "dev_a", otherBy: "dev_b", detectedAt: "2026-10-24T12:00:00Z" };
+    const seat = store.insert("sync_conflicts", { ...base, recordId: f.id, field: "seat", keptValue: '"12A"', otherValue: '"14C"' });
+    const cabin = store.insert("sync_conflicts", { ...base, recordId: f.id, field: "cabinClass", keptValue: "null", otherValue: '"business"' });
+    const gone = store.insert("sync_conflicts", { ...base, recordId: g.id, field: "deleted", keptValue: "false", otherValue: "true" });
+    store.insert("sync_conflicts", { ...base, recordId: "01NOSUCHRECORD0000000000000", field: "seat", keptValue: '"1A"', otherValue: '"2B"' });
+    expect(openConflicts(store).map((c) => c.id)).toEqual([seat.id, cabin.id, gone.id]);
+
+    resolveConflict(store, ref, seat.id, "other", { now: NOW });
+    expect(store.get("flights", f.id)?.seat).toBe("14C");
+    expect(history(store, f.id)).toHaveLength(1);
+    resolveConflict(store, ref, cabin.id, "kept", { now: NOW });
+    expect(store.get("flights", f.id)?.cabinClass).toBeNull();
+    resolveConflict(store, ref, gone.id, "other", { now: NOW });
+    expect(store.get("flights", g.id)).toBeNull();
+    expect(openConflicts(store)).toEqual([]);
+    expect(store.get("sync_conflicts", seat.id)).toMatchObject({ resolvedAt: "2026-10-24T12:00:00Z", resolution: "other" });
   });
 });

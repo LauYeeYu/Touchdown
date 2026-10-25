@@ -24,7 +24,11 @@ const LOG = join(dir, "log.zip");
 beforeAll(() => {
   const ref = new RefIndex(loadRefTables());
   const store = new Store({ deviceId: "test" });
-  saveFlight(store, ref, { scheduledDate: "2025-03-14", flightNumber: "BA9001", airlineRaw: "BA", fromRaw: "EGLL", toRaw: "KJFK", takeoffAt: "2025-03-14T11:40+00:00", landingAt: "2025-03-14T14:35-04:00", registrationRaw: "G-ZZZA", typeCodeRaw: "B77W", seat: "14A", ticketNumber: TICKET, bookingRef: BOOKING });
+  const ba = saveFlight(store, ref, { scheduledDate: "2025-03-14", flightNumber: "BA9001", airlineRaw: "BA", fromRaw: "EGLL", toRaw: "KJFK", takeoffAt: "2025-03-14T11:40+00:00", landingAt: "2025-03-14T14:35-04:00", registrationRaw: "G-ZZZA", typeCodeRaw: "B77W", seat: "14A", ticketNumber: TICKET, bookingRef: BOOKING }).row;
+  // Fields changed on two devices: the seat, and the booking reference, whose values no command may print.
+  const conflict = { tableName: "flights", recordId: ba.id, keptBy: "dev_a", keptAt: "2026-01-12T10:05:00Z", otherBy: "cli_b", otherAt: "2026-01-12T10:02:00Z", detectedAt: "2026-01-12T10:10:00Z" };
+  store.insert("sync_conflicts", { ...conflict, field: "seat", keptValue: '"14A"', otherValue: '"12C"' });
+  store.insert("sync_conflicts", { ...conflict, field: "bookingRef", keptValue: JSON.stringify(BOOKING), otherValue: JSON.stringify(`${BOOKING.slice(0, 5)}9`) });
   saveFlight(store, ref, { scheduledDate: "2025-04-02", flightNumber: "DL9002", airlineRaw: "DL", fromRaw: "KJFK", toRaw: "KBOS", registrationRaw: "N9001Z", typeCodeRaw: "A21N" });
   saveFlight(store, ref, { scheduledDate: "2026-01-10", flightNumber: "DL9003", airlineRaw: "DL", fromRaw: "KBOS", toRaw: "KJFK", registrationRaw: "N9001Z", typeCodeRaw: "A21N", notes: `ticket ${TICKET.slice(0, 4)}` });
   saveSighting(store, ref, { seenOn: "2025-03-14", airportRaw: "EGLL", registrationRaw: "G-ZZZB", typeCodeRaw: "A320", operatorRaw: "BAW", phase: "landing" });
@@ -125,6 +129,11 @@ describe("reading the log from the command line", () => {
 
   it("lists open findings with their ids and fixes, and the imports", async () => {
     const issues = (await run(issuesCommand, "--json")).json();
+    expect(issues.open.changedOnTwoDevices).toBe(2);
+    expect(issues.changedOnTwoDevices).toMatchObject([
+      { field: "seat", private: false, inLog: "14A", other: "12C", recordLabel: expect.stringContaining("BA9001") },
+      { field: "bookingRef", private: true, inLog: null, other: null },
+    ]);
     const known = issues.groups.find((g: { rule: string }) => g.rule === "V-OPERATOR-KNOWN");
     expect(known.findings[0]).toMatchObject({ severity: "error", recordLabels: ["sighting N9002Z at KBOS on 2026-01-10"] });
     expect(known.findings[0].id).toMatch(/^[0-9a-f]{8}$/);
@@ -151,6 +160,7 @@ describe("reading the log from the command line", () => {
         const { text } = await run(command, ...args, ...form);
         expect(text).not.toContain(TICKET);
         expect(text).not.toContain(BOOKING);
+        expect(text).not.toContain(`${BOOKING.slice(0, 5)}9`);
       }
     }
   });

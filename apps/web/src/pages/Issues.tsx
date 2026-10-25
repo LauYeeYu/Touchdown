@@ -1,17 +1,19 @@
-// Issues (docs/31-ui.md): every open finding, grouped by rule, with the records involved, the suggested fix,
-// and "this is right" for warnings. Accepted warnings are listed separately so they can be reopened.
+// Issues (docs/31-ui.md): fields changed on two devices, to choose which to keep (docs/12), then every open finding,
+// grouped by rule, with the records involved, the suggested fix, and "this is right" for warnings. Accepted warnings
+// are listed separately so they can be reopened.
 
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
-import { flightDay, RULES, type Finding, type RecordRef } from "@touchdown/core";
+import { flightDay, PRIVATE_FIELDS, RULES, type Finding, type RecordRef, type Row, type TableName } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import type { AppData } from "../data/app.ts";
-import { dayMonthYear, plural } from "../lib/format.ts";
+import { dayMonthYear, FIELD_LABEL, momentLabel, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FindingItem } from "../components/Findings.tsx";
 import { Tabs } from "../components/Tabs.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { orderIssues } from "../lib/issueOrder.ts";
+import { aircraftViews } from "../lib/views.ts";
 
 type Sev = "error" | "warning" | "info";
 
@@ -51,11 +53,94 @@ function findingDate(f: Finding, app: AppData): string {
   return "";
 }
 
-function sentence(errors: number, warnings: number): string {
+function sentence(conflicts: number, errors: number, warnings: number): string {
+  const c = conflicts ? `${plural(conflicts, "field was", "fields were")} changed on two devices` : "";
   const e = errors ? `${plural(errors, "entry", "entries")} ${errors === 1 ? "looks" : "look"} wrong` : "";
   const w = warnings ? `${plural(warnings, "entry", "entries")} ${warnings === 1 ? "is" : "are"} worth a look` : "";
-  const text = [e, w].filter(Boolean).join(" and ");
+  const parts = [c, e, w].filter(Boolean);
+  const text = parts.length > 2 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts.join(" and ");
   return text.charAt(0).toUpperCase() + text.slice(1) + ".";
+}
+
+const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
+
+/** A value from a sync conflict (JSON text), as the page shows it. */
+function conflictValue(field: string, json: string | null): string {
+  if (PRIVATE.has(field)) return "(private)";
+  const v = json === null ? null : (JSON.parse(json) as unknown);
+  if (v === null || v === "") return "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  return String(v);
+}
+
+/** Where a change was made: this browser, the command line, or another device. */
+function deviceName(by: string | null, app: AppData): string {
+  if (by === app.store.deviceId) return "this device";
+  if (by?.startsWith("cli_")) return "the command line";
+  return "another device";
+}
+
+const madeOn = (by: string | null, at: string | null, app: AppData) => `${deviceName(by, app)}${at ? `, ${momentLabel(Date.parse(at))}` : ""}`;
+
+/** The record a sync conflict is about. */
+function ConflictRecord({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
+  const table = c.tableName as TableName;
+  if (table === "flights" || table === "sightings") return <RecordLink r={{ table, id: c.recordId }} app={app} />;
+  if (table === "airframes") {
+    const v = aircraftViews(app.store).find((x) => x.airframe.id === c.recordId);
+    return v ? (
+      <Link to="/aircraft/$id" params={{ id: c.recordId }}>
+        {v.registration ?? "Aircraft"}
+      </Link>
+    ) : null;
+  }
+  if (table === "settings") return <Link to="/settings">Settings</Link>;
+  if (table === "saved_views") return <>Saved view “{app.store.get("saved_views", c.recordId)?.name ?? ""}”</>;
+  return <>{table.replace(/_/g, " ")}</>;
+}
+
+function ConflictItem({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
+  const row = app.store.peek(c.tableName as TableName, c.recordId) as Record<string, unknown> | null;
+  const deleted = c.field === "deleted";
+  const label = deleted ? "Deleted and changed" : (FIELD_LABEL[c.field] ?? c.field);
+  const now = JSON.stringify(row?.[c.field] ?? null);
+  return (
+    <li className="finding finding--warning">
+      <Icon name="merge" />
+      <div className="finding__body">
+        <span className="finding__rule">{label}</span>
+        <p className="issue__records">
+          <ConflictRecord c={c} app={app} />
+        </p>
+        {deleted ? (
+          <p className="finding__text">
+            Deleted on {madeOn(c.otherBy, c.otherAt, app)}, and changed on {madeOn(c.keptBy, c.keptAt, app)}, before either saw the other. The entry was kept with the changes.
+          </p>
+        ) : (
+          <dl className="conflict">
+            <dt>In your log</dt>
+            <dd>
+              {conflictValue(c.field, now)}
+              <span className="conflict__when"> · {now === c.keptValue ? madeOn(c.keptBy, c.keptAt, app) : "changed since"}</span>
+            </dd>
+            <dt>The other change</dt>
+            <dd>
+              {conflictValue(c.field, c.otherValue)}
+              <span className="conflict__when"> · {madeOn(c.otherBy, c.otherAt, app)}</span>
+            </dd>
+          </dl>
+        )}
+        <div className="finding__actions">
+          <button type="button" className="btn btn--small btn--quiet" aria-label={deleted ? undefined : `Keep the ${label.toLowerCase()} in your log`} onClick={() => app.resolveConflict(c.id, "kept")}>
+            {deleted ? "Keep the entry" : "Keep it"}
+          </button>
+          <button type="button" className="btn btn--small btn--ghost" aria-label={deleted ? undefined : `Use the other ${label.toLowerCase()}`} onClick={() => app.resolveConflict(c.id, "other")}>
+            {deleted ? "Delete it" : "Use the other"}
+          </button>
+        </div>
+      </div>
+    </li>
+  );
 }
 
 export function Issues() {
@@ -68,6 +153,8 @@ export function Issues() {
   const open = useMemo(() => app.findings(), [app, version]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const accepted = useMemo(() => app.acceptedFindings(), [app, version]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const conflicts = useMemo(() => app.conflicts(), [app, version]);
   const count = (s: Sev) => open.filter((f) => f.severity === s).length;
   // A fixed order, so accepting or fixing a finding brings the next one into its place (lib/issueOrder.ts).
   const ordered = orderIssues(
@@ -80,9 +167,9 @@ export function Issues() {
     <div className="page">
       <div className="view-top" />
       <h1 className="lead">
-        {count("error") + count("warning") === 0
+        {conflicts.length + count("error") + count("warning") === 0
           ? "Nothing to review. Every check passed or was accepted."
-          : sentence(count("error"), count("warning"))}
+          : sentence(conflicts.length, count("error"), count("warning"))}
       </h1>
       <p className="form-sub">Checks never block saving. Fix what is wrong, or mark a warning as right; it comes back only if the values change.</p>
       <Tabs
@@ -90,12 +177,26 @@ export function Issues() {
         value={tab}
         onChange={setTab}
         items={[
-          ["open", `Open (${open.length})`],
+          ["open", `Open (${open.length + conflicts.length})`],
           ["accepted", `Accepted (${accepted.length})`],
         ]}
       />
       {tab === "open" && (
         <>
+          {conflicts.length > 0 && (
+            <section className="section issue-group issue-group--conflicts">
+              <div className="section__head">
+                <h2 className="section__title">Changed on two devices</h2>
+                <span className="section__aside">{plural(conflicts.length, "field")}</span>
+              </div>
+              <p className="form-sub">Each was changed on two devices before either saw the other's change. Your log has the later one; choose which to keep.</p>
+              <ul className="findings">
+                {conflicts.map((c) => (
+                  <ConflictItem key={c.id} c={c} app={app} />
+                ))}
+              </ul>
+            </section>
+          )}
           <div className="chips" role="group" aria-label="Severity">
             {(
               [

@@ -2,7 +2,7 @@
 
 import { expect } from "vitest";
 import { Store, TABLES, type TableName } from "@touchdown/core";
-import { JsonTablesBackend, MemorySyncState, SyncEngine, versionOf, type FileAdapter, type StoredRow } from "../src/index.ts";
+import { JsonTablesBackend, MemorySyncState, SyncEngine, type FileAdapter, type StoredRow } from "../src/index.ts";
 
 export const FLIGHTS = "tables/flights.json";
 
@@ -38,8 +38,9 @@ export async function settle(devices: Device[], rounds = 4) {
   for (let i = 0; i < rounds; i++) for (const d of devices) await d.engine.sync();
 }
 
+/** Fields edited on two devices and listed for the user. */
 export function conflicts(store: Store) {
-  return store.all("record_history").filter((h) => h.reason === "sync_conflict");
+  return store.all("sync_conflicts");
 }
 
 export function random(seed: number) {
@@ -65,8 +66,8 @@ export interface RaceStorage {
 
 /**
  * Several devices edit, sync at the same time with their file reads and writes interleaved, and sometimes write a
- * stale copy back. Afterwards every device holds the same log, and every edit either is the row's final version,
- * was edited further by a device that had it, or is kept in record_history as a sync conflict.
+ * stale copy back. Afterwards every device holds the same log, and every edit either is in the row, was edited further
+ * by a device that had it, or is listed as a sync conflict.
  */
 export async function race(seed: number, storage: RaceStorage, steps = 60) {
   const rnd = random(seed);
@@ -77,25 +78,26 @@ export async function race(seed: number, storage: RaceStorage, steps = 60) {
   });
   const devices: Device[] = [];
   for (const id of ["dev_a", "dev_b", "dev_c"]) devices.push(await device(storage.adapter(id), id, clock.now));
-  const edits: { key: string; version: string; base: string | null }[] = [];
+  // Each edit sets a value no other edit sets; `before` is the value the editing device had.
+  const edits: { key: string; field: "seat" | "departureGate" | "deleted"; value: string | true; before: unknown }[] = [];
   const old: Uint8Array[] = [];
 
   for (let step = 0; step < steps; step++) {
     const d = pick(devices);
     const live = d.store.all("flights");
     const r = rnd();
-    if (r < 0.3 || !live.length) {
-      const row = d.store.insert("flights", { flightNumber: `XY${step}` });
-      edits.push({ key: row.id, version: versionOf(row as unknown as StoredRow), base: null });
+    if (r < 0.25 || !live.length) {
+      d.store.insert("flights", { flightNumber: `XY${step}` });
     } else if (r < 0.75) {
       const target = pick(live);
-      const row = d.store.update("flights", target.id, { seat: `${step}${d.id.slice(-1)}` });
-      edits.push({ key: row.id, version: versionOf(row as unknown as StoredRow), base: versionOf(target as unknown as StoredRow) });
+      const field = rnd() < 0.5 ? "seat" : "departureGate";
+      const value = `${step}${d.id.slice(-1)}`;
+      d.store.update("flights", target.id, { [field]: value });
+      edits.push({ key: target.id, field, value, before: target[field] });
     } else if (r < 0.85) {
       const target = pick(live);
       d.store.remove("flights", target.id);
-      const row = d.store.peek("flights", target.id)!;
-      edits.push({ key: row.id, version: versionOf(row as unknown as StoredRow), base: versionOf(target as unknown as StoredRow) });
+      edits.push({ key: target.id, field: "deleted", value: true, before: false });
     } else {
       await Promise.all(devices.filter(() => rnd() < 0.7).map((x) => x.engine.sync()));
     }
@@ -112,10 +114,12 @@ export async function race(seed: number, storage: RaceStorage, steps = 60) {
   for (const d of devices) expect(d.engine.waiting).toBe(0);
 
   const final = first!.store;
-  const superseded = new Set(edits.map((e) => e.base));
-  const kept = new Set(conflicts(final).map((h) => versionOf(h.row as StoredRow)));
+  const listed = conflicts(final);
   for (const e of edits) {
-    const now = versionOf(final.peek("flights", e.key) as unknown as StoredRow);
-    expect(now === e.version || superseded.has(e.version) || kept.has(e.version), `edit ${e.version} lost`).toBe(true);
+    const row = final.peek("flights", e.key) as unknown as StoredRow;
+    const inRow = e.field === "deleted" ? !!row.deleted : row[e.field] === e.value;
+    const editedFurther = edits.some((x) => x.key === e.key && x.field === e.field && x.before === e.value);
+    const isListed = listed.some((c) => c.recordId === e.key && c.field === e.field && [c.keptValue, c.otherValue].includes(JSON.stringify(e.value)));
+    expect(inRow || editedFurther || isListed, `${e.field} = ${e.value} on ${e.key} lost`).toBe(true);
   }
 }

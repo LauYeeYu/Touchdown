@@ -29,7 +29,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 | Spotting | `sightings [filters]`, `sessions [--year Y]` | Sightings; days out with their counts. |
 | Aircraft | `aircraft [REF]` | The list, or one aircraft's facts, registrations and timeline of flights and sightings. |
 | An airport | `airport CODE [--year Y]` | The airport page's facts and lists. |
-| Issues | `issues [--severity S] [--rule ID] [--accepted]` | Open findings, grouped as on the Issues page, each with its id and suggested fixes; or the accepted ones. |
+| Issues | `issues [--severity S] [--rule ID] [--accepted]` | Fields changed on two devices (values shown except private ones; choosing is on the Issues page for now), then open findings, grouped as on the Issues page, each with its id and suggested fixes; or the accepted ones. |
 | Import history | `imports` | The import batches, for `undo`. |
 | Maps and the globe | (none) | Figures and videos come with `touchdown render` in phase 6 ([23](23-tracks-and-maps.md)). |
 

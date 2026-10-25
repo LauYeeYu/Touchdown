@@ -4,7 +4,7 @@
 // and links records to airframes again; the result of that linking is returned, for the checks that use it.
 
 import { operatorFromOverride, type RefIndex } from "./ref/index.ts";
-import type { FlightValues, Row, Settings, SightingValues, TableName } from "./schema/tables.ts";
+import { TABLES, type FlightValues, type Row, type Settings, type SightingValues, type TableName } from "./schema/tables.ts";
 import type { Store } from "./store.ts";
 import type { Finding, SuggestedFix } from "./rules/types.ts";
 import { normaliseFlight, normaliseSighting } from "./normalise/record.ts";
@@ -20,7 +20,7 @@ export interface EditOptions {
   history?: boolean;
 }
 
-export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "deleted"> = {
+export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "versionVector" | "deleted"> = {
   distanceUnit: "km",
   theme: "system",
   codeDisplay: "iata",
@@ -220,6 +220,38 @@ export function reopenFinding(store: Store, ackId: string) {
   });
 }
 
+/**
+ * Fields edited on two devices before either saw the other's edit, not settled yet (docs/12, "Sync algorithm"), the
+ * oldest first. Those whose record is gone are left out.
+ */
+export function openConflicts(store: Store): Row<"sync_conflicts">[] {
+  return store
+    .all("sync_conflicts")
+    .filter((c) => !c.resolvedAt && c.tableName in TABLES && store.peek(c.tableName as TableName, c.recordId))
+    .sort((a, b) => String(a.detectedAt).localeCompare(String(b.detectedAt)) || a.id.localeCompare(b.id));
+}
+
+/**
+ * Settle a field edited on two devices: keep the value the log has now, or use the other device's ("other"). The
+ * choice syncs like any edit, so the conflict closes on every device.
+ */
+export function resolveConflict(store: Store, ref: RefIndex, id: string, use: "kept" | "other", opts: EditOptions = {}): { resolved: ResolveResult } | null {
+  const c = store.get("sync_conflicts", id);
+  if (!c || !(c.tableName in TABLES)) return null;
+  const table = c.tableName as TableName;
+  return store.batch(() => {
+    if (use === "other") {
+      keepHistory(store, table, c.recordId, opts);
+      const other = JSON.parse(c.otherValue ?? "null") as unknown;
+      if (c.field === "deleted") {
+        if (other === true) store.remove(table, c.recordId);
+      } else if (store.get(table, c.recordId)) store.update(table, c.recordId, { [c.field]: other } as never);
+    }
+    store.update("sync_conflicts", id, { resolvedAt: toUtcIso(opts.now ?? Date.now()), resolution: use });
+    return { resolved: resolveAirframes(store, ref) };
+  });
+}
+
 /** Count a type in another family in the statistics, or (`familyId` null) in its own again. */
 export function setFamily(store: Store, designator: string, familyId: string | null) {
   store.batch(() => {
@@ -263,7 +295,7 @@ export function refOverridesOf(store: Store) {
 /** The log's settings, with the defaults for a log that has none yet. */
 export function settingsOf(store: Store): Settings {
   const row = store.get("settings", "settings");
-  return (row ?? { ...DEFAULT_SETTINGS, id: "settings", rev: 0, updatedAt: toUtcIso(0), updatedBy: "", basedOn: null, deleted: false }) as Settings;
+  return (row ?? { ...DEFAULT_SETTINGS, id: "settings", rev: 0, updatedAt: toUtcIso(0), updatedBy: "", basedOn: null, versionVector: null, deleted: false }) as Settings;
 }
 
 export function updateSettings(store: Store, patch: Partial<Settings>) {
