@@ -25,6 +25,7 @@ Docs are numbered from low level to high level. Each one depends only on lower n
 | 31 | [UI](31-ui.md) | System | Pages and flows. |
 | 32 | [Data modes and sharing](32-modes-and-sharing.md) | System | Standard, Private and Local modes, the terms, share links, what the server stores. |
 | 33 | [Accounts and sign-in](33-accounts-and-sign-in.md) | System | The site's own sign-in (password or Google), invitations, sessions, the server that runs on Cloudflare or any machine. |
+| 34 | [The command line](34-command-line.md) | System | `./touchdown` on a par with the web app: reading, change files, review in the terminal, writing the log. |
 | 40 | [Roadmap](40-roadmap.md) | Delivery | Phases and exit criteria. |
 | 90 | [Open questions](90-open-questions.md) | Tracking | Unanswered questions and recorded answers. |
 

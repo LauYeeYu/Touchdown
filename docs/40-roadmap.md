@@ -68,6 +68,16 @@ The order puts the riskiest part first: the data model and identity rules are te
   - No token appears in logs, responses or the browser (test with a canary token).
   - The public page serves nothing but public links' content.
 
+## Phase 9: The command line on a par with the web app
+
+- Deliver: [34](34-command-line.md): the web app's operations in the core package; reading commands with `--json`; change files (inbox version 3) for edits, deletions, aircraft edits and merges, issues, undo, families and settings, reviewed on the Import page; `touchdown review`, which writes the log through the sync engine; `import FILE` to the inbox, `backup`, `export`. (Proposed)
+- Needs: phase 3 (sync). The account and the site stay in the web app.
+- Done when:
+  - Every change the web app can make to the log can be made from the CLI, and reaches the log only through a review (in the web app or in the terminal).
+  - A change reviewed in the terminal and one made at the same time in the web app both arrive, merged row by row (scripted test).
+  - A review stopped halfway is finished by the next command, with nothing lost or written twice.
+  - Ticket numbers and booking references can be added, changed and removed from the CLI, and no command prints one or sends one to the agent (test with a canary value).
+
 ## Later (not scheduled)
 
 - Local bridge between the web app and the CLI.

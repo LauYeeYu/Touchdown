@@ -147,7 +147,7 @@ Table file format:
 
 Size check: 1,000 flights ≈ 1 MB; 10,000 sightings ≈ 5 MB. One file per table is fine at that size. If a table passes 10 MB, it is split by year (`sightings.2026.json`), listed in the manifest.
 
-Why a visible folder and not Drive's hidden `appDataFolder`: the user can see, download, and back up the files, and the companion CLI can read them through Google Drive for Desktop. The CLI reads the log and writes the inbox through the Drive API (`touchdown storage drive`, [21](21-import-export.md)) with the web app's own access, given by the site in Standard mode or handed over by the browser in Private mode ([33](33-accounts-and-sign-in.md), "The command line"): with `drive.file`, the web app does not see files another app, such as Drive for Desktop, created.
+Why a visible folder and not Drive's hidden `appDataFolder`: the user can see, download, and back up the files, and the companion CLI can read them through Google Drive for Desktop. The CLI reads the log and writes the inbox (and, once `touchdown review` is built, the rows of a file the user imports, [34](34-command-line.md)) through the Drive API (`touchdown storage drive`, [21](21-import-export.md)) with the web app's own access, given by the site in Standard mode or handed over by the browser in Private mode ([33](33-accounts-and-sign-in.md), "The command line"): with `drive.file`, the web app does not see files another app, such as Drive for Desktop, created.
 
 ## File backend: SQLite file
 

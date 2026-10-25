@@ -29,6 +29,8 @@ None. Phase 1 test data is in `data/private/`.
 | Id | Question | Answer |
 |----|----------|--------|
 | — | Where does the app run? | Hosted web app; each user's data in storage they own. |
+| Q-CLI-PRIVATE | May the CLI show or change ticket numbers and booking references, for parity with the web app? | It can add, change and remove them, but never shows them: typed at a prompt that does not echo or given in a JSON file, reported only as added, changed or removed ([34](34-command-line.md), "Private fields"). |
+| Q-CLI-RESTORE | Should the CLI restore a backup over the log? | No. Restoring stays in the web app. |
 | Q-DRIVE-CLI | Do the CLI's own Google client and the web app's reach each other's files with `drive.file`? | Not needed: the CLI signs in to the site and uses the web app's own Google access (from the server in Standard mode, handed over by the browser in Private mode), so it reaches the same files ([33](33-accounts-and-sign-in.md), "The command line"). |
 | — | Who uses it? | The user and some friends; data private per user. |
 | — | Storage format? | JSON files in the user's Google Drive; other sync methods pluggable; CSV fallback. Superseded by the generic schema decision below. |
