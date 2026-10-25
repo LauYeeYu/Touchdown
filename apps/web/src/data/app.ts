@@ -2,28 +2,36 @@
 // index and everything derived from them (findings, airframe links). The UI reads and writes only here.
 
 import {
+  acceptFinding,
+  applyFix,
   checkAll,
-  identityKeyFor,
-  normaliseMsn,
   commitImport,
-  normaliseFlight,
-  normaliseSighting,
-  namedOperator,
+  deleteRecord,
+  mergeAirframes,
   operatorFromOverride,
   RefIndex,
+  reopenFinding,
   resolveAirframes,
   rowKey,
+  saveFlight,
+  saveSighting,
+  saveSightings,
+  setFamily,
+  settingsOf,
   Store,
   TABLES,
-  toUtcIso,
+  tagsOf,
   ulid,
   undoImport,
+  updateAirframe,
+  updateSettings,
   type CommitDecision,
   type Finding,
   type FlightValues,
   type Match,
   type ParsedSource,
   type RefTables,
+  type ResolveResult,
   type Row,
   type Settings,
   type SightingValues,
@@ -35,19 +43,6 @@ import { db } from "./db.ts";
 import { forgetGoogleToken } from "./google.ts";
 import { forgetSyncPosition, SyncController, type SyncInfo } from "./sync.ts";
 import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
-
-export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "deleted"> = {
-  distanceUnit: "km",
-  theme: "system",
-  codeDisplay: "iata",
-  modelNaming: "standard",
-  homeAirportId: null,
-  dataMode: null,
-  storageBackend: "json_tables",
-  storageAdapter: "manual",
-  storageLocation: null,
-  storageAccount: null,
-};
 
 function deviceId(): string {
   try {
@@ -304,13 +299,11 @@ export class AppData {
   }
 
   settings(): Settings {
-    const row = this.store.get("settings", "settings");
-    return (row ?? { ...DEFAULT_SETTINGS, id: "settings", rev: 0, updatedAt: toUtcIso(0), updatedBy: "", basedOn: null, deleted: false }) as Settings;
+    return settingsOf(this.store);
   }
 
   updateSettings(patch: Partial<Settings>) {
-    if (this.store.get("settings", "settings")) this.store.update("settings", "settings", patch);
-    else this.store.insert("settings", { ...DEFAULT_SETTINGS, ...patch }, "settings");
+    updateSettings(this.store, patch);
     if (patch.theme) {
       try {
         localStorage.setItem("td-theme", patch.theme);
@@ -321,188 +314,69 @@ export class AppData {
   }
 
   // ---------- writes ----------
+  // The changes themselves are in the core package (edit.ts), shared with the CLI. Each links records to airframes
+  // again; its overlaps are kept for the checks, and findings worked out before they arrived are dropped.
+
+  private keep(r: ResolveResult) {
+    this.cache = { version: -1, findings: [], resolvedOverlaps: r.overlaps };
+  }
 
   private resolve() {
-    const r = resolveAirframes(this.store, this.ref);
-    if (this.cache) this.cache.resolvedOverlaps = r.overlaps;
-    else this.cache = { version: -1, findings: [], resolvedOverlaps: r.overlaps };
-  }
-
-  private history(table: TableName, id: string, reason: "edit" = "edit") {
-    const cur = this.store.get(table, id);
-    if (!cur) return;
-    this.store.insert("record_history", {
-      tableName: table,
-      recordId: id,
-      recordRev: (cur as { rev: number }).rev,
-      row: cur as unknown as Record<string, unknown>,
-      changedAt: toUtcIso(Date.now()),
-      reason,
-    });
-  }
-
-  /** A company's name in the airline field ("Hyundai") becomes the user's own operator, as on import. */
-  private withNamedOperator<T extends Partial<FlightValues> | Partial<SightingValues>>(v: T, raw: "airlineRaw" | "operatorRaw", id: "airlineId" | "operatorId"): T {
-    const values = v as Record<string, unknown>;
-    if (values[id]) return v;
-    const op = namedOperator(this.store, this.ref, values[raw] as string | null);
-    return op ? ({ ...v, [id]: op.id } as T) : v;
+    this.keep(resolveAirframes(this.store, this.ref));
   }
 
   saveFlight(values: Partial<FlightValues>, id?: string): Row<"flights"> {
-    return this.store.batch(() => {
-      const v = this.withNamedOperator(normaliseFlight(values, this.ref), "airlineRaw", "airlineId");
-      let row: Row<"flights">;
-      if (id) {
-        this.history("flights", id);
-        row = this.store.update("flights", id, v);
-      } else row = this.store.insert("flights", { sourceKind: "manual", ...v });
-      this.resolve();
-      return this.store.get("flights", row.id)!;
-    });
+    const r = saveFlight(this.store, this.ref, values, id);
+    this.keep(r.resolved);
+    return r.row;
   }
 
   saveSighting(values: Partial<SightingValues>, id?: string, tags?: string[]): Row<"sightings"> {
-    return this.store.batch(() => {
-      const v = this.withNamedOperator(normaliseSighting(values, this.ref), "operatorRaw", "operatorId");
-      let row: Row<"sightings">;
-      if (id) {
-        this.history("sightings", id);
-        row = this.store.update("sightings", id, v);
-      } else row = this.store.insert("sightings", { sourceKind: "manual", ...v });
-      if (tags) this.setTags(row.id, tags);
-      this.resolve();
-      return this.store.get("sightings", row.id)!;
-    });
+    const r = saveSighting(this.store, this.ref, values, id, tags);
+    this.keep(r.resolved);
+    return r.row;
   }
 
   saveSightings(list: { values: Partial<SightingValues>; tags?: string[] }[]): number {
-    return this.store.batch(() => {
-      for (const item of list) {
-        const row = this.store.insert("sightings", { sourceKind: "manual", ...this.withNamedOperator(normaliseSighting(item.values, this.ref), "operatorRaw", "operatorId") });
-        if (item.tags?.length) this.setTags(row.id, item.tags);
-      }
-      this.resolve();
-      return list.length;
-    });
-  }
-
-  private setTags(sightingId: string, tags: string[]) {
-    const existing = this.store.all("sighting_tags").filter((t) => t.sightingId === sightingId);
-    for (const t of existing) if (!tags.includes(t.tag ?? "")) this.store.remove("sighting_tags", t.id);
-    const have = new Set(existing.map((t) => t.tag));
-    for (const tag of tags) if (!have.has(tag)) this.store.insert("sighting_tags", { sightingId, tag });
+    const r = saveSightings(this.store, this.ref, list);
+    this.keep(r.resolved);
+    return r.count;
   }
 
   tagsOf(sightingId: string): string[] {
-    return this.store
-      .all("sighting_tags")
-      .filter((t) => t.sightingId === sightingId && t.tag)
-      .map((t) => t.tag!);
+    return tagsOf(this.store, sightingId);
   }
 
   deleteRecord(table: "flights" | "sightings", id: string) {
-    this.store.batch(() => {
-      this.history(table, id);
-      this.store.remove(table, id);
-      if (table === "sightings") for (const t of this.store.all("sighting_tags")) if (t.sightingId === id) this.store.remove("sighting_tags", t.id);
-      this.resolve();
-    });
+    this.keep(deleteRecord(this.store, this.ref, table, id).resolved);
   }
 
   updateAirframe(id: string, patch: Partial<Row<"airframes">>) {
-    this.store.batch(() => {
-      this.history("airframes", id);
-      const cur = this.store.get("airframes", id);
-      const next: Partial<Row<"airframes">> = { ...patch };
-      if (patch.msn) next.msn = normaliseMsn(patch.msn);
-      const maker = patch.manufacturer ?? cur?.manufacturer;
-      if (patch.msn && maker) {
-        // A known serial number makes the airframe confirmed (docs/11, "Set MSN").
-        next.provisional = false;
-        next.identityKey = identityKeyFor(maker, patch.msn);
-      }
-      this.store.update("airframes", id, next);
-      for (const field of Object.keys(patch)) {
-        this.store.insert("field_provenance", { ownerTable: "airframes", ownerId: id, field, source: "user", detail: null, recordedAt: toUtcIso(Date.now()) });
-      }
-      this.resolve();
-    });
+    this.keep(updateAirframe(this.store, this.ref, id, patch).resolved);
   }
 
   /** Move every record of `from` to `into` and remove `from` (docs/11, "Merge airframes"). */
   mergeAirframes(into: string, from: string) {
-    this.store.batch(() => {
-      for (const table of ["flights", "sightings"] as const) {
-        for (const r of this.store.all(table)) {
-          if (r.airframeId !== from) continue;
-          this.store.update(table, r.id, { airframeId: into });
-          this.store.insert("field_provenance", { ownerTable: table, ownerId: r.id, field: "airframeId", source: "user", detail: "merge", recordedAt: toUtcIso(Date.now()) });
-        }
-      }
-      for (const p of this.store.all("registration_periods")) {
-        if (p.airframeId !== from) continue;
-        const dup = this.store.all("registration_periods").some((q) => q.airframeId === into && q.registration === p.registration);
-        if (dup) this.store.remove("registration_periods", p.id);
-        else this.store.update("registration_periods", p.id, { airframeId: into });
-      }
-      this.history("airframes", from);
-      this.store.remove("airframes", from);
-      this.resolve();
-    });
+    this.keep(mergeAirframes(this.store, this.ref, into, from).resolved);
   }
 
   /** Apply a suggested fix; returns what to tell the user when it did more than the one record. */
   applyFix(fix: SuggestedFix): string | null {
-    if (fix.operatorName) return this.addNamedOperator(fix.operatorName);
-    this.store.batch(() => {
-      this.history(fix.table, fix.id);
-      const patch: Record<string, unknown> = { [fix.field]: fix.value };
-      for (const a of fix.also ?? []) patch[a.field] = a.value;
-      // A fixed type code or registration replaces what was typed too, so raw and normalised agree.
-      if (fix.field === "typeCode") patch.typeCodeRaw = fix.value;
-      this.store.update(fix.table, fix.id, patch as never);
-      this.resolve();
-    });
-    return null;
-  }
-
-  /** Add a name as the user's own operator and link every flight and sighting that has it and no known operator. */
-  private addNamedOperator(name: string): string {
-    const key = (s: string | null) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-    let linked = 0;
-    this.store.batch(() => {
-      const op = namedOperator(this.store, this.ref, name);
-      if (!op) return;
-      for (const f of this.store.all("flights")) {
-        if (this.ref.operator(f.airlineId) || key(f.airlineRaw) !== key(name)) continue;
-        this.history("flights", f.id);
-        this.store.update("flights", f.id, { airlineId: op.id });
-        linked++;
-      }
-      for (const s of this.store.all("sightings")) {
-        if (this.ref.operator(s.operatorId) || key(s.operatorRaw) !== key(name)) continue;
-        this.history("sightings", s.id);
-        this.store.update("sightings", s.id, { operatorId: op.id });
-        linked++;
-      }
-      this.resolve();
-    });
-    return `Added ${name.trim()} as an operator and linked ${linked === 1 ? "1 entry" : `${linked} entries`} to it.`;
+    const r = applyFix(this.store, this.ref, fix);
+    this.keep(r.resolved);
+    return r.message;
   }
 
   acceptFinding(f: Finding, note: string | null = null) {
-    this.store.batch(() => {
-      const ack = this.store.insert("issue_acks", { ruleId: f.ruleId, fingerprint: f.fingerprint, note });
-      for (const r of f.records) this.store.insert("issue_ack_records", { ackId: ack.id, tableName: r.table, recordId: r.id });
-    });
+    acceptFinding(this.store, f, note);
   }
 
   reopenFinding(ackId: string) {
-    this.store.batch(() => {
-      for (const r of this.store.all("issue_ack_records")) if (r.ackId === ackId) this.store.remove("issue_ack_records", r.id);
-      this.store.remove("issue_acks", ackId);
-    });
+    reopenFinding(this.store, ackId);
+  }
+
+  setFamily(designator: string, familyId: string | null) {
+    setFamily(this.store, designator, familyId);
   }
 
   /** `agent`: the fields each row's accepted agent suggestions set (docs/22), recorded with their provenance. */

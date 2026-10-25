@@ -9,7 +9,7 @@
 | Parity | Everything the web app does with the log, the CLI does too: read it, change it, review and import. (Decided) |
 | Not the account | The account and the site stay in the web app: password, signed-in sessions, invitations, the Google link, the storage mode and Standard's terms. The CLI's session can reach only sign-in, sign-out and the storage access ([33](33-accounts-and-sign-in.md), "The command line"), so a leaked session file cannot change the password or invite anyone. (Decided) |
 | Review first | Every change the CLI makes is written to the inbox as a file. The user reviews it in the web app's Import page, as now, or in the terminal with `touchdown review`. The CLI writes to the log only when a review imports a file. (Decided) |
-| One implementation | A change is applied by the same code in both. Importing and undoing an import are in the core package already; the other operations the web app has in `apps/web/src/data/app.ts` (saving and deleting records, suggested fixes, accepting and reopening findings, airframe edits and merges) move there too. (Proposed) |
+| One implementation | A change is applied by the same code in both: importing and undoing an import (`packages/core/src/import/pipeline.ts`), and saving and deleting records, suggested fixes, accepting and reopening findings, airframe edits and merges, families and settings (`packages/core/src/edit.ts`). The web app's `AppData` only wraps them. (Decided, built) |
 | For agents too | Every command takes `--json` and has documented exit statuses, so an agent can run it, read the answer and go on. Reports never include the log's private fields. (Proposed) |
 | Private fields | Ticket numbers and booking references can be added, changed and removed from the CLI, but it never shows them. (Decided, Q-CLI-PRIVATE) How, below in "Private fields". |
 
@@ -126,7 +126,7 @@ So far the CLI reads the log and never writes it ([21](21-import-export.md), "Wi
 
 Each step is usable on its own.
 
-1. Move the web app's operations to the core package; the web app uses them unchanged.
+1. Move the web app's operations to the core package; the web app uses them unchanged. (Built)
 2. The reading commands, with `--json`.
 3. Change files (version 3), the changing commands, and their review on the Import page.
 4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`.

@@ -72,6 +72,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Deliver: [34](34-command-line.md): the web app's operations in the core package; reading commands with `--json`; change files (inbox version 3) for edits, deletions, aircraft edits and merges, issues, undo, families and settings, reviewed on the Import page; `touchdown review`, which writes the log through the sync engine; `import FILE` to the inbox, `backup`, `export`. (Proposed)
 - Needs: phase 3 (sync). The account and the site stay in the web app.
+- Built so far: step 1, the web app's changes to the log in the core package (`packages/core/src/edit.ts`), shared with the CLI.
 - Done when:
   - Every change the web app can make to the log can be made from the CLI, and reaches the log only through a review (in the web app or in the terminal).
   - A change reviewed in the terminal and one made at the same time in the web app both arrive, merged row by row (scripted test).

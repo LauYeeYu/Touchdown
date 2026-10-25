@@ -26,6 +26,7 @@ export * from "./import/pipeline.ts";
 export * from "./import/inbox.ts";
 export * from "./jsontables.ts";
 export * from "./backup.ts";
+export * from "./edit.ts";
 export * from "./tracks.ts";
 export * from "./agent/check.ts";
 export * from "./spot/entry.ts";

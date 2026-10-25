@@ -399,9 +399,7 @@ export function SettingsPage() {
               <button
                 type="button"
                 className="btn btn--quiet btn--small"
-                onClick={() => {
-                  store.remove("family_overrides", o.id);
-                }}
+                onClick={() => app.setFamily(o.designator!, null)}
               >
                 Remove
               </button>
@@ -418,7 +416,7 @@ export function SettingsPage() {
             toast(ref.type(d) ? "Choose a family." : `${d} is not a type code.`);
             return;
           }
-          store.insert("family_overrides", { designator: d, familyId: family });
+          app.setFamily(d, family);
           setDesignator("");
         }}
       >
