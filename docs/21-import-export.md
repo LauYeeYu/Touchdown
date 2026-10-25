@@ -157,13 +157,15 @@ Decided, built (CLI). Instead of typing a row into the spotting spreadsheet and 
 | Save | An empty line checks the lines typed so far and saves them to the session's inbox file, `spot-<date>-<time>.json`: in the inbox of the chosen storage, else in `data/private/inbox/` (or `--out`). A file the storage does not take (offline) stays in `data/private/inbox/` for `touchdown inbox send`. |
 | A spreadsheet | `spot FILE.xlsx` (or `.csv`) reads a sheet of sightings in any layout ("Source: any spreadsheet") and treats each row as a typed line: lookups (adsbdb only for aircraft OpenSky does not know), the agent's check, no questions per row. Before an agent check of more than 50 rows it says how many calls that is and lets the user go on without the agent. Everything still open goes to the review in the web app. The inbox file is `sheet-<date>-<time>-<file name>.json`. |
 
-The inbox file (`touchdown-inbox`, version 2; version 1 files are still read) has, per sighting:
+The inbox file (`touchdown-inbox`, version 3; versions 1 and 2 are still read) has, per sighting:
 - the values, named as in the agent check;
 - where each value came from: `you`, `your_log`, `opensky`, `adsbdb`, `fr24`, `derived` (the type from a typed model), `claude` or `codex`;
 - what is still open, in words, and which fields the user left empty;
 - the airframe facts a lookup gave: serial number, maker, line number, first flight.
 
-Version 2 adds flights (from `touchdown add`, below): per flight, the values named as in the column mapping (`date`, `flightNumber`, `airline`, `from`, `to`, `registration`, `typeCode`, `model`, `livery`, `specialLivery`, `seat`, `class`, `gate`, `boarding`, `takeoff`, `landing`, `duration`, `firstFlight`, `notes`), where values came from, and what is open. A flight is read as a spreadsheet row with those columns would be, so clock times become date-times with the airport's UTC offset. Ticket numbers and booking references are never in an inbox file.
+Version 2 adds flights (from `touchdown add`, below): per flight, the values named as in the column mapping (`date`, `flightNumber`, `airline`, `from`, `to`, `registration`, `typeCode`, `model`, `livery`, `specialLivery`, `seat`, `class`, `gate`, `boarding`, `takeoff`, `landing`, `duration`, `firstFlight`, `notes`), where values came from, and what is open. A flight is read as a spreadsheet row with those columns would be, so clock times become date-times with the airport's UTC offset.
+
+Version 3 adds a flight's `ticketNumber` and `bookingRef`, only when the user gave them to `touchdown add` (never printed on the command line; [34](34-command-line.md), "Private fields"), and changes to records already in the log, from `touchdown edit` and the other changing commands ([34](34-command-line.md), "Change files").
 
 ### Getting a session to the web app
 
@@ -190,7 +192,7 @@ The CLI reads the log and writes only to the inbox; the one planned exception is
 1. `spot` writes its session file to the inbox on every save, and reads the user's log from the same storage for its "your log" lookups instead of the backup file. When the storage cannot be reached, the session is saved in `data/private/inbox/`, and `touchdown inbox send` sends it later.
 2. `touchdown add` (below) writes its file to the same inbox.
 3. The web app, on any device, reads the inbox after each sync and counts its files again whenever the log changes. It shows the same bar and list. After an import it copies the file to `attachments/imports/<batchId>/` and deletes it from the inbox; a file saved again since it was read stays, for the records added to it. If a session saves again after its file was imported, the CLI writes a new one.
-4. `touchdown inbox` lists the files waiting (with how many records are not in the log yet), shows one, or removes one.
+4. `touchdown inbox` lists the files waiting (with how many records are not in the log yet, and how many changes are still to make), shows one (a private value only as given, changes as their review shows them), or removes one.
 
 **Importing.** The Import page reads the inbox like any other file (stages 4–10). What is still open shows as a warning on the row. The agent check panel is not shown, because the session already ran the check. On commit:
 - the records get `sourceKind` `manual`;
@@ -211,7 +213,7 @@ Open: typing in the web app instead of the terminal, which needs the local bridg
 Decided, built (CLI). Flights and sightings given as JSON, by the user or by an agent working for them (Claude Code, Codex), checked as the Import page would check them and put in the inbox for review. Nothing reaches the log without that review (Q-SPOT-ARRIVAL). It lets an agent add records in a loop: run it, read the report, fix what it says, run it again.
 
 ```
-./touchdown add [FILE.json | -] [--dry-run] [--json] [--keep-errors] [--log FILE]
+./touchdown add [FILE.json | -] [--dry-run] [--json] [--keep-errors] [--ticket] [--booking] [--log FILE]
 ```
 
 ```json
@@ -224,7 +226,7 @@ Decided, built (CLI). Flights and sightings given as JSON, by the user or by an 
 | Step | What happens |
 |------|--------------|
 | Read | Flight fields as in the inbox file's flights (above). Sighting fields: `date`, `registration`, `airport`, `airline`, `typeCode`, `model`, `phase`, `livery`, `specialLivery`, `notes`. Dates are `YYYY-MM-DD`; times are local clock times at their airport. A record may name where values came from (`"sources": {"typeCode": "claude"}`), which becomes their provenance on import. An unknown field, another date form or an unknown phase stops it with a message. |
-| Refuse | Ticket numbers and booking references: they are added in the web app (AGENTS.md, "Data and privacy"). Planned: `add` takes them without ever showing them ([34](34-command-line.md), "Private fields"). |
+| Private fields | A flight's `ticketNumber` and `bookingRef` go into the file with it: given in the JSON, or typed for the first flight at a prompt that does not show them (`--ticket`, `--booking`; a terminal and an input file are needed). They are never printed: the report says which were given ([34](34-command-line.md), "Private fields"). |
 | Check | Against the log as it is now (the chosen storage, else the backup, or `--log FILE`): the row checks, matching (stage 4), and every rule ([20](20-validation.md)) over the log with the records added, so cross-record findings such as overlapping flights show. Only findings the records bring are reported, not the log's own. |
 | Leave out | Records already in the log, and records already waiting in the inbox. |
 | Write | With an error in any record, nothing is written unless `--keep-errors`. Otherwise the file goes to the inbox as `add-<date>-<time>.json`, is read back, compared with what was written, and read again as the web app reads it. `--dry-run` writes nothing. |

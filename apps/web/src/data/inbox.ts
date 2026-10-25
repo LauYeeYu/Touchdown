@@ -1,11 +1,11 @@
 // Records waiting to be added to the log (docs/21, "Getting a session to the web app"): sessions from
-// `touchdown spot` and additions from `touchdown add`, one file each, in the inbox of the user's storage, read after
-// each sync. In development the dev server's data/private/inbox/ is read as well (vite.config.ts). The user reviews a
-// file on the Import page; once imported it leaves the inbox, and so does a file whose records are all in the log
-// already.
+// `touchdown spot`, additions from `touchdown add` and changes from `touchdown edit` and the other changing commands
+// (docs/34), one file each, in the inbox of the user's storage, read after each sync. In development the dev
+// server's data/private/inbox/ is read as well (vite.config.ts). The user reviews a file on the Import page; once
+// imported it leaves the inbox, and so does a file whose records are all in the log and whose changes are all done.
 
 import { useEffect, useSyncExternalStore } from "react";
-import { matchCandidates, readInbox, type ParsedSource } from "@touchdown/core";
+import { changeStatus, matchCandidates, readInbox, type InboxChange, type ParsedSource } from "@touchdown/core";
 import { dayMonthYear, plural } from "../lib/format.ts";
 import type { AppData } from "./app.ts";
 
@@ -16,10 +16,14 @@ export interface WaitingSession {
   /** When the file was last saved, in milliseconds. */
   modified: number;
   source: ParsedSource;
-  /** Records that are not in the log yet, or that would fill in or change a record there. */
+  /** Changes to records in the log (docs/34, "Change files"). */
+  changes: InboxChange[];
+  /** Records that are not in the log yet, or that would fill in or change a record there, and changes still to do. */
   waiting: number;
   flights: number;
   sightings: number;
+  /** Changes still to do. */
+  changing: number;
   /** The file as read, so a file saved again since is not removed with the import. */
   data: Uint8Array | null;
 }
@@ -82,7 +86,12 @@ async function count(app: AppData): Promise<void> {
     const r = readInbox(f.json, name, app.ref);
     if ("error" in r) continue;
     const open = matchCandidates(app.store, r.source.candidates).filter((m) => m.kind === "new" || m.kind === "update" || m.kind === "conflict");
-    if (!open.length) {
+    // A change still to do, or one whose record was changed since (the user decides): without copying the log.
+    const changing = r.changes.filter((c) => {
+      const s = changeStatus(app.store, c, () => app.allFindings()).status;
+      return s === "pending" || s === "changed";
+    }).length;
+    if (!open.length && !changing) {
       files.delete(name);
       if (f.where === "storage") await app.sync?.inbox()?.remove(name).catch(() => undefined);
       else await post("imported", name);
@@ -90,7 +99,7 @@ async function count(app: AppData): Promise<void> {
     }
     const flights = open.filter((m) => m.candidate.table === "flights").length;
     const createdAt = Date.parse((f.json as { createdAt?: string }).createdAt ?? "");
-    next.push({ name, where: f.where, modified: Number.isFinite(createdAt) ? createdAt : f.modified, source: r.source, waiting: open.length, flights, sightings: open.length - flights, data: f.data });
+    next.push({ name, where: f.where, modified: Number.isFinite(createdAt) ? createdAt : f.modified, source: r.source, changes: r.changes, waiting: open.length + changing, flights, sightings: open.length - flights, changing, data: f.data });
   }
   current = next.sort((a, b) => a.modified - b.modified);
   for (const l of listeners) l();
@@ -185,13 +194,17 @@ export function useInboxWatcher(app: AppData, version: number): void {
   }, [app]);
 }
 
-/** "2 flights and 1 sighting". */
-export function recordsText(flights: number, sightings: number): string {
-  return [flights ? plural(flights, "flight") : null, sightings ? plural(sightings, "sighting") : null].filter(Boolean).join(" and ") || "nothing";
+/** "2 flights and 1 sighting", "3 changes". */
+export function recordsText(flights: number, sightings: number, changes = 0): string {
+  const parts = [flights ? plural(flights, "flight") : null, sightings ? plural(sightings, "sighting") : null, changes ? plural(changes, "change") : null].filter(Boolean) as string[];
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : (parts[0] ?? "nothing");
 }
 
+/** The commands that write change files (docs/34), by the name they give them. */
+const CHANGE_FILE = /^(edit|delete|aircraft|issues|undo|families|settings)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/;
+
 /** Which command made the file, from the name it gave it. */
-export const madeBy = (name: string) => (name.startsWith("add-") ? "./touchdown add" : "./touchdown spot");
+export const madeBy = (name: string) => (name.startsWith("add-") ? "./touchdown add" : CHANGE_FILE.test(name) ? `./touchdown ${CHANGE_FILE.exec(name)![1]}` : "./touchdown spot");
 
 /**
  * "Spotting session, 22 Oct 2026 at 23:37", "Spreadsheet spotting.xlsx, read on …" or "Added from the command line,
@@ -204,6 +217,8 @@ export function sessionLabel(name: string): string {
   if (sheet) return `Spreadsheet ${sheet[4]}, read on ${dayMonthYear(sheet[1]!)} at ${sheet[2]}:${sheet[3]}`;
   const added = /^add-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
   if (added) return `Added from the command line, ${dayMonthYear(added[1]!)} at ${added[2]}:${added[3]}`;
+  const changed = CHANGE_FILE.exec(name);
+  if (changed) return `Changes from the command line, ${dayMonthYear(changed[2]!)} at ${changed[3]}:${changed[4]}`;
   return name;
 }
 
@@ -216,5 +231,6 @@ export function sessionPhrase(name: string): string {
   if (label.startsWith("Spotting session, ")) return label.replace(/^Spotting session, /, "your spotting session of ");
   if (label.startsWith("Spreadsheet ")) return label.replace(/^Spreadsheet (.+), read on (.+)$/, "the spreadsheet $1 (read on $2)");
   if (label.startsWith("Added from the command line, ")) return label.replace(/^Added from the command line, /, "the command line on ");
+  if (label.startsWith("Changes from the command line, ")) return label.replace(/^Changes from the command line, /, "the command line on ");
   return label;
 }

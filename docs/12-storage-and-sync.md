@@ -120,6 +120,8 @@ Touchdown/
   inbox/
     spot-<date>-<time>.json   a spotting session from the CLI, waiting to be imported (21); removed once imported
     add-<date>-<time>.json    flights and sightings from `touchdown add` (21), the same way
+    edit-<date>-<time>.json   changes to records in the log, from `touchdown edit` (also delete-, aircraft-,
+                              issues-, undo-, families-, settings-; 34), the same way
   shares/
     <shareId>.json         what a shared link shows, private fields removed (Standard mode, 32)
   backups/

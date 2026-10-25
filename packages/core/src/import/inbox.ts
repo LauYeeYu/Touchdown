@@ -1,7 +1,8 @@
 // The inbox file (docs/21-import-export.md, "Source: spotting session"): the sightings `touchdown spot` filled and
 // checked, or the flights and sightings `touchdown add` checked, with where each value came from and what is still
 // open. The Import page reads it like any other file; values from a lookup or an agent get a `field_provenance` row
-// on commit. Version 2 added flights; version 1 files (sightings only) are still read.
+// on commit. Version 2 added flights; version 3 changes to records in the log (import/changes.ts, docs/34) and a
+// flight's ticket number and booking reference, given by the user. Versions 1 and 2 are still read.
 
 import type { RefIndex } from "../ref/index.ts";
 import { PHASES, type PROVENANCE_SOURCES, type SightingValues } from "../schema/tables.ts";
@@ -12,12 +13,13 @@ import { SPOT_FIELDS, type SpotField, type SpotSource, type SpotValues } from ".
 import { storedFields } from "../agent/check.ts";
 import type { Candidate, FlightCandidate, ImportIssue, ParsedSource, SightingCandidate } from "./candidate.ts";
 import { readMapped, type ColumnField } from "./mapping.ts";
+import { readChanges, type InboxChange } from "./changes.ts";
 
 export const INBOX_SCHEMA = "touchdown-inbox";
-export const INBOX_VERSION = 2;
+export const INBOX_VERSION = 3;
 const MAX_RECORDS = 5000;
 
-/** A flight's fields, named as in the column mapping. Ticket numbers and booking references are never in the inbox. */
+/** A flight's fields, named as in the column mapping. */
 export const INBOX_FLIGHT_FIELDS = [
   "date",
   "flightNumber",
@@ -40,6 +42,10 @@ export const INBOX_FLIGHT_FIELDS = [
   "notes",
 ] as const satisfies readonly ColumnField[];
 export type InboxFlightField = (typeof INBOX_FLIGHT_FIELDS)[number];
+
+/** A flight's private fields (version 3): in the file only when the user gave them, never shown on the command line. */
+export const INBOX_PRIVATE_FIELDS = ["ticketNumber", "bookingRef"] as const satisfies readonly ColumnField[];
+export type InboxPrivateField = (typeof INBOX_PRIVATE_FIELDS)[number];
 
 /** Facts about the aircraft from a lookup, stored on the airframe when they fit the user's records. */
 export interface InboxAircraft {
@@ -66,7 +72,7 @@ export interface InboxSighting {
 }
 
 export interface InboxFlight {
-  values: Partial<Record<InboxFlightField, string>>;
+  values: Partial<Record<InboxFlightField | InboxPrivateField, string>>;
   /** Where each value came from; a value without one was typed (by the user, or the agent working for them). */
   sources?: Partial<Record<InboxFlightField, SpotSource>>;
   open: string[];
@@ -74,12 +80,14 @@ export interface InboxFlight {
 
 export interface InboxFile {
   schema: typeof INBOX_SCHEMA;
-  version: 1 | typeof INBOX_VERSION;
+  version: 1 | 2 | typeof INBOX_VERSION;
   createdAt: string;
   checker: "claude" | "codex" | null;
   sightings: InboxSighting[];
   /** Version 2. */
   flights?: InboxFlight[];
+  /** Version 3: changes to records in the log. */
+  changes?: InboxChange[];
 }
 
 const SOURCES = new Set<SpotSource>(["you", "your_log", "opensky", "adsbdb", "fr24", "derived", "claude", "codex"]);
@@ -108,18 +116,20 @@ function provenanceOf(source: SpotSource): { source: (typeof PROVENANCE_SOURCES)
 
 const isText = (v: unknown, max: number) => v === null || (typeof v === "string" && v.length <= max);
 
-/** Checks an inbox file and turns it into rows for the import review. */
-export function readInbox(json: unknown, fileName: string, ref: RefIndex): { source: ParsedSource } | { error: string } {
+/** Checks an inbox file and turns it into rows for the import review, and the changes it holds. */
+export function readInbox(json: unknown, fileName: string, ref: RefIndex): { source: ParsedSource; changes: InboxChange[] } | { error: string } {
   const f = json as Partial<InboxFile> | null;
   if (!f || typeof f !== "object" || f.schema !== INBOX_SCHEMA) return { error: "not a Touchdown inbox file" };
-  if (f.version !== 1 && f.version !== INBOX_VERSION) return { error: "an inbox file from another version of Touchdown" };
+  if (f.version !== 1 && f.version !== 2 && f.version !== INBOX_VERSION) return { error: "an inbox file from another version of Touchdown" };
   if (f.checker !== null && f.checker !== "claude" && f.checker !== "codex") return { error: "unknown checker" };
   const flights = f.version === 1 ? [] : (f.flights ?? []);
   if (!Array.isArray(f.sightings) || !Array.isArray(flights)) return { error: "malformed: no list of sightings or flights" };
-  const extra = Object.keys(f).filter((k) => !["schema", "version", "createdAt", "checker", "sightings", ...(f.version === 1 ? [] : ["flights"])].includes(k));
+  const extra = Object.keys(f).filter((k) => !["schema", "version", "createdAt", "checker", "sightings", ...(f.version === 1 ? [] : ["flights"]), ...(f.version === 3 ? ["changes"] : [])].includes(k));
   if (extra.length) return { error: `unexpected keys: ${extra.join(", ")}` };
+  const read = f.version === 3 ? readChanges(f.changes ?? []) : { changes: [] };
+  if ("error" in read) return read;
   const total = f.sightings.length + flights.length;
-  if (!total || total > MAX_RECORDS) return { error: `no records, or more than ${MAX_RECORDS}` };
+  if ((!total && !read.changes.length) || total > MAX_RECORDS) return { error: `no records or changes, or more than ${MAX_RECORDS} records` };
   const fields = new Set<string>(SPOT_FIELDS);
   const candidates: Candidate[] = [];
   for (const [i, s] of f.sightings.entries()) {
@@ -169,7 +179,7 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
       : undefined;
     candidates.push({ table: "sightings", sourceRow: n, raw, values, issues, external: [], airframeFacts: lookup ? { lookup } : {}, tags: s.tags ?? [], provenance } satisfies SightingCandidate);
   }
-  const flightFields = new Set<string>(INBOX_FLIGHT_FIELDS);
+  const flightFields = new Set<string>([...INBOX_FLIGHT_FIELDS, ...(f.version === 3 ? INBOX_PRIVATE_FIELDS : [])]);
   for (const [i, fl] of flights.entries()) {
     const n = i + 1;
     if (!fl || typeof fl !== "object") return { error: `flight ${n} is malformed` };
@@ -183,7 +193,7 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
     for (const k of ["date", "firstFlight"] as const) if (v[k] && !isValidDate(v[k])) return { error: `flight ${n}: ${v[k]} is not a date (YYYY-MM-DD)` };
     candidates.push(inboxFlight(fl, f.sightings.length + n, fileName, ref));
   }
-  return { source: { format: "touchdown_inbox", fileName, candidates, rowsRead: candidates.length, agentChecker: f.checker ?? null } };
+  return { source: { format: "touchdown_inbox", fileName, candidates, rowsRead: candidates.length, agentChecker: f.checker ?? null }, changes: read.changes };
 }
 
 /** The stored fields a flight's value sets, for its provenance rows. */
@@ -204,8 +214,9 @@ const FLIGHT_STORED: Partial<Record<InboxFlightField, string[]>> = {
 /** A flight from the inbox, read as a spreadsheet row with these columns would be (times, fare class, …). */
 function inboxFlight(fl: InboxFlight, sourceRow: number, fileName: string, ref: RefIndex): FlightCandidate {
   const v = fl.values ?? {};
-  const sheet = { name: fileName, header: [...INBOX_FLIGHT_FIELDS], rows: [INBOX_FLIGHT_FIELDS.map((k) => v[k] ?? null)], firstRow: sourceRow };
-  const c = readMapped(sheet, { kind: "flights", fields: [...INBOX_FLIGHT_FIELDS] }, fileName, ref).candidates[0] as FlightCandidate;
+  const fields = [...INBOX_FLIGHT_FIELDS, ...INBOX_PRIVATE_FIELDS];
+  const sheet = { name: fileName, header: fields, rows: [fields.map((k) => v[k] ?? null)], firstRow: sourceRow };
+  const c = readMapped(sheet, { kind: "flights", fields }, fileName, ref).candidates[0] as FlightCandidate;
   const provenance = Object.entries(fl.sources ?? {}).flatMap(([field, source]) => {
     const p = provenanceOf(source as SpotSource);
     return p ? (FLIGHT_STORED[field as InboxFlightField] ?? [field]).map((stored) => ({ field: stored, ...p })) : [];

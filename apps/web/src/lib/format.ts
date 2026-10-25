@@ -11,6 +11,7 @@ export {
   dayMonthYear,
   clock,
   localDay,
+  dateTimeLabel,
   momentLabel,
   offsetLabel,
   durLong,

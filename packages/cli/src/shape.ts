@@ -2,7 +2,7 @@
 // uses. Private fields only say whether they are recorded (docs/34, "Private fields").
 
 import { checkAll, flightDay, resolveAirframes, type Finding, type Flight, type Sighting, type TableName } from "@touchdown/core";
-import { clock, dayShort, durShort, localDay, modelLabel, offsetLabel, typeName, viewFlight, type FlightView } from "@touchdown/core/view";
+import { dateTimeLabel, durShort, modelLabel, typeName, viewFlight, type FlightView } from "@touchdown/core/view";
 import { privateFields, type OpenedLog } from "./read.ts";
 
 export function airportJson(log: OpenedLog, id: string | null, raw: string | null) {
@@ -17,12 +17,8 @@ export function operatorJson(log: OpenedLog, id: string | null, raw: string | nu
   return { id: o.id, iata: o.iata, icao: o.icao, name: o.name, own: !o.id.startsWith("op_") };
 }
 
-/** "08:00 Wed 2 Apr · UTC−4": a precise time always with its local date and offset (DESIGN.md, "The Dated Time Rule"). */
-export function timeLabel(dt: string | null | undefined): string | null {
-  if (!dt) return null;
-  const d = localDay(dt);
-  return [clock(dt), d && dayShort(d), "·", offsetLabel(dt)].filter(Boolean).join(" ");
-}
+/** "08:00 Wed 2 Apr · UTC−4": a precise time always with its local date and offset. */
+export const timeLabel = (dt: string | null | undefined): string | null => dateTimeLabel(dt) || null;
 
 /** "Airbus A321neo", or the model in the user's naming when there is one. */
 export const aircraftLabel = (log: OpenedLog, typeCode: string | null, model: string | null) => (model ? modelLabel(model, typeCode, log.ref, log.models) : typeName(typeCode, log.ref)) || "";

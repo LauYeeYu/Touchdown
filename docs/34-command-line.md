@@ -35,12 +35,12 @@ Built, all of them. What they show is worked out by the code the web app's pages
 
 ### Changing
 
-Each writes one inbox file and checks it first, as `add` does: against the log as it is now, with every rule, reporting only what the change brings.
+Built, apart from `import FILE`, `backup` and `export` (step 5). Each writes one inbox file and checks it first, as `add` does: against the log as it is now, with every rule, reporting what each change would do (before and after) and the findings it would bring. With an error among those, nothing is written unless `--keep-errors`; `--dry-run` writes nothing. A change with nothing left to do is reported and left out. The code is `packages/cli/src/change.ts`.
 
 | In the web app | Command |
 |---|---|
 | Add a flight, a sighting, a session | `add` (built), `spot` (built) |
-| Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits on stdin |
+| Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits (a file, or `-` for stdin): `[{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]` |
 | Delete one | `delete REF…` |
 | Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…` |
 | Merge two aircraft | `aircraft merge INTO FROM` |
@@ -53,7 +53,7 @@ Each writes one inbox file and checks it first, as `add` does: against the log a
 | Restore a backup over the log | Not in the CLI: it replaces everything, and the web app asks twice. (Decided, Q-CLI-RESTORE) |
 | Theme | Not in the CLI: it belongs to each browser. |
 
-Field names in `--set` and in JSON are the ones `add` takes ([21](21-import-export.md), "Source: records from the command line"), so values are read the same way (codes resolved, clock times at their airport's UTC offset).
+Field names in `--set` and in JSON are the ones `add` takes ([21](21-import-export.md), "Source: records from the command line"), read the same way (codes resolved, clock times at their airport's UTC offset on the record's date), and the ones the web app's forms set besides: for a flight `seatPosition`, `cabin`, `bookingClass`, `fare`, `reason` and `terminal`; for a sighting `time`, `spot`, `photos` and `tags`. An aircraft takes `manufacturer`, `msn`, `lineNumber`, `typeCode`, `model`, `firstFlight`, `delivered`, `status` and `notes`. The change records the stored fields this sets (`takeoffAt`, `airlineId`, …), worked out against the log when the command runs (`packages/core/src/import/changes.ts`).
 
 ### Reviewing
 
@@ -69,7 +69,7 @@ Ticket numbers and booking references (AGENTS.md, "Data and privacy"):
 | | |
 |---|---|
 | Given | In the JSON that `add` and `edit` read (a file, or stdin), as `ticketNumber` and `bookingRef`; or typed at a prompt that does not echo them, with `--set ticketNumber` and no value (`edit`), or `--ticket` and `--booking` (`add`, for its first flight). Never as a value on the command line, where the shell's history and other users' process lists would keep it. |
-| Shown | Never. Reports, reviews, `flight REF` and `--json` say only that one is recorded, added, changed or removed (`"private": {"ticketNumber": "added"}`). Error messages do not quote them. |
+| Shown | Never. `flight REF` and its JSON say whether one is recorded (`"private": {"ticketNumber": true}`); `add` reports which were given; a change's review shows "recorded → changed" (or added, removed). Error messages do not quote them. (Built, with a canary test) |
 | Stored | In the inbox file with the rest of the change, so in the same storage as the log, and after the import with the import's copy of the file. |
 | Not sent | To the agent, ever ([22](22-agent-verification.md), "What is sent"), whatever the command. |
 | Removed | `edit REF --clear ticketNumber`; deleting a flight removes them with it. |
@@ -78,15 +78,16 @@ An agent that writes the JSON for `add` or `edit` has seen what it writes; givin
 
 ## Change files
 
-The inbox file grows a version 3 (versions 1 and 2 are still read) with a list of changes next to the flights and sightings:
+Decided, built. The inbox file has a version 3 (versions 1 and 2 are still read) with a list of changes next to the flights and sightings:
 
 ```json
 {
-  "format": "touchdown-inbox", "version": 3, "madeBy": "edit", "createdAt": "2026-10-24T15:30:00+01:00",
+  "schema": "touchdown-inbox", "version": 3, "createdAt": "2026-10-24T14:30:00Z", "checker": null,
+  "sightings": [], "flights": [],
   "changes": [
-    { "op": "edit", "table": "flights", "id": "01J…", "rev": 4, "set": { "seat": "14A" }, "clear": ["gate"] },
+    { "op": "edit", "table": "flights", "id": "01J…", "rev": 4, "set": { "seat": "14A" }, "clear": ["departureGate"] },
     { "op": "delete", "table": "sightings", "id": "01J…", "rev": 2 },
-    { "op": "airframe", "id": "01J…", "rev": 1, "set": { "msn": "1234" } },
+    { "op": "airframe", "id": "01J…", "rev": 1, "set": { "msn": "1234" }, "clear": [] },
     { "op": "merge", "into": "01J…", "from": "01J…" },
     { "op": "accept", "ruleId": "C-FLIGHT-OVERLAP", "fingerprint": "…", "note": null },
     { "op": "reopen", "ackId": "01J…" },
@@ -98,10 +99,12 @@ The inbox file grows a version 3 (versions 1 and 2 are still read) with a list o
 }
 ```
 
-- `rev` is the record's version the change was made against. If the record changed after that (in the web app, or by another import), the review shows both versions and leaves the record alone unless the user takes the change.
+- `set` and `clear` name stored fields; a sighting's edit may carry `tags`, its full list.
+- `rev` is the record's version the change was made against. If the record changed after that (in the web app, or by another import), the review says so and leaves the record alone unless the user takes the change; taken, it changes only the fields it names. A change whose values the log has already is done, and a file whose changes are all done leaves the inbox.
 - A private field travels in the file only when the user gave one ("Private fields", above).
 - A finding is named by its rule and fingerprint, so a change file about a finding that has gone away (fixed meanwhile) is reported as such, not applied to something else.
-- File names say what made them: `edit-<date>-<time>.json`, `delete-…`, `issues-…`, `undo-…`, as `add-…` and `spot-…` do now.
+- File names say what made them: `edit-<date>-<time>.json`, `delete-…`, `aircraft-…`, `issues-…`, `undo-…`, `families-…`, `settings-…`, as `add-…` and `spot-…` do.
+- Imported, the changes are one import batch (`mappingPreset` `touchdown_changes`). Every row they touch, the airframe links worked out again included, gets a history row with its version before (none for a row they create), so undoing the import puts each back, a deleted row included. Undoing an import whose records were changed since, by an edit or by a later import, asks first.
 
 ## The review
 
@@ -112,7 +115,9 @@ The same steps in both places, from the same core code:
 3. The user decides what the Import page lets them decide now: leave a record out, take or keep each differing value, keep or reject a time moved past midnight, take the change to a record edited since.
 4. Import: one import batch, recorded in the log's history, so it can be undone like any import. The file is then moved to `attachments/imports/<batchId>/`, as the web app does.
 
-In the terminal, `review` lists the records with their numbers and asks one question at a time, with the safe answer as the default (leave it, keep the stored value). `--yes` imports with every default; `--json` prints the review without importing, for an agent to read. In the web app, a change file opens on the Import page like any inbox file; changes show as before and after lines.
+In the terminal, `review` lists the records with their numbers and asks one question at a time, with the safe answer as the default (leave it, keep the stored value). `--yes` imports with every default; `--json` prints the review without importing, for an agent to read. (Proposed, step 4)
+
+In the web app (built, `apps/web/src/components/ChangeReview.tsx`), a change file opens on the Import page from the inbox list or the "Review and import" bar, or when chosen as a file. Each change is a tonal box with a checkbox: what it is (Edit, Delete, Aircraft facts, …) and what it is about, a note when it has nothing left to do or its record was changed since (that one starts unticked), and its values as before → after lines, as the agent's suggestions show theirs. Below come the findings the changes taken would bring, without their fixes, and "Import N changes" with "Discard this file". The import history names such an import "N changes made", and Undo puts them back.
 
 ## Writing the log from the command line
 
@@ -130,6 +135,6 @@ Each step is usable on its own.
 
 1. Move the web app's operations to the core package; the web app uses them unchanged. (Built)
 2. The reading commands, with `--json`. (Built)
-3. Change files (version 3), the changing commands, and their review on the Import page.
+3. Change files (version 3), the changing commands, and their review on the Import page. (Built)
 4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`.
 5. `import FILE` to the inbox, `backup` and `export`.

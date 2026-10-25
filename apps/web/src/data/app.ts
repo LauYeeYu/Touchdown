@@ -3,6 +3,7 @@
 
 import {
   acceptFinding,
+  applyChanges,
   applyFix,
   checkAll,
   commitImport,
@@ -25,7 +26,10 @@ import {
   undoImport,
   updateAirframe,
   updateSettings,
+  type AppliedChanges,
+  type ChangeStatus,
   type CommitDecision,
+  type InboxChange,
   type Finding,
   type FlightValues,
   type Match,
@@ -382,6 +386,14 @@ export class AppData {
   /** `agent`: the fields each row's accepted agent suggestions set (docs/22), recorded with their provenance. */
   commitImport(source: ParsedSource, matches: Match[], decisions: Map<number, CommitDecision>, agent?: { checker: "claude" | "codex"; fields: Map<number, string[]> }) {
     const r = commitImport(this.store, this.ref, source, matches, decisions, { agent });
+    this.resolve();
+    this.notify();
+    return r;
+  }
+
+  /** Apply the changes the user took from a change file, as one import (docs/34, "The review"). */
+  applyChanges(changes: InboxChange[], take: (index: number, status: ChangeStatus) => boolean, fileName: string): AppliedChanges {
+    const r = applyChanges(this.store, this.ref, changes, take, { fileName });
     this.resolve();
     this.notify();
     return r;

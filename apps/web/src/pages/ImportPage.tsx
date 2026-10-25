@@ -33,6 +33,7 @@ import {
   type CheckResultFile,
   type CommitDecision,
   type Finding,
+  type InboxChange,
   type Match,
   type ParsedSource,
   type SheetData,
@@ -48,6 +49,7 @@ import { dayMonthYear, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "../components/overlay.tsx";
 import { AgentCheckPanel, AgentSuggestions, choiceKey, type Choice } from "../components/AgentCheck.tsx";
+import { ChangeReview } from "../components/ChangeReview.tsx";
 
 const FORMAT_LABEL = { fr24_csv: "my.flightradar24.com export", sheet: "spreadsheet", touchdown_inbox: "file from the inbox" } as const;
 const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
@@ -112,7 +114,7 @@ function label(c: Candidate): { title: string; sub: string } {
 }
 
 /** An inbox file (`touchdown spot`, `touchdown add`); a check request or result gets a pointer to where it belongs. */
-function readJsonFile(buf: Uint8Array, name: string, app: AppData): { source: ParsedSource } | { error: string } {
+function readJsonFile(buf: Uint8Array, name: string, app: AppData): { source: ParsedSource; changes: InboxChange[] } | { error: string } {
   let json: unknown;
   try {
     json = JSON.parse(new TextDecoder("utf-8").decode(buf));
@@ -125,6 +127,10 @@ function readJsonFile(buf: Uint8Array, name: string, app: AppData): { source: Pa
   const r = readInbox(json, name, app.ref);
   return "error" in r ? { error: `${name}: ${r.error}.` } : r;
 }
+
+/** "2 flights not in your log yet", "3 changes to make", or both. */
+const waitingText = (w: WaitingSession) =>
+  [w.flights + w.sightings ? `${recordsText(w.flights, w.sightings)} not in your log yet` : null, w.changing ? `${plural(w.changing, "change")} to make` : null].filter(Boolean).join("; ");
 
 const show = (field: string, v: unknown) => (PRIVATE.has(field) ? "(private)" : v === null || v === undefined ? "—" : String(v));
 
@@ -140,6 +146,9 @@ export function ImportPage() {
   const [agent, setAgent] = useState<CheckResultFile | null>(null);
   // The spotting session being reviewed, when the file came from the inbox: it leaves the inbox once imported.
   const [origin, setOrigin] = useState<string | null>(null);
+  // A change file under review (docs/34): its name, its changes, and the inbox file it came from, if it did.
+  const [changeFile, setChangeFile] = useState<{ name: string; changes: InboxChange[]; inbox: string | null } | null>(null);
+  const [changesMade, setChangesMade] = useState<{ applied: number; messages: string[] } | null>(null);
   // A spreadsheet's columns: what was worked out, what the user chose, and whether the column step is showing.
   const [columns, setColumns] = useState<{ sheet: SheetData; guess: SheetMapping; choice: ColumnChoice; fileName: string; bytes: Uint8Array; how: string } | null>(null);
   const [choosingColumns, setChoosingColumns] = useState(false);
@@ -193,7 +202,13 @@ export function ImportPage() {
   const openSession = (w: WaitingSession) => {
     setError(null);
     setResult(null);
+    setChangesMade(null);
     setColumns(null);
+    // A file of changes (from ./touchdown edit and the other changing commands) has its own review.
+    if (w.changing && !(w.flights + w.sightings)) {
+      setChangeFile({ name: w.name, changes: w.changes, inbox: w.name });
+      return;
+    }
     void open(w.source, new TextEncoder().encode(`${w.name}@${w.modified}`), w.name);
   };
 
@@ -210,6 +225,7 @@ export function ImportPage() {
   const onFile = async (file: File) => {
     setError(null);
     setResult(null);
+    setChangesMade(null);
     setBusy(true);
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
@@ -220,6 +236,10 @@ export function ImportPage() {
         const inbox = readJsonFile(buf, file.name, app);
         if ("error" in inbox) {
           setError(inbox.error);
+          return;
+        }
+        if (inbox.changes.length && !inbox.source.candidates.length) {
+          setChangeFile({ name: file.name, changes: inbox.changes, inbox: null });
           return;
         }
         source = inbox.source;
@@ -293,12 +313,34 @@ export function ImportPage() {
   /** The file from the inbox under review is not wanted: it is deleted, and nothing goes into the log. */
   const discardReviewed = (name: string) => {
     const w = waiting.find((x) => x.name === name);
-    const what = w ? recordsText(w.flights, w.sightings) : plural(base?.source.rowsRead ?? 0, "record");
-    if (!window.confirm(`Discard this file? The ${what} in it ${(w?.waiting ?? base?.source.rowsRead) === 1 ? "is" : "are"} not added to your log, and the file is deleted from the inbox.`)) return;
+    const what = w ? recordsText(w.flights, w.sightings, w.changing) : plural(base?.source.rowsRead ?? 0, "record");
+    if (!window.confirm(`Discard this file? The ${what} in it ${(w?.waiting ?? base?.source.rowsRead) === 1 ? "does" : "do"} not reach your log, and the file is deleted from the inbox.`)) return;
     setBase(null);
     setOrigin(null);
+    setChangeFile(null);
     void discardSession(app, name).then(() => toast("Discarded: the file is deleted from the inbox."));
   };
+
+  if (changeFile) {
+    const inbox = changeFile.inbox;
+    return (
+      <ChangeReview
+        fileName={changeFile.name}
+        label={inbox ? sessionLabel(inbox) : changeFile.name}
+        madeBy={inbox ? madeBy(inbox) : null}
+        changes={changeFile.changes}
+        fromInbox={!!inbox}
+        onBack={() => setChangeFile(null)}
+        onDiscard={() => inbox && discardReviewed(inbox)}
+        onImported={(applied, batchId, messages) => {
+          if (inbox) void markImported(app, inbox, batchId);
+          setChangeFile(null);
+          setChangesMade({ applied, messages });
+          toast(`Imported: ${plural(applied, "change")} made.`);
+        }}
+      />
+    );
+  }
 
   const setDecision = (i: number, patch: Partial<CommitDecision>) => setDecisions((d) => new Map(d).set(i, { ...(d.get(i) ?? {}), ...patch }));
 
@@ -595,7 +637,7 @@ export function ImportPage() {
                 <span>
                   <b>{sessionLabel(w.name)}</b>
                   <small>
-                    {recordsText(w.flights, w.sightings)} not in your log yet, from {madeBy(w.name)}
+                    {waitingText(w)}, from {madeBy(w.name)}
                   </small>
                 </span>
                 <span className="history-row__actions">
@@ -606,7 +648,7 @@ export function ImportPage() {
                     type="button"
                     className="btn btn--ghost btn--small"
                     onClick={() => {
-                      if (window.confirm(`Discard this file? The ${recordsText(w.flights, w.sightings)} in it ${w.waiting === 1 ? "is" : "are"} not in your log, and the file is deleted.`)) void discardSession(app, w.name);
+                      if (window.confirm(`Discard this file? The ${recordsText(w.flights, w.sightings, w.changing)} in it ${w.waiting === 1 ? "does" : "do"} not reach your log, and the file is deleted.`)) void discardSession(app, w.name);
                     }}
                   >
                     Discard
@@ -640,6 +682,16 @@ export function ImportPage() {
           <span>{error}</span>
         </p>
       )}
+      {changesMade && (
+        <div className="import-done">
+          <p className="status-line status-line--good">
+            <Icon name="circle-check" />
+            <span>
+              Made {plural(changesMade.applied, "change")} to your log. {changesMade.messages.join(" ")} Undo {changesMade.applied === 1 ? "it" : "them"} in the history below. <Link to="/issues">See what to review</Link>.
+            </span>
+          </p>
+        </div>
+      )}
       {result && (
         <div className="import-done">
           <p className="status-line status-line--good">
@@ -662,7 +714,7 @@ export function ImportPage() {
                 <span>
                   <b>{b.fileName}</b>
                   <small>
-                    {b.createdAt ? new Date(b.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : ""} · {plural(b.rowsAccepted ?? 0, "row")} imported
+                    {b.createdAt ? new Date(b.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : ""} · {b.mappingPreset === "touchdown_changes" ? `${plural(b.rowsAccepted ?? 0, "change")} made` : `${plural(b.rowsAccepted ?? 0, "row")} imported`}
                     {b.status === "undone" ? " · undone" : ""}
                   </small>
                 </span>
@@ -671,7 +723,7 @@ export function ImportPage() {
                     type="button"
                     className="btn btn--quiet btn--small"
                     onClick={() => {
-                      if (!window.confirm(`Undo the import of ${b.fileName}? Records it created are removed and records it changed get their old values back.`)) return;
+                      if (!window.confirm(b.mappingPreset === "touchdown_changes" ? `Undo the changes from ${b.fileName}? Everything they changed gets its earlier values back.` : `Undo the import of ${b.fileName}? Records it created are removed and records it changed get their old values back.`)) return;
                       const r = app.undoImport(b.id);
                       if (r.editedSince.length && window.confirm(`${plural(r.editedSince.length, "record")} were edited after the import and were left alone. Undo those too, losing the edits?`)) app.undoImport(b.id, true);
                       toast(`Undone: ${plural(r.removed, "record")} removed, ${plural(r.restored, "record")} restored.`);

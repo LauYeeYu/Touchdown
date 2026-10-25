@@ -122,6 +122,18 @@ export class Store {
     return this.write(table, before, after);
   }
 
+  /**
+   * Put back an earlier version of a row (undoing an import): its values as a new version, live again even if the
+   * row was deleted since. A row the store never had is created with them.
+   */
+  restore<N extends TableName>(table: N, id: string, earlier: Record<string, unknown>): Row<N> {
+    const before = this.map(table).get(id) ?? null;
+    const values = Object.fromEntries(Object.entries(earlier).filter(([k]) => !["id", "rev", "updatedAt", "updatedBy", "basedOn", "deleted"].includes(k)));
+    if (!before) return this.insert(table, values as Partial<Values<N>>, id);
+    const after = { ...before, ...values, deleted: false, ...this.stamp(before as Record<string, unknown>) } as Row<N>;
+    return this.write(table, before, after);
+  }
+
   /** Tombstone a row. */
   remove(table: TableName, id: string): void {
     const before = this.map(table).get(id);

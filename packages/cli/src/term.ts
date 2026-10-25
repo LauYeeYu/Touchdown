@@ -33,3 +33,36 @@ export const wrap = (s: string, n: number): string[] => {
 
 /** Columns to wrap text to: the terminal's width within 60–120. */
 export const width = () => Math.max(60, Math.min(120, process.stdout.columns ?? 100));
+
+/**
+ * Ask for a value without showing it as it is typed: ticket numbers and booking references (docs/34, "Private
+ * fields"). Only at a terminal; the question goes to stderr so that stdout stays the command's output.
+ */
+export function askHidden(question: string): Promise<string> {
+  const stdin = process.stdin;
+  if (!stdin.isTTY) return Promise.reject(new Error("A private value can be typed only at a terminal. Give it in the JSON instead."));
+  return new Promise((resolve) => {
+    let value = "";
+    const finish = (code?: number) => {
+      stdin.off("data", onData);
+      stdin.setRawMode(false);
+      stdin.pause();
+      process.stderr.write("\n");
+      if (code !== undefined) process.exit(code);
+      resolve(value.trim());
+    };
+    const onData = (chunk: string) => {
+      for (const ch of chunk) {
+        if (ch === "\r" || ch === "\n") return finish();
+        if (ch === "\u0003") return finish(130);
+        if (ch === "\u007f" || ch === "\b") value = value.slice(0, -1);
+        else if (ch >= " ") value += ch;
+      }
+    };
+    process.stderr.write(question);
+    stdin.setRawMode(true);
+    stdin.setEncoding("utf8");
+    stdin.resume();
+    stdin.on("data", onData);
+  });
+}

@@ -39,6 +39,13 @@ export function localDay(dt: string | null | undefined): string | null {
 }
 
 /** A moment on this device's clock, with its date and UTC offset: "23 Oct 2026, 14:05 UTC+1". */
+/** "08:00 Wed 2 Apr · UTC−4": a precise time with its local date and offset (DESIGN.md, "The Dated Time Rule"). */
+export function dateTimeLabel(dt: string | null | undefined): string {
+  if (!dt) return "";
+  const d = localDay(dt);
+  return [clock(dt), d && dayShort(d), "·", offsetLabel(dt)].filter(Boolean).join(" ");
+}
+
 export function momentLabel(ms: number): string {
   const d = new Date(ms);
   const off = -d.getTimezoneOffset();

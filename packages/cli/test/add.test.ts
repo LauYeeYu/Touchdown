@@ -37,18 +37,27 @@ describe("the input of touchdown add", () => {
       NOW,
     );
     if ("error" in r) throw new Error(r.error);
-    expect(r.file).toMatchObject({ schema: "touchdown-inbox", version: 2, checker: null });
+    expect(r.file).toMatchObject({ schema: "touchdown-inbox", version: 3, checker: null });
     expect(r.file.sightings[0]).toEqual({ values: { date: "2026-10-20", registration: "G-ABCD", airport: "EGLL", operator: "BAW", phase: "taking_off" }, sources: { operator: "fr24" }, open: [], missing: [], aircraft: null });
     expect(r.file.flights![0]).toEqual({ values: { date: "2026-10-18", flightNumber: "BA117", from: "EGLL", to: "KJFK", takeoff: "11:40", seat: "31" }, sources: { seat: "claude" }, open: [] });
   });
 
-  it("refuses private fields, unknown fields, other date forms and unknown phases", () => {
+  it("takes a flight's ticket number and booking reference into the file (docs/34, \"Private fields\")", () => {
+    // Made-up values.
+    const r = addFile({ flights: [{ flightNumber: "BA117", date: "2026-10-18", ticketNumber: "0019990000001", bookingRef: "CNRY42" }] }, NOW);
+    if ("error" in r) throw new Error(r.error);
+    expect(r.file.flights![0]!.values).toMatchObject({ ticketNumber: "0019990000001", bookingRef: "CNRY42" });
+    const read = readInbox(JSON.parse(JSON.stringify(r.file)), "add.json", new RefIndex(refTables));
+    if ("error" in read) throw new Error(read.error);
+    expect(read.source.candidates[0]!.values).toMatchObject({ ticketNumber: "0019990000001", bookingRef: "CNRY42" });
+  });
+
+  it("refuses unknown fields, other date forms and unknown phases", () => {
     const err = (json: unknown) => {
       const r = addFile(json, NOW);
       return "error" in r ? r.error : null;
     };
-    expect(err({ flights: [{ flightNumber: "BA117", ticketNumber: "0" }] })).toMatch(/private; add them in the web app/);
-    expect(err({ flights: [{ flightNumber: "BA117", bookingRef: "X" }] })).toMatch(/private/);
+    expect(err({ sightings: [{ registration: "G-ABCD", ticketNumber: "0" }] })).toMatch(/unknown field "ticketNumber"/);
     expect(err({ sightings: [{ registration: "G-ABCD", colour: "red" }] })).toMatch(/unknown field "colour"/);
     expect(err({ sightings: [{ registration: "G-ABCD", date: "20/10/2026" }] })).toMatch(/YYYY-MM-DD/);
     expect(err({ sightings: [{ registration: "G-ABCD", phase: "flying" }] })).toMatch(/phase "flying"/);

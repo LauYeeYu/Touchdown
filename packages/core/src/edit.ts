@@ -3,7 +3,7 @@
 // app and the CLI apply a change with the same code. Each change keeps the version it replaces in record_history
 // and links records to airframes again; the result of that linking is returned, for the checks that use it.
 
-import type { RefIndex } from "./ref/index.ts";
+import { operatorFromOverride, type RefIndex } from "./ref/index.ts";
 import type { FlightValues, Row, Settings, SightingValues, TableName } from "./schema/tables.ts";
 import type { Store } from "./store.ts";
 import type { Finding, SuggestedFix } from "./rules/types.ts";
@@ -16,6 +16,8 @@ import { toUtcIso } from "./time/index.ts";
 export interface EditOptions {
   /** The time recorded in history and provenance; defaults to now. */
   now?: number;
+  /** False when the change is part of an import, which keeps its own history of every row it touches. */
+  history?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "deleted"> = {
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "upda
 
 /** Keep the current version of a record in record_history before the user changes it. */
 export function keepHistory(store: Store, table: TableName, id: string, opts: EditOptions = {}) {
+  if (opts.history === false) return;
   const cur = store.get(table, id);
   if (!cur) return;
   store.insert("record_history", {
@@ -223,6 +226,17 @@ export function setFamily(store: Store, designator: string, familyId: string | n
     for (const o of store.all("family_overrides")) if (o.designator === designator) store.remove("family_overrides", o.id);
     if (familyId) store.insert("family_overrides", { designator, familyId });
   });
+}
+
+/** The user's own operators and family choices, for the reference index (RefIndex.setUserOverrides). */
+export function refOverridesOf(store: Store) {
+  return {
+    operators: store.all("operator_overrides").map((o) => operatorFromOverride(o)),
+    familyOverrides: store
+      .all("family_overrides")
+      .filter((o) => o.designator && o.familyId)
+      .map((o) => ({ designator: o.designator!, familyId: o.familyId! })),
+  };
 }
 
 /** The log's settings, with the defaults for a log that has none yet. */

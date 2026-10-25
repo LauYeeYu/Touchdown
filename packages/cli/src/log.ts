@@ -89,3 +89,18 @@ export async function writeInboxFile(place: InboxPlace, name: string, file: Inbo
   const r = readInbox(JSON.parse(new TextDecoder().decode(back)), name, ref);
   if ("error" in r) throw new Error(`${name} was written but does not read: ${r.error}.`);
 }
+
+/** The time in a file's name: local, "2026-10-24-153012". */
+export const stamp = (d = new Date()) => {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+};
+
+/** A name not in the inbox yet. */
+export async function freeName(place: InboxPlace, base: string): Promise<string> {
+  const taken = new Set(await place.list());
+  for (let i = 1; ; i++) {
+    const name = i === 1 ? `${base}.json` : `${base}-${i}.json`;
+    if (!taken.has(name)) return name;
+  }
+}

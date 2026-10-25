@@ -253,8 +253,9 @@ export function Shell() {
           {recordsText(
             shown.reduce((n, w) => n + w.flights, 0),
             shown.reduce((n, w) => n + w.sightings, 0),
+            shown.reduce((n, w) => n + w.changing, 0),
           )}{" "}
-          from {shown.length === 1 ? sessionPhrase(shown[0]!.name) : `${shown.length} files in the inbox`} {shownCount === 1 ? "is" : "are"} waiting. They are not in your log until you import them.
+          from {shown.length === 1 ? sessionPhrase(shown[0]!.name) : `${shown.length} files in the inbox`} {shownCount === 1 ? "is" : "are"} waiting. Nothing reaches your log until you import {shownCount === 1 ? "it" : "them"}.
         </NoteBar>
       )}
       {import.meta.env.DEV && newerBackup && (

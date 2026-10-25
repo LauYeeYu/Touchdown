@@ -6,6 +6,7 @@ import { aircraftViews, airlineLabel, airportWithCode, PHASE_LABEL, textCode, ty
 import { aircraftLabel, airportJson, findingJson, openFindings } from "./shape.ts";
 import { argsOrHelp, fail, fields, findAircraft, notFound, openOrFail, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
 import { bold, dim, plural, red, yellow } from "./term.ts";
+import { aircraftChangeCommand, AIRCRAFT_CHANGE_HELP } from "./change.ts";
 
 export const AIRCRAFT_HELP = `Usage: ./touchdown aircraft [--flown | --both | --provisional | --no-first-flight] [--search TEXT]
                           [--sort last | count | reg] [--log FILE] [--json]
@@ -21,7 +22,9 @@ aircraft: what it is, its registrations and its timeline of flights and sighting
   --no-first-flight  only aircraft without a first flight date
   --search TEXT      registration, type, airline or serial number
   --sort ORDER       last (the default), count (most records first) or reg
-${readOptions(19)}`;
+${readOptions(19)}
+
+${AIRCRAFT_CHANGE_HELP}`;
 
 const STATUS_LABEL: Record<string, string> = { stored: "Stored", retired: "Retired", written_off: "Written off" };
 
@@ -46,6 +49,7 @@ function listJson(log: OpenedLog, v: AircraftView) {
 }
 
 export async function aircraftCommand(args: string[]) {
+  if (args[0] === "edit" || args[0] === "merge") return aircraftChangeCommand(args);
   const a = argsOrHelp(args, { values: ["--search", "--sort"], flags: ["--flown", "--both", "--provisional", "--no-first-flight"] }, AIRCRAFT_HELP, [0, 1]);
   const json = a.flags.has("--json");
   const log = await openOrFail(json, a.values.get("--log"));

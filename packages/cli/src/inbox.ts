@@ -4,7 +4,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from "node:fs";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { matchCandidates, readInbox, Store, type InboxFile, type RefIndex } from "@touchdown/core";
+import { INBOX_PRIVATE_FIELDS, matchCandidates, readInbox, Store, type InboxFile, type RefIndex } from "@touchdown/core";
+import { planChanges } from "@touchdown/core/view";
 import { INBOX_DIR, inboxPlace, loadLog, writeInboxFile, type InboxPlace } from "./log.ts";
 import { shownPath, userPath } from "./paths.ts";
 import { chosenStorage } from "./storage.ts";
@@ -23,13 +24,22 @@ data/private/inbox/, which only the web app's dev server reads.
                  move them to data/private/inbox/sent/
   --json         print JSON, for agents and scripts`;
 
-/** "Spotting session, 2026-10-22 23:37", from the names spot and add give their files. */
+/** The commands that write change files (docs/34), by the name they give them. */
+export const CHANGE_COMMANDS = ["edit", "delete", "aircraft", "issues", "undo", "families", "settings"] as const;
+
+/** "Spotting session, 2026-10-22 23:37", "Changes from ./touchdown edit, …", from the names the commands give their files. */
 export function fileLabel(name: string): string {
-  const m = /^(spot|sheet|add)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
+  const m = new RegExp(`^(spot|sheet|add|${CHANGE_COMMANDS.join("|")})-(\\d{4}-\\d{2}-\\d{2})-(\\d{2})(\\d{2})`).exec(name);
   if (!m) return name;
   const when = `${m[2]} ${m[3]}:${m[4]}`;
-  return m[1] === "spot" ? `Spotting session, ${when}` : m[1] === "sheet" ? `Spreadsheet read by spot, ${when}` : `Added with ./touchdown add, ${when}`;
+  if (m[1] === "spot") return `Spotting session, ${when}`;
+  if (m[1] === "sheet") return `Spreadsheet read by spot, ${when}`;
+  if (m[1] === "add") return `Added with ./touchdown add, ${when}`;
+  return `Changes from ./touchdown ${m[1]}, ${when}`;
 }
+
+/** A record's values to show: a private one only as given. */
+const shownValues = (raw: Record<string, string | null>) => Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null).map(([k, v]) => [k, (INBOX_PRIVATE_FIELDS as readonly string[]).includes(k) ? "(given)" : v]));
 
 const plainName = (name: string) => /^[A-Za-z0-9._-]+\.json$/.test(name);
 
@@ -101,13 +111,28 @@ export async function inboxCommand(args: string[], ref: RefIndex): Promise<void>
     if ("error" in r && r.error === "not in the inbox") return fail(`${name} is not in ${place.name}.`);
     if (what === "show") {
       if ("error" in r) return fail(`${name} does not read: ${r.error}.`);
-      const records = r.source.candidates.map((c) => ({ kind: c.table === "flights" ? "flight" : "sighting", values: Object.fromEntries(Object.entries(c.raw).filter(([, v]) => v !== null)), open: c.issues.map((i) => i.message) }));
-      if (json) console.log(JSON.stringify({ ok: true, name, place: place.name, records }, null, 2));
+      const records = r.source.candidates.map((c) => ({ kind: c.table === "flights" ? "flight" : "sighting", values: shownValues(c.raw), open: c.issues.map((i) => i.message) }));
+      // Changes are shown as the review shows them, against the log as it is now; private values only as changed.
+      let changes: ReturnType<typeof planChanges>["changes"] = [];
+      if (r.changes.length) {
+        let log;
+        try {
+          log = await loadLog(ref, { storage });
+        } catch (e) {
+          return fail((e as Error).message);
+        }
+        changes = planChanges(log.store ?? new Store({ deviceId: "cli", validate: false }), ref, r.changes).changes;
+      }
+      if (json) console.log(JSON.stringify({ ok: true, name, place: place.name, records, changes: changes.map((c) => ({ action: c.action, title: c.title, status: c.status, note: c.note, lines: c.lines.map(({ label, before, after }) => ({ label, before, after })) })) }, null, 2));
       else {
         console.log(`${bold(fileLabel(name))} ${dim(`(${name}, ${place.name})`)}`);
         for (const rec of records) {
           console.log(`  ${rec.kind}: ${Object.entries(rec.values).map(([k, v]) => `${k} ${v}`).join(", ")}`);
           for (const o of rec.open) console.log(dim(`    open: ${o}`));
+        }
+        for (const c of changes) {
+          console.log(`  ${c.action}: ${c.title}${c.status === "pending" ? "" : dim(` (${c.note ?? c.status})`)}`);
+          for (const l of c.lines) console.log(`    ${dim(l.label)}  ${l.before || "-"} → ${l.after || "-"}`);
         }
       }
       return;
@@ -143,7 +168,8 @@ export async function inboxCommand(args: string[], ref: RefIndex): Promise<void>
     }
     const cs = r.source.candidates;
     const waiting = matchCandidates(store, cs).filter((m) => m.kind === "new" || m.kind === "update" || m.kind === "conflict").length;
-    files.push({ name, label: fileLabel(name), flights: cs.filter((c) => c.table === "flights").length, sightings: cs.filter((c) => c.table === "sightings").length, waiting });
+    const changes = r.changes.length ? planChanges(store, ref, r.changes).open : 0;
+    files.push({ name, label: fileLabel(name), flights: cs.filter((c) => c.table === "flights").length, sightings: cs.filter((c) => c.table === "sightings").length, changes: r.changes.length, waiting: waiting + changes });
   }
   if (json) {
     console.log(JSON.stringify({ ok: true, place: place.name, shared: place.shared, checkedAgainst: log.from, files }, null, 2));
@@ -153,6 +179,6 @@ export async function inboxCommand(args: string[], ref: RefIndex): Promise<void>
   if (!files.length) console.log("  Empty.");
   for (const f of files) {
     if ("error" in f) console.log(`  ${f.name}  ${red(`does not read: ${f.error}`)}`);
-    else console.log(`  ${f.name}  ${f.label}: ${[f.flights ? plural(f.flights, "flight") : null, f.sightings ? plural(f.sightings, "sighting") : null].filter(Boolean).join(", ")}; ${f.waiting ? `${f.waiting} not in your log yet` : "all in your log already"}`);
+    else console.log(`  ${f.name}  ${f.label}: ${[f.flights ? plural(f.flights, "flight") : null, f.sightings ? plural(f.sightings, "sighting") : null, f.changes ? plural(f.changes, "change") : null].filter(Boolean).join(", ")}; ${f.waiting ? `${f.waiting} not in your log yet` : "all in your log already"}`);
   }
 }

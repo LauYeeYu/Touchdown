@@ -3957,6 +3957,82 @@ a.wordmark {
   box-shadow: inset 0 0 0 1px var(--rule);
 }
 
+/* A change file's review (components/ChangeReview.tsx): a tonal box per change, its values as the suggestions show
+   theirs. A change left out, or with nothing left to do, fades. */
+.changes {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-low);
+  transition: opacity 160ms var(--ease);
+}
+
+.change.is-off {
+  opacity: 0.6;
+}
+
+.change__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  cursor: pointer;
+}
+
+.change__head input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  translate: 0 2px;
+  accent-color: var(--flown);
+}
+
+.change__head input:disabled {
+  cursor: default;
+}
+
+.change__action {
+  font-weight: 650;
+}
+
+.change__title {
+  min-width: 0;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.change__note {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 0 26px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.change__note .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  translate: 0 2px;
+  color: var(--ink-3);
+}
+
+.change__lines {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0 26px;
+  padding: 0;
+  list-style: none;
+}
+
 .form-subsection {
   margin: 24px 0 4px;
   font-size: 1rem;

@@ -5,8 +5,8 @@
 import {
   flightDay,
   normaliseFlightNumber,
-  operatorFromOverride,
   RefIndex,
+  refOverridesOf,
   registrationMatchForm,
   settingsOf,
   todayIn,
@@ -19,7 +19,7 @@ import { yearsIn, type CodeStyle } from "@touchdown/core/view";
 import { loadRefTables } from "@touchdown/refdata";
 import { loadLog } from "./log.ts";
 import { userPath } from "./paths.ts";
-import { chosenStorage } from "./storage.ts";
+import { chosenStorage, type OpenedStorage } from "./storage.ts";
 import { bold, dim, fit, red, width } from "./term.ts";
 
 /** Exit statuses of the reading commands. */
@@ -69,6 +69,8 @@ export interface OpenedLog {
   ref: RefIndex;
   /** For messages: "your log in Google Drive (address)", "data/private/touchdown-backup.zip". */
   from: string;
+  /** The storage the log was read from; null for a backup file. */
+  storage: OpenedStorage | null;
   codes: CodeStyle;
   unit: "km" | "mi" | "nm";
   models: "standard" | "compact";
@@ -84,15 +86,9 @@ export async function openLog(file?: string): Promise<OpenedLog> {
   const log = await loadLog(ref, { file: file ? userPath(file) : undefined, storage });
   if (!log.store) throw new Error("There is no log to read. Choose your storage with ./touchdown storage, or give a backup with --log FILE.");
   const store = log.store;
-  ref.setUserOverrides({
-    operators: store.all("operator_overrides").map((o) => operatorFromOverride(o)),
-    familyOverrides: store
-      .all("family_overrides")
-      .filter((o) => o.designator && o.familyId)
-      .map((o) => ({ designator: o.designator!, familyId: o.familyId! })),
-  });
+  ref.setUserOverrides(refOverridesOf(store));
   const s = settingsOf(store);
-  return { store, ref, from: log.from, codes: s.codeDisplay ?? "iata", unit: s.distanceUnit ?? "km", models: s.modelNaming ?? "standard" };
+  return { store, ref, from: log.from, storage, codes: s.codeDisplay ?? "iata", unit: s.distanceUnit ?? "km", models: s.modelNaming ?? "standard" };
 }
 
 /** The log, or the reason it cannot be read, and stop. */

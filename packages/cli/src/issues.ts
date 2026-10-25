@@ -5,6 +5,7 @@ import { orderIssues } from "@touchdown/core/view";
 import { findingJson, openFindings } from "./shape.ts";
 import { argsOrHelp, fail, flightRefLabel, openOrFail, printJson, readOptions, section, sightingRefLabel, table, type OpenedLog } from "./read.ts";
 import { bold, dim, green, plural, red, yellow } from "./term.ts";
+import { issuesChangeCommand, ISSUES_CHANGE_HELP } from "./change.ts";
 
 export const ISSUES_HELP = `Usage: ./touchdown issues [--severity S[,S…] | all] [--rule ID] [--log FILE] [--json]
        ./touchdown issues --accepted [--log FILE] [--json]
@@ -15,7 +16,9 @@ suggested fixes. Each finding's id is the one to name it by. With --accepted, th
   --severity S   error, warning, info (notes), comma-separated, or all; errors and warnings by default
   --rule ID      one rule only, such as C-FLIGHT-OVERLAP
   --accepted     the accepted warnings instead
-${readOptions(15)}`;
+${readOptions(15)}
+
+${ISSUES_CHANGE_HELP}`;
 
 export const IMPORTS_HELP = `Usage: ./touchdown imports [--log FILE] [--json]
 
@@ -52,6 +55,7 @@ function recordLabel(log: OpenedLog, r: { table: string; id: string }): string {
 const mark = (s: Severity) => (s === "error" ? red("!") : s === "warning" ? yellow("?") : dim("i"));
 
 export async function issuesCommand(args: string[]) {
+  if (args[0] === "accept" || args[0] === "reopen" || args[0] === "fix") return issuesChangeCommand(args);
   const a = argsOrHelp(args, { values: ["--severity", "--rule"], flags: ["--accepted"] }, ISSUES_HELP);
   const json = a.flags.has("--json");
   const sevText = a.values.get("--severity") ?? "error,warning";

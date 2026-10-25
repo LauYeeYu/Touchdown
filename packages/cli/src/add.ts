@@ -8,6 +8,7 @@ import {
   checkAll,
   commitImport,
   INBOX_FLIGHT_FIELDS,
+  INBOX_PRIVATE_FIELDS,
   INBOX_SCHEMA,
   INBOX_VERSION,
   isValidDate,
@@ -31,10 +32,10 @@ import {
   type SpotValues,
   type TableName,
 } from "@touchdown/core";
-import { inboxPlace, loadLog, writeInboxFile, type InboxPlace } from "./log.ts";
+import { freeName, inboxPlace, loadLog, stamp, writeInboxFile, type InboxPlace } from "./log.ts";
 import { userPath } from "./paths.ts";
 import { chosenStorage } from "./storage.ts";
-import { bold, dim, green, plural, red, yellow } from "./term.ts";
+import { askHidden, bold, dim, green, plural, red, yellow } from "./term.ts";
 
 export const ADD_HELP = `Usage: ./touchdown add [FILE.json | -] [--dry-run] [--json] [--keep-errors] [--log FILE]
 
@@ -49,13 +50,17 @@ They are JSON, from a file or from standard input ("-", or a pipe):
   }
 
 Flight fields:   ${INBOX_FLIGHT_FIELDS.join(", ")}
+                 ticketNumber, bookingRef (private)
 Sighting fields: date, registration, airport, airline, typeCode, model, phase, livery, specialLivery, notes
 
 Dates are YYYY-MM-DD. Times (boarding, takeoff, landing) are local clock times, HH:MM, at the airport they
 happen at; duration is H:MM. Airports and airlines are ICAO or IATA codes; an airline may be a company's
 name. A record may say where values came from: "sources": { "typeCode": "claude" } (you, claude, codex,
-opensky, adsbdb, fr24); values without one count as typed by you. Ticket numbers and booking references are
-not taken here: add them in the web app.
+opensky, adsbdb, fr24); values without one count as typed by you.
+
+Ticket numbers and booking references are private: they go into the inbox file with the flight, and are never
+printed, only reported as given. Give them in the JSON, or with --ticket and --booking type the first
+flight's at a prompt that does not show them (a terminal and an input file are needed).
 
 Each record is checked as the Import page checks it, against your log as it is now (from the storage chosen
 with ./touchdown storage, else data/private/touchdown-backup.zip, or --log FILE): unknown codes, impossible
@@ -66,13 +71,15 @@ then written, read back and read again as the web app will read it.
   --dry-run       check only, write nothing
   --json          print the report as JSON, for agents and scripts
   --keep-errors   write records with errors as well; the review shows the errors again
+  --ticket        type the first flight's ticket number at a prompt that does not show it
+  --booking       type the first flight's booking reference the same way
   --log FILE      check against this backup instead of the storage
 
 Exit status: 0 written, or nothing new to write; 1 errors found, nothing written; 2 the input, the log or the
 storage could not be read.`;
 
 const SIGHTING_INPUT = ["date", "registration", "airport", "airline", "typeCode", "model", "phase", "livery", "specialLivery", "notes"] as const;
-const PRIVATE_INPUT = new Set(["ticketNumber", "bookingRef", "bookingReference"]);
+const FLIGHT_INPUT = [...INBOX_FLIGHT_FIELDS, ...INBOX_PRIVATE_FIELDS] as const;
 const SOURCES = new Set<SpotSource>(["you", "claude", "codex", "opensky", "adsbdb", "fr24", "your_log", "derived"]);
 
 interface ReadRecord {
@@ -99,8 +106,6 @@ function readRecord(rec: unknown, where: string, allowed: readonly string[]): Re
         if (!SOURCES.has(s as SpotSource)) return { error: `${where}: the source of ${f} must be one of ${[...SOURCES].join(", ")}.` };
         out.sources[f] = s as SpotSource;
       }
-    } else if (PRIVATE_INPUT.has(k)) {
-      return { error: `${where}: ${k} is not taken here. Ticket numbers and booking references are private; add them in the web app.` };
     } else if (!allowed.includes(k)) {
       return { error: `${where}: unknown field "${k}". The fields are: ${allowed.join(", ")}.` };
     } else {
@@ -124,7 +129,7 @@ export function addFile(json: unknown, createdAt: string): { file: InboxFile } |
   const flights: InboxFlight[] = [];
   const sightings: InboxSighting[] = [];
   for (const [i, rec] of ((o.flights as unknown[]) ?? []).entries()) {
-    const r = readRecord(rec, `flight ${i + 1}`, INBOX_FLIGHT_FIELDS);
+    const r = readRecord(rec, `flight ${i + 1}`, FLIGHT_INPUT);
     if ("error" in r) return r;
     if (!r.values.flightNumber && !(r.values.from && r.values.to) && !r.values.registration) return { error: `flight ${i + 1}: give a flight number, a route (from and to) or a registration.` };
     flights.push({ values: r.values, ...(Object.keys(r.sources).length ? { sources: r.sources } : {}), open: [] });
@@ -165,6 +170,8 @@ export interface RecordReport {
   statusText: string;
   /** The values as Touchdown read them: codes resolved, times with their UTC offsets. */
   read: Record<string, string>;
+  /** Private fields given (ticket number, booking reference); their values are never reported. */
+  private: string[];
   problems: Problem[];
 }
 
@@ -272,23 +279,10 @@ export function checkRecords(file: InboxFile, log: Store | null, ref: RefIndex, 
       status: inFile ? "waiting" : m.kind,
       statusText: inFile ? `already waiting in the inbox (${inFile}), left out` : statusText(m.kind, m.fills, m.conflicts),
       read: readValues(c, ref),
+      private: c.table === "flights" ? INBOX_PRIVATE_FIELDS.filter((f) => !!(c.values as Record<string, unknown>)[f]) : [],
       problems: [...c.issues.map((x) => ({ severity: x.severity, rule: x.ruleId, message: x.message })), ...own.map((f) => ({ severity: f.severity, rule: f.ruleId, message: f.message }))],
     };
   });
-}
-
-const stamp = (d = new Date()) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
-};
-
-/** A name not in the inbox yet. */
-async function freeName(place: InboxPlace, base: string): Promise<string> {
-  const taken = new Set(await place.list());
-  for (let i = 1; ; i++) {
-    const name = i === 1 ? `${base}.json` : `${base}-${i}.json`;
-    if (!taken.has(name)) return name;
-  }
 }
 
 interface Options {
@@ -296,16 +290,20 @@ interface Options {
   dryRun: boolean;
   json: boolean;
   keepErrors: boolean;
+  ticket: boolean;
+  booking: boolean;
   log?: string;
 }
 
 function options(args: string[]): Options | null {
-  const o: Options = { dryRun: false, json: false, keepErrors: false };
+  const o: Options = { dryRun: false, json: false, keepErrors: false, ticket: false, booking: false };
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
     if (a === "--dry-run") o.dryRun = true;
     else if (a === "--json") o.json = true;
     else if (a === "--keep-errors") o.keepErrors = true;
+    else if (a === "--ticket") o.ticket = true;
+    else if (a === "--booking") o.booking = true;
     else if (a === "--log" && args[i + 1]) o.log = userPath(args[++i]!);
     else if (!a.startsWith("--") && !o.input) o.input = a;
     else return null;
@@ -341,6 +339,16 @@ export async function addCommand(args: string[], ref: RefIndex): Promise<void> {
   }
   const made = addFile(json, new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   if ("error" in made) return fail(made.error);
+  if (o.ticket || o.booking) {
+    const first = made.file.flights?.[0];
+    if (!first) return fail("--ticket and --booking are for a flight, and the input has none.");
+    try {
+      if (o.ticket) first.values.ticketNumber = (await askHidden("Ticket number of the first flight (not shown): ")).replace(/\s+/g, "") || undefined;
+      if (o.booking) first.values.bookingRef = (await askHidden("Booking reference of the first flight (not shown): ")) || undefined;
+    } catch (e) {
+      return fail((e as Error).message);
+    }
+  }
 
   let storage;
   let log;
@@ -403,7 +411,7 @@ function printReport(records: RecordReport[], from: string, problems: string[]) 
   for (const r of records) {
     const errors = r.problems.filter((p) => p.severity === "error").length;
     const mark = errors ? red("✗") : r.status === "identical" || r.status === "waiting" ? dim("–") : green("✓");
-    console.log(`${mark} ${bold(`${r.kind} ${r.n}`)}  ${r.label}  ${dim(r.statusText)}`);
+    console.log(`${mark} ${bold(`${r.kind} ${r.n}`)}  ${r.label}  ${dim(r.statusText)}${r.private.length ? dim(` · ${r.private.map((f) => (f === "ticketNumber" ? "ticket number" : "booking reference")).join(" and ")} given`) : ""}`);
     for (const p of r.problems) console.log(`    ${p.severity === "error" ? red("error") : p.severity === "warning" ? yellow("warning") : dim("note")} ${dim(p.rule)} ${p.message}`);
   }
 }

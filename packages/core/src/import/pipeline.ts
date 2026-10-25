@@ -1,7 +1,7 @@
 // Match, commit and undo (docs/21-import-export.md, stages 4–10 and "Undo").
 
 import { looksLikeOperatorName, operatorFromOverride, type Operator, type RefIndex } from "../ref/index.ts";
-import type { Flight, FlightValues, Sighting, SightingValues } from "../schema/tables.ts";
+import { TABLES, type Flight, type FlightValues, type Sighting, type SightingValues, type TableName } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Candidate, ParsedSource } from "./candidate.ts";
 import { flightDay } from "../derive.ts";
@@ -414,11 +414,12 @@ export function undoImport(store: Store, ref: RefIndex, batchId: string, force =
     const batch = store.get("import_batches", batchId);
     if (!batch || batch.status === "undone") return result;
     const batchTime = batch.createdAt ?? "";
-    // User edits write a history row (reason "edit"); resolver and sync changes do not count.
+    // User edits write a history row (reason "edit"), and so does every later import that changed the record (reason
+    // "import", another batch); resolver and sync changes do not count.
     const editedLater = new Set(
       store
         .all("record_history")
-        .filter((h) => h.reason === "edit" && (h.changedAt ?? "") >= batchTime)
+        .filter((h) => (h.reason === "edit" || (h.reason === "import" && h.batchId !== batchId)) && (h.changedAt ?? "") >= batchTime)
         .map((h) => h.recordId),
     );
     const touchedLater = (r: { id: string }) => editedLater.has(r.id);
@@ -435,19 +436,24 @@ export function undoImport(store: Store, ref: RefIndex, batchId: string, force =
         result.removed++;
       }
     }
+    // The versions the batch replaced, in any table: an import of records keeps those of the records it filled in,
+    // an import of changes (import/changes.ts) those of every row it touched, and none for a row it created.
     for (const h of store.all("record_history")) {
-      if (h.batchId !== batchId || h.reason !== "import" || !h.row) continue;
-      const table = h.tableName as "flights" | "sightings";
-      const cur = store.get(table, h.recordId);
-      if (!cur) continue;
-      if (!force && touchedLater(cur)) {
-        result.editedSince.push(cur.id);
+      if (h.batchId !== batchId || h.reason !== "import") continue;
+      const table = h.tableName as TableName;
+      if (!(table in TABLES)) continue;
+      if (!force && touchedLater({ id: h.recordId })) {
+        result.editedSince.push(h.recordId);
         continue;
       }
-      const prev = h.row as Record<string, unknown>;
-      const patch: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(prev)) if (!["id", "rev", "updatedAt", "updatedBy", "deleted"].includes(k)) patch[k] = v;
-      store.update(table, cur.id, patch as never);
+      if (!h.row) {
+        if (store.get(table, h.recordId)) {
+          store.remove(table, h.recordId);
+          result.removed++;
+        }
+        continue;
+      }
+      store.restore(table, h.recordId, h.row as Record<string, unknown>);
       result.restored++;
     }
     // Records edited since were left alone; the batch stays open so a forced undo can finish the job.

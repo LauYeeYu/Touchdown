@@ -45,6 +45,7 @@ import { INBOX_HELP, inboxCommand } from "./inbox.ts";
 import { AIRCRAFT_HELP, aircraftCommand } from "./aircraft.ts";
 import { AIRPORT_HELP, airportCommand } from "./airport.ts";
 import { STATS_HELP, statsCommand } from "./stats.ts";
+import { DELETE_HELP, deleteCommand, EDIT_HELP, editCommand, FAMILIES_HELP, familiesCommand, SETTINGS_HELP, settingsCommand, UNDO_HELP, undoCommand } from "./change.ts";
 import { IMPORTS_HELP, importsCommand, ISSUES_HELP, issuesCommand } from "./issues.ts";
 import { FLIGHT_HELP, FLIGHTS_HELP, flightCommand, flightsCommand, SESSIONS_HELP, sessionsCommand, SIGHTINGS_HELP, sightingsCommand } from "./records.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
@@ -78,6 +79,15 @@ ${bold("Read your log")} (as the web app shows it; --json for agents and scripts
   stats       Home's sentence and the Statistics page; --by for a table as in its Custom view.
   issues      Open findings with their ids and fixes; --accepted for the ones marked right.
   imports     The imports into your log, for undoing one.
+
+${bold("Change your log")} (checked, then put in the inbox: nothing changes until you review and import it)
+  edit        Change a flight or a sighting: --set FIELD=VALUE, --clear FIELD.
+  delete      Delete flights or sightings.
+  aircraft    edit REF --set msn=… for an aircraft's facts; merge INTO FROM for two entries of one aircraft.
+  issues      accept ID, reopen ID, or fix ID [N] with a suggested fix.
+  undo        Undo an import (ids from ./touchdown imports).
+  families    Count a type in another family in the statistics.
+  settings    The codes, distance unit and model names your log shows.
 
 ${bold("Check and import files")}
   check       Have Claude Code or Codex check a spreadsheet, or a check request saved from the Import page.
@@ -164,6 +174,11 @@ const HELP: Record<string, string> = {
   stats: STATS_HELP,
   issues: ISSUES_HELP,
   imports: IMPORTS_HELP,
+  edit: EDIT_HELP,
+  delete: DELETE_HELP,
+  undo: UNDO_HELP,
+  families: FAMILIES_HELP,
+  settings: SETTINGS_HELP,
 };
 
 function usage(text = MENU, code = 1): never {
@@ -322,6 +337,11 @@ async function main(argv: string[]) {
   if (cmd === "stats") return statsCommand(all);
   if (cmd === "issues") return issuesCommand(all);
   if (cmd === "imports") return importsCommand(all);
+  if (cmd === "edit") return editCommand(all);
+  if (cmd === "delete") return deleteCommand(all);
+  if (cmd === "undo") return undoCommand(all);
+  if (cmd === "families") return familiesCommand(all);
+  if (cmd === "settings") return settingsCommand(all);
   if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd], 0);
   const { lookup, rest } = lookupArgs(all);
   if (cmd === "airframes") return airframesCommand(rest, lookup);
