@@ -5,8 +5,36 @@
 // log in the user's storage as the web app sends its own changes (write.ts); the file is then kept with the import.
 // Private values (ticket numbers, booking references) are never printed.
 
+import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
-import { applyChanges, commitImport, INBOX_PRIVATE_FIELDS, prepareImport, readInbox, settingsOf, type ChangeStatus, type CommitDecision, type FieldDiff, type Finding, type InboxChange, type Match, type ParsedSource, type PreparedImport, type RefIndex } from "@touchdown/core";
+import {
+  applyChanges,
+  applySuggestions,
+  buildCheckRequest,
+  CHECK_BATCH_SIZE,
+  checkBatchId,
+  commitImport,
+  INBOX_PRIVATE_FIELDS,
+  prepareImport,
+  readInbox,
+  recordIdOf,
+  settingsOf,
+  storedFields,
+  type AgentSuggestion,
+  type ChangeStatus,
+  type Checker,
+  type CommitDecision,
+  type FieldDiff,
+  type Finding,
+  type InboxChange,
+  type Match,
+  type ParsedSource,
+  type PreparedImport,
+  type RefIndex,
+} from "@touchdown/core";
+import { findAgent } from "./agents.ts";
+import { ensureSelfTest, PROMPT_FILE, runCheck } from "./check.ts";
+import { agentForRun, AGENT_NAME, agentRules, savedSendNotes, type AgentChoice } from "./settings.ts";
 import { airlineLabel, airportWithCode, CABIN_LABEL, dateTimeLabel, FIELD_LABEL, PHASE_LABEL, planChanges, takeByDefault, type ChangePlan } from "@touchdown/core/view";
 import { fileLabel } from "./inbox.ts";
 import { inboxPlace } from "./log.ts";
@@ -15,7 +43,7 @@ import { findingJson } from "./shape.ts";
 import { bold, dim, green, plural, red, yellow } from "./term.ts";
 import { openForWriting, sendChanges, type WritableLog } from "./write.ts";
 
-export const REVIEW_HELP = `Usage: ./touchdown review [NAME] [--yes] [--json]
+export const REVIEW_HELP = `Usage: ./touchdown review [NAME] [--yes] [--json] [--check [--agent claude|codex] [--model NAME] [--use-high]]
 
 Reviews a file waiting in the inbox (the oldest, or NAME from ./touchdown inbox) and imports it into your log, as
 the web app's Import page does. Records show as new, as filling in a record of your log, or as differing from one;
@@ -32,8 +60,15 @@ chosen with ./touchdown storage and the import sent to it as the web app sends i
 sent (offline) is kept in data/private/cli-sync.json and sent by the next run. The file then leaves the inbox and is
 kept with the import.
 
-  --yes    import with every answer at its default, without asking
-  --json   print the review as JSON without importing; with --yes, import and print the result
+  --yes        import with every answer at its default, without asking
+  --json       print the review as JSON without importing; with --yes, import and print the result
+  --check      first have the agent (./touchdown agent) check the file's rows, as "Check with an agent" on the
+               Import page does: each suggestion is shown and used only if you say so (no is the default), and
+               what is used is saved with the agent as its source. It is sent what ./touchdown help check says,
+               never ticket numbers, booking references or seats
+  --agent NAME claude or codex for this run
+  --model NAME the agent's model
+  --use-high   use the suggestions the agent is highly confident of without asking (with --yes, the only ones)
 
 Ticket numbers and booking references are never printed, only whether a file gives them.
 
@@ -114,7 +149,17 @@ export async function reviewCommand(args: string[]) {
   }
   const json = args.includes("--json");
   const yes = args.includes("--yes");
-  const rest = args.filter((a) => a !== "--json" && a !== "--yes");
+  const check = args.includes("--check");
+  const useHigh = args.includes("--use-high");
+  const valueOf = (flag: string) => {
+    const i = args.indexOf(flag);
+    return i < 0 ? undefined : args[i + 1];
+  };
+  const checker = valueOf("--agent");
+  const model = valueOf("--model");
+  if (checker !== undefined && checker !== "claude" && checker !== "codex") return fail(json, "--agent takes claude or codex.");
+  if ((checker !== undefined || model !== undefined || useHigh) && !check) return fail(json, "--agent, --model and --use-high go with --check.");
+  const rest = args.filter((a, i) => !["--json", "--yes", "--check", "--use-high", "--agent", "--model"].includes(a) && args[i - 1] !== "--agent" && args[i - 1] !== "--model");
   const unknown = rest.filter((a) => a.startsWith("--"));
   if (unknown.length || rest.length > 1) return fail(json, `${unknown.length ? `There is no option ${unknown[0]}.` : "Give one file name."}\n\n${REVIEW_HELP}`);
   const interactive = !yes && !json;
@@ -159,12 +204,25 @@ export async function reviewCommand(args: string[]) {
   if ("error" in read) return fail(json, `${file.name} does not read: ${read.error}.`);
 
   const settings = settingsOf(w.store);
-  const prepared: PreparedImport | null = read.source.candidates.length ? prepareImport(w.store, w.ref, read.source) : null;
+  let prepared: PreparedImport | null = read.source.candidates.length ? prepareImport(w.store, w.ref, read.source) : null;
   const plan: ChangePlan | null = read.changes.length ? planChanges(w.store, w.ref, read.changes, { codes: settings.codeDisplay ?? "iata", unit: settings.distanceUnit, models: settings.modelNaming }) : null;
   const { ask, close } = asker(interactive);
 
   try {
     if (!json) console.log(`${bold(fileLabel(file.name))} ${dim(`(${file.name}, ${place.name})`)}${files.length > 1 ? dim(`; ${files.length - 1} more waiting`) : ""}`);
+
+    // The agent check first, so the rows below are reviewed with the suggestions used.
+    let agentUse: { checker: Checker; fields: Map<number, string[]> } | null = null;
+    let suggestions: SuggestionReport[] = [];
+    if (check) {
+      if (!prepared) return fail(json, "--check is for a file of records; this one holds only changes.");
+      try {
+        const r = await agentCheck(w, prepared, file.data, { checker: checker as AgentChoice | undefined, model, useHigh, json, interactive }, ask);
+        ({ prepared, agentUse, suggestions } = r);
+      } catch (e) {
+        return fail(json, (e as Error).message);
+      }
+    }
 
     // Records: what each row does; questions where the Import page lets the user decide.
     const decisions = new Map<number, CommitDecision>();
@@ -235,6 +293,7 @@ export async function reviewCommand(args: string[]) {
         })),
         changes: (plan?.changes ?? []).map((p) => ({ action: p.action, title: p.title, status: p.status, note: p.note, lines: p.lines.map(({ label: l, before, after }) => ({ label: l, before, after })) })),
         findings: (plan?.findings ?? []).map(findingJson),
+        ...(check && { suggestions }),
         wouldImport: { rows, changes },
       });
       process.exit(EXIT.ok);
@@ -255,7 +314,11 @@ export async function reviewCommand(args: string[]) {
     // The import: one batch for the rows, one for the changes, then sent.
     const batches: string[] = [];
     const messages: string[] = [];
-    if (prepared && rows) batches.push(commitImport(w.store, w.ref, prepared.source as ParsedSource, prepared.matches, decisions).batchId);
+    if (prepared && rows) {
+      // Fields an agent suggestion set replace what the log has, as on the Import page.
+      for (const [i, fields] of agentUse?.fields ?? []) decisions.set(i, { ...decisions.get(i), takeIncoming: [...new Set([...(decisions.get(i)?.takeIncoming ?? []), ...fields])] });
+      batches.push(commitImport(w.store, w.ref, prepared.source as ParsedSource, prepared.matches, decisions, agentUse ? { agent: agentUse } : {}).batchId);
+    }
     if (plan && changes) {
       const r = applyChanges(w.store, w.ref, read.changes as InboxChange[], take, { fileName: file.name });
       batches.push(r.batchId);
@@ -273,7 +336,7 @@ export async function reviewCommand(args: string[]) {
     const unchanged = !!now && now.length === file.data.length && now.every((b, i) => b === file.data[i]);
     if (unchanged) await place.imported(file.name, batches[0]!, file.data);
 
-    if (json) printJson({ ok: true, file: file.name, imported: { rows, changes, batches }, messages, waiting: sent.waiting, fileKept: unchanged ? "with the import" : "in the inbox (saved again since it was read)" });
+    if (json) printJson({ ok: true, file: file.name, imported: { rows, changes, batches }, ...(check && { suggestions }), messages, waiting: sent.waiting, fileKept: unchanged ? "with the import" : "in the inbox (saved again since it was read)" });
     else {
       console.log(`\n${green("Imported")} ${what} into your log in ${w.storage.name}.${messages.length ? ` ${messages.join(" ")}` : ""}`);
       if (sent.waiting) console.log(yellow(`${plural(sent.waiting, "row")} not confirmed by the storage yet: sent again by the next run.`));
@@ -283,4 +346,92 @@ export async function reviewCommand(args: string[]) {
   } finally {
     close();
   }
+}
+
+interface SuggestionReport {
+  row: number;
+  title: string;
+  field: string;
+  current: string;
+  suggested: string;
+  confidence: string;
+  reason: string;
+  used: boolean;
+}
+
+/**
+ * The agent check of a file's rows (docs/22), as the Import page's "Check with an agent": the rows not in the log
+ * yet go to the agent; each suggestion is used only when the user says so (or, with --use-high, when the agent is
+ * highly confident). The review then goes on with the suggestions used, which are saved with the agent as source.
+ */
+async function agentCheck(
+  w: WritableLog,
+  prepared: PreparedImport,
+  data: Uint8Array,
+  o: { checker?: AgentChoice; model?: string; useHigh: boolean; json: boolean; interactive: boolean },
+  ask: Ask,
+): Promise<{ prepared: PreparedImport; agentUse: { checker: Checker; fields: Map<number, string[]> } | null; suggestions: SuggestionReport[] }> {
+  const say = (line: string) => {
+    if (!o.json) console.error(line);
+  };
+  const choice = await agentForRun(o.checker);
+  if (typeof choice === "object") throw new Error(choice.error);
+  if (choice === "none") throw new Error(`--check needs an agent, and your saved choice is ${AGENT_NAME.none}. Pass --agent claude or --agent codex, or choose one with ./touchdown agent.`);
+  const agent = findAgent(choice);
+  if ("error" in agent) throw new Error(agent.error);
+  say(dim(`Checking with ${agent.name} ${agent.version}: it is sent dates, airports, flight numbers, registrations, types, models, operators, liveries and phases${savedSendNotes() ? " and notes" : ""}; never tickets, bookings or seats.`));
+  let line = "";
+  const passed = await ensureSelfTest(agent, readFileSync(PROMPT_FILE, "utf8"), w.ref, o.model, false, (text, end) => {
+    line += text;
+    if (end) {
+      say(line);
+      line = "";
+    }
+  });
+  if (!passed) throw new Error(`${agent.name} ${agent.version} did not pass the self-test, so it is not used.`);
+
+  // Rows already in the log are not imported, so they are not sent.
+  const open = new Set(prepared.matches.flatMap((m) => (m.kind === "identical" ? [] : [recordIdOf(m.candidate)])));
+  const request = buildCheckRequest(prepared.source, w.ref, {
+    batchId: await checkBatchId(data),
+    findings: new Map([...prepared.findings].map(([i, list]) => [i, list.map((f) => f.message)])),
+    rules: agentRules(),
+    includeNotes: savedSendNotes(),
+  });
+  const records = request.records.filter((r) => open.has(r.recordId));
+  const calls = Math.ceil(records.length / CHECK_BATCH_SIZE);
+  if (!records.length) return { prepared, agentUse: null, suggestions: [] };
+  if (o.interactive && calls > 1 && !(await ask(`Check ${plural(records.length, "row")} with ${agent.name}, in ${calls} calls?`, true))) return { prepared, agentUse: null, suggestions: [] };
+  const { result } = await runCheck(agent, w.ref, request, records, { batchSize: CHECK_BATCH_SIZE, parallel: 3, model: o.model }, !o.json);
+  if (result.failed.length) say(yellow(`${plural(result.failed.reduce((n, f) => n + f.recordIds.length, 0), "row")} got no valid answer from the agent and are reviewed as they are.`));
+
+  const byId = new Map(prepared.matches.map((m, i) => [recordIdOf(m.candidate), { m, i }]));
+  const accepted = new Map<string, AgentSuggestion[]>();
+  const report: SuggestionReport[] = [];
+  const withSuggestions = result.records.filter((r) => r.suggestions.length);
+  if (withSuggestions.length && !o.json) console.log(`\n${bold("The agent's suggestions")} ${dim("(none is used unless you say so)")}`);
+  for (const r of withSuggestions) {
+    const at = byId.get(r.recordId);
+    if (!at) continue;
+    const title = rowTitle(at.m);
+    if (!o.json) console.log(`${bold(title)}${r.note ? dim(`  ${r.note}`) : ""}`);
+    for (const x of r.suggestions) {
+      const high = x.confidence === "high";
+      if (!o.json) console.log(`    ${label(x.field)}: ${x.current || "(empty)"} → ${bold(x.suggested || "(clear)")}  ${high ? green(x.confidence) : x.confidence === "medium" ? yellow(x.confidence) : dim(x.confidence)}  ${dim(x.reason)}`);
+      const used = o.useHigh && high ? true : o.interactive ? await ask("    Use it?", false) : false;
+      if (used) accepted.set(r.recordId, [...(accepted.get(r.recordId) ?? []), x]);
+      report.push({ row: at.m.candidate.sourceRow, title, field: x.field, current: x.current, suggested: x.suggested, confidence: x.confidence, reason: x.reason, used });
+    }
+  }
+  if (!withSuggestions.length) say(dim(`The agent found nothing to change in ${plural(result.checked, "row")}.`));
+  if (!accepted.size) return { prepared, agentUse: null, suggestions: report };
+
+  // The rows again, with the suggestions used: matched and checked anew, as the Import page does.
+  const again = prepareImport(w.store, w.ref, applySuggestions(prepared.source, accepted, w.ref));
+  const fields = new Map<number, string[]>();
+  again.source.candidates.forEach((c, i) => {
+    const list = accepted.get(recordIdOf(c));
+    if (list) fields.set(i, list.flatMap((x) => storedFields(c.table === "sightings" ? "sighting" : "flight", x.field)));
+  });
+  return { prepared: again, agentUse: { checker: agent.checker, fields }, suggestions: report };
 }

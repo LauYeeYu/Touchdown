@@ -340,6 +340,97 @@ function printSummary(result: CheckResultFile, request: CheckRequest, o: Options
   if (result.failed.length) console.log(red(`\n${plural(result.failed.reduce((n, f) => n + f.recordIds.length, 0), "row")} got no valid answer (${result.failed.map((f) => f.why).join("; ")}). Run the check again to retry them.`));
 }
 
+// ---------- running a check (also for `touchdown review --check`) ----------
+
+/**
+ * The self-test, once per agent version (or every time with `force`): false, with the reason said, when the agent
+ * does not pass and must not be used.
+ */
+export async function ensureSelfTest(agent: Agent, prompt: string, ref: RefIndex, model: string | undefined, force: boolean, say: (text: string, end: boolean) => void): Promise<boolean> {
+  if (!force && selfTestPassed(agent)) {
+    say(dim(`  Self-test passed before for this version`), true);
+    return true;
+  }
+  say(`  Self-test sending a record that tries to take over the agent… `, false);
+  const why = await selfTest(agent, prompt, ref, model);
+  if (why) {
+    say(red("failed"), true);
+    console.error(red(`\n${agent.name} ${agent.version} did not pass the self-test: ${why}. Touchdown will not use it.`));
+    return false;
+  }
+  recordSelfTest(agent);
+  say(green("passed"), true);
+  return true;
+}
+
+/** Run the agent over `records` in batches, `parallel` at a time; with `show`, each batch is printed as it finishes. */
+export async function runCheck(agent: Agent, ref: RefIndex, request: CheckRequest, records: CheckRecord[], o: { batchSize: number; parallel: number; model?: string }, show: boolean): Promise<{ result: CheckResultFile; model: string | null; cost: number }> {
+  const batches: CheckRecord[][] = [];
+  for (let i = 0; i < records.length; i += o.batchSize) batches.push(records.slice(i, i + o.batchSize));
+  const prompt = readFileSync(PROMPT_FILE, "utf8");
+  const progress = show ? new Progress(batches, records.length) : null;
+  const answers: AgentRecordResult[] = [];
+  const rejected: RejectedAnswer[] = [];
+  const failed: CheckResultFile["failed"] = [];
+  let model: string | null = null;
+  let cost = 0;
+  let next = 0;
+  const today = todayIn();
+
+  const runBatch = async (i: number) => {
+    const batch = batches[i]!;
+    const payload = JSON.stringify(agentPayload(batch, request.rules, ref));
+    const t0 = Date.now();
+    let lastError = "";
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const run = await runAgent(agent, prompt, payload, AGENT_OUTPUT_SCHEMA, { timeoutMs: TIMEOUT_MS, model: o.model });
+        const checked = checkAgentAnswer(run.answer, batch, ref, today);
+        if ("error" in checked) throw new Error(checked.error);
+        model ??= run.model;
+        cost += run.costUsd ?? 0;
+        answers.push(...checked.records);
+        rejected.push(...checked.rejected);
+        const n = checked.records.reduce((k, r) => k + r.suggestions.length, 0);
+        const rows = checked.records.filter((r) => r.suggestions.length).length;
+        const what = n ? `${plural(n, "suggestion")} on ${plural(rows, "row")}` : dim("nothing to change");
+        progress?.end(i, `  ${green("✓")} ${fit(rowsLabel(batch), 14)} ${what}${checked.rejected.length ? yellow(` · ${checked.rejected.length} rejected`) : ""} ${dim(duration(Date.now() - t0))}`);
+        return;
+      } catch (e) {
+        lastError = (e as Error).message;
+      }
+    }
+    failed.push({ recordIds: batch.map((r) => r.recordId), why: lastError });
+    progress?.end(i, `  ${red("✗")} ${fit(rowsLabel(batch), 14)} ${red(`no valid answer: ${lastError}`)}`);
+  };
+
+  const worker = async () => {
+    while (next < batches.length) {
+      const i = next++;
+      progress?.begin(i);
+      await runBatch(i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(o.parallel, batches.length) }, worker));
+  progress?.stop();
+
+  answers.sort((a, b) => rowOf(a.recordId) - rowOf(b.recordId));
+  const result: CheckResultFile = {
+    schema: CHECK_RESULT_SCHEMA,
+    version: CHECK_VERSION,
+    batchId: request.batchId,
+    checker: agent.checker,
+    checkerVersion: agent.version,
+    model,
+    checkedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+    checked: records.length - failed.reduce((n, f) => n + f.recordIds.length, 0),
+    records: answers,
+    rejected,
+    failed,
+  };
+  return { result, model, cost };
+}
+
 // ---------- the command ----------
 
 export async function checkCommand(args: string[]): Promise<void> {
@@ -384,80 +475,12 @@ export async function checkCommand(args: string[]): Promise<void> {
   console.log(`  Agent     ${agent.name} ${agent.version}${o.model ? `, model ${o.model}` : ""}`);
   console.log(dim(`  Lockdown  no tools${agent.checker === "codex" ? ` (${agent.disable.length} Codex features off)` : ""}, no MCP servers, no hooks, no user settings, an empty folder`));
 
-  if (o.selfTest || !selfTestPassed(agent)) {
-    process.stdout.write(`  Self-test sending a record that tries to take over the agent… `);
-    const why = await selfTest(agent, prompt, ref, o.model);
-    if (why) {
-      console.log(red("failed"));
-      console.error(red(`\n${agent.name} ${agent.version} did not pass the self-test: ${why}. Touchdown will not use it.`));
-      process.exit(1);
-    }
-    recordSelfTest(agent);
-    console.log(green("passed"));
-  } else console.log(dim(`  Self-test passed before for this version`));
+  const passed = await ensureSelfTest(agent, prompt, ref, o.model, o.selfTest, (text, end) => (end ? console.log(text) : process.stdout.write(text)));
+  if (!passed) process.exit(1);
   console.log(`  Batches   ${plural(batches.length, "call")} of up to ${o.batchSize} rows, ${Math.min(o.parallel, batches.length)} at a time\n`);
 
   const started = Date.now();
-  const progress = new Progress(batches, records.length);
-  const answers: AgentRecordResult[] = [];
-  const rejected: RejectedAnswer[] = [];
-  const failed: CheckResultFile["failed"] = [];
-  let model: string | null = null;
-  let cost = 0;
-  let next = 0;
-  const today = todayIn();
-
-  const runBatch = async (i: number) => {
-    const batch = batches[i]!;
-    const payload = JSON.stringify(agentPayload(batch, request.rules, ref));
-    const t0 = Date.now();
-    let lastError = "";
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const run = await runAgent(agent, prompt, payload, AGENT_OUTPUT_SCHEMA, { timeoutMs: TIMEOUT_MS, model: o.model });
-        const checked = checkAgentAnswer(run.answer, batch, ref, today);
-        if ("error" in checked) throw new Error(checked.error);
-        model ??= run.model;
-        cost += run.costUsd ?? 0;
-        answers.push(...checked.records);
-        rejected.push(...checked.rejected);
-        const n = checked.records.reduce((k, r) => k + r.suggestions.length, 0);
-        const rows = checked.records.filter((r) => r.suggestions.length).length;
-        const what = n ? `${plural(n, "suggestion")} on ${plural(rows, "row")}` : dim("nothing to change");
-        progress.end(i, `  ${green("✓")} ${fit(rowsLabel(batch), 14)} ${what}${checked.rejected.length ? yellow(` · ${checked.rejected.length} rejected`) : ""} ${dim(duration(Date.now() - t0))}`);
-        return;
-      } catch (e) {
-        lastError = (e as Error).message;
-      }
-    }
-    failed.push({ recordIds: batch.map((r) => r.recordId), why: lastError });
-    progress.end(i, `  ${red("✗")} ${fit(rowsLabel(batch), 14)} ${red(`no valid answer: ${lastError}`)}`);
-  };
-
-  const worker = async () => {
-    while (next < batches.length) {
-      const i = next++;
-      progress.begin(i);
-      await runBatch(i);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(o.parallel, batches.length) }, worker));
-  progress.stop();
-
-  answers.sort((a, b) => rowOf(a.recordId) - rowOf(b.recordId));
-  const result: CheckResultFile = {
-    schema: CHECK_RESULT_SCHEMA,
-    version: CHECK_VERSION,
-    batchId: request.batchId,
-    checker: agent.checker,
-    checkerVersion: agent.version,
-    model,
-    checkedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-    checked: records.length - failed.reduce((n, f) => n + f.recordIds.length, 0),
-    records: answers,
-    rejected,
-    failed,
-  };
+  const { result, model, cost } = await runCheck(agent, ref, request, records, { batchSize: o.batchSize, parallel: o.parallel, model: o.model }, true);
   const out = resolve(o.out ?? join(dirname(o.input), `${basename(o.input, extname(o.input))}.result.json`));
   writeFileSync(out, JSON.stringify(result, null, 2) + "\n");
 

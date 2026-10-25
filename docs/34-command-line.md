@@ -63,7 +63,7 @@ Field names in `--set` and in JSON are the ones `add` takes ([21](21-import-expo
 | Command | Does |
 |---|---|
 | `inbox` (built) | Lists the files waiting, shows one, removes one, sends files saved on this computer. |
-| `review [NAME]` (built) | Reviews the oldest file waiting, or NAME, in the terminal, then imports it on confirmation. |
+| `review [NAME]` (built) | Reviews the oldest file waiting, or NAME, in the terminal, then imports it on confirmation. With `--check`, the agent checks the file's rows first, as "Check with an agent" on the Import page ([22](22-agent-verification.md)). |
 
 ### Private fields
 
@@ -141,4 +141,4 @@ Each step is usable on its own.
 3. Change files (version 3), the changing commands, and their review on the Import page. (Built)
 4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`. (Built)
 5. `import FILE` to the inbox, `backup` and `export`. (Built)
-6. What remained: saved Statistics views (`stats --view`, `stats views`), facts pasted from an aircraft's page (`aircraft edit --paste`), lookups of aircraft facts into the log (`airframes`, as `facts` changes), and `--json` for `storage` and `agent`. (Built)
+6. What remained: saved Statistics views (`stats --view`, `stats views`), facts pasted from an aircraft's page (`aircraft edit --paste`), lookups of aircraft facts into the log (`airframes`, as `facts` changes), the agent check in the review (`review --check`), and `--json` for `storage` and `agent`. (Built)
