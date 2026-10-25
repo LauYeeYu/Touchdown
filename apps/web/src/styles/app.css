@@ -52,8 +52,9 @@
   --state-press: rgba(31, 29, 26, 0.12);
   --globe-stage: #ede8dd;
   --globe-sphere: #fffdf8;
-  /* The globe's buttons: flat, the sphere's own white with its edge, so they read on the stage, land and sea. */
-  --globe-control: #fffdf8;
+  /* The globe's buttons: a tonal fill from the surfaces' palette (HCT tone 84), five tones under land, eight under
+     the stage and fifteen under the sea, so they read on all three without an edge, as the dark theme's do. */
+  --globe-control: #d6d1c6;
   --shadow-2: 0 2px 6px rgba(31, 29, 26, 0.12), 0 8px 24px rgba(31, 29, 26, 0.1);
   --radius: 20px;
   --shadow-pop: 0 6px 18px rgba(31, 29, 26, 0.14), 0 1px 3px rgba(31, 29, 26, 0.08);
@@ -4530,7 +4531,7 @@ a.wordmark {
   }
 }
 
-/* Expand and Collapse, inside the stage's top corner, styled like the zoom buttons: flat, no shadow. */
+/* Expand and Collapse, inside the stage's top corner: Material's filled tonal button, like the zoom buttons. */
 .globe-expand {
   position: absolute;
   top: 16px;
@@ -4540,7 +4541,7 @@ a.wordmark {
   gap: 6px;
   height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--rule-strong);
+  border: 0;
   border-radius: 999px;
   background: var(--globe-control);
   color: var(--ink);
@@ -4611,11 +4612,10 @@ a.wordmark {
   gap: 8px;
 }
 
-/* Zoom and turn back: Material's filled tonal icon buttons, which rest on their surface without a shadow. */
+/* Zoom and turn back: Material's filled tonal icon buttons, with no shadow and no outline. */
 .globe-btn {
   width: 44px;
   height: 44px;
-  border-color: var(--rule-strong);
   background: var(--globe-control);
   color: var(--ink);
 }

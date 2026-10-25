@@ -676,17 +676,17 @@
         "role": "neutral",
         "displayName": "Globe Control",
         "theme": "light",
-        "canonical": "#fffdf8",
-        "oklch": "oklch(99.4% 0.007 89)",
+        "canonical": "#d6d1c6",
+        "oklch": "oklch(86.2% 0.016 86)",
         "tonalRamp": [
-          "#0c0b08",
-          "#262521",
-          "#43423e",
-          "#63615d",
-          "#84827e",
-          "#a7a5a0",
-          "#cbc9c4",
-          "#f0eee9"
+          "#0e0b04",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868278",
+          "#a9a49a",
+          "#cec9be",
+          "#f3eee3"
         ]
       },
       "paper-dark": {
@@ -1752,9 +1752,9 @@
       "name": "Globe Panel",
       "kind": "custom",
       "refersTo": "globe-stage",
-      "description": "The interactive globe (GlobePanel): the page's legend row above, then a canvas in a 28px rounded stage with an Expand pill in its top right, 44px round flat zoom buttons (filled tonal, a 1px rule-strong edge, no shadow) bottom right and the hint line bottom left. In a page it leaves scrolling to the page (pinch or Ctrl-scroll zooms); Expand shows it full screen. On flight and airport pages the stage takes the flat map's height, so the Map / Globe switch moves nothing.",
+      "description": "The interactive globe (GlobePanel): the page's legend row above, then a canvas in a 28px rounded stage with an Expand pill in its top right, 44px round zoom buttons (Material's filled tonal icon buttons: no outline, no shadow) bottom right and the hint line bottom left. In a page it leaves scrolling to the page (pinch or Ctrl-scroll zooms); Expand shows it full screen. On flight and airport pages the stage takes the flat map's height, so the Map / Globe switch moves nothing.",
       "html": "<div class=\"ds-globe\"><div class=\"ds-globe__sphere\"></div><button class=\"ds-globe-expand\" type=\"button\" aria-label=\"Show the globe full screen\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 3h6v6\"/><path d=\"m21 3-7 7\"/><path d=\"m3 21 7-7\"/><path d=\"M9 21H3v-6\"/></svg>Expand</button><div class=\"ds-globe-controls\"><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Zoom in\" title=\"Zoom in\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Zoom out\" title=\"Zoom out\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/></svg></button><button class=\"ds-globe-btn\" type=\"button\" aria-label=\"Turn back to show everything\" title=\"Turn back to show everything\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg></button></div><p class=\"ds-globe-hint\">Drag to turn · pinch or Ctrl-scroll to zoom · click a route or an airport to open it</p></div>",
-      "css": ".ds-globe { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 380px; max-width: 720px; border-radius: 28px; background: var(--globe-stage, #ede8dd); overflow: hidden; } .ds-globe__sphere { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--globe-sphere, #fffdf8); border: 1px solid var(--rule-strong, #d3ccbc); } .ds-globe-controls { position: absolute; right: 16px; bottom: 16px; display: grid; gap: 8px; } .ds-globe-btn { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 999px; background: var(--globe-control, #fffdf8); color: var(--ink, #1f1d1a); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-globe-btn:hover { background: color-mix(in srgb, var(--globe-control, #fffdf8), var(--ink, #1f1d1a) 8%); } .ds-globe-btn:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-btn .ds-icon { width: 18px; height: 18px; } .ds-globe-hint { position: absolute; left: 20px; bottom: 16px; margin: 0; max-width: calc(100% - 100px); font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-globe-expand { position: absolute; top: 16px; right: 16px; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid var(--rule-strong, #d3ccbc); border-radius: 999px; background: var(--globe-control, #fffdf8); color: var(--ink, #1f1d1a); font: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer; } .ds-globe-expand:hover { background: color-mix(in srgb, var(--globe-control, #fffdf8), var(--ink, #1f1d1a) 8%); } .ds-globe-expand:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-expand .ds-icon { width: 15px; height: 15px; }"
+      "css": ".ds-globe { font-family: var(--sans, ui-sans-serif, system-ui, sans-serif); position: relative; height: 380px; max-width: 720px; border-radius: 28px; background: var(--globe-stage, #ede8dd); overflow: hidden; } .ds-globe__sphere { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--globe-sphere, #fffdf8); border: 1px solid var(--rule-strong, #d3ccbc); } .ds-globe-controls { position: absolute; right: 16px; bottom: 16px; display: grid; gap: 8px; } .ds-globe-btn { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 999px; background: var(--globe-control, #d6d1c6); color: var(--ink, #1f1d1a); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-globe-btn:hover { background: color-mix(in srgb, var(--globe-control, #d6d1c6), var(--ink, #1f1d1a) 8%); } .ds-globe-btn:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-btn .ds-icon { width: 18px; height: 18px; } .ds-globe-hint { position: absolute; left: 20px; bottom: 16px; margin: 0; max-width: calc(100% - 100px); font-size: 0.8125rem; color: var(--ink-3, #6e685e); } .ds-globe-expand { position: absolute; top: 16px; right: 16px; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--globe-control, #d6d1c6); color: var(--ink, #1f1d1a); font: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer; } .ds-globe-expand:hover { background: color-mix(in srgb, var(--globe-control, #d6d1c6), var(--ink, #1f1d1a) 8%); } .ds-globe-expand:focus-visible { outline: 2px solid var(--focus, #b58a00); outline-offset: 2px; } .ds-globe-expand .ds-icon { width: 15px; height: 15px; }"
     },
     {
       "name": "Map / Globe Switch",
