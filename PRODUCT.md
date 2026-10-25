@@ -61,7 +61,7 @@ Success: the owner retires their spreadsheets and trusts the numbers, because ev
 - Type: sans-serif only; no serif faces in the interface.
 - Ground: the warm paper colour #FAF8F1 stays as the light-theme page background (plain white is acceptable but not preferred).
 - Themes: light and dark, following the device by default.
-- No logo rules exist yet.
+- App icon: an airliner touching down over a gold ground line, on the ink tile (DESIGN.md, "App icon"). No other logo rules exist yet.
 
 ## Evidence on Hand
 
