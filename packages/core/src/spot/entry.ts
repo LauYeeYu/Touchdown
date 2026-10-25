@@ -14,7 +14,8 @@ import type { Store } from "../store.ts";
 import { registrationMatchForm } from "../normalise/registration.ts";
 import { nearestLivery, type WornLivery } from "../livery.ts";
 
-export type Phase = (typeof PHASES)[number];
+import type { Phase } from "../phases.ts";
+export type { Phase };
 
 /** The fields of a sighting a session fills, named as in the agent check. */
 export const SPOT_FIELDS = ["registration", "date", "airport", "typeCode", "model", "operator", "phase", "livery", "specialLivery", "notes"] as const;

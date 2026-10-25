@@ -7,6 +7,7 @@ import type { Candidate, ParsedSource } from "./candidate.ts";
 import { flightDay } from "../derive.ts";
 import { addDays, instant, parseDateTime, toUtcIso } from "../time/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
+import { addPhases, phasesOf, settlePhases, type Phase } from "../phases.ts";
 import { applyAirframeFacts as applyLookupFacts } from "../identity/facts.ts";
 
 export type MatchKind = "new" | "identical" | "update" | "conflict" | "duplicate";
@@ -158,6 +159,11 @@ export function matchCandidates(store: Store, candidates: Candidate[]): Match[] 
     const conflicts: FieldDiff[] = [];
     for (const [field, incoming] of Object.entries(c.values)) {
       if (IGNORE.has(field) || incoming === null || incoming === undefined || incoming === "") continue;
+      // A sighting holds every status it was seen in: a new one is added, never a difference.
+      if (field === "phase" && c.table === "sightings") {
+        if (!phasesOf(store, existing.id).includes(incoming as Phase)) fills.push(field);
+        continue;
+      }
       const cur = (existing as Record<string, unknown>)[field];
       if (cur === null || cur === undefined || cur === "") fills.push(field);
       else if (!sameValue(field, cur, incoming)) {
@@ -194,8 +200,8 @@ export interface CommitResult {
 }
 
 /**
- * Fold a repeated sighting (same aircraft, place and day) into the first one: empty fields are filled, a
- * different phase and any notes are kept in the notes, and photo notes (tags) are combined.
+ * Fold a repeated sighting (same aircraft, place and day) into the first one: empty fields are filled, its status
+ * joins the first one's (all equal), its notes are kept in the notes, and photo notes (tags) are combined.
  */
 function mergeSighting(store: Store, targetId: string, v: Partial<SightingValues>, tags: string[], batchId: string, now: number) {
   const cur = store.get("sightings", targetId);
@@ -211,11 +217,11 @@ function mergeSighting(store: Store, targetId: string, v: Partial<SightingValues
   });
   const patch: Record<string, unknown> = {};
   for (const [k, val] of Object.entries(v)) {
-    if (IGNORE.has(k) || val === null || val === undefined || val === "") continue;
+    if (IGNORE.has(k) || k === "phase" || val === null || val === undefined || val === "") continue;
     if ((cur as Record<string, unknown>)[k] === null) patch[k] = val;
   }
+  addPhases(store, cur.id, [v.phase]);
   const notes = [cur.notes];
-  if (v.phase && cur.phase && v.phase !== cur.phase) notes.push(`Also ${v.phase.replace(/_/g, " ")}`);
   if (v.notes && v.notes !== cur.notes) notes.push(v.notes);
   const joined = [...new Set(notes.filter(Boolean))].join("; ");
   if (joined !== (cur.notes ?? "")) patch.notes = joined || null;
@@ -333,6 +339,8 @@ export function commitImport(
       rowsEdited: agentRows.size,
     });
 
+    // Statuses the rows brought are the sightings' statuses now.
+    settlePhases(store);
     resolveAirframes(store, ref);
     applyAirframeFacts(store, ref, facts, source.fileName, now);
     return result;
@@ -436,6 +444,7 @@ export function undoImport(store: Store, ref: RefIndex, batchId: string, force =
         }
         store.remove(table, r.id);
         for (const t of store.all("sighting_tags")) if (t.sightingId === r.id) store.remove("sighting_tags", t.id);
+        for (const p of store.all("sighting_phases")) if (p.sightingId === r.id) store.remove("sighting_phases", p.id);
         for (const e of store.all("external_ids")) if (e.ownerId === r.id) store.remove("external_ids", e.id);
         result.removed++;
       }

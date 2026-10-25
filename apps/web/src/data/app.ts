@@ -10,6 +10,9 @@ import {
   deleteRecord,
   mergeAirframes,
   conflictsToShow,
+  phasesOf,
+  setPhases,
+  settlePhases,
   reconcile,
   resolveConflict,
   operatorFromOverride,
@@ -163,6 +166,8 @@ export class AppData {
     }
     if (problems.length) console.warn("Rows that failed validation were not loaded:", problems);
     const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)));
+    // Statuses a log from an older version keeps in a sighting's phase or notes become its phases (core phases.ts).
+    settlePhases(store);
     app.connection = await readConnection();
     return app;
   }
@@ -375,8 +380,13 @@ export class AppData {
     return r.row;
   }
 
-  saveSighting(values: Partial<SightingValues>, id?: string, tags?: string[]): Row<"sightings"> {
-    const r = saveSighting(this.store, this.ref, values, id, tags);
+  /** `phases`: every phase it was seen in, replacing those it has. */
+  saveSighting(values: Partial<SightingValues>, id?: string, tags?: string[], phases?: string[]): Row<"sightings"> {
+    const r = this.store.batch(() => {
+      const out = saveSighting(this.store, this.ref, values, id, tags);
+      if (phases) setPhases(this.store, out.row.id, phases);
+      return out;
+    });
     this.keep(r.resolved);
     return r.row;
   }
@@ -385,6 +395,10 @@ export class AppData {
     const r = saveSightings(this.store, this.ref, list);
     this.keep(r.resolved);
     return r.count;
+  }
+
+  phasesOf(sightingId: string): string[] {
+    return phasesOf(this.store, sightingId);
   }
 
   tagsOf(sightingId: string): string[] {

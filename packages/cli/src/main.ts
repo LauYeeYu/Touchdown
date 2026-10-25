@@ -13,6 +13,7 @@ import {
   checkAll,
   matchTrack,
   parseTrackCsv,
+  phaseIndex,
   type TrackPointInput,
   combinedStats,
   commitImport,
@@ -594,7 +595,7 @@ function printFindings(findings: Finding[], all: boolean) {
 
 function printStats(store: Store, ref: RefIndex) {
   const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-  const ctx = { ref, airframes };
+  const ctx = { ref, airframes, phases: phaseIndex(store) };
   const flights = store.all("flights");
   const sightings = store.all("sightings");
   const opCode = (id: string) => {

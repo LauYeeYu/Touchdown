@@ -12,6 +12,7 @@ import { namedOperator } from "./import/pipeline.ts";
 import { identityKeyFor, normaliseMsn } from "./identity/facts.ts";
 import { resolveAirframes, type ResolveResult } from "./identity/resolve.ts";
 import { toUtcIso } from "./time/index.ts";
+import { setPhases } from "./phases.ts";
 
 export interface EditOptions {
   /** The time recorded in history and provenance; defaults to now. */
@@ -84,7 +85,10 @@ export function tagsOf(store: Store, sightingId: string): string[] {
     .map((t) => t.tag!);
 }
 
-/** Add a sighting, or change one (`id`); `tags` replaces its tags when given. */
+/**
+ * Add a sighting, or change one (`id`); `tags` replaces its tags when given. A `phase` in `values` sets its statuses
+ * to that one (null: none); `setPhases` sets several.
+ */
 export function saveSighting(store: Store, ref: RefIndex, values: Partial<SightingValues>, id?: string, tags?: string[], opts: EditOptions = {}): { row: Row<"sightings">; resolved: ResolveResult } {
   return store.batch(() => {
     const v = withNamedOperator(store, ref, normaliseSighting(values, ref), "operatorRaw", "operatorId");
@@ -94,6 +98,7 @@ export function saveSighting(store: Store, ref: RefIndex, values: Partial<Sighti
       row = store.update("sightings", id, v);
     } else row = store.insert("sightings", { sourceKind: "manual", ...v });
     if (tags) setTags(store, row.id, tags);
+    if ("phase" in values) setPhases(store, row.id, [values.phase]);
     const resolved = resolveAirframes(store, ref);
     return { row: store.get("sightings", row.id)!, resolved };
   });
@@ -105,17 +110,19 @@ export function saveSightings(store: Store, ref: RefIndex, list: { values: Parti
     for (const item of list) {
       const row = store.insert("sightings", { sourceKind: "manual", ...withNamedOperator(store, ref, normaliseSighting(item.values, ref), "operatorRaw", "operatorId") });
       if (item.tags?.length) setTags(store, row.id, item.tags);
+      if (item.values.phase) setPhases(store, row.id, [item.values.phase]);
     }
     return { count: list.length, resolved: resolveAirframes(store, ref) };
   });
 }
 
-/** Delete a flight or a sighting: a sighting's tags and the record's photo links go with it. */
+/** Delete a flight or a sighting: a sighting's tags and statuses, and the record's photo links, go with it. */
 export function deleteRecord(store: Store, ref: RefIndex, table: "flights" | "sightings", id: string, opts: EditOptions = {}): { resolved: ResolveResult } {
   return store.batch(() => {
     keepHistory(store, table, id, opts);
     store.remove(table, id);
     if (table === "sightings") for (const t of store.all("sighting_tags")) if (t.sightingId === id) store.remove("sighting_tags", t.id);
+    if (table === "sightings") for (const p of store.all("sighting_phases")) if (p.sightingId === id) store.remove("sighting_phases", p.id);
     for (const p of store.all("photo_links")) if (p.ownerTable === table && p.ownerId === id) store.remove("photo_links", p.id);
     return { resolved: resolveAirframes(store, ref) };
   });

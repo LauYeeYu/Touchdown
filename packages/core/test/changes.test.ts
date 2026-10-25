@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  phasesOf,
   airframeEdit,
   applyChanges,
   checkAll,
@@ -42,7 +43,11 @@ describe("building a change from the fields add takes", () => {
     const { ref, store, sighting } = aLog();
     const r = sightingEdit(store, ref, sighting, { phase: "Taking off", time: "09:15", tags: "night, backlit", airline: "" });
     if ("error" in r) throw new Error(r.error);
-    expect(r.change.set).toEqual({ phase: "taking_off", seenAt: "2026-01-10T09:15-05:00" });
+    expect(r.change.set).toEqual({ seenAt: "2026-01-10T09:15-05:00" });
+    expect(r.change.phases).toEqual(["taking_off"]);
+    const several = sightingEdit(store, ref, sighting, { phase: "taxiing, landing" });
+    if ("error" in several) throw new Error(several.error);
+    expect(several.change.phases).toEqual(["landing", "taxiing"]);
     expect(r.change.clear.sort()).toEqual(["operatorId", "operatorRaw"]);
     expect(r.change.tags).toEqual(["night", "backlit"]);
     const a = store.get("airframes", sighting.airframeId)!;
@@ -129,7 +134,8 @@ describe("importing a change file", () => {
 
     undoImport(store, ref, r.batchId);
     expect(store.get("flights", flight.id)).toMatchObject({ seat: "12A", departureGate: "B7" });
-    expect(store.get("sightings", sighting.id)).toMatchObject({ registration: "N9001Z", phase: "landing" });
+    expect(store.get("sightings", sighting.id)).toMatchObject({ registration: "N9001Z" });
+    expect(phasesOf(store, sighting.id)).toEqual(["landing"]);
     expect(tagsOf(store, sighting.id)).toEqual(["night"]);
     expect(store.get("airframes", airframeId)).toMatchObject({ msn: null });
     expect(store.all("issue_acks")).toEqual([]);

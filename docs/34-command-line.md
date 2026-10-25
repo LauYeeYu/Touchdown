@@ -40,7 +40,7 @@ Built, all of them. Each writes one inbox file and checks it first, as `add` doe
 | In the web app | Command |
 |---|---|
 | Add a flight, a sighting, a session | `add` (built), `spot` (built) |
-| Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits (a file, or `-` for stdin): `[{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]` |
+| Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits (a file, or `-` for stdin): `[{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]`. A sighting's `phase` takes every phase it was seen in, comma-separated (`--set phase=landing,taxiing`). |
 | Delete one | `delete REF…` |
 | Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…`, or `--paste FILE` (or `-`): text copied off the aircraft's page, read and checked as the aircraft page's "Paste from a web page" does (`pastedFactsFor` in core), with the same warning when the page may be about another aircraft |
 | Merge two aircraft | `aircraft merge INTO FROM` |

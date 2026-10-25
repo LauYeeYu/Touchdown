@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { flightStats, sightingStats, todayIn, type Sighting } from "@touchdown/core";
+import { flightStats, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { BigCode } from "../components/BigCode.tsx";
@@ -48,7 +48,7 @@ export function Home() {
 
   const d = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-    const ctx = { ref, airframes };
+    const ctx = { ref, airframes, phases: phaseIndex(store) };
     const views = sortedFlights(store, ref).filter((v) => inPeriod(v.day, year));
     const sightings = store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
     const before: Sighting[] = year === "all" ? [] : store.all("sightings").filter((s) => s.seenOn && s.seenOn < `${year}-01-01`);

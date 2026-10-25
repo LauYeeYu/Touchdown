@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { flightDay, isValidDate, pastedFactsFor, type Flight, type Sighting } from "@touchdown/core";
+import { flightDay, isValidDate, pastedFactsFor, phasesOf, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -160,7 +160,7 @@ export function AircraftDetail() {
                   <Link to="/spotting/$id/edit" params={{ id: e.s.id }}>
                     Spotted at {airportWithCode(e.s.airportId, ref, e.s.airportRaw) || "an unknown place"}
                   </Link>
-                  {e.s.phase && <span className="muted"> · {PHASE_LABEL[e.s.phase]?.toLowerCase()}</span>}
+                  {phasesOf(store, e.s.id).length > 0 && <span className="muted"> · {phasesOf(store, e.s.id).map((p) => PHASE_LABEL[p]?.toLowerCase() ?? p).join(", ")}</span>}
                   {e.s.specialLivery && <span className="pill pill--livery">{e.s.specialLivery}</span>}
                 </li>
               ),

@@ -28,7 +28,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
     registrationRaw: existing?.registrationRaw ?? existing?.registration ?? "",
     seenOn: existing?.seenOn ?? last?.date ?? todayIn(),
     airportRaw: existing?.airportRaw ?? (existing ? "" : (last?.airport ?? "")),
-    phase: (existing?.phase ?? null) as Phase | null,
+    phases: (existing ? app.phasesOf(existing.id) : []) as Phase[],
     typeCodeRaw: existing?.typeCodeRaw ?? existing?.typeCode ?? "",
     modelRaw: existing?.modelRaw ?? existing?.model ?? "",
     operatorRaw: existing?.operatorRaw ?? "",
@@ -54,7 +54,6 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
       typeCodeRaw: n(d.typeCodeRaw) ?? (!existing ? (known?.typeCode ?? null) : null),
       modelRaw: n(d.modelRaw) ?? (!existing ? (known?.model ?? null) : null),
       operatorRaw: n(operatorRaw),
-      phase: d.phase,
       specialLivery: n(d.specialLivery),
       livery: n(d.livery),
       notes: n(d.notes),
@@ -68,7 +67,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
   if (edit && !existing) return <NotFound what="That sighting is not in your log." back={{ to: "/spotting", label: "Spotting" }} />;
 
   const save = (another: boolean) => {
-    app.saveSighting(values, existing?.id, d.tags);
+    app.saveSighting(values, existing?.id, d.tags, d.phases);
     if (d.seenOn && d.airportRaw) rememberSpot(d.seenOn, d.airportRaw);
     if (another) {
       toast(`${values.registrationRaw ?? "Sighting"} saved. Next one.`);
@@ -86,6 +85,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
     navigate({ to: "/spotting" });
   };
   const toggleTag = (t: string) => set("tags", d.tags.includes(t) ? d.tags.filter((x) => x !== t) : [...d.tags, t]);
+  const togglePhase = (p: Phase) => set("phases", d.phases.includes(p) ? d.phases.filter((x) => x !== p) : PHASES.filter((x) => x === p || d.phases.includes(x)));
   const others = known ? known.sightings.filter((s) => s.id !== existing?.id) : [];
 
   return (
@@ -131,8 +131,14 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
           </div>
         )}
 
-        <Field label="Phase">
-          <Segmented label="Phase" value={d.phase} onChange={(v) => set("phase", v)} options={PHASES.filter((p) => p !== "other").map((p) => ({ value: p, label: PHASE_LABEL[p]! }))} />
+        <Field label="Phase" hint="Every phase it was seen in">
+          <div className="chips" role="group" aria-label="Phase">
+            {PHASES.filter((p) => p !== "other" || d.phases.includes(p)).map((p) => (
+              <button key={p} type="button" className="chip" aria-pressed={d.phases.includes(p)} onClick={() => togglePhase(p)}>
+                {PHASE_LABEL[p]}
+              </button>
+            ))}
+          </div>
         </Field>
 
         <div className="form-grid">

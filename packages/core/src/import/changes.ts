@@ -17,6 +17,7 @@ import { isValidDate, isValidDateTime } from "../schema/validate.ts";
 import { Store, type Change } from "../store.ts";
 import { parseDateTime, toUtcIso, zonedDateTime } from "../time/index.ts";
 import { phaseOf, readMapped, type ColumnField } from "./mapping.ts";
+import { phasesOf, setPhases } from "../phases.ts";
 import { undoImport } from "./pipeline.ts";
 
 export type RecordTable = "flights" | "sightings";
@@ -25,7 +26,7 @@ export type RecordTable = "flights" | "sightings";
 export type LogSettings = Partial<Pick<Settings, "codeDisplay" | "distanceUnit" | "modelNaming">>;
 
 export type InboxChange =
-  | { op: "edit"; table: RecordTable; id: string; rev: number; set: Record<string, string | number | boolean | null>; clear: string[]; tags?: string[] }
+  | { op: "edit"; table: RecordTable; id: string; rev: number; set: Record<string, string | number | boolean | null>; clear: string[]; tags?: string[]; phases?: string[] }
   | { op: "delete"; table: RecordTable; id: string; rev: number }
   | { op: "airframe"; id: string; rev: number; set: Record<string, string | null>; clear: string[] }
   | { op: "merge"; into: string; from: string }
@@ -127,7 +128,7 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
     switch (c.op) {
       case "edit":
       case "delete": {
-        if (keys(c.op === "edit" ? ["table", "id", "rev", "set", "clear", "tags"] : ["table", "id", "rev"]).length) return bad("unexpected keys");
+        if (keys(c.op === "edit" ? ["table", "id", "rev", "set", "clear", "tags", "phases"] : ["table", "id", "rev"]).length) return bad("unexpected keys");
         if (c.table !== "flights" && c.table !== "sightings") return bad("table is flights or sightings");
         if (!isId(c.id) || !isRev(c.rev)) return bad("malformed id or rev");
         if (c.op === "delete") break;
@@ -137,6 +138,7 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
         for (const [k, v] of Object.entries(set)) if (!fields.has(k) || !isValue(v)) return bad(`field ${k} cannot be set`);
         if (!Array.isArray(c.clear) || c.clear.some((k) => typeof k !== "string" || !fields.has(k))) return bad("malformed clear");
         if (c.tags !== undefined && (c.table !== "sightings" || !Array.isArray(c.tags) || c.tags.length > 20 || c.tags.some((t) => typeof t !== "string" || !TAG_RE.test(t)))) return bad("malformed tags");
+        if (c.phases !== undefined && (c.table !== "sightings" || !Array.isArray(c.phases) || c.phases.some((p) => !(PHASES as readonly unknown[]).includes(p)))) return bad("malformed phases");
         break;
       }
       case "airframe": {
@@ -337,11 +339,13 @@ export function sightingEdit(store: Store, ref: RefIndex, s: Sighting, input: Ed
   const set: Record<string, string | number | boolean | null> = {};
   const clear: string[] = [];
   let tags: string[] | undefined;
+  let phases: string[] | undefined;
   const date = input.date?.trim() || s.seenOn;
   for (const [k, raw] of Object.entries(input)) {
     const text = raw?.trim() ?? "";
     if (!text) {
       if (k === "tags") tags = [];
+      else if (k === "phase") phases = [];
       else clear.push(...SIGHTING_STORED[k as keyof typeof SIGHTING_STORED]);
       continue;
     }
@@ -378,9 +382,14 @@ export function sightingEdit(store: Store, ref: RefIndex, s: Sighting, input: Ed
         break;
       }
       case "phase": {
-        const p = enumOf(PHASES, text) ?? phaseOf(text);
-        if (!p) return { error: `phase is one of ${PHASES.join(", ")}, not "${text}".` };
-        set.phase = p;
+        // Every status it was seen in, comma-separated: "landing, taxiing".
+        const list: string[] = [];
+        for (const part of text.split(",").map((x) => x.trim()).filter(Boolean)) {
+          const p = enumOf(PHASES, part) ?? phaseOf(part);
+          if (!p) return { error: `phase is one of ${PHASES.join(", ")}, or several with commas, not "${part}".` };
+          list.push(p);
+        }
+        phases = PHASES.filter((p) => list.includes(p));
         break;
       }
       case "photos": {
@@ -402,7 +411,11 @@ export function sightingEdit(store: Store, ref: RefIndex, s: Sighting, input: Ed
   const d = diff(s as unknown as Record<string, unknown>, set, clear);
   const now = tagsOf(store, s.id).sort();
   const sameTags = tags !== undefined && tags.length === now.length && [...tags].sort().every((t, i) => t === now[i]);
-  return { change: { op: "edit", table: "sightings", id: s.id, rev: s.rev, set: d.set as Record<string, string | number | boolean | null>, clear: d.clear, ...(tags !== undefined && !sameTags && { tags }) }, notes: [] };
+  const samePhases = phases !== undefined && phases.join() === phasesOf(store, s.id).join();
+  return {
+    change: { op: "edit", table: "sightings", id: s.id, rev: s.rev, set: d.set as Record<string, string | number | boolean | null>, clear: d.clear, ...(tags !== undefined && !sameTags && { tags }), ...(phases !== undefined && !samePhases && { phases }) },
+    notes: [],
+  };
 }
 
 /** A change of an aircraft's facts. */
@@ -427,7 +440,7 @@ export function airframeEdit(a: Row<"airframes">, input: EditInput): Built<Extra
 }
 
 export function isEmptyChange(c: InboxChange): boolean {
-  return (c.op === "edit" && !Object.keys(c.set).length && !c.clear.length && c.tags === undefined) || (c.op === "airframe" && !Object.keys(c.set).length && !c.clear.length);
+  return (c.op === "edit" && !Object.keys(c.set).length && !c.clear.length && c.tags === undefined && c.phases === undefined) || (c.op === "airframe" && !Object.keys(c.set).length && !c.clear.length);
 }
 
 // ---------- status and applying ----------
@@ -475,7 +488,8 @@ export function changeStatus(store: Store, ref: RefIndex, c: InboxChange, findin
       const same = Object.entries(c.set).every(([k, v]) => ((cur as unknown as Record<string, unknown>)[k] ?? null) === v) && c.clear.every((k) => ((cur as unknown as Record<string, unknown>)[k] ?? null) === null);
       const now = c.table === "sightings" ? tagsOf(store, c.id).sort() : [];
       const sameTags = c.tags === undefined || (c.tags.length === now.length && [...c.tags].sort().every((t, i) => t === now[i]));
-      if (same && sameTags) return done("The log has these values already.");
+      const samePhases = c.phases === undefined || (c.table === "sightings" && PHASES.filter((p) => c.phases!.includes(p)).join() === phasesOf(store, c.id).join());
+      if (same && sameTags && samePhases) return done("The log has these values already.");
       return cur.rev !== c.rev ? { status: "changed", note: "It was changed after this edit was made." } : ok;
     }
     case "delete": {
@@ -539,7 +553,10 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       if (!cur) return null;
       const values = editedValues(cur, c);
       if (c.table === "flights") saveFlight(store, ref, values, c.id, opts);
-      else saveSighting(store, ref, values, c.id, c.tags, opts);
+      else {
+        saveSighting(store, ref, values, c.id, c.tags, opts);
+        if (c.phases !== undefined) setPhases(store, c.id, c.phases);
+      }
       return null;
     }
     case "delete":

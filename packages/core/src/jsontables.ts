@@ -58,6 +58,9 @@ export const MIGRATIONS: { to: number; addColumns?: { table: TableName | "*"; co
   // Every table with system columns gains versionVector, for merging edits field by field (docs/12). The new
   // sync_conflicts table starts empty: a missing table file is an empty table.
   { to: 5, addColumns: [{ table: "*", column: "versionVector" }] },
+  // A sighting holds every status it was seen in, in the new sighting_phases table. Opening the log moves each
+  // sighting's phase, and statuses an older import kept in its notes ("Also taxiing"), into it (core phases.ts).
+  { to: 6 },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */

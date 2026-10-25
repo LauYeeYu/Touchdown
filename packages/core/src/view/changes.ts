@@ -5,6 +5,7 @@
 
 import { flightDay } from "../derive.ts";
 import { refOverridesOf, tagsOf } from "../edit.ts";
+import { phasesOf } from "../phases.ts";
 import { applyChange, changeStatus, copyStore, currentFindings, type ChangeStatus, type InboxChange } from "../import/changes.ts";
 import { airframeFactsEffect } from "../identity/facts.ts";
 import type { RefIndex } from "../ref/index.ts";
@@ -105,7 +106,8 @@ const SIGHTING_SHOW: [string, string, Show][] = [
   ["airline", "Airline", (r, x) => airlineLabel(r.operatorId as string | null, x.ref) || ((r.operatorRaw as string) ?? "")],
   ["typeCode", "Type", typeText],
   ["model", "Model", (r, x) => (r.model ? modelLabel(r.model as string, r.typeCode as string | null, x.ref, x.o.models) : ((r.modelRaw as string) ?? ""))],
-  ["phase", "Phase", (r) => (r.phase ? (PHASE_LABEL[r.phase as string] ?? String(r.phase)) : "")],
+  // Every status, as the review read it (rowOf).
+  ["phase", "Phase", (r) => ((r.phases as string[] | undefined) ?? (r.phase ? [r.phase as string] : [])).map((p) => PHASE_LABEL[p] ?? p).join(", ")],
   ["livery", "Livery", text("livery")],
   ["specialLivery", "Special livery", text("specialLivery")],
   ["photoCount", "Photos", text("photoCount")],
@@ -240,7 +242,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
       const rowOf = (table: "flights" | "sightings" | "airframes", id: string) => {
         const r = shown.peek(table, id);
         if (!r || (r as { deleted?: boolean }).deleted) return null;
-        return { ...r, ...(table === "sightings" && { tags: tagsOf(shown, id) }) } as Record<string, unknown>;
+        return { ...r, ...(table === "sightings" && { tags: tagsOf(shown, id), phases: phasesOf(shown, id) }) } as Record<string, unknown>;
       };
       let before: Record<string, unknown> | null = null;
       let mergedInto: string | null = null;

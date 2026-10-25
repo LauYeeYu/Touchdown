@@ -31,7 +31,7 @@ Metric definitions for flights, sightings, and both together (requirements G3, P
 | Route (directed) | ✓ | | `from`→`to` |
 | Year, month, weekday, hour | ✓ | ✓ | flight day and local takeoff time / `seenOn` and `seenAt` |
 | Cabin class, seat position, reason | ✓ | | record |
-| Phase | | ✓ | record |
+| Phase | | ✓ | record; a sighting seen in several phases counts under each |
 | Special livery | ✓ | ✓ | record |
 | Aircraft age at the time | ✓ | ✓ | record date − airframe first flight |
 

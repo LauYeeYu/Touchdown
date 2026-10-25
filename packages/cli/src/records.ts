@@ -1,7 +1,7 @@
 // `touchdown flights`, `flight`, `sightings` and `sessions` (docs/34, "Reading"): the Flights and Spotting pages and a
 // flight's page, in the terminal or as JSON.
 
-import { arrivalAirportId, type Flight, type Sighting } from "@touchdown/core";
+import { arrivalAirportId, phasesOf, type Flight, type Sighting } from "@touchdown/core";
 import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, inPeriod, PHASE_LABEL, REASON_LABEL, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
 import { aircraftLabel, airportJson, duration, findingJson, findingsOf, flightJson, openFindings, sightingJson, timeLabel, trackOf } from "./shape.ts";
 import { argsOrHelp, fail, fields, findAirport, findFlight, notFound, openOrFail, periodLabel, periodOf, plain, printJson, privateFields, readOptions, section, table, type OpenedLog } from "./read.ts";
@@ -208,7 +208,9 @@ export async function sightingsCommand(args: string[]) {
     s.registration ?? s.registrationRaw ?? "",
     aircraftLabel(log, s.typeCode, s.model),
     airlineLabel(s.operatorId, log.ref) || s.operatorRaw || "",
-    s.phase ? (PHASE_LABEL[s.phase] ?? s.phase) : "",
+    phasesOf(log.store, s.id)
+      .map((p) => PHASE_LABEL[p] ?? p)
+      .join(", "),
   ]);
   for (const line of table([{ head: "Date" }, { head: "Airport" }, { head: "Registration" }, { head: "Aircraft", flex: true }, { head: "Airline" }, { head: "Phase" }], rows)) console.log(line);
 }

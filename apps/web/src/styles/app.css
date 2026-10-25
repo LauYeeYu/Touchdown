@@ -3244,6 +3244,13 @@ a.wordmark {
   grid-template-columns: minmax(170px, 1.2fr) minmax(150px, 1fr) 110px minmax(160px, 1.3fr) 32px;
 }
 
+/* A sighting seen in several phases: one per line. */
+.row__phase {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .row__notes {
   display: flex;
   flex-wrap: wrap;

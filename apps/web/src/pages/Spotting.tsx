@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { sightingStats, type Sighting } from "@touchdown/core";
+import { phaseIndex, sightingStats, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
@@ -35,17 +35,18 @@ export function Spotting() {
     const sightings = store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
     const before: Sighting[] = year === "all" ? [] : store.all("sightings").filter((s) => s.seenOn && s.seenOn < `${year}-01-01`);
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-    const ss = sightingStats(sightings, { ref, airframes }, before);
+    const phases = phaseIndex(store);
+    const ss = sightingStats(sightings, { ref, airframes, phases }, before);
     const sessions = sessionsOf(store).filter((s) => inPeriod(s.date, year));
     const flown = new Set(store.all("flights").map((f) => f.airframeId).filter(Boolean));
     const review = new Set(app.findings().filter((f) => f.severity !== "info").flatMap((f) => f.records.filter((r) => r.table === "sightings").map((r) => r.id)));
     const tags = new Map<string, string[]>();
     for (const t of store.all("sighting_tags")) if (t.tag) tags.set(t.sightingId, [...(tags.get(t.sightingId) ?? []), t.tag]);
-    return { sightings, ss, sessions, flown, review, tags };
+    return { sightings, ss, sessions, flown, review, tags, phases };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, year]);
 
-  const { sightings, ss, sessions, flown, review, tags } = data;
+  const { sightings, ss, sessions, flown, review, tags, phases } = data;
   const newCount = ss.newPerDay.reduce((a, b) => a + b.count, 0);
   const airports = [...new Set(sightings.map((s) => s.airportId).filter((x): x is string => !!x))].sort((a, b) => shortAirport(a, ref).localeCompare(shortAirport(b, ref)));
   const needle = q.trim().toLowerCase().replace(/\s+/g, "");
@@ -183,7 +184,12 @@ export function Spotting() {
                       <span className="row__cities">{airlineLabel(s.operatorId, ref) || s.operatorRaw || "Unknown operator"}</span>
                     </span>
                     <TypeCell code={s.typeCode} />
-                    <span className="row__cell row__phase">{s.phase ? PHASE_LABEL[s.phase] : ""}</span>
+                    {/* Every phase it was seen in, all equal, one per line in the fixed order of phases. */}
+                    <span className="row__cell row__phase">
+                      {(phases.get(s.id) ?? []).map((p) => (
+                        <span key={p}>{PHASE_LABEL[p] ?? p}</span>
+                      ))}
+                    </span>
                     <span className="row__cell row__notes">
                       {s.specialLivery && <span className="pill pill--livery">{s.specialLivery}</span>}
                       {(tags.get(s.id) ?? []).map((t) => (

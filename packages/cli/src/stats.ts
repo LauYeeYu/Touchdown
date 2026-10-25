@@ -2,7 +2,7 @@
 // figures and ranked lists for a period, or a pivot as in its Custom view. The numbers come from the core package,
 // so they are the web app's.
 
-import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightStats, pivot, sightingStats, todayIn, type Dataset, type Measure, type Measured, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
+import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightStats, phaseIndex, pivot, sightingStats, todayIn, type Dataset, type Measure, type Measured, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
 import { airlineLabel, airportWithCode, CABIN_LABEL, countryName, distance, durShort, flownAndPhotographed, inPeriod, nf, PHASE_LABEL, routeCodes, sortedFlights, typeName, yearsIn } from "@touchdown/core/view";
 import { savedViewNamed, viewsCommand } from "./change.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, periodLabel, periodOf, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
@@ -89,7 +89,7 @@ export async function statsCommand(args: string[]) {
   const year = periodOf(log.store, a.values.get("--year"), "default");
   if (typeof year !== "string") return fail(json, year.error);
   const c: Ctx = { log, top };
-  const ctx: StatsContext = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])) };
+  const ctx: StatsContext = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store) };
   const viewName = a.values.get("--view");
   if (viewName !== undefined) {
     if (["--by", "--cols", "--of", "--measure"].some((o) => a.values.has(o))) return fail(json, "--view gives the rows, columns and count itself; leave out --by, --cols, --of and --measure.");

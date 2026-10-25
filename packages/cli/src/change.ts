@@ -62,7 +62,8 @@ ${changeOptions(15)}
 
 Flight fields:   ${FLIGHT_EDIT_FIELDS.join(", ")}
 Sighting fields: ${SIGHTING_EDIT_FIELDS.join(", ")}
-                 (tags: comma-separated, such as night,backlit; time: HH:MM at the airport)
+                 (tags: comma-separated, such as night,backlit; phase: every phase it was seen in,
+                 comma-separated, such as landing,taxiing; time: HH:MM at the airport)
 
 The JSON list: [{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]. Private values may
 be given in "set" there; they are never printed.

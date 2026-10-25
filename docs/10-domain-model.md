@@ -57,7 +57,7 @@ User data
   flights ─────────┐                 ┌─< registration_periods
                    ├──> airframes ───┤
   sightings ───────┘                 └─< operator_periods
-  sightings ─< sighting_tags
+  sightings ─< sighting_tags, sighting_phases
   flights / sightings ─< photo_links
   flights ─< tracks ─< track_points
   any user row ─< field_provenance, external_ids, record_history, sync_conflicts
@@ -197,7 +197,7 @@ One sighting = one aircraft seen at one place on one day. Several photos of it i
 | `typeCode`, `typeCodeRaw` | text | `B77W` | |
 | `model`, `modelRaw` | text | `777-322(ER)` | |
 | `airframeId` | ref airframes | | Set by the identity resolver. |
-| `phase` | enum | `approaching` | `approaching`, `landing`, `taking_off`, `taxiing`, `parked`, `towing`, `overflight`, `other` |
+| `phase` | enum | `approaching` | `approaching`, `landing`, `taking_off`, `taxiing`, `parked`, `towing`, `overflight`, `other`. A status as it arrives (an import row, a spotting line, an edit); writing the record moves it into `sighting_phases`, so it is null in the log. |
 | `livery` | text | `Blue Tail` | Regular livery variant (not special). |
 | `specialLivery` | text | `Sports Team Livery` | Special livery or sticker. |
 | `photoCount` | integer | | |
@@ -205,6 +205,8 @@ One sighting = one aircraft seen at one place on one day. Several photos of it i
 | `sourceKind`, `sourceBatchId`, `sourceRow` | | | As in flights. |
 
 **sighting_tags**: `sightingId` (ref sightings), `tag` (text; suggested values `partial_body`, `too_far`, `night`, `backlit`, `blurry`).
+
+**sighting_phases**: every status a sighting was seen in, all equal (an aircraft seen landing, then taxiing, is one sighting with both). `sightingId` (ref sightings), `phase` (enum, as `sightings.phase`). Shown and counted in the fixed order of the enum, never by which came first; statistics count a sighting once under each of its statuses. Decided, built.
 
 **photo_links**: `ownerTable` (enum `flights`, `sightings`), `ownerId` (id), `url` (text; e.g. a Google Photos share link), `label` (text).
 
@@ -300,3 +302,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 | 3 | `settings.dataMode` and `settings.storageAccount`. |
 | 4 | `settings.agentChecker`, `settings.sendNotesToAgent` and the `agent_rules` table removed: the agent check's settings belong to the CLI on each computer ([22](22-agent-verification.md)). Older files have the columns dropped when read; an `agent_rules` file is not read. |
 | 5 | `versionVector` system column and the `sync_conflicts` table, for merging edits field by field ([12](12-storage-and-sync.md)). Older rows have no vector until they are next changed. |
+| 6 | `sighting_phases` table: a sighting holds every status it was seen in. Opening the log moves each sighting's `phase`, and statuses an older import wrote into the notes ("Also taxiing"), into it. |

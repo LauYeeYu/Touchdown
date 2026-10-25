@@ -60,6 +60,13 @@ function distinctCount<T>(items: T[], key: (t: T) => string | null): Measured {
 export interface StatsContext {
   ref: RefIndex;
   airframes: Map<string, Airframe>;
+  /** Each sighting's statuses (phaseIndex); without it, a sighting's `phase` alone. */
+  phases?: Map<string, string[]>;
+}
+
+/** A sighting's statuses: it counts once under each. */
+function phasesIn(s: Sighting, ctx: StatsContext): string[] {
+  return ctx.phases?.get(s.id) ?? (s.phase ? [s.phase] : []);
 }
 
 function familyOf(typeCode: string | null, ctx: StatsContext): string | null {
@@ -251,7 +258,10 @@ export function sightingStats(sightings: Sighting[], ctx: StatsContext, before: 
     byManufacturer: tally(sightings, (s) => manufacturerOf(typeOf(s, ctx), ctx), af),
     byRegistrationCountry: tally(sightings, (s) => normaliseRegistration(s.registration, ref)?.country ?? null, af),
     byLocation: tally(sightings, (s) => s.airportId, af),
-    byPhase: tally(sightings, (s) => s.phase),
+    byPhase: tally(
+      sightings.flatMap((s) => phasesIn(s, ctx)),
+      (p) => p,
+    ),
     sightingsByLocation: tally(sightings, (s) => s.airportId),
     newPerDay: [...newByDay].map(([key, count]) => ({ key, count })).sort((a, b) => a.key.localeCompare(b.key)),
     repeats: perAirframe.items.filter((x) => x.count > 1).map((x) => ({ airframeId: x.key, sightings: x.count })),
@@ -306,6 +316,8 @@ export interface Dimension {
   label: string;
   datasets: Dataset[];
   get: (r: Flight | Sighting, ctx: StatsContext, dataset: Dataset) => string | null;
+  /** For a dimension a record can have several values of (a sighting's statuses): it counts under each. */
+  getAll?: (r: Flight | Sighting, ctx: StatsContext, dataset: Dataset) => string[];
 }
 
 export const DIMENSIONS: Dimension[] = [
@@ -324,7 +336,7 @@ export const DIMENSIONS: Dimension[] = [
   { id: "hour", label: "Hour (local)", datasets: ["flights", "sightings"], get: (r, _c, d) => (parseDateTime((d === "flights" ? (r as Flight).takeoffAt : (r as Sighting).seenAt) ?? "")?.time.slice(0, 2)) ?? null },
   { id: "cabin", label: "Cabin class", datasets: ["flights"], get: (r) => (r as Flight).cabinClass },
   { id: "seatPosition", label: "Seat position", datasets: ["flights"], get: (r) => (r as Flight).seatPosition },
-  { id: "phase", label: "Phase", datasets: ["sightings"], get: (r) => (r as Sighting).phase },
+  { id: "phase", label: "Phase", datasets: ["sightings"], get: (r, c) => phasesIn(r as Sighting, c)[0] ?? null, getAll: (r, c) => phasesIn(r as Sighting, c) },
   { id: "specialLivery", label: "Special livery", datasets: ["flights", "sightings"], get: (r) => r.specialLivery },
 ];
 
@@ -348,15 +360,24 @@ export function pivot(
 ): PivotResult {
   const groups = new Map<string, (Flight | Sighting)[]>();
   let leftOut = 0;
+  const valuesOf = (dim: Dimension, r: Flight | Sighting): string[] => {
+    if (dim.getAll) return dim.getAll(r, ctx, dataset);
+    const v = dim.get(r, ctx, dataset);
+    return v === null ? [] : [v];
+  };
   for (const r of records) {
-    const a = rowDim.get(r, ctx, dataset);
-    const b = colDim ? colDim.get(r, ctx, dataset) : "";
-    if (a === null || b === null) {
+    const as = valuesOf(rowDim, r);
+    const bs = colDim ? valuesOf(colDim, r) : [""];
+    if (!as.length || !bs.length) {
       leftOut++;
       continue;
     }
-    const k = `${a}\u0000${b}`;
-    groups.set(k, [...(groups.get(k) ?? []), r]);
+    for (const a of as) {
+      for (const b of bs) {
+        const k = `${a}\u0000${b}`;
+        groups.set(k, [...(groups.get(k) ?? []), r]);
+      }
+    }
   }
   const value = (list: (Flight | Sighting)[]): number => {
     switch (measure) {
@@ -376,7 +397,8 @@ export function pivot(
   for (const [k, list] of groups) {
     cells.set(k, value(list));
     const [a, b] = k.split("\u0000") as [string, string];
-    rowLists.set(a, [...(rowLists.get(a) ?? []), ...list]);
+    // A record under two columns (two statuses) counts once in its row's total.
+    rowLists.set(a, [...new Set([...(rowLists.get(a) ?? []), ...list])]);
     colSet.add(b);
   }
   const rowTotals = new Map([...rowLists].map(([k, list]) => [k, value(list)]));

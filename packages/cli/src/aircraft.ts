@@ -1,7 +1,7 @@
 // `touchdown aircraft [REF]` (docs/34, "Reading"): the Aircraft page's list, or one aircraft's page: its facts,
 // registrations and every time the user flew on it or photographed it.
 
-import { flightDay } from "@touchdown/core";
+import { flightDay, phasesOf } from "@touchdown/core";
 import { aircraftViews, airlineLabel, airportWithCode, PHASE_LABEL, textCode, type AircraftView } from "@touchdown/core/view";
 import { aircraftLabel, airportJson, findingJson, openFindings } from "./shape.ts";
 import { argsOrHelp, fail, fields, findAircraft, notFound, openOrFail, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
@@ -122,7 +122,7 @@ function oneAircraft(log: OpenedLog, json: boolean, text: string) {
       timeline: events.map((e) =>
         e.kind === "flight"
           ? { kind: "flight", id: e.id, date: e.date, flightNumber: e.f.flightNumber, from: airportJson(log, e.f.fromAirportId, e.f.fromRaw), to: airportJson(log, e.f.toAirportId, e.f.toRaw), registration: e.f.registration }
-          : { kind: "sighting", id: e.id, date: e.date, airport: airportJson(log, e.s.airportId, e.s.airportRaw), phase: e.s.phase, registration: e.s.registration, specialLivery: e.s.specialLivery },
+          : { kind: "sighting", id: e.id, date: e.date, airport: airportJson(log, e.s.airportId, e.s.airportRaw), phases: phasesOf(log.store, e.s.id), registration: e.s.registration, specialLivery: e.s.specialLivery },
       ),
       findings: findings.map(findingJson),
     });
@@ -144,7 +144,7 @@ function oneAircraft(log: OpenedLog, json: boolean, text: string) {
   const lines = events.map((e) => {
     const date = (e.date ?? "no date").padEnd(10);
     if (e.kind === "flight") return `${date}  Flew ${[e.f.flightNumber, `${textCode(log.ref.airport(e.f.fromAirportId), e.f.fromRaw, log.codes)} → ${textCode(log.ref.airport(e.f.toAirportId), e.f.toRaw, log.codes)}`].filter(Boolean).join(" ")}${e.f.registration && e.f.registration !== reg ? ` as ${e.f.registration}` : ""}`;
-    return plain(`${date}  Spotted at ${airportWithCode(e.s.airportId, log.ref, e.s.airportRaw, log.codes) || "an unknown place"}${e.s.phase ? `, ${(PHASE_LABEL[e.s.phase] ?? e.s.phase).toLowerCase()}` : ""}${e.s.specialLivery ? ` (${e.s.specialLivery})` : ""}`);
+    return plain(`${date}  Spotted at ${airportWithCode(e.s.airportId, log.ref, e.s.airportRaw, log.codes) || "an unknown place"}${phasesOf(log.store, e.s.id).length ? `, ${phasesOf(log.store, e.s.id).map((p) => (PHASE_LABEL[p] ?? p).toLowerCase()).join(", ")}` : ""}${e.s.specialLivery ? ` (${e.s.specialLivery})` : ""}`);
   });
   for (const line of section(`Timeline: ${plural(events.length, "record")}`, lines)) console.log(line);
   if (findings.length) for (const line of section("Findings", findings.map((x) => `${x.severity === "error" ? red("!") : yellow("?")} ${x.message}`))) console.log(line);

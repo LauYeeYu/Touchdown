@@ -466,7 +466,7 @@ export function ImportPage() {
                 </div>
                 {m.kind === "duplicate" && m.duplicateOf !== null && (
                   <p className="review-row__fills">
-                    Same aircraft, place and day as row {matches[m.duplicateOf]!.candidate.sourceRow}: merged into that sighting (a different phase goes in its notes).{" "}
+                    Same aircraft, place and day as row {matches[m.duplicateOf]!.candidate.sourceRow}: merged into that sighting, its phase added to that sighting's.{" "}
                     <label className="check">
                       <input type="checkbox" checked={!!d.keepSeparate} onChange={(e) => setDecision(i, { keepSeparate: e.target.checked })} />
                       Keep as a separate sighting

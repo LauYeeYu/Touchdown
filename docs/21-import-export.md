@@ -29,7 +29,7 @@ Matching keys (stage 4):
 "Update" rows show a field-by-field diff. Empty incoming fields never overwrite existing values.
 
 Two cases are settled by the importer rather than left as conflicts (the user can still turn each one down in the review):
-- A sighting repeated within one file (same registration, place and day) is merged into the first row: empty fields are filled, photo notes are combined, and a different phase goes into the notes ("Also taking off"). This follows the rule that one aircraft at one place on one day is one sighting.
+- A sighting repeated within one file (same registration, place and day) is merged into the first row: empty fields are filled, photo notes are combined, and its phase is added to the sighting's phases, all equal, not the first row's alone (Decided by the owner, built). This follows the rule that one aircraft at one place on one day is one sighting. A later import with a phase the sighting does not have adds it too; one it has is no difference.
 - When an existing flight has its takeoff on the scheduled date and the incoming row's boarding time shows the flight left after midnight, the row's takeoff and landing (a day later) are taken, with the reason shown.
 
 Lookups during an import are batched, cached, and rate-limited. If the app is offline, external checks are marked "not checked" and can be re-run later.

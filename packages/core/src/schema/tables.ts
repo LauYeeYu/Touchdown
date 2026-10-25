@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -88,12 +88,20 @@ export const sightings = table("sightings", "user", [
   c.text("model"),
   c.text("modelRaw"),
   c.ref("airframeId", "airframes"),
+  // A status as it arrives (an import row, a spotting line, an edit). It is moved into sighting_phases when the
+  // record is written, where a sighting holds every status it was seen in; it stays null in the log.
   c.enum("phase", PHASES),
   c.text("livery"),
   c.text("specialLivery"),
   c.integer("photoCount"),
   c.text("notes"),
   ...sourceColumns,
+]);
+
+/** The statuses a sighting was seen in, all equal (landing and taxiing): a list, so a child table. */
+export const sightingPhases = table("sighting_phases", "child", [
+  c.ref("sightingId", "sightings", { required: true }),
+  c.enum("phase", PHASES, { required: true }),
 ]);
 
 export const sightingTags = table("sighting_tags", "child", [
@@ -302,6 +310,7 @@ export const aircraftTypeOverrides = table("aircraft_type_overrides", "user", [
 export const TABLES = {
   flights,
   sightings,
+  sighting_phases: sightingPhases,
   sighting_tags: sightingTags,
   photo_links: photoLinks,
   airframes,
@@ -341,6 +350,7 @@ export type FieldProvenance = Row<"field_provenance">;
 export type ExternalId = Row<"external_ids">;
 export type ImportBatch = Row<"import_batches">;
 export type SyncConflict = Row<"sync_conflicts">;
+export type SightingPhase = Row<"sighting_phases">;
 export type IssueAck = Row<"issue_acks">;
 export type Settings = Row<"settings">;
 

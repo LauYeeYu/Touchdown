@@ -3,7 +3,7 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, pivot, sightingStats, type Dataset, type Measure, type Measured, type Sighting, type StatsContext } from "@touchdown/core";
+import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, pivot, sightingStats, type Dataset, type Measure, type Measured, type Sighting, type StatsContext } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
@@ -41,7 +41,7 @@ export function Stats() {
 
   const data = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-    const ctx: StatsContext = { ref, airframes };
+    const ctx: StatsContext = { ref, airframes, phases: phaseIndex(store) };
     const flights = store.all("flights").filter((f) => inPeriod(flightDay(f), year));
     const sightings = store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
     const before: Sighting[] = year === "all" ? [] : store.all("sightings").filter((s) => s.seenOn && s.seenOn < `${year}-01-01`);
@@ -390,6 +390,7 @@ function Pivot({ ctx, flights, sightings, label }: { ctx: StatsContext; flights:
         </table>
       </div>
       {measure === "aircraft" && <p className="section__aside stats-note">Row totals count each aircraft once, so they can be lower than the sum of the row.</p>}
+      {(rowDim.id === "phase" || colDim?.id === "phase") && <p className="section__aside stats-note">A sighting seen in several phases counts under each.</p>}
     </div>
   );
 }

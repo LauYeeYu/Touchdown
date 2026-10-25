@@ -1,7 +1,7 @@
 // Records as the reading commands show them: JSON with ids, codes and names resolved, and the labels the web app
 // uses. Private fields only say whether they are recorded (docs/34, "Private fields").
 
-import { checkAll, flightDay, resolveAirframes, type Finding, type Flight, type Sighting, type TableName } from "@touchdown/core";
+import { checkAll, flightDay, phasesOf, resolveAirframes, type Finding, type Flight, type Sighting, type TableName } from "@touchdown/core";
 import { dateTimeLabel, durShort, modelLabel, typeName, viewFlight, type FlightView } from "@touchdown/core/view";
 import { privateFields, type OpenedLog } from "./read.ts";
 
@@ -85,7 +85,7 @@ export function sightingJson(log: OpenedLog, s: Sighting) {
     type: typeName(s.typeCode, log.ref) || null,
     model: s.model,
     aircraftId: s.airframeId,
-    phase: s.phase,
+    phases: phasesOf(log.store, s.id),
     livery: s.livery,
     specialLivery: s.specialLivery,
     tags: log.store

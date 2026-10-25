@@ -8,6 +8,7 @@
 import { conflictMatters, listConflict } from "./conflicts.ts";
 import { toUtcIso } from "./time/index.ts";
 import { resolveAirframes, type ResolveResult } from "./identity/resolve.ts";
+import { settlePhases } from "./phases.ts";
 import { refOverridesOf } from "./edit.ts";
 import type { RefIndex } from "./ref/index.ts";
 import { TABLES, type TableName } from "./schema/tables.ts";
@@ -102,6 +103,7 @@ function sameFileImportedTwice(store: Store, report: ReconcileReport) {
           const to = String(twin.id);
           const from = String(r.id);
           for (const t of store.all("sighting_tags")) if (t.sightingId === from) store.update("sighting_tags", t.id, { sightingId: to });
+          for (const p of store.all("sighting_phases")) if (p.sightingId === from) store.update("sighting_phases", p.id, { sightingId: to });
           for (const p of store.all("photo_links")) if (p.ownerId === from) store.update("photo_links", p.id, { ownerId: to });
           for (const e of store.all("external_ids")) if (e.ownerId === from) store.update("external_ids", e.id, { ownerId: to });
           for (const t of store.all("tracks")) if (t.flightId === from) store.update("tracks", t.id, { flightId: to });
@@ -158,6 +160,7 @@ function findingsAcceptedTwice(store: Store, report: ReconcileReport) {
 function childrenAddedTwice(store: Store, now: number, report: ReconcileReport) {
   const keys: [TableName, (r: Values) => string | null][] = [
     ["sighting_tags", (r) => (r.tag ? `${r.sightingId}|${r.tag}` : null)],
+    ["sighting_phases", (r) => `${r.sightingId}|${r.phase}`],
     ["photo_links", (r) => (r.url ? `${r.ownerTable}|${r.ownerId}|${r.url}` : null)],
     ["registration_periods", (r) => `${r.airframeId}|${r.registration}|${r.validFrom}|${r.validTo}`],
     ["operator_periods", (r) => `${r.airframeId}|${r.operatorId}|${r.validFrom}|${r.validTo}`],
@@ -211,8 +214,8 @@ function tracksAttachedTwice(store: Store, report: ReconcileReport) {
 }
 
 /**
- * Rows whose parent went on another device. Registrations and operators of a deleted aircraft go too. A tag or photo
- * link added to an entry deleted elsewhere, after the deletion and on another device, keeps the entry, and the
+ * Rows whose parent went on another device. Registrations and operators of a deleted aircraft go too. A tag, status or
+ * photo link added to an entry deleted elsewhere, after the deletion and on another device, keeps the entry, and the
  * deletion is listed; older leftovers are left alone. A record linked by hand to an aircraft deleted elsewhere is
  * linked again from its registration.
  */
@@ -226,6 +229,7 @@ function orphans(store: Store, now: number, report: ReconcileReport) {
   }
   const children: { table: "flights" | "sightings"; id: string; child: Values }[] = [
     ...store.all("sighting_tags").map((t) => ({ table: "sightings" as const, id: t.sightingId, child: t as unknown as Values })),
+    ...store.all("sighting_phases").map((p) => ({ table: "sightings" as const, id: p.sightingId, child: p as unknown as Values })),
     ...store.all("photo_links").map((p) => ({ table: p.ownerTable, id: p.ownerId, child: p as unknown as Values })),
   ];
   for (const { table, id, child } of children) {
@@ -264,6 +268,8 @@ function settledConflicts(store: Store, now: number) {
 export function reconcile(store: Store, ref: RefIndex, now: number = Date.now()): { report: ReconcileReport; resolved: ResolveResult } {
   return store.batch(() => {
     const report: ReconcileReport = { merged: 0, renamed: 0, restored: 0 };
+    // Statuses still in records (a log or backup from an older version) first, so they settle with the rest.
+    settlePhases(store);
     sameFileImportedTwice(store, report);
     operatorsAddedTwice(store, now, report);
     familiesChosenTwice(store, now, report);

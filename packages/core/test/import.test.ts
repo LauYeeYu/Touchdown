@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildFlightTimes, commitImport, matchCandidates, parseSource, readCsv, undoImport, checkAll } from "../src/index.ts";
+import {
+  phasesOf, buildFlightTimes, commitImport, matchCandidates, parseSource, readCsv, undoImport, checkAll } from "../src/index.ts";
 import { newStore, ref, refTables } from "./fixtures.ts";
 import { namedOperator, normaliseSighting, operatorFromOverride, RefIndex, type Store } from "../src/index.ts";
 
@@ -217,7 +218,9 @@ N1001X,45000,KBOS,DAL,US,Boeing,B737,B738,B737-8H4,Taking-off,Retro Livery,Parti
     expect(r).toMatchObject({ created: 1, merged: 1 });
     const s = store.all("sightings");
     expect(s).toHaveLength(1);
-    expect(s[0]).toMatchObject({ phase: "taxiing", specialLivery: "Retro Livery", notes: "Also taking off" });
+    expect(s[0]).toMatchObject({ phase: null, specialLivery: "Retro Livery", notes: null });
+    // Both phases, equal, in the fixed order of phases: not the first row's alone.
+    expect(phasesOf(store, s[0]!.id)).toEqual(["taking_off", "taxiing"]);
     expect(store.all("sighting_tags").map((t) => t.tag).sort()).toEqual(["partial_body", "too_far"]);
   });
 
@@ -239,13 +242,36 @@ N1001X,45000,KBOS,DAL,US,Boeing,B737,B738,B737-8H4,Parked,,`;
     const store = newStore();
     const src = parseSource(readCsv(csv), "first.csv", ref)!;
     commitImport(store, ref, src, matchCandidates(store, src.candidates));
-    const again = parseSource(readCsv(csv.replace("Parked", "Taxiing")), "second.csv", ref)!;
+    const model = store.all("sightings")[0]!.model;
+    const again = parseSource(readCsv(csv.replace("B737-8H4", "B737-832")), "second.csv", ref)!;
     const matches = matchCandidates(store, again.candidates);
     expect(matches[0]).toMatchObject({ kind: "conflict" });
     const r = commitImport(store, ref, again, matches);
     expect(r).toMatchObject({ updated: 0, skipped: 1 });
     expect(store.all("record_history").filter((h) => h.batchId === r.batchId)).toEqual([]);
-    expect(store.all("sightings")[0]!.phase).toBe("parked");
+    expect(store.all("sightings")[0]!.model).toBe(model);
+  });
+});
+
+describe("phases", () => {
+  it("adds a phase a later import brings, and finds the same row with a phase it has identical", () => {
+    const csv = `Registration,Date,Location,Airlines,Country,Manufacturer,Plane Family,Type Code,Aircraft,Status,Special Livery,Misc
+N1001X,45000,KBOS,DAL,US,Boeing,B737,B738,B737-8H4,Parked,,`;
+    const store = newStore();
+    const first = parseSource(readCsv(csv), "first.csv", ref)!;
+    commitImport(store, ref, first, matchCandidates(store, first.candidates));
+    const id = store.all("sightings")[0]!.id;
+    expect(phasesOf(store, id)).toEqual(["parked"]);
+
+    const later = parseSource(readCsv(csv.replace("Parked", "Taxiing")), "second.csv", ref)!;
+    const ms = matchCandidates(store, later.candidates);
+    expect(ms[0]).toMatchObject({ kind: "update", fills: ["phase"] });
+    commitImport(store, ref, later, ms);
+    expect(phasesOf(store, id)).toEqual(["taxiing", "parked"]);
+    expect(store.get("sightings", id)!.phase).toBeNull();
+
+    const same = parseSource(readCsv(csv), "third.csv", ref)!;
+    expect(matchCandidates(store, same.candidates)[0]).toMatchObject({ kind: "identical" });
   });
 });
 
