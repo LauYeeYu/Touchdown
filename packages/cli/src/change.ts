@@ -66,6 +66,8 @@ the airport they happen at, on the record's date.
 ${changeOptions(15)}
 
 Flight fields:   ${FLIGHT_EDIT_FIELDS.join(", ")}
+                 (operatedBy: the airline that flew it, when another than the one that sold it, by its code;
+                 departureScheduled, arrivalScheduled: the timetable's times, HH:MM at each airport)
 Sighting fields: ${SIGHTING_EDIT_FIELDS.join(", ")}
                  (tags: comma-separated, such as night,backlit; phase: every phase it was seen in,
                  comma-separated, such as landing,taxiing; time: HH:MM at the airport)

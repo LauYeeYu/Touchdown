@@ -46,7 +46,7 @@ Severity:
 | V-DURATION-SPEED | flight | Distance / duration between about 150 and 1,100 km/h. Catches wrong airports, wrong dates, wrong times. | warning | |
 | V-DISTANCE-DIFF | flight | Entered distance within 3% of great-circle distance. | info | Use computed value. |
 | V-BEFORE-FIRST-FLIGHT | flight, sighting | Record date ≥ airframe first flight date. | error | |
-| V-REG-COUNTRY | registration, operator | Registration country vs operator country. Leasing makes this common, so only info. | info | |
+| V-REG-COUNTRY | registration, operator | Registration country vs operator country: for a flight, the airline that flew it when one is recorded (`operatingAirlineId`), else the one that sold it. Leasing makes this common, so only info. | info | |
 | V-INCOMPLETE | any | Lists empty fields that stats or maps need (airports, date, registration). | info | Offer auto-fill. |
 | V-PRIVATE-IN-NOTES | notes | Notes look like a ticket number or booking reference. | info | Move to private field. |
 
