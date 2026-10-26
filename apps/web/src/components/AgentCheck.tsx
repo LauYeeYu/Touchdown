@@ -4,6 +4,7 @@
 
 import { useRef, useState } from "react";
 import { readCheckResult, type AgentField, type AgentRecordResult, type AgentSuggestion, type CheckRequest, type CheckResultFile, type RefIndex } from "@touchdown/core";
+import { SOURCE_REPOSITORY } from "../config.ts";
 import { Icon } from "../lib/icons.tsx";
 import { plural } from "../lib/format.ts";
 import { download } from "../lib/download.ts";
@@ -144,6 +145,13 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
         Check with an agent
       </h2>
       <p className="agent-panel__lead">The Touchdown command runs Claude Code or Codex on your computer. It looks for values that are well-formed but wrong, such as a type that does not fit the model or a livery spelled two ways, and suggests corrections. Nothing changes until you use one.</p>
+      <p className="agent-panel__note">
+        The command runs in the Touchdown directory: a copy of Touchdown's code on your computer. To set it up once, with Node.js 22 or later, run <code>git clone {SOURCE_REPOSITORY}</code>, then <code>cd Touchdown</code> and <code>npm install</code>. Sign in to Claude Code or Codex, and choose it with <code>./touchdown agent</code>. On Windows, type <code>npm run touchdown --</code> instead of <code>./touchdown</code>.{" "}
+        <a href={`${SOURCE_REPOSITORY}#set-up`} target="_blank" rel="noreferrer">
+          Setting up, in the README
+        </a>
+        .
+      </p>
       <ol className="agent-steps">
         <li>
           <span className="agent-steps__text">Save the request.</span>
@@ -160,7 +168,7 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
           </button>
         </li>
         <li>
-          <span className="agent-steps__text">In a terminal, in the Touchdown folder, run:</span>
+          <span className="agent-steps__text">In a terminal, in the Touchdown directory, run:</span>
           <span className="agent-command">
             <code>{command}</code>
             <button
