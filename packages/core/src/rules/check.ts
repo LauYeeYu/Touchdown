@@ -157,7 +157,8 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
   }
   if (f.seat && !isSeatFormat(f.seat)) out.add("V-SEAT-FORMAT", "warning", [r], ["seat"], `${label}: seat ${f.seat} is not a row number and a letter.`, [f.seat]);
 
-  checkAircraftFields(out, r, f, ref, airline?.country ?? null, label);
+  // The airline that flew it, when another than the one that sold it, is the one whose country the registration is compared with.
+  checkAircraftFields(out, r, f, ref, (ref.operator(f.operatingAirlineId) ?? airline)?.country ?? null, label);
   checkFirstFlight(out, r, day, airframes, f.airframeId, label);
 
   // Times.

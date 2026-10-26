@@ -46,6 +46,13 @@ describe("field rules: a clean record passes", () => {
   });
 });
 
+describe("the registration's country", () => {
+  it("is compared with the airline that flew the flight, when another than the one that sold it", () => {
+    expect(ids(run([{ ...goodFlight, registrationRaw: "D-ABCD", operatingAirlineId: "op_dlh" }]).findings)).not.toContain("V-REG-COUNTRY");
+    expect(ids(run([{ ...goodFlight, operatingAirlineId: "op_dlh" }]).findings)).toContain("V-REG-COUNTRY");
+  });
+});
+
 describe("field rules: each fails on a bad value", () => {
   const cases: [string, Partial<FlightValues> | null, Partial<SightingValues> | null][] = [
     ["V-REG-FORMAT", { ...goodFlight, registrationRaw: "QQ12345" }, null],

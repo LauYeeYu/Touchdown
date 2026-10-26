@@ -39,6 +39,28 @@ describe("building a change from the fields add takes", () => {
     expect(flightEdit(store, ref, flight, { seatPosition: "upstairs" })).toMatchObject({ error: expect.stringMatching(/seatPosition is one of window, middle, aisle/) });
   });
 
+  it("sets the airline that flew a flight and the timetable's departure and arrival", () => {
+    const { ref, store, flight } = aLog();
+    // LHR is on UTC and JFK on daylight time (UTC-4) on 14 March 2025.
+    const r = flightEdit(store, ref, flight, { operatedBy: "UA", departureScheduled: "10:35", arrivalScheduled: "13:20" });
+    if ("error" in r) throw new Error(r.error);
+    expect(r.change.set).toEqual({ operatingAirlineId: "op_ual", departureScheduledAt: "2025-03-14T10:35+00:00", arrivalScheduledAt: "2025-03-14T13:20-04:00" });
+    // The review shows them.
+    const shown = planChanges(store, ref, [r.change]).changes[0]!.lines.map((l) => l.label);
+    expect(shown).toEqual(["Operated by", "Scheduled departure", "Scheduled arrival"]);
+    // An arrival alone is the first such time after the departure, here the takeoff at 11:00 UTC (07:00 in New York).
+    const alone = flightEdit(store, ref, flight, { arrivalScheduled: "06:30" });
+    if ("error" in alone) throw new Error(alone.error);
+    expect(alone.change.set).toEqual({ arrivalScheduledAt: "2025-03-15T06:30-04:00" });
+    expect(flightEdit(store, ref, flight, { operatedBy: "Nobody Air" })).toMatchObject({ error: expect.stringMatching(/operatedBy "Nobody Air" is not an airline/) });
+    expect(flightEdit(store, ref, flight, { departureScheduled: "soon" })).toMatchObject({ error: expect.stringMatching(/departureScheduled "soon" could not be read/) });
+    // Cleared like any other field: the stored field it sets.
+    store.update("flights", flight.id, { operatingAirlineId: "op_ual" });
+    const cleared = flightEdit(store, ref, store.get("flights", flight.id)!, { operatedBy: null });
+    if ("error" in cleared) throw new Error(cleared.error);
+    expect(cleared.change.clear).toEqual(["operatingAirlineId"]);
+  });
+
   it("changes a sighting's phase, time, tags and airline, and an aircraft's facts", () => {
     const { ref, store, sighting } = aLog();
     const r = sightingEdit(store, ref, sighting, { phase: "Taking off", time: "09:15", tags: "night, backlit", airline: "" });

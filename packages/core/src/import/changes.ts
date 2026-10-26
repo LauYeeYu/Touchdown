@@ -18,6 +18,7 @@ import { isValidDate, isValidDateTime } from "../schema/validate.ts";
 import { Store, type Change } from "../store.ts";
 import { parseDateTime, toUtcIso, zonedDateTime } from "../time/index.ts";
 import { phaseOf, readMapped, type ColumnField } from "./mapping.ts";
+import { buildFlightTimes } from "./times.ts";
 import { phasesOf, setPhases } from "../phases.ts";
 import { undoImport } from "./pipeline.ts";
 import { attachTrack, MAX_TRACK_POINTS, removeTrack, simplifyTrack, trackDistanceKm, type TrackFile, type TrackPointInput } from "../tracks.ts";
@@ -243,8 +244,11 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
 
 // ---------- building an edit ----------
 
-/** Fields `touchdown edit` takes for a flight: those `add` takes, read the same way, and those the web app's form sets besides. */
-export const FLIGHT_EDIT_FIELDS = ["date", "flightNumber", "airline", "from", "to", "registration", "typeCode", "model", "livery", "specialLivery", "seat", "seatPosition", "class", "cabin", "bookingClass", "fare", "reason", "terminal", "gate", "boarding", "takeoff", "landing", "duration", "notes", "ticketNumber", "bookingRef"] as const;
+/**
+ * Fields `touchdown edit` takes for a flight: those `add` takes, read the same way, those the web app's form sets
+ * besides, and the airline that flew it and the timetable's departure and arrival, which only this command sets.
+ */
+export const FLIGHT_EDIT_FIELDS = ["date", "flightNumber", "airline", "operatedBy", "from", "to", "registration", "typeCode", "model", "livery", "specialLivery", "seat", "seatPosition", "class", "cabin", "bookingClass", "fare", "reason", "terminal", "gate", "boarding", "departureScheduled", "takeoff", "landing", "arrivalScheduled", "duration", "notes", "ticketNumber", "bookingRef"] as const;
 export const SIGHTING_EDIT_FIELDS = ["date", "time", "airport", "spot", "registration", "airline", "typeCode", "model", "phase", "livery", "specialLivery", "photos", "notes", "tags"] as const;
 export const AIRFRAME_EDIT_FIELDS = ["manufacturer", "msn", "lineNumber", "typeCode", "model", "firstFlight", "delivered", "status", "notes"] as const;
 
@@ -253,6 +257,7 @@ const FLIGHT_STORED: Record<(typeof FLIGHT_EDIT_FIELDS)[number], string[]> = {
   date: ["scheduledDate"],
   flightNumber: ["flightNumber"],
   airline: ["airlineRaw", "airlineId"],
+  operatedBy: ["operatingAirlineId"],
   from: ["fromRaw", "fromAirportId"],
   to: ["toRaw", "toAirportId"],
   registration: ["registrationRaw", "registration"],
@@ -270,8 +275,10 @@ const FLIGHT_STORED: Record<(typeof FLIGHT_EDIT_FIELDS)[number], string[]> = {
   terminal: ["departureTerminal"],
   gate: ["departureGate"],
   boarding: ["boardingAt"],
+  departureScheduled: ["departureScheduledAt"],
   takeoff: ["takeoffAt"],
   landing: ["landingAt"],
+  arrivalScheduled: ["arrivalScheduledAt"],
   duration: ["landingAt"],
   notes: ["notes"],
   ticketNumber: ["ticketNumber"],
@@ -362,9 +369,33 @@ export function flightEdit(store: Store, ref: RefIndex, f: Flight, input: EditIn
       }
     for (const k of ["boarding", "takeoff", "landing", "duration"]) if (input[k] && !set[FLIGHT_STORED[k as keyof typeof FLIGHT_STORED][0]!]) return { error: `${k} "${input[k]}" could not be read as a time on ${context.date ?? "the flight's date"}.` };
   }
+  // The timetable's departure and arrival: clock times on the flight's date at its airports (the new ones where they
+  // change), read as takeoff and landing are; the arrival is the first such time after the departure.
+  const depText = input.departureScheduled?.trim() || null;
+  const arrText = input.arrivalScheduled?.trim() || null;
+  if (depText || arrText) {
+    const date = (set.scheduledDate as string | undefined) ?? f.scheduledDate ?? flightDay(f);
+    const from = ref.airport(("fromAirportId" in set ? set.fromAirportId : f.fromAirportId) as string | null);
+    const to = ref.airport(("toAirportId" in set ? set.toAirportId : f.toAirportId) as string | null);
+    if (!date || !from?.tz || !to?.tz) return { error: "The scheduled times need the flight's date and both airports." };
+    const anchor = depText ?? clockOf(f.departureScheduledAt) ?? clockOf((set.takeoffAt as string | undefined) ?? f.takeoffAt);
+    const t = buildFlightTimes({ scheduledDate: date, originTz: from.tz, destTz: to.tz, takeoff: anchor, landing: arrText });
+    if (depText) {
+      if (!t.takeoffAt) return { error: `departureScheduled "${depText}" could not be read as a time on ${date}.` };
+      set.departureScheduledAt = t.takeoffAt;
+    }
+    if (arrText) {
+      if (!t.landingAt) return { error: `arrivalScheduled "${arrText}" could not be read as a time${anchor ? ` after the departure at ${anchor}` : ": give departureScheduled too"}.` };
+      set.arrivalScheduledAt = t.landingAt;
+    }
+  }
   for (const [k, text] of given) {
-    if (MAPPED.has(k)) continue;
-    if (k === "seatPosition" || k === "cabin" || k === "reason") {
+    if (MAPPED.has(k) || k === "departureScheduled" || k === "arrivalScheduled") continue;
+    if (k === "operatedBy") {
+      const op = ref.operatorByCode(text, f.scheduledDate ?? flightDay(f));
+      if (!op) return { error: `operatedBy "${text}" is not an airline code or name that is known.` };
+      set.operatingAirlineId = op.id;
+    } else if (k === "seatPosition" || k === "cabin" || k === "reason") {
       const values = k === "seatPosition" ? SEAT_POSITIONS : k === "cabin" ? CABIN_CLASSES : FLIGHT_REASONS;
       const e = enumOf(values, text);
       if (!e) return { error: `${k} is one of ${values.join(", ")}, not "${text}".` };
