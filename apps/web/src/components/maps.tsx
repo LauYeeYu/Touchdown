@@ -29,8 +29,9 @@ export interface MapFlight {
   route: string; // undirected route key, for highlighting
   both: boolean; // aircraft also photographed
   tip: string; // tooltip HTML (escaped by the caller)
-  track?: LonLat[] | null; // recorded track; the great circle is drawn when there is none
-  gaps?: LonLat[][]; // great-circle segments that join a partial track to its airports
+  track?: LonLat[] | null; // recorded track's points; the great circle is drawn when there is none
+  line: LonLat[][]; // drawn solid: the recorded stretches, else the route (the great circle, or around closed airspace)
+  gaps?: LonLat[][]; // drawn dashed: what a track does not record, joining it to its airports and across its gaps
 }
 
 export interface MapSpot {
@@ -100,17 +101,26 @@ function centralMeridian(routes: LonLat[][], points: LonLat[]): number {
   return ((bestEdge + 180 + 540) % 360) - 180;
 }
 
-/** Points along every route (recorded track or great circle), for framing and centring. */
-function routeSamples(flights: MapFlight[]): LonLat[][] {
-  return flights.map((f) => {
-    if (f.track) {
-      const step = Math.max(1, Math.floor(f.track.length / 60));
-      const pts = f.track.filter((_, i) => i % step === 0);
-      return [...(f.gaps?.[0] && f.gaps[0][0] === f.from ? [f.from] : []), ...pts, f.track[f.track.length - 1]!, ...(f.gaps?.length ? [f.to] : [])];
+/** Points along a route, what is drawn solid and dashed alike, for framing, centring and pointing. */
+export function routeSamplesOf(f: MapFlight): LonLat[] {
+  const out: LonLat[] = [];
+  for (const part of [...f.line, ...(f.gaps ?? [])]) {
+    if (part.length > 60) {
+      const step = Math.floor(part.length / 60);
+      part.forEach((p, i) => i % step === 0 && out.push(p));
+      out.push(part[part.length - 1]!);
+      continue;
     }
-    const i = geoInterpolate(f.from, f.to);
-    return Array.from({ length: 21 }, (_, k) => i(k / 20) as LonLat);
-  });
+    for (let i = 1; i < part.length; i++) {
+      const at = geoInterpolate(part[i - 1]!, part[i]!);
+      for (let k = 0; k <= 10; k++) out.push(at(k / 10) as LonLat);
+    }
+  }
+  return out;
+}
+
+function routeSamples(flights: MapFlight[]): LonLat[][] {
+  return flights.map(routeSamplesOf);
 }
 
 function samplePoints(flights: MapFlight[], spots: MapSpot[]): LonLat[] {
@@ -188,9 +198,9 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           if ((ev as KeyboardEvent).key === "Enter") handlers.current.onAirportClick?.(airportId);
         });
       };
-      const lines = flights.map((f) => ({ type: "LineString" as const, coordinates: f.track ?? [f.from, f.to] }));
+      const lines = flights.map((f) => ({ type: "MultiLineString" as const, coordinates: f.line }));
       // The whole route (track and gaps) is what the pointer and the map's framing work with.
-      const routes = flights.map((f) => ({ type: "MultiLineString" as const, coordinates: [f.track ?? [f.from, f.to], ...(f.gaps ?? [])] }));
+      const routes = flights.map((f) => ({ type: "MultiLineString" as const, coordinates: [...f.line, ...(f.gaps ?? [])] }));
       const geoms: Geometry[] = [...routes, ...spots.map((s) => ({ type: "Point" as const, coordinates: s.at }))];
       const fc: FeatureCollection = { type: "FeatureCollection", features: geoms.map((g) => ({ type: "Feature", geometry: g, properties: {} }) as Feature) };
       const pts = samplePoints(flights, spots);
@@ -349,12 +359,18 @@ interface FlightMapProps {
   to: LonLat;
   fromCode: string;
   toCode: string;
-  track?: LonLat[] | null;
+  /** Drawn solid: the recorded stretches, else the way below. */
+  line: LonLat[][];
+  /** Drawn dashed: what the track does not record. */
+  gaps?: LonLat[][];
+  recorded: boolean;
+  /** The way with no recording: the great circle, or around airspace the airline could not use. */
+  way: LonLat[];
   label: string;
   onAirportClick?: (which: "from" | "to") => void;
 }
 
-export function FlightMap({ from, to, fromCode, toCode, track, label, onAirportClick }: FlightMapProps) {
+export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorded, way, label, onAirportClick }: FlightMapProps) {
   const ref = useRef<SVGSVGElement>(null);
   const clickRef = useRef(onAirportClick);
   clickRef.current = onAirportClick;
@@ -364,7 +380,7 @@ export function FlightMap({ from, to, fromCode, toCode, track, label, onAirportC
       const svg = ref.current!;
       const height = width < 600 ? 280 : 430;
       const mid = geoInterpolate(from, to)(0.5);
-      const coords = track ?? [from, to];
+      const coords = [...line.flat(), ...gaps.flat(), ...way];
       const proj = geoOrthographic()
         .rotate([-mid[0], -mid[1]])
         .clipAngle(90)
@@ -378,12 +394,13 @@ export function FlightMap({ from, to, fromCode, toCode, track, label, onAirportC
       el(svg, "path", { class: "graticule", d: path(geoGraticule10()) ?? "" });
       const landG = el(svg, "g", {});
       for (const f of LAND.features) el(landG, "path", { class: "land", d: path(f) ?? "" });
-      const gc = { type: "LineString" as const, coordinates: [from, to] };
-      if (track) {
+      const gc = { type: "LineString" as const, coordinates: way };
+      if (recorded) {
         el(svg, "path", { class: "gc", d: path(gc) ?? "" });
-        const line = { type: "LineString" as const, coordinates: track };
-        el(svg, "path", { class: "track-halo", d: path(line) ?? "" });
-        el(svg, "path", { class: "track", d: path(line) ?? "" });
+        const runs = { type: "MultiLineString" as const, coordinates: line };
+        el(svg, "path", { class: "track-halo", d: path(runs) ?? "" });
+        el(svg, "path", { class: "track", d: path(runs) ?? "" });
+        for (const g of gaps) el(svg, "path", { class: "track track--gap", d: path({ type: "LineString", coordinates: g }) ?? "" });
       } else el(svg, "path", { class: "gc gc--primary", d: path(gc) ?? "" });
       for (const [at, code, anchor, which] of [[from, fromCode, "end", "from"], [to, toCode, "start", "to"]] as const) {
         const xy = proj(at);
@@ -400,7 +417,7 @@ export function FlightMap({ from, to, fromCode, toCode, track, label, onAirportC
         }
       }
     },
-    [from.join(), to.join(), track?.length ?? 0],
+    [from.join(), to.join(), line.map((l) => l.length).join(), gaps.length, way.join()],
   );
   return <svg className="map" ref={ref} role="img" aria-label={label} />;
 }

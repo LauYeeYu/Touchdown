@@ -8,7 +8,7 @@ import { geoDistance, geoGraticule10, geoInterpolate, geoOrthographic, geoPath }
 import { feature } from "topojson-client";
 import type { FeatureCollection } from "geojson";
 import world from "world-atlas/countries-110m.json";
-import type { MapFlight, MapSpot } from "./maps.tsx";
+import { routeSamplesOf, type MapFlight, type MapSpot } from "./maps.tsx";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
 
 type LonLat = [number, number];
@@ -30,7 +30,7 @@ interface Props {
   label: string;
   contained?: boolean;
   /** Great circles drawn dashed under the routes for reference, as on a flight's flat map; not clickable. */
-  greatCircles?: [LonLat, LonLat][];
+  greatCircles?: LonLat[][];
 }
 
 interface AirportMark {
@@ -77,9 +77,7 @@ function readColours(): Colours {
 
 /** Points along a route, for hit testing and framing. */
 function routePoints(f: MapFlight): LonLat[] {
-  if (f.track) return f.track;
-  const i = geoInterpolate(f.from, f.to);
-  return Array.from({ length: 33 }, (_, k) => i(k / 32) as LonLat);
+  return routeSamplesOf(f);
 }
 
 function centreOf(points: LonLat[]): LonLat {
@@ -234,7 +232,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         ctx.lineWidth = 1.4;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        for (const [a, b] of gc) path({ type: "LineString", coordinates: [a, b] });
+        for (const line of gc) path({ type: "LineString", coordinates: line });
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -249,7 +247,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         ctx.lineJoin = "round";
         ctx.setLineDash([]);
         ctx.beginPath();
-        path({ type: "LineString", coordinates: f.track ?? [f.from, f.to] });
+        path({ type: "MultiLineString", coordinates: f.line });
         ctx.stroke();
         if (f.gaps?.length) {
           ctx.setLineDash([2, 4]);
