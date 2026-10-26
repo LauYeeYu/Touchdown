@@ -26,7 +26,7 @@ describe("Flightradar24 aircraft page", () => {
 
   it("gives the serial number and uses the month only as a loose check, a year early", () => {
     const f = fr24Facts("N1001X", page, ref, "https://www.flightradar24.com/data/aircraft/n1001x")!;
-    expect(f).toMatchObject({ msn: "099001", typeCode: "A21N", manufacturer: "Airbus", firstFlightDate: null, notBefore: "2018-03-01" });
+    expect(f).toMatchObject({ msn: "099001", typeCode: "A21N", manufacturer: "Airbus", firstFlightDate: null, notBefore: "2018-03-01", icaoHex: "a00001" });
   });
 
   it("finds nothing on a page without a serial number", () => {

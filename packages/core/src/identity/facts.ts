@@ -37,6 +37,8 @@ export interface AirframeFacts {
   /** How the source dates it, for the message when a record is earlier: "was built in 2019". */
   notBeforeLabel?: string | null;
   registrations: RegistrationSpan[];
+  /** The transponder address the source gives for `registration`, six hex digits; stored on that registration when it has none. */
+  icaoHex?: string | null;
 }
 
 export interface FactsOutcome {
@@ -221,6 +223,11 @@ export function applyAirframeFacts(store: Store, ref: RefIndex, airframeId: stri
     for (const x of out.applied) {
       store.insert("field_provenance", { ownerTable: "airframes", ownerId: a.id, field: x.field, source: "lookup", detail: facts.provider, recordedAt: facts.fetchedAt });
     }
+    const hex = hexFor(store, [a.id, airframeId], facts, out);
+    if (hex) {
+      store.update("registration_periods", hex.periodId, { icaoHex: hex.value });
+      store.insert("field_provenance", { ownerTable: "registration_periods", ownerId: hex.periodId, field: "icaoHex", source: "lookup", detail: facts.provider, recordedAt: facts.fetchedAt });
+    }
     if (facts.url) {
       for (const e of store.all("external_ids")) {
         if (e.ownerTable === "airframes" && e.ownerId === a.id && e.system === facts.provider) store.remove("external_ids", e.id);
@@ -246,7 +253,28 @@ export function airframeFactsEffect(store: Store, ref: RefIndex, airframeId: str
   const other = sameAircraft(store, a, facts, manufacturer, locked);
   out.mergedInto = other?.id ?? null;
   factPatch(other ?? a, facts, manufacturer, locked, out);
+  hexFor(store, [a.id, ...(other ? [other.id] : [])], facts, out);
   return out;
+}
+
+/**
+ * The registration period of these airframes that the facts' transponder address belongs to, when it has none yet
+ * (`applied`); one that has another address keeps it (`differs`).
+ */
+function hexFor(store: Store, airframeIds: string[], facts: AirframeFacts, out: Pick<FactsOutcome, "applied" | "differs">): { periodId: string; value: string } | null {
+  const value = facts.icaoHex?.trim().toLowerCase();
+  if (!value || !/^[0-9a-f]{6}$/.test(value)) return null;
+  const reg = registrationMatchForm(facts.registration);
+  const p = store.all("registration_periods").find((q) => airframeIds.includes(q.airframeId ?? "") && registrationMatchForm(q.registration ?? "") === reg);
+  if (!p) return null;
+  const cur = p.icaoHex?.toLowerCase() ?? null;
+  if (cur === value) return null;
+  if (cur) {
+    out.differs.push({ field: "icaoHex", yours: cur, lookup: value });
+    return null;
+  }
+  out.applied.push({ field: "icaoHex", from: null, to: value });
+  return { periodId: p.id, value };
 }
 
 const makerFor = (ref: RefIndex, a: Airframe, facts: AirframeFacts) => a.manufacturer ?? (facts.manufacturer ? canonicalMaker(facts.manufacturer, ref) : null) ?? ref.manufacturerOf(facts.typeCode ?? a.typeCode);
@@ -300,7 +328,9 @@ export function mergeAirframeInto(store: Store, into: string, from: string): voi
     }
     for (const p of store.all("registration_periods")) {
       if (p.airframeId !== from) continue;
-      const dup = store.all("registration_periods").some((q) => q.airframeId === into && registrationMatchForm(q.registration ?? "") === registrationMatchForm(p.registration ?? ""));
+      const dup = store.all("registration_periods").find((q) => q.airframeId === into && registrationMatchForm(q.registration ?? "") === registrationMatchForm(p.registration ?? ""));
+      // The same registration on both: one period stays, with the transponder address if only the other had it.
+      if (dup && p.icaoHex && !dup.icaoHex) store.update("registration_periods", dup.id, { icaoHex: p.icaoHex });
       if (dup) store.remove("registration_periods", p.id);
       else store.update("registration_periods", p.id, { airframeId: into });
     }

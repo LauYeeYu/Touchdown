@@ -67,6 +67,7 @@ export function fr24Facts(registration: string, page: Fr24Page, ref: RefIndex, u
     notBefore: month ? `${Number(month.slice(0, 4)) - 1}${month.slice(4)}-01` : null,
     notBeforeLabel: month ? `is dated from ${monthName(month)} by Flightradar24, more than a year after` : null,
     registrations: [],
+    icaoHex: /^[0-9a-f]{6}$/i.test(get(/^MODE[ -]?S/i) ?? "") ? get(/^MODE[ -]?S/i)!.toLowerCase() : null,
   };
 }
 

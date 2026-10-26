@@ -133,6 +133,45 @@ describe("applyAirframeFacts", () => {
 });
 
 
+describe("a looked-up transponder address", () => {
+  const periodOf = (store: ReturnType<typeof setup>, reg: string) => store.all("registration_periods").find((p) => p.registration === reg)!;
+
+  it("goes on the registration when it has none, with its source; another one already there is kept", () => {
+    const store = setup(sighting("N1001X", "2024-03-01"));
+    const id = airframeOf(store, "N1001X");
+    const out = applyAirframeFacts(store, ref, id, facts({ icaoHex: "A0B1C2" }));
+    expect(out.applied).toContainEqual({ field: "icaoHex", from: null, to: "a0b1c2" });
+    const p = periodOf(store, "N1001X");
+    expect(p.icaoHex).toBe("a0b1c2");
+    expect(store.all("field_provenance").find((x) => x.ownerTable === "registration_periods" && x.ownerId === p.id)).toMatchObject({ field: "icaoHex", source: "lookup", detail: "testsite" });
+    const again = applyAirframeFacts(store, ref, id, facts({ provider: "othersite", icaoHex: "a0b1c3" }));
+    expect(again.differs).toContainEqual({ field: "icaoHex", yours: "a0b1c2", lookup: "a0b1c3" });
+    expect(periodOf(store, "N1001X").icaoHex).toBe("a0b1c2");
+  });
+
+  it("is shown in the review, refused when malformed, undone with its import, and kept when two entries merge", async () => {
+    const { applyChanges, readChanges, undoImport, mergeAirframeInto } = await import("../src/index.ts");
+    const { planChanges } = await import("../src/view/index.ts");
+    const store = setup(sighting("N1001X", "2024-03-01"));
+    const id = airframeOf(store, "N1001X");
+    const change = { op: "facts" as const, id, facts: facts({ icaoHex: "a0b1c2" }) };
+    expect(readChanges([{ ...change, facts: { ...change.facts, icaoHex: "zz0000" } }])).toMatchObject({ error: expect.stringMatching(/malformed transponder address/) });
+    expect(planChanges(store, ref, [change]).changes[0]!.lines.map((l) => [l.label, l.after])).toContainEqual(["Transponder address", "A0B1C2"]);
+    const r = applyChanges(store, ref, [change], () => true, { fileName: "airframes-1.json", now: Date.UTC(2026, 9, 1) });
+    expect(periodOf(store, "N1001X").icaoHex).toBe("a0b1c2");
+    undoImport(store, ref, r.batchId);
+    expect(periodOf(store, "N1001X").icaoHex ?? null).toBeNull();
+
+    // Two entries for one aircraft with the same registration: the address of the one removed stays.
+    const two = setup(sighting("N1001X", "2024-03-01"));
+    const keep = airframeOf(two, "N1001X");
+    const other = two.insert("airframes", { identityKey: "reg:N1001X:2", provisional: true, manufacturer: "Airbus", typeCode: "A21N", status: "active" });
+    two.insert("registration_periods", { airframeId: other.id, registration: "N1001X", icaoHex: "a0b1c2" });
+    mergeAirframeInto(two, keep, other.id);
+    expect(two.all("registration_periods").filter((p) => p.registration === "N1001X").map((p) => p.icaoHex)).toEqual(["a0b1c2"]);
+  });
+});
+
 describe("looked-up facts as a change (touchdown airframes, docs/34)", () => {
   it("are checked again when imported, applied with their source, merged when the serial number is known, and undone", async () => {
     const { applyChanges, readChanges, undoImport } = await import("../src/index.ts");

@@ -121,6 +121,7 @@ export function openSkyFacts(r: Row, ref: RefIndex): AirframeFacts {
     notBefore: year ? `${year}-01-01` : null,
     notBeforeLabel: year ? `was built in ${year}` : null,
     registrations: DATE.test(r.registered) || DATE.test(r.regUntil) ? [{ registration: r.registration, from: DATE.test(r.registered) ? r.registered : null, to: DATE.test(r.regUntil) ? r.regUntil : null, operator: null }] : [],
+    icaoHex: /^[0-9a-f]{6}$/i.test(r.icao24) ? r.icao24.toLowerCase() : null,
   };
 }
 
