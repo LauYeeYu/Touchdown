@@ -9,6 +9,8 @@ data/private/
 node_modules/
 dist/
 coverage/
+# wrangler dev's local state and bundles
+.wrangler/
 
 # OS / editor
 .DS_Store
