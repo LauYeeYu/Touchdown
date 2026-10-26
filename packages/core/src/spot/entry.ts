@@ -273,6 +273,10 @@ export interface Evidence {
 export function modelFromSource(text: string | null | undefined, typeCode: string | null, ref: RefIndex): string | null {
   if (!text) return null;
   let t = text.trim().replace(/\s+/g, " ");
+  // OpenSky's notations: a Next-Generation 737 as "737NG 86N/W" (the /W for winglets), and Airbus's sharklets as
+  // a suffix, "A320 214SL". Neither is part of the manufacturer's designation.
+  t = t.replace(/^((?:Boeing )?737) ?NG\b ?/i, "$1 ").replace(/\/W$/i, "");
+  t = t.replace(/^((?:Airbus )?A3\d\d)[ -]?(\d{3})SL$/i, "$1 $2");
   // A base model and a variant written apart: "A320 232", "737 8K5".
   if (!t.includes("-")) t = t.replace(/(\d) (\d)/, "$1-$2");
   // A marketing name after the model: "787-9 Dreamliner".

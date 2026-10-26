@@ -71,6 +71,11 @@ describe("models as lookups write them", () => {
     expect(modelFromSource("Airbus A321-271NX", "A21N", ref)).toBe("A321-271NX");
     expect(modelFromSource("Boeing 787-8 Dreamliner", "B788", ref)).toBe("787-8");
     expect(modelFromSource("A321 211", "A21N", ref)).toBeNull();
+    // OpenSky's notations for winglets and sharklets.
+    expect(modelFromSource("737NG 838/W", "B738", ref)).toBe("737-838");
+    expect(modelFromSource("737NG 800/W", "B738", ref)).toBe("737-800");
+    expect(modelFromSource("737NG 7BX/W", "B737", ref)).toBe("737-7BX");
+    expect(modelFromSource("A320 214SL", "A320", ref)).toBe("A320-214");
     expect(modelFromSource("Boeing 737", null, ref)).toBeNull();
   });
 });
