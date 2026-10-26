@@ -176,6 +176,16 @@ export function openSkyIndex(log: (l: string) => void): () => Promise<Map<string
   };
 }
 
+/**
+ * The facts a registration's rows give: the rows with a serial number; else, when none has one, the rows with a
+ * transponder address, which then give that address (and nothing that identifies the airframe).
+ */
+export function openSkyCandidates(rows: Row[], ref: RefIndex): AirframeFacts[] {
+  const withMsn = rows.filter((r) => r.serialNumber);
+  const chosen = withMsn.length ? withMsn : rows.filter((r) => /^[0-9a-f]{6}$/i.test(r.icao24));
+  return chosen.map((r) => openSkyFacts(r, ref));
+}
+
 export function openSkyProvider(ref: RefIndex, log: (l: string) => void): Provider {
   const load = openSkyIndex(log);
   return {
@@ -186,9 +196,8 @@ export function openSkyProvider(ref: RefIndex, log: (l: string) => void): Provid
     async lookup(registration): Promise<ProviderResult> {
       const index = await load();
       if (!(index instanceof Map)) return { kind: "error", reason: index.error };
-      const rows = index.get(registrationMatchForm(registration))?.filter((r) => r.serialNumber);
-      if (!rows?.length) return { kind: "none" };
-      return { kind: "found", candidates: rows.map((r) => openSkyFacts(r, ref)) };
+      const candidates = openSkyCandidates(index.get(registrationMatchForm(registration)) ?? [], ref);
+      return candidates.length ? { kind: "found", candidates } : { kind: "none" };
     },
   };
 }

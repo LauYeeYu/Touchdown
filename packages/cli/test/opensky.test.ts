@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RefIndex } from "@touchdown/core";
 import { refTables } from "../../core/test/fixtures.ts";
-import { openSkyEvidence, openSkyFacts, parseOpenSkyRow, splitOpenSkyLine } from "../src/providers/opensky.ts";
+import { openSkyCandidates, openSkyEvidence, openSkyFacts, parseOpenSkyRow, splitOpenSkyLine } from "../src/providers/opensky.ts";
 
 const ref = new RefIndex(refTables);
 
@@ -21,6 +21,14 @@ describe("OpenSky snapshot rows", () => {
     const f = openSkyFacts(r, ref);
     expect(f).toMatchObject({ msn: "99001", typeCode: "A21N", manufacturer: "Airbus", notBefore: "2019-01-01", lineNumber: "5001", icaoHex: "a00001" });
     expect(f.registrations).toEqual([{ registration: "N1001X", from: "2019-06-03", to: null, operator: null }]);
+  });
+
+  it("offers a row without a serial number only for its transponder address, and only when no row has one", () => {
+    const withMsn = parseOpenSkyRow(aligned)!;
+    const bare = { ...withMsn, serialNumber: "", icao24: "a00009", lineNumber: "" };
+    expect(openSkyCandidates([bare, withMsn], ref).map((f) => [f.msn, f.icaoHex])).toEqual([["99001", "a00001"]]);
+    expect(openSkyCandidates([bare], ref)).toMatchObject([{ msn: null, lineNumber: null, icaoHex: "a00009" }]);
+    expect(openSkyCandidates([{ ...bare, icao24: "" }], ref)).toEqual([]);
   });
 
   it("reads the end of a row whose middle has an extra comma", () => {
