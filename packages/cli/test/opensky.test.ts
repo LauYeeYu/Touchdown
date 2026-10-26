@@ -19,7 +19,7 @@ describe("OpenSky snapshot rows", () => {
     const r = parseOpenSkyRow(aligned)!;
     expect(r).toMatchObject({ registration: "N1001X", serialNumber: "99001", typecode: "A21N", registered: "2019-06-03", lineNumber: "5001", model: "A321 271NX" });
     const f = openSkyFacts(r, ref);
-    expect(f).toMatchObject({ msn: "99001", typeCode: "A21N", manufacturer: "Airbus", notBefore: "2019-01-01", lineNumber: "5001" });
+    expect(f).toMatchObject({ msn: "99001", typeCode: "A21N", manufacturer: "Airbus", notBefore: "2019-01-01", lineNumber: "5001", icaoHex: "a00001" });
     expect(f.registrations).toEqual([{ registration: "N1001X", from: "2019-06-03", to: null, operator: null }]);
   });
 

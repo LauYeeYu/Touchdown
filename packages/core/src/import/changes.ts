@@ -83,7 +83,7 @@ const dateOrNull = (v: unknown) => v === null || v === undefined || (typeof v ==
 /** What is wrong with looked-up facts in a change file, or null. */
 function factsProblem(f: Record<string, unknown> | null): string | null {
   if (!f || typeof f !== "object" || Array.isArray(f)) return "facts is not an object";
-  const allowed = ["provider", "url", "fetchedAt", "registration", "manufacturer", "msn", "lineNumber", "typeText", "typeCode", "firstFlightDate", "deliveryDate", "status", "notBefore", "notBeforeLabel", "registrations"];
+  const allowed = ["provider", "url", "fetchedAt", "registration", "manufacturer", "msn", "lineNumber", "typeText", "typeCode", "firstFlightDate", "deliveryDate", "status", "notBefore", "notBeforeLabel", "registrations", "icaoHex"];
   const extra = Object.keys(f).filter((k) => !allowed.includes(k));
   if (extra.length) return `unexpected keys in facts: ${extra.join(", ")}`;
   if (typeof f.provider !== "string" || !/^[a-z0-9_]{1,30}$/.test(f.provider)) return "malformed provider";
@@ -94,6 +94,7 @@ function factsProblem(f: Record<string, unknown> | null): string | null {
   for (const k of ["firstFlightDate", "deliveryDate", "notBefore"]) if (!dateOrNull(f[k])) return `${k} is not a date`;
   if (!(f.notBeforeLabel === undefined || text(f.notBeforeLabel, 200))) return "malformed notBeforeLabel";
   if (!(f.status === null || (AIRFRAME_STATUSES as readonly unknown[]).includes(f.status))) return "unknown status";
+  if (!(f.icaoHex === undefined || f.icaoHex === null || (typeof f.icaoHex === "string" && /^[0-9a-fA-F]{6}$/.test(f.icaoHex)))) return "malformed transponder address";
   const regs = f.registrations;
   if (!Array.isArray(regs) || regs.length > 50) return "malformed registrations";
   for (const r of regs as Record<string, unknown>[]) {

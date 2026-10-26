@@ -46,7 +46,7 @@ export interface LookupReport {
   stored: { airframeId: string; facts: AirframeFacts }[];
 }
 
-const label = (field: string) => ({ msn: "serial", lineNumber: "line", firstFlightDate: "first flight", deliveryDate: "delivered", status: "status", manufacturer: "maker" })[field] ?? field;
+const label = (field: string) => ({ msn: "serial", lineNumber: "line", firstFlightDate: "first flight", deliveryDate: "delivered", status: "status", manufacturer: "maker", icaoHex: "transponder address" })[field] ?? field;
 
 /** The registrations the user recorded for an airframe, latest first. */
 function registrationsOf(store: Store, airframeId: string): string[] {

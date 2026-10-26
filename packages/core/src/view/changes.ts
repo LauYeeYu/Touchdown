@@ -8,6 +8,7 @@ import { refOverridesOf, tagsOf } from "../edit.ts";
 import { phasesOf } from "../phases.ts";
 import { applyChange, changeStatus, copyStore, currentFindings, type ChangeStatus, type InboxChange } from "../import/changes.ts";
 import { airframeFactsEffect } from "../identity/facts.ts";
+import { registrationMatchForm } from "../normalise/registration.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { RULES, type Finding } from "../rules/types.ts";
 import { DIMENSIONS } from "../stats/index.ts";
@@ -139,6 +140,12 @@ function masked(c: InboxChange): InboxChange {
   return { ...c, set: Object.fromEntries(Object.entries(c.set).map(([k, v]) => [k, PRIVATE.has(k) && v !== null ? "(private)" : v])) };
 }
 
+/** The transponder address the log keeps for a registration, as the review shows it. */
+const hexOf = (store: Store, registration: string): string | null => {
+  const reg = registrationMatchForm(registration);
+  return store.all("registration_periods").find((p) => p.icaoHex && registrationMatchForm(p.registration ?? "") === reg)?.icaoHex?.toUpperCase() ?? null;
+};
+
 function lines(show: [string, string, Show][], before: Record<string, unknown> | null, beforeCtx: Ctx, after: Record<string, unknown> | null, afterCtx: Ctx): PlannedLine[] {
   const out: PlannedLine[] = [];
   for (const [field, label, fn] of show) {
@@ -264,6 +271,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
       };
       let before: Record<string, unknown> | null = null;
       let mergedInto: string | null = null;
+      let hexBefore: string | null = null;
       const trackOf = (flightId: string) => shown.all("tracks").find((t) => t.flightId === flightId) ?? null;
       let trackBefore: Track | null = null;
       switch (c.op) {
@@ -284,6 +292,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         case "facts":
           p.title = aircraftTitle(shown, ref, c.id);
           before = rowOf("airframes", c.id);
+          hexBefore = hexOf(shown, c.facts.registration);
           if (active) mergedInto = airframeFactsEffect(shown, ref, c.id, c.facts, { overwriteImported: c.overwriteImported }).mergedInto;
           break;
         case "merge": {
@@ -359,7 +368,9 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
       }
       if (active && c.op === "facts") {
         // Merged, the facts went on the other aircraft: shown on it.
-        p.lines = [...lines(AIRFRAME_SHOW, before, ctx(shown), rowOf("airframes", mergedInto ?? c.id), ctx(shown)), { field: "provider", label: "Source", before: "", after: PROVIDER_LABEL[c.facts.provider] ?? c.facts.provider, private: false }];
+        const hexAfter = hexOf(shown, c.facts.registration);
+        const hexLine: PlannedLine[] = hexAfter !== hexBefore ? [{ field: "icaoHex", label: "Transponder address", before: hexBefore ?? "", after: hexAfter ?? "", private: false }] : [];
+        p.lines = [...lines(AIRFRAME_SHOW, before, ctx(shown), rowOf("airframes", mergedInto ?? c.id), ctx(shown)), ...hexLine, { field: "provider", label: "Source", before: "", after: PROVIDER_LABEL[c.facts.provider] ?? c.facts.provider, private: false }];
       }
       if (active && (c.op === "track" || c.op === "removeTrack")) p.lines = trackLines(trackBefore, trackOf(c.flightId), o);
       if (active && c.op === "delete" && before) p.lines = lines(c.table === "flights" ? FLIGHT_SHOW.slice(0, 5) : SIGHTING_SHOW.slice(0, 5), before, ctx(shown), null, ctx(shown)).map((l) => ({ ...l, after: "" }));
