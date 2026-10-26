@@ -113,6 +113,7 @@ export function parseTrackGpx(text: string): TrackPointInput[] {
 }
 
 export const FR24_ATTRIBUTION = "Track data: Flightradar24, downloaded by the user";
+export const ADSBLOL_ATTRIBUTION = "Track data: adsb.lol (ODbL)";
 
 /** A track file as read: its points, where they come from, and the credit maps show. */
 export interface TrackFile {
@@ -323,7 +324,9 @@ export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefInde
   const code = (x: typeof a) => x.iata ?? x.icao ?? x.name;
   const startKm = haversineKm(a, first);
   const endKm = haversineKm(b, last);
-  const towards = a.id === b.id || (startKm < haversineKm(b, first) && endKm < haversineKm(a, last));
+  // It goes the flight's way: it ends nearer the arrival than it started, and starts nearer the departure than it
+  // ended. A partial track that stops over an ocean still does.
+  const towards = a.id === b.id || (endKm < haversineKm(b, first) && startKm < haversineKm(a, last));
   if (!towards) return { problem: `The track does not run from ${code(a)} to ${code(b)}: it starts ${Math.round(startKm)} km from ${code(a)} and ends ${Math.round(endKm)} km from ${code(b)}.` };
   const coverage = startKm < NEAR_KM && endKm < NEAR_KM ? "complete" : "partial";
   if (coverage === "partial") {
@@ -387,4 +390,79 @@ export function attachTrack(store: Store, flightId: string, points: TrackPointIn
 export function betterTrack(a: { coverage: string; points: number }, b: { coverage: string; points: number }): boolean {
   if (a.coverage !== b.coverage) return a.coverage === "complete";
   return a.points > b.points;
+}
+
+/** One aircraft's day in adsb.lol's history (readsb's trace_full file): seconds after `timestamp`, then the fix. */
+export interface ReadsbTrace {
+  icao?: string;
+  timestamp: number;
+  trace: unknown[][];
+}
+
+interface Fix extends TrackPointInput {
+  ground: boolean;
+  newLeg: boolean;
+}
+
+const STOP_KT = 150;
+const LEG_GAP_S = 30 * 60;
+
+/** A readsb trace's fixes: [seconds, lat, lon, altitude ft or "ground", ground speed, track, flags, …]. */
+export function readsbFixes(trace: ReadsbTrace): Fix[] {
+  const out: Fix[] = [];
+  for (const p of trace.trace ?? []) {
+    const [dt, lat, lon, alt, gs, track, flags] = p as [number, number, number, number | "ground" | null, number | null, number | null, number | null];
+    if (typeof dt !== "number" || typeof lat !== "number" || typeof lon !== "number") continue;
+    const ground = alt === "ground";
+    out.push({ t: Math.round(trace.timestamp + dt), lat, lon, altitudeFt: ground ? 0 : typeof alt === "number" ? Math.round(alt) : null, groundSpeedKt: typeof gs === "number" ? Math.round(gs) : null, headingDeg: typeof track === "number" ? Math.round(track) : null, ground, newLeg: typeof flags === "number" && (flags & 2) === 2 });
+  }
+  return out;
+}
+
+/**
+ * The flight in an aircraft's day traces (docs/23, "Matching an adsb.lol trace to a flight"). The fixes are cut into
+ * legs where the aircraft was on the ground, where readsb marks a new leg, or at a gap the aircraft could not have
+ * flown through (it stopped somewhere); a gap over an ocean, flown at speed, stays inside the leg. Each leg is checked
+ * as a file is (fitTrack): a complete one wins, else the partial one with the most points.
+ */
+export function trackFromReadsb(traces: ReadsbTrace[], flight: Flight, ref: RefIndex): { points: TrackPointInput[]; coverage: "complete" | "partial" } | { problem: string } {
+  const fixes = traces.flatMap(readsbFixes).sort((a, b) => a.t - b.t).filter((p, i, list) => i === 0 || p.t !== list[i - 1]!.t);
+  if (fixes.length < 2) return { problem: "The aircraft has no positions that day." };
+  const legs: Fix[][] = [];
+  let leg: Fix[] = [];
+  const close = () => {
+    // A leg is the time in the air, with the last fix on the ground before it and the first after it.
+    const air = leg.map((p, i) => (p.ground ? -1 : i)).filter((i) => i >= 0);
+    if (air.length) legs.push(leg.slice(Math.max(0, air[0]! - 1), Math.min(leg.length, air[air.length - 1]! + 2)));
+    leg = [];
+  };
+  for (const p of fixes) {
+    const prev = leg[leg.length - 1];
+    if (prev) {
+      const gap = p.t - prev.t;
+      const stopped = gap > LEG_GAP_S && haversineKm(prev, p) / 1.852 / (gap / 3600) < STOP_KT;
+      const landed = prev.ground && !p.ground && leg.some((x) => !x.ground);
+      if (p.newLeg || stopped || landed) close();
+    }
+    leg.push(p);
+  }
+  close();
+  const t0 = instant(flight.takeoffAt);
+  const t1 = instant(flight.landingAt);
+  let best: { points: TrackPointInput[]; coverage: "complete" | "partial" } | null = null;
+  let problem: string | null = null;
+  let nearest = Infinity;
+  for (const l of legs) {
+    if (l.length < 2) continue;
+    const points = dropJumps(l.map(({ ground: _g, newLeg: _n, ...p }) => p));
+    const fit = fitTrack(points, flight, ref);
+    if ("problem" in fit) {
+      // The reason worth telling is the one of the leg nearest the flight's times.
+      const at = t0 !== null && t1 !== null ? Math.abs((points[0]!.t * 1000 + points[points.length - 1]!.t * 1000) / 2 - (t0 + t1) / 2) : 0;
+      if (at < nearest) [nearest, problem] = [at, fit.problem];
+      continue;
+    }
+    if (!best || betterTrack({ coverage: fit.coverage, points: points.length }, { coverage: best.coverage, points: best.points.length })) best = { points, coverage: fit.coverage };
+  }
+  return best ?? { problem: problem ?? "No leg in the aircraft's traces fits this flight." };
 }

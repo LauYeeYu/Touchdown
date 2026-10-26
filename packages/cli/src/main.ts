@@ -7,6 +7,7 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
+  ADSBLOL_ATTRIBUTION,
   attachTrack,
   backupZip,
   betterTrack,
@@ -51,6 +52,7 @@ import { STATS_HELP, statsCommand } from "./stats.ts";
 import { REVIEW_HELP, reviewCommand } from "./review.ts";
 import { importCommand } from "./importfile.ts";
 import { BACKUP_HELP, backupCommand, EXPORT_HELP, exportCommand } from "./backup.ts";
+import { TRACKS_HELP, tracksCommand } from "./tracklookup.ts";
 import { DELETE_HELP, deleteCommand, EDIT_HELP, editCommand, FAMILIES_HELP, familiesCommand, SETTINGS_HELP, settingsCommand, TRACK_HELP, trackCommand, UNDO_HELP, undoCommand, VIEWS_HELP } from "./change.ts";
 import { IMPORTS_HELP, importsCommand, ISSUES_HELP, issuesCommand } from "./issues.ts";
 import { FLIGHT_HELP, FLIGHTS_HELP, flightCommand, flightsCommand, SESSIONS_HELP, sessionsCommand, SIGHTINGS_HELP, sightingsCommand } from "./records.ts";
@@ -94,6 +96,7 @@ Import page or with ./touchdown review)
   edit        Change a flight or a sighting: --set FIELD=VALUE, --clear FIELD.
   delete      Delete flights or sightings.
   track       Give a flight its recorded track from a Flightradar24 CSV or KML, or a KML or GPX file; --remove.
+  tracks      Find recorded tracks for the flights that have none, in adsb.lol's open history.
   aircraft    edit REF --set msn=… for an aircraft's facts; merge INTO FROM for two entries of one aircraft.
   airframes   Look up serial numbers and first flights for your aircraft (OpenSky; Flightradar24 with --fr24).
   issues      accept ID, reopen ID, or fix ID [N] with a suggested fix.
@@ -216,6 +219,7 @@ const HELP: Record<string, string> = {
   edit: EDIT_HELP,
   delete: DELETE_HELP,
   track: TRACK_HELP,
+  tracks: TRACKS_HELP,
   undo: UNDO_HELP,
   families: FAMILIES_HELP,
   settings: SETTINGS_HELP,
@@ -413,6 +417,7 @@ async function main(argv: string[]) {
   if (cmd === "edit") return editCommand(all);
   if (cmd === "delete") return deleteCommand(all);
   if (cmd === "track") return trackCommand(all);
+  if (cmd === "tracks") return tracksCommand(all);
   if (cmd === "undo") return undoCommand(all);
   if (cmd === "families") return familiesCommand(all);
   if (cmd === "settings") return settingsCommand(all);
@@ -552,7 +557,7 @@ function writeOut(store: Store, out: string | undefined) {
   }
 }
 
-const ATTRIBUTION = { fr24_csv: FR24_ATTRIBUTION, adsblol: "Track data: adsb.lol (ODbL)" } as const;
+const ATTRIBUTION = { fr24_csv: FR24_ATTRIBUTION, adsblol: ADSBLOL_ATTRIBUTION } as const;
 
 /** Read every track CSV in the given folders, match each to a flight and keep the best track per flight. */
 function importTracks(store: Store, ref: RefIndex, dirs: { path: string; provider: "fr24_csv" | "adsblol" }[]) {

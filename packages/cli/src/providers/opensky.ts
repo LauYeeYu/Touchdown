@@ -19,6 +19,8 @@ const COLUMNS = 32;
 const TAIL = ["prevReg", "regUntil", "registered", "registration", "selCal", "serialNumber", "status", "typecode", "vdl"] as const;
 
 export interface OpenSkyRow {
+  /** The aircraft's ICAO 24-bit address, lower-case hex. */
+  icao24: string;
   registration: string;
   /** When OpenSky last updated the row (YYYY-MM-DD). */
   updated: string;
@@ -78,6 +80,7 @@ export function parseOpenSkyRow(line: string): Row | null {
   const tail = Object.fromEntries(TAIL.map((k, i) => [k, f[f.length - TAIL.length + i]!.trim()])) as Record<(typeof TAIL)[number], string>;
   const aligned = f.length === COLUMNS;
   return {
+    icao24: (f[0] ?? "").trim().toLowerCase(),
     registration: tail.registration,
     updated: /^\d{4}-\d{2}-\d{2}/.test(f[1] ?? "") ? f[1]!.slice(0, 10) : "",
     serialNumber: tail.serialNumber,

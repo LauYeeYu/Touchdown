@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attachTrack, fitTrack, readTrackFile, removeTrack, type TrackPointInput } from "../src/index.ts";
+import { attachTrack, fitTrack, nNumberIcao, readTrackFile, removeTrack, trackFromReadsb, type ReadsbTrace, type TrackPointInput } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 // A made-up flight from Boston to New York JFK and tracks drawn along it.
@@ -112,5 +112,49 @@ describe("storing a track", () => {
     expect(store.all("tracks")).toEqual([]);
     expect(store.all("track_points")).toEqual([]);
     expect(removeTrack(store, f.id)).toBe(false);
+  });
+});
+
+describe("a flight out of an aircraft's day in adsb.lol's history", () => {
+  /** A readsb trace from fixes: altitude 0 is on the ground. */
+  const readsb = (fixes: TrackPointInput[]): ReadsbTrace => ({ icao: "a00000", timestamp: fixes[0]!.t, trace: fixes.map((p) => [p.t - fixes[0]!.t, p.lat, p.lon, p.altitudeFt === 0 ? "ground" : p.altitudeFt, p.groundSpeedKt, p.headingDeg, 0]) });
+  const parked = (at: typeof BOS, start: number, minutes: number) => Array.from({ length: minutes / 5 }, (_, i) => ({ t: start + i * 300, lat: at.lat, lon: at.lon, altitudeFt: 0, groundSpeedKt: 0, headingDeg: 0 }));
+
+  it("picks the leg that is the flight among the aircraft's flights that day", () => {
+    const store = newStore();
+    const out = flight(store);
+    const back = flight(store, { flightNumber: "XY102", fromAirportId: "ap_kjfk", toAirportId: "ap_kbos", takeoffAt: "2026-03-01T13:58-05:00", landingAt: "2026-03-01T15:02-05:00" });
+    // Boston to JFK at 14:00 UTC, an hour on the ground at JFK, then back to Boston at 19:00 UTC.
+    const day = [...parked(BOS, START - 1800, 30), ...line(), ...parked(JFK, START + 3630, 240), ...line(JFK, BOS, START + 5 * 3600)];
+    const there = trackFromReadsb([readsb(day)], out, ref);
+    if ("problem" in there) throw new Error(there.problem);
+    expect(there.coverage).toBe("complete");
+    expect(there.points[0]!.t).toBeLessThanOrEqual(START);
+    expect(there.points[there.points.length - 1]!.t).toBeLessThan(START + 5 * 3600);
+    const home = trackFromReadsb([readsb(day)], back, ref);
+    if ("problem" in home) throw new Error(home.problem);
+    expect(home.points[0]!.t).toBeGreaterThanOrEqual(START + 5 * 3600 - 600);
+  });
+
+  it("keeps a flight whole across a gap flown at speed, and says why when no leg fits", () => {
+    const store = newStore();
+    const f = flight(store);
+    const gapped = line().filter((_, i) => i < 30 || i > 90);
+    const r = trackFromReadsb([readsb(gapped)], f, ref);
+    expect(r).toMatchObject({ coverage: "complete" });
+    expect(trackFromReadsb([readsb(line(BOS, JFK, START + 3 * 86400))], f, ref)).toEqual({ problem: expect.stringMatching(/outside this flight/) });
+    expect(trackFromReadsb([{ timestamp: START, trace: [] }], f, ref)).toEqual({ problem: "The aircraft has no positions that day." });
+  });
+});
+
+describe("a US registration's ICAO address", () => {
+  it("follows the FAA's scheme", () => {
+    expect(nNumberIcao("N565JB")).toBe("a73a47");
+    expect(nNumberIcao("N1")).toBe("a00001");
+    expect(nNumberIcao("N99999")).toBe("adf7c7");
+    expect(nNumberIcao("n-565jb")).toBe("a73a47");
+    expect(nNumberIcao("N0")).toBeNull();
+    expect(nNumberIcao("G-ABCD")).toBeNull();
+    expect(nNumberIcao("N12ABC")).toBeNull();
   });
 });

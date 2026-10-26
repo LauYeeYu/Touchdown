@@ -42,6 +42,7 @@ Built, all of them. Each writes one inbox file and checks it first, as `add` doe
 | Add a flight, a sighting, a session | `add` (built), `spot` (built) |
 | Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits (a file, or `-` for stdin): `[{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]`. A sighting's `phase` takes every phase it was seen in, comma-separated (`--set phase=landing,taxiing`). |
 | Delete one | `delete REF…` |
+| (CLI only) Find recorded tracks | `tracks [--only REF,…] [--limit N] [--refresh]`: every flight without a track looked up in adsb.lol's history and written as `track` changes, the flights without one listed with the reason ([23](23-tracks-and-maps.md), "Backfill") |
 | Add, replace or remove a flight's recorded track | `track REF FILE` (an FR24 CSV or KML, or a KML or GPX file with times), `track REF --remove`: the file is read and checked against the flight as the flight page does ([23](23-tracks-and-maps.md), "Sources"); a refusal says why and writes nothing |
 | Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…`, or `--paste FILE` (or `-`): text copied off the aircraft's page, read and checked as the aircraft page's "Paste from a web page" does (`pastedFactsFor` in core), with the same warning when the page may be about another aircraft |
 | Merge two aircraft | `aircraft merge INTO FROM` |

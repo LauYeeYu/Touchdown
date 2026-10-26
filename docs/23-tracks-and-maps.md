@@ -53,6 +53,14 @@ Each track records its provider, so exports can show "Track data: adsb.lol (ODbL
 
 A background job checks every flight since 2023-02-16 that has a registration and no track. It runs slowly (one trace request every few seconds), goes through the lookup service cache, and can be paused. The user sees found / partial / not found per flight.
 
+Built in the CLI as `touchdown tracks` ([34](34-command-line.md)), from adsb.lol's daily GitHub releases (adsb.lol's per-file server now answers scripts with a bot check, [13](13-reference-data.md)):
+
+- The aircraft's hex code: the log's (`registration_periods.icaoHex`), else the FAA's scheme for a US N-number (`nNumberIcao` in core), else the OpenSky database's row for the registration (the one with the airframe's serial number, else the one registered on that day, else the newest).
+- The UTC days: takeoff − 3 h to landing + 3 h; without times, the flight's day at the departure airport and the day after.
+- A day's release is a tar of every aircraft's trace that day, in 256 folders by the last two hex digits, in a different order every day; each file is gzipped on its own. Small reads (64 KB, 4 MB apart, eight at a time) find the aircraft's folder, a bisection finds where it starts, and only that folder is read through: 10 to 60 MB and 50 to 800 requests a flight instead of 1.5 to 3.5 GB. The code is `packages/cli/src/providers/adsblol.ts`.
+- The flight is cut out of the day's traces (`trackFromReadsb` in core): legs end where the aircraft was on the ground, where readsb marks a new leg, or at a gap it could not have flown through; a gap over an ocean flown at speed stays in the leg. Each leg is checked as an uploaded file is (`fitTrack`); a complete one wins, else the partial one with the most points.
+- The tracks found go to the inbox as `track` changes, reviewed and imported as one undoable import. The flights without one are listed with the reason and remembered on that computer (`data/private/cache/adsblol/flights.json`), so the next run does not ask again unless `--refresh`. The traces read and each day's map of folders are kept in `data/private/cache/adsblol`, a few hundred kilobytes a flight.
+
 ### Plausibility checks on any track
 
 - Starts and ends near the right airports.
