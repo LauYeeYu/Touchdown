@@ -210,6 +210,12 @@ export async function tracksCommand(args: string[]) {
       continue;
     }
     delete misses[f.id];
+    if (leg.offsetMin !== null) {
+      // The leg is the flight (its route, and often its callsign) but lies outside the log's times: a delay, or a wrong time in the log.
+      const hhmm = (p: { t: number }) => toUtcIso(p.t * 1000).slice(11, 16);
+      const by = Math.abs(leg.offsetMin) >= 120 ? `${(Math.abs(leg.offsetMin) / 60).toFixed(1)} h` : `${Math.abs(leg.offsetMin)} min`;
+      notes.push(`${nameOf(f)}: the track found${leg.callsign ? `, flown as ${leg.callsign},` : ""} runs ${hhmm(leg.points[0]!)} to ${hhmm(leg.points[leg.points.length - 1]!)} UTC, ${by} ${leg.offsetMin > 0 ? "after" : "before"} the takeoff time in your log; check the flight's times.`);
+    }
     changes.push(trackChangeFor(f.id, { points: leg.points, provider: "adsblol", attribution: ADSBLOL_ATTRIBUTION }, leg.coverage));
   }
   if (!c.dryRun) {
