@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attachTrack, fitTrack, nNumberIcao, readTrackFile, removeTrack, trackFromReadsb, type ReadsbTrace, type TrackPointInput } from "../src/index.ts";
+import { attachTrack, expectedCallsign, fitTrack, nNumberIcao, numericCallsign, readTrackFile, removeTrack, trackFromReadsb, type ReadsbTrace, type TrackPointInput } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 // A made-up flight from Boston to New York JFK and tracks drawn along it.
@@ -80,9 +80,12 @@ describe("checking a track against its flight", () => {
     expect(fitTrack(line(), flight(store), ref)).toMatchObject({ coverage: "complete" });
   });
 
-  it("refuses a track outside the flight's times, or on another day when the times are not known", () => {
+  it("refuses a track outside the flight's times, allowing three hours for a delay, or on another day when the times are not known", () => {
     const store = newStore();
     expect(fitTrack(line(BOS, JFK, START + 86400), flight(store), ref)).toEqual({ problem: expect.stringMatching(/outside this flight/) });
+    // The log says 13:58 to 15:02 UTC: a track from 17:30 is the flight run late, one from 18:30 is another flight.
+    expect(fitTrack(line(BOS, JFK, START + 210 * 60), flight(store), ref)).toMatchObject({ coverage: "complete" });
+    expect(fitTrack(line(BOS, JFK, START + 270 * 60), flight(store), ref)).toEqual({ problem: expect.stringMatching(/outside this flight/) });
     const undated = flight(store, { takeoffAt: null, landingAt: null, scheduledDate: "2026-03-01" });
     expect(fitTrack(line(BOS, JFK, START + 3 * 86400), undated, ref)).toEqual({ problem: "The track is from 2026-03-04, but this flight is on 2026-03-01." });
     expect(fitTrack(line(BOS, JFK, START + 86400), undated, ref)).toMatchObject({ coverage: "complete" });
@@ -141,9 +144,48 @@ describe("a flight out of an aircraft's day in adsb.lol's history", () => {
     const f = flight(store);
     const gapped = line().filter((_, i) => i < 30 || i > 90);
     const r = trackFromReadsb([readsb(gapped)], f, ref);
-    expect(r).toMatchObject({ coverage: "complete" });
+    expect(r).toMatchObject({ coverage: "complete", callsign: null, offsetMin: null });
     expect(trackFromReadsb([readsb(line(BOS, JFK, START + 3 * 86400))], f, ref)).toEqual({ problem: expect.stringMatching(/outside this flight/) });
     expect(trackFromReadsb([{ timestamp: START, trace: [] }], f, ref)).toEqual({ problem: "The aircraft has no positions that day." });
+  });
+
+  it("allows three hours for a delay or a timetable time in the log, and says how far off the leg is", () => {
+    const store = newStore();
+    const f = flight(store);
+    // The log says 13:58 to 15:02 UTC; the aircraft flew the route from 16:30, two and a half hours late.
+    const late = trackFromReadsb([readsb(line(BOS, JFK, START + 150 * 60))], f, ref);
+    expect(late).toMatchObject({ coverage: "complete", offsetMin: 152 });
+    // Four hours late is another flight.
+    expect(trackFromReadsb([readsb(line(BOS, JFK, START + 4 * 3600 + 120))], f, ref)).toEqual({ problem: expect.stringMatching(/outside this flight/) });
+  });
+
+  it("takes the leg flown under the flight's own callsign, however far the log's times are off, and prefers it to another leg on the route", () => {
+    const store = newStore();
+    const f = flight(store, { flightNumber: "DL49", airlineId: "op_dal" });
+    // The aircraft flew Boston to JFK twice: at 09:00 UTC (five hours before the time in the log) and at 14:30 UTC, with JFK to Boston in between.
+    const day = readsb([...line(BOS, JFK, START - 5 * 3600), ...line(JFK, BOS, START - 2 * 3600), ...line(BOS, JFK, START + 1800)]);
+    // The aircraft's details, with the callsign, come with the first fix of each leg.
+    const signed = (signs: Record<number, string>): ReadsbTrace => ({ ...day, trace: day.trace.map((p, i) => (i in signs ? [...p, 0, { flight: `${signs[i]} ` }] : [...p])) });
+    const r = trackFromReadsb([signed({ 0: "DAL0049", 121: "DAL2190", 242: "DAL2191" })], f, ref);
+    if ("problem" in r) throw new Error(r.problem);
+    expect(r.callsign).toBe("DAL0049");
+    expect(r.offsetMin).toBe(-298);
+    expect(r.points[0]!.t).toBe(START - 5 * 3600);
+    // Without callsigns, the 09:00 leg is too far off and the one nearest the log's times wins.
+    const plain = trackFromReadsb([day], f, ref);
+    if ("problem" in plain) throw new Error(plain.problem);
+    expect(plain.points[0]!.t).toBe(START + 1800);
+    expect(plain.offsetMin).toBeNull();
+    expect(plain.callsign).toBeNull();
+  });
+
+  it("knows the callsign a flight is expected to fly under", () => {
+    const store = newStore();
+    expect(expectedCallsign(flight(store, { flightNumber: "DL49", airlineId: "op_dal" }), ref)).toBe("DAL49");
+    expect(expectedCallsign(flight(store, { flightNumber: "DL0049", airlineId: null }), ref)).toBe("DAL49");
+    expect(expectedCallsign(flight(store, { flightNumber: null }), ref)).toBeNull();
+    expect(numericCallsign("dal0049 ")).toBe("DAL49");
+    expect(numericCallsign("DLH7HV")).toBeNull();
   });
 });
 

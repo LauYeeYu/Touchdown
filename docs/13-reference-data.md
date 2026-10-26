@@ -11,7 +11,7 @@ Where facts about airports, airlines, aircraft types, airframes, flights, and tr
 | Aircraft types | VRS standing-data model-type | none needed | family table is ours to maintain |
 | Registration → type, hex, operator | Mictronics / tar1090-db, adsbdb, hexdb | — | registration history outside the US |
 | Registration → MSN, first flight | OpenSky aircraft DB (2025-08 snapshot); Flightradar24 through the user's own browser (opt-in); text pasted from an airframe page | — | aircraft registered after 2025-08; exact first flight dates (see "Airframe facts") |
-| Flight number + date → aircraft, times | none for past flights | FlightAware AeroAPI Personal (last 10 days) | flights older than 10 days |
+| Flight number + date → aircraft, times | none for past flights without an account; OpenSky's flights endpoints with the user's own OpenSky API client (see "Flight lookups") | FlightAware AeroAPI Personal (last 10 days) | flights older than 10 days where OpenSky has no receivers (China, the Gulf in part) |
 | Recorded track | A track file the user adds: a Flightradar24 download (manual, the most complete, oceans and China included), or a KML or GPX file | adsb.lol trace history, only when the user asks (`touchdown tracks`, to fill gaps; from 2023-02-16, thin until March 2023); AeroAPI (last 10 days) | flights nobody has a file for; for adsb.lol, areas with poor receiver coverage |
 
 ## Static reference datasets
@@ -127,16 +127,17 @@ When a source knows several airframes for a registration, the first that passes 
 
 ## Flight lookups (flight number + date)
 
-No free source covers past flights.
+No free source covers past flights without an account. With one, OpenSky does.
 
 | Option | Coverage | Cost | Terms | Use |
 |--------|----------|------|-------|-----|
+| [OpenSky REST API](https://openskynetwork.github.io/opensky-api/rest.html), `flights/departure` and `flights/arrival` | Past days back to at least 2023 (tested), wherever OpenSky has receivers: good in Europe and the US, nothing inside China, partial in the Gulf; the other end of a flight is often "not seen" (`estArrivalAirport` null) | Free with an OpenSky account: an API client (OAuth2 client credentials, tokens of 30 minutes) and 4,000 credits a day, 30 credits for each query of one airport and one day; anonymous requests answer "You cannot access historical flights" | OpenSky terms (non-profit research and education; Q-LICENSES) | Finding the aircraft of a past flight: the departures of the origin (or the arrivals at the destination) on the flight's UTC day give hex code, callsign and the estimated other airport; the airline's ICAO code and the flight number name the flight when the callsign is the flight number (`DLH400` for LH400, `RPA4321` for a Delta flight flown by Republic), else the airline's flight nearest the logged time on the route; the hex becomes a registration through the OpenSky aircraft database or adsbdb. Lufthansa and Ryanair mostly fly alphanumeric callsigns (`DLH9XY`, `RYR12AB`), so the route and time decide, and the aircraft is confirmed by its adsb.lol trace of that day ([23](23-tracks-and-maps.md)). Done by hand so far (Q-OPENSKY-FLIGHTS); the user's client would be kept in `data/private/`, never committed. |
 | FlightAware AeroAPI, Personal tier | 10 days back, 2 days ahead | $5/month free usage, then about $0.005 per flight and $0.012 per track | Single account, personal use. Raw data kept ≤ 30 days; derived data may be kept. | Optional. Each user enters their own key (Q-BUDGET). |
 | adsb.lol live API | Aircraft in the air now | Free | ODbL; contact them for production use | Optional "capture during flight": while the user's flight is airborne, look up its callsign to get the hex and registration. |
 | FR24 API | From 2022-06 | From $9/month | Data may not be stored more than 30 days | Not used: a logbook stores data permanently. |
 | FlightAware AeroAPI, Standard | Back to 2011 | From $100/month | Not reviewed | Only for a one-time backfill, if ever. |
 
-In practice: for past flights the registration comes from the user, the FR24 import, or the existing sheet. Flight lookups help only for new flights.
+In practice: for past flights the registration comes from the user, the FR24 import, or the existing sheet, and otherwise from OpenSky's flights data where it has coverage. The other lookups help only for new flights.
 
 ## Recorded tracks
 

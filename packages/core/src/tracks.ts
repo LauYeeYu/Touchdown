@@ -9,6 +9,7 @@ import { readCsv } from "./import/read.ts";
 import { haversineKm, type LatLon } from "./geo/index.ts";
 import { addDays, instant, toUtcIso } from "./time/index.ts";
 import { flightDay, arrivalAirportId } from "./derive.ts";
+import { parseFlightNumber } from "./normalise/flight.ts";
 
 export interface TrackPointInput extends LatLon {
   t: number; // Unix seconds, UTC
@@ -304,7 +305,10 @@ const hhmm = (t: number) => toUtcIso(t * 1000).slice(11, 16);
  * when both are known, else on the flight's day, give or take one) and it runs from the departure towards the
  * arrival. Complete when it starts and ends at the airports; a fragment that would draw a stub is refused.
  */
-export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefIndex): TrackFit {
+/** How far a track may lie outside the flight's logged times and still be the flight: the times in a log are often the timetable's, and flights run late. */
+export const TRACK_TIME_SLACK_MS = 3 * 3600_000;
+
+export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefIndex, slackMs = TRACK_TIME_SLACK_MS): TrackFit {
   const first = points[0]!;
   const last = points[points.length - 1]!;
   const t0 = instant(flight.takeoffAt);
@@ -312,7 +316,8 @@ export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefInde
   const day = flightDay(flight);
   const trackDay = toUtcIso(first.t * 1000).slice(0, 10);
   if (t0 !== null && t1 !== null) {
-    if (Math.min(t1, last.t * 1000) <= Math.max(t0, first.t * 1000)) {
+    // The track must overlap the flight's times, widened by `slackMs` on each side for a delay or a timetable time.
+    if (Math.min(t1 + slackMs, last.t * 1000) <= Math.max(t0 - slackMs, first.t * 1000)) {
       return { problem: `The track runs from ${trackDay} ${hhmm(first.t)} to ${hhmm(last.t)} UTC, outside this flight (takeoff ${toUtcIso(t0).slice(0, 16).replace("T", " ")} UTC).` };
     }
   } else if (day && ![day, addDays(day, -1), addDays(day, 1)].includes(trackDay)) {
@@ -402,30 +407,63 @@ export interface ReadsbTrace {
 interface Fix extends TrackPointInput {
   ground: boolean;
   newLeg: boolean;
+  /** The callsign the aircraft was transmitting, as readsb last recorded it ("DLH400"). */
+  callsign: string | null;
 }
 
 const STOP_KT = 150;
 const LEG_GAP_S = 30 * 60;
+/** How far a leg flown under the flight's own callsign may lie outside the logged times: only another day's flight of the same number is ruled out. */
+const CALLSIGN_SLACK_MS = 12 * 3600_000;
 
-/** A readsb trace's fixes: [seconds, lat, lon, altitude ft or "ground", ground speed, track, flags, …]. */
+/** A readsb trace's fixes: [seconds, lat, lon, altitude ft or "ground", ground speed, track, flags, vertical rate, aircraft, …]. */
 export function readsbFixes(trace: ReadsbTrace): Fix[] {
   const out: Fix[] = [];
+  let callsign: string | null = null;
   for (const p of trace.trace ?? []) {
-    const [dt, lat, lon, alt, gs, track, flags] = p as [number, number, number, number | "ground" | null, number | null, number | null, number | null];
+    const [dt, lat, lon, alt, gs, track, flags, , aircraft] = p as [number, number, number, number | "ground" | null, number | null, number | null, number | null, unknown, { flight?: unknown } | null | undefined];
     if (typeof dt !== "number" || typeof lat !== "number" || typeof lon !== "number") continue;
+    // The aircraft's details come with the first fix and again whenever they change.
+    if (aircraft && typeof aircraft === "object" && typeof aircraft.flight === "string") callsign = aircraft.flight.trim().toUpperCase() || null;
     const ground = alt === "ground";
-    out.push({ t: Math.round(trace.timestamp + dt), lat, lon, altitudeFt: ground ? 0 : typeof alt === "number" ? Math.round(alt) : null, groundSpeedKt: typeof gs === "number" ? Math.round(gs) : null, headingDeg: typeof track === "number" ? Math.round(track) : null, ground, newLeg: typeof flags === "number" && (flags & 2) === 2 });
+    out.push({ t: Math.round(trace.timestamp + dt), lat, lon, altitudeFt: ground ? 0 : typeof alt === "number" ? Math.round(alt) : null, groundSpeedKt: typeof gs === "number" ? Math.round(gs) : null, headingDeg: typeof track === "number" ? Math.round(track) : null, ground, newLeg: typeof flags === "number" && (flags & 2) === 2, callsign });
   }
   return out;
+}
+
+/** A callsign as the airline's ICAO code and the flight's number without leading zeros: "DLH0400" → "DLH400"; null when it is not of that form. */
+export function numericCallsign(callsign: string | null | undefined): string | null {
+  const m = /^([A-Z]{3})0*(\d{1,4})$/.exec((callsign ?? "").trim().toUpperCase());
+  return m ? `${m[1]}${m[2]}` : null;
+}
+
+/** The callsign the flight is expected to fly under, "DLH400" for LH400 by Lufthansa; null when the airline's ICAO code or the number is unknown. */
+export function expectedCallsign(flight: Flight, ref: RefIndex): string | null {
+  const parsed = parseFlightNumber(flight.flightNumber);
+  if (!parsed) return null;
+  const airline = ref.operator(flight.airlineId) ?? ref.operatorByCode(parsed.designator, flightDay(flight));
+  const icao = airline?.icao ?? (parsed.designator.length === 3 ? parsed.designator : null);
+  return icao ? `${icao}${parsed.number}` : null;
+}
+
+export interface ReadsbMatch {
+  points: TrackPointInput[];
+  coverage: "complete" | "partial";
+  /** The callsign the leg was flown under, when the trace has one. */
+  callsign: string | null;
+  /** Minutes from the flight's logged takeoff to the leg's first fix when the leg lies outside the logged times (a delay, or a wrong time in the log); null when it overlaps them or the times are not known. */
+  offsetMin: number | null;
 }
 
 /**
  * The flight in an aircraft's day traces (docs/23, "Matching an adsb.lol trace to a flight"). The fixes are cut into
  * legs where the aircraft was on the ground, where readsb marks a new leg, or at a gap the aircraft could not have
  * flown through (it stopped somewhere); a gap over an ocean, flown at speed, stays inside the leg. Each leg is checked
- * as a file is (fitTrack): a complete one wins, else the partial one with the most points.
+ * as a file is (fitTrack), allowing three hours around the logged times for a delay or a timetable time, and twelve
+ * when the leg was flown under the flight's own callsign. A leg under that callsign wins, then a complete one, then
+ * the one nearest the logged times (for partial legs, the one with the most points).
  */
-export function trackFromReadsb(traces: ReadsbTrace[], flight: Flight, ref: RefIndex): { points: TrackPointInput[]; coverage: "complete" | "partial" } | { problem: string } {
+export function trackFromReadsb(traces: ReadsbTrace[], flight: Flight, ref: RefIndex): ReadsbMatch | { problem: string } {
   const fixes = traces.flatMap(readsbFixes).sort((a, b) => a.t - b.t).filter((p, i, list) => i === 0 || p.t !== list[i - 1]!.t);
   if (fixes.length < 2) return { problem: "The aircraft has no positions that day." };
   const legs: Fix[][] = [];
@@ -449,20 +487,37 @@ export function trackFromReadsb(traces: ReadsbTrace[], flight: Flight, ref: RefI
   close();
   const t0 = instant(flight.takeoffAt);
   const t1 = instant(flight.landingAt);
-  let best: { points: TrackPointInput[]; coverage: "complete" | "partial" } | null = null;
+  const wanted = expectedCallsign(flight, ref);
+  type Candidate = ReadsbMatch & { byCallsign: boolean; awayMs: number };
+  const better = (a: Candidate, b: Candidate) => {
+    if (a.byCallsign !== b.byCallsign) return a.byCallsign;
+    if (a.coverage !== b.coverage) return a.coverage === "complete";
+    if (a.coverage === "partial" && a.points.length !== b.points.length) return a.points.length > b.points.length;
+    return a.awayMs < b.awayMs;
+  };
+  let best: Candidate | null = null;
   let problem: string | null = null;
   let nearest = Infinity;
   for (const l of legs) {
     if (l.length < 2) continue;
-    const points = dropJumps(l.map(({ ground: _g, newLeg: _n, ...p }) => p));
-    const fit = fitTrack(points, flight, ref);
+    const points = dropJumps(l.map(({ ground: _g, newLeg: _n, callsign: _c, ...p }) => p));
+    if (points.length < 2) continue;
+    const signs = [...new Set(l.map((p) => p.callsign).filter((s): s is string => !!s))];
+    const byCallsign = wanted !== null && signs.some((s) => numericCallsign(s) === wanted);
+    const fit = fitTrack(points, flight, ref, byCallsign ? CALLSIGN_SLACK_MS : TRACK_TIME_SLACK_MS);
+    const first = points[0]!.t * 1000;
+    const last = points[points.length - 1]!.t * 1000;
+    const awayMs = t0 !== null && t1 !== null ? Math.abs((first + last) / 2 - (t0 + t1) / 2) : 0;
     if ("problem" in fit) {
       // The reason worth telling is the one of the leg nearest the flight's times.
-      const at = t0 !== null && t1 !== null ? Math.abs((points[0]!.t * 1000 + points[points.length - 1]!.t * 1000) / 2 - (t0 + t1) / 2) : 0;
-      if (at < nearest) [nearest, problem] = [at, fit.problem];
+      if (awayMs < nearest) [nearest, problem] = [awayMs, fit.problem];
       continue;
     }
-    if (!best || betterTrack({ coverage: fit.coverage, points: points.length }, { coverage: best.coverage, points: best.points.length })) best = { points, coverage: fit.coverage };
+    const outside = t0 !== null && t1 !== null && Math.min(t1, last) <= Math.max(t0, first);
+    const candidate: Candidate = { points, coverage: fit.coverage, callsign: signs.find((s) => numericCallsign(s) === wanted) ?? signs[signs.length - 1] ?? null, offsetMin: outside ? Math.round((first - t0) / 60_000) : null, byCallsign, awayMs };
+    if (!best || better(candidate, best)) best = candidate;
   }
-  return best ?? { problem: problem ?? "No leg in the aircraft's traces fits this flight." };
+  if (!best) return { problem: problem ?? "No leg in the aircraft's traces fits this flight." };
+  const { byCallsign: _b, awayMs: _a, ...match } = best;
+  return match;
 }
