@@ -637,9 +637,12 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       const cur = store.get(c.table, c.id);
       if (!cur) return null;
       const values = editedValues(cur, c);
-      if (c.table === "flights") saveFlight(store, ref, values, c.id, opts);
+      // A registration, type or model fixed after it was typed keeps its fix when the edit leaves it alone.
+      const touched = new Set([...Object.keys(c.set), ...c.clear]);
+      const keepNormalised = RAW_OF.filter(([raw, norm]) => !touched.has(raw) && !touched.has(norm)).map(([, norm]) => norm);
+      if (c.table === "flights") saveFlight(store, ref, values, c.id, { ...opts, keepNormalised });
       else {
-        saveSighting(store, ref, values, c.id, c.tags, opts);
+        saveSighting(store, ref, values, c.id, c.tags, { ...opts, keepNormalised });
         if (c.phases !== undefined) setPhases(store, c.id, c.phases);
       }
       return null;

@@ -19,7 +19,16 @@ export interface EditOptions {
   now?: number;
   /** False when the change is part of an import, which keeps its own history of every row it touches. */
   history?: boolean;
+  /**
+   * Normalised fields given in the values that stay as given, not read again from their raw value: a value fixed
+   * after it was typed (a suggested fix, the agent check) that a change to other fields leaves alone.
+   */
+  keepNormalised?: string[];
 }
+
+/** The normalised record, with the fields to keep as the values give them. */
+const kept = <T extends object>(normalised: T, values: object, keep: string[] | undefined): T =>
+  keep?.length ? { ...normalised, ...Object.fromEntries(keep.filter((k) => k in values).map((k) => [k, (values as Record<string, unknown>)[k]])) } : normalised;
 
 export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "updatedBy" | "basedOn" | "versionVector" | "deleted"> = {
   distanceUnit: "km",
@@ -60,7 +69,7 @@ function withNamedOperator<T extends Partial<FlightValues> | Partial<SightingVal
 /** Add a flight, or change one (`id`). */
 export function saveFlight(store: Store, ref: RefIndex, values: Partial<FlightValues>, id?: string, opts: EditOptions = {}): { row: Row<"flights">; resolved: ResolveResult } {
   return store.batch(() => {
-    const v = withNamedOperator(store, ref, normaliseFlight(values, ref), "airlineRaw", "airlineId");
+    const v = withNamedOperator(store, ref, kept(normaliseFlight(values, ref), values, opts.keepNormalised), "airlineRaw", "airlineId");
     let row: Row<"flights">;
     if (id) {
       keepHistory(store, "flights", id, opts);
@@ -91,7 +100,7 @@ export function tagsOf(store: Store, sightingId: string): string[] {
  */
 export function saveSighting(store: Store, ref: RefIndex, values: Partial<SightingValues>, id?: string, tags?: string[], opts: EditOptions = {}): { row: Row<"sightings">; resolved: ResolveResult } {
   return store.batch(() => {
-    const v = withNamedOperator(store, ref, normaliseSighting(values, ref), "operatorRaw", "operatorId");
+    const v = withNamedOperator(store, ref, kept(normaliseSighting(values, ref), values, opts.keepNormalised), "operatorRaw", "operatorId");
     let row: Row<"sightings">;
     if (id) {
       keepHistory(store, "sightings", id, opts);

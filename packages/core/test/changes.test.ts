@@ -39,6 +39,21 @@ describe("building a change from the fields add takes", () => {
     expect(flightEdit(store, ref, flight, { seatPosition: "upstairs" })).toMatchObject({ error: expect.stringMatching(/seatPosition is one of window, middle, aisle/) });
   });
 
+  it("keeps a type, registration or model fixed after it was typed when an edit changes other fields", () => {
+    const { ref, store, flight } = aLog();
+    // Typed as B773, fixed to B77W afterwards (the agent check changes only the normalised value).
+    store.update("flights", flight.id, { typeCodeRaw: "B773", typeCode: "B77W" });
+    const r = flightEdit(store, ref, store.get("flights", flight.id)!, { model: "777-36N(ER)", seat: "30K" });
+    if ("error" in r) throw new Error(r.error);
+    applyChanges(store, ref, [r.change], () => true, { fileName: "edit-1.json", now: NOW });
+    expect(store.get("flights", flight.id)).toMatchObject({ typeCode: "B77W", typeCodeRaw: "B773", model: "777-36N(ER)", seat: "30K" });
+    // An edit of the type itself reads it as given.
+    const t = flightEdit(store, ref, store.get("flights", flight.id)!, { typeCode: "B788" });
+    if ("error" in t) throw new Error(t.error);
+    applyChanges(store, ref, [t.change], () => true, { fileName: "edit-2.json", now: NOW });
+    expect(store.get("flights", flight.id)).toMatchObject({ typeCode: "B788", typeCodeRaw: "B788" });
+  });
+
   it("sets the airline that flew a flight and the timetable's departure and arrival", () => {
     const { ref, store, flight } = aLog();
     // LHR is on UTC and JFK on daylight time (UTC-4) on 14 March 2025.
