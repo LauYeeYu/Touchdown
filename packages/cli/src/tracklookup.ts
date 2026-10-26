@@ -33,12 +33,14 @@ import { dim } from "./term.ts";
 
 export const TRACKS_HELP = `Usage: ./touchdown tracks [--only REF,…] [--limit N] [--refresh] [options]
 
-Finds recorded tracks for the flights in your log that have none, in adsb.lol's history (open data, from
-16 February 2023; thin until March 2023, good over the US and Europe, gaps over oceans, little over China). Each
+Fills gaps: finds recorded tracks for the flights in your log that have none, in adsb.lol's history (open data,
+from 16 February 2023; thin until March 2023, good over the US and Europe, gaps over oceans, little over China).
+Flightradar24's tracks are better: add those with ./touchdown track or Add track on the flight's page. Each
 day's archive is 1.5 to 3.5 GB; only the aircraft's part of it is read, usually 10 to 60 MB a flight, and the
 trace found is kept in data/private/cache/adsblol. Each track is checked against its flight as a file is: its
 times, its route, enough of it to draw. The tracks found go to the inbox as changes; the flights without one are
-listed with the reason and not asked about again unless --refresh.
+listed with the reason and not asked about again unless --refresh. To ask someone else for the rest, send them
+the list from ./touchdown export missing-tracks.
 
   --only REF,…   only these flights (XY123@YYYY-MM-DD or ids)
   --limit N      look up at most N flights

@@ -50,7 +50,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 ## Phase 6: Tracks and exports
 
 - Deliver: track file upload (FR24 CSV/KML, GPX), adsb.lol matching and backfill, figure export, video export (browser), `touchdown render` for long videos.
-- Done when: flights since 2023-02-16 with a registration get a track or a clear "not found" reason; exports work for single flight, range/year, and all flights.
+- Done when: any flight can take a track file the user adds (Flightradar24 first; built), the flights without one can be listed to ask someone for them (built), adsb.lol fills gaps only when asked (`touchdown tracks`, built); exports work for single flight, range/year, and all flights.
 
 ## Phase 7: Depth and friends
 

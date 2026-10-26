@@ -96,7 +96,7 @@ Import page or with ./touchdown review)
   edit        Change a flight or a sighting: --set FIELD=VALUE, --clear FIELD.
   delete      Delete flights or sightings.
   track       Give a flight its recorded track from a Flightradar24 CSV or KML, or a KML or GPX file; --remove.
-  tracks      Find recorded tracks for the flights that have none, in adsb.lol's open history.
+  tracks      Only when asked: fill gaps in recorded tracks from adsb.lol's open history (Flightradar24 files first).
   aircraft    edit REF --set msn=… for an aircraft's facts; merge INTO FROM for two entries of one aircraft.
   airframes   Look up serial numbers and first flights for your aircraft (OpenSky; Flightradar24 with --fr24).
   issues      accept ID, reopen ID, or fix ID [N] with a suggested fix.

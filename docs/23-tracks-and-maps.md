@@ -15,12 +15,14 @@ A recorded track replaces the great circle in maps and exports. Its own distance
 
 ### Sources, in order of preference
 
+Decided: recorded tracks come from files the user adds, a Flightradar24 download first (its tracks are the most complete, oceans and China included). The download is manual. adsb.lol is a fallback the user asks for, never a default.
+
 1. **File upload.** The user uploads a track file for a flight:
    - FR24 CSV: `Timestamp,UTC,Callsign,Position,Altitude,Speed,Direction`, where Position is `"lat,lon"`, altitude is in feet, speed in knots.
    - FR24 KML, or any KML/GPX with a time-stamped line.
 
    Built: on the flight's page (Add track; once it has one, Track › Replace with a track file, or Remove the track) and with `touchdown track REF FILE` or `--remove` ([34](34-command-line.md)). The file is read in core (`readTrackFile` in `packages/core/src/tracks.ts`): an FR24 CSV; an FR24 KML trail (placemarks with a time and a point, altitude, speed and heading from each one's description) or any KML with a `gx:Track`; GPX track or route points with a time (elevation in metres, speed in metres a second). A line without times is not read. Before anything is saved the track is checked against that flight (`fitTrack`): its times must fall on the flight (between takeoff and landing when both are known, else on the flight's day, give or take one), it must run from the departure towards the arrival, and a fragment too short to draw is refused; each refusal says why. A track whose ends are within 30 km of the airports is complete, otherwise partial. The page shows what the file holds (points, distance, times, source, the track it replaces) and saves it only when the user confirms. Either way the track is saved as a one-change import (`track` or `removeTrack`, [34](34-command-line.md), "Change files"), so the import history can undo it, the replaced track's points included. Simplified to at most 2,000 points, as every track is.
-2. **adsb.lol history** (automatic, free, from 2023-02-16, thin until March 2023; [13](13-reference-data.md)). See below.
+2. **adsb.lol history** (free, only when the user asks, to fill gaps; from 2023-02-16, thin until March 2023; [13](13-reference-data.md)). See below.
 3. **AeroAPI** (automatic, last 10 days, only if the user set a key).
 4. Nothing found: keep the great circle and record "no track found" with the date checked, so it is not retried every time.
 
@@ -51,7 +53,7 @@ Each track records its provider, so exports can show "Track data: adsb.lol (ODbL
 
 ### Backfill
 
-A background job checks every flight since 2023-02-16 that has a registration and no track. It runs slowly (one trace request every few seconds), goes through the lookup service cache, and can be paused. The user sees found / partial / not found per flight.
+Decided: no background job. adsb.lol is read only when the user runs `touchdown tracks`, for the flights still without a track; nothing looks it up by itself, in the CLI or the web app. (Earlier plan, dropped: a background job checking every flight since 2023-02-16.)
 
 Built in the CLI as `touchdown tracks` ([34](34-command-line.md)), from adsb.lol's daily GitHub releases (adsb.lol's per-file server now answers scripts with a bot check, [13](13-reference-data.md)):
 
@@ -60,6 +62,15 @@ Built in the CLI as `touchdown tracks` ([34](34-command-line.md)), from adsb.lol
 - A day's release is a tar of every aircraft's trace that day, in 256 folders by the last two hex digits, in a different order every day; each file is gzipped on its own. Small reads (64 KB, 4 MB apart, eight at a time) find the aircraft's folder, a bisection finds where it starts, and only that folder is read through: 10 to 60 MB and 50 to 800 requests a flight instead of 1.5 to 3.5 GB. The code is `packages/cli/src/providers/adsblol.ts`.
 - The flight is cut out of the day's traces (`trackFromReadsb` in core): legs end where the aircraft was on the ground, where readsb marks a new leg, or at a gap it could not have flown through; a gap over an ocean flown at speed stays in the leg. Each leg is checked as an uploaded file is (`fitTrack`); a complete one wins, else the partial one with the most points.
 - The tracks found go to the inbox as `track` changes, reviewed and imported as one undoable import. The flights without one are listed with the reason and remembered on that computer (`data/private/cache/adsblol/flights.json`), so the next run does not ask again unless `--refresh`. The traces read and each day's map of folders are kept in `data/private/cache/adsblol`, a few hundred kilobytes a flight.
+
+### Helping each other
+
+Decided, built. Flightradar24's tracks are the best, and downloading them is manual, so a user without a subscription can ask someone who has one. The user sends them a short list of the flights without a recorded track:
+
+- In the web app: the Flights page's "N without a track (CSV)" button, beside the filters. In the CLI: `touchdown export missing-tracks [--out FILE.csv]`. Both write the same CSV (`missingTracksCsv` in `packages/core/src/view/missing.ts`), of every year, oldest first.
+- Columns: `Date` (the flight's local date), `Flight`, `From`, `To` (IATA, else ICAO), `Registration`, `Type`, `Takeoff (UTC)`, `Landing (UTC)`. Nothing private: no seat, ticket number, booking reference or notes. It is still the user's travel history, so sending it is their choice.
+- The helper downloads the tracks by hand, within their source's terms (Flightradar24's are for them to check), and sends the files back. The user adds each on its flight's page (Add track) or with `touchdown track REF FILE`; each file is checked against its flight first.
+- Nobody's log or account is shared: the helper sees only the list and returns only files.
 
 ### Plausibility checks on any track
 

@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { flightStats } from "@touchdown/core";
+import { flightStats, todayIn } from "@touchdown/core";
+import { flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { routeCodes } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
@@ -16,6 +17,7 @@ import { Fig, usePhrases } from "../components/Phrase.tsx";
 import { FlightCols, FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
+import { download } from "../lib/download.ts";
 
 type Highlight = { kind: "id" | "route"; key: string } | null;
 
@@ -41,11 +43,13 @@ export function Flights() {
     const tracks = trackIndex(store);
     const trackMeta = trackInfo(store);
     const review = new Set(app.findings().filter((f) => f.severity !== "info").flatMap((f) => f.records.filter((r) => r.table === "flights").map((r) => r.id)));
-    return { views, fs, tracks, trackMeta, review };
+    // Every year's, as the list it downloads: what someone else could look for.
+    const withoutTrack = flightsWithoutTrack(store, ref).length;
+    return { views, fs, tracks, trackMeta, review, withoutTrack };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, year]);
 
-  const { views, fs, tracks, trackMeta, review } = data;
+  const { views, fs, tracks, trackMeta, review, withoutTrack } = data;
   const airlines = [...new Set(views.map((v) => v.f.airlineId).filter((x): x is string => !!x))].sort((a, b) => airlineLabel(a, ref).localeCompare(airlineLabel(b, ref)));
   const needle = q.trim().toLowerCase().replace(/\s+/g, "");
   const matches = (v: FlightView) => {
@@ -203,6 +207,17 @@ export function Flights() {
           <input type="checkbox" checked={recordedOnly} onChange={(e) => setRecordedOnly(e.target.checked)} />
           Recorded tracks only
         </label>
+        {withoutTrack > 0 && (
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            title="A short list of every flight without a recorded track, in every year: date, flight number, route, registration, type and UTC times, nothing private. Send it to someone who can find the tracks. Add the files they send back on each flight's page."
+            onClick={() => download(`flights-without-track-${todayIn()}.csv`, missingTracksCsv(store, ref), "text/csv")}
+          >
+            <Icon name="download" />
+            {withoutTrack} without a track (CSV)
+          </button>
+        )}
         <span className="filters__count">
           {plural(shown.length, "flight")} · {distance(shownKm, unit)}
         </span>

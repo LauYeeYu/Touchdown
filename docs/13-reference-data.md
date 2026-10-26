@@ -12,7 +12,7 @@ Where facts about airports, airlines, aircraft types, airframes, flights, and tr
 | Registration → type, hex, operator | Mictronics / tar1090-db, adsbdb, hexdb | — | registration history outside the US |
 | Registration → MSN, first flight | OpenSky aircraft DB (2025-08 snapshot); Flightradar24 through the user's own browser (opt-in); text pasted from an airframe page | — | aircraft registered after 2025-08; exact first flight dates (see "Airframe facts") |
 | Flight number + date → aircraft, times | none for past flights | FlightAware AeroAPI Personal (last 10 days) | flights older than 10 days |
-| Recorded track | adsb.lol trace history (from 2023-02-16, thin until March 2023) | AeroAPI (last 10 days); FR24 consumer plan (manual download) | flights before 2023-02-16, and many before March 2023; areas with poor receiver coverage |
+| Recorded track | A track file the user adds: a Flightradar24 download (manual, the most complete, oceans and China included), or a KML or GPX file | adsb.lol trace history, only when the user asks (`touchdown tracks`, to fill gaps; from 2023-02-16, thin until March 2023); AeroAPI (last 10 days) | flights nobody has a file for; for adsb.lol, areas with poor receiver coverage |
 
 ## Static reference datasets
 

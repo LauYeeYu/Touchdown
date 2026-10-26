@@ -9,3 +9,4 @@ export * from "./views.ts";
 export * from "./issues.ts";
 export * from "./airport.ts";
 export * from "./changes.ts";
+export * from "./missing.ts";

@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { backupZip, RefIndex, tableCsv, todayIn, type TableName } from "@touchdown/core";
+import { missingTracksCsv } from "@touchdown/core/view";
 import { loadRefTables } from "@touchdown/refdata";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, printJson } from "./read.ts";
@@ -30,9 +31,14 @@ Exit status: 0 written; 2 the storage could not be read, or the file exists.`;
 const TABLE_OF: Record<string, TableName> = { flights: "flights", sightings: "sightings", aircraft: "airframes", airframes: "airframes" };
 
 export const EXPORT_HELP = `Usage: ./touchdown export flights|sightings|aircraft [--out FILE.csv [--private] [--force]] [--log FILE]
+       ./touchdown export missing-tracks [--out FILE.csv [--force]] [--log FILE]
 
 Writes a table of your log as CSV, as Settings, Data does in the web app: one row per record, every stored
 field as a column. Without --out it is printed, for a pipe or a spreadsheet.
+
+missing-tracks is the short list the Flights page downloads: the flights without a recorded track, with their
+date, flight number, route, registration, type and UTC times, nothing private. Send it to someone who can find
+the tracks (a Flightradar24 subscriber, say); the files they send back go in with ./touchdown track or Add track.
 
   --out FILE.csv   write it to a file
   --private        include ticket numbers and booking references (flights); only with --out, and the file
@@ -100,12 +106,14 @@ export async function exportCommand(args: string[]) {
   const a = argsOrHelp(args, { values: ["--out"], flags: ["--private", "--force"] }, EXPORT_HELP, [1, 1]);
   const json = a.flags.has("--json");
   if (json) return fail(json, "export prints CSV; it has no --json.");
+  const missing = a.positional[0] === "missing-tracks";
   const table = Object.hasOwn(TABLE_OF, a.positional[0]!) ? TABLE_OF[a.positional[0]!] : undefined;
-  if (!table) return fail(false, `Choose flights, sightings or aircraft.\n\n${EXPORT_HELP}`);
+  if (!table && !missing) return fail(false, `Choose flights, sightings, aircraft or missing-tracks.\n\n${EXPORT_HELP}`);
   const priv = a.flags.has("--private");
+  if (missing && priv) return fail(false, "missing-tracks holds nothing private; it takes no --private.");
   if (priv && !a.values.has("--out")) return fail(false, "--private writes ticket numbers and booking references, so only to a file: give --out FILE.csv as well.");
   const log = await openOrFail(false, a.values.get("--log"));
-  const csv = tableCsv(log.store, table, priv);
+  const csv = missing ? missingTracksCsv(log.store, log.ref) : tableCsv(log.store, table!, priv);
   if (!a.values.has("--out")) {
     process.stdout.write(csv);
     process.exit(EXIT.ok);
@@ -113,7 +121,7 @@ export async function exportCommand(args: string[]) {
   const out = userPath(a.values.get("--out")!);
   const problem = writeTo(out, csv, a.flags.has("--force"));
   if (problem) return fail(false, problem);
-  const rows = log.store.count(table);
-  console.log(`${green("Wrote")} ${plural(rows, "row")} of ${a.positional[0]} from ${log.from} to ${shownPath(out)}${priv ? ", private fields included" : ""}.`);
+  const rows = missing ? csv.trimEnd().split("\r\n").length - 1 : log.store.count(table!);
+  console.log(`${green("Wrote")} ${plural(rows, missing ? "flight" : "row")} ${missing ? "without a track" : `of ${a.positional[0]}`} from ${log.from} to ${shownPath(out)}${priv ? ", private fields included" : ""}.`);
   process.exit(EXIT.ok);
 }

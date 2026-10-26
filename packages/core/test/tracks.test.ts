@@ -158,3 +158,20 @@ describe("a US registration's ICAO address", () => {
     expect(nNumberIcao("N12ABC")).toBeNull();
   });
 });
+
+describe("the list of flights without a track", () => {
+  it("lists them oldest first, with nothing private", async () => {
+    const { missingTracksCsv } = await import("../src/view/index.ts");
+    const store = newStore();
+    const tracked = flight(store, { flightNumber: "XY100", seat: "12A" });
+    attachTrack(store, tracked.id, line(), { provider: "gpx", attribution: "a", coverage: "complete" });
+    flight(store, { flightNumber: "XY102", seat: "14C", registrationRaw: "N9001Z", registration: "N9001Z", typeCode: "A20N", takeoffAt: "2026-03-02T08:58-05:00", landingAt: "2026-03-02T10:02-05:00" });
+    flight(store, { flightNumber: "XY101", takeoffAt: null, landingAt: null, scheduledDate: "2026-02-20" });
+    expect(missingTracksCsv(store, ref).split("\r\n")).toEqual([
+      "Date,Flight,From,To,Registration,Type,Takeoff (UTC),Landing (UTC)",
+      "2026-02-20,XY101,BOS,JFK,,,,",
+      "2026-03-02,XY102,BOS,JFK,N9001Z,A20N,2026-03-02 13:58,2026-03-02 15:02",
+      "",
+    ]);
+  });
+});

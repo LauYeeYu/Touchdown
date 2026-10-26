@@ -68,7 +68,7 @@ export function readBackup(data: Uint8Array): BackupContents {
 }
 
 /** A cell that a spreadsheet would run as a formula gets a leading apostrophe (docs/30, security). */
-function csvCell(v: unknown): string {
+export function csvCell(v: unknown): string {
   if (v === null || v === undefined) return "";
   let s = String(v);
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
