@@ -12,7 +12,7 @@ Where facts about airports, airlines, aircraft types, airframes, flights, and tr
 | Registration → type, hex, operator | Mictronics / tar1090-db, adsbdb, hexdb | — | registration history outside the US |
 | Registration → MSN, first flight | OpenSky aircraft DB (2025-08 snapshot); Flightradar24 through the user's own browser (opt-in); text pasted from an airframe page | — | aircraft registered after 2025-08; exact first flight dates (see "Airframe facts") |
 | Flight number + date → aircraft, times | none for past flights | FlightAware AeroAPI Personal (last 10 days) | flights older than 10 days |
-| Recorded track | adsb.lol trace history (from 2023-03) | AeroAPI (last 10 days); FR24 consumer plan (manual download) | flights before 2023-03; areas with poor receiver coverage |
+| Recorded track | adsb.lol trace history (from 2023-02-16, thin until March 2023) | AeroAPI (last 10 days); FR24 consumer plan (manual download) | flights before 2023-02-16, and many before March 2023; areas with poor receiver coverage |
 
 ## Static reference datasets
 
@@ -144,7 +144,7 @@ See [23](23-tracks-and-maps.md) for how tracks are matched and drawn.
 
 | Source | Coverage | Cost | Terms | How |
 |--------|----------|------|-------|-----|
-| [adsb.lol](https://adsb.lol/) globe history | 2023-03 onward; good over the US and Europe, gaps over oceans, almost nothing over China | Free | ODbL (attribution) | Per-aircraft, per-day trace: `globe_history/YYYY/MM/DD/traces/<last 2 hex>/trace_full_<hex>.json`. Needs the airframe's hex for that date. Not a documented API: cache and throttle. Observed in testing: 404 = no trace for that aircraft that day; 403 = the whole day is not on the server; no traces found for dates after mid-November 2025 (recheck before relying on it). |
+| [adsb.lol](https://adsb.lol/) globe history | From 2023-02-16: test releases until early March 2023, with far fewer receivers (under 0.1 GB on the first day, about 1 GB a day by late February), then the regular history; good over the US and Europe, gaps over oceans, almost nothing over China | Free | ODbL (attribution) | Per-aircraft, per-day trace: `globe_history/YYYY/MM/DD/traces/<last 2 hex>/trace_full_<hex>.json`. Needs the airframe's hex for that date. Not a documented API: cache and throttle. Observed in testing: 404 = no trace for that aircraft that day; 403 = the whole day is not on the server; no traces found for dates after mid-November 2025 (recheck before relying on it). The whole history is also published on GitHub, one release per UTC day with every aircraft's trace that day (repositories `adsblol/globe_history_<year>`, a new day each morning): about 1.5 GB a day at the end of 2023, 1.9 GB at the end of 2024, 3 GB at the end of 2025 and 3.3 GB in October 2026, with a second copy (staging) of about the same size; roughly 3 TB in all. One trace there means downloading its whole day. |
 | FR24 consumer subscription | Silver 90 days, Gold 365 days, Business 3 years | FR24 subscription (a user may have one) | Automated access is against FR24's terms | User downloads the CSV or KML for a flight and uploads it. Best coverage over China and oceans. Observed in testing: the aircraft history list stops at the plan's history limit (the list API returns 400 beyond it), and downloads are limited per day (the site calls `/download/check-quota` before each download). |
 | AeroAPI Personal | 10 days | As above | As above | Optional, user's own key. |
 | Great circle | Always | Free | — | Default when no recorded track exists. |

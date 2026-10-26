@@ -50,7 +50,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 ## Phase 6: Tracks and exports
 
 - Deliver: track file upload (FR24 CSV/KML, GPX), adsb.lol matching and backfill, figure export, video export (browser), `touchdown render` for long videos.
-- Done when: flights since 2023-03 with a registration get a track or a clear "not found" reason; exports work for single flight, range/year, and all flights.
+- Done when: flights since 2023-02-16 with a registration get a track or a clear "not found" reason; exports work for single flight, range/year, and all flights.
 
 ## Phase 7: Depth and friends
 

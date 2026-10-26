@@ -20,7 +20,7 @@ A recorded track replaces the great circle in maps and exports. Its own distance
    - FR24 KML, or any KML/GPX with a time-stamped line.
 
    Built: on the flight's page (Add track; once it has one, Track › Replace with a track file, or Remove the track) and with `touchdown track REF FILE` or `--remove` ([34](34-command-line.md)). The file is read in core (`readTrackFile` in `packages/core/src/tracks.ts`): an FR24 CSV; an FR24 KML trail (placemarks with a time and a point, altitude, speed and heading from each one's description) or any KML with a `gx:Track`; GPX track or route points with a time (elevation in metres, speed in metres a second). A line without times is not read. Before anything is saved the track is checked against that flight (`fitTrack`): its times must fall on the flight (between takeoff and landing when both are known, else on the flight's day, give or take one), it must run from the departure towards the arrival, and a fragment too short to draw is refused; each refusal says why. A track whose ends are within 30 km of the airports is complete, otherwise partial. The page shows what the file holds (points, distance, times, source, the track it replaces) and saves it only when the user confirms. Either way the track is saved as a one-change import (`track` or `removeTrack`, [34](34-command-line.md), "Change files"), so the import history can undo it, the replaced track's points included. Simplified to at most 2,000 points, as every track is.
-2. **adsb.lol history** (automatic, free, from 2023-03). See below.
+2. **adsb.lol history** (automatic, free, from 2023-02-16, thin until March 2023; [13](13-reference-data.md)). See below.
 3. **AeroAPI** (automatic, last 10 days, only if the user set a key).
 4. Nothing found: keep the great circle and record "no track found" with the date checked, so it is not retried every time.
 
@@ -51,7 +51,7 @@ Each track records its provider, so exports can show "Track data: adsb.lol (ODbL
 
 ### Backfill
 
-A background job checks every flight since 2023-03 that has a registration and no track. It runs slowly (one trace request every few seconds), goes through the lookup service cache, and can be paused. The user sees found / partial / not found per flight.
+A background job checks every flight since 2023-02-16 that has a registration and no track. It runs slowly (one trace request every few seconds), goes through the lookup service cache, and can be paused. The user sees found / partial / not found per flight.
 
 ### Plausibility checks on any track
 
