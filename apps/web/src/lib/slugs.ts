@@ -4,14 +4,15 @@
 //                                                   twice in a minute); without a takeoff time: day, route,
 //                                                   flight number
 //   sighting  /spotting/2025-03-14-AMS-N1001X/edit  day, place, registration (one sighting per aircraft, place and day)
-//   aircraft  /aircraft/airbus-99001                maker and serial number, the airframe's identity (docs/11);
+//   aircraft  /aircraft/airbus-a320-99001           maker (with the series for Airbus) and serial number, the
+//                                                   airframe's identity (docs/11);
 //             /aircraft/N1001X-2024-03-01           until the serial number is known: registration and day first seen
 //   airport   /airports/LHR                         IATA code, else ICAO
 // Flight numbers repeat (often the same number both ways) and registrations rotate, so neither is the key.
 // A second record with the same address gets "-2", "-3" in time order. Links keep passing record ids; the router
 // turns them into addresses and back (main.tsx), and old addresses still open their page.
 
-import { flightDay, registrationMatchForm, type Flight, type RefIndex, type Sighting } from "@touchdown/core";
+import { flightDay, identityKeyFor, registrationMatchForm, type Flight, type RefIndex, type Sighting } from "@touchdown/core";
 import type { AppData } from "../data/app.ts";
 import { aircraftViews } from "./views.ts";
 
@@ -82,13 +83,14 @@ function build(data: AppData): Indexes {
     .all("sightings")
     .map((s) => ({ id: s.id, t: s.seenOn ?? "", base: sightingSlugBase(s, ref) }))
     .sort(byTime);
-  // Aircraft: the identity. Maker and serial number when known; until then the registration it was first
-  // seen with and that day, which is what the provisional identity is made of (docs/11).
+  // Aircraft: the identity. Maker, series and serial number when known, as the identity key writes them; until
+  // then the registration it was first seen with and that day, which is what the provisional identity is made of
+  // (docs/11).
   const views = aircraftViews(store).filter((v) => v.flights.length || v.sightings.length);
   const aircraft = views.map((v) => {
     const a = v.airframe;
     let base: string;
-    if (a.msn && a.manufacturer) base = `${clean(a.manufacturer.toLowerCase().replace(/\s+/g, "-"))}-${clean(a.msn)}`;
+    if (a.msn && a.manufacturer) base = clean(identityKeyFor(a.manufacturer, a.msn, a.typeCode).replace(/^msn:/, "").replace(":", "-"));
     else {
       const firstReg = [...v.flights.map((f) => ({ d: flightDay(f) ?? "", reg: f.registration })), ...v.sightings.map((x) => ({ d: x.seenOn ?? "", reg: x.registration }))]
         .filter((r) => r.reg)
