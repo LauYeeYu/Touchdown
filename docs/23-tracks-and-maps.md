@@ -4,14 +4,30 @@ Flight paths: great circles, recorded tracks, and exported figures and videos (r
 
 ## Great circle (default)
 
-- Used for every flight without a recorded track.
+- Used for every flight without a recorded track, except where the airline could not use airspace on it that day: then the drawing goes around it (see "Closed airspace").
 - Distance: haversine with mean Earth radius 6,371.0088 km. The error against an ellipsoid is under 0.5%, which is below the spread already in the user's data. Derived, not stored (unless the user sets `distanceKmOverride`).
 - Drawing: interpolated points along the great circle (d3-geo `geoInterpolate`), about one point per 50 km. The projection code splits lines at the antimeridian (e.g. NRT–LAX).
 - Diverted flights use `from` → `divertedTo`.
 
+## Closed airspace
+
+Decided. Since 2021 and 2022 some airlines may not fly over Russia, Belarus or Ukraine, so a great circle across them is not a route their flights could have taken. Where a map draws a stretch nothing recorded (a flight's great circle, the dashed stretches of a partial track), a flight of an airline barred from an area on the flight's day is drawn around it.
+
+| Airspace | From | Closed to |
+|----------|------|-----------|
+| Russia | 2022-02-28 | airlines of the EU, the UK, the US, Canada, Norway, Iceland, Switzerland, Albania, Montenegro and North Macedonia |
+| Belarus | 2021-06-05 | airlines of the EU, the UK, Norway, Iceland and Switzerland |
+| Ukraine | 2022-02-24 | all civil flights |
+
+- The airline is the one that flew the flight (`operatingAirlineId`), else the one that sold it; its country comes from the reference table of operators. The closures and the routing are in core (`packages/core/src/geo/airspace.ts`); the outlines are Natural Earth's (world-atlas, as the maps draw), passed in by the web app (`apps/web/src/lib/airspace.ts`).
+- The way round is the shortest path through fixed points on the corridors those airlines use (the Black Sea, the Caucasus, the Caspian, Central Asia and Mongolia; west of Belarus and Ukraine; the Arctic and the Bering Sea), each leg a great circle at least about 40 km from a closed border. It is drawn as the great circle is, solid when the flight has no track and dashed for a gap; the flight page's legend says "Shortest way around closed airspace". It is a drawing, not a route flown: the great-circle distance stays the flight's distance.
+- The outlines are rasterised to a grid of 0.25° cells, so a test is one lookup, and each way is worked out once per map.
+
 ## Recorded tracks
 
 A recorded track replaces the great circle in maps and exports. Its own distance is stored on the Track (`tracks.distanceKm`) and shown next to the great-circle distance.
+
+A track has gaps where nothing was received: the stretch from the departure to its first point, from its last point to the arrival, and inside it wherever nothing came for over 10 minutes and 100 km (stored tracks keep a point every few minutes at most, so only a gap is that long; oceans, Central Asia, China). Maps draw the recorded stretches solid and the gaps dashed, as great circles or around closed airspace.
 
 ### Sources, in order of preference
 
@@ -89,7 +105,7 @@ Failures are findings, not silent drops.
 - Labels are placed so they never overlap each other, a marker, or the frame edge; a label that does not fit is dropped and stays available on hover.
 
 - Drawn with d3-geo on Natural Earth land (world-atlas) as SVG, no map tiles.
-- Flights: tracks or great circles, filterable by year, airline, type. Line weight by how often a route was flown.
+- Flights: tracks (recorded stretches solid, gaps dashed) or great circles, around closed airspace where the airline could not use it, filterable by year, airline, type. Line weight by how often a route was flown.
 - Airports: circles sized by visits.
 - Sightings: spots and airports with aircraft counts.
 

@@ -850,6 +850,12 @@ main {
   stroke-linejoin: round;
 }
 
+/* A stretch of a recorded track with nothing recorded. */
+.map .track--gap {
+  stroke-width: 2;
+  stroke-dasharray: 2 5;
+}
+
 .map .track-halo {
   fill: none;
   stroke: var(--paper);

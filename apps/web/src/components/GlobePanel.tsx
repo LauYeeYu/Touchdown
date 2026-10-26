@@ -19,7 +19,7 @@ interface Props {
   onFlightClick?: (f: MapFlight) => void;
   onAirportClick?: (airportId: string) => void;
   /** Dashed reference great circles (a flight's page draws its great circle beside the recorded track). */
-  greatCircles?: [[number, number], [number, number]][];
+  greatCircles?: [number, number][][];
   /** The stage's height in a page, to match the flat map it replaces; by default it follows the window. */
   height?: number;
   className?: string;

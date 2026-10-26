@@ -6,7 +6,7 @@ import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, parseDat
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
-import { mapFlights, trackIndex } from "../lib/mapdata.ts";
+import { flightWay, mapFlights, trackIndex } from "../lib/mapdata.ts";
 import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, nf, offsetLabel, plural, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
@@ -78,6 +78,10 @@ export function FlightDetail() {
   const B = ref.airport(f.divertedToAirportId ?? f.toAirportId);
   const airframe = store.get("airframes", f.airframeId);
   const track = trackIndex(store).get(f.id) ?? null;
+  // The route as the maps draw it, and the way with no recording, around airspace the airline could not use.
+  const mark = A && B ? mapFlights([v], ref, unit, new Set(), store, Infinity)[0]! : null;
+  const way = flightWay(v, ref);
+  const around = !!way && way.length > 2;
   const trackRow = store.all("tracks").find((t) => t.flightId === f.id);
   const findings = app.findingsFor("flights", f.id);
   const onThis = f.airframeId ? all.filter((o) => o.f.airframeId === f.airframeId) : [v];
@@ -203,15 +207,21 @@ export function FlightDetail() {
             <span className="swatch-line" />
             Recorded track
           </span>
-          <span className="legend__item">
+          {!!mark?.gaps?.length && (
+            <span className="legend__item">
+              <span className="swatch-line swatch-line--gap" />
+              Not recorded
+            </span>
+          )}
+          <span className="legend__item" title={around ? "The airline could not use some airspace on the great circle that day" : undefined}>
             <span className="swatch-line swatch-line--dashed" />
-            Great circle
+            {around ? "Shortest way around closed airspace" : "Great circle"}
           </span>
         </>
       ) : (
-        <span className="legend__item">
+        <span className="legend__item" title={around ? "The airline could not use some airspace on the great circle that day" : undefined}>
           <span className="swatch-line" />
-          Great circle · no recorded track for this flight
+          {around ? "Shortest way around closed airspace" : "Great circle"} · no recorded track for this flight
         </span>
       )}
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
@@ -222,9 +232,9 @@ export function FlightDetail() {
     !A || !B ? null : mapStyle.style === "globe" ? (
       <GlobePanel
         className="globe-panel--route"
-        flights={mapFlights([v], ref, unit, new Set(), store, Infinity)}
+        flights={mark ? [mark] : []}
         spots={[]}
-        greatCircles={track ? [[[A.lon, A.lat], [B.lon, B.lat]]] : undefined}
+        greatCircles={track && way ? [way] : undefined}
         head={mapHead}
         label={`Globe showing ${routeWhat}`}
         onAirportClick={(airport) => navigate({ to: "/airports/$id", params: { id: airport } })}
@@ -232,7 +242,7 @@ export function FlightDetail() {
     ) : (
       <div className="map-wrap">
         <div className="legend">{mapHead}</div>
-        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} track={track} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${routeWhat}`} />
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} recorded={!!track} way={way ?? [[A.lon, A.lat], [B.lon, B.lat]]} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${routeWhat}`} />
       </div>
     );
 
