@@ -41,6 +41,27 @@ interface Member {
 
 const folderOf = (name: string) => /^\.\/traces\/([0-9a-f]{2})\//.exec(name)?.[1] ?? null;
 
+/** What the folder search needs of a day's archive: its size and reads by range (DayArchive; an in-memory tar in tests). */
+export interface TarReader {
+  readonly total: number;
+  read(off: number, n: number): Promise<Uint8Array>;
+}
+
+/** The first file header at or after `off`, reading on through a large file up to `reach`; null past it. */
+async function firstHeaderIn(r: TarReader, off: number, reach = 8 << 20): Promise<Member | null> {
+  let at = off - (off % 512);
+  const end = Math.min(r.total, off + reach);
+  while (at < end) {
+    const b = await r.read(at, Math.min(WINDOW, end - at));
+    for (let i = 0; i + 512 <= b.length; i += 512) {
+      const h = headerAt(b, i);
+      if (h) return { at: at + i, ...h };
+    }
+    at += b.length - (b.length % 512);
+  }
+  return null;
+}
+
 function headerAt(b: Uint8Array, i: number): { name: string; size: number } | null {
   if (b.length - i < 512) return null;
   if (String.fromCharCode(...b.subarray(i + 257, i + 262)) !== "ustar") return null;
@@ -113,18 +134,8 @@ class DayArchive {
   }
 
   /** The first file header at or after `off`, reading on through a large file; null past the end. */
-  async firstHeader(off: number, reach = 8 << 20): Promise<Member | null> {
-    let at = off - (off % 512);
-    const end = Math.min(this.total, off + reach);
-    while (at < end) {
-      const b = await this.read(at, Math.min(WINDOW, end - at));
-      for (let i = 0; i + 512 <= b.length; i += 512) {
-        const h = headerAt(b, i);
-        if (h) return { at: at + i, ...h };
-      }
-      at += b.length - (b.length % 512);
-    }
-    return null;
+  firstHeader(off: number, reach = 8 << 20): Promise<Member | null> {
+    return firstHeaderIn(this, off, reach);
   }
 }
 
@@ -248,9 +259,9 @@ export async function adsbLolTraces(day: string, hexes: string[], log: (line: st
  * close in on where it starts, then read file by file to its end. Returns the gzipped trace of each wanted aircraft
  * found there.
  */
-async function readFolder(archive: DayArchive, folder: string, hexes: Set<string>, sampleAt: (off: number) => Promise<string>, samples: Map<number, string>): Promise<Map<string, Uint8Array>> {
+export async function readFolder(archive: TarReader, folder: string, hexes: Set<string>, sampleAt: (off: number) => Promise<string>, samples: Map<number, string>, stride = STRIDE): Promise<Map<string, Uint8Array>> {
   const offsets: number[] = [];
-  for (let o = 0; o < archive.total; o += STRIDE) offsets.push(o);
+  for (let o = 0; o < archive.total; o += stride) offsets.push(o);
   // A shuffle that is the same every run, so a second run reuses the samples kept.
   let seed = parseInt(folder, 16) + 1;
   for (let i = offsets.length - 1; i > 0; i--) {
@@ -266,10 +277,12 @@ async function readFolder(archive: DayArchive, folder: string, hexes: Set<string
       if (folders[i] === folder && (hit === null || o < hit)) hit = o;
     });
   }
+  // A folder smaller than the stride can lie between two samples: look where the sampled folders change.
+  if (hit === null) hit = await betweenSamples(archive, folder, samples, sampleAt);
   if (hit === null) return new Map();
   // The start lies after the last offset known to be in another folder, before the hit.
   const g = async (off: number) => {
-    const h = await archive.firstHeader(off);
+    const h = await firstHeaderIn(archive, off);
     return h ? folderOf(h.name) : null;
   };
   let lo = Math.max(0, ...[...samples].filter(([o, f]) => o < hit! && f !== folder).map(([o]) => o));
@@ -283,7 +296,7 @@ async function readFolder(archive: DayArchive, folder: string, hexes: Set<string
   }
   // Read file by file from just before the folder to its end.
   const found = new Map<string, Uint8Array>();
-  const start = await archive.firstHeader(lo);
+  const start = await firstHeaderIn(archive, lo);
   if (!start) return found;
   let bufStart = start.at;
   let buf: Uint8Array = await archive.read(bufStart, CHUNK);
@@ -313,4 +326,52 @@ async function readFolder(archive: DayArchive, folder: string, hexes: Set<string
     at += 512 + Math.ceil(h.size / 512) * 512;
   }
   return found;
+}
+
+/**
+ * Where two neighbouring samples are in different folders, the folders that start between them are found one after
+ * another (the first file after the end of each, closed in on by halving), until the one wanted turns up or the second
+ * sample's folder is reached. The offsets looked at are kept with the samples. Returns where the folder starts, or null.
+ */
+async function betweenSamples(archive: TarReader, folder: string, samples: Map<number, string>, sampleAt: (off: number) => Promise<string>): Promise<number | null> {
+  // Every sample, those that saw no folder too (inside a large file, or the heatmaps): a folder can end where they start.
+  const known = [...samples].sort((a, b) => a[0] - b[0]);
+  const changes = known.slice(1).map((b, i) => [known[i]!, b] as const).filter(([[, f1], [, f2]]) => f1 && f1 !== f2);
+  /** The first header after `from` that is not in folder `cur`, looking no further than `until` plus a window. */
+  const after = async (from: number, cur: string, until: number): Promise<Member | null> => {
+    let lo = from;
+    let hi = until;
+    while (hi - lo > WINDOW) {
+      let mid = Math.floor((lo + hi) / 2);
+      mid -= mid % 512;
+      if ((await sampleAt(mid)) === cur) lo = mid;
+      else hi = mid;
+    }
+    // Walk the headers from `lo`, read a few windows at a time: the files of `cur` first, then the next folder's first one.
+    let h = await firstHeaderIn(archive, lo);
+    let bufAt = h?.at ?? 0;
+    let buf = h ? await archive.read(bufAt, 2 * WINDOW) : new Uint8Array(0);
+    while (h && folderOf(h.name) === cur && h.at <= until + WINDOW) {
+      const next = h.at + 512 + Math.ceil(h.size / 512) * 512;
+      if (next >= archive.total) return null;
+      if (next + 512 > bufAt + buf.length) [bufAt, buf] = [next, await archive.read(next, 2 * WINDOW)];
+      const n = headerAt(buf, next - bufAt);
+      h = n ? { at: next, ...n } : await firstHeaderIn(archive, next);
+    }
+    return h;
+  };
+  for (const [[o1, f1], [o2, f2]] of changes) {
+    let from = o1;
+    let cur = f1;
+    // A few small folders can sit between two samples.
+    for (let k = 0; k < 16; k++) {
+      const h = await after(from, cur, o2);
+      const f = h ? folderOf(h.name) : null;
+      if (!h || f === null || f === f2) break;
+      samples.set(h.at, f);
+      if (f === folder) return h.at;
+      [from, cur] = [h.at, f];
+    }
+  }
+  return null;
 }
