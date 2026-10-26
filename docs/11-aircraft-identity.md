@@ -19,7 +19,8 @@ The last case matters most: if the type code is part of the key, the consistency
 
 The physical airframe is identified by **manufacturer + manufacturer serial number (MSN)**. The MSN never changes over the life of the airframe.
 
-- Known MSN: `identityKey = msn:<manufacturer>:<msn>`, e.g. `msn:airbus:10741`.
+- Known MSN: `identityKey = msn:<manufacturer>:<msn>`, e.g. `msn:boeing:28470`.
+- Airbus numbers each programme from 1, so an A320 and an A330 can share an MSN. Its keys carry the series, from the airframe's type: `msn:airbus-<series>:<msn>`, e.g. `msn:airbus-a320:10741`. The series are A220, A300 (with the A310), A320 (A318 to A321neo), A330 (with the A340), A350, A380 and A400M. Until the type is known the key has no series; linking records brings every key up to date with the airframe's maker, MSN and type, the same on every device, so it syncs without conflicts. Other makers number all their aircraft in one series. Decided, built.
 - Unknown MSN: the airframe is **provisional**, `identityKey = prov:<registration>:<first date seen>`. A provisional airframe is upgraded when a lookup or the user supplies the MSN ([13](13-reference-data.md), "Airframe facts"). If another airframe already has that MSN, the two are merged.
 - Two devices may each make a provisional airframe for the same new registration before syncing. Linking records first merges airframes that are the same: one identity key, or provisional airframes holding the same registration with no dates. The one kept is the same on every device (a confirmed one, else the smallest id), so the merge itself syncs without conflicts ([12](12-storage-and-sync.md), "Settling what two devices made"). Decided, built.
 - MSNs that are all digits are compared and stored without leading zeros ("038" and "38" are the same airframe).
@@ -45,7 +46,7 @@ Input: the record's normalised registration `R`, date `D` (flights: the flight d
 
 ```
 1. If M is given:
-     find airframe with identityKey msn:<manufacturer>:<M>
+     find airframe with identityKey msn:<manufacturer>[-<series>]:<M>
      if found -> link. Go to step 6.
      else create a confirmed airframe with M and a RegistrationPeriod for R. Go to step 6.
 

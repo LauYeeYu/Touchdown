@@ -138,7 +138,7 @@ export function updateAirframe(store: Store, ref: RefIndex, id: string, patch: P
     const maker = patch.manufacturer ?? cur?.manufacturer;
     if (patch.msn && maker) {
       next.provisional = false;
-      next.identityKey = identityKeyFor(maker, patch.msn);
+      next.identityKey = identityKeyFor(maker, patch.msn, patch.typeCode ?? cur?.typeCode);
     }
     store.update("airframes", id, next);
     for (const field of Object.keys(patch)) {

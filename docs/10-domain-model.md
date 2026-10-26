@@ -216,7 +216,7 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 
 | Column | Type | Example | Notes |
 |--------|------|---------|-------|
-| `identityKey` | text | `msn:airbus:10741` or `prov:N123AB:2025-03-14` | Unique. See [11](11-aircraft-identity.md). |
+| `identityKey` | text | `msn:airbus-a320:10741`, `msn:boeing:28470` or `prov:N123AB:2025-03-14` | Unique. See [11](11-aircraft-identity.md). |
 | `provisional` | boolean | | `true` until the MSN is known. |
 | `manufacturer` | text | `Airbus` | |
 | `msn` | text | `10741` | Manufacturer serial number. |

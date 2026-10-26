@@ -11,6 +11,7 @@ import { registrationMatchForm } from "../normalise/registration.ts";
 import { listConflict } from "../conflicts.ts";
 import { ulidFrom } from "../ids.ts";
 import { toUtcIso } from "../time/index.ts";
+import { identityKeyFor } from "./facts.ts";
 
 export interface RegOverlap {
   table: "flights" | "sightings";
@@ -144,8 +145,22 @@ export function mergeDuplicateAirframes(store: Store, now: number = Date.now()):
   return merged;
 }
 
+/**
+ * Keep each confirmed aircraft's identity key in step with its maker, serial number and type (docs/11): a key made
+ * before Airbus serial number series were told apart, or before the type was known, is brought up to date. Every
+ * device makes the same key, so it syncs without conflicts.
+ */
+function rekeyAirframes(store: Store): void {
+  for (const a of store.all("airframes")) {
+    if (!a.msn || !a.manufacturer || !a.identityKey?.startsWith("msn:")) continue;
+    const key = identityKeyFor(a.manufacturer, a.msn, a.typeCode);
+    if (key !== a.identityKey) store.update("airframes", a.id, { identityKey: key });
+  }
+}
+
 export function resolveAirframes(store: Store, ref: RefIndex): ResolveResult {
   return store.batch(() => {
+    rekeyAirframes(store);
     const result: ResolveResult = { linked: 0, created: 0, removed: 0, merged: mergeDuplicateAirframes(store), overlaps: [] };
     const pinned = userPinnedAirframes(store);
 

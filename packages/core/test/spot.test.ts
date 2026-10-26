@@ -243,7 +243,7 @@ describe("the inbox file", () => {
     const prov = store.all("field_provenance").filter((p) => p.ownerId === s.id).map((p) => `${p.field}:${p.source}/${p.detail}`);
     expect(prov.sort()).toEqual(["model:lookup/opensky", "operatorId:derived/your log", "specialLivery:agent/claude", "typeCode:lookup/adsbdb"]);
     const a = store.get("airframes", s.airframeId)!;
-    expect(a).toMatchObject({ msn: "9001", identityKey: "msn:airbus:9001", provisional: false, factsProvider: "opensky" });
+    expect(a).toMatchObject({ msn: "9001", identityKey: "msn:airbus-a320:9001", provisional: false, factsProvider: "opensky" });
   });
 
   it("is refused when it carries anything unexpected", () => {

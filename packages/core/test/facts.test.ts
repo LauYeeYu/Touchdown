@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyAirframeFacts, canonicalMaker, identityKeyFor, normaliseMsn, normaliseSighting, resolveAirframes, type AirframeFacts, type SightingValues } from "../src/index.ts";
+import { applyAirframeFacts, canonicalMaker, identityKeyFor, normaliseMsn, normaliseSighting, resolveAirframes, updateAirframe, type AirframeFacts, type SightingValues } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 // Made-up registrations and serial numbers throughout.
@@ -38,7 +38,7 @@ describe("applyAirframeFacts", () => {
     const out = applyAirframeFacts(store, ref, id, facts());
     expect(out.rejected).toBeNull();
     const a = store.get("airframes", id)!;
-    expect(a).toMatchObject({ msn: "99001", firstFlightDate: "2019-05-02", deliveryDate: "2019-06-01", provisional: false, identityKey: "msn:airbus:99001", factsProvider: "testsite" });
+    expect(a).toMatchObject({ msn: "99001", firstFlightDate: "2019-05-02", deliveryDate: "2019-06-01", provisional: false, identityKey: "msn:airbus-a320:99001", factsProvider: "testsite" });
     const prov = store.all("field_provenance").filter((p) => p.ownerId === id && p.source === "lookup").map((p) => p.field).sort();
     expect(prov).toEqual(["deliveryDate", "firstFlightDate", "msn", "status"]);
     expect(store.all("external_ids").find((e) => e.ownerId === id)?.value).toBe("https://example.org/airframe/1");
@@ -110,6 +110,7 @@ describe("applyAirframeFacts", () => {
     expect(normaliseMsn("0")).toBe("0");
     expect(normaliseMsn("rk-354")).toBe("RK-354");
     expect(identityKeyFor("Airbus", "038")).toBe("msn:airbus:38");
+    expect(identityKeyFor("Airbus", "038", "A20N")).toBe("msn:airbus-a320:38");
     const store = setup(sighting("N1001X", "2024-03-01"));
     const id = airframeOf(store, "N1001X");
     applyAirframeFacts(store, ref, id, facts({ msn: "099001" }));
@@ -179,5 +180,33 @@ describe("looked-up facts as a change (touchdown airframes, docs/34)", () => {
     expect(changeStatus(store, ref, { op: "facts", id, facts: facts() }, () => [])).toMatchObject({ status: "missing", note: expect.stringMatching(/no longer fit your records: .*2019-05-02/) });
     updateAirframe(store, ref, id, { msn: "12345", firstFlightDate: "2010-01-01" });
     expect(changeStatus(store, ref, { op: "facts", id, facts: facts({ firstFlightDate: "2011-01-01", deliveryDate: null, status: null }) }, () => [])).toMatchObject({ status: "done" });
+  });
+});
+
+describe("Airbus serial number series", () => {
+  it("keeps an A321 and an A330 that share a serial number apart", () => {
+    const store = setup(sighting("N1001X", "2024-03-01", "A321"), sighting("N2002X", "2024-04-01", "A333"));
+    const narrow = airframeOf(store, "N1001X");
+    const wide = airframeOf(store, "N2002X");
+    applyAirframeFacts(store, ref, narrow, facts({ msn: "2031", typeText: "Airbus A321-231", typeCode: "A321" }));
+    updateAirframe(store, ref, wide, { msn: "2031" });
+    expect(store.get("airframes", narrow)).toMatchObject({ identityKey: "msn:airbus-a320:2031", provisional: false });
+    expect(store.get("airframes", wide)).toMatchObject({ identityKey: "msn:airbus-a330:2031", provisional: false });
+    expect(airframeOf(store, "N2002X")).toBe(wide);
+    expect(store.all("airframes")).toHaveLength(2);
+  });
+
+  it("brings a key made before the series were told apart up to date", () => {
+    const store = setup(sighting("N1001X", "2024-03-01", "A333"));
+    const id = airframeOf(store, "N1001X");
+    store.update("airframes", id, { msn: "2031", manufacturer: "Airbus", identityKey: "msn:airbus:2031", provisional: false });
+    resolveAirframes(store, ref);
+    expect(store.get("airframes", id)!.identityKey).toBe("msn:airbus-a330:2031");
+    // Up to date: nothing changes the next time.
+    let writes = 0;
+    const stop = store.subscribe((c) => (writes += c.length));
+    resolveAirframes(store, ref);
+    stop();
+    expect(writes).toBe(0);
   });
 });

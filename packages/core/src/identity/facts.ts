@@ -94,8 +94,31 @@ export function canonicalMaker(name: string, ref: RefIndex): string {
   return best ?? name.trim();
 }
 
-export function identityKeyFor(manufacturer: string, msn: string): string {
-  return `msn:${manufacturer.toLowerCase().replace(/\s+/g, "-")}:${normaliseMsn(msn)}`;
+// Airbus numbers each programme from 1, so an A320 and an A330 can share a serial number; by ICAO type designator.
+// Other makers number all their aircraft in one series.
+const AIRBUS_SERIES = new Map(
+  Object.entries({
+    a220: ["BCS1", "BCS3"],
+    a300: ["A306", "A30B", "A310", "A3ST"],
+    a320: ["A318", "A319", "A320", "A321", "A19N", "A20N", "A21N"],
+    a330: ["A332", "A333", "A337", "A338", "A339", "A342", "A343", "A345", "A346"],
+    a350: ["A359", "A35K"],
+    a380: ["A388"],
+    a400: ["A400"],
+  }).flatMap(([series, types]) => types.map((t) => [t, series] as const)),
+);
+
+/** The serial number series of an aircraft whose maker numbers programmes separately; null otherwise, or when the type is not known. */
+export function serialSeries(manufacturer: string, typeCode: string | null | undefined): string | null {
+  if (!/^airbus\b/i.test(manufacturer.trim()) || !typeCode) return null;
+  return AIRBUS_SERIES.get(typeCode.trim().toUpperCase()) ?? null;
+}
+
+/** A confirmed airframe's identity (docs/11): maker, the series where the maker has several, serial number. */
+export function identityKeyFor(manufacturer: string, msn: string, typeCode?: string | null): string {
+  const maker = manufacturer.toLowerCase().replace(/\s+/g, "-");
+  const series = serialSeries(manufacturer, typeCode);
+  return `msn:${series ? `${maker}-${series}` : maker}:${normaliseMsn(msn)}`;
 }
 
 /** Dates of the user's flights and sightings on an airframe, oldest first. */
@@ -190,7 +213,7 @@ export function applyAirframeFacts(store: Store, ref: RefIndex, airframeId: stri
     const maker = patch.manufacturer ?? a.manufacturer;
     if (msn && maker && (a.provisional || !a.identityKey?.startsWith("msn:"))) {
       patch.provisional = false;
-      patch.identityKey = identityKeyFor(maker, msn);
+      patch.identityKey = identityKeyFor(maker, msn, a.typeCode ?? facts.typeCode);
     }
     patch.factsProvider = facts.provider;
     patch.factsFetchedAt = facts.fetchedAt;
@@ -237,7 +260,7 @@ function lockedFields(store: Store, airframeId: string, opts: ApplyOptions) {
 /** Another airframe in the log with the serial number the facts give: the same aircraft. */
 function sameAircraft(store: Store, a: Airframe, facts: AirframeFacts, manufacturer: string | null, locked: (field: string) => boolean): Airframe | null {
   if (!facts.msn || !manufacturer || locked("msn")) return null;
-  const key = identityKeyFor(manufacturer, facts.msn);
+  const key = identityKeyFor(manufacturer, facts.msn, a.typeCode ?? facts.typeCode);
   return store.all("airframes").find((x) => x.identityKey === key && x.id !== a.id) ?? null;
 }
 
