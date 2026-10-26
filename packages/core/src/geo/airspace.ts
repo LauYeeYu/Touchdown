@@ -40,7 +40,8 @@ const CELL_DEG = 0.25;
 
 /**
  * A country's outline (the rings of its polygons, outer rings and holes alike) rasterised to a grid of cells on the
- * lon/lat plane: a cell is inside when its centre is, by the even-odd rule. Testing a point is then one lookup.
+ * lon/lat plane: a cell is inside when its centre is, by the even-odd rule. Testing a point is then one lookup. A ring
+ * that crosses the 180th meridian (Russia's Chukotka) is unwrapped past it, so the grid can reach east of 180°.
  */
 export interface ClosedShape {
   west: number;
@@ -50,17 +51,33 @@ export interface ClosedShape {
   cells: Uint8Array;
 }
 
-export function closedShape(rings: LonLat[][], cell = CELL_DEG): ClosedShape {
-  let [w, s, n] = [180, 90, -90];
+/** A ring with no edge jumping across the 180th meridian: each longitude within 180° of the one before, from -180° on. */
+function unwrapped(ring: LonLat[]): LonLat[] {
+  const out: LonLat[] = [];
+  for (const [lon, lat] of ring) {
+    const prev = out[out.length - 1];
+    let x = lon;
+    if (prev) while (x - prev[0] > 180) x -= 360;
+    if (prev) while (prev[0] - x > 180) x += 360;
+    out.push([x, lat]);
+  }
+  const min = Math.min(...out.map(([x]) => x));
+  return min < -180 ? out.map(([x, y]) => [x + 360, y] as LonLat) : out;
+}
+
+export function closedShape(given: LonLat[][], cell = CELL_DEG): ClosedShape {
+  const rings = given.map(unwrapped);
+  let [w, e, s, n] = [180, -180, 90, -90];
   for (const r of rings)
     for (const [lon, lat] of r) {
       w = Math.min(w, lon);
+      e = Math.max(e, lon);
       s = Math.min(s, lat);
       n = Math.max(n, lat);
     }
   const west = Math.floor(w / cell) * cell;
   const south = Math.floor(s / cell) * cell;
-  const cols = Math.max(1, Math.ceil((180 - west) / cell));
+  const cols = Math.max(1, Math.ceil((Math.max(180, e) - west) / cell));
   const rows = Math.max(1, Math.ceil((n - south) / cell));
   const cells = new Uint8Array(cols * rows);
   // Each row, filled between the points where the rings cross its centre line (even-odd).
@@ -83,12 +100,15 @@ export function closedShape(rings: LonLat[][], cell = CELL_DEG): ClosedShape {
   return { west, south, cols, rows, cells };
 }
 
-/** Whether a point is inside a shape (its cell is). */
+/** Whether a point is inside a shape (its cell is, at its longitude or the same one past 180°). */
 export function insideShape([x, y]: LonLat, shape: ClosedShape): boolean {
-  const col = Math.floor((x - shape.west) / CELL_DEG);
   const row = Math.floor((y - shape.south) / CELL_DEG);
-  if (col < 0 || row < 0 || col >= shape.cols || row >= shape.rows) return false;
-  return shape.cells[row * shape.cols + col] === 1;
+  if (row < 0 || row >= shape.rows) return false;
+  for (const lon of [x, x + 360]) {
+    const col = Math.floor((lon - shape.west) / CELL_DEG);
+    if (col >= 0 && col < shape.cols && shape.cells[row * shape.cols + col] === 1) return true;
+  }
+  return false;
 }
 
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -141,10 +161,12 @@ const MARGIN_KM = 40;
 
 /**
  * Points on the corridors airlines kept to when Russia, Belarus and Ukraine were closed to them: south of Russia over
- * the Black Sea, the Caucasus, the Caspian, Central Asia and Mongolia; west of Belarus and Ukraine; and over the
- * Arctic and the Bering Sea between Europe and the Far East. Each lies well inside open airspace.
+ * the Black Sea, the Caucasus, the Caspian, Central Asia and Mongolia; over the Baltic and west of Belarus and Ukraine;
+ * and over the Arctic and the Bering Sea between Europe and the Far East. Each lies well inside open airspace.
  */
 export const CORRIDOR_POINTS: readonly LonLat[] = [
+  // The Baltic, west of Kaliningrad, for the Nordic countries and the Baltic states.
+  [18.1, 59.3], [18.3, 57.6], [17.6, 55.0], [24.1, 56.95],
   // Central Europe, west and south of Belarus and Ukraine.
   [16.4, 48.2], [19.0, 47.5], [21.0, 52.2], [22.5, 50.0], [24.5, 46.5], [26.1, 44.4], [28.6, 44.2],
   // The Black Sea, Turkey and the Caucasus.
@@ -183,18 +205,24 @@ export function routeAround(a: LonLat, b: LonLat, shapes: ClosedShape[], points:
 function findWay(a: LonLat, b: LonLat, shapes: ClosedShape[], points: readonly LonLat[]): LonLat[] {
   if (!crossesShapes(a, b, shapes)) return [a, b];
   if (shapes.some((s) => insideShape(a, s) || insideShape(b, s))) return [a, b];
+  // Kept clear of the borders by a margin; where that leaves no way (an airport close to a border), without it.
+  return shortestWay(a, b, shapes, points, MARGIN_KM) ?? shortestWay(a, b, shapes, points, 0) ?? [a, b];
+}
+
+/** The shortest way from a to b through the corridor points with every leg clear of the shapes by `margin`, or null. */
+function shortestWay(a: LonLat, b: LonLat, shapes: ClosedShape[], points: readonly LonLat[], margin: number): LonLat[] | null {
   // The corridor points' legs between themselves do not depend on a and b: remembered per set of shapes.
   let memo = edgeMemo.get(shapes);
   if (!memo) edgeMemo.set(shapes, (memo = new Map()));
-  const nodes: LonLat[] = [a, b, ...points.filter((p) => !shapes.some((s) => nearShape(p, s, MARGIN_KM)))];
+  const nodes: LonLat[] = [a, b, ...points.filter((p) => !shapes.some((s) => nearShape(p, s, margin)))];
   const clear = (i: number, j: number) => {
     if (i > 1 && j > 1) {
-      const key = i < j ? `${nodes[i]}|${nodes[j]}` : `${nodes[j]}|${nodes[i]}`;
+      const key = `${margin}|${i < j ? `${nodes[i]}|${nodes[j]}` : `${nodes[j]}|${nodes[i]}`}`;
       let v = memo!.get(key);
-      if (v === undefined) memo!.set(key, (v = !crossesShapes(nodes[i]!, nodes[j]!, shapes, MARGIN_KM)));
+      if (v === undefined) memo!.set(key, (v = !crossesShapes(nodes[i]!, nodes[j]!, shapes, margin)));
       return v;
     }
-    return !crossesShapes(nodes[i]!, nodes[j]!, shapes, MARGIN_KM);
+    return !crossesShapes(nodes[i]!, nodes[j]!, shapes, margin);
   };
   // Dijkstra from a (0) to b (1) over legs that are clear, tried as they are reached.
   const dist = nodes.map(() => Infinity);
@@ -212,7 +240,7 @@ function findWay(a: LonLat, b: LonLat, shapes: ClosedShape[], points: readonly L
       if (alt < dist[v]! && clear(u, v)) [dist[v], prev[v]] = [alt, u];
     }
   }
-  if (dist[1] === Infinity) return [a, b];
+  if (dist[1] === Infinity) return null;
   const path: LonLat[] = [];
   for (let v = 1; v >= 0; v = prev[v]!) path.unshift(nodes[v]!);
   return path;

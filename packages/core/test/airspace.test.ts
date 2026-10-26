@@ -33,4 +33,14 @@ describe("closed airspace", () => {
     expect(routeAround([0, 5], [30, 5], [square], [])).toEqual([[0, 5], [30, 5]]);
     expect(routeAround([12, 2], [30, 5], [square], corridor)).toEqual([[12, 2], [30, 5]]);
   });
+
+  it("reads a ring that crosses the 180th meridian as one piece, not as a band across the map", () => {
+    // A made-up island from 170°E to 170°W, 60° to 70°N, written as its source writes it (longitudes jump at 180°).
+    const island = closedShape([[[170, 60], [-170, 60], [-170, 70], [170, 70], [170, 60]]]);
+    expect(insideShape([175, 65], island)).toBe(true);
+    expect(insideShape([-175, 65], island)).toBe(true);
+    expect(insideShape([0, 65], island)).toBe(false);
+    expect(insideShape([160, 65], island)).toBe(false);
+    expect(insideShape([-160, 65], island)).toBe(false);
+  });
 });
