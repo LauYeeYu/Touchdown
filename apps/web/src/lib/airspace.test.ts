@@ -22,6 +22,27 @@ describe("routes drawn around closed airspace, on the maps' own outlines", () =>
     }
   });
 
+  it("finds a way round for every long-haul pair an EU, UK or US airline flies between Europe or North America and Asia", () => {
+    // Airport positions (public): pairs whose great circle crosses closed airspace, and some whose does not.
+    const at: Record<string, LonLat> = {
+      LHR: [-0.46, 51.47], CDG: [2.55, 49.01], FRA: [8.57, 50.03], MUC: [11.79, 48.35], ZRH: [8.55, 47.46], VIE: [16.57, 48.11],
+      CPH: [12.65, 55.62], ARN: [17.92, 59.65], HEL: [24.96, 60.32], WAW: [20.97, 52.17], AMS: [4.76, 52.31], MAD: [-3.57, 40.47],
+      JFK: [-73.78, 40.64], ORD: [-87.9, 41.98], SFO: [-122.38, 37.62], YYZ: [-79.63, 43.68],
+      PEK: [116.6, 40.08], PVG: [121.8, 31.14], HKG: [113.92, 22.31], ICN: [126.45, 37.46], HND: [139.78, 35.55], NRT: [140.39, 35.77],
+      DEL: [77.1, 28.57], BKK: [100.75, 13.69], SIN: [103.99, 1.36], ALA: [77.04, 43.35], TAS: [69.28, 41.26], ULN: [106.77, 47.84],
+    };
+    const failed: string[] = [];
+    for (const [country, from] of [["GB", "LHR"], ["FR", "CDG"], ["DE", "FRA"], ["DE", "MUC"], ["CH", "ZRH"], ["AT", "VIE"], ["DK", "CPH"], ["SE", "ARN"], ["FI", "HEL"], ["PL", "WAW"], ["NL", "AMS"], ["ES", "MAD"], ["US", "JFK"], ["US", "ORD"], ["US", "SFO"], ["CA", "YYZ"]] as const) {
+      const closed = closedTo(country, "2024-06-01");
+      for (const to of ["PEK", "PVG", "HKG", "ICN", "HND", "NRT", "DEL", "BKK", "SIN", "ALA", "TAS", "ULN"]) {
+        const way = wayFor(at[from]!, at[to]!, closed);
+        const crosses = way.some((p, i) => i > 0 && crossesShapes(way[i - 1]!, p, closed));
+        if (crosses) failed.push(`${from}-${to}`);
+      }
+    }
+    expect(failed).toEqual([]);
+  });
+
   it("keeps the great circle for an airline that could fly over Russia, and before the closures", () => {
     expect(wayFor(AMS, ICN, closedTo("KR", "2024-06-01"))).toEqual([AMS, ICN]);
     expect(wayFor(AMS, ICN, closedTo("NL", "2019-05-01"))).toEqual([AMS, ICN]);
