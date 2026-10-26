@@ -201,7 +201,7 @@ export function recordsText(flights: number, sightings: number, changes = 0): st
 }
 
 /** The commands that write change files (docs/34), by the name they give them. */
-const CHANGE_FILE = /^(edit|delete|aircraft|airframes|issues|undo|families|settings|stats)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/;
+const CHANGE_FILE = /^(edit|delete|track|aircraft|airframes|issues|undo|families|settings|stats)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/;
 
 /** Which command made the file, from the name it gave it. */
 export const madeBy = (name: string) =>

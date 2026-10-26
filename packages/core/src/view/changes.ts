@@ -11,10 +11,10 @@ import { airframeFactsEffect } from "../identity/facts.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { RULES, type Finding } from "../rules/types.ts";
 import { DIMENSIONS } from "../stats/index.ts";
-import type { Row, Settings } from "../schema/tables.ts";
+import type { Row, Settings, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { airportWithCode, type CodeStyle } from "./codes.ts";
-import { airlineLabel, CABIN_LABEL, dateTimeLabel, dayMonthYear, distance, durShort, modelLabel, PHASE_LABEL, REASON_LABEL, TAG_LABEL, typeName } from "./format.ts";
+import { airlineLabel, CABIN_LABEL, dateTimeLabel, dayMonthYear, distance, durShort, modelLabel, nf, PHASE_LABEL, REASON_LABEL, TAG_LABEL, TRACK_SOURCE, typeName } from "./format.ts";
 
 export interface PlannedLine {
   field: string;
@@ -191,7 +191,22 @@ const ACTION: Record<InboxChange["op"], string> = {
   view: "Save a view",
   removeView: "Remove a view",
   facts: "Looked-up facts",
+  track: "Recorded track",
+  removeTrack: "Remove the recorded track",
 };
+
+/** A flight's recorded track, line by line, beside the one replacing it. */
+function trackLines(before: Track | null, after: Track | null, o: PlanOptions): PlannedLine[] {
+  const span = (t: Track) => (t.firstPointAt && t.lastPointAt ? `${t.firstPointAt.slice(0, 16).replace("T", " ")} to ${t.lastPointAt.slice(11, 16)} UTC` : "");
+  const rows: [string, string, (t: Track) => string][] = [
+    ["coverage", "Coverage", (t) => (t.coverage === "partial" ? "Partial" : "Complete")],
+    ["points", "Points", (t) => nf.format(t.pointCount ?? 0)],
+    ["distance", "Distance", (t) => (t.distanceKm === null ? "" : distance(t.distanceKm, o.unit))],
+    ["times", "Recorded", span],
+    ["provider", "From", (t) => (t.provider ? (TRACK_SOURCE[t.provider] ?? t.provider) : "")],
+  ];
+  return rows.map(([field, label, value]) => ({ field, label, before: before ? value(before) : "", after: after ? value(after) : "", private: false }));
+}
 
 const PROVIDER_LABEL: Record<string, string> = { opensky: "OpenSky", adsbdb: "adsbdb", fr24: "Flightradar24" };
 
@@ -246,11 +261,18 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
       };
       let before: Record<string, unknown> | null = null;
       let mergedInto: string | null = null;
+      const trackOf = (flightId: string) => shown.all("tracks").find((t) => t.flightId === flightId) ?? null;
+      let trackBefore: Track | null = null;
       switch (c.op) {
         case "edit":
         case "delete":
           p.title = recordTitle(shown, ref, c.table, c.id, o.codes);
           before = rowOf(c.table, c.id);
+          break;
+        case "track":
+        case "removeTrack":
+          p.title = recordTitle(shown, ref, "flights", c.flightId, o.codes);
+          trackBefore = trackOf(c.flightId);
           break;
         case "airframe":
           p.title = aircraftTitle(shown, ref, c.id);
@@ -336,6 +358,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         // Merged, the facts went on the other aircraft: shown on it.
         p.lines = [...lines(AIRFRAME_SHOW, before, ctx(shown), rowOf("airframes", mergedInto ?? c.id), ctx(shown)), { field: "provider", label: "Source", before: "", after: PROVIDER_LABEL[c.facts.provider] ?? c.facts.provider, private: false }];
       }
+      if (active && (c.op === "track" || c.op === "removeTrack")) p.lines = trackLines(trackBefore, trackOf(c.flightId), o);
       if (active && c.op === "delete" && before) p.lines = lines(c.table === "flights" ? FLIGHT_SHOW.slice(0, 5) : SIGHTING_SHOW.slice(0, 5), before, ctx(shown), null, ctx(shown)).map((l) => ({ ...l, after: "" }));
       planned.push(p);
     });

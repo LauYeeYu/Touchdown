@@ -1,5 +1,6 @@
-// Recorded tracks (docs/23-tracks-and-maps.md): read a track file, match it to a flight, simplify it to at
-// most 2,000 points and store it in place of the great circle.
+// Recorded tracks (docs/23-tracks-and-maps.md): read a track file (Flightradar24 CSV or KML, any KML or GPX
+// with times), match it to a flight or check it against the one the user chose, simplify it to at most 2,000 points
+// and store it in place of the great circle.
 
 import type { RefIndex } from "./ref/index.ts";
 import type { Flight } from "./schema/tables.ts";
@@ -39,8 +40,102 @@ export function parseTrackCsv(text: string): TrackPointInput[] {
     const hd = di >= 0 ? num(r[di]) : null;
     out.push({ t, lat: lat!, lon: lon!, altitudeFt: alt === null ? null : Math.round(alt), groundSpeedKt: gs === null ? null : Math.round(gs), headingDeg: hd === null ? null : Math.round(hd) });
   }
-  out.sort((a, b) => a.t - b.t);
-  return dropJumps(out);
+  return tidy(out);
+}
+
+/** In time order, one point per second, impossible jumps dropped. */
+function tidy(points: TrackPointInput[]): TrackPointInput[] {
+  const sorted = [...points].sort((a, b) => a.t - b.t).filter((p, i, list) => i === 0 || p.t !== list[i - 1]!.t);
+  return dropJumps(sorted);
+}
+
+const M_TO_FT = 3.28084;
+const MS_TO_KT = 1.943844;
+
+const tagValue = (body: string, tag: string) => new RegExp(`<(?:[\\w-]+:)?${tag}\\b[^>]*>\\s*([^<]*?)\\s*</(?:[\\w-]+:)?${tag}>`).exec(body)?.[1] ?? null;
+const numberIn = (text: string | null) => (text === null || text === "" ? null : Number(text.replace(/,/g, "")));
+const roundOrNull = (n: number | null) => (n === null || !Number.isFinite(n) ? null : Math.round(n));
+
+function pointAt(when: string | null, lon: number, lat: number, altitudeFt: number | null, groundSpeedKt: number | null, headingDeg: number | null): TrackPointInput | null {
+  const ms = when ? Date.parse(when) : NaN;
+  if (!Number.isFinite(ms) || !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { t: Math.round(ms / 1000), lat, lon, altitudeFt: roundOrNull(altitudeFt), groundSpeedKt: roundOrNull(groundSpeedKt), headingDeg: roundOrNull(headingDeg) };
+}
+
+/** Altitude, speed and heading from a Flightradar24 trail point's description ("Altitude: 37,000 ft"). */
+function described(body: string): { altitudeFt: number | null; groundSpeedKt: number | null; headingDeg: number | null } {
+  const raw = /<description\b[^>]*>([\s\S]*?)<\/description>/.exec(body)?.[1] ?? "";
+  const text = raw.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/g, " ");
+  const grab = (re: RegExp) => numberIn(re.exec(text)?.[1] ?? null);
+  return { altitudeFt: grab(/Altitude\D{0,20}?([\d,.]+)\s*ft/i), groundSpeedKt: grab(/Speed\D{0,20}?([\d,.]+)\s*(?:kt|kts|knots)\b/i), headingDeg: grab(/Heading\D{0,20}?([\d,.]+)/i) };
+}
+
+/**
+ * KML: Flightradar24's download (a trail of placemarks, each with a time and a point, altitude and speed in its
+ * description), or any KML with a gx:Track. A line without times says nothing about when, so it is not read.
+ */
+export function parseTrackKml(text: string): TrackPointInput[] {
+  const out: TrackPointInput[] = [];
+  for (const m of text.matchAll(/<gx:Track\b[^>]*>([\s\S]*?)<\/gx:Track>/g)) {
+    const whens = [...m[1]!.matchAll(/<when>\s*([^<]*?)\s*<\/when>/g)].map((x) => x[1]!);
+    const coords = [...m[1]!.matchAll(/<gx:coord>\s*([^<]*?)\s*<\/gx:coord>/g)].map((x) => x[1]!.split(/\s+/).map(Number));
+    for (let i = 0; i < Math.min(whens.length, coords.length); i++) {
+      const [lon, lat, altM] = coords[i]!;
+      const p = pointAt(whens[i]!, lon!, lat!, altM === undefined ? null : altM * M_TO_FT, null, null);
+      if (p) out.push(p);
+    }
+  }
+  for (const m of text.matchAll(/<Placemark\b[^>]*>([\s\S]*?)<\/Placemark>/g)) {
+    const body = m[1]!;
+    const point = /<Point\b[^>]*>([\s\S]*?)<\/Point>/.exec(body)?.[1];
+    const when = tagValue(body, "when");
+    if (!point || !when) continue;
+    const [lon, lat, altM] = (tagValue(point, "coordinates") ?? "").split(",").map(Number);
+    const d = described(body);
+    const p = pointAt(when, lon!, lat!, d.altitudeFt ?? (altM === undefined || !Number.isFinite(altM) ? null : altM * M_TO_FT), d.groundSpeedKt, d.headingDeg);
+    if (p) out.push(p);
+  }
+  return tidy(out);
+}
+
+/** GPX: track or route points with a time; elevation in metres, speed in metres a second when given. */
+export function parseTrackGpx(text: string): TrackPointInput[] {
+  const out: TrackPointInput[] = [];
+  for (const m of text.matchAll(/<(trkpt|rtept)\b([^>]*)>([\s\S]*?)<\/\1>/g)) {
+    const attr = (name: string) => Number(new RegExp(`\\b${name}\\s*=\\s*["']([^"']+)["']`).exec(m[2]!)?.[1]);
+    const body = m[3]!;
+    const ele = numberIn(tagValue(body, "ele"));
+    const speed = numberIn(tagValue(body, "speed"));
+    const p = pointAt(tagValue(body, "time"), attr("lon"), attr("lat"), ele === null ? null : ele * M_TO_FT, speed === null ? null : speed * MS_TO_KT, numberIn(tagValue(body, "course")));
+    if (p) out.push(p);
+  }
+  return tidy(out);
+}
+
+export const FR24_ATTRIBUTION = "Track data: Flightradar24, downloaded by the user";
+
+/** A track file as read: its points, where they come from, and the credit maps show. */
+export interface TrackFile {
+  points: TrackPointInput[];
+  provider: AttachOptions["provider"];
+  attribution: string;
+}
+
+/** Read a track file the user gives for a flight: a Flightradar24 CSV or KML, or any KML or GPX with times. */
+export function readTrackFile(name: string, text: string): TrackFile | { error: string } {
+  const lower = name.toLowerCase();
+  const head = text.slice(0, 4000).toLowerCase();
+  let file: TrackFile;
+  if (lower.endsWith(".gpx") || head.includes("<gpx")) file = { points: parseTrackGpx(text), provider: "gpx", attribution: "Track data: a GPX file uploaded by the user" };
+  else if (lower.endsWith(".kml") || head.includes("<kml")) {
+    const fr24 = /flightradar24/i.test(text.slice(0, 50_000));
+    file = { points: parseTrackKml(text), provider: fr24 ? "fr24_kml" : "other", attribution: fr24 ? FR24_ATTRIBUTION : "Track data: a KML file uploaded by the user" };
+  } else if (lower.endsWith(".csv") || head.includes("timestamp")) {
+    file = { points: parseTrackCsv(text), provider: "fr24_csv", attribution: FR24_ATTRIBUTION };
+    if (!file.points.length) return { error: "This CSV is not a Flightradar24 track: it needs Timestamp and Position columns." };
+  } else return { error: "Give a Flightradar24 CSV or KML file, or a KML or GPX file whose points have times." };
+  if (file.points.length < 2) return { error: "The file has no track with times: it needs at least two points, each with its time." };
+  return file;
 }
 
 /** Drop points that would need an impossible speed from the previous kept point (bad data). */
@@ -199,21 +294,75 @@ export function matchTrack(points: TrackPointInput[], flights: Flight[], ref: Re
   return { flight: best.f, coverage, startKm, endKm };
 }
 
+export type TrackFit = { coverage: "complete" | "partial"; startKm: number | null; endKm: number | null } | { problem: string };
+
+const hhmm = (t: number) => toUtcIso(t * 1000).slice(11, 16);
+
+/**
+ * Whether a track the user gives belongs to this flight: its times fall on the flight (between takeoff and landing
+ * when both are known, else on the flight's day, give or take one) and it runs from the departure towards the
+ * arrival. Complete when it starts and ends at the airports; a fragment that would draw a stub is refused.
+ */
+export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefIndex): TrackFit {
+  const first = points[0]!;
+  const last = points[points.length - 1]!;
+  const t0 = instant(flight.takeoffAt);
+  const t1 = instant(flight.landingAt);
+  const day = flightDay(flight);
+  const trackDay = toUtcIso(first.t * 1000).slice(0, 10);
+  if (t0 !== null && t1 !== null) {
+    if (Math.min(t1, last.t * 1000) <= Math.max(t0, first.t * 1000)) {
+      return { problem: `The track runs from ${trackDay} ${hhmm(first.t)} to ${hhmm(last.t)} UTC, outside this flight (takeoff ${toUtcIso(t0).slice(0, 16).replace("T", " ")} UTC).` };
+    }
+  } else if (day && ![day, addDays(day, -1), addDays(day, 1)].includes(trackDay)) {
+    return { problem: `The track is from ${trackDay}, but this flight is on ${day}.` };
+  }
+  const a = ref.airport(flight.fromAirportId);
+  const b = ref.airport(arrivalAirportId(flight));
+  if (!a || !b) return { coverage: "partial", startKm: null, endKm: null };
+  const code = (x: typeof a) => x.iata ?? x.icao ?? x.name;
+  const startKm = haversineKm(a, first);
+  const endKm = haversineKm(b, last);
+  const towards = a.id === b.id || (startKm < haversineKm(b, first) && endKm < haversineKm(a, last));
+  if (!towards) return { problem: `The track does not run from ${code(a)} to ${code(b)}: it starts ${Math.round(startKm)} km from ${code(a)} and ends ${Math.round(endKm)} km from ${code(b)}.` };
+  const coverage = startKm < NEAR_KM && endKm < NEAR_KM ? "complete" : "partial";
+  if (coverage === "partial") {
+    const gc = haversineKm(a, b);
+    const km = trackDistanceKm(points);
+    if (points.length < MIN_PARTIAL_POINTS || (gc && km < gc * MIN_PARTIAL_SHARE)) {
+      return { problem: `The track covers too little of the flight to draw (${Math.round(km)} of ${Math.round(gc)} km); the great circle stays.` };
+    }
+  }
+  return { coverage, startKm, endKm };
+}
+
+/** Remove a flight's recorded track and its points; the flight goes back to the great circle. */
+export function removeTrack(store: Store, flightId: string): boolean {
+  return store.batch(() => {
+    let removed = false;
+    for (const old of store.all("tracks").filter((t) => t.flightId === flightId)) {
+      const keys = store.all("track_points").filter((p) => p.trackId === old.id).map((p) => `${p.trackId}|${p.seq}`);
+      store.purge("track_points", keys);
+      store.remove("tracks", old.id);
+      removed = true;
+    }
+    return removed;
+  });
+}
+
 export interface AttachOptions {
   provider: "fr24_csv" | "fr24_kml" | "adsblol" | "aeroapi" | "gpx" | "other";
   attribution: string;
   coverage: "complete" | "partial";
+  /** The distance along the whole track when `points` were simplified before. */
+  distanceKm?: number;
   now?: number;
 }
 
 /** Store a track for a flight, replacing any earlier one. Returns the track id. */
 export function attachTrack(store: Store, flightId: string, points: TrackPointInput[], opts: AttachOptions): string {
   return store.batch(() => {
-    for (const old of store.all("tracks").filter((t) => t.flightId === flightId)) {
-      const keys = store.all("track_points").filter((p) => p.trackId === old.id).map((p) => `${p.trackId}|${p.seq}`);
-      store.purge("track_points", keys);
-      store.remove("tracks", old.id);
-    }
+    removeTrack(store, flightId);
     const simple = simplifyTrack(points);
     const track = store.insert("tracks", {
       flightId,
@@ -222,7 +371,7 @@ export function attachTrack(store: Store, flightId: string, points: TrackPointIn
       pointCount: simple.length,
       firstPointAt: toUtcIso(simple[0]!.t * 1000),
       lastPointAt: toUtcIso(simple[simple.length - 1]!.t * 1000),
-      distanceKm: Math.round(trackDistanceKm(points) * 10) / 10,
+      distanceKm: Math.round((opts.distanceKm ?? trackDistanceKm(points)) * 10) / 10,
       attribution: opts.attribution,
       importedAt: toUtcIso(opts.now ?? Date.now()),
     });

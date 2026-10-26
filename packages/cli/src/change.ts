@@ -1,21 +1,26 @@
 // The changing commands (docs/34, "Changing"): edit, delete, aircraft edit and merge, issues accept, reopen and fix,
-// undo, families, settings and saved Statistics views. Each works out its changes against the log as it is now, reports what they would do
+// undo, families, settings, saved Statistics views and a flight's recorded track. Each works out its changes against the log as it is now, reports what they would do
 // and the findings they would bring, and writes them to the inbox as one file, for review in the web app: nothing
 // reaches the log without that review. Ticket numbers and booking references are never printed (docs/34,
 // "Private fields"); typed, they are asked for at a prompt that does not show them.
 
 import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 import {
   AIRFRAME_EDIT_FIELDS,
   airframeEdit,
+  fitTrack,
   FLIGHT_EDIT_FIELDS,
   flightEdit,
   INBOX_SCHEMA,
   INBOX_VERSION,
   isEmptyChange,
+  MAX_TRACK_POINTS,
+  readTrackFile,
   RULES,
   SIGHTING_EDIT_FIELDS,
   sightingEdit,
+  trackChangeFor,
   type EditInput,
   type Finding,
   type InboxChange,
@@ -67,6 +72,21 @@ Sighting fields: ${SIGHTING_EDIT_FIELDS.join(", ")}
 
 The JSON list: [{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]. Private values may
 be given in "set" there; they are never printed.
+
+${AFTER}`;
+
+export const TRACK_HELP = `Usage: ./touchdown track REF FILE [options]
+       ./touchdown track REF --remove [options]
+
+Gives a flight its recorded track, or replaces the one it has, from a file: a Flightradar24 CSV or KML download, or
+any KML or GPX file whose points have times. The track is checked against the flight first: its times must fall on
+the flight and it must run from the departure towards the arrival. --remove takes the track away; the maps go back
+to the great circle.
+
+  REF            a flight: XY123@YYYY-MM-DD, or its id
+  FILE           the track file (.csv, .kml or .gpx)
+  --remove       remove the flight's recorded track
+${changeOptions(15)}
 
 ${AFTER}`;
 
@@ -165,17 +185,19 @@ export interface Common {
   note?: string;
   /** Options that take a value, of the command's own. */
   values: Map<string, string>;
+  /** Options without a value, of the command's own. */
+  switches: Set<string>;
   positional: string[];
 }
 
 /** The arguments of a changing command: --set and --clear may repeat; --set F alone asks for a private value. */
-export function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean; values?: string[] } = {}): Common {
+export function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean; values?: string[]; switches?: string[] } = {}): Common {
   const json = args.includes("--json");
   if (args.includes("--help") || args.includes("-h")) {
     console.log(help);
     process.exit(EXIT.ok);
   }
-  const c: Common = { json, dryRun: false, force: false, keepErrors: false, sets: [], clears: [], values: new Map(), positional: [] };
+  const c: Common = { json, dryRun: false, force: false, keepErrors: false, sets: [], clears: [], values: new Map(), switches: new Set(), positional: [] };
   const bad = (problem: string): never => {
     if (json) return fail(json, problem);
     console.error(red(problem));
@@ -195,6 +217,7 @@ export function parse(args: string[], help: string, opts: { sets?: boolean; note
     else if (a === "--log") c.log = value();
     else if (a === "--note" && opts.note) c.note = value();
     else if (opts.values?.includes(a)) c.values.set(a, value());
+    else if (opts.switches?.includes(a)) c.switches.add(a);
     else if ((a === "--set" || a === "--clear") && opts.sets) {
       const v = value();
       if (a === "--clear") c.clears.push(v);
@@ -372,6 +395,30 @@ export async function deleteCommand(args: string[]) {
     return { op: "delete", table: found.row.table, id: row.id, rev: row.rev };
   });
   return writeChanges(log, "delete", changes, c);
+}
+
+/** `track`: a flight's recorded track from a file, or --remove. */
+export async function trackCommand(args: string[]) {
+  const c = parse(args, TRACK_HELP, { switches: ["--remove"] });
+  const remove = c.switches.has("--remove");
+  if (c.positional.length !== (remove ? 1 : 2)) return fail(c.json, remove ? "Give the flight: ./touchdown track REF --remove." : "Give the flight and the track file: ./touchdown track REF FILE.");
+  const log = await openOrFail(c.json, c.log);
+  const found = findFlight(log.store, c.positional[0]!);
+  if (!("row" in found)) return notFound(c.json, found);
+  if (remove) return writeChanges(log, "track", [{ op: "removeTrack", flightId: found.row.id }], c);
+  const name = basename(c.positional[1]!);
+  let text: string;
+  try {
+    text = readFileSync(userPath(c.positional[1]!), "utf8");
+  } catch {
+    return fail(c.json, `Cannot read ${c.positional[1]}.`);
+  }
+  const read = readTrackFile(name, text);
+  if ("error" in read) return fail(c.json, `${name}: ${read.error}`);
+  const fit = fitTrack(read.points, found.row, log.ref);
+  if ("problem" in fit) return fail(c.json, `${name}: ${fit.problem}`);
+  const notes = read.points.length > MAX_TRACK_POINTS ? [`The file has ${read.points.length} points; the track keeps the ${MAX_TRACK_POINTS} that draw it best.`] : [];
+  return writeChanges(log, "track", [trackChangeFor(found.row.id, read, fit.coverage)], c, notes);
 }
 
 /** `aircraft edit` and `aircraft merge`. */

@@ -4505,6 +4505,12 @@ a.wordmark {
   border-radius: 12px;
 }
 
+/* A track file chosen on a flight's page, shown with what it would save above the map. */
+.track-file {
+  margin-top: 24px;
+  max-width: 64ch;
+}
+
 .known {
   border-radius: 16px;
   background: var(--surface-mid);

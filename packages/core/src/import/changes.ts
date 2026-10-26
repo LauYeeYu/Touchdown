@@ -1,6 +1,7 @@
 // Changes to what is in the log already, made on the command line and imported only after a review (docs/34,
 // "Change files"): edits, deletions, aircraft facts and merges, accepted and reopened findings, suggested fixes,
-// undone imports, family choices, settings, saved Statistics views and facts looked up for an aircraft. They travel in an inbox file (version 3) and are applied with the
+// undone imports, family choices, settings, saved Statistics views, facts looked up for an aircraft and a flight's
+// recorded track, added, replaced or removed. They travel in an inbox file (version 3) and are applied with the
 // same code as the web app's own changes (edit.ts), as one import batch that can be undone like any other.
 
 import { flightDay } from "../derive.ts";
@@ -12,13 +13,14 @@ import { normaliseAircraft } from "../normalise/record.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { checkAll } from "../rules/check.ts";
 import { RULES, type Finding } from "../rules/types.ts";
-import { AIRFRAME_STATUSES, CABIN_CLASSES, FLIGHT_REASONS, PHASES, SEAT_POSITIONS, TABLES, type Flight, type Row, type Settings, type Sighting, type TableName } from "../schema/tables.ts";
+import { AIRFRAME_STATUSES, CABIN_CLASSES, FLIGHT_REASONS, PHASES, SEAT_POSITIONS, TABLES, TRACK_PROVIDERS, type Flight, type Row, type Settings, type Sighting, type TableName } from "../schema/tables.ts";
 import { isValidDate, isValidDateTime } from "../schema/validate.ts";
 import { Store, type Change } from "../store.ts";
 import { parseDateTime, toUtcIso, zonedDateTime } from "../time/index.ts";
 import { phaseOf, readMapped, type ColumnField } from "./mapping.ts";
 import { phasesOf, setPhases } from "../phases.ts";
 import { undoImport } from "./pipeline.ts";
+import { attachTrack, MAX_TRACK_POINTS, removeTrack, simplifyTrack, trackDistanceKm, type TrackFile, type TrackPointInput } from "../tracks.ts";
 
 export type RecordTable = "flights" | "sightings";
 
@@ -39,10 +41,40 @@ export type InboxChange =
   | ({ op: "view" } & SavedView)
   | { op: "removeView"; id: string }
   /** Facts a lookup found for an aircraft (`touchdown airframes`), checked against its records again when imported. */
-  | { op: "facts"; id: string; facts: AirframeFacts; overwriteImported?: boolean };
+  | { op: "facts"; id: string; facts: AirframeFacts; overwriteImported?: boolean }
+  | { op: "track"; flightId: string; provider: (typeof TRACK_PROVIDERS)[number]; attribution: string; coverage: "complete" | "partial"; distanceKm: number; points: TrackPointTuple[] }
+  | { op: "removeTrack"; flightId: string };
+
+/** A track point in a change file: Unix seconds, latitude, longitude, altitude (ft), ground speed (kt), heading. */
+export type TrackPointTuple = [number, number, number, number | null, number | null, number | null];
+
+export const trackTuple = (p: TrackPointInput): TrackPointTuple => [p.t, p.lat, p.lon, p.altitudeFt, p.groundSpeedKt, p.headingDeg];
+export const tuplePoint = ([t, lat, lon, altitudeFt, groundSpeedKt, headingDeg]: TrackPointTuple): TrackPointInput => ({ t, lat, lon, altitudeFt, groundSpeedKt, headingDeg });
+
+/** The change that gives a flight a track read from a file: at most MAX_TRACK_POINTS points, the distance along all of them. */
+export function trackChangeFor(flightId: string, file: TrackFile, coverage: "complete" | "partial"): Extract<InboxChange, { op: "track" }> {
+  return { op: "track", flightId, provider: file.provider, attribution: file.attribution, coverage, distanceKm: Math.round(trackDistanceKm(file.points) * 10) / 10, points: simplifyTrack(file.points).map(trackTuple) };
+}
+
+const optionalNumber = (v: unknown) => v === null || (typeof v === "number" && Number.isFinite(v));
+
+/** Why a change file's track points cannot be read, or null. */
+function trackPointsProblem(points: unknown): string | null {
+  if (!Array.isArray(points) || points.length < 2 || points.length > MAX_TRACK_POINTS) return `points is a list of 2 to ${MAX_TRACK_POINTS} points`;
+  let previous = -Infinity;
+  for (const p of points) {
+    if (!Array.isArray(p) || p.length !== 6) return "malformed point";
+    const [t, lat, lon, ...rest] = p as unknown[];
+    if (!Number.isInteger(t) || (t as number) <= previous) return "points are not in time order";
+    if (typeof lat !== "number" || typeof lon !== "number" || Math.abs(lat) > 90 || Math.abs(lon) > 180) return "malformed position";
+    if (!rest.every(optionalNumber)) return "malformed altitude, speed or heading";
+    previous = t as number;
+  }
+  return null;
+}
 
 export type ChangeOp = InboxChange["op"];
-export const CHANGE_OPS: readonly ChangeOp[] = ["edit", "delete", "airframe", "merge", "accept", "reopen", "fix", "undo", "family", "settings", "view", "removeView", "facts"];
+export const CHANGE_OPS: readonly ChangeOp[] = ["edit", "delete", "airframe", "merge", "accept", "reopen", "fix", "undo", "family", "settings", "view", "removeView", "facts", "track", "removeTrack"];
 
 const text = (v: unknown, max: number) => v === null || (typeof v === "string" && v.length <= max);
 const dateOrNull = (v: unknown) => v === null || v === undefined || (typeof v === "string" && isValidDate(v));
@@ -191,6 +223,18 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
         if (problem) return bad(problem);
         break;
       }
+      case "track": {
+        if (keys(["flightId", "provider", "attribution", "coverage", "distanceKm", "points"]).length || !isId(c.flightId)) return bad("malformed");
+        if (!(TRACK_PROVIDERS as readonly unknown[]).includes(c.provider) || (c.coverage !== "complete" && c.coverage !== "partial")) return bad("unknown provider or coverage");
+        if (typeof c.attribution !== "string" || !c.attribution.trim() || c.attribution.length > 200) return bad("malformed attribution");
+        if (typeof c.distanceKm !== "number" || !Number.isFinite(c.distanceKm) || c.distanceKm < 0 || c.distanceKm > 50_000) return bad("malformed distance");
+        const problem = trackPointsProblem(c.points);
+        if (problem) return bad(problem);
+        break;
+      }
+      case "removeTrack":
+        if (keys(["flightId"]).length || !isId(c.flightId)) return bad("malformed");
+        break;
     }
     out.push(c as unknown as InboxChange);
   }
@@ -542,6 +586,15 @@ export function changeStatus(store: Store, ref: RefIndex, c: InboxChange, findin
       if (e.rejected) return { status: "missing", note: `These facts no longer fit your records: ${e.rejected}.` };
       return e.applied.length || e.mergedInto ? ok : done("The aircraft has these facts already, or your own values, which are kept.");
     }
+    case "track": {
+      if (!store.get("flights", c.flightId)) return { status: "missing", note: "The flight is no longer in the log." };
+      const cur = store.all("tracks").find((t) => t.flightId === c.flightId);
+      const same = cur && cur.provider === c.provider && cur.pointCount === c.points.length && cur.firstPointAt === toUtcIso(c.points[0]![0] * 1000) && cur.lastPointAt === toUtcIso(c.points[c.points.length - 1]![0] * 1000);
+      return same ? done("The flight has this track already.") : ok;
+    }
+    case "removeTrack":
+      if (!store.get("flights", c.flightId)) return done("The flight is no longer in the log.");
+      return store.all("tracks").some((t) => t.flightId === c.flightId) ? ok : done("The flight has no recorded track.");
   }
 }
 
@@ -602,6 +655,12 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       const out = applyAirframeFacts(store, ref, c.id, c.facts, { overwriteImported: c.overwriteImported });
       return out.mergedInto ? "It has the serial number of another aircraft in your log, so the two were merged." : null;
     }
+    case "track":
+      attachTrack(store, c.flightId, c.points.map(tuplePoint), { provider: c.provider, attribution: c.attribution, coverage: c.coverage, distanceKm: c.distanceKm, now: opts.now });
+      return null;
+    case "removeTrack":
+      removeTrack(store, c.flightId);
+      return null;
   }
 }
 
@@ -633,9 +692,18 @@ export interface AppliedChanges {
 export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[], take: (index: number, status: ChangeStatus) => boolean, meta: { fileName: string; now?: number }): AppliedChanges {
   const now = meta.now ?? Date.now();
   const first = new Map<string, Change>();
+  // Track points have no versions of their own: each track's points as they were go into one history row.
+  const pointsBefore = new Map<string, Map<string, Record<string, unknown> | null>>();
   const unsubscribe = store.subscribe((list) => {
     for (const c of list) {
-      if (c.table === "import_batches" || c.table === "record_history" || c.table === "track_points") continue;
+      if (c.table === "import_batches" || c.table === "record_history") continue;
+      if (c.table === "track_points") {
+        const trackId = c.id.slice(0, c.id.lastIndexOf("|"));
+        const seen = pointsBefore.get(trackId) ?? new Map<string, Record<string, unknown> | null>();
+        if (!seen.has(c.id)) seen.set(c.id, (c.before as unknown as Record<string, unknown> | null) ?? null);
+        pointsBefore.set(trackId, seen);
+        continue;
+      }
       const k = `${c.table}|${c.id}`;
       if (!first.has(k)) first.set(k, c);
     }
@@ -667,9 +735,14 @@ export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[]
       const before = c.before as unknown as { rev?: number } | null;
       store.insert("record_history", { tableName: c.table, recordId: c.id, recordRev: before?.rev ?? null, row: (before as Record<string, unknown> | null) ?? null, changedAt: toUtcIso(now), batchId: result.batchId, reason: "import" });
     }
+    for (const [trackId, seen] of pointsBefore) {
+      const points = [...seen.values()].filter((p): p is Record<string, unknown> => p !== null);
+      store.insert("record_history", { tableName: "track_points", recordId: trackId, recordRev: null, row: points.length ? { points } : null, changedAt: toUtcIso(now), batchId: result.batchId, reason: "import" });
+    }
     store.update("import_batches", result.batchId, { rowsAccepted: result.applied, rowsRejected: result.skipped });
   });
   return result;
 }
 
-export const tableOfChange = (c: InboxChange): TableName | null => (c.op === "edit" || c.op === "delete" ? c.table : c.op === "airframe" || c.op === "merge" || c.op === "facts" ? "airframes" : null);
+export const tableOfChange = (c: InboxChange): TableName | null =>
+  c.op === "edit" || c.op === "delete" ? c.table : c.op === "airframe" || c.op === "merge" || c.op === "facts" ? "airframes" : c.op === "track" || c.op === "removeTrack" ? "flights" : null;

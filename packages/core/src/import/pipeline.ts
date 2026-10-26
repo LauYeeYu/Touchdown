@@ -459,6 +459,13 @@ export function undoImport(store: Store, ref: RefIndex, batchId: string, force =
         result.editedSince.push(h.recordId);
         continue;
       }
+      if (table === "track_points") {
+        // A track's points as they were before the batch: none when it made the track.
+        store.purge("track_points", store.all("track_points").filter((p) => p.trackId === h.recordId).map((p) => `${p.trackId}|${p.seq}`));
+        const points = (h.row as { points?: Record<string, unknown>[] } | null)?.points ?? [];
+        if (points.length) store.putRaw("track_points", points as never);
+        continue;
+      }
       if (!h.row) {
         if (store.get(table, h.recordId)) {
           store.remove(table, h.recordId);

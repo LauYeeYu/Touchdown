@@ -209,7 +209,7 @@ export const FIELD_LABEL: Record<string, string> = {
 };
 
 /** Where a recorded track came from, after "from": "the path the aircraft flew, from adsb.lol". */
-export const TRACK_SOURCE: Record<string, string> = { fr24_csv: "a Flightradar24 track file", fr24_kml: "a Flightradar24 track file", adsblol: "adsb.lol", aeroapi: "FlightAware", gpx: "a GPX file" };
+export const TRACK_SOURCE: Record<string, string> = { fr24_csv: "a Flightradar24 track file", fr24_kml: "a Flightradar24 track file", adsblol: "adsb.lol", aeroapi: "FlightAware", gpx: "a GPX file", other: "a KML file" };
 
 export function countryName(code: string | null | undefined): string {
   if (!code) return "";

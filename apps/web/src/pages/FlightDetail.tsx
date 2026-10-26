@@ -1,13 +1,13 @@
 // One flight: the route at full size, the date, a sentence, the track map, dated local times, the aircraft.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { cityName, daysBetween, flightDay, guessSeatPosition, parseDateTime, type Flight } from "@touchdown/core";
+import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, parseDateTime, readTrackFile, toUtcIso, trackChangeFor, type Flight, type InboxChange } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, trackIndex } from "../lib/mapdata.ts";
-import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, plural, REASON_LABEL, shortAirport, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, nf, offsetLabel, plural, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
 import { GlobePanel } from "../components/GlobePanel.tsx";
@@ -17,7 +17,11 @@ import { Duration } from "../components/Duration.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
+import { MenuButton } from "../components/Menu.tsx";
 import { NotFound } from "./NotFound.tsx";
+
+/** A track file the user chose for the flight: what it would save, or why it cannot be used. */
+type PickedTrack = { name: string; problem: string } | { name: string; read: number; change: Extract<InboxChange, { op: "track" }>; startKm: number | null; endKm: number | null };
 
 /** "an Airbus", "an Embraer", "a Boeing". */
 function article(word: string): string {
@@ -59,6 +63,8 @@ export function FlightDetail() {
   const settings = app.settings();
   const unit = settings.distanceUnit ?? "km";
   const [showTicket, setShowTicket] = useState(false);
+  const [picked, setPicked] = useState<PickedTrack | null>(null);
+  const trackInput = useRef<HTMLInputElement>(null);
   const mapStyle = useMapStyle();
 
   const all = sortedFlights(store, ref);
@@ -121,6 +127,61 @@ export function FlightDetail() {
     toast("Flight deleted.");
     navigate({ to: "/flights" });
   };
+
+  // A recorded track from a file (docs/23, "Sources"): checked against the flight and shown before it is saved,
+  // then saved as a one-change import, so the Import page's history can undo it.
+  const pickTrack = async (file: File) => {
+    const read = readTrackFile(file.name, await file.text());
+    if ("error" in read) return setPicked({ name: file.name, problem: read.error });
+    const fit = fitTrack(read.points, f, ref);
+    if ("problem" in fit) return setPicked({ name: file.name, problem: fit.problem });
+    setPicked({ name: file.name, read: read.points.length, change: trackChangeFor(f.id, read, fit.coverage), startKm: fit.startKm, endKm: fit.endKm });
+  };
+  const flightName = `${f.flightNumber ?? "the flight"}${day ? ` on ${dayMonthYear(day)}` : ""}`;
+  const saveTrack = () => {
+    if (!picked || "problem" in picked) return;
+    app.applyChanges([picked.change], () => true, picked.name);
+    setPicked(null);
+    toast(trackRow ? "Track replaced. The Import page's history can undo it." : "Track saved. The Import page's history can undo it.");
+  };
+  const dropTrack = () => {
+    if (!window.confirm(`Remove the recorded track of ${flightName}? The map goes back to the great circle. The Import page's history can undo it.`)) return;
+    app.applyChanges([{ op: "removeTrack", flightId: f.id }], () => true, `Track removed from ${flightName}`);
+    toast("Track removed.");
+  };
+  const chooseTrack = () => trackInput.current?.click();
+  const pickedPanel = picked && (
+    <div className={`finding track-file${"problem" in picked ? " finding--error" : ""}`} role="status">
+      <Icon name={"problem" in picked ? "circle-x" : "route"} />
+      <div className="finding__body">
+        <span className="finding__rule">{picked.name}</span>
+        <p className="finding__text">{"problem" in picked ? `This file cannot be used. ${picked.problem}` : trackSummary(picked)}</p>
+        <div className="finding__actions">
+          {!("problem" in picked) && (
+            <button type="button" className="btn btn--primary btn--small" onClick={saveTrack}>
+              <Icon name="check" />
+              {trackRow ? "Replace the track" : "Save the track"}
+            </button>
+          )}
+          <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack}>
+            Choose another file
+          </button>
+          <button type="button" className="btn btn--quiet btn--small" onClick={() => setPicked(null)}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+  function trackSummary(p: Extract<PickedTrack, { change: unknown }>): string {
+    const c = p.change;
+    const first = toUtcIso(c.points[0]![0] * 1000);
+    const last = toUtcIso(c.points[c.points.length - 1]![0] * 1000);
+    const ends = c.coverage === "partial" && p.startKm !== null && p.endKm !== null ? ` (it starts ${Math.round(p.startKm)} km from ${v.fromCode} and ends ${Math.round(p.endKm)} km from ${v.toCode})` : "";
+    const kept = p.read > c.points.length ? `${nf.format(p.read)} points, kept as ${nf.format(c.points.length)}` : `${nf.format(p.read)} points`;
+    const replaces = trackRow ? ` It replaces the recorded track${trackRow.provider && TRACK_SOURCE[trackRow.provider] ? ` from ${TRACK_SOURCE[trackRow.provider]}` : ""}.` : "";
+    return `A ${c.coverage} track${ends}: ${kept}, ${distance(c.distanceKm, unit)}, recorded ${dayMonthYear(first.slice(0, 10))} ${first.slice(11, 16)} to ${last.slice(11, 16)} UTC, from ${TRACK_SOURCE[c.provider] ?? "a track file"}.${replaces}`;
+  }
 
   const altitude =
     track && trackRow
@@ -256,10 +317,41 @@ export function FlightDetail() {
             <Icon name="pencil" />
             Edit
           </Link>
+          {trackRow ? (
+            <MenuButton
+              className="btn btn--quiet btn--small"
+              label="Recorded track"
+              items={[
+                { label: "Replace with a track file", icon: <Icon name="upload" />, onSelect: chooseTrack },
+                { label: "Remove the track", icon: <Icon name="trash" />, onSelect: dropTrack },
+              ]}
+            >
+              <Icon name="route" />
+              Track
+            </MenuButton>
+          ) : (
+            <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack} title="Add the recorded track from a Flightradar24 CSV or KML file, or a KML or GPX file">
+              <Icon name="route" />
+              Add track
+            </button>
+          )}
           <button type="button" className="btn btn--quiet btn--small" onClick={remove}>
             <Icon name="trash" />
             Delete
           </button>
+          <input
+            ref={trackInput}
+            type="file"
+            accept=".csv,.kml,.gpx,text/csv,application/vnd.google-earth.kml+xml,application/gpx+xml"
+            className="visually-hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void pickTrack(file);
+              e.target.value = "";
+            }}
+          />
         </div>
       </div>
 
@@ -289,6 +381,7 @@ export function FlightDetail() {
         )}
       </p>
 
+      {pickedPanel}
       {routeMap}
 
       {(f.boardingAt || f.takeoffAt || f.landingAt) && (

@@ -209,3 +209,51 @@ describe("saved Statistics views in a change file", () => {
     expect(store.all("saved_views")).toEqual([]);
   });
 });
+
+describe("a flight's recorded track as a change", () => {
+  // A made-up track from Heathrow towards JFK, a point a minute.
+  const points = (count: number, start = Date.parse("2025-03-14T11:00:00Z") / 1000): [number, number, number, number | null, number | null, number | null][] =>
+    Array.from({ length: count }, (_, i) => [start + i * 60, 51.47 - i * 0.01, -0.46 - i * 0.5, 30000, 480, 280]);
+  const trackChange = (flightId: string, count: number): InboxChange => ({ op: "track", flightId, provider: "fr24_csv", attribution: "Track data: test", coverage: "partial", distanceKm: 1234.5, points: points(count) });
+
+  it("reads only well-formed tracks", () => {
+    expect(readChanges([trackChange("01J0000000000000000000000A", 3)])).toMatchObject({ changes: [{ op: "track" }] });
+    const backwards = { ...trackChange("01J0000000000000000000000A", 3), points: points(3).reverse() };
+    expect(readChanges([backwards])).toEqual({ error: "change 1 (track): points are not in time order" });
+    expect(readChanges([{ ...trackChange("01J0000000000000000000000A", 3), provider: "napkin" }])).toEqual({ error: "change 1 (track): unknown provider or coverage" });
+    expect(readChanges([{ op: "removeTrack", flightId: "01J0000000000000000000000A" }])).toMatchObject({ changes: [{ op: "removeTrack" }] });
+  });
+
+  it("replaces a track as one import, and undoing it puts the old track and its points back", () => {
+    const { ref, store, flight } = aLog();
+    applyChanges(store, ref, [trackChange(flight.id, 5)], () => true, { fileName: "track-1.json", now: NOW });
+    const oldTrack = store.all("tracks")[0]!;
+    expect(oldTrack).toMatchObject({ flightId: flight.id, pointCount: 5, distanceKm: 1234.5 });
+
+    const plan = planChanges(store, ref, [trackChange(flight.id, 8)]);
+    expect(plan.changes[0]).toMatchObject({ action: "Recorded track", status: "pending" });
+    expect(plan.changes[0]!.lines.find((l) => l.field === "points")).toMatchObject({ before: "5", after: "8" });
+
+    const r = applyChanges(store, ref, [trackChange(flight.id, 8)], () => true, { fileName: "track-2.json", now: NOW + 1000 });
+    expect(store.all("tracks").map((t) => t.pointCount)).toEqual([8]);
+    expect(planChanges(store, ref, [trackChange(flight.id, 8)]).changes[0]!.status).toBe("done");
+
+    undoImport(store, ref, r.batchId);
+    expect(store.all("tracks").map((t) => t.id)).toEqual([oldTrack.id]);
+    expect(store.all("track_points").filter((p) => p.trackId === oldTrack.id)).toHaveLength(5);
+    expect(store.all("track_points")).toHaveLength(5);
+  });
+
+  it("removes a track, and undoing the removal brings it back", () => {
+    const { ref, store, flight } = aLog();
+    applyChanges(store, ref, [trackChange(flight.id, 4)], () => true, { fileName: "track.json", now: NOW });
+    const remove: InboxChange = { op: "removeTrack", flightId: flight.id };
+    const r = applyChanges(store, ref, [remove], () => true, { fileName: "track-remove.json", now: NOW + 1000 });
+    expect(store.all("tracks")).toEqual([]);
+    expect(store.all("track_points")).toEqual([]);
+    expect(planChanges(store, ref, [remove]).changes[0]).toMatchObject({ status: "done", note: "The flight has no recorded track." });
+    undoImport(store, ref, r.batchId);
+    expect(store.all("tracks")).toHaveLength(1);
+    expect(store.all("track_points")).toHaveLength(4);
+  });
+});

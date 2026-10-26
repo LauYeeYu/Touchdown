@@ -42,6 +42,7 @@ Built, all of them. Each writes one inbox file and checks it first, as `add` doe
 | Add a flight, a sighting, a session | `add` (built), `spot` (built) |
 | Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits (a file, or `-` for stdin): `[{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]`. A sighting's `phase` takes every phase it was seen in, comma-separated (`--set phase=landing,taxiing`). |
 | Delete one | `delete REF…` |
+| Add, replace or remove a flight's recorded track | `track REF FILE` (an FR24 CSV or KML, or a KML or GPX file with times), `track REF --remove`: the file is read and checked against the flight as the flight page does ([23](23-tracks-and-maps.md), "Sources"); a refusal says why and writes nothing |
 | Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…`, or `--paste FILE` (or `-`): text copied off the aircraft's page, read and checked as the aircraft page's "Paste from a web page" does (`pastedFactsFor` in core), with the same warning when the page may be about another aircraft |
 | Merge two aircraft | `aircraft merge INTO FROM` |
 | (CLI only) Look up aircraft facts | `airframes [lookup options]`: serial numbers and first flights from OpenSky (and Flightradar24 with `--fr24`), found on a copy of the log and written as `facts` changes, checked again at the review ([13](13-reference-data.md), "Airframe facts") |
@@ -97,17 +98,20 @@ Decided, built. The inbox file has a version 3 (versions 1 and 2 are still read)
     { "op": "fix", "ruleId": "V-TYPE-KNOWN", "fingerprint": "…", "fix": 0 },
     { "op": "undo", "batchId": "01J…" },
     { "op": "family", "designator": "E75L", "familyId": "E170" },
-    { "op": "settings", "set": { "codeDisplay": "icao" } }
+    { "op": "settings", "set": { "codeDisplay": "icao" } },
+    { "op": "track", "flightId": "01J…", "provider": "fr24_csv", "attribution": "Track data: …", "coverage": "complete", "distanceKm": 5541.2, "points": [[1741600000, 51.47, -0.46, 0, 12, 270], …] },
+    { "op": "removeTrack", "flightId": "01J…" }
   ]
 }
 ```
 
 - `set` and `clear` name stored fields; a sighting's edit may carry `tags`, its full list.
+- A `track` change carries the whole track, at most 2,000 points, each `[unix seconds, lat, lon, altitude ft, ground speed kt, heading]` (the last three may be null), and its distance along every point of the file. It replaces the flight's track; one the flight has already is done.
 - `rev` is the record's version the change was made against. If the record changed after that (in the web app, or by another import), the review says so and leaves the record alone unless the user takes the change; taken, it changes only the fields it names. A change whose values the log has already is done, and a file whose changes are all done leaves the inbox.
 - A private field travels in the file only when the user gave one ("Private fields", above).
 - A finding is named by its rule and fingerprint, so a change file about a finding that has gone away (fixed meanwhile) is reported as such, not applied to something else.
-- File names say what made them: `edit-<date>-<time>.json`, `delete-…`, `aircraft-…`, `issues-…`, `undo-…`, `families-…`, `settings-…`, as `add-…` and `spot-…` do.
-- Imported, the changes are one import batch (`mappingPreset` `touchdown_changes`). Every row they touch, the airframe links worked out again included, gets a history row with its version before (none for a row they create), so undoing the import puts each back, a deleted row included. Undoing an import whose records were changed since, by an edit or by a later import, asks first.
+- File names say what made them: `edit-<date>-<time>.json`, `delete-…`, `track-…`, `aircraft-…`, `issues-…`, `undo-…`, `families-…`, `settings-…`, as `add-…` and `spot-…` do.
+- Imported, the changes are one import batch (`mappingPreset` `touchdown_changes`). Every row they touch, the airframe links worked out again included, gets a history row with its version before (none for a row they create), so undoing the import puts each back, a deleted row included. A track's points have no versions of their own: the points each track had before go into one history row for that track, so undoing a `track` or `removeTrack` change puts the old track back whole. Undoing an import whose records were changed since, by an edit or by a later import, asks first.
 
 ## The review
 
