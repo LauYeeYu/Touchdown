@@ -205,7 +205,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           )}
           {sync.state === "update" && (
             <p className="status-line status-line--error">
-              <Icon name="refresh-cw" />
+              <Icon name="rotate-cw" />
               <span>A newer version of Touchdown has changed your log in {sync.place}. Reload the page to update the app; your changes are kept in this browser and sent after the reload.</span>
             </p>
           )}

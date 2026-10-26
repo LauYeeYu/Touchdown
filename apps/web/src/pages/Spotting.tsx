@@ -68,7 +68,7 @@ export function Spotting() {
         <PeriodControl year={year} years={years} onChange={setYear} />
         <span className="view-top__actions hide-phone">
           <Link className="btn btn--quiet" to="/spotting/session">
-            <Icon name="list-checks" />
+            <Icon name="notebook-pen" />
             Log a session
           </Link>
         </span>
@@ -199,7 +199,7 @@ export function Spotting() {
                       ))}
                     </span>
                     <span className="row__track" title={s.airframeId && flown.has(s.airframeId) ? "You flew on this aircraft" : ""}>
-                      {s.airframeId && flown.has(s.airframeId) && <Icon name="plane" />}
+                      {s.airframeId && flown.has(s.airframeId) && <Icon name="tickets-plane" />}
                     </span>
                   </Link>
                 </li>

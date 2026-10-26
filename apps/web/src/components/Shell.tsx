@@ -18,9 +18,9 @@ import { StableLabel } from "./StableLabel.tsx";
 
 const NAV: { to: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
   { to: "/", label: "Home", icon: "house", match: (p) => p === "/" },
-  { to: "/flights", label: "Flights", icon: "plane", match: (p) => p.startsWith("/flights") },
+  { to: "/flights", label: "Flights", icon: "tickets-plane", match: (p) => p.startsWith("/flights") },
   { to: "/spotting", label: "Spotting", icon: "camera", match: (p) => p.startsWith("/spotting") },
-  { to: "/aircraft", label: "Aircraft", icon: "id-card", match: (p) => p.startsWith("/aircraft") },
+  { to: "/aircraft", label: "Aircraft", icon: "plane", match: (p) => p.startsWith("/aircraft") },
   { to: "/stats", label: "Statistics", icon: "chart-column", match: (p) => p.startsWith("/stats") },
 ];
 
@@ -35,22 +35,24 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null):
   if (saving === "error") return { text: "Could not save in this browser", title: "Could not save in this browser", icon: "hard-drive", bad: true };
   if (!sync) return { text: saving === "saving" ? "Saving…" : "Saved in this browser", title: "Your log is kept in this browser only (Local).", icon: "hard-drive", bad: false };
   const last = sync.lastAt ? ` Last synced ${momentLabel(sync.lastAt)}.` : "";
+  // Each state has its own icon: below 1180px wide the icon is all the header shows.
+  const drive = sync.adapter === "gdrive";
   switch (sync.state) {
     case "permission":
-      if (sync.mode === "standard") return { text: "Reconnect Google Drive", title: `${sync.error ?? `Touchdown cannot reach ${sync.place}.`}${last}`, icon: "cloud", bad: true };
-      return sync.adapter === "gdrive"
-        ? { text: "Sign in to sync", title: `Sign in to Google again to sync with ${sync.place}.${last}`, icon: "cloud", bad: true }
+      if (sync.mode === "standard") return { text: "Reconnect Google Drive", title: `${sync.error ?? `Touchdown cannot reach ${sync.place}.`}${last}`, icon: "cloud-off", bad: true };
+      return drive
+        ? { text: "Sign in to sync", title: `Sign in to Google again to sync with ${sync.place}.${last}`, icon: "cloud-off", bad: true }
         : { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
     case "failed":
-      return { text: "Not synced", title: `Could not sync with ${sync.place}: ${clause(sync.error)}.${last}`, icon: "refresh-cw", bad: true };
+      return { text: "Not synced", title: `Could not sync with ${sync.place}: ${clause(sync.error)}.${last}`, icon: drive ? "cloud-alert" : "folder-x", bad: true };
     case "update":
-      return { text: "Reload to update", title: `A newer version of Touchdown has changed your log in ${sync.place}. Reload to update the app.${last}`, icon: "refresh-cw", bad: true };
+      return { text: "Reload to update", title: `A newer version of Touchdown has changed your log in ${sync.place}. Reload to update the app.${last}`, icon: "rotate-cw", bad: true };
     case "syncing":
       return { text: "Syncing…", title: `Syncing with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
     default:
       return sync.waiting > 0 || saving === "saving"
-        ? { text: "Saved, not synced yet", title: `Saved in this browser; sent to ${sync.place} in a moment.${last}`, icon: "refresh-cw", bad: false }
-        : { text: "Synced", title: `Synced with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
+        ? { text: "Saved, not synced yet", title: `Saved in this browser; sent to ${sync.place} in a moment.${last}`, icon: drive ? "cloud-upload" : "folder-up", bad: false }
+        : { text: "Synced", title: `Synced with ${sync.place}.${last}`, icon: drive ? "cloud-check" : "folder-check", bad: false };
   }
 }
 
@@ -179,9 +181,9 @@ export function Shell() {
               className="icon-btn"
               label="Add"
               items={[
-                { label: "Flight", icon: <Icon name="plane" />, onSelect: () => navigate({ to: "/flights/new" }) },
+                { label: "Flight", icon: <Icon name="tickets-plane" />, onSelect: () => navigate({ to: "/flights/new" }) },
                 { label: "Sighting", icon: <Icon name="camera" />, onSelect: () => navigate({ to: "/spotting/new" }) },
-                { label: "Spotting session", icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/spotting/session" }) },
+                { label: "Spotting session", icon: <Icon name="notebook-pen" />, onSelect: () => navigate({ to: "/spotting/session" }) },
               ]}
             >
               <Icon name="plus" />
@@ -202,7 +204,7 @@ export function Shell() {
       </header>
       {sync?.state === "permission" && (
         <NoteBar
-          icon={sync.adapter === "gdrive" ? "cloud" : "folder"}
+          icon={sync.adapter === "gdrive" ? "cloud-off" : "folder"}
           actions={
             <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.allow()}>
               {sync.mode === "standard" ? "Connect again" : sync.adapter === "gdrive" ? "Sign in" : "Allow"}
@@ -215,7 +217,7 @@ export function Shell() {
       )}
       {sync?.state === "update" && (
         <NoteBar
-          icon="refresh-cw"
+          icon="rotate-cw"
           actions={
             <button type="button" className="btn btn--quiet btn--small" onClick={() => location.reload()}>
               Reload

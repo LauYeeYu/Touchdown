@@ -20,14 +20,14 @@ export function EmptyLog() {
           </span>
         </Link>
         <Link className="start__item" to="/flights/new">
-          <Icon name="plane" />
+          <Icon name="tickets-plane" />
           <span>
             <b>Add a flight</b>
             <span>Flight number and date first; the rest is optional.</span>
           </span>
         </Link>
         <Link className="start__item" to="/spotting/session">
-          <Icon name="camera" />
+          <Icon name="notebook-pen" />
           <span>
             <b>Log a spotting session</b>
             <span>Set the day and the airport once, then type registrations one after another.</span>
