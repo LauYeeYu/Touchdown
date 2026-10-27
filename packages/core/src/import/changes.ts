@@ -642,6 +642,8 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       const keepNormalised = RAW_OF.filter(([raw, norm]) => !touched.has(raw) && !touched.has(norm)).map(([, norm]) => norm);
       if (c.table === "flights") saveFlight(store, ref, values, c.id, { ...opts, keepNormalised });
       else {
+        // The phases are kept in their own table and the row's phase column stays empty: read back with the row, it would clear them.
+        if (!("phase" in c.set) && !c.clear.includes("phase")) delete values.phase;
         saveSighting(store, ref, values, c.id, c.tags, { ...opts, keepNormalised });
         if (c.phases !== undefined) setPhases(store, c.id, c.phases);
       }

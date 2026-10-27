@@ -3920,10 +3920,11 @@ a.wordmark {
   min-width: 0;
 }
 
+/* On one baseline: the label is set smaller than the value, so centring the two would sit it higher. */
 .suggestion__change {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   gap: 4px 8px;
   margin: 0;
   font-size: 0.9375rem;
@@ -3949,6 +3950,7 @@ a.wordmark {
 }
 
 .suggestion__arrow {
+  align-self: center;
   width: 14px;
   height: 14px;
   color: var(--ink-3);

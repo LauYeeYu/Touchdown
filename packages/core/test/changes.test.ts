@@ -9,6 +9,7 @@ import {
   RefIndex,
   saveFlight,
   saveSighting,
+  setPhases,
   sightingEdit,
   tagsOf,
   undoImport,
@@ -52,6 +53,16 @@ describe("building a change from the fields add takes", () => {
     if ("error" in t) throw new Error(t.error);
     applyChanges(store, ref, [t.change], () => true, { fileName: "edit-2.json", now: NOW });
     expect(store.get("flights", flight.id)).toMatchObject({ typeCode: "B788", typeCodeRaw: "B788" });
+  });
+
+  it("keeps a sighting's phases when an edit changes other fields", () => {
+    const { ref, store, sighting } = aLog();
+    setPhases(store, sighting.id, ["landing", "taxiing"]);
+    const r = sightingEdit(store, ref, store.get("sightings", sighting.id)!, { notes: "seen from the garage roof" });
+    if ("error" in r) throw new Error(r.error);
+    expect(planChanges(store, ref, [r.change]).changes[0]!.lines.map((l) => l.label)).toEqual(["Notes"]);
+    applyChanges(store, ref, [r.change], () => true, { fileName: "edit-1.json", now: NOW });
+    expect(phasesOf(store, sighting.id)).toEqual(["landing", "taxiing"]);
   });
 
   it("sets the airline that flew a flight and the timetable's departure and arrival", () => {
@@ -137,6 +148,23 @@ describe("a change file's review", () => {
     expect(store.get("flights", flight.id)!.seat).toBe("12A");
     applyChanges(store, ref, [edit.change], () => true, { fileName: "edit.json", now: NOW });
     expect(store.get("flights", flight.id)).toMatchObject({ seat: "14A", notes: "changed in the web app" });
+  });
+
+  it("shows every field an edit can set, and names one no line shows by its stored name", () => {
+    const { ref, store, flight, sighting } = aLog();
+    // Written as a change file holds them, by their stored names.
+    const edit = (table: "flights" | "sightings", id: string, rev: number, set: Record<string, string | number | null>): InboxChange => ({ op: "edit", table, id, rev, set, clear: [] });
+    const lines = (c: InboxChange) => planChanges(store, ref, [c]).changes[0]!.lines;
+    expect(lines(edit("flights", flight.id, flight.rev, { divertedToAirportId: "ap_kbos", departureAt: "2025-03-14T10:40+00:00", arrivalAt: "2025-03-14T14:10-04:00", arrivalTerminal: "4", arrivalGate: "B22" })).map((l) => l.label)).toEqual([
+      "Diverted to",
+      "Departure",
+      "Arrival",
+      "Arrival terminal",
+      "Arrival gate",
+    ]);
+    expect(lines(edit("sightings", sighting.id, sighting.rev, { lat: 42.36, lon: -71.01 }))).toMatchObject([{ label: "Position", before: "", after: "42.36, -71.01" }]);
+    // The type as typed changes and the type read from it does not, so no line shows it: it is named as stored.
+    expect(lines(edit("flights", flight.id, flight.rev, { typeCodeRaw: "b77w" }))).toMatchObject([{ label: "Type code as typed", before: "B77W", after: "b77w" }]);
   });
 });
 

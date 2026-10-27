@@ -15,7 +15,7 @@ import { DIMENSIONS } from "../stats/index.ts";
 import type { Row, Settings, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { airportWithCode, type CodeStyle } from "./codes.ts";
-import { airlineLabel, CABIN_LABEL, dateTimeLabel, dayMonthYear, distance, durShort, modelLabel, nf, PHASE_LABEL, REASON_LABEL, TAG_LABEL, TRACK_SOURCE, typeName } from "./format.ts";
+import { airlineLabel, CABIN_LABEL, dateTimeLabel, FIELD_LABEL, dayMonthYear, distance, durShort, modelLabel, nf, PHASE_LABEL, REASON_LABEL, TAG_LABEL, TRACK_SOURCE, typeName } from "./format.ts";
 
 export interface PlannedLine {
   field: string;
@@ -65,7 +65,7 @@ interface Ctx {
 type Show = (r: Record<string, unknown>, x: Ctx) => string;
 const text = (k: string): Show => (r) => (r[k] === null || r[k] === undefined ? "" : String(r[k]));
 const time = (k: string): Show => (r) => dateTimeLabel(r[k] as string | null);
-const typeText: Show = (r, x) => (r.typeCode ? `${typeName(r.typeCode as string, x.ref)} (${r.typeCode as string})` : "");
+const typeText: Show = (r, x) => (r.typeCode ? `${typeName(r.typeCode as string, x.ref)} (${r.typeCode as string})` : ((r.typeCodeRaw as string) ?? ""));
 const capital = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : "");
 
 /** The fields a review shows, with their labels: one line per field the user knows, not per stored column. */
@@ -76,13 +76,18 @@ const FLIGHT_SHOW: [string, string, Show][] = [
   ["operatedBy", "Operated by", (r, x) => airlineLabel(r.operatingAirlineId as string | null, x.ref)],
   ["from", "From", (r, x) => airportWithCode(r.fromAirportId as string | null, x.ref, r.fromRaw as string | null, x.o.codes)],
   ["to", "To", (r, x) => airportWithCode(r.toAirportId as string | null, x.ref, r.toRaw as string | null, x.o.codes)],
+  ["divertedTo", "Diverted to", (r, x) => (r.divertedToAirportId ? airportWithCode(r.divertedToAirportId as string, x.ref, null, x.o.codes) : "")],
   ["boardingAt", "Boarding", time("boardingAt")],
   ["departureScheduledAt", "Scheduled departure", time("departureScheduledAt")],
+  ["departureAt", "Departure", time("departureAt")],
   ["takeoffAt", "Takeoff", time("takeoffAt")],
   ["landingAt", "Landing", time("landingAt")],
   ["arrivalScheduledAt", "Scheduled arrival", time("arrivalScheduledAt")],
+  ["arrivalAt", "Arrival", time("arrivalAt")],
   ["departureTerminal", "Terminal", text("departureTerminal")],
   ["departureGate", "Gate", text("departureGate")],
+  ["arrivalTerminal", "Arrival terminal", text("arrivalTerminal")],
+  ["arrivalGate", "Arrival gate", text("arrivalGate")],
   ["seat", "Seat", text("seat")],
   ["seatPosition", "Seat position", (r) => capital((r.seatPosition as string) ?? "")],
   ["cabinClass", "Cabin", (r) => (r.cabinClass ? (CABIN_LABEL[r.cabinClass as string] ?? String(r.cabinClass)) : "")],
@@ -106,6 +111,7 @@ const SIGHTING_SHOW: [string, string, Show][] = [
   ["seenAt", "Time", time("seenAt")],
   ["airport", "Airport", (r, x) => airportWithCode(r.airportId as string | null, x.ref, r.airportRaw as string | null, x.o.codes)],
   ["spotName", "Spot", text("spotName")],
+  ["position", "Position", (r) => (typeof r.lat === "number" && typeof r.lon === "number" ? `${r.lat}, ${r.lon}` : "")],
   ["registration", "Registration", (r) => ((r.registration ?? r.registrationRaw ?? "") as string)],
   ["airline", "Airline", (r, x) => airlineLabel(r.operatorId as string | null, x.ref) || ((r.operatorRaw as string) ?? "")],
   ["typeCode", "Type", typeText],
@@ -155,6 +161,20 @@ function lines(show: [string, string, Show][], before: Record<string, unknown> |
     const isPrivate = PRIVATE.has(field);
     if (isPrivate && !beforeCtx.o.showPrivate) out.push({ field, label, before: b ? "recorded" : "", after: !a ? "removed" : b ? "changed" : "added", private: true });
     else out.push({ field, label, before: b, after: a, private: isPrivate });
+  }
+  return out;
+}
+
+/** The stored fields a change sets or clears, by their labels in FIELD_LABEL, before → after. */
+function storedLines(before: Record<string, unknown> | null, after: Record<string, unknown> | null, fields: string[], o: PlanOptions): PlannedLine[] {
+  const value = (r: Record<string, unknown> | null, k: string) => (r?.[k] === null || r?.[k] === undefined ? "" : String(r[k]));
+  const out: PlannedLine[] = [];
+  for (const k of new Set(fields)) {
+    const [b, a] = [value(before, k), value(after, k)];
+    if (b === a) continue;
+    const isPrivate = PRIVATE.has(k);
+    if (isPrivate && !o.showPrivate) out.push({ field: k, label: FIELD_LABEL[k] ?? k, before: b ? "recorded" : "", after: !a ? "removed" : b ? "changed" : "added", private: true });
+    else out.push({ field: k, label: FIELD_LABEL[k] ?? k, before: b, after: a, private: isPrivate });
   }
   return out;
 }
@@ -365,6 +385,8 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         const after = rowOf(table, c.id);
         const show = table === "flights" ? FLIGHT_SHOW : table === "sightings" ? SIGHTING_SHOW : AIRFRAME_SHOW;
         p.lines = lines(show, before, ctx(shown), after, ctx(shown));
+        // A field none of those lines shows (one added later, a value as typed): named as stored, so a change never shows nothing.
+        if (!p.lines.length) p.lines = storedLines(before, after, [...Object.keys(c.set), ...c.clear], o);
       }
       if (active && c.op === "facts") {
         // Merged, the facts went on the other aircraft: shown on it.
