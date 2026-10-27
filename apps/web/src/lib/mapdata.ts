@@ -6,8 +6,6 @@ import { esc } from "../components/overlay.tsx";
 import { dateOnly, dayShort, distance, plural, shortAirport } from "./format.ts";
 import type { FlightView } from "./views.ts";
 import { primaryCode, textCode } from "./codes.ts";
-import { closedTo, wayFor } from "./airspace.ts";
-import type { ClosedShape } from "@touchdown/core";
 
 /** A recorded position: where, and when (Unix seconds). */
 export interface TrackPoint {
@@ -52,9 +50,7 @@ const GAP_INSIDE_KM = 100;
 /**
  * Map marks for flights: the recorded track where there is one, else the great circle. What a track does not record
  * (from the departure to its first point, gaps inside it, from its last point to the arrival) is drawn dashed, so
- * every route stays whole. A stretch drawn without a recording (a great circle, a gap) goes around airspace the
- * airline could not use that day (docs/23, "Closed airspace"). Tracks are cut to `trackPoints` points; a map of one
- * flight keeps them all.
+ * every route stays whole, as great circles. Tracks are cut to `trackPoints` points; a map of one flight keeps them all.
  */
 export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["distanceUnit"], bothAirframes: Set<string> = new Set(), store?: Store, trackPoints = OVERVIEW_TRACK_POINTS): MapFlight[] {
   const out: MapFlight[] = [];
@@ -77,7 +73,7 @@ export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["d
       route: v.route ?? "",
       both: !!v.f.airframeId && bothAirframes.has(v.f.airframeId),
       tip: `<strong>${esc(v.f.flightNumber ?? "Flight")} · ${esc(v.fromCode)} → ${esc(v.toCode)}</strong><br><span class="muted">${v.day ? `${dayShort(v.day)} ${v.day.slice(0, 4)}` : "No date"}${v.km ? ` · ${distance(v.km, unit)}` : ""}</span>`,
-      ...overviewTrack(tracks.get(v.f.id), [a.lon, a.lat], [b.lon, b.lat], trackPoints, closedTo(ref.operator(v.f.operatingAirlineId ?? v.f.airlineId)?.country, v.day)),
+      ...overviewTrack(tracks.get(v.f.id), [a.lon, a.lat], [b.lon, b.lat], trackPoints),
     });
   }
   return out;
@@ -118,14 +114,6 @@ export function mapSpots(sightings: Sighting[], ref: RefIndex, bothAirframes: Se
 
 const km = (a: [number, number], b: [number, number]) => haversineKm({ lon: a[0], lat: a[1] }, { lon: b[0], lat: b[1] });
 
-/** The way a flight is drawn when nothing of it is recorded: the great circle, or around airspace its airline could not use. */
-export function flightWay(v: FlightView, ref: RefIndex): [number, number][] | null {
-  const a = ref.airport(v.f.fromAirportId);
-  const b = ref.airport(v.f.divertedToAirportId ?? v.f.toAirportId);
-  if (!a || !b) return null;
-  return wayFor([a.lon, a.lat], [b.lon, b.lat], closedTo(ref.operator(v.f.operatingAirlineId ?? v.f.airlineId)?.country, v.day));
-}
-
 /** The recorded stretches of a track (split at its gaps) and the gaps between them. */
 export function trackRuns(full: TrackPoint[]): { runs: [number, number][][]; gaps: [[number, number], [number, number]][] } {
   const runs: [number, number][][] = [];
@@ -144,8 +132,8 @@ export function trackRuns(full: TrackPoint[]): { runs: [number, number][][]; gap
   return { runs, gaps };
 }
 
-function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], to: [number, number], points: number, closed: ClosedShape[]): Pick<MapFlight, "track" | "line" | "gaps"> {
-  if (!full || full.length < 2) return { track: null, line: [wayFor(from, to, closed)], gaps: [] };
+function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], to: [number, number], points: number): Pick<MapFlight, "track" | "line" | "gaps"> {
+  if (!full || full.length < 2) return { track: null, line: [[from, to]], gaps: [] };
   const split = trackRuns(full);
   // Each recorded stretch gets its share of the points.
   const runs = split.runs.map((r) => {
@@ -156,8 +144,8 @@ function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], t
   const lastRun = runs[runs.length - 1]!;
   const last = lastRun[lastRun.length - 1]!;
   const gaps: [number, number][][] = [];
-  if (km(from, first) > GAP_KM) gaps.push(wayFor(from, first, closed));
-  for (const [a, b] of split.gaps) gaps.push(wayFor(a, b, closed));
-  if (km(last, to) > GAP_KM) gaps.push(wayFor(last, to, closed));
+  if (km(from, first) > GAP_KM) gaps.push([from, first]);
+  gaps.push(...split.gaps);
+  if (km(last, to) > GAP_KM) gaps.push([last, to]);
   return { track: runs.flat(), line: runs.filter((r) => r.length > 1), gaps };
 }

@@ -4,7 +4,6 @@
 export * from "./schema/index.ts";
 export * from "./time/index.ts";
 export * from "./geo/index.ts";
-export * from "./geo/airspace.ts";
 export * from "./ids.ts";
 export * from "./ref/index.ts";
 export * from "./normalise/index.ts";

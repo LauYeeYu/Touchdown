@@ -29,7 +29,7 @@ export function FlightCols() {
 function trackText(track: TrackInfo | null): { title: string; detail: string } {
   const from = track?.provider && TRACK_SOURCE[track.provider] ? ` from ${TRACK_SOURCE[track.provider]}` : "";
   if (!track) return { title: "Great circle only", detail: "No recorded track for this flight. The map draws the shortest path between the two airports, not the route flown." };
-  if (track.coverage === "partial") return { title: "Recorded track, with gaps", detail: `Part of the path the aircraft flew${from}. The missing stretches are drawn dashed: as great circles, or around airspace the airline could not use.` };
+  if (track.coverage === "partial") return { title: "Recorded track, with gaps", detail: `Part of the path the aircraft flew${from}. The missing stretches are drawn as dashed great circles.` };
   return { title: "Recorded track", detail: `The path the aircraft flew${from}, drawn on the map in place of the great circle.` };
 }
 

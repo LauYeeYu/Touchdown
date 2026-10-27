@@ -30,7 +30,7 @@ export interface MapFlight {
   both: boolean; // aircraft also photographed
   tip: string; // tooltip HTML (escaped by the caller)
   track?: LonLat[] | null; // recorded track's points; the great circle is drawn when there is none
-  line: LonLat[][]; // drawn solid: the recorded stretches, else the route (the great circle, or around closed airspace)
+  line: LonLat[][]; // drawn solid: the recorded stretches, else the great circle
   gaps?: LonLat[][]; // drawn dashed: what a track does not record, joining it to its airports and across its gaps
 }
 
@@ -359,18 +359,16 @@ interface FlightMapProps {
   to: LonLat;
   fromCode: string;
   toCode: string;
-  /** Drawn solid: the recorded stretches, else the way below. */
+  /** Drawn solid: the recorded stretches, else the great circle. */
   line: LonLat[][];
   /** Drawn dashed: what the track does not record. */
   gaps?: LonLat[][];
   recorded: boolean;
-  /** The way with no recording: the great circle, or around airspace the airline could not use. */
-  way: LonLat[];
   label: string;
   onAirportClick?: (which: "from" | "to") => void;
 }
 
-export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorded, way, label, onAirportClick }: FlightMapProps) {
+export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorded, label, onAirportClick }: FlightMapProps) {
   const ref = useRef<SVGSVGElement>(null);
   const clickRef = useRef(onAirportClick);
   clickRef.current = onAirportClick;
@@ -380,7 +378,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
       const svg = ref.current!;
       const height = width < 600 ? 280 : 430;
       const mid = geoInterpolate(from, to)(0.5);
-      const coords = [...line.flat(), ...gaps.flat(), ...way];
+      const coords = [...line.flat(), ...gaps.flat()];
       const proj = geoOrthographic()
         .rotate([-mid[0], -mid[1]])
         .clipAngle(90)
@@ -394,7 +392,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
       el(svg, "path", { class: "graticule", d: path(geoGraticule10()) ?? "" });
       const landG = el(svg, "g", {});
       for (const f of LAND.features) el(landG, "path", { class: "land", d: path(f) ?? "" });
-      const gc = { type: "LineString" as const, coordinates: way };
+      const gc = { type: "LineString" as const, coordinates: [from, to] };
       if (recorded) {
         el(svg, "path", { class: "gc", d: path(gc) ?? "" });
         const runs = { type: "MultiLineString" as const, coordinates: line };
@@ -417,7 +415,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
         }
       }
     },
-    [from.join(), to.join(), line.map((l) => l.length).join(), gaps.length, way.join()],
+    [from.join(), to.join(), line.map((l) => l.length).join(), gaps.length],
   );
   return <svg className="map" ref={ref} role="img" aria-label={label} />;
 }
