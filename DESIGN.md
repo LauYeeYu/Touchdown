@@ -96,83 +96,83 @@ colors:
   globe-control-dark: "#36352d"
 typography:
   display:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "5rem"
     fontWeight: 650
     lineHeight: 0.9
     letterSpacing: "-0.035em"
   headline:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "2rem"
     fontWeight: 400
     lineHeight: 1.32
     letterSpacing: "-0.02em"
   headline-figure:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "inherit"
     fontWeight: 650
     fontFeature: "\"tnum\" 1"
   headline-flight:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "1.5rem"
     fontWeight: 400
     lineHeight: 1.32
     letterSpacing: "-0.02em"
   route:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "2.25rem"
     fontWeight: 600
     lineHeight: 1
     letterSpacing: "-0.02em"
   clock:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "1.75rem"
     fontWeight: 600
     lineHeight: 1.1
     fontFeature: "\"tnum\" 1"
   title:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "1.375rem"
     fontWeight: 650
     lineHeight: 1.25
     letterSpacing: "-0.015em"
   title-small:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "1.125rem"
     fontWeight: 650
     letterSpacing: "-0.01em"
   stat:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "1.25rem"
     fontWeight: 650
     lineHeight: 1.25
     letterSpacing: "-0.015em"
     fontFeature: "\"tnum\" 1"
   body:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.5
   body-small:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "0.8125rem"
     fontWeight: 400
     lineHeight: 1.4
   chart-label:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
     fontSize: "11px"
     fontWeight: 400
     fontFeature: "\"tnum\" 1"
   wordmark:
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, \"SF Pro Text\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
-    fontSize: "0.9375rem"
-    fontWeight: 700
-    letterSpacing: "0.16em"
+    fontFamily: "\"Source Sans 3\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 600
+    letterSpacing: "-0.015em"
 rounded:
   hairline: "2px"
   xs: "4px"
@@ -467,7 +467,7 @@ The system refuses the KPI-tile grid and the flight-tracker wall of panels. A st
 
 **Key Characteristics:**
 - Warm paper ground in light, warm near-black in dark; both follow the device by default.
-- One system sans for every role; display weight 650 with tight negative tracking.
+- One sans, Source Sans 3, for every role; display weight 650 with tight negative tracking.
 - Two data inks, flown gold and spotted blue, and no other decorative colour.
 - Lead sentences with phrases underlined in their data ink that point at the map or the aircraft.
 - Tonal surfaces and hairline rules instead of outlined boxes; pill-shaped controls and large rounded containers.
@@ -519,9 +519,9 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 
 ## Typography
 
-**Display Font:** the system sans stack (ui-sans-serif, system-ui, -apple-system, SF Pro Text, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif)
+**Display Font:** Source Sans 3 (variable, weights 200 to 900; SIL Open Font License), served with the app (`@fontsource-variable/source-sans-3`: one file per script, each loaded only when a page has its characters). Until it loads, and for scripts it lacks, the system sans stands in (ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif)
 **Body Font:** the same stack
-**Label/Mono Font:** the same stack with tabular figures; there is no monospace face
+**Label/Mono Font:** the same face with tabular figures; there is no monospace face
 
 **Character:** One familiar sans, set with care: heavy and tightly tracked for codes and titles, regular weight for the sentences the owner reads. Hierarchy comes from size and weight, never from a second family.
 
@@ -536,10 +536,10 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 - **Stat** (650, 1.25rem, 1.25, -0.015em, tabular): values in the fact list under the lead sentence; units inside them at 0.72em, weight 500, in `ink-2`. 1.125rem on phones.
 - **Label** (400, 0.8125rem): column heads, time labels, definition terms, legends, tooltips, the globe's hint line, footer. Credits drop to 0.75rem (0.6875rem under thumbnails). Bottom navigation labels (840px and below) are 0.75rem at 500 (650 for the current tab).
 - **Chart label** (11px, tabular): axis ticks and bar values (bar values at 600); airport codes on maps and the globe at 600.
-- **Wordmark** (700, 0.9375rem, 0.16em, capitals): the name in the header only.
+- **Wordmark** (600, 1.125rem, -0.015em; 1.0625rem at 840px and below): "Touchdown" after its mark, in the top bar (see "Wordmark"). The loading screen sets the name alone in the same voice.
 
 ### Named Rules
-**The One Family Rule.** Sans-serif only, from the system stack. No serif, no webfont, no monospace. Contrast comes from weight (400, 500, 600, 650, 700) and size.
+**The One Family Rule.** Sans-serif only: Source Sans 3, with the system sans standing in. No serif, no second webfont, no monospace. Contrast comes from weight (400, 500, 600, 650, 700) and size.
 
 **The Tabular Figures Rule.** Any number that sits in a column, a strip, a chart or a lead-sentence figure uses tabular figures, so values align and do not shift as they change.
 
@@ -683,7 +683,10 @@ Written "2h 07m": figures at full size, the units at 0.72em and 500 in `ink-2`, 
 Below a long list, 24px under the last row: the range and total on the left ("31–60 of 120 aircraft", 0.875rem `ink-3`, tabular figures), page buttons on the right. Page numbers are 40px pills in `ink-2` with the state layer on hover; the current page fills with the selection container at 650. Gaps are an ellipsis in `ink-3`. Previous and next are round icon buttons, faded to 38% when there is no page that way. On phones the count sits on its own centred line above centred 36px buttons.
 
 ### Loading screen
-Shown from the first moment until the first page is ready, over the page: the wordmark, the progress bar and one line of `ink-3` text at 0.875rem saying what is being done, centred a third of the way down. The progress bar is a final approach seen from the side, in a 240 by 52px scene: a 1px ground line in `rule-strong` with a 3px runway in `ink-3` at its right end (64px, round ends); a 2px glide path at 9° from the top left down to 14px past the runway threshold, dashed in `rule-strong` (4px dashes, 4px gaps) as far as the threshold, the part already flown solid in `flown` gold; and a 46px side view of a Boeing 747 in `ink` (upper-deck hump, two engines on the near side, gear down), standing on the path by its main wheels at 3° nose up. Progress is how far along the path it is; at 100% it touches down and flares to 6°. Its own stylesheet (`public/boot.css`) loads with the page, so the screen is styled before the app's code runs. The aircraft creeps towards 30% while the code loads, moves on over 200ms as each step of opening the log finishes, then lands; the screen fades out over 160ms to show the first page, which has rendered underneath. With reduced motion it jumps from step to step, does not flare and does not fade. If the log cannot be opened, the same screen shows the reason under a 1.25rem heading.
+Shown from the first moment until the first page is ready, over the page: the name (in the wordmark's voice, without the mark, since the progress bar has its own aircraft), the progress bar and one line of `ink-3` text at 0.875rem saying what is being done, centred a third of the way down. The progress bar is a final approach seen from the side, in a 240 by 52px scene: a 1px ground line in `rule-strong` with a 3px runway in `ink-3` at its right end (64px, round ends); a 2px glide path at 9° from the top left down to 14px past the runway threshold, dashed in `rule-strong` (4px dashes, 4px gaps) as far as the threshold, the part already flown solid in `flown` gold; and a 46px side view of a Boeing 747 in `ink` (upper-deck hump, two engines on the near side, gear down), standing on the path by its main wheels at 3° nose up. Progress is how far along the path it is; at 100% it touches down and flares to 6°. Its own stylesheet (`public/boot.css`) loads with the page, so the screen is styled before the app's code runs. The aircraft creeps towards 30% while the code loads, moves on over 200ms as each step of opening the log finishes, then lands; the screen fades out over 160ms to show the first page, which has rendered underneath. With reduced motion it jumps from step to step, does not flare and does not fade. If the log cannot be opened, the same screen shows the reason under a 1.25rem heading.
+
+### Wordmark
+In the top bar of every page (the app, the first run, the sign-in pages, the command line's pages, the privacy policy and terms): the app icon's airliner touching down on its gold ground line, without the tile, then the name. The mark is 34 by 25px (31 by 23px at 840px and below): the aircraft in `ink` (currentColor), nose up 6°, over a 2.4-unit `flown` gold line with round ends, from the icon's 32-unit grid (`src/lib/wordmark.ts`). 9px (8px) between mark and name. Under the mouse pointer the aircraft lands again, in 1.5s: it slips back out of sight, reappears on a shallow approach from the left, raises its nose in the flare, touches down (two small puffs of tyre smoke in `ink-3` at the line, 450ms) and settles as the gear takes its weight, turning about its main wheels; the line stays. It does not start again until it has landed, does nothing for touch or keyboard focus, and stays still with reduced motion. The static policy pages draw it without the landing.
 
 ### App icon
 An airliner touching down: a side view in `paper`, nose up 6°, its tail fin swept back like a 747's, above a 2.4-unit `flown` gold ground line with round ends, on an `ink` tile with 7-unit corners (a 32-unit grid). The aircraft is one plain silhouette, fuselage, fin and near wing, with no engines or tailplane, so it still reads at 16px. Files in `apps/web/public/`: `favicon.svg` (the browser tab, the sign-in pages and the installed app), `icon-maskable.svg` (full-bleed ink, the drawing scaled to 74% so it stays inside Android's round mask) and PNGs rendered from them at 192 and 512px; `manifest.webmanifest` lists them. Change an SVG, then render its PNGs again.
@@ -749,10 +752,10 @@ One easing, `cubic-bezier(0.16, 1, 0.3, 1)`, for every transition. Durations: 12
 - **Do** put every map and globe in a 28px rounded tonal container (24px on phones), with the "Explore on a globe" link in the legend of the Home and Flights maps and the Map / Globe switch on flight and airport pages.
 
 ### Don't:
-- **Don't** use a serif, a webfont or a monospace face; the system sans covers every role.
+- **Don't** use a serif, a second webfont or a monospace face; Source Sans 3 covers every role.
 - **Don't** add a third data colour or use the data inks as decoration; gold outside data is limited to focus, caret, text selection, the checkbox accent and the muted selection container.
 - **Don't** fill a button, tab or navigation item with flown gold or spotted blue; buttons stay ink or neutral.
 - **Don't** build KPI tiles or a wall of side panels; a figure belongs in a sentence or a chart.
 - **Don't** show a clock time without its date, or a status by colour alone.
 - **Don't** put shadows on anything resting on the page, and don't lift a card on hover; a linked card only changes shade.
-- **Don't** add small uppercase labels above headings; the wordmark is the only tracked capitals in the interface.
+- **Don't** add small uppercase labels above headings or set tracked capitals anywhere.

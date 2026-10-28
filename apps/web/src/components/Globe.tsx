@@ -309,7 +309,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         labels.push({ code, x: xy[0], y: xy[1], n: a.n });
         boxes.push([xy[0] - 5, xy[1] - 5, xy[0] + 5, xy[1] + 5]);
       }
-      ctx.font = "600 11px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "600 11px 'Source Sans 3 Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
       ctx.textBaseline = "middle";
       for (const l of labels.sort((a, b) => b.n - a.n)) {
         const w = ctx.measureText(l.code).width;

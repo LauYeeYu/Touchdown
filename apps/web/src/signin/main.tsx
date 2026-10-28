@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import "../styles/app.css";
 import { Icon } from "../lib/icons.tsx";
 import { MIN_PASSWORD, passwordKey, passwordProblem } from "../lib/passwordKey.ts";
+import { Wordmark } from "../components/Wordmark.tsx";
 
 interface Site {
   siteId: string;
@@ -55,7 +56,9 @@ function Frame({ title, sub, children }: { title: string; sub?: ReactNode; child
     <>
       <header className="masthead">
         <div className="page masthead__bar">
-          <span className="wordmark">TOUCHDOWN</span>
+          <span className="wordmark">
+            <Wordmark />
+          </span>
         </div>
       </header>
       <main id="view" className="page page--form signin">

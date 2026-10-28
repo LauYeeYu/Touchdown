@@ -15,6 +15,7 @@ import { momentLabel, nf, plural } from "../lib/format.ts";
 import { useSyncInfo } from "./ModeChoice.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
+import { Wordmark } from "./Wordmark.tsx";
 
 const NAV: { to: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
   { to: "/", label: "Home", icon: "house", match: (p) => p === "/" },
@@ -167,7 +168,7 @@ export function Shell() {
       <header className="masthead">
         <div className="page masthead__bar">
           <Link className="wordmark" to="/">
-            TOUCHDOWN
+            <Wordmark />
           </Link>
           <nav className="nav" aria-label="Main">
             {NAV.map((n) => (
@@ -340,7 +341,7 @@ export function Shell() {
             <a href="https://www.planespotters.net/" rel="noopener" target="_blank">
               planespotters.net
             </a>
-            , credited on each photo. Icons: Lucide (ISC).
+            , credited on each photo. Icons: Lucide (ISC). Typeface: Source Sans 3 (SIL Open Font License).
           </p>
           <p>
             <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a>

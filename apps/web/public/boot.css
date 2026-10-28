@@ -57,15 +57,17 @@ body {
   padding: 32vh 16px 0;
   background: var(--boot-paper);
   color: var(--boot-ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* The app's stylesheet declares the face; until it has loaded, the system font stands in. */
+  font-family: "Source Sans 3 Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
+/* The name as the top bar sets it; the aircraft is the progress bar's. */
 .boot__mark {
   margin: 0 0 4px;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 /* The progress bar is a final approach, seen from the side: an aircraft follows the glide path down to the

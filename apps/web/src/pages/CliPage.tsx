@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { call, whoAmI, type Me } from "../data/account.ts";
 import { loadGoogle, requestDriveToken, SignInCancelled } from "../data/google.ts";
 import { Icon } from "../lib/icons.tsx";
+import { Wordmark } from "../components/Wordmark.tsx";
 
 const params = new URLSearchParams(location.search);
 const port = Number(params.get("port"));
@@ -43,7 +44,9 @@ function Frame({ title, children }: { title: string; children: React.ReactNode }
     <>
       <header className="masthead">
         <div className="page masthead__bar">
-          <span className="wordmark">TOUCHDOWN</span>
+          <span className="wordmark">
+            <Wordmark />
+          </span>
         </div>
       </header>
       <main id="view" className="page page--form first-run">

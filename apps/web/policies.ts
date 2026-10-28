@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { marked } from "marked";
+import { wordmarkHtml } from "./src/lib/wordmark.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const REPOSITORY = "https://github.com/LauYeeYu/Touchdown/blob/master/";
@@ -47,7 +48,7 @@ ${themeScript()}
   <body>
     <header class="masthead">
       <div class="page masthead__bar">
-        <a class="wordmark" href="/">TOUCHDOWN</a>
+        <a class="wordmark" href="/">${wordmarkHtml()}</a>
       </div>
     </header>
     <main id="view" class="page page--form policy">

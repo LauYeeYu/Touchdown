@@ -462,7 +462,7 @@ export function SettingsPage() {
         {sources.map((x) => (
           <li key={x}>{x}</li>
         ))}
-        <li>Map: Natural Earth (public domain) via world-atlas. Icons: Lucide (ISC). Reference photos: planespotters.net, credited on each photo.</li>
+        <li>Map: Natural Earth (public domain) via world-atlas. Icons: Lucide (ISC). Typeface: Source Sans 3 (SIL Open Font License). Reference photos: planespotters.net, credited on each photo.</li>
       </ul>
     </div>
   );

@@ -11,6 +11,7 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@fontsource-variable/source-sans-3": "^5.3.1",
     "@tanstack/react-router": "^1.170.45",
     "@touchdown/core": "*",
     "@touchdown/refdata": "*",

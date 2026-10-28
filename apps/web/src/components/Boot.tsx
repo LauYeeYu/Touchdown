@@ -18,7 +18,7 @@ export function Boot({ progress, text, done = false }: { progress: number; text:
   const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
   return (
     <div className={`boot${done ? " boot--done" : ""}`} aria-busy={!done}>
-      <p className="boot__mark">TOUCHDOWN</p>
+      <p className="boot__mark">Touchdown</p>
       <div className="boot__bar boot__bar--steps" role="progressbar" aria-label="Opening Touchdown" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} style={{ "--p": `${pct}%` } as CSSProperties}>
         <span className="boot__ground" />
         <span className="boot__runway" />
@@ -42,7 +42,7 @@ export function Boot({ progress, text, done = false }: { progress: number; text:
 export function BootError({ message }: { message: string }) {
   return (
     <div className="boot" role="alert">
-      <p className="boot__mark">TOUCHDOWN</p>
+      <p className="boot__mark">Touchdown</p>
       <h1 className="boot__error">Touchdown could not open its local data.</h1>
       <p className="boot__text">{message}</p>
     </div>

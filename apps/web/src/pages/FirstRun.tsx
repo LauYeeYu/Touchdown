@@ -12,6 +12,7 @@ import { standard, STANDARD_ERRORS, type StandardStatus } from "../data/standard
 import { Icon } from "../lib/icons.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, type Mode } from "../components/ModeChoice.tsx";
 import { StandardTerms } from "../components/StandardTerms.tsx";
+import { Wordmark } from "../components/Wordmark.tsx";
 
 export const STANDARD_UNAVAILABLE = "Not available on this site.";
 export const STANDARD_NOTE = "Share links come in a later version.";
@@ -101,7 +102,9 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
     <>
       <header className="masthead">
         <div className="page masthead__bar">
-          <span className="wordmark">TOUCHDOWN</span>
+          <span className="wordmark">
+            <Wordmark />
+          </span>
         </div>
       </header>
       <main id="view" className="page page--form first-run">
