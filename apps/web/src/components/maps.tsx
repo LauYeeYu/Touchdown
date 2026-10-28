@@ -33,8 +33,8 @@ export interface MapFlight {
   track?: LonLat[] | null; // recorded track's points; the great circle is drawn when there is none
   line: LonLat[][]; // drawn solid: the recorded stretches, else the great circle
   gaps?: LonLat[][]; // drawn dotted: what a track does not record, joining it to its airports and across its gaps
-  /** Recorded positions far from a neighbour, with both neighbours: a bead where they are far apart on the map. */
-  beads?: { at: LonLat; prev: LonLat | null; next: LonLat | null }[];
+  /** Stretches of recorded positions each far from the next: where they are far apart on the map, they are beads. */
+  beads?: LonLat[][];
 }
 
 export interface MapSpot {
@@ -251,17 +251,12 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, d: path({ type: "LineString", coordinates: g }) ?? "" });
         }
       });
-      // A bead at each recorded position more than 10px from a neighbour, so the real positions show among the lines.
+      // A bead at each recorded position where they are far apart on the map, so the real positions show among the lines.
       const shown = (p: LonLat) => (path({ type: "Point", coordinates: p }) ? (proj(p) as [number, number] | null) : null);
       for (const f of flights) {
-        for (const b of f.beads ?? []) {
-          const xy = shown(b.at);
-          if (!xy) continue;
-          const far = [b.prev, b.next].some((n) => {
-            const q = n && shown(n);
-            return !!q && Math.hypot(q[0] - xy[0], q[1] - xy[1]) > 10;
-          });
-          if (far) el(arcs, "circle", { class: `arc arc--bead${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, cx: xy[0], cy: xy[1], r: 2.4 });
+        for (const run of f.beads ?? []) {
+          const xy = run.map(shown);
+          for (const i of sparsePositions(xy)) el(arcs, "circle", { class: `arc arc--bead${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, cx: xy[i]![0], cy: xy[i]![1], r: 2.4 });
         }
       }
       flights.forEach((f, i) => {
@@ -539,14 +534,30 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
   return <svg className="map" ref={ref} role="img" aria-label={label} />;
 }
 
-/** Positions on screen (null where hidden) at least `px` from a neighbour: where a track's record is sparse. */
-export function sparsePositions(xy: ([number, number] | null)[], px = 10): number[] {
+/**
+ * The positions on screen (null where hidden) that get a bead: those of a stretch where each position is more than
+ * `px` from the next and which is more than `run` long, so its straight joins could pass for recorded line. A lone
+ * short hole in a dense track reads as part of the line and gets none.
+ */
+export function sparsePositions(xy: ([number, number] | null)[], px = 10, run = 24): number[] {
   const out: number[] = [];
-  xy.forEach((q, i) => {
-    if (!q) return;
-    const far = [xy[i - 1], xy[i + 1]].some((n) => n && Math.hypot(n[0] - q[0], n[1] - q[1]) > px);
-    if (far) out.push(i);
-  });
+  let start = -1;
+  let length = 0;
+  const end = (last: number) => {
+    if (start >= 0 && length > run) for (let k = start; k <= last; k++) out.push(k);
+    start = -1;
+    length = 0;
+  };
+  for (let i = 1; i < xy.length; i++) {
+    const a = xy[i - 1];
+    const b = xy[i];
+    const d = a && b ? Math.hypot(b[0] - a[0], b[1] - a[1]) : 0;
+    if (d > px) {
+      if (start < 0) start = i - 1;
+      length += d;
+    } else end(i - 1);
+  }
+  end(xy.length - 1);
   return out;
 }
 

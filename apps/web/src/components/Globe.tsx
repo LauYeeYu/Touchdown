@@ -281,19 +281,20 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
           ctx.stroke();
           ctx.setLineDash([]);
         }
-        // A bead at each recorded position more than 10px from a neighbour (a flight's own page draws its beads from
-        // all its positions, below).
+        // A bead at each recorded position where they are far apart, as on the flat maps (a flight's own page draws
+        // its beads from all its positions, below).
         if (!single && f.beads?.length) {
           ctx.fillStyle = c.flown;
           ctx.strokeStyle = c.paper;
           ctx.lineWidth = 1;
-          for (const b of f.beads) {
-            const xy = shown(b.at);
-            if (!xy || ![b.prev, b.next].some((n) => { const q = n && shown(n); return !!q && Math.hypot(q[0] - xy[0], q[1] - xy[1]) > 10; })) continue;
-            ctx.beginPath();
-            ctx.arc(xy[0], xy[1], 2.4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+          for (const run of f.beads) {
+            const xy = run.map(shown);
+            for (const i of sparsePositions(xy)) {
+              ctx.beginPath();
+              ctx.arc(xy[i]![0], xy[i]![1], 2.4, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+            }
           }
         }
         ctx.globalAlpha = 1;
