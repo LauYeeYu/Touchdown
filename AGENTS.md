@@ -22,6 +22,11 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 - Mark each design statement as Decided, Proposed, or Open when it matters.
 - When something is uncertain, ask the user instead of guessing. Add it to `docs/90-open-questions.md` if it cannot be answered right away.
 
+## Commits
+
+- Break the changes into several commits, one change each.
+- Keep commit messages short. Avoid semicolons: a message that needs one covers more than one change, so split it into more commits.
+
 ## Data and privacy
 
 - Personal data (exports, sheets, FR24 CSV) goes in `data/private/`, which is git-ignored. Never commit it.
