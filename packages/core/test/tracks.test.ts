@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attachTrack, expectedCallsign, fitTrack, nNumberIcao, numericCallsign, readTrackFile, removeTrack, trackFromReadsb, type ReadsbTrace, type TrackPointInput } from "../src/index.ts";
+import { attachTrack, expectedCallsign, fitTrack, nNumberIcao, numericCallsign, parseTrackFileName, readTrackFile, removeTrack, trackFileName, trackFromReadsb, trackKml, type ReadsbTrace, type TrackPointInput } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 // A made-up flight from Boston to New York JFK and tracks drawn along it.
@@ -65,6 +65,29 @@ describe("reading a track file", () => {
     expect(read.provider).toBe("gpx");
     expect(read.points).toHaveLength(4);
     expect(read.points[0]).toMatchObject({ altitudeFt: 328, groundSpeedKt: 194 });
+  });
+
+  it("writes a track as KML that reads back with every value, named so it finds its flight", () => {
+    const pts = line().slice(0, 30);
+    pts[5] = { ...pts[5]!, groundSpeedKt: null };
+    const kml = trackKml(pts, { title: "XY 101 · BOS → JFK · 1 Mar 2026", source: "Track data: adsb.lol (ODbL)" });
+    expect(kml).toContain("<altitudeMode>absolute</altitudeMode>");
+    expect(kml).toContain("XY 101 · BOS → JFK");
+    const name = trackFileName("XY 101", "BOS", "JFK", "2026-03-01", "kml");
+    expect(name).toBe("XY101_BOS_JFK_20260301.kml");
+    expect(parseTrackFileName(name)).toEqual({ flightNumber: "XY101", from: "BOS", to: "JFK", date: "2026-03-01" });
+    const read = readTrackFile(name, kml);
+    if ("error" in read) throw new Error(read.error);
+    expect(read.points).toHaveLength(30);
+    for (const [i, p] of read.points.entries()) {
+      expect(p.t).toBe(pts[i]!.t);
+      expect(p.lat).toBeCloseTo(pts[i]!.lat, 4);
+      expect(p.lon).toBeCloseTo(pts[i]!.lon, 4);
+      // Heights go through whole metres.
+      expect(Math.abs(p.altitudeFt! - pts[i]!.altitudeFt!)).toBeLessThanOrEqual(2);
+      expect(p.groundSpeedKt).toBe(pts[i]!.groundSpeedKt);
+      expect(p.headingDeg).toBe(pts[i]!.headingDeg);
+    }
   });
 
   it("says why a file cannot be used", () => {

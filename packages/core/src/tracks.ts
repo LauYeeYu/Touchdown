@@ -80,9 +80,16 @@ export function parseTrackKml(text: string): TrackPointInput[] {
   for (const m of text.matchAll(/<gx:Track\b[^>]*>([\s\S]*?)<\/gx:Track>/g)) {
     const whens = [...m[1]!.matchAll(/<when>\s*([^<]*?)\s*<\/when>/g)].map((x) => x[1]!);
     const coords = [...m[1]!.matchAll(/<gx:coord>\s*([^<]*?)\s*<\/gx:coord>/g)].map((x) => x[1]!.split(/\s+/).map(Number));
+    // Speed and heading as Touchdown writes them (trackKml), one value per point.
+    const values = (name: string) => {
+      const data = new RegExp(`<gx:SimpleArrayData\\s+name="${name}"[^>]*>([\\s\\S]*?)</gx:SimpleArrayData>`).exec(m[1]!)?.[1] ?? "";
+      return [...data.matchAll(/<gx:value>\s*([^<]*?)\s*<\/gx:value>|<gx:value\s*\/>/g)].map((x) => numberIn(x[1] ?? ""));
+    };
+    const speeds = values("groundSpeedKt");
+    const headings = values("headingDeg");
     for (let i = 0; i < Math.min(whens.length, coords.length); i++) {
       const [lon, lat, altM] = coords[i]!;
-      const p = pointAt(whens[i]!, lon!, lat!, altM === undefined ? null : altM * M_TO_FT, null, null);
+      const p = pointAt(whens[i]!, lon!, lat!, altM === undefined ? null : altM * M_TO_FT, speeds[i] ?? null, headings[i] ?? null);
       if (p) out.push(p);
     }
   }
@@ -111,6 +118,59 @@ export function parseTrackGpx(text: string): TrackPointInput[] {
     if (p) out.push(p);
   }
   return tidy(out);
+}
+
+/** What a track file says about its flight, for its name and description. */
+export interface TrackFileInfo {
+  /** "BA 117 · LHR → JFK · 14 Mar 2025". */
+  title: string;
+  /** Where the track came from (the track's attribution). */
+  source: string | null;
+}
+
+const xml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * A track as KML (docs/23, "Download"): one gx:Track with each point's time and position, its height in metres
+ * when every point has one, and its ground speed and heading as arrays, so Google Earth shows it in 3D and plays it
+ * back, and readTrackFile reads every value back.
+ */
+export function trackKml(points: TrackPointInput[], info: TrackFileInfo): string {
+  const sorted = [...points].sort((a, b) => a.t - b.t);
+  const heights = sorted.every((p) => p.altitudeFt !== null);
+  const when = (t: number) => new Date(t * 1000).toISOString().replace(/\.000Z$/, "Z");
+  const coord = (p: TrackPointInput) => `${p.lon.toFixed(5)} ${p.lat.toFixed(5)}${heights ? ` ${Math.round(p.altitudeFt! / M_TO_FT)}` : ""}`;
+  const array = (name: string, pick: (p: TrackPointInput) => number | null) =>
+    `<gx:SimpleArrayData name="${name}">${sorted.map((p) => (pick(p) === null ? "<gx:value/>" : `<gx:value>${pick(p)}</gx:value>`)).join("")}</gx:SimpleArrayData>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+<Document>
+<name>${xml(info.title)}</name>
+<description>${xml([info.source, "Exported from Touchdown."].filter(Boolean).join(". "))}</description>
+<Style id="track"><LineStyle><color>ff0084c4</color><width>3</width></LineStyle><IconStyle><scale>0</scale></IconStyle></Style>
+<Schema id="touchdown-track">
+<gx:SimpleArrayField name="groundSpeedKt" type="int"><displayName>Ground speed (kt)</displayName></gx:SimpleArrayField>
+<gx:SimpleArrayField name="headingDeg" type="int"><displayName>Heading (degrees)</displayName></gx:SimpleArrayField>
+</Schema>
+<Placemark>
+<name>${xml(info.title)}</name>
+<styleUrl>#track</styleUrl>
+<gx:Track>
+<altitudeMode>${heights ? "absolute" : "clampToGround"}</altitudeMode>
+${sorted.map((p) => `<when>${when(p.t)}</when>`).join("\n")}
+${sorted.map((p) => `<gx:coord>${coord(p)}</gx:coord>`).join("\n")}
+<ExtendedData><SchemaData schemaUrl="#touchdown-track">${array("groundSpeedKt", (p) => p.groundSpeedKt)}${array("headingDeg", (p) => p.headingDeg)}</SchemaData></ExtendedData>
+</gx:Track>
+</Placemark>
+</Document>
+</kml>
+`;
+}
+
+/** A track file's name in Flightradar24's pattern (parseTrackFileName), so the file finds its flight when added back. */
+export function trackFileName(flightNumber: string | null, from: string, to: string, date: string | null, ext: string): string {
+  const flight = (flightNumber ?? "").replace(/\s+/g, "").toUpperCase() || "TRACK";
+  return `${flight}_${from}_${to}_${(date ?? "").replace(/-/g, "")}.${ext}`.replace(/__+/g, "_").replace(/_\./, ".");
 }
 
 export const FR24_ATTRIBUTION = "Track data: Flightradar24, downloaded by the user";

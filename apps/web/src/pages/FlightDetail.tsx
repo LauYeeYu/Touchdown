@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, parseDateTime, readTrackFile, toUtcIso, trackChangeFor, type Flight, type InboxChange } from "@touchdown/core";
+import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, parseDateTime, readTrackFile, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
+import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
@@ -157,6 +158,17 @@ export function FlightDetail() {
     toast("Track removed.");
   };
   const chooseTrack = () => trackInput.current?.click();
+  // The recorded track as KML: it opens in Google Earth in 3D and plays back there, and it reads back in here.
+  const downloadTrack = () => {
+    if (!trackRow || !A || !B) return;
+    const points = store
+      .all("track_points")
+      .filter((p) => p.trackId === trackRow.id)
+      .map((p) => ({ t: p.t, lat: p.lat, lon: p.lon, altitudeFt: p.altitudeFt, groundSpeedKt: p.groundSpeedKt, headingDeg: p.headingDeg }));
+    const title = [f.flightNumber ?? "Flight", `${v.fromCode} → ${v.toCode}`, v.day ? dayMonthYear(v.day) : null].filter(Boolean).join(" · ");
+    const name = trackFileName(f.flightNumber, A.iata ?? A.icao ?? v.fromCode, B.iata ?? B.icao ?? v.toCode, v.day, "kml");
+    download(name, trackKml(points, { title, source: trackRow.attribution }), "application/vnd.google-earth.kml+xml");
+  };
   const pickedPanel = picked && (
     <div className={`finding track-file${"problem" in picked ? " finding--error" : ""}`} role="status">
       <Icon name={"problem" in picked ? "circle-x" : "route"} />
@@ -337,6 +349,7 @@ export function FlightDetail() {
               className="btn btn--quiet btn--small"
               label="Recorded track"
               items={[
+                ...(samples.length > 1 ? [{ label: "Download as KML", icon: <Icon name="download" />, onSelect: downloadTrack }] : []),
                 { label: "Replace with a track file", icon: <Icon name="upload" />, onSelect: chooseTrack },
                 { label: "Remove the track", icon: <Icon name="trash" />, onSelect: dropTrack },
               ]}

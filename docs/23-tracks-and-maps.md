@@ -74,6 +74,10 @@ Decided, built. Flightradar24's tracks are the best, and downloading them is man
 - The helper downloads the tracks by hand, within their source's terms (Flightradar24's are for them to check), and sends the files back. The user adds each on its flight's page (Add track) or with `touchdown track REF FILE`; each file is checked against its flight first.
 - Nobody's log or account is shared: the helper sees only the list and returns only files.
 
+### Download
+
+Decided, built. A flight's Track menu has "Download as KML" once its points are in the browser: one `gx:Track` with each point's time and position, its height in metres when every point has one, and its ground speed and heading as arrays (`trackKml` in core). Google Earth shows it in 3D and plays it back over time. The file is named in Flightradar24's pattern (`XY101_BOS_JFK_20260301.kml`) and says where the track came from, so adding it back finds its flight and keeps every value. KML rather than CSV: it opens in a map as it is, and CSV would add nothing it does not hold.
+
 ### Plausibility checks on any track
 
 - Starts and ends near the right airports.
