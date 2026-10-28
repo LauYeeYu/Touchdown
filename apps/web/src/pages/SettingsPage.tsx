@@ -1,7 +1,7 @@
 // Settings (docs/31-ui.md): account and, for the owner, people (docs/33), display, sync mode (docs/32), data
 // (backup, restore, CSV, delete), family overrides, sources. The agent check's settings belong to the CLI on each computer (docs/22).
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
 import type { AppData } from "../data/app.ts";
@@ -77,7 +77,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
     if (!picked) return;
     const { connection } = picked;
     const hasLog = app.store.count("flights") + app.store.count("sightings") > 0;
-    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged; where both changed the same entry, the later change is kept and the other is kept in the log's history. Continue?`)) return;
+    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged. Where both changed the same entry, the later change is kept and the other goes to the log's history. Continue?`)) return;
     setBusy(true);
     await app.connect(connection);
     setBusy(false);
@@ -210,7 +210,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           {sync.state === "update" && (
             <p className="status-line status-line--error">
               <Icon name="rotate-cw" />
-              <span>A newer version of Touchdown has changed your log in {sync.place}. Reload the page to update the app; your changes are kept in this browser and sent after the reload.</span>
+              <span>A newer version of Touchdown has changed your log in {sync.place}. Reload the page to update the app. Your changes are kept in this browser and sent after the reload.</span>
             </p>
           )}
           {sync.tables && !sync.tracks && notHere > 0 && (
@@ -223,8 +223,21 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line status-line--error">
               <Icon name="circle-alert" />
               <span>
-                Left alone because they could not be read: {sync.problems.slice(0, 3).join("; ")}
-                {sync.problems.length > 3 ? `; and ${sync.problems.length - 3} more` : ""}. Restore them from a backup in {sync.place}, or fix them there.
+                Left alone because they could not be read:
+                {sync.problems.slice(0, 3).map((p) => (
+                  <Fragment key={p}>
+                    <br />
+                    {p}
+                  </Fragment>
+                ))}
+                {sync.problems.length > 3 && (
+                  <>
+                    <br />
+                    and {sync.problems.length - 3} more
+                  </>
+                )}
+                <br />
+                Restore them from a backup in {sync.place}, or fix them there.
               </span>
             </p>
           )}
@@ -291,7 +304,7 @@ export function SettingsPage() {
       return;
     }
     const n = (back.tables.get("flights")?.length ?? 0) + (back.tables.get("sightings")?.length ?? 0);
-    const merged = app.connection && app.connection.mode !== "local" ? " Your folder's log is then merged in at the next sync; where both changed the same entry, the later change is kept." : "";
+    const merged = app.connection && app.connection.mode !== "local" ? " Your folder's log is then merged in at the next sync. Where both changed the same entry, the later change is kept." : "";
     if (!window.confirm(`Replace everything in this browser with the backup (${plural(n, "flight or sighting", "flights and sightings")})?${merged} Export a backup of the current data first if you might need it.`)) return;
     await app.replaceAll(back.tables);
     location.reload();

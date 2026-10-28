@@ -134,20 +134,21 @@ export function Flights() {
                   </Fig>
                   , {distance(longest.km, unit)}
                 </span>
+                .
               </>
             )}
             {topRoute && topRoute.count > 1 && (
               <>
-                ; the route you flew most was{" "}
+                {longest?.km && longest.route ? " " : ""}The route you flew most was{" "}
                 <span className="phrase phrase--flown" {...bind(topRoute.key)}>
                   <Fig>
                     {ra} ⇄ {rb}
                   </Fig>
                   , {plural(topRoute.count, "time")}
                 </span>
+                .
               </>
             )}
-            {longest?.km ? "." : ""}
           </>
         ) : (
           `No flights logged in ${year === "all" ? "your log" : year}.`

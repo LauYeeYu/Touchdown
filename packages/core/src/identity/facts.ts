@@ -144,11 +144,11 @@ export function factsMismatch(store: Store, ref: RefIndex, a: Airframe, facts: A
   const dates = recordDatesOf(store, a.id);
   const first = dates[0];
   if (first && facts.firstFlightDate && first < facts.firstFlightDate) {
-    return `that aircraft first flew on ${facts.firstFlightDate}, after your record of ${first}; the registration probably belonged to another aircraft then`;
+    return `that aircraft first flew on ${facts.firstFlightDate}, after your record of ${first}, so the registration probably belonged to another aircraft then`;
   }
   if (first && facts.notBefore && first < facts.notBefore) {
     const after = facts.notBeforeLabel?.endsWith(" after") ? "" : ", after";
-    return `that aircraft ${facts.notBeforeLabel ?? `dates from ${facts.notBefore}`}${after} your record of ${first}; the registration probably belonged to another aircraft then`;
+    return `that aircraft ${facts.notBeforeLabel ?? `dates from ${facts.notBefore}`}${after} your record of ${first}, so the registration probably belonged to another aircraft then`;
   }
   const key = registrationMatchForm(facts.registration);
   const spans = facts.registrations.filter((s) => registrationMatchForm(s.registration) === key && (s.from || s.to));

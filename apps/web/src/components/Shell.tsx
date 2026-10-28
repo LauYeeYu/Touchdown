@@ -33,7 +33,7 @@ export const clause = (message: string | null) => (message ?? "").replace(/\.+$/
 
 /** Recorded tracks the browser's copy does not have yet, as a sentence; "" when there are none. */
 export const tracksToComeText = (n: number, place: string) =>
-  n > 0 ? `${plural(n, "recorded track is", "recorded tracks are")} not in this browser yet; ${n === 1 ? "it is" : "they are"} read from ${place} at the next sync, and until then ${n === 1 ? "its flight shows" : "their flights show"} the great circle.` : "";
+  n > 0 ? `${plural(n, "recorded track is", "recorded tracks are")} not in this browser yet. ${n === 1 ? "It is" : "They are"} read from ${place} at the next sync, and until then ${n === 1 ? "its flight shows" : "their flights show"} the great circle.` : "";
 
 /** The masthead's save and sync state: its words, its tooltip, its icon. */
 function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, notHere: number): { text: string; title: string; icon: IconName; bad: boolean } {
@@ -63,7 +63,7 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, 
       return { text: "Syncing…", title: `Syncing with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
     default:
       return sync.waiting > 0 || saving === "saving"
-        ? { text: "Saved, not synced yet", title: `Saved in this browser; sent to ${sync.place} in a moment.${last}`, icon: drive ? "cloud-upload" : "folder-up", bad: false }
+        ? { text: "Saved, not synced yet", title: `Saved in this browser and sent to ${sync.place} in a moment.${last}`, icon: drive ? "cloud-upload" : "folder-up", bad: false }
         : { text: "Synced", title: `Synced with ${sync.place}.${last}`, icon: drive ? "cloud-check" : "folder-check", bad: false };
   }
 }
@@ -335,7 +335,7 @@ export function Shell() {
       </main>
       <footer className="site-foot">
         <div className="page">
-          <p>{sync ? `Your log syncs through ${sync.place}; this browser holds a copy.` : "Your log is stored in this browser. Export a backup from Settings."}</p>
+          <p>{sync ? `Your log syncs through ${sync.place}, and this browser holds a copy.` : "Your log is stored in this browser. Export a backup from Settings."}</p>
           <p>
             Airports: OurAirports (public domain) and airportsdata (MIT). Airlines: Wikidata (CC0) and the Mictronics aircraft database (ODC-By). Aircraft facts: the OpenSky Network aircraft database and adsbdb (data from PlaneBase). Map: Natural Earth (public domain) via world-atlas. Aircraft photos from{" "}
             <a href="https://www.planespotters.net/" rel="noopener" target="_blank">

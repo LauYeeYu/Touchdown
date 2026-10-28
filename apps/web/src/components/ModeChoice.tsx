@@ -30,7 +30,7 @@ const STORAGES: Option<StorageKind>[] = [
 
 /** What each storage asks of the user, shown under the choice. */
 export const STORAGE_NOTE: Record<StorageKind, string> = {
-  gdrive: "Touchdown makes a Touchdown folder in your Google Drive and can only open the files it creates. Each sign-in lasts an hour; sync then waits until you sign in again.",
+  gdrive: "Touchdown makes a Touchdown folder in your Google Drive and can only open the files it creates. Each sign-in lasts an hour, then sync waits until you sign in again.",
   localfs: "Touchdown makes a Touchdown folder inside the folder you choose.",
 };
 

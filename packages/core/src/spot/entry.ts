@@ -178,7 +178,7 @@ export function parseSpotLine(line: string, ref: RefIndex, today: string): SpotL
   const rest: string[] = [];
   const set = (field: SpotField, value: string) => {
     const cur = out.typed[field];
-    if (cur && cur !== value) out.problems.push(`Two values for the ${SPOT_FIELD_LABEL[field]}: ${cur} and ${value}; ${cur} kept.`);
+    if (cur && cur !== value) out.problems.push(`Two values for the ${SPOT_FIELD_LABEL[field]}: ${cur} and ${value}. The first is kept.`);
     else out.typed[field] = value;
   };
   for (let i = 0; i < tokens.length; i++) {
@@ -229,7 +229,7 @@ export function parseSpotLine(line: string, ref: RefIndex, today: string): SpotL
     }
     rest.push(t);
   }
-  out.text = [...quoted, rest.join(" ")].filter(Boolean).join("; ");
+  out.text = [...quoted, rest.join(" ")].filter(Boolean).join(" · ");
   if (out.typed.date && out.typed.date > today) out.problems.push(`${out.typed.date} is in the future.`);
   if (!out.typed.registration) {
     const keys = Object.keys(out.typed);
@@ -484,12 +484,12 @@ export function chooseValues(typed: SpotValues, evidence: Evidence[], ref: RefIn
 // For serial numbers, a source that shows them on a page the user can check comes first.
 const factRank = (e: Evidence) => ({ fr24: 0, opensky: 1, adsbdb: 2, your_log: 3 })[e.source];
 
-/** "airline: Flightradar24 says BAW, OpenSky says SHT; BAW kept". */
+/** "airline: Flightradar24 says BAW, OpenSky says SHT. BAW is kept." */
 export function describeDisagreement(d: Disagreement): string {
   const others = d.others.map((o) => `${SOURCE_NAME[o.source]} says ${o.value}`).join(", ");
   const kept = d.keptFrom === "you" ? `you typed ${d.kept}` : `${SOURCE_NAME[d.keptFrom]} says ${d.kept}`;
   const why = d.otherAircraft ? " That is another kind of aircraft: the registration may have been reused, or the type mistyped." : "";
-  return `${SPOT_FIELD_LABEL[d.field]}: ${kept}, ${others}; ${d.kept} kept.${why}`;
+  return `${SPOT_FIELD_LABEL[d.field]}: ${kept}, ${others}. ${d.kept} is kept.${why}`;
 }
 
 /** Fields the user should supply: wanted and still empty. */

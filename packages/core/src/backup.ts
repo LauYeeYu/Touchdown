@@ -43,7 +43,7 @@ export function readBackup(data: Uint8Array): BackupContents {
   }
   out.schemaVersion = manifest.schemaVersion ?? null;
   if ((manifest.schemaVersion ?? 0) > SCHEMA_VERSION) {
-    out.problems.push(`The backup uses schema version ${manifest.schemaVersion}; this app understands up to ${SCHEMA_VERSION}. Reload the app to update it.`);
+    out.problems.push(`The backup uses schema version ${manifest.schemaVersion}, and this app understands only up to ${SCHEMA_VERSION}. Reload the app to update it.`);
     return out;
   }
   const base = manifestPath.slice(0, -"manifest.json".length);

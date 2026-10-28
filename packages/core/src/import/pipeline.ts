@@ -223,7 +223,7 @@ function mergeSighting(store: Store, targetId: string, v: Partial<SightingValues
   addPhases(store, cur.id, [v.phase]);
   const notes = [cur.notes];
   if (v.notes && v.notes !== cur.notes) notes.push(v.notes);
-  const joined = [...new Set(notes.filter(Boolean))].join("; ");
+  const joined = [...new Set(notes.filter(Boolean))].join(" · ");
   if (joined !== (cur.notes ?? "")) patch.notes = joined || null;
   if (Object.keys(patch).length) store.update("sightings", cur.id, patch as never);
   const have = new Set(store.all("sighting_tags").filter((t) => t.sightingId === cur.id).map((t) => t.tag));

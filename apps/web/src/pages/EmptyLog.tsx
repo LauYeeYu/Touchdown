@@ -39,7 +39,7 @@ export function EmptyLog() {
           <Icon name="tickets-plane" />
           <span>
             <b>Add a flight</b>
-            <span>Flight number and date first; the rest is optional.</span>
+            <span>Flight number and date first. The rest is optional.</span>
           </span>
         </Link>
         <Link className="start__item" to="/spotting/session">

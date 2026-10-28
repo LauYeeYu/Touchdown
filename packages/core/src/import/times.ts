@@ -81,7 +81,7 @@ export function buildFlightTimes(x: ClockInputs): BuiltTimes {
           const impliedTakeoff = hhmm(clockMinutes(landingClock) - x.durationMin - destOffset + originOffset);
           const twelve = Math.abs(clockMinutes(impliedTakeoff) - clockMinutes(takeoffClock!)) === 720;
           const hint = twelve
-            ? ` Landing ${landingClock} minus the duration gives takeoff ${impliedTakeoff}; ${takeoffClock} looks like a 12-hour clock slip.`
+            ? ` Landing ${landingClock} minus the duration gives takeoff ${impliedTakeoff}, so ${takeoffClock} looks like a 12-hour clock slip.`
             : ` Landing ${landingClock} minus the duration gives takeoff ${impliedTakeoff}.`;
           issues.push({
             ruleId: "I-SOURCE-DIFF",

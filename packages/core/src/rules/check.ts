@@ -94,7 +94,7 @@ function checkAircraftFields(
       out.add("V-REG-FORMAT", "warning", [r], ["registration"], `${rec.registration} does not match any known national registration format.`, [rec.registration]);
     }
     if (n?.country && operatorCountry && n.country !== operatorCountry) {
-      out.add("V-REG-COUNTRY", "info", [r], ["registration"], `${rec.registration} is registered in ${countryLabel(n.country)}; the airline is from ${countryLabel(operatorCountry)}. Common with leased aircraft.`, [rec.registration, operatorCountry]);
+      out.add("V-REG-COUNTRY", "info", [r], ["registration"], `${rec.registration} is registered in ${countryLabel(n.country)}, and the airline is from ${countryLabel(operatorCountry)}. Common with leased aircraft.`, [rec.registration, operatorCountry]);
     }
   }
   if (rec.typeCode && !ref.type(rec.typeCode)) {
@@ -336,7 +336,7 @@ function checkCross(
   // C-DUP-SIGHTING: same date + registration + location.
   for (const [, list] of groupBy(sightings, (s) => (s.registration && s.seenOn ? `${s.seenOn}|${s.registration}|${s.airportId ?? s.airportRaw ?? ""}` : null))) {
     if (list.length > 1) {
-      out.add("C-DUP-SIGHTING", "info", list.map((s) => S(s.id)), ["registration"], `${sightingLabel(list[0]!)} is logged ${list.length} times at the same place. One sighting per aircraft per place per day; keep both only if that is intended.`, []);
+      out.add("C-DUP-SIGHTING", "info", list.map((s) => S(s.id)), ["registration"], `${sightingLabel(list[0]!)} is logged ${list.length} times at the same place. One sighting per aircraft per place per day is usual. Keep both only if that is intended.`, []);
     }
   }
   // C-DUP-TICKET: same ticket number and coupon. The number itself is private and never shown.

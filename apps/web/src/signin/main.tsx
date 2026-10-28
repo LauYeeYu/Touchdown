@@ -202,7 +202,7 @@ function Join({ site, token }: { site: Site; token: string }) {
         query={() => {
           const name = (document.querySelector<HTMLInputElement>("input[name=name]")?.value ?? "").trim();
           if (!name) {
-            setProblem("Enter your name first; Google is used only to sign in.");
+            setProblem("Enter your name first. Google is used only to sign in.");
             return null;
           }
           return `invite=${encodeURIComponent(token)}&name=${encodeURIComponent(name)}`;

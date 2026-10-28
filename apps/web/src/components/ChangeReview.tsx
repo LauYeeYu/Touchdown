@@ -92,7 +92,7 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
                   <Icon name={p.status === "changed" ? "triangle-alert" : "info"} />
                   <span>
                     {p.note}
-                    {p.status === "changed" && " Tick it to make the change anyway; what was changed since is kept where the change does not touch it."}
+                    {p.status === "changed" && " Tick it to make the change anyway. What was changed since is kept where the change does not touch it."}
                   </span>
                 </p>
               )}
@@ -118,7 +118,7 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
       )}
       <div className="commit-bar">
         <p>
-          {plural(taken.length, "change")} will be made{taken.length < plan.open ? `, ${plan.open - taken.length} left out` : ""}. Nothing changes until you import; the import can be undone in the history.
+          {plural(taken.length, "change")} will be made{taken.length < plan.open ? `, ${plan.open - taken.length} left out` : ""}. Nothing changes until you import, and the import can be undone in the history.
         </p>
         <div className="commit-bar__actions">
           {fromInbox && (

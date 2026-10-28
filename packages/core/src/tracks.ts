@@ -398,7 +398,7 @@ export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefInde
     const gc = haversineKm(a, b);
     const km = trackDistanceKm(points);
     if (points.length < MIN_PARTIAL_POINTS || (gc && km < gc * MIN_PARTIAL_SHARE)) {
-      return { problem: `The track covers too little of the flight to draw (${Math.round(km)} of ${Math.round(gc)} km); the great circle stays.` };
+      return { problem: `The track covers too little of the flight to draw (${Math.round(km)} of ${Math.round(gc)} km), so the great circle stays.` };
     }
   }
   return { coverage, startKm, endKm };

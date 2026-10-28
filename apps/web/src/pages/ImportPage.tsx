@@ -79,7 +79,7 @@ function readJsonFile(buf: Uint8Array, name: string, app: AppData): { source: Pa
 
 /** "2 flights not in your log yet", "3 changes to make", or both. */
 const waitingText = (w: WaitingSession) =>
-  [w.flights + w.sightings ? `${recordsText(w.flights, w.sightings)} not in your log yet` : null, w.changing ? `${plural(w.changing, "change")} to make` : null].filter(Boolean).join("; ");
+  [w.flights + w.sightings ? `${recordsText(w.flights, w.sightings)} not in your log yet` : null, w.changing ? `${plural(w.changing, "change")} to make` : null].filter(Boolean).join(" and ");
 
 const show = (field: string, v: unknown) => (PRIVATE.has(field) ? "(private)" : v === null || v === undefined ? "—" : String(v));
 
@@ -375,7 +375,7 @@ export function ImportPage() {
         <h1 className="form-title">Review {source.fileName}</h1>
         <p className="lead lead--flight">
           A {FORMAT_LABEL[source.format]} with {plural(source.rowsRead, "row")}: {plural(counts.new, "new record")}, {plural(counts.update, "record")} that {counts.update === 1 ? "fills" : "fill"} gaps, {plural(counts.conflict, "record")} that {counts.conflict === 1 ? "disagrees" : "disagree"} with your log, and {counts.identical} already there.
-          {counts.duplicate > 0 && ` ${plural(counts.duplicate, "row repeats", "rows repeat")} an aircraft already seen at the same place that day; ${counts.duplicate === 1 ? "it is" : "they are"} merged into the first row.`}
+          {counts.duplicate > 0 && ` ${plural(counts.duplicate, "row repeats", "rows repeat")} an aircraft already seen at the same place that day. ${counts.duplicate === 1 ? "It is" : "They are"} merged into the first row.`}
         </p>
         {source.format === "sheet" && columns && (
           <p className="form-sub">
@@ -647,7 +647,7 @@ export function ImportPage() {
             <Icon name="circle-check" />
             <span>
               Imported {plural(result.created, "new record")} and filled in {plural(result.updated, "record")}
-              {result.skipped ? `; ${result.skipped} skipped or already there` : ""}. <Link to="/issues">See what to review</Link>.
+              . {result.skipped ? `${result.skipped} ${result.skipped === 1 ? "was" : "were"} skipped or already there. ` : ""}<Link to="/issues">See what to review</Link>.
             </span>
           </p>
         </div>

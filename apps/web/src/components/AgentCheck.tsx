@@ -110,7 +110,7 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
         {(result.rejected.length > 0 || failed > 0) && (
           <p className="agent-panel__note">
             {result.rejected.length > 0 && `${plural(result.rejected.length, "answer")} did not pass Touchdown's checks and ${result.rejected.length === 1 ? "is" : "are"} not shown. `}
-            {failed > 0 && `${plural(failed, "row")} got no answer; run the check again to cover them.`}
+            {failed > 0 && `${plural(failed, "row")} got no answer. Run the check again to cover them.`}
           </p>
         )}
         <div className="button-row">
@@ -176,7 +176,7 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
               className="icon-btn agent-command__copy"
               aria-label="Copy the command"
               title="Copy the command"
-              onClick={() => void navigator.clipboard?.writeText(command).then(() => toast("Command copied."), () => toast("Could not copy; select the command instead."))}
+              onClick={() => void navigator.clipboard?.writeText(command).then(() => toast("Command copied."), () => toast("Could not copy. Select the command instead."))}
             >
               <Icon name="copy" />
             </button>
@@ -191,7 +191,7 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
         </li>
       </ol>
       <p className="agent-panel__note">
-        Sent to the agent: dates, airports, flight numbers, registrations, types, models, operators, liveries and phases; notes only after <code>./touchdown agent notes on</code>. Never ticket numbers, booking references, seats or photo links. The agent and its rules are set with <code>./touchdown agent</code>.
+        Sent to the agent: dates, airports, flight numbers, registrations, types, models, operators, liveries and phases. Notes are sent only after <code>./touchdown agent notes on</code>. Never ticket numbers, booking references, seats or photo links. The agent and its rules are set with <code>./touchdown agent</code>.
       </p>
       {loader}
       {error && <p className="agent-panel__error" role="alert">{error}</p>}

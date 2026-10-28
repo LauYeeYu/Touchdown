@@ -23,7 +23,7 @@ const decoder = new TextDecoder();
 
 export class SchemaTooNewError extends Error {
   constructor(readonly stored: number) {
-    super(`The log uses schema version ${stored}; this version of Touchdown understands up to ${SCHEMA_VERSION}. Reload to update the app.`);
+    super(`The log uses schema version ${stored}, and this version of Touchdown understands only up to ${SCHEMA_VERSION}. Reload to update the app.`);
   }
 }
 
@@ -203,7 +203,7 @@ export class JsonTablesBackend implements Backend {
     const file = await this.files.read(trackPath(trackId));
     if (!file) return [];
     const parsed = parseTable(file.data, "track_points");
-    if ("problems" in parsed) throw new Error(parsed.problems.slice(0, 3).join("; "));
+    if ("problems" in parsed) throw new Error(parsed.problems.slice(0, 3).join(", "));
     return parsed.rows;
   }
 

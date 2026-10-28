@@ -174,7 +174,7 @@ export function Issues() {
           ? "Nothing to review. Every check passed or was accepted."
           : sentence(conflicts.length, count("error"), count("warning"))}
       </h1>
-      <p className="form-sub">Checks never block saving. Fix what is wrong, or mark a warning as right; it comes back only if the values change.</p>
+      <p className="form-sub">Checks never block saving. Fix what is wrong, or mark a warning as right. It comes back only if the values change.</p>
       <Tabs
         label="Issues"
         value={tab}
@@ -192,7 +192,7 @@ export function Issues() {
                 <h2 className="section__title">Changed on two devices</h2>
                 <span className="section__aside">{plural(conflicts.length, "field")}</span>
               </div>
-              <p className="form-sub">Each was changed on two devices before either saw the other's change. Your log has the later one; choose which to keep.</p>
+              <p className="form-sub">Each was changed on two devices before either saw the other's change. Your log has the later one. Choose which to keep.</p>
               <ul className="findings">
                 {conflicts.map((c) => (
                   <ConflictItem key={c.id} c={c} app={app} />

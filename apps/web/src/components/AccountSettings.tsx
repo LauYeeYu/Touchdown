@@ -24,7 +24,7 @@ function LinkBox({ link, note }: { link: Link; note: string }) {
           className="icon-btn link-box__copy"
           aria-label="Copy the link"
           title="Copy the link"
-          onClick={() => void navigator.clipboard?.writeText(link.link).then(() => toast("Link copied."), () => toast("Could not copy; select the link instead."))}
+          onClick={() => void navigator.clipboard?.writeText(link.link).then(() => toast("Link copied."), () => toast("Could not copy. Select the link instead."))}
         >
           <Icon name="copy" />
         </button>
@@ -41,7 +41,7 @@ function InvitationMessage({ link }: { link: Link }) {
       <small>A message to send with it, with how to start with the command line:</small>
       <textarea className="input textarea invite-message__text" readOnly rows={15} value={text} onFocus={(e) => e.currentTarget.select()} aria-label="Invitation message" />
       <div className="button-row">
-        <button type="button" className="btn btn--quiet btn--small" onClick={() => void navigator.clipboard?.writeText(text).then(() => toast("Message copied."), () => toast("Could not copy; select the message instead."))}>
+        <button type="button" className="btn btn--quiet btn--small" onClick={() => void navigator.clipboard?.writeText(text).then(() => toast("Message copied."), () => toast("Could not copy. Select the message instead."))}>
           <Icon name="copy" />
           Copy message
         </button>
@@ -327,7 +327,7 @@ function PeopleSection({ me }: { me: Me }) {
   return (
     <>
       <h2 className="form-section">People</h2>
-      <p className="form-sub">Only people you invite can use this site. An invitation is a link you send yourself; it works once, for 7 days.</p>
+      <p className="form-sub">Only people you invite can use this site. An invitation is a link you send yourself. It works once, for 7 days.</p>
       <form
         className="inline-form"
         onSubmit={(e) => {
@@ -357,7 +357,7 @@ function PeopleSection({ me }: { me: Me }) {
               <li key={i.id} className="history-row">
                 <span>
                   {i.note || "Invitation"}
-                  <small>Made {when(i.createdAt)}; works until {when(i.expiresAt)}</small>
+                  <small>Made {when(i.createdAt)} · works until {when(i.expiresAt)}</small>
                 </span>
                 <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.withdraw(i.id).then(load, (e: unknown) => toast(message(e)))}>
                   Withdraw
@@ -376,7 +376,7 @@ function PeopleSection({ me }: { me: Me }) {
               {p.name}
               {p.role === "owner" ? " (owner)" : ""}
               <small>
-                {p.email}; {[p.password && "password", p.google && "Google"].filter(Boolean).join(" and ") || "no sign-in method"}; last signed in {when(p.lastSeenAt)}
+                {p.email} · {[p.password && "password", p.google && "Google"].filter(Boolean).join(" and ") || "no sign-in method"} · last signed in {when(p.lastSeenAt)}
               </small>
             </span>
             {p.id !== me.id && (

@@ -218,7 +218,7 @@ export function FlightDetail() {
     <>
       {track ? (
         <>
-          <span className="legend__item" title={`Solid where positions were received; a bead marks each position where they are far apart. Point at one for the aircraft's state there.${trackRow?.attribution ? ` ${trackRow.attribution}` : ""}`}>
+          <span className="legend__item" title={`Solid where positions were received. A bead marks each position where they are far apart. Point at one for the aircraft's state there.${trackRow?.attribution ? ` ${trackRow.attribution}` : ""}`}>
             <span className="swatch-line swatch-line--beads" />
             Recorded track
           </span>

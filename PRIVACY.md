@@ -18,7 +18,7 @@ The server runs on Cloudflare and keeps these, per account, in its database:
 |---|---|
 | Name and email address | To show who you are, and to sign you in. |
 | Whether you are the owner or a member | The owner invites and removes people. |
-| A hash of your password key | To check your password. Your browser turns the password into a key before sending it; the password itself never leaves your browser, and the server stores only a hash of the key. |
+| A hash of your password key | To check your password. Your browser turns the password into a key before sending it. The password itself never leaves your browser, and the server stores only a hash of the key. |
 | Your Google account id and Google email address, if you sign in with Google, or connect Google Drive in Standard mode (that Google account then also signs you in) | To recognise your Google account. |
 | Your sign-in sessions: a hash of each session's random token, when it began and was last used, and a short device label such as "Chrome on macOS", or "Command line on macOS" for the command-line tools | To keep you signed in, and to list where you are signed in. |
 | When you last signed in, and how many wrong passwords were entered in a row | To show the owner when members were last active, and to slow down password guessing. |
@@ -42,7 +42,7 @@ The owner can see the list of members: names, email addresses, how each signs in
 
 Touchdown uses Google in three ways, each only if you choose it:
 
-1. **Google Drive, to sync your log (Private mode).** Touchdown asks for the `drive.file` permission, which lets it see and change only the files it creates in your Drive (a Touchdown folder) or files you pick. It cannot see your other files. The access Google gives lasts an hour and stays in your browser; it is not sent to Touchdown's server. If you give it to Touchdown's command-line tools on your computer, your browser passes it to them directly, and they keep it on your computer until the hour is over.
+1. **Google Drive, to sync your log (Private mode).** Touchdown asks for the `drive.file` permission, which lets it see and change only the files it creates in your Drive (a Touchdown folder) or files you pick. It cannot see your other files. The access Google gives lasts an hour and stays in your browser. It is not sent to Touchdown's server. If you give it to Touchdown's command-line tools on your computer, your browser passes it to them directly, and they keep it on your computer until the hour is over.
 2. **Signing in with Google.** Touchdown asks for your Google account id and verified email address (the `openid` and `email` permissions). The server stores them to recognise your account. It does not keep any Google tokens for this.
 3. **Google Drive in Standard mode.** Touchdown asks Google for lasting access to the files it creates in your Drive (`drive.file`, with offline access), and keeps that key on the server, encrypted. It is described below.
 
@@ -69,10 +69,10 @@ Standard mode is offered only after you accept its terms, which say the same as 
 
 The site uses [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) to count how it is used. When a page opens, including moving between pages in the app, your browser sends Cloudflare:
 
-- the page's address, which can name an aircraft registration, or a flight's date and airports;
-- the address of the site that sent you there, if any;
-- your browser, system and type of device, and the country your connection comes from;
-- how long the page took to load.
+- the page's address, which can name an aircraft registration, or a flight's date and airports
+- the address of the site that sent you there, if any
+- your browser, system and type of device, and the country your connection comes from
+- how long the page took to load
 
 It sets no cookies, keeps no profile of you, and does not tie views to your account. The owner sees totals: views per page, per country, per device, and loading times. Cloudflare handles this under its [privacy policy](https://www.cloudflare.com/privacypolicy/).
 
@@ -82,7 +82,7 @@ Touchdown sets one cookie to keep you signed in (`td_session`), and a short-live
 
 ## Keeping and deleting
 
-- Your account is kept until the owner removes it; ask the owner if you want it removed. Removing it deletes your account, your sign-in methods, your sessions and any Standard mode key from the server at once.
+- Your account is kept until the owner removes it. Ask the owner if you want it removed. Removing it deletes your account, your sign-in methods, your sessions and any Standard mode key from the server at once.
 - Your log in your own storage is yours to keep or delete there.
 - Settings → "Delete all data in this browser" removes the browser's copy. Signing out removes it too in Private mode, once everything has synced.
 

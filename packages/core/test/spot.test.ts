@@ -32,7 +32,7 @@ describe("reading a typed line", () => {
   it("reads place, date, airline, type and keeps the rest as text", () => {
     const l = parseSpotLine('D-ABCD at FRA on 15/03/2025 DLH A21N "Retro livery" nice light', ref, TODAY);
     expect(l.typed).toEqual({ registration: "D-ABCD", airport: "EDDF", date: "2025-03-15", operator: "DLH", typeCode: "A21N" });
-    expect(l.text).toBe("Retro livery; nice light");
+    expect(l.text).toBe("Retro livery · nice light");
   });
 
   it("takes an IATA airline code only in capitals, a model, and two-word phases", () => {

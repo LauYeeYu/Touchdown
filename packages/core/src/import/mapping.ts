@@ -353,7 +353,7 @@ function sightingRow(get: Get, raw: Record<string, string | null>, sourceRow: nu
   const issues: ImportIssue[] = [];
   const status = get("phase")?.trim() ?? "";
   const special = get("specialLivery");
-  const text = [get("notes"), get("other")].filter(Boolean).join("; ");
+  const text = [get("notes"), get("other")].filter(Boolean).join(" · ");
   const split = splitSightingText(text, special);
   const values = normaliseSighting(
     {
@@ -366,15 +366,15 @@ function sightingRow(get: Get, raw: Record<string, string | null>, sourceRow: nu
       phase: status ? (phaseOf(status) ?? "other") : null,
       specialLivery: special,
       livery: get("livery") ?? split.livery,
-      notes: split.notes.join("; ") || null,
+      notes: split.notes.join(" · ") || null,
       sourceKind: "sheet",
       sourceRow,
     },
     ref,
   );
-  if (status && !phaseOf(status)) issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "phase", message: `Status "${status}" is not a known phase; stored as "other".` });
+  if (status && !phaseOf(status)) issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "phase", message: `Status "${status}" is not a known phase, so it is stored as "other".` });
   if (!values.operatorId && looksLikeOperatorName(values.operatorRaw)) {
-    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "operatorId", message: `"${values.operatorRaw}" is a name, not an airline code; it is added as an operator.` });
+    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "operatorId", message: `"${values.operatorRaw}" is a name, not an airline code, so it is added as an operator.` });
   }
   // The country is the registration country: compared with the prefix, not stored (Q-COUNTRY).
   const country = get("country");
@@ -383,7 +383,7 @@ function sightingRow(get: Get, raw: Record<string, string | null>, sourceRow: nu
   // Hong Kong and Macau registrations are commonly filed under China.
   const sameCountry = sheetCountry === regCountry || (sheetCountry === "CN" && (regCountry === "HK" || regCountry === "MO"));
   if (country && sheetCountry && regCountry && !sameCountry) {
-    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "warning", field: "registration", message: `The sheet says the registration country is ${country}; ${values.registration} has the ${regCountry} prefix.` });
+    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "warning", field: "registration", message: `The sheet says the registration country is ${country}, but ${values.registration} has the ${regCountry} prefix.` });
   }
   return { table: "sightings", sourceRow, raw, values, issues, external: [], airframeFacts: {}, tags: split.tags };
 }
@@ -411,7 +411,7 @@ function flightRow(get: Get, raw: Record<string, string | null>, sourceRow: numb
       registrationRaw: get("registration"),
       specialLivery: get("specialLivery"),
       livery: get("livery"),
-      notes: [get("notes"), get("other")].filter(Boolean).join("; ") || null,
+      notes: [get("notes"), get("other")].filter(Boolean).join(" · ") || null,
       sourceKind: "sheet",
       sourceRow,
     },
@@ -437,7 +437,7 @@ function flightRow(get: Get, raw: Record<string, string | null>, sourceRow: numb
   if (from && to && Number.isFinite(sheetKm) && sheetKm > 0) {
     const gc = haversineKm(from, to);
     if (Math.abs(sheetKm - gc) / gc > 0.03) {
-      issues.push({ ruleId: "V-DISTANCE-DIFF", severity: "info", field: null, message: `The sheet says ${sheetKm} km; the great-circle distance is ${Math.round(gc)} km. The great-circle distance is used.` });
+      issues.push({ ruleId: "V-DISTANCE-DIFF", severity: "info", field: null, message: `The sheet says ${sheetKm} km, but the great-circle distance is ${Math.round(gc)} km. The great-circle distance is used.` });
     }
   }
   const airframeFacts: FlightCandidate["airframeFacts"] = {};
@@ -458,7 +458,7 @@ export function readMapped(sheet: SheetData, mapping: { kind: RowKind; fields: C
   const candidates = sheet.rows.map((row, i) => {
     const get: Get = (f) => {
       const parts = (columnsOf.get(f) ?? []).map((c) => cellText(row[c])).filter((v): v is string => !!v);
-      return parts.length ? parts.join("; ") : null;
+      return parts.length ? parts.join(" · ") : null;
     };
     const raw = rawRecord(sheet.header, row);
     return mapping.kind === "flights" ? flightRow(get, raw, sheet.firstRow + i, ref) : sightingRow(get, raw, sheet.firstRow + i, ref);

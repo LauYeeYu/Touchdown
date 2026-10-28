@@ -274,7 +274,7 @@ export function AircraftDetail() {
                 ) : (
                   <p className="muted">{pasted.msn || pasted.firstFlightDate ? "Nothing new: these values are already saved." : "No serial number or dates found in this text."}</p>
                 )}
-                {pasted.firstFlightMonth && !pasted.firstFlightDate && <p className="muted">The page gives only the month of the first flight ({pasted.firstFlightMonth}); a date needs the day.</p>}
+                {pasted.firstFlightMonth && !pasted.firstFlightDate && <p className="muted">The page gives only the month of the first flight ({pasted.firstFlightMonth}), and a date needs the day.</p>}
                 {pastedProblem && (
                   <p className="paste-facts__warn">
                     <Icon name="info" /> This may be another aircraft: {pastedProblem}.

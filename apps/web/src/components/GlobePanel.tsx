@@ -62,7 +62,7 @@ export function GlobePanel({ flights, spots, label, head, note, onFlightClick, o
     <div className={`map-wrap globe-panel${full ? " is-full" : ""}${className ? ` ${className}` : ""}`} ref={panel}>
       {head && <div className="legend globe-panel__head">{head}</div>}
       <div className="globe-stage" style={height && !full ? { height } : undefined}>
-        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} samples={samples} takeoff={takeoff} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={`${label}. Drag or use the arrow keys to turn it; pinch, ${full ? "scroll" : "Ctrl-scroll"} or use plus and minus to zoom.`} />
+        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} samples={samples} takeoff={takeoff} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={`${label}. Drag or use the arrow keys to turn it. Pinch, ${full ? "scroll" : "Ctrl-scroll"} or use plus and minus to zoom.`} />
         <button type="button" className="globe-expand" onClick={toggle} aria-label={full ? "Leave full screen" : "Show the globe full screen"}>
           <Icon name={full ? "minimize-2" : "maximize-2"} />
           {full ? "Collapse" : "Expand"}

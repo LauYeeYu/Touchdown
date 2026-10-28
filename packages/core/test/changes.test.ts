@@ -227,7 +227,7 @@ describe("importing a change file", () => {
     // Changed in the web app afterwards.
     saveFlight(store, ref, { ...store.get("flights", flight.id)!, notes: "later" }, flight.id, { now: NOW + 60_000 });
     const left = applyChanges(store, ref, [{ op: "undo", batchId: first.batchId }], () => true, { fileName: "undo-1.json", now: NOW + 120_000 });
-    expect(left.messages).toEqual(["1 record changed after that import was left as it is; the import stays to undo."]);
+    expect(left.messages).toEqual(["1 record changed after that import was left as it is, and the import stays to undo."]);
     expect(store.get("flights", flight.id)!.seat).toBe("14A");
     applyChanges(store, ref, [{ op: "undo", batchId: first.batchId, force: true }], () => true, { fileName: "undo-2.json", now: NOW + 180_000 });
     expect(store.get("flights", flight.id)).toMatchObject({ seat: "12A", notes: null });

@@ -146,7 +146,7 @@ function familiesChosenTwice(store: Store, now: number, report: ReconcileReport)
 function findingsAcceptedTwice(store: Store, report: ReconcileReport) {
   for (const [into, ...rest] of groupsOf(store, "issue_acks", (a) => (a.ruleId && a.fingerprint ? `${a.ruleId}|${a.fingerprint}` : null))) {
     const notes = [into!.note, ...rest.map((r) => r.note)].filter((n): n is string => typeof n === "string" && !!n.trim());
-    const note = [...new Set(notes)].join("; ") || null;
+    const note = [...new Set(notes)].join(" · ") || null;
     if (!same(note, into!.note)) store.update("issue_acks", String(into!.id), { note });
     for (const from of rest) {
       for (const r of store.all("issue_ack_records")) if (r.ackId === from.id) store.remove("issue_ack_records", r.id);

@@ -58,7 +58,8 @@ Success: the owner retires their spreadsheets and trusts the numbers, because ev
 - Name: **Touchdown** (final).
 - Voice: plain and direct wording, no mannered or decorative prose. This is the owner's stated preference for everything written for the product.
 - Spelling: UK English in all product copy and docs.
-- Type: Source Sans 3 (sans-serif) for every role; no serif faces in the interface.
+- Punctuation: a semicolon only where nothing else will do, which is almost never. Split the sentence in two, join the parts with "and", "but" or "so", or separate the parts of a line with a middle dot (·). This holds for everything the site shows, its privacy policy and terms included.
+- Type: Source Sans 3 (sans-serif) for every role, and no serif faces in the interface.
 - Ground: the warm paper colour #FAF8F1 stays as the light-theme page background (plain white is acceptable but not preferred).
 - Themes: light and dark, following the device by default.
 - App icon: an airliner touching down over a gold ground line, on the ink tile (DESIGN.md, "App icon"). No other logo rules exist yet.

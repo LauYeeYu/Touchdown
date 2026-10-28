@@ -14,7 +14,7 @@ export class RowValidationError extends Error {
     readonly table: string,
     readonly problems: RowProblem[],
   ) {
-    super(`${table}: ${problems.map((p) => `${p.column} ${p.message}`).join("; ")}`);
+    super(`${table}: ${problems.map((p) => `${p.column} ${p.message}`).join(", ")}`);
   }
 }
 

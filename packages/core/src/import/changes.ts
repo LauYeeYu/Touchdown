@@ -674,7 +674,7 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       // Records changed after the import are left, unless the change says to undo them too (as the web app asks).
       const r = undoImport(store, ref, c.batchId, c.force ?? false);
       const left = new Set(r.editedSince).size;
-      return left ? `${left === 1 ? "1 record" : `${left} records`} changed after that import ${left === 1 ? "was" : "were"} left as ${left === 1 ? "it is" : "they are"}; the import stays to undo.` : null;
+      return left ? `${left === 1 ? "1 record" : `${left} records`} changed after that import ${left === 1 ? "was" : "were"} left as ${left === 1 ? "it is" : "they are"}, and the import stays to undo.` : null;
     }
     case "family":
       setFamily(store, c.designator, c.familyId);

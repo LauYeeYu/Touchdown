@@ -74,7 +74,7 @@ export function ColumnMapping({ guess, value, onChange, onUse, onCancel }: { gue
           Choose another file
         </button>
       </div>
-      <p className="form-sub">"Other text" goes to the notes; the agent check can sort it into fields. These columns are remembered in this browser for files laid out the same way.</p>
+      <p className="form-sub">"Other text" goes to the notes, and the agent check can sort it into fields. These columns are remembered in this browser for files laid out the same way.</p>
     </section>
   );
 }

@@ -94,7 +94,7 @@ function Login() {
   if (me === "signed-out") {
     return (
       <Frame title="Sign in the command line">
-        <p className="form-sub">Sign in to Touchdown first; this page comes back afterwards.</p>
+        <p className="form-sub">Sign in to Touchdown first. This page comes back afterwards.</p>
         <div className="button-row">
           <a className="btn btn--primary" href={`/signin?next=${encodeURIComponent(location.pathname + location.search)}`}>
             Sign in
@@ -148,7 +148,7 @@ function Drive() {
       <p>
         The Touchdown command line on this computer asks for an hour's access to your Touchdown folder in Google Drive{account ? ` (${account})` : ""}, to read your log and add to its inbox.
       </p>
-      <p>The access goes from this browser straight to the command line on this computer; it is not sent to Touchdown's server. When the hour is over, the command line opens this page again.</p>
+      <p>The access goes from this browser straight to the command line on this computer. It is not sent to Touchdown's server. When the hour is over, the command line opens this page again.</p>
       {error && <Problem text={error} />}
       <div className="button-row">
         <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void give()}>

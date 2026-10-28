@@ -128,7 +128,7 @@ describe("settling what two devices made side by side", () => {
 
     const log = together();
     reconcile(log, ref(), NOW);
-    expect(log.all("issue_acks")).toMatchObject([{ note: "Two legs; Right" }]);
+    expect(log.all("issue_acks")).toMatchObject([{ note: "Two legs · Right" }]);
   });
 
   it("removes a tag added twice and numbers a saved view's name taken twice", () => {
