@@ -103,13 +103,27 @@ export function airlineCode(id: string | null | undefined, ref: RefIndex, style:
   return o.iata ?? o.icao ?? "";
 }
 
-/** Short airport name for sentences: "Boston Logan" rather than "Boston Logan International Airport". */
+// Words too common in place names to show that an airport's name already gives its city.
+const COMMON_PLACE_WORDS = new Set(["and", "the", "upon", "des", "les", "sur", "sous", "der", "die", "den", "del", "ste", "saint", "sainte", "san", "santa", "sao", "port", "fort", "new", "city", "island", "islands", "isla", "ile", "lake", "bay", "mount", "north", "south", "east", "west", "regional", "international", "airport"]);
+
+/** The words that set a place name apart, in lower case without accents: "Frankfurt am Main" gives frankfurt and main. */
+function placeWords(s: string): Set<string> {
+  const words = s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().split(/[^a-z0-9]+/);
+  return new Set(words.filter((w) => w.length >= 3 && !COMMON_PLACE_WORDS.has(w)));
+}
+
+/**
+ * Short airport name for sentences: "Boston Logan" rather than "Boston Logan International Airport". The city goes
+ * first unless the name already gives it, in any spelling: "Frankfurt Main", not "Frankfurt am Main Frankfurt Main".
+ */
 export function shortAirport(id: string | null | undefined, ref: RefIndex): string {
   const a = ref.airport(id);
   if (!a) return "";
   const name = a.name.replace(/\s+(International\s+)?Airport$/i, "").replace(/\s+International$/i, "");
   const city = cityName(a) ?? "";
-  return city && !name.includes(city) ? `${city} ${name}` : name;
+  if (!city || name.includes(city)) return name;
+  const named = placeWords(name);
+  return [...placeWords(city)].some((w) => named.has(w)) ? name : `${city} ${name}`;
 }
 
 export function cityOf(id: string | null | undefined, ref: RefIndex): string {

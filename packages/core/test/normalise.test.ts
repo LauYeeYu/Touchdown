@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { cityName, formatModel, guessSeatPosition, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel } from "../src/index.ts";
-import { ref } from "./fixtures.ts";
+import { cityName, formatModel, guessSeatPosition, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel, RefIndex } from "../src/index.ts";
+import { shortAirport } from "../src/view/index.ts";
+import { ref, refTables } from "./fixtures.ts";
 
 describe("registrations", () => {
   it("adds or keeps the country's dash", () => {
@@ -75,7 +76,28 @@ describe("airport cities", () => {
     expect(cityName({ city: "Kristiansand(Kjevik)" })).toBe("Kristiansand");
     expect(cityName({ city: "Hanoi  (Long Bien)" })).toBe("Hanoi");
     expect(cityName({ city: "Frankfurt am Main" })).toBe("Frankfurt am Main");
+    expect(cityName({ city: "Manchester, Greater Manchester" })).toBe("Manchester");
+    expect(cityName({ city: "Paris (Roissy-en-France, Val-d'Oise)" })).toBe("Paris");
     expect(cityName({ city: null })).toBeNull();
     expect(cityName(undefined)).toBeNull();
+  });
+  it("puts the city before an airport's name unless the name already gives it", () => {
+    const airport = (id: string, name: string, city: string) => ({ ...refTables.airports[0]!, id, icao: null, iata: null, name, city });
+    const r = new RefIndex({
+      ...refTables,
+      airports: [
+        airport("a", "Frankfurt Main Airport", "Frankfurt am Main"),
+        airport("b", "Montreal / Pierre Elliott Trudeau International Airport", "Montréal"),
+        airport("c", "London Luton Airport", "Luton, Luton"),
+        airport("d", "Logan International Airport", "Boston"),
+        airport("e", "Saint-Exupéry Airport", "Saint-Étienne"),
+      ],
+    });
+    expect(shortAirport("a", r)).toBe("Frankfurt Main");
+    expect(shortAirport("b", r)).toBe("Montreal / Pierre Elliott Trudeau");
+    expect(shortAirport("c", r)).toBe("London Luton");
+    expect(shortAirport("d", r)).toBe("Boston Logan");
+    // A word as common as "Saint" does not name the city.
+    expect(shortAirport("e", r)).toBe("Saint-Étienne Saint-Exupéry");
   });
 });
