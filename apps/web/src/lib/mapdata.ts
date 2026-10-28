@@ -139,7 +139,11 @@ export function trackRuns(full: TrackPoint[]): { runs: [number, number][][]; gap
   return { runs, gaps };
 }
 
-function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], to: [number, number], points: number): Pick<MapFlight, "track" | "line" | "gaps"> {
+// A recorded position closer than this to both its neighbours never gets a bead: on any map drawn here they are
+// within a few pixels of each other.
+const BEAD_KM = 30;
+
+function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], to: [number, number], points: number): Pick<MapFlight, "track" | "line" | "gaps" | "beads"> {
   if (!full || full.length < 2) return { track: null, line: [[from, to]], gaps: [] };
   const split = trackRuns(full);
   // Each recorded stretch gets its share of the points.
@@ -154,5 +158,9 @@ function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], t
   if (km(from, first) > GAP_KM) gaps.push([from, first]);
   gaps.push(...split.gaps);
   if (km(last, to) > GAP_KM) gaps.push([last, to]);
-  return { track: runs.flat(), line: runs.filter((r) => r.length > 1), gaps };
+  // From every recorded position, not the thinned line: a straight stretch the line drops points from is still dense.
+  const beads = full
+    .map((p, i) => ({ at: p.at, prev: full[i - 1]?.at ?? null, next: full[i + 1]?.at ?? null }))
+    .filter((b) => [b.prev, b.next].some((n) => n && km(b.at, n) > BEAD_KM));
+  return { track: runs.flat(), line: runs.filter((r) => r.length > 1), gaps, beads };
 }

@@ -853,9 +853,19 @@ main {
   stroke-linejoin: round;
 }
 
-/* The stretch of a partial track that was not recorded: the great circle, dashed. */
+/* The stretch of a partial track that was not recorded: the great circle in grey dots, since gold means the aircraft
+   was there. */
 .map .arc--gap {
-  stroke-dasharray: 2 4;
+  stroke: var(--ink-3);
+  stroke-dasharray: 0.1 4;
+}
+
+/* A recorded position where positions are far apart on the map. */
+.map .arc.arc--bead,
+.map .arc.arc--bead.is-active {
+  fill: var(--flown);
+  stroke: var(--paper);
+  stroke-width: 1;
 }
 
 .map .arc-hit {
@@ -4209,11 +4219,7 @@ a.wordmark {
   margin-top: 12px;
 }
 
-.swatch-line--gap {
-  border-top: 2px dashed var(--flown);
-}
-
-/* A flight's map: its track with a bead, what it does not record, and the faint great circle. */
+/* A recorded track with a bead, what it does not record, and the faint great circle. */
 .swatch-line--beads {
   position: relative;
 }

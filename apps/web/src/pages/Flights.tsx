@@ -155,8 +155,8 @@ export function Flights() {
       </h1>
       <div className="map-wrap">
         <div className="legend">
-          <span className="legend__item">
-            <span className="swatch-line" />
+          <span className="legend__item" title={recordedShown ? "A bead marks each recorded position where they are far apart." : undefined}>
+            <span className={`swatch-line${recordedShown ? " swatch-line--beads" : ""}`} />
             {recordedShown === shown.length && shown.length
               ? `Recorded tracks for all ${plural(shown.length, "flight")}`
               : recordedShown
@@ -165,7 +165,7 @@ export function Flights() {
           </span>
           {hasGaps && (
             <span className="legend__item">
-              <span className="swatch-line swatch-line--gap" />
+              <span className="swatch-line swatch-line--unrecorded" />
               Not recorded
             </span>
           )}

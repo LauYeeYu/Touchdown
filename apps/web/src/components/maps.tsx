@@ -32,7 +32,9 @@ export interface MapFlight {
   tip: string; // tooltip HTML (escaped by the caller)
   track?: LonLat[] | null; // recorded track's points; the great circle is drawn when there is none
   line: LonLat[][]; // drawn solid: the recorded stretches, else the great circle
-  gaps?: LonLat[][]; // drawn dashed: what a track does not record, joining it to its airports and across its gaps
+  gaps?: LonLat[][]; // drawn dotted: what a track does not record, joining it to its airports and across its gaps
+  /** Recorded positions far from a neighbour, with both neighbours: a bead where they are far apart on the map. */
+  beads?: { at: LonLat; prev: LonLat | null; next: LonLat | null }[];
 }
 
 export interface MapSpot {
@@ -131,7 +133,7 @@ function samplePoints(flights: MapFlight[], spots: MapSpot[]): LonLat[] {
 /** Bring the given flights forward and fade the rest (or clear the highlight). */
 function applyActive(svg: SVGSVGElement, active: Set<string> | null | undefined) {
   svg.classList.toggle("is-focus-route", !!active?.size);
-  for (const p of svg.querySelectorAll<SVGPathElement>("path.arc")) {
+  for (const p of svg.querySelectorAll<SVGElement>(".arc")) {
     const on = !!active?.has(p.dataset.id ?? "");
     p.classList.toggle("is-active", on);
     // Above the other arcs, under the hit areas.
@@ -249,6 +251,19 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, d: path({ type: "LineString", coordinates: g }) ?? "" });
         }
       });
+      // A bead at each recorded position more than 10px from a neighbour, so the real positions show among the lines.
+      const shown = (p: LonLat) => (path({ type: "Point", coordinates: p }) ? (proj(p) as [number, number] | null) : null);
+      for (const f of flights) {
+        for (const b of f.beads ?? []) {
+          const xy = shown(b.at);
+          if (!xy) continue;
+          const far = [b.prev, b.next].some((n) => {
+            const q = n && shown(n);
+            return !!q && Math.hypot(q[0] - xy[0], q[1] - xy[1]) > 10;
+          });
+          if (far) el(arcs, "circle", { class: `arc arc--bead${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, cx: xy[0], cy: xy[1], r: 2.4 });
+        }
+      }
       flights.forEach((f, i) => {
         const hit = el(arcs, "path", { class: "arc-hit", d: path(routes[i]!) ?? "" });
         hit.addEventListener("pointerenter", (ev) => {

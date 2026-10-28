@@ -257,10 +257,10 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
 
       const hoverId = st.hover?.kind === "flight" ? st.hover.f.id : null;
       const lineWidth = Math.min(3, 1.4 + Math.log2(Math.max(1, zoom)) * 0.4);
-      // A flight's own page shows its recorded positions: its gaps in grey dots, since gold means the aircraft was
-      // there, and a bead at each position where they are far apart (as on its flat map).
+      // A flight's own page draws its beads from all its recorded positions, as on its flat map.
       const smp = data.current.samples;
       const single = smp.length > 1;
+      const shown = (p: LonLat) => (geoDistance(p, centre) < Math.PI / 2 - 0.01 ? (proj(p) as [number, number] | null) : null);
       const drawRoute = (f: MapFlight, width: number, alpha: number) => {
         ctx.globalAlpha = alpha;
         ctx.strokeStyle = c.flown;
@@ -271,16 +271,30 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         ctx.beginPath();
         path({ type: "MultiLineString", coordinates: f.line });
         ctx.stroke();
+        // What the track does not record: grey dots, since gold means the aircraft was there.
         if (f.gaps?.length) {
-          if (single) {
-            ctx.strokeStyle = c.ink3;
-            ctx.lineWidth = 2;
-            ctx.setLineDash([0.1, 5]);
-          } else ctx.setLineDash([2, 4]);
+          ctx.strokeStyle = c.ink3;
+          ctx.lineWidth = single ? 2 : width;
+          ctx.setLineDash(single ? [0.1, 5] : [0.1, 4]);
           ctx.beginPath();
           for (const g of f.gaps) path({ type: "LineString", coordinates: g });
           ctx.stroke();
           ctx.setLineDash([]);
+        }
+        // A bead at each recorded position more than 10px from a neighbour (a flight's own page draws its beads from
+        // all its positions, below).
+        if (!single && f.beads?.length) {
+          ctx.fillStyle = c.flown;
+          ctx.strokeStyle = c.paper;
+          ctx.lineWidth = 1;
+          for (const b of f.beads) {
+            const xy = shown(b.at);
+            if (!xy || ![b.prev, b.next].some((n) => { const q = n && shown(n); return !!q && Math.hypot(q[0] - xy[0], q[1] - xy[1]) > 10; })) continue;
+            ctx.beginPath();
+            ctx.arc(xy[0], xy[1], 2.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
         }
         ctx.globalAlpha = 1;
       };
