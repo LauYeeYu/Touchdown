@@ -458,10 +458,17 @@ export function FlightDetail() {
           <div className="section__head">
             <h2 className="section__title">The aircraft</h2>
           </div>
-          <article className="card aircraft-card" id="aircraft-card">
+          {/* The whole card opens the aircraft's page, as on Home; the flights listed in it keep their own links. */}
+          <article className={`card aircraft-card${airframe ? " stretch" : ""}`} id="aircraft-card">
             <Photo reg={f.registration} alt={`${f.registration ?? ""}, ${typeText}`} />
             <div className="card__body">
-              <span className="card__reg">{f.registration ?? "No registration recorded"}</span>
+              {airframe ? (
+                <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
+                  {f.registration ?? "No registration recorded"}
+                </Link>
+              ) : (
+                <span className="card__reg">{f.registration ?? "No registration recorded"}</span>
+              )}
               <span className="card__type">
                 {typeText}
                 {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
@@ -470,14 +477,17 @@ export function FlightDetail() {
                 {onThis.map((o) => (
                   <li key={o.f.id}>
                     <span className="dot dot--flown" />
-                    {o.f.id === f.id ? (
-                      "This flight"
-                    ) : (
-                      <Link to="/flights/$id" params={{ id: o.f.id }}>
-                        {o.f.flightNumber ?? "Flight"} {o.fromCode} → {o.toCode}
-                      </Link>
-                    )}
-                    {o.day && `, ${dayMonthYear(o.day)}`}
+                    {/* One item beside the dot, so the date follows the link with no gap before its comma. */}
+                    <span>
+                      {o.f.id === f.id ? (
+                        "This flight"
+                      ) : (
+                        <Link to="/flights/$id" params={{ id: o.f.id }}>
+                          {o.f.flightNumber ?? "Flight"} {o.fromCode} → {o.toCode}
+                        </Link>
+                      )}
+                      {o.day && `, ${dayMonthYear(o.day)}`}
+                    </span>
                   </li>
                 ))}
                 {spotted.map((s) => (
@@ -495,10 +505,7 @@ export function FlightDetail() {
                     {age !== null && built ? `First flown in ${built}, about ${plural(age, "year")} old on this flight. ` : ""}
                     {airframe.provisional
                       ? "Serial number not known yet, so this aircraft is matched by registration and date until one is."
-                      : `Serial number ${airframe.msn}.`}{" "}
-                    <Link to="/aircraft/$id" params={{ id: airframe.id }}>
-                      Aircraft page
-                    </Link>
+                      : `Serial number ${airframe.msn}.`}
                   </span>
                 </p>
               )}

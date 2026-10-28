@@ -650,7 +650,7 @@ Photo cards borrowed from a gallery: the photo sits flush on top, the caption bl
 - **Background:** `surface-low` caption block; `paper-deep` behind a loading photo, with a shimmer sweep and the registration as a fallback.
 - **Shadow Strategy:** none, at rest or on hover.
 - **Hover:** a linked card only changes shade: its fill mixes in 9% ink over 300ms, so it darkens on the light theme and lightens on the dark one. No rise, no shadow; the photo is unchanged.
-- **Linking:** a card or thumbnail that opens a page is not itself a link. Its registration is the link, stretched over the whole card (`stretch` and `stretch__link`), and the photo credit's link sits above it, so links never nest. Keyboard focus rings the whole card. A linked thumbnail underlines its registration on hover.
+- **Linking:** a card or thumbnail that opens a page is not itself a link. Its registration is the link, stretched over the whole card (`stretch` and `stretch__link`), and the photo credit's link and any links in its events (the other flights on a flight page's aircraft card) sit above it, so links never nest. Keyboard focus rings the whole card. A linked thumbnail underlines its registration on hover. The aircraft card on a flight page opens the aircraft's page this way, as the cards on Home do.
 - **Border:** none.
 - **Internal Padding:** 14px 16px 16px (aircraft card 18px 20px). Registration at 600 and 1.0625rem (1.5rem on the aircraft card), type in `ink-2`, then flown and spotted events each with an 8px ink dot.
 - **Credit:** every photo carries its photographer credit and a link to the source, 0.75rem in `ink-3`, pinned to the bottom of the caption block.

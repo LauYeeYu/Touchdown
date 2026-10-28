@@ -4506,7 +4506,8 @@ a.wordmark {
   border-radius: inherit;
 }
 
-.stretch .credit a {
+.stretch .credit a,
+.stretch .card__events a {
   position: relative;
   z-index: 2;
 }
