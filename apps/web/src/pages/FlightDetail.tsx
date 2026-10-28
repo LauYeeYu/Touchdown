@@ -217,9 +217,9 @@ export function FlightDetail() {
           </span>
         </>
       ) : (
-        <span className="legend__item">
+        <span className="legend__item" title={trackRow ? "The recorded track is read from your storage at the next sync." : undefined}>
           <span className="swatch-line" />
-          Great circle · no recorded track for this flight
+          {trackRow ? "Great circle · the recorded track is not in this browser yet" : "Great circle · no recorded track for this flight"}
         </span>
       )}
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />

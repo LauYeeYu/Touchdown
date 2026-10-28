@@ -163,6 +163,7 @@ export class SyncController implements SyncHandle {
   private cleanups: (() => void)[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  private beginning = false;
   private readonly storage: Storage;
   private readonly isSynced = moment();
   private readonly tablesIn = moment();
@@ -202,6 +203,7 @@ export class SyncController implements SyncHandle {
   /** Start syncing; resolves once the tables are in, or sync waits for the user. Without the folder permission or a Google token, wait for `allow`. */
   async start(): Promise<void> {
     this.set({ tables: hasTables(await savedSyncState()) });
+    this.listen();
     // In Standard the first sync asks the server for access itself, so its reason shows when there is none.
     try {
       if (this.connection.mode !== "standard" && !(await this.storage.ready(false))) {
@@ -216,51 +218,8 @@ export class SyncController implements SyncHandle {
     await this.tablesIn.promise;
   }
 
-  async allow(): Promise<void> {
-    try {
-      if (!(await this.storage.ready(true))) return;
-    } catch (e) {
-      if (!(e instanceof SignInCancelled)) this.set({ error: (e as Error).message });
-      return;
-    }
-    this.set({ error: null });
-    if (this.engine) await this.run();
-    else await this.begin();
-  }
-
-  private failed(e: unknown) {
-    // In Standard the server says why its key does not work; in Private the bar's own words say it.
-    const waiting = this.engine?.waiting ?? 0;
-    if (e instanceof SignInNeeded) this.set({ state: "permission", error: this.connection.mode === "standard" ? e.message : null, waiting, tracks: null });
-    else if (e instanceof SchemaTooNewError) this.set({ state: "update", error: null, waiting, tracks: null });
-    else this.set({ state: "failed", error: (e as Error).message, waiting, tracks: null });
-  }
-
-  private async begin() {
-    if (this.engine || this.stopped) return;
-    this.set({ state: "syncing" });
-    const backend = new JsonTablesBackend(this.storage.files, this.store.deviceId);
-    try {
-      await backend.open();
-    } catch (e) {
-      this.failed(e);
-      return;
-    }
-    const engine = new SyncEngine(this.store, backend, new StoredSyncState(this.hooks.persist));
-    await engine.start();
-    if (this.stopped) {
-      engine.stop();
-      return;
-    }
-    this.engine = engine;
-    this.backend = backend;
-    try {
-      await this.hooks.started();
-    } catch (e) {
-      this.failed(e);
-      return;
-    }
-
+  /** Sync a few seconds after an edit, when the tab comes back into view or the network returns, and every few minutes. */
+  private listen() {
     const unsubscribe = this.store.subscribe((changes) => {
       if (changes.some((c) => !c.origin)) this.later(AFTER_EDIT_MS);
     });
@@ -275,6 +234,50 @@ export class SyncController implements SyncHandle {
       () => window.removeEventListener("online", onOnline),
       () => clearInterval(every),
     );
+  }
+
+  async allow(): Promise<void> {
+    try {
+      if (!(await this.storage.ready(true))) return;
+    } catch (e) {
+      if (!(e instanceof SignInCancelled)) this.set({ error: (e as Error).message });
+      return;
+    }
+    this.set({ error: null });
+    await this.run();
+  }
+
+  private failed(e: unknown) {
+    // In Standard the server says why its key does not work; in Private the bar's own words say it.
+    const waiting = this.engine?.waiting ?? 0;
+    if (e instanceof SignInNeeded) this.set({ state: "permission", error: this.connection.mode === "standard" ? e.message : null, waiting, tracks: null });
+    else if (e instanceof SchemaTooNewError) this.set({ state: "update", error: null, waiting, tracks: null });
+    else this.set({ state: "failed", error: (e as Error).message, waiting, tracks: null });
+  }
+
+  /** Open the storage and start the engine, then sync. Tried again by `run` until it works. */
+  private async begin() {
+    if (this.engine || this.stopped || this.beginning) return;
+    this.beginning = true;
+    try {
+      this.set({ state: "syncing" });
+      const backend = new JsonTablesBackend(this.storage.files, this.store.deviceId);
+      await backend.open();
+      const engine = new SyncEngine(this.store, backend, new StoredSyncState(this.hooks.persist));
+      await engine.start();
+      if (this.stopped) {
+        engine.stop();
+        return;
+      }
+      this.engine = engine;
+      this.backend = backend;
+      await this.hooks.started();
+    } catch (e) {
+      this.failed(e);
+      return;
+    } finally {
+      this.beginning = false;
+    }
     // Once, every table file is compared with this copy, so an edit saved before edits and their queue were saved
     // together is still found and sent. After that, only files that changed are read.
     await this.run(!(await db.meta.get(SYNC_CHECKED)));
@@ -289,14 +292,15 @@ export class SyncController implements SyncHandle {
     }, ms);
   }
 
-  /** Sync now. `full` reads every table file again. */
+  /** Sync now. `full` reads every table file again. Before the storage has opened (it failed, or waited for the user), it tries that again. */
   async run(full = false): Promise<void> {
-    if (!this.engine || this.stopped) return;
+    if (this.stopped) return;
     // Without a token, wait for the user to sign in; edits stay queued meanwhile.
     if (this.info.state === "permission" && !(await this.storage.ready(false))) {
-      this.set({ waiting: this.engine.waiting });
+      this.set({ waiting: this.engine?.waiting ?? 0 });
       return;
     }
+    if (!this.engine) return this.begin();
     this.set({ state: "syncing" });
     try {
       const report = await this.engine.sync({
@@ -336,8 +340,11 @@ export class SyncController implements SyncHandle {
   }
 }
 
-/** How long a tab opening waits for the writing tab to say how its sync is, before showing what it has. */
-const HELLO_MS = 3000;
+/**
+ * How long a tab opening on a copy without the tables waits for the writing tab to say they are in, before it shows
+ * what it has (and says the log is still being read).
+ */
+const TABLES_WAIT_MS = 15_000;
 
 /**
  * Sync as another tab sees it: the writing tab's state, heard on the channel, and requests to it. The storage's
@@ -356,12 +363,14 @@ export class TabSync implements SyncHandle {
 
   constructor(
     readonly connection: SyncedConnection,
+    /** Whether the copy had the tables when this tab read it, from the saved position (not from the writing tab). */
+    tables: boolean,
     private readonly post: (m: TabMessage) => void,
     /** Saves this tab's edits to the outbox, so the writing tab has them before it syncs. */
     private readonly flush: () => Promise<void>,
   ) {
     this.storage = storageFor(connection);
-    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: connection.name, lastAt: null, waiting: 0, problems: [], error: null, tables: true, tracks: null };
+    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: connection.name, lastAt: null, waiting: 0, problems: [], error: null, tables, tracks: null };
     // Coming back into view syncs, as it does in the writing tab.
     const onShow = () => document.visibilityState === "visible" && this.post({ type: "run", id: "" });
     document.addEventListener("visibilitychange", onShow);
@@ -389,9 +398,11 @@ export class TabSync implements SyncHandle {
     this.runs.delete(id);
   }
 
+  /** Resolves at once when the copy has the tables; otherwise once the writing tab has read them, or cannot. */
   start(): Promise<void> {
     this.post({ type: "hello" });
-    setTimeout(() => this.tablesIn.resolve(), HELLO_MS);
+    if (this.info.tables) this.tablesIn.resolve();
+    else setTimeout(() => this.tablesIn.resolve(), TABLES_WAIT_MS);
     return this.tablesIn.promise;
   }
 

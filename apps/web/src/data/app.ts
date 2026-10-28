@@ -152,6 +152,8 @@ export class AppData {
   /** Which copy of the log this tab holds (EPOCH); a write finding another stops and reloads. */
   private epoch: unknown;
   private closed = false;
+  /** The copy held the storage's tables when this tab read it. */
+  private tablesAtOpen = false;
   private cache: { version: number; findings: Finding[]; resolvedOverlaps: ReturnType<typeof resolveAirframes>["overlaps"] } | null = null;
   /** How this browser keeps the log; null until the first run has asked (docs/32). */
   connection: Connection | null = null;
@@ -208,7 +210,7 @@ export class AppData {
       }),
       db
         .transaction("r", db.rows, db.trackPoints, db.outbox, db.meta, () =>
-          Promise.all([db.rows.toArray(), db.trackPoints.toArray(), db.outbox.toArray(), db.meta.bulkGet([CONNECTION, EPOCH])]),
+          Promise.all([db.rows.toArray(), db.trackPoints.toArray(), db.outbox.toArray(), db.meta.bulkGet([CONNECTION, EPOCH, "sync"])]),
         )
         .then((read) => {
           done("log", read[0].length + read[1].reduce((n, t) => n + t.rows.length, 0));
@@ -253,6 +255,8 @@ export class AppData {
       }
     }
     const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)), tabs, (meta[0]?.value as Connection | undefined) ?? null, meta[1]?.value ?? null, outbox);
+    // Read with the rows, so it says whether these rows hold the storage's tables.
+    app.tablesAtOpen = hasTables((meta[2]?.value as SyncState | undefined) ?? null);
     // Statuses a log from an older version keeps in a sighting's phase or notes become its phases (core phases.ts).
     settlePhases(store);
     return app;
@@ -616,7 +620,7 @@ export class AppData {
     const sync =
       this.tabs.role === "writer"
         ? new SyncController(this.store, c, { persist: this.persistSync, started: () => this.takeOutbox() })
-        : new TabSync(c, (m) => this.tabs.post(m), () => this.flushNow());
+        : new TabSync(c, this.tablesAtOpen, (m) => this.tabs.post(m), () => this.flushNow());
     this.sync = sync;
     sync.subscribe(this.syncChanged);
     this.syncChanged();
@@ -629,9 +633,7 @@ export class AppData {
   async tablesMissing(): Promise<boolean> {
     const c = this.connection;
     if (!c || c.mode === "local") return false;
-    if (this.tabs.role === "follower") return !(this.sync?.info.tables ?? true);
-    const state = await savedSyncState();
-    return !state || !hasTables(state);
+    return !hasTables(await savedSyncState());
   }
 
   /**
@@ -709,6 +711,17 @@ export class AppData {
     return this.allFindings()
       .filter((f) => acked.has(`${f.ruleId}|${f.fingerprint}`))
       .map((finding) => ({ finding, ackId: acked.get(`${finding.ruleId}|${finding.fingerprint}`)! }));
+  }
+
+  private notHere: { version: number; count: number } | null = null;
+
+  /** Recorded tracks in the log whose points this browser's copy does not have yet (docs/12, "Sync algorithm"). */
+  tracksNotHere(): number {
+    if (this.notHere?.version !== this.version) {
+      const here = new Set(this.store.all("track_points").map((p) => p.trackId));
+      this.notHere = { version: this.version, count: this.store.all("tracks").filter((t) => !here.has(t.id)).length };
+    }
+    return this.notHere.count;
   }
 
   /** Fields edited on two devices, waiting for the user to choose (docs/12). */

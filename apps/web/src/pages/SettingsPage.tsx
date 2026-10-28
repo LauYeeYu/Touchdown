@@ -15,7 +15,7 @@ import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
 import { toast } from "../components/overlay.tsx";
 import { AccountSection } from "../components/AccountSettings.tsx";
-import { clause } from "../components/Shell.tsx";
+import { clause, tracksToComeText } from "../components/Shell.tsx";
 import { download } from "../lib/download.ts";
 import { connectStandard, FOLDERS_ONLY_HERE, STANDARD_NOTE, STANDARD_UNAVAILABLE, takeStandardError } from "./FirstRun.tsx";
 import { standard, type StandardStatus } from "../data/standard.ts";
@@ -37,6 +37,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   const [termsProblem, setTermsProblem] = useState<string | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
   const sync = useSyncInfo(app);
+  const notHere = sync ? app.tracksNotHere() : 0;
   const conflicts = app.conflicts().length;
   const place = c && c.mode !== "local" ? c.name : null;
   const choosing = chosen === "private" && (current !== "private" || moving);
@@ -210,6 +211,12 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line status-line--error">
               <Icon name="rotate-cw" />
               <span>A newer version of Touchdown has changed your log in {sync.place}. Reload the page to update the app; your changes are kept in this browser and sent after the reload.</span>
+            </p>
+          )}
+          {sync.tables && !sync.tracks && notHere > 0 && (
+            <p className="status-line">
+              <Icon name="route" />
+              <span>{tracksToComeText(notHere, sync.place)}</span>
             </p>
           )}
           {sync.problems.length > 0 && (

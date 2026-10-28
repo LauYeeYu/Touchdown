@@ -168,7 +168,7 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     // until then (a new browser, or a first download cut short by a reload) the loading screen waits for them. Tracks
     // come after, in the background.
     const syncing = opened.startSync();
-    if (!writer || (await opened.tablesMissing())) {
+    if (await opened.tablesMissing()) {
       const stop = creep(PREPARED - 0.02, `Reading your log from ${where()}…`);
       await syncing;
       stop();

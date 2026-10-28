@@ -1,12 +1,28 @@
 // First run: nothing logged yet. Offer the import first, since most users arrive with an existing log.
 
 import { Link } from "@tanstack/react-router";
+import { useSyncInfo } from "../components/ModeChoice.tsx";
 import { useApp } from "../data/context.tsx";
 import { Icon } from "../lib/icons.tsx";
 
 export function EmptyLog() {
   const { app } = useApp();
   const c = app.connection;
+  const sync = useSyncInfo(app);
+  // The log is in the storage but not read into this browser yet (a new browser, or reading it stopped): not empty.
+  // The bar above says why, and what to do.
+  if (sync && !sync.tables) {
+    return (
+      <div className="page">
+        <div className="view-top" />
+        <h1 className="lead">Your log has not been read from {sync.place} yet.</h1>
+        <p className="status-line">
+          <Icon name={sync.state === "syncing" ? "refresh-cw" : sync.adapter === "gdrive" ? "cloud-off" : "folder"} />
+          <span>{sync.state === "syncing" ? "It is being read now, and shows here once it is in." : "It shows here once it is read. Until then, what you add is kept in this browser and merged with it."}</span>
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="page">
       <div className="view-top" />

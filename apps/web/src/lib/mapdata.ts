@@ -32,11 +32,19 @@ export function trackIndex(store: Store): Map<string, TrackPoint[]> {
 export interface TrackInfo {
   coverage: "complete" | "partial";
   provider: string | null;
+  /** Its points are in this browser's copy; they come after the rest of the log when it is read (docs/12). */
+  here: boolean;
+}
+
+/** Ids of the tracks whose points this browser's copy holds. */
+export function tracksHere(store: Store): Set<string> {
+  return new Set(store.all("track_points").map((p) => p.trackId));
 }
 
 /** Coverage and source of the recorded track per flight id. */
 export function trackInfo(store: Store): Map<string, TrackInfo> {
-  return new Map(store.all("tracks").map((t) => [t.flightId, { coverage: t.coverage ?? "complete", provider: t.provider }]));
+  const here = tracksHere(store);
+  return new Map(store.all("tracks").map((t) => [t.flightId, { coverage: t.coverage ?? "complete", provider: t.provider, here: here.has(t.id) }]));
 }
 
 // Overview maps draw many flights at a small scale; a few hundred points per track look the same.

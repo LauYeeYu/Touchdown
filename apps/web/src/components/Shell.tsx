@@ -11,7 +11,7 @@ import { LAST_BACKUP, LAST_CHANGE, metaNumber } from "../data/connection.ts";
 import type { SyncInfo } from "../data/sync.ts";
 import { backupZip, todayIn } from "@touchdown/core";
 import { download } from "../lib/download.ts";
-import { momentLabel, nf } from "../lib/format.ts";
+import { momentLabel, nf, plural } from "../lib/format.ts";
 import { useSyncInfo } from "./ModeChoice.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
@@ -30,11 +30,17 @@ const BACKUP_DUE_DAYS = 30;
 /** An error message as a clause in a sentence: without its own full stop. */
 export const clause = (message: string | null) => (message ?? "").replace(/\.+$/, "");
 
+/** Recorded tracks the browser's copy does not have yet, as a sentence; "" when there are none. */
+export const tracksToComeText = (n: number, place: string) =>
+  n > 0 ? `${plural(n, "recorded track is", "recorded tracks are")} not in this browser yet; ${n === 1 ? "it is" : "they are"} read from ${place} at the next sync, and until then ${n === 1 ? "its flight shows" : "their flights show"} the great circle.` : "";
+
 /** The masthead's save and sync state: its words, its tooltip, its icon. */
-function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null): { text: string; title: string; icon: IconName; bad: boolean } {
+function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, notHere: number): { text: string; title: string; icon: IconName; bad: boolean } {
   if (saving === "error") return { text: "Could not save in this browser", title: "Could not save in this browser", icon: "hard-drive", bad: true };
   if (!sync) return { text: saving === "saving" ? "Saving…" : "Saved in this browser", title: "Your log is kept in this browser only (Local).", icon: "hard-drive", bad: false };
-  const last = sync.lastAt ? ` Last synced ${momentLabel(sync.lastAt)}.` : "";
+  // The tooltip says when the copy is not whole yet: the tables not read, or tracks still to come.
+  const toCome = !sync.tables ? ` Your log has not been read from ${sync.place} yet.` : notHere > 0 && !sync.tracks ? ` ${tracksToComeText(notHere, sync.place)}` : "";
+  const last = `${sync.lastAt ? ` Last synced ${momentLabel(sync.lastAt)}.` : ""}${toCome}`;
   // Each state has its own icon: below 1180px wide the icon is all the header shows.
   const drive = sync.adapter === "gdrive";
   switch (sync.state) {
@@ -144,7 +150,8 @@ export function Shell() {
   const local = app.connection?.mode === "local";
   const backupDue = useBackupDue(local, app.connection?.since ?? null, version);
   const [backupLater, setBackupLater] = useState(false);
-  const state = saveState(app.saveState, sync);
+  const notHere = sync ? app.tracksNotHere() : 0;
+  const state = saveState(app.saveState, sync, notHere);
 
   const cycleTheme = () => {
     const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!;
@@ -207,6 +214,23 @@ export function Shell() {
           </div>
         </div>
       </header>
+      {sync && !sync.tables && sync.state === "syncing" && (
+        <NoteBar icon="refresh-cw" actions={null}>
+          Reading your log from {sync.place}. It shows here once it is read.
+        </NoteBar>
+      )}
+      {sync && !sync.tables && sync.state === "failed" && (
+        <NoteBar
+          icon={sync.adapter === "gdrive" ? "cloud-alert" : "folder-x"}
+          actions={
+            <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.run()}>
+              Try again
+            </button>
+          }
+        >
+          Your log could not be read from {sync.place}: {clause(sync.error)}. Touchdown tries again when the connection returns, and every few minutes.
+        </NoteBar>
+      )}
       {sync?.state === "permission" && (
         <NoteBar
           icon={sync.adapter === "gdrive" ? "cloud-off" : "folder"}
@@ -216,7 +240,10 @@ export function Shell() {
             </button>
           }
         >
-          {sync.mode === "standard" ? (sync.error ?? `Touchdown cannot reach ${sync.place}.`) : sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`} Until then, changes are kept in this browser.
+          {!sync.tables && `Your log has not been read from ${sync.place} yet. `}
+          {sync.mode === "standard" ? (sync.error ?? `Touchdown cannot reach ${sync.place}.`) : sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`}
+          {sync.tables && " Until then, changes are kept in this browser."}
+          {sync.tables && notHere > 0 && ` ${plural(notHere, "recorded track is", "recorded tracks are")} not in this browser yet.`}
           {sync.mode !== "standard" && sync.error && ` ${sync.error}`}
         </NoteBar>
       )}
