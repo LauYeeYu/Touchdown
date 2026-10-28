@@ -54,15 +54,18 @@ async function readFiles(app: AppData): Promise<Map<string, InboxFile>> {
   const inbox = app.sync?.inbox();
   if (inbox) {
     try {
-      for (const name of await inbox.list()) {
-        const data = await inbox.read(name);
-        if (!data) continue;
+      // Read at once: the storage's adapter sends as many requests at a time as it takes.
+      const names = await inbox.list();
+      const read = await Promise.all(names.map((name) => inbox.read(name)));
+      names.forEach((name, i) => {
+        const data = read[i];
+        if (!data) return;
         try {
           out.set(name, { json: JSON.parse(decoder.decode(data)), where: "storage", modified: 0, data });
         } catch {
           // Being written, or not JSON: read again next time.
         }
-      }
+      });
     } catch {
       // The storage could not be read now; the sync state says why, and the next sync tries again.
     }

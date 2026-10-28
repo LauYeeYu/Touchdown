@@ -81,13 +81,13 @@ export async function readLog(s: OpenedStorage, ref: RefIndex, opts: { tracks?: 
   const store = new Store({ deviceId: "cli", validate: false });
   for (const [table, rows] of pulled.tables) store.load(table, rows as never);
   if (opts.tracks) {
-    for (const id of pulled.tracks) {
-      try {
-        store.load("track_points", (await s.backend.readTrack(id)) as never);
-      } catch (e) {
-        pulled.problems.push(`tracks/${id}.json: ${(e as Error).message}`);
-      }
-    }
+    // Read at once; the file adapter sends as many requests at a time as its storage takes.
+    const read = await Promise.all(pulled.tracks.map((id) => s.backend.readTrack(id).catch((e: Error) => e)));
+    pulled.tracks.forEach((id, i) => {
+      const points = read[i]!;
+      if (points instanceof Error) pulled.problems.push(`tracks/${id}.json: ${points.message}`);
+      else store.load("track_points", points as never);
+    });
   }
   for (const op of store.all("operator_overrides")) ref.addOperator(operatorFromOverride(op));
   return { store, problems: pulled.problems };

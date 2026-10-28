@@ -263,6 +263,112 @@ describe("sync between devices", () => {
   });
 });
 
+/** A flight with a two-point track, on one device. */
+function addTrack(d: Device, n: number) {
+  const f = d.store.insert("flights", { flightNumber: `XY${n}` });
+  const tr = d.store.insert("tracks", { flightId: f.id, provider: "adsblol" });
+  d.store.putRaw("track_points", [
+    { trackId: tr.id, seq: 0, t: 0, lat: 51.47, lon: -0.45, altitudeFt: null, groundSpeedKt: null, headingDeg: null },
+    { trackId: tr.id, seq: 1, t: 60, lat: 51.5 + n / 100, lon: -0.3, altitudeFt: 3000, groundSpeedKt: 180, headingDeg: 90 },
+  ] as never);
+  return tr.id;
+}
+
+/** A folder whose track reads can be counted, and made to fail. */
+class TrackFolder extends MemoryFolder {
+  trackReads = 0;
+  /** After this many track reads, every other one waits for ever: the page was closed. */
+  hangAfter = Infinity;
+  failing = new Set<string>();
+  override async read(path: string) {
+    if (path.startsWith("tracks/")) {
+      if (this.trackReads >= this.hangAfter) return new Promise<never>(() => {});
+      if (this.failing.has(path)) throw new Error("connection lost");
+      this.trackReads++;
+    }
+    return super.read(path);
+  }
+}
+
+describe("a round cut short", () => {
+  it("goes on from where it was, reading only the tracks it had not read", async () => {
+    const clock = testClock();
+    const folder = new TrackFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const ids = Array.from({ length: 40 }, (_, i) => addTrack(a, i));
+    await settle([a]);
+
+    // A new device reads the log; the page is closed after 20 tracks.
+    const state = new MemorySyncState();
+    const store = new Store({ deviceId: "dev_b", now: clock.now });
+    const first = new SyncEngine(store, new JsonTablesBackend(folder, "dev_b"), state, clock.now);
+    await first.start();
+    folder.trackReads = 0;
+    folder.hangAfter = 20;
+    let tablesIn = false;
+    void first.sync({ tablesIn: () => (tablesIn = true) });
+    while (folder.trackReads < 20) await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    first.stop();
+    expect(tablesIn).toBe(true);
+    expect(store.count("flights")).toBe(40);
+    const saved = Object.keys(state.state!.cursor).filter((p) => p.startsWith("tracks/")).length;
+    expect(saved).toBeGreaterThanOrEqual(16);
+
+    // Opened again with what was saved: the tracks after the last save are read, and no others.
+    folder.trackReads = 0;
+    folder.hangAfter = Infinity;
+    const again = new SyncEngine(store, new JsonTablesBackend(folder, "dev_b"), state, clock.now);
+    await again.start();
+    await again.sync();
+    expect(folder.trackReads).toBe(40 - saved);
+    expect(new Set(store.all("track_points").map((p) => p.trackId))).toEqual(new Set(ids));
+    expect(snapshot(store)).toEqual(snapshot(a.store));
+    expect(again.waiting).toBe(0);
+  });
+
+  it("has the tables in before it reads a track, and says how far it has got", async () => {
+    const clock = testClock();
+    const folder = new TrackFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    for (let i = 0; i < 3; i++) addTrack(a, i);
+    await settle([a]);
+
+    const b = await device(folder, "dev_b", clock.now);
+    const seen: string[] = [];
+    folder.trackReads = 0;
+    await b.engine.sync({
+      tablesIn: () => seen.push(`tables ${b.store.count("flights")} flights, ${folder.trackReads} tracks read`),
+      progress: (p) => seen.push(`${p.tracksDone}/${p.tracksTotal}`),
+    });
+    // Tracks that arrive together are merged together.
+    expect(seen).toEqual(["tables 3 flights, 0 tracks read", "0/3", "3/3"]);
+  });
+
+  it("reads a track again when it could not be read, and when this device has lost its points", async () => {
+    const clock = testClock();
+    const folder = new TrackFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const [one, two] = [addTrack(a, 1), addTrack(a, 2)];
+    await settle([a]);
+
+    const b = await device(folder, "dev_b", clock.now);
+    folder.failing.add(`tracks/${one}.json`);
+    const report = await b.engine.sync();
+    expect(report.problems).toEqual([`tracks/${one}.json: connection lost`]);
+    folder.failing.clear();
+    await b.engine.sync();
+    expect(b.store.all("track_points").filter((p) => p.trackId === one)).toHaveLength(2);
+
+    // The points of a track were lost before they were saved here, though its position was.
+    b.store.purge("track_points", b.store.all("track_points").filter((p) => p.trackId === two).map((p) => `${p.trackId}|${p.seq}`), "sync");
+    folder.trackReads = 0;
+    await b.engine.sync();
+    expect(folder.trackReads).toBe(1);
+    expect(snapshot(b.store)).toEqual(snapshot(a.store));
+  });
+});
+
 describe("settling what two devices made side by side", () => {
   const ref = new RefIndex(loadRefTables());
   /** As the web app does: sync, then settle what arrived (core reconcile.ts). */

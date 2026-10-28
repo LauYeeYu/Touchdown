@@ -9,7 +9,7 @@
 
 import { conflictMatters, rowKey, toUtcIso, ulidFrom, type Change, type Row, type Store, type TableName } from "@touchdown/core";
 import { dataFields, mergeRow, type FieldConflict } from "./merge.ts";
-import type { Backend, Cursor, PushItem, StoredRow } from "./types.ts";
+import type { Backend, Cursor, PullResult, PushItem, StoredRow } from "./types.ts";
 import { isBasedOn, isNewer, versionOf } from "./version.ts";
 
 export interface QueuedRow {
@@ -57,6 +57,26 @@ export interface SyncReport {
   /** Files that could not be read. */
   problems: string[];
 }
+
+/** How far a round has got, for the app to show. */
+export interface SyncProgress {
+  /** Tracks read in this round, of those it has to read. */
+  tracksDone: number;
+  tracksTotal: number;
+}
+
+export interface SyncOptions {
+  /** Read every table file again, not only the changed ones. */
+  full?: boolean;
+  /** Called once the tables' rows are merged and saved, before tracks are read. */
+  tablesIn?: () => void;
+  progress?: (p: SyncProgress) => void;
+}
+
+/** Tracks read at once; a file adapter may send fewer requests at a time. */
+const TRACKS_AT_ONCE = 64;
+/** Tracks merged between two saves of the position, so a reload goes on from about where it was. */
+const TRACKS_PER_SAVE = 16;
 
 const queueKey = (table: TableName, key: string) => `${table}|${key}`;
 const trackOf = (pointKey: string) => pointKey.slice(0, pointKey.lastIndexOf("|"));
@@ -108,10 +128,24 @@ export class SyncEngine {
     return this.queue.size + this.queuedTracks.size;
   }
 
+  /**
+   * Rows and tracks edited on this device that the engine did not see being made (another tab's edits, or edits made
+   * before it started): queued as its own edits, a row already queued keeping the version its edits started from.
+   */
+  enqueue(rows: QueuedRow[], tracks: string[] = []): Promise<void> {
+    for (const q of rows) {
+      const k = queueKey(q.table, q.key);
+      if (!this.queue.has(k)) this.queue.set(k, { table: q.table, key: q.key, replaces: [...q.replaces], base: q.base ?? null });
+    }
+    for (const t of tracks) this.queuedTracks.add(t);
+    return this.save();
+  }
+
   private note(changes: Change[]) {
     let noted = false;
     for (const c of changes) {
-      if (c.origin === "sync") continue;
+      // From the storage, or written by another tab of this browser, which queued its own edits.
+      if (c.origin) continue;
       if (c.table === "track_points") {
         this.queuedTracks.add(trackOf(c.id));
         noted = true;
@@ -130,12 +164,14 @@ export class SyncEngine {
   }
 
   /**
-   * One round: pull, merge, push. `full` reads every table file again, not only the changed ones, so a row edited
-   * here whose queue entry was lost (the browser closed before it was saved) is still found and sent.
+   * One round: pull, merge, push. The tables come first and are saved with the position they were read at; tracks are
+   * read after, each saved with its own position, so a round cut short goes on from where it was. `full` reads every
+   * table file again, not only the changed ones, so a row edited here whose queue entry was lost is still found and
+   * sent.
    */
-  async sync(opts: { full?: boolean } = {}): Promise<SyncReport> {
+  async sync(opts: SyncOptions = {}): Promise<SyncReport> {
     while (this.running) await this.running.catch(() => undefined);
-    this.running = this.run(opts.full ?? false);
+    this.running = this.run(opts);
     try {
       return await this.running;
     } finally {
@@ -143,9 +179,9 @@ export class SyncEngine {
     }
   }
 
-  private async run(full: boolean): Promise<SyncReport> {
+  private async run(opts: SyncOptions): Promise<SyncReport> {
     const report: SyncReport = { received: 0, sent: 0, conflicts: 0, problems: [] };
-    const from = full ? Object.fromEntries(Object.entries(this.cursor).filter(([path]) => !path.startsWith("tables/"))) : this.cursor;
+    const from = opts.full ? Object.fromEntries(Object.entries(this.cursor).filter(([path]) => !path.startsWith("tables/"))) : this.cursor;
     const pulled = await this.backend.pull(from);
     report.problems.push(...pulled.problems);
 
@@ -155,9 +191,9 @@ export class SyncEngine {
       // After every table is merged, so a conflict the other device listed already is found and not listed twice.
       for (const f of found) this.keepConflict(f);
     });
-    await this.mergeTracks(pulled.changedTracks, pulled.tracks, report);
-    this.cursor = pulled.cursor;
+    for (const [path, version] of Object.entries(pulled.cursor)) if (!path.startsWith("tracks/")) this.cursor[path] = version;
     await this.save();
+    opts.tablesIn?.();
 
     const items: PushItem[] = [];
     for (const q of this.queue.values()) {
@@ -177,7 +213,10 @@ export class SyncEngine {
         if (present.has(q.key)) this.queue.delete(k);
         // Written rows wait for a later pull: another device may overwrite the file meanwhile.
       }
+      await this.save();
     }
+
+    await this.mergeTracks(pulled, report, opts.progress);
     const points = this.queuedTracks.size ? this.pointsByTrack() : new Map<string, StoredRow[]>();
     for (const trackId of [...this.queuedTracks]) {
       const list = points.get(trackId) ?? [];
@@ -300,28 +339,77 @@ export class SyncEngine {
     return out;
   }
 
-  private async mergeTracks(changed: string[], present: string[], report: SyncReport) {
+  /**
+   * Read the tracks changed in the storage, and those it has that this device has no points for (a copy lost before it
+   * was saved), many at once. The tracks that arrive together are merged together, once the reads give way, so the app
+   * hears one change for them rather than one each. Each keeps its position as it is merged, saved every few, so a round
+   * cut short reads only the rest. A track that could not be read keeps its old position and is read again next time.
+   */
+  private async mergeTracks(pulled: PullResult, report: SyncReport, progress?: (p: SyncProgress) => void) {
     const local = this.pointsByTrack();
-    for (const trackId of changed) {
-      // Points changed here and not written yet win: a track is replaced as a whole.
-      if (this.queuedTracks.has(trackId)) continue;
-      let points: StoredRow[];
-      try {
-        points = await this.backend.readTrack(trackId);
-      } catch (e) {
-        report.problems.push(`tracks/${trackId}.json: ${(e as Error).message}`);
-        continue;
-      }
+    const there = new Set(pulled.tracks);
+    const wanted = new Set(pulled.changedTracks);
+    for (const id of pulled.tracks) if (!local.has(id)) wanted.add(id);
+    // Points changed here and not written yet win: a track is replaced as a whole.
+    const ids = [...wanted].filter((id) => !this.queuedTracks.has(id));
+    let done = 0;
+    let unsaved = 0;
+    progress?.({ tracksDone: 0, tracksTotal: ids.length });
+    const arrived: { trackId: string; points: StoredRow[] | null }[] = [];
+    const merge = async () => {
+      const list = arrived.splice(0);
+      if (!list.length) return;
       this.store.batch(() => {
-        this.store.purge("track_points", (local.get(trackId) ?? []).map((p) => rowKey("track_points", p)), "sync");
-        if (points.length) this.store.putRaw("track_points", points as unknown as Row<"track_points">[], "sync");
+        for (const { trackId, points } of list) {
+          if (!points || this.queuedTracks.has(trackId)) continue;
+          this.store.purge("track_points", (local.get(trackId) ?? []).map((p) => rowKey("track_points", p)), "sync");
+          if (points.length) this.store.putRaw("track_points", points as unknown as Row<"track_points">[], "sync");
+          if (points.length) local.set(trackId, points);
+          else local.delete(trackId);
+          report.received += points.length;
+          const path = `tracks/${trackId}.json`;
+          const version = pulled.cursor[path];
+          if (version === undefined) delete this.cursor[path];
+          else this.cursor[path] = version;
+          unsaved++;
+        }
       });
-      if (points.length) local.set(trackId, points);
-      else local.delete(trackId);
-      report.received += points.length;
-    }
+      done += list.length;
+      progress?.({ tracksDone: done, tracksTotal: ids.length });
+      if (unsaved >= TRACKS_PER_SAVE) {
+        unsaved = 0;
+        await this.save();
+      }
+    };
+    let merging: Promise<void> = Promise.resolve();
+    let waiting = false;
+    const soon = () => {
+      if (waiting) return;
+      waiting = true;
+      merging = merging.then(() => new Promise<void>((r) => setTimeout(r, 0))).then(() => {
+        waiting = false;
+        return merge();
+      });
+    };
+    let next = 0;
+    const worker = async () => {
+      while (next < ids.length) {
+        const trackId = ids[next++]!;
+        let points: StoredRow[] | null = null;
+        try {
+          points = await this.backend.readTrack(trackId);
+        } catch (e) {
+          report.problems.push(`tracks/${trackId}.json: ${(e as Error).message}`);
+        }
+        arrived.push({ trackId, points });
+        soon();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(TRACKS_AT_ONCE, ids.length) }, worker));
+    await merging;
+    await merge();
+    if (unsaved) await this.save();
     // Tracks only here went missing from the storage (or were never sent): send them.
-    const there = new Set(present);
     for (const trackId of local.keys()) if (!there.has(trackId)) this.queuedTracks.add(trackId);
   }
 }

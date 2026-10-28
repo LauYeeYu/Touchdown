@@ -11,7 +11,7 @@ import { LAST_BACKUP, LAST_CHANGE, metaNumber } from "../data/connection.ts";
 import type { SyncInfo } from "../data/sync.ts";
 import { backupZip, todayIn } from "@touchdown/core";
 import { download } from "../lib/download.ts";
-import { momentLabel } from "../lib/format.ts";
+import { momentLabel, nf } from "../lib/format.ts";
 import { useSyncInfo } from "./ModeChoice.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
@@ -48,6 +48,11 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null):
     case "update":
       return { text: "Reload to update", title: `A newer version of Touchdown has changed your log in ${sync.place}. Reload to update the app.${last}`, icon: "rotate-cw", bad: true };
     case "syncing":
+      // Tracks come after the rest of the log: the flights without theirs yet show great circles meanwhile.
+      if (sync.tracks) {
+        const of = `${nf.format(sync.tracks.done)} of ${nf.format(sync.tracks.total)}`;
+        return { text: `Tracks ${of}`, title: `Reading recorded tracks from ${sync.place}: ${of}. Until a flight's track is here, its map shows the great circle.${last}`, icon: "refresh-cw", bad: false };
+      }
       return { text: "Syncing…", title: `Syncing with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
     default:
       return sync.waiting > 0 || saving === "saving"

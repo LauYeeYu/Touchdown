@@ -38,23 +38,31 @@ export interface DriveOptions {
   /** Waits between retries; tests make it instant. */
   wait?: (ms: number) => Promise<void>;
   now?: () => number;
+  /** Requests sent at once; the rest wait their turn. */
+  concurrency?: number;
 }
 
 const API = "https://www.googleapis.com/drive/v3";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3";
 const FOLDER = "application/vnd.google-apps.folder";
-const FIELDS = "id,name,md5Checksum,version,createdTime";
+const FIELDS = "id,name,mimeType,md5Checksum,version,createdTime";
 /** Marks the Touchdown folder, so it is found wherever the user moves it and whatever they rename it to. */
 const MARK = { key: "touchdown", value: "log" };
 /** Drive's simple and multipart uploads take up to 5 MB; larger files go up as resumable uploads. */
 const SIMPLE_MAX = 5 * 1024 * 1024;
-/** A folder listed this recently is trusted to say which files are not there. */
+/** A folder listed this recently is trusted to say which files and folders are not there. */
 const LISTING_MS = 30_000;
 const RETRIES = 4;
+/**
+ * Drive states no limit on requests at once, only on quota units a minute (325,000 a user; a download costs 5). 64
+ * downloads at once were answered without a rate limit, and a browser sends them over one HTTP/2 connection.
+ */
+const CONCURRENCY = 64;
 
 interface DriveFile {
   id: string;
   name: string;
+  mimeType?: string;
   md5Checksum?: string;
   version?: string;
   createdTime?: string;
@@ -83,16 +91,46 @@ function multipart(meta: object, data: Uint8Array, type: string) {
   return { body, type: `multipart/related; boundary=${boundary}` };
 }
 
+/** At most `size` at once; the rest wait their turn, in order. */
+class Slots {
+  private free: number;
+  private readonly waiting: (() => void)[] = [];
+
+  constructor(size: number) {
+    this.free = size;
+  }
+
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.free > 0) this.free--;
+    else await new Promise<void>((resolve) => this.waiting.push(resolve));
+    try {
+      return await fn();
+    } finally {
+      const next = this.waiting.shift();
+      if (next) next();
+      else this.free++;
+    }
+  }
+}
+
 export class GoogleDrive implements FileAdapter {
   private readonly fetch: typeof fetch;
   private readonly wait: (ms: number) => Promise<void>;
   private readonly now: () => number;
+  private readonly slots: Slots;
   /** Folder ids by path below the Touchdown folder ("" is the Touchdown folder itself). */
   private readonly dirs = new Map<string, string>();
   /** Files by path, from the last listing or lookup. */
   private readonly known = new Map<string, DriveFile>();
-  /** When each folder was last listed. */
+  /** When each folder was last listed, its files and folders. */
   private readonly listed = new Map<string, number>();
+  /** Lookups and listings under way, shared by everything that asks for the same one meanwhile. */
+  private readonly lookups = new Map<string, Promise<string | null>>();
+  private readonly scans = new Map<string, Promise<DriveFile[]>>();
+  /** Counts this adapter's own writes and removals, and when each path last had one, so a listing begun before one does not undo it. */
+  private changes = 0;
+  private readonly changedAt = new Map<string, number>();
+  private pendingToken: Promise<string> | null = null;
 
   constructor(
     private readonly auth: DriveAuth,
@@ -101,6 +139,7 @@ export class GoogleDrive implements FileAdapter {
     this.fetch = options.fetch ?? ((input, init) => fetch(input, init));
     this.wait = options.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.now = options.now ?? Date.now;
+    this.slots = new Slots(options.concurrency ?? CONCURRENCY);
   }
 
   /** The signed-in account's email address. */
@@ -110,42 +149,27 @@ export class GoogleDrive implements FileAdapter {
   }
 
   async list(dir: string): Promise<FileInfo[]> {
-    const parent = await this.dir(dir, false);
-    if (!parent) {
-      this.listed.set(dir, this.now());
-      return [];
-    }
-    const files = await this.children(parent, `mimeType != ${quote(FOLDER)}`);
-    const prefix = dir ? `${dir}/` : "";
-    for (const path of [...this.known.keys()]) if (split(path).dir === dir) this.known.delete(path);
-    const out: FileInfo[] = [];
-    for (const f of files) {
-      const path = prefix + f.name;
-      if (this.known.has(path)) continue;
-      this.known.set(path, f);
-      out.push({ name: f.name, version: versionOf(f) });
-    }
-    this.listed.set(dir, this.now());
-    return out;
+    return (await this.scan(dir)).map((f) => ({ name: f.name, version: versionOf(f) }));
   }
 
   async read(path: string) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const f = await this.find(path);
       if (!f) return null;
-      const res = await this.call(`${API}/files/${f.id}?alt=media`);
-      if (res.status === 404) {
-        this.forget(path);
-        continue;
-      }
-      await this.check(res);
-      return { data: new Uint8Array(await res.arrayBuffer()), version: versionOf(f) };
+      const data = await this.call(`${API}/files/${f.id}?alt=media`, {}, async (res) => {
+        if (res.status === 404) return null;
+        await this.check(res);
+        return new Uint8Array(await res.arrayBuffer());
+      });
+      if (data) return { data, version: versionOf(f) };
+      this.forget(path);
     }
     return null;
   }
 
   async write(path: string, data: Uint8Array) {
     const f = await this.find(path);
+    this.touch(path);
     if (f) {
       const updated = await this.upload(f.id, data, typeOf(path));
       if (updated) {
@@ -171,6 +195,7 @@ export class GoogleDrive implements FileAdapter {
   async remove(path: string) {
     const { dir, name } = split(path);
     this.forget(path);
+    this.touch(path);
     const parent = await this.dir(dir, false);
     if (!parent) return;
     for (const f of await this.children(parent, `name = ${quote(name)} and mimeType != ${quote(FOLDER)}`)) await this.delete(f.id);
@@ -183,13 +208,26 @@ export class GoogleDrive implements FileAdapter {
     this.listed.delete(split(path).dir);
   }
 
+  private touch(path: string) {
+    this.changedAt.set(path, ++this.changes);
+  }
+
+  private fresh(dir: string) {
+    const at = this.listed.get(dir);
+    return at !== undefined && this.now() - at < LISTING_MS;
+  }
+
   /** The file at a path, or null. A folder listed moments ago answers without asking Drive. */
   private async find(path: string): Promise<DriveFile | null> {
     const hit = this.known.get(path);
     if (hit) return hit;
     const { dir, name } = split(path);
-    const at = this.listed.get(dir);
-    if (at !== undefined && this.now() - at < LISTING_MS) return null;
+    if (this.fresh(dir)) return null;
+    // The Touchdown folder holds few files: one request finds them all, and its folders.
+    if (!dir) {
+      await this.scan("");
+      return this.known.get(path) ?? null;
+    }
     const parent = await this.dir(dir, false);
     if (!parent) return null;
     const [f] = await this.children(parent, `name = ${quote(name)} and mimeType != ${quote(FOLDER)}`);
@@ -197,10 +235,57 @@ export class GoogleDrive implements FileAdapter {
     return f ?? null;
   }
 
+  /** Every file and folder in a folder, in one request: the files answer `find`, the folders' ids are kept. Returns the files, the oldest of each name. */
+  private scan(dir: string): Promise<DriveFile[]> {
+    let p = this.scans.get(dir);
+    if (!p) {
+      p = this.listAll(dir).finally(() => this.scans.delete(dir));
+      this.scans.set(dir, p);
+    }
+    return p;
+  }
+
+  private async listAll(dir: string): Promise<DriveFile[]> {
+    const since = this.changes;
+    const parent = await this.dir(dir, false);
+    if (!parent) {
+      this.listed.set(dir, this.now());
+      return [];
+    }
+    const all = await this.children(parent);
+    const prefix = dir ? `${dir}/` : "";
+    // A file this adapter wrote or removed while the listing was on its way is known better here than in it.
+    const mine = (path: string) => (this.changedAt.get(path) ?? 0) > since;
+    for (const path of [...this.known.keys()]) if (split(path).dir === dir && !mine(path)) this.known.delete(path);
+    const files: DriveFile[] = [];
+    for (const f of all) {
+      const path = prefix + f.name;
+      if (f.mimeType === FOLDER) {
+        if (!this.dirs.has(path)) this.dirs.set(path, f.id);
+        continue;
+      }
+      if (files.some((x) => x.name === f.name)) continue;
+      files.push(f);
+      if (!mine(path)) this.known.set(path, f);
+    }
+    this.listed.set(dir, this.now());
+    return files;
+  }
+
   /** The id of a folder: "" is the Touchdown folder, others are below it. With `create`, made when missing. */
-  private async dir(path: string, create: boolean): Promise<string | null> {
+  private dir(path: string, create: boolean): Promise<string | null> {
     const cached = this.dirs.get(path);
-    if (cached) return cached;
+    if (cached) return Promise.resolve(cached);
+    const key = `${create ? "+" : "-"}${path}`;
+    let p = this.lookups.get(key);
+    if (!p) {
+      p = this.lookUp(path, create).finally(() => this.lookups.delete(key));
+      this.lookups.set(key, p);
+    }
+    return p;
+  }
+
+  private async lookUp(path: string, create: boolean): Promise<string | null> {
     let parent: string | null = null;
     let match: string;
     let meta: { name: string; parents?: string[]; appProperties?: Record<string, string> };
@@ -208,30 +293,37 @@ export class GoogleDrive implements FileAdapter {
       const { dir, name } = split(path);
       parent = await this.dir(dir, create);
       if (!parent) return null;
+      // Its parent's files and folders are listed in one request, so the log's other folders are known too. A folder
+      // not known yet may have been made since the last listing.
+      await this.scan(dir);
+      const found = this.dirs.get(path);
+      if (found || !create) return found ?? null;
       match = `name = ${quote(name)} and mimeType = ${quote(FOLDER)}`;
       meta = { name, parents: [parent] };
     } else {
       // Made in My Drive the first time, and found by its mark wherever the user moves it.
       match = `appProperties has { key=${quote(MARK.key)} and value=${quote(MARK.value)} } and mimeType = ${quote(FOLDER)}`;
       meta = { name: "Touchdown", appProperties: { [MARK.key]: MARK.value } };
+      const [f] = await this.children(null, match);
+      if (f || !create) {
+        if (f) this.dirs.set(path, f.id);
+        return f?.id ?? null;
+      }
     }
-    let [f] = await this.children(parent, match);
-    if (!f && create) {
-      const made = await this.makeFolder(meta);
-      // Another device may have made it just now: the older one is used by everyone.
-      [f] = await this.children(parent, match);
-      if (f && f.id !== made.id) await this.delete(made.id);
-      f ??= made;
-    }
-    if (f) this.dirs.set(path, f.id);
-    return f?.id ?? null;
+    const made = await this.makeFolder(meta);
+    // Another device may have made it just now: the older one is used by everyone.
+    const [f] = await this.children(parent, match);
+    if (f && f.id !== made.id) await this.delete(made.id);
+    const id = f?.id ?? made.id;
+    this.dirs.set(path, id);
+    return id;
   }
 
   // ---------- Drive requests ----------
 
-  /** Files matching a query, oldest first; in one folder unless `parent` is null. */
-  private async children(parent: string | null, match: string): Promise<DriveFile[]> {
-    const q = `${parent ? `${quote(parent)} in parents and ` : ""}trashed = false and ${match}`;
+  /** Files and folders matching a query, oldest first; in one folder unless `parent` is null. */
+  private async children(parent: string | null, match?: string): Promise<DriveFile[]> {
+    const q = [parent && `${quote(parent)} in parents`, "trashed = false", match].filter(Boolean).join(" and ");
     const out: DriveFile[] = [];
     let page: string | undefined;
     do {
@@ -271,26 +363,30 @@ export class GoogleDrive implements FileAdapter {
   }
 
   private async resumable(method: "POST" | "PATCH", url: string, meta: object, data: Uint8Array, type: string): Promise<DriveFile> {
-    const start = await this.call(url, {
+    const init = {
       method,
       headers: { "Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": type, "X-Upload-Content-Length": String(data.length) },
       body: JSON.stringify(meta),
+    };
+    const session = await this.call(url, init, async (res) => {
+      await this.check(res);
+      return res.headers.get("Location");
     });
-    await this.check(start);
-    const session = start.headers.get("Location");
     if (!session) throw new Error("Google Drive did not start the upload.");
     return (await this.json(session, { method: "PUT", headers: { "Content-Type": type }, body: data as BufferSource })) as DriveFile;
   }
 
   private async delete(id: string) {
-    const res = await this.call(`${API}/files/${id}`, { method: "DELETE" });
-    if (res.status !== 404) await this.check(res);
+    await this.call(`${API}/files/${id}`, { method: "DELETE" }, async (res) => {
+      if (res.status !== 404) await this.check(res);
+    });
   }
 
-  private async json(url: string, init: RequestInit = {}): Promise<unknown> {
-    const res = await this.call(url, init);
-    await this.check(res);
-    return res.json();
+  private json(url: string, init: RequestInit = {}): Promise<unknown> {
+    return this.call(url, init, async (res) => {
+      await this.check(res);
+      return res.json();
+    });
   }
 
   private async check(res: Response) {
@@ -310,23 +406,34 @@ export class GoogleDrive implements FileAdapter {
     throw new DriveError(res.status, `Google Drive: ${message}`);
   }
 
-  /** One request with the current token: a refused token is dropped once, and rate limits and server errors are retried. */
-  private async call(url: string, init: RequestInit = {}): Promise<Response> {
+  /** A current token. Requests sent at once wait for one answer, so the app asks for one token, not one each. */
+  private token(): Promise<string> {
+    this.pendingToken ??= this.auth.token().finally(() => (this.pendingToken = null));
+    return this.pendingToken;
+  }
+
+  /**
+   * One request with the current token, when a slot is free; `take` reads the answer before the slot is given up. A
+   * refused token is dropped once, and rate limits and server errors are retried, waiting outside the slot.
+   */
+  private async call<T>(url: string, init: RequestInit, take: (res: Response) => Promise<T>): Promise<T> {
     let renewed = false;
     for (let attempt = 0; ; attempt++) {
-      const token = await this.auth.token();
-      const res = await this.fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` } });
-      if (res.status === 401) {
-        this.auth.refused(token);
-        if (renewed) throw new SignInNeeded();
-        renewed = true;
-        continue;
-      }
-      if (attempt < RETRIES && (await GoogleDrive.retryable(res))) {
+      const token = await this.token();
+      const step = await this.slots.run(async (): Promise<{ value: T } | { again: "token" | "wait" }> => {
+        const res = await this.fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` } });
+        if (res.status === 401) return { again: "token" };
+        if (attempt < RETRIES && (await GoogleDrive.retryable(res))) return { again: "wait" };
+        return { value: await take(res) };
+      });
+      if ("value" in step) return step.value;
+      if (step.again === "wait") {
         await this.wait(1000 * 2 ** attempt);
         continue;
       }
-      return res;
+      this.auth.refused(token);
+      if (renewed) throw new SignInNeeded();
+      renewed = true;
     }
   }
 

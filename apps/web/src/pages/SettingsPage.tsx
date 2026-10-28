@@ -9,7 +9,7 @@ import { useApp } from "../data/context.tsx";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle } from "../data/google.ts";
-import { momentLabel, plural } from "../lib/format.ts";
+import { momentLabel, nf, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
@@ -183,7 +183,10 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           {sync.state === "syncing" && (
             <p className="status-line">
               <Icon name="refresh-cw" />
-              <span>Syncing with {sync.place}…</span>
+              <span>
+                {sync.tables ? `Syncing with ${sync.place}…` : `Reading your log from ${sync.place}…`}
+                {sync.tracks && ` Reading recorded tracks: ${nf.format(sync.tracks.done)} of ${nf.format(sync.tracks.total)}.`}
+              </span>
             </p>
           )}
           {sync.state === "synced" && (

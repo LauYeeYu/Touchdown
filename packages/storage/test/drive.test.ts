@@ -22,9 +22,9 @@ function auth(tokens: string[] = ["good"]): DriveAuth & { refusedTokens: string[
   };
 }
 
-function adapter(drive: FakeDrive, a: DriveAuth = auth(), now?: () => number) {
+function adapter(drive: FakeDrive, a: DriveAuth = auth(), now?: () => number, concurrency?: number) {
   const waits: number[] = [];
-  const files = new GoogleDrive(a, { fetch: drive.fetch, wait: async (ms) => void waits.push(ms), now });
+  const files = new GoogleDrive(a, { fetch: drive.fetch, wait: async (ms) => void waits.push(ms), now, concurrency });
   return Object.assign(files, { waits });
 }
 
@@ -141,6 +141,91 @@ describe("Google Drive files", () => {
     const drive = new FakeDrive();
     drive.failures.push(500, 500, 500, 500, 500);
     await expect(adapter(drive).list("tables")).rejects.toThrow(/Google Drive/);
+  });
+
+  it("sends requests at once, never more than its limit", async () => {
+    const drive = new FakeDrive();
+    const names = Array.from({ length: 12 }, (_, i) => `tracks/t${i}.json`);
+    const writer = adapter(drive);
+    for (const n of names) await writer.write(n, text(n));
+    let now = 0;
+    let most = 0;
+    drive.pause = async () => {
+      most = Math.max(most, ++now);
+      await new Promise((r) => setTimeout(r, 2));
+      now--;
+    };
+
+    const files = adapter(drive, auth(), undefined, 4);
+    await files.list("tracks");
+    const read = await Promise.all(names.map((n) => files.read(n)));
+
+    expect(read.map((r) => new TextDecoder().decode(r!.data))).toEqual(names);
+    expect(most).toBe(4);
+  });
+
+  it("asks for one token when requests start at once", async () => {
+    const drive = new FakeDrive();
+    const names = ["tracks/a.json", "tracks/b.json", "tracks/c.json"];
+    for (const n of names) await adapter(drive).write(n, text(n));
+    let asked = 0;
+    let kept: string | null = null;
+    const slow: DriveAuth = {
+      async token() {
+        if (kept) return kept;
+        asked++;
+        await new Promise((r) => setTimeout(r, 2));
+        return (kept = "good");
+      },
+      refused() {},
+    };
+    const files = adapter(drive, slow);
+    await files.list("tracks");
+    // The token runs out while every file is being read.
+    kept = null;
+    asked = 0;
+    await Promise.all(names.map((n) => files.read(n)));
+    expect(asked).toBe(1);
+  });
+
+  it("finds a log's files and folders in a few requests", async () => {
+    const drive = new FakeDrive();
+    const writer = adapter(drive);
+    await writer.write("manifest.json", text("{}"));
+    await writer.write("tables/flights.json", text("[]"));
+    await writer.write("tracks/t1.json", text("[]"));
+    drive.log.length = 0;
+
+    const files = adapter(drive);
+    await files.read("manifest.json");
+    await Promise.all([files.list("tables"), files.list("tracks")]);
+    await files.read("tables/flights.json");
+
+    // The Touchdown folder, everything in it, the manifest, the two folders' files, one table.
+    expect(drive.log).toHaveLength(6);
+  });
+
+  it("keeps a file it wrote while a listing of its folder was on the way", async () => {
+    const drive = new FakeDrive();
+    const files = adapter(drive);
+    await files.write("inbox/a.json", text("a"));
+    let hold: () => void = () => {};
+    let held = false;
+    drive.pause = async () => {
+      if (held) return;
+      held = true;
+      await new Promise<void>((r) => (hold = r));
+    };
+    const listing = files.list("inbox");
+    await Promise.resolve();
+    drive.pause = async () => {};
+    await files.write("inbox/b.json", text("b"));
+    hold();
+    await listing;
+
+    await files.write("inbox/b.json", text("b2"));
+    expect(drive.at("inbox/b.json")).toHaveLength(1);
+    expect(read(drive.current("inbox/b.json"))).toBe("b2");
   });
 
   it("reads the account's email address", async () => {

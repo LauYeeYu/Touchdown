@@ -16,10 +16,29 @@ export interface MetaRow {
   value: unknown;
 }
 
+/**
+ * An edit made in a tab that does not write the browser's copy itself (tabs.ts), or made before sync started, kept
+ * until the tab that writes the copy has taken it into its rows and its sync queue.
+ */
+export interface OutboxRecord {
+  /** "<table>|<row key>", or "track|<track id>" for a track's points. */
+  key: string;
+  table: string;
+  id: string;
+  /** A row: as it was before the first edit not taken yet, and as it is now. */
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  /** A track: its points now; none when it was removed. */
+  points?: Record<string, unknown>[];
+  /** New with every write of the record, so the writing tab removes only the version it took. */
+  stamp: string;
+}
+
 class TouchdownDb extends Dexie {
   rows!: Table<StoredRow, [string, string]>;
   trackPoints!: Table<TrackPointsRecord, string>;
   meta!: Table<MetaRow, string>;
+  outbox!: Table<OutboxRecord, string>;
 
   constructor(name: string) {
     super(name);
@@ -36,6 +55,14 @@ class TouchdownDb extends Dexie {
         assertSameRows(rows, await tx.table<TrackPointsRecord>("trackPoints").toArray());
         await tx.table("rows").bulkDelete(old.map((r) => [r.table, r.id]));
       });
+    // Version 3 adds the edits other tabs hand to the tab that writes the copy.
+    this.version(3).stores({ rows: "[table+id], table", trackPoints: "trackId", meta: "key", outbox: "key" });
+    // Another tab upgraded the database or deleted it (signing out): this page's copy is out of date.
+    this.on("versionchange", () => {
+      this.close();
+      location.reload();
+      return false;
+    });
   }
 }
 

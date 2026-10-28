@@ -163,7 +163,7 @@ export class FakeDrive {
   }
 
   private out(f: FakeFile) {
-    return { id: f.id, name: f.name, md5Checksum: f.mimeType === FOLDER ? undefined : f.md5, version: String(f.version), createdTime: f.createdTime };
+    return { id: f.id, name: f.name, mimeType: f.mimeType, md5Checksum: f.mimeType === FOLDER ? undefined : f.md5, version: String(f.version), createdTime: f.createdTime };
   }
 
   // ---------- for tests ----------

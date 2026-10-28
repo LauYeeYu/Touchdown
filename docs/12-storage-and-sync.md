@@ -38,11 +38,25 @@ Decided:
 
 | Item | Rule |
 |---|---|
-| Layout | IndexedDB database `touchdown-<account id>`, one per account, so people sharing a browser never see each other's logs ([33](33-accounts-and-sign-in.md), "The browser's copy"); `touchdown` from before accounts existed. Store `rows`: one record per row, keyed by table and row key. Store `trackPoints`: one record per track, holding that track's point rows in sequence order. A track's points are always replaced together, and IndexedDB pays a fixed cost per record, so this reads about five times and writes about seven times faster than one record per point. The rows are the schema's rows either way. |
-| Changing the layout | A layout change is a database version upgrade, run in one transaction. It checks the converted records against the original rows (every row, every column, every value) before removing the originals; if anything differs, the upgrade fails as a whole and the old layout stays as it was. Version 2 moved track points to one record per track. |
+| Layout | IndexedDB database `touchdown-<account id>`, one per account, so people sharing a browser never see each other's logs ([33](33-accounts-and-sign-in.md), "The browser's copy"); `touchdown` from before accounts existed. Store `rows`: one record per row, keyed by table and row key. Store `trackPoints`: one record per track, holding that track's point rows in sequence order. A track's points are always replaced together, and IndexedDB pays a fixed cost per record, so this reads about five times and writes about seven times faster than one record per point. The rows are the schema's rows either way. Store `outbox`: edits waiting for the tab that writes the copy (see "Tabs"). Store `meta`: the connection, sync's position and queue, and the copy's epoch. |
+| Saving | The rows, sync's position and queue, and the outbox are written in one transaction. A reload never finds a position that covers rows not saved, or an edit saved without its queue entry. |
+| Changing the layout | A layout change is a database version upgrade, run in one transaction. It checks the converted records against the original rows (every row, every column, every value) before removing the originals; if anything differs, the upgrade fails as a whole and the old layout stays as it was. Version 2 moved track points to one record per track; version 3 added the outbox. A tab still open on an older version is told the database changed, and reloads. |
 | Memory | Every row is loaded into memory when the app opens ([30](30-architecture.md)): about 240 bytes per track point, so about 0.2 MB per recorded track; flights and sightings are small. |
 | Keeping it | Once the log has records, the app asks the browser for persistent storage, so the browser does not clear it when the disk runs low. Chrome decides without asking; Firefox asks the user. Settings shows whether the browser agreed. |
 | Signing out | Once every change has synced, signing out removes the browser's copy ([31](31-ui.md), "Signing out"). |
+
+## Tabs
+
+Decided, built (`apps/web/src/data/tabs.ts`, `app.ts`). The tabs of one browser share its copy of the log, so a second tab opens from the copy, not from the storage, and every tab shows the same log.
+
+- **One tab writes the copy and syncs.** It is the first tab to hold a Web Lock named after the database. When it closes, the next tab waiting takes the lock: it reads the copy again for anything it missed, then starts sync.
+- **The other tabs** read the copy when they open and show the writing tab's sync (its state, the masthead, Settings). Their edits show at once; each is saved to the outbox, one record per row or track (the row as it was before the first edit not taken yet and as it is now; a track's points), and the writing tab is told on a BroadcastChannel.
+- **The writing tab takes the outbox** into the copy and sync's queue in one transaction, removing each record only if it was not written again meanwhile. A row it changed itself since the other tab read it is merged field by field, as two devices' versions are. Until sync has started (or while it waits for the user), the records stay in the outbox, so sync sends them once it starts.
+- After each save, the writing tab tells the others which rows and tracks it saved; they show them. A tab's own edits not taken yet stay as that tab made them.
+- "Sync now", and the click that signs in to Google or allows the folder again, work in any tab: the click happens there, and the writing tab syncs.
+- **Replacing the copy** (restoring a backup, deleting the data in this browser, changing the storage) gives the copy a new epoch, in the same transaction. A tab that finds another epoch when it saves writes nothing and reloads; every other tab is also told to reload. Signing out deletes the database, and the other tabs reload.
+- Each open tab holds the whole log in memory, as one tab does ([30](30-architecture.md)).
+- Browsers without Web Locks or BroadcastChannel (from before 2022): every tab writes the copy and syncs, as before.
 
 ## Backend interface
 
@@ -100,7 +114,13 @@ The same for every backend, because it works on rows:
 3. **Push** local rows the backend does not have yet.
 4. **Confirm.** A device keeps the rows edited on it in a local queue until the storage shows them back: a later pull, or a push that finds them there already. This covers file backends whose storage has no compare-and-swap (Google Drive): if two devices write at nearly the same moment and one write overwrites the other, the overwritten device still has its rows queued and pushes them again. A confirmed row that an overwrite later removes is found by the next pull (the stored version is older, or was edited beside it) and handled by step 2.
 
-Sync runs on app start, a few seconds after edits, on focus, and every few minutes while the app is open. The first sync after the app starts reads every table file again, not only the changed ones, so an edit whose queue entry was lost (the browser closed before it was saved) is still found and sent.
+Sync runs on app start, a few seconds after edits, on focus, and every few minutes while the app is open. It reads only the files that changed since its position: the queue is saved with the rows it names, so no edit is saved without its queue entry. Once, the first sync after a browser has this version reads every table file again, to find an edit whose queue entry an older version lost (the browser closed before it was saved).
+
+**Tables first, then tracks** (Decided, built). A sync lists the storage's folders and reads every changed table file at the same time, merges the tables and saves them with their position. Then it reads the tracks, many at once; the tracks that arrive together are merged together, and each keeps its position as it is merged, saved every few tracks. So:
+
+- The app opens once the copy has the tables ([31](31-ui.md), "Opening"); the tracks come in the background, with the count in the masthead. A flight's map shows the great circle until its track is in.
+- A first download cut short (the page reloaded) is known from the position: it lacks the tables, or some tracks. The loading screen waits for the tables again, and only the tracks not saved yet are read.
+- A track the storage has and the copy has no points for is read again, whatever the position says. A track that could not be read keeps its old position and is read at the next sync.
 
 Built: the sync engine in `packages/storage` (`src/sync.ts`, `src/merge.ts`), with a test where three devices add, change fields of and delete entries, sync at the same time with their file reads and writes interleaved, and sometimes write a stale copy back; every run ends with the same log on every device, and every value set is in the log, was changed further by a device that had it, or is listed for the user. A browser that restores a backup becomes a new device for sync (a new device id), since its copy no longer includes every version it made; so does one whose data is deleted.
 
@@ -253,8 +273,10 @@ CSV export/import per table is available with every backend. It is the fallback 
   - The Touchdown folder is made in My Drive and carries an app property (`touchdown=log`), so it is found wherever the user moves it and whatever they rename it to.
   - Drive finds files by id, and a folder may hold two files with the same name. Paths are looked up by name in their folder. When two devices create the same file or folder at the same moment, each checks right after, the older one is used, and the newer one is removed (its content written into the older one).
   - A file's version is its MD5 checksum. A folder listed in the last 30 seconds answers "not there" without asking Drive again.
+  - Requests go out at once, up to 64 at a time. Drive states no limit on requests at once, only on quota units a minute (below); 64 downloads at once were answered without a rate limit, and a browser sends them over one connection. A cold read of a log took about a tenth of the time it took one file at a time. Requests that start together wait for one token.
+  - One listing of the Touchdown folder finds its files and folders; the `tables` and `tracks` folders are listed at the same time. Drive sends the files gzipped.
   - Files over 5 MB go up as resumable uploads. Rate limits and server errors are retried four times, waiting 1, 2, 4 and 8 seconds. A refused token is dropped; with no other token, sync waits for sign-in.
-- Quotas (Drive: 325,000 quota units per minute per user) are far above what a personal log needs. Google announced quota changes and charges above "standard daily thresholds" later in 2026; recheck before launch.
+- Quotas (Drive: 325,000 quota units per minute per user; a download costs 5, a listing 100) are far above what a personal log needs. Google announced quota changes and charges above "standard daily thresholds" later in 2026; recheck before launch.
 
 ## What is never stored in user data
 

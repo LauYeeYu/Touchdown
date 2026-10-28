@@ -23,9 +23,14 @@ export interface Change {
   id: string; // row key (see rowKey)
   before: Row<TableName> | null;
   after: Row<TableName> | null; // null when a row was purged
-  /** "sync" when the row came from the user's storage rather than an edit on this device. */
-  origin?: "sync";
+  /**
+   * "sync" when the row came from the user's storage rather than an edit on this device; "tab" when another tab of
+   * this browser wrote it to the browser's copy, which holds it already.
+   */
+  origin?: Origin;
 }
+
+export type Origin = "sync" | "tab";
 
 export type Listener = (changes: Change[]) => void;
 
@@ -186,8 +191,8 @@ export class Store {
     }
   }
 
-  /** Put rows from the user's storage exactly as given and tell listeners, marked as coming from sync. */
-  applyRemote<N extends TableName>(table: N, rows: Row<N>[]): void {
+  /** Put rows from the user's storage (or another tab) exactly as given and tell listeners, marked as coming from there. */
+  applyRemote<N extends TableName>(table: N, rows: Row<N>[], origin: Origin = "sync"): void {
     const changes: Change[] = [];
     for (const row of rows) {
       const full = completeRow(TABLES[table], row as Record<string, unknown>) as Row<N>;
@@ -198,13 +203,13 @@ export class Store {
       const key = rowKey(table, full as Record<string, unknown>);
       const before = this.map(table).get(key) ?? null;
       this.map(table).set(key, full);
-      changes.push({ table, id: key, before, after: full, origin: "sync" } as Change);
+      changes.push({ table, id: key, before, after: full, origin } as Change);
     }
     this.emitAll(changes);
   }
 
   /** Add rows exactly as given and tell listeners (track points, which carry no system columns). */
-  putRaw<N extends TableName>(table: N, rows: Row<N>[], origin?: "sync"): void {
+  putRaw<N extends TableName>(table: N, rows: Row<N>[], origin?: Origin): void {
     const changes: Change[] = [];
     for (const row of rows) {
       const full = completeRow(TABLES[table], row as Record<string, unknown>) as Row<N>;
@@ -221,7 +226,7 @@ export class Store {
   }
 
   /** Remove rows outright (track points are replaced with their track; they have no tombstones). */
-  purge(table: TableName, keys: string[], origin?: "sync"): void {
+  purge(table: TableName, keys: string[], origin?: Origin): void {
     const changes: Change[] = [];
     for (const k of keys) {
       const before = this.map(table).get(k);

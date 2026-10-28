@@ -20,6 +20,7 @@ import {
   reopenFinding,
   resolveAirframes,
   rowKey,
+  rowVersion,
   saveFlight,
   saveSighting,
   saveSightings,
@@ -51,10 +52,12 @@ import {
   type SuggestedFix,
   type TableName,
 } from "@touchdown/core";
-import { LAST_BACKUP, LAST_CHANGE, readConnection, saveConnection, setMeta, type Connection } from "./connection.ts";
-import { db } from "./db.ts";
+import { isBasedOn, isNewer, mergeRow, type QueuedRow, type StoredRow as SyncRow, type SyncState } from "@touchdown/storage";
+import { CONNECTION, LAST_BACKUP, LAST_CHANGE, setMeta, type Connection } from "./connection.ts";
+import { db, type OutboxRecord } from "./db.ts";
 import { forgetGoogleToken } from "./google.ts";
-import { forgetSyncPosition, SyncController, type SyncInfo } from "./sync.ts";
+import { hasTables, savedSyncState, SYNC_CHECKED, SyncController, TabSync, type SyncHandle, type SyncInfo } from "./sync.ts";
+import type { SavedRow, TabMessage, Tabs } from "./tabs.ts";
 import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
 
 function deviceId(): string {
@@ -94,50 +97,123 @@ const paint = () => new Promise<void>((r) => {
   setTimeout(r, 50);
 });
 
+/** Which copy of the log the open tabs hold (meta store): a tab that finds another stops writing and reloads. */
+const EPOCH = "epoch";
+
+/** Another tab replaced the browser's copy (a backup restored, the storage changed): this page reloads. */
+class CopyReplaced extends Error {}
+
+/** Two copies of a row are the same: one version, the same values. */
+const sameRow = (a: Record<string, unknown>, b: Record<string, unknown>) => rowVersion(a) === rowVersion(b) && JSON.stringify(a) === JSON.stringify(b);
+const trackOf = (pointKey: string) => pointKey.slice(0, pointKey.lastIndexOf("|"));
+const pointsJson = (rows: Record<string, unknown>[]) => JSON.stringify([...rows].sort((a, b) => Number(a.seq) - Number(b.seq)));
+
+/** Tell listeners; one that throws (a page failing to render) stops neither the others nor the write that told them. */
+function tell(listeners: Set<() => void>) {
+  for (const l of listeners) {
+    try {
+      l();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}
+
+interface Edit {
+  table: string;
+  id: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+}
+
 export class AppData {
   readonly store: Store;
   readonly ref: RefIndex;
+  readonly tabs: Tabs;
   version = 0;
   saveState: SaveState = "saved";
   lastSavedAt: number | null = null;
   private listeners = new Set<() => void>();
+  /** Rows to write to the browser's copy (the writing tab only). */
   private pending = new Map<string, { table: string; id: string; row: Record<string, unknown> | null }>();
+  /** Edits for the outbox: made in a tab that does not write the copy, or before sync noted them. */
+  private edits = new Map<string, Edit>();
+  private editedTracks = new Set<string>();
+  /** Sync's state, written with the rows it covers. */
+  private syncState: SyncState | null = null;
+  /** Outbox records taken into the copy and the sync queue, removed with the next write. */
+  private taken = new Map<string, string>();
+  /** This tab's outbox records the writing tab has not taken yet, by key, with their stamp. */
+  private unacked = new Map<string, string>();
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  private flushing: Promise<void> = Promise.resolve();
+  private heard: Promise<void> = Promise.resolve();
+  private taking: Promise<void> = Promise.resolve();
+  /** Which copy of the log this tab holds (EPOCH); a write finding another stops and reloads. */
+  private epoch: unknown;
+  private closed = false;
   private cache: { version: number; findings: Finding[]; resolvedOverlaps: ReturnType<typeof resolveAirframes>["overlaps"] } | null = null;
   /** How this browser keeps the log; null until the first run has asked (docs/32). */
   connection: Connection | null = null;
-  /** Syncing, in Private mode. */
-  sync: SyncController | null = null;
+  /** Syncing, in Private and Standard mode. */
+  sync: SyncHandle | null = null;
   private syncListeners = new Set<() => void>();
 
-  private constructor(store: Store, ref: RefIndex) {
+  private constructor(store: Store, ref: RefIndex, tabs: Tabs, connection: Connection | null, epoch: unknown, outbox: OutboxRecord[]) {
     this.store = store;
     this.ref = ref;
+    this.tabs = tabs;
+    this.connection = connection;
+    this.epoch = epoch;
+    if (tabs.role === "follower") for (const r of outbox) this.unacked.set(r.key, r.stamp);
     store.subscribe((changes) => {
-      for (const c of changes) this.pending.set(`${c.table}|${c.id}`, { table: c.table, id: c.id, row: c.after as unknown as Record<string, unknown> | null });
+      const writer = this.tabs.role === "writer";
+      const outbox = this.outboxEdits();
+      let write = false;
+      for (const c of changes) {
+        // Another tab wrote it to the copy already.
+        if (c.origin === "tab") continue;
+        if (writer) {
+          this.pending.set(`${c.table}|${c.id}`, { table: c.table, id: c.id, row: c.after as unknown as Record<string, unknown> | null });
+          write = true;
+        }
+        if (c.origin || !outbox) continue;
+        if (c.table === "track_points") this.editedTracks.add(trackOf(c.id));
+        else {
+          const k = `${c.table}|${c.id}`;
+          const first = this.edits.get(k);
+          this.edits.set(k, { table: c.table, id: c.id, before: first ? first.before : (c.before as Record<string, unknown> | null), after: c.after as Record<string, unknown> | null });
+        }
+        write = true;
+      }
       // The user's own operators and family choices reach the reference index as they change, by sync too:
       // a browser signed in again starts empty, and they arrive after the index was built.
       if (changes.some((c) => c.table === "operator_overrides" || c.table === "family_overrides")) this.refreshUserOverrides();
       // Rows from another device: settle what both made side by side (core reconcile.ts), once the sync has finished.
       if (changes.some((c) => c.origin === "sync")) this.scheduleReconcile();
-      this.scheduleFlush();
+      if (write) this.scheduleFlush();
       this.version++;
-      for (const l of this.listeners) l();
+      tell(this.listeners);
     });
+    tabs.listen((m) => this.hear(m));
   }
 
   /** `done` hears each step as it finishes; with "log", the number of records read. */
-  static async open(done: (step: OpenStep, records?: number) => void = () => {}): Promise<AppData> {
-    const [tables, [rows, tracks]] = await Promise.all([
+  static async open(tabs: Tabs, done: (step: OpenStep, records?: number) => void = () => {}): Promise<AppData> {
+    const [tables, [rows, tracks, outbox, meta]] = await Promise.all([
       import("@touchdown/refdata").then(({ loadRefTables }): RefTables => {
         const t = loadRefTables();
         done("reference");
         return t;
       }),
-      db.transaction("r", db.rows, db.trackPoints, () => Promise.all([db.rows.toArray(), db.trackPoints.toArray()])).then((read) => {
-        done("log", read[0].length + read[1].reduce((n, t) => n + t.rows.length, 0));
-        return read;
-      }),
+      db
+        .transaction("r", db.rows, db.trackPoints, db.outbox, db.meta, () =>
+          Promise.all([db.rows.toArray(), db.trackPoints.toArray(), db.outbox.toArray(), db.meta.bulkGet([CONNECTION, EPOCH])]),
+        )
+        .then((read) => {
+          done("log", read[0].length + read[1].reduce((n, t) => n + t.rows.length, 0));
+          return read;
+        }),
     ]);
     await paint();
     const store = new Store({ deviceId: deviceId() });
@@ -152,7 +228,7 @@ export class AppData {
     if (points.length) byTable.set("track_points", points);
     // Tables the schema no longer has (agent_rules went to the CLI in schema version 4) are removed here.
     const gone = [...byTable.keys()].filter((t) => !(t in TABLES));
-    if (gone.length) void db.rows.where("table").anyOf(gone).delete();
+    if (gone.length && tabs.role === "writer") void db.rows.where("table").anyOf(gone).delete();
     const problems: string[] = [];
     for (const [table, list] of byTable) {
       if (!(table in TABLES)) continue;
@@ -165,10 +241,20 @@ export class AppData {
       }
     }
     if (problems.length) console.warn("Rows that failed validation were not loaded:", problems);
-    const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)));
+    // Edits another tab made that the writing tab has not taken yet are shown already.
+    for (const r of outbox) {
+      try {
+        if (r.points) {
+          store.purge("track_points", store.all("track_points").filter((p) => p.trackId === r.id).map((p) => rowKey("track_points", p as never)));
+          store.load("track_points", r.points as never);
+        } else if (r.after && r.table in TABLES) store.load(r.table as TableName, [r.after as never]);
+      } catch {
+        // Left for the writing tab, which reports it.
+      }
+    }
+    const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)), tabs, (meta[0]?.value as Connection | undefined) ?? null, meta[1]?.value ?? null, outbox);
     // Statuses a log from an older version keeps in a sighting's phase or notes become its phases (core phases.ts).
     settlePhases(store);
-    app.connection = await readConnection();
     return app;
   }
 
@@ -198,7 +284,7 @@ export class AppData {
 
   private notify() {
     this.version++;
-    for (const l of this.listeners) l();
+    tell(this.listeners);
   }
 
   private reconcileTimer: ReturnType<typeof setTimeout> | null = null;
@@ -214,38 +300,295 @@ export class AppData {
   private scheduleFlush() {
     this.saveState = "saving";
     if (this.flushTimer) return;
-    this.flushTimer = setTimeout(() => void this.flush(), 120);
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      void this.flushNow().catch(() => undefined);
+    }, 120);
   }
 
+  /**
+   * Edits go to the outbox when this tab does not write the copy, or when it does and no sync engine notes them yet
+   * (sync not started, or waiting for the user): the engine takes them when it starts. Local mode has no sync.
+   */
+  private outboxEdits(): boolean {
+    if (this.tabs.role === "follower") return true;
+    const c = this.connection;
+    return !!c && c.mode !== "local" && !(this.sync instanceof SyncController && this.sync.noting);
+  }
+
+  /** Write everything waiting, after any write under way; resolves once it is saved. */
+  flushNow(): Promise<void> {
+    const next = this.flushing.then(() => this.flush());
+    this.flushing = next.catch(() => undefined);
+    return next;
+  }
+
+  /** Sync's state, saved with the rows it covers in one transaction, so a reload finds both or neither. */
+  private persistSync = (state: SyncState): Promise<void> => {
+    this.syncState = state;
+    return this.flushNow();
+  };
+
   private async flush() {
-    this.flushTimer = null;
+    if (this.closed) return;
     const batch = [...this.pending.values()];
+    const edits = [...this.edits.values()];
+    const editedTracks = [...this.editedTracks];
+    const state = this.syncState;
+    const taken = [...this.taken];
     this.pending.clear();
-    if (!batch.length) return;
+    this.edits.clear();
+    this.editedTracks.clear();
+    this.syncState = null;
+    this.taken.clear();
+    if (!batch.length && !edits.length && !editedTracks.length && !state && !taken.length) {
+      this.saveState = "saved";
+      return;
+    }
+    const rows = batch.filter((r) => r.table !== "track_points");
+    const puts = rows.filter((r) => r.row !== null) as { table: string; id: string; row: Record<string, unknown> }[];
+    const dels = rows.filter((r) => r.row === null).map((r) => [r.table, r.id] as [string, string]);
+    // Track points are stored one record per track: rewrite each track that changed from what the store
+    // holds now, or remove its record when it has no points left. A point's key is "<trackId>|<seq>".
+    const changedTracks = new Set(batch.filter((r) => r.table === "track_points").map((r) => trackOf(r.id)));
+    const pointsOf = (ids: Set<string>) => groupTrackPoints(this.store.all("track_points").filter((p) => ids.has(p.trackId)) as unknown as Record<string, unknown>[]);
+    const trackPuts = changedTracks.size ? pointsOf(changedTracks) : [];
+    const trackDels = [...changedTracks].filter((id) => !trackPuts.some((t) => t.trackId === id));
+    const outboxTracks = editedTracks.length ? pointsOf(new Set(editedTracks)) : [];
+    const stamp = ulid();
+    const written: OutboxRecord[] = [];
+    const took: { key: string; stamp: string }[] = [];
     try {
-      const rows = batch.filter((r) => r.table !== "track_points");
-      const puts = rows.filter((r) => r.row !== null) as { table: string; id: string; row: Record<string, unknown> }[];
-      const dels = rows.filter((r) => r.row === null).map((r) => [r.table, r.id] as [string, string]);
-      // Track points are stored one record per track: rewrite each track that changed from what the store
-      // holds now, or remove its record when it has no points left. A point's key is "<trackId>|<seq>".
-      const changedTracks = new Set(batch.filter((r) => r.table === "track_points").map((r) => r.id.slice(0, r.id.lastIndexOf("|"))));
-      const trackPuts = changedTracks.size ? groupTrackPoints(this.store.all("track_points").filter((p) => changedTracks.has(p.trackId)) as unknown as Record<string, unknown>[]) : [];
-      const trackDels = [...changedTracks].filter((id) => !trackPuts.some((t) => t.trackId === id));
-      await db.transaction("rw", db.rows, db.trackPoints, db.meta, async () => {
+      await db.transaction("rw", [db.rows, db.trackPoints, db.meta, db.outbox], async () => {
+        if (((await db.meta.get(EPOCH))?.value ?? null) !== this.epoch) throw new CopyReplaced();
         if (puts.length) await db.rows.bulkPut(puts);
         if (dels.length) await db.rows.bulkDelete(dels);
         if (trackPuts.length) await db.trackPoints.bulkPut(trackPuts);
         if (trackDels.length) await db.trackPoints.bulkDelete(trackDels);
-        await db.meta.put({ key: LAST_CHANGE, value: Date.now() });
+        if (puts.length || dels.length || changedTracks.size) await db.meta.put({ key: LAST_CHANGE, value: Date.now() });
+        if (state) await db.meta.put({ key: "sync", value: state });
+        // An outbox record keeps the row as it was before the first edit not taken yet.
+        for (const e of edits) {
+          const key = `${e.table}|${e.id}`;
+          const old = await db.outbox.get(key);
+          written.push({ key, table: e.table, id: e.id, before: old ? (old.before ?? null) : e.before, after: e.after, stamp });
+        }
+        for (const id of editedTracks) written.push({ key: `track|${id}`, table: "track_points", id, points: outboxTracks.find((t) => t.trackId === id)?.rows ?? [], stamp });
+        if (written.length) await db.outbox.bulkPut(written);
+        // Taken by this tab: removed, unless written again since.
+        for (const [key, s] of taken) {
+          if ((await db.outbox.get(key))?.stamp !== s) continue;
+          await db.outbox.delete(key);
+          took.push({ key, stamp: s });
+        }
       });
-      this.saveState = this.pending.size ? "saving" : "saved";
-      this.lastSavedAt = Date.now();
     } catch (e) {
+      if (e instanceof CopyReplaced || (e as Error)?.name === "DatabaseClosedError") {
+        this.leave();
+        return;
+      }
       console.error(e);
       this.saveState = "error";
-      for (const r of batch) this.pending.set(`${r.table}|${r.id}`, r);
+      // Kept for the next write; an edit made since keeps the older starting row.
+      for (const r of batch) if (!this.pending.has(`${r.table}|${r.id}`)) this.pending.set(`${r.table}|${r.id}`, r);
+      for (const e of edits) {
+        const k = `${e.table}|${e.id}`;
+        const later = this.edits.get(k);
+        this.edits.set(k, later ? { ...later, before: e.before } : e);
+      }
+      for (const id of editedTracks) this.editedTracks.add(id);
+      this.syncState ??= state;
+      for (const [k, v] of taken) if (!this.taken.has(k)) this.taken.set(k, v);
+      this.notify();
+      throw e;
     }
+    for (const r of written) this.unacked.set(r.key, r.stamp);
+    if (this.tabs.role === "writer") {
+      if (puts.length || dels.length || changedTracks.size || took.length) {
+        const saved: SavedRow[] = [...puts, ...dels.map(([table, id]) => ({ table, id, row: null }))];
+        this.tabs.post({ type: "rows", rows: saved, tracks: [...changedTracks], took });
+      }
+      // Its own edits, kept for sync while it was not running: taken once it starts.
+      for (const r of written) this.unacked.delete(r.key);
+    } else if (written.length) this.tabs.post({ type: "outbox" });
+    this.saveState = this.pending.size || this.edits.size || this.editedTracks.size ? "saving" : "saved";
+    this.lastSavedAt = Date.now();
     this.notify();
+  }
+
+  /** The copy was replaced in another tab: write nothing more, and reload. */
+  private leave() {
+    if (this.closed) return;
+    this.closed = true;
+    this.sync?.stop();
+    location.reload();
+  }
+
+  // ---------- tabs (docs/12, "Tabs") ----------
+
+  /** A message from another tab. The writing tab's saves are shown in the order they were made. */
+  private hear(m: TabMessage) {
+    if (this.closed) return;
+    const failed = (e: unknown) => console.error(e);
+    if (m.type === "reload") return this.leave();
+    if (this.tabs.role === "writer") {
+      if (m.type === "outbox") void this.takeOutbox().catch(failed);
+      else if (m.type === "hello") this.tabs.post({ type: "sync", info: this.sync?.info ?? null });
+      else if (m.type === "run")
+        void this.takeOutbox()
+          .catch(failed)
+          .then(() => this.sync?.run())
+          .then(() => m.id && this.tabs.post({ type: "ran", id: m.id }));
+      else if (m.type === "allow") void this.sync?.allow();
+      return;
+    }
+    if (m.type === "rows") this.heard = this.heard.then(() => this.fromWriter(m)).catch(failed);
+    else if (m.type === "sync" && this.sync instanceof TabSync) this.sync.heard(m.info);
+    else if (m.type === "ran" && this.sync instanceof TabSync) this.sync.ran(m.id);
+  }
+
+  /** Rows the writing tab saved: shown here as they are, except this tab's own edits until it has taken them. */
+  private async fromWriter(m: Extract<TabMessage, { type: "rows" }>) {
+    for (const t of m.took) if (this.unacked.get(t.key) === t.stamp) this.unacked.delete(t.key);
+    const mine = (key: string) => this.unacked.has(key) || this.edits.has(key);
+    this.store.batch(() => {
+      for (const r of m.rows) {
+        if (!(r.table in TABLES)) continue;
+        const table = r.table as TableName;
+        const key = `${r.table}|${r.id}`;
+        const cur = this.store.peek(table, r.id) as Record<string, unknown> | null;
+        if (r.row === null) {
+          if (cur && !mine(key)) this.store.purge(table, [r.id], "tab");
+          continue;
+        }
+        if (cur && sameRow(cur, r.row)) continue;
+        if (mine(key) && cur && !isBasedOn(r.row, cur)) continue;
+        try {
+          this.store.applyRemote(table, [r.row as never], "tab");
+        } catch (e) {
+          console.warn(`${key}: ${(e as Error).message}`);
+        }
+      }
+    });
+    const tracks = m.tracks.filter((id) => !mine(`track|${id}`) && !this.editedTracks.has(id));
+    if (tracks.length) this.showTracks(tracks, await db.trackPoints.bulkGet(tracks));
+  }
+
+  private showTracks(ids: string[], records: ({ trackId: string; rows: Record<string, unknown>[] } | undefined)[]) {
+    this.store.batch(() => {
+      ids.forEach((id, i) => {
+        const here = this.store.all("track_points").filter((p) => p.trackId === id);
+        const there = records[i]?.rows ?? [];
+        if (pointsJson(here as never) === pointsJson(there)) return;
+        this.store.purge("track_points", here.map((p) => rowKey("track_points", p as never)), "tab");
+        if (there.length) this.store.putRaw("track_points", there as never, "tab");
+      });
+    });
+  }
+
+  /**
+   * Take the other tabs' edits from the outbox into the copy (and into sync's queue, in one write). A row changed here
+   * since that tab read it keeps both versions field by field, as two devices' do (docs/12).
+   */
+  takeOutbox(): Promise<void> {
+    const next = this.taking.then(() => this.takeOutboxNow());
+    this.taking = next.catch(() => undefined);
+    return next;
+  }
+
+  private async takeOutboxNow(): Promise<void> {
+    if (this.tabs.role !== "writer" || this.closed) return;
+    const records = await db.outbox.toArray();
+    if (!records.length) return;
+    this.store.batch(() => {
+      for (const r of records) {
+        try {
+          this.takeEdit(r);
+        } catch (e) {
+          console.warn(`Not taken from another tab: ${r.key}: ${(e as Error).message}`);
+        }
+      }
+    });
+    // Written to the copy even when this tab had them already (a track is written whole from what the store holds).
+    for (const r of records) {
+      if (r.points) this.pending.set(`track_points|${r.id}|0`, { table: "track_points", id: `${r.id}|0`, row: null });
+      else if (r.table in TABLES) {
+        const row = this.store.peek(r.table as TableName, r.id) as Record<string, unknown> | null;
+        this.pending.set(`${r.table}|${r.id}`, { table: r.table, id: r.id, row });
+      }
+    }
+    const c = this.connection;
+    const sync = this.sync instanceof SyncController ? this.sync : null;
+    if (!c || c.mode === "local") {
+      for (const r of records) this.taken.set(r.key, r.stamp);
+      await this.flushNow();
+      return;
+    }
+    if (!sync?.noting) {
+      // Kept until sync starts and takes them into its queue.
+      await this.flushNow();
+      return;
+    }
+    for (const r of records) this.taken.set(r.key, r.stamp);
+    const queued: QueuedRow[] = records.filter((r) => !r.points && r.table in TABLES).map((r) => ({ table: r.table as TableName, key: r.id, replaces: [], base: (r.before as SyncRow | null) ?? null }));
+    await sync.enqueue(queued, records.filter((r) => r.points).map((r) => r.id));
+  }
+
+  private takeEdit(r: OutboxRecord) {
+    if (r.points) {
+      const here = this.store.all("track_points").filter((p) => p.trackId === r.id);
+      if (pointsJson(here as never) === pointsJson(r.points)) return;
+      this.store.purge("track_points", here.map((p) => rowKey("track_points", p as never)));
+      if (r.points.length) this.store.putRaw("track_points", r.points as never);
+      return;
+    }
+    if (!(r.table in TABLES)) return;
+    const table = r.table as TableName;
+    const cur = this.store.peek(table, r.id) as Record<string, unknown> | null;
+    const after = r.after ?? null;
+    if (!after) {
+      if (cur) this.store.purge(table, [r.id]);
+      return;
+    }
+    if (cur && sameRow(cur, after)) return;
+    if (!cur || (r.before && sameRow(cur, r.before))) {
+      this.store.putRaw(table, [after as never]);
+      return;
+    }
+    const merged = mergeRow(table, (r.before as SyncRow | null) ?? null, cur, after, isNewer(cur, after));
+    this.store.merged(table, r.id, merged.values, after);
+  }
+
+  /** This tab now writes the copy: it catches up with what it may have missed, and takes over sync. */
+  private async promote() {
+    if (this.closed) return;
+    await this.flushNow().catch(() => undefined);
+    const [rows, tracks, outbox] = await db.transaction("r", db.rows, db.trackPoints, db.outbox, () => Promise.all([db.rows.toArray(), db.trackPoints.toArray(), db.outbox.toArray()]));
+    // Edits not taken yet are newer than the copy: the outbox brings them in below.
+    const waiting = new Set(outbox.map((r) => r.key));
+    const mine = (key: string) => waiting.has(key) || this.edits.has(key);
+    this.store.batch(() => {
+      for (const r of rows) {
+        if (r.table === "track_points" || !(r.table in TABLES) || mine(`${r.table}|${r.id}`)) continue;
+        const cur = this.store.peek(r.table as TableName, r.id) as Record<string, unknown> | null;
+        if (cur && sameRow(cur, r.row)) continue;
+        try {
+          this.store.applyRemote(r.table as TableName, [r.row as never], "tab");
+        } catch {
+          // Left as it is.
+        }
+      }
+    });
+    const ids = new Set([...tracks.map((t) => t.trackId), ...this.store.all("track_points").map((p) => p.trackId)]);
+    const byId = new Map(tracks.map((t) => [t.trackId, t]));
+    const list = [...ids].filter((id) => !mine(`track|${id}`));
+    this.showTracks(list, list.map((id) => byId.get(id)));
+    this.unacked.clear();
+    this.sync?.stop();
+    this.sync = null;
+    this.syncChanged();
+    await this.startSync();
+    await this.takeOutbox();
   }
 
   // ---------- where the log lives (docs/32) ----------
@@ -259,27 +602,58 @@ export class AppData {
 
   private syncChanged = () => {
     for (const l of this.syncListeners) l();
+    if (this.tabs.role === "writer") this.tabs.post({ type: "sync", info: this.sync?.info ?? null });
   };
 
-  /** Start syncing when this browser is in Private or Standard mode. Resolves after the first sync. */
+  /**
+   * Start syncing when this browser is in Private or Standard mode: in this tab when it writes the copy, else through
+   * the tab that does. Resolves once the copy has the storage's tables (the first download can take a while), or sync
+   * waits for the user.
+   */
   startSync(): Promise<void> {
     const c = this.connection;
     if (!c || c.mode === "local" || this.sync) return Promise.resolve();
-    this.sync = new SyncController(this.store, c);
-    this.sync.subscribe(this.syncChanged);
+    const sync =
+      this.tabs.role === "writer"
+        ? new SyncController(this.store, c, { persist: this.persistSync, started: () => this.takeOutbox() })
+        : new TabSync(c, (m) => this.tabs.post(m), () => this.flushNow());
+    this.sync = sync;
+    sync.subscribe(this.syncChanged);
     this.syncChanged();
-    return this.sync.start();
+    // A tab waiting for the writer's part takes it when that tab closes.
+    if (this.tabs.role === "follower") void this.tabs.whenWriter().then(() => this.promote());
+    return sync.start();
   }
 
-  /** Change how this browser keeps the log. In Private mode the promise ends after the first sync. */
+  /** Whether the copy lacks the storage's tables: the first download has not got that far yet. */
+  async tablesMissing(): Promise<boolean> {
+    const c = this.connection;
+    if (!c || c.mode === "local") return false;
+    if (this.tabs.role === "follower") return !(this.sync?.info.tables ?? true);
+    const state = await savedSyncState();
+    return !state || !hasTables(state);
+  }
+
+  /**
+   * Change how this browser keeps the log. Every other tab reloads; this one becomes the writing tab if it is not
+   * already. Ends once the copy has the storage's tables.
+   */
   async connect(c: Connection): Promise<void> {
     this.sync?.stop();
     this.sync = null;
     const drive = (x: Connection | null) => x?.mode === "private" && x.adapter === "gdrive";
     if (drive(this.connection) && !drive(c)) await forgetGoogleToken();
-    // The sync position belongs to the old storage: kept, it would make tracks the new one lacks look deleted.
-    await forgetSyncPosition();
-    await saveConnection(c);
+    await this.flushNow().catch(() => undefined);
+    const epoch = ulid();
+    await db.transaction("rw", db.meta, async () => {
+      // The sync position belongs to the old storage: kept, it would make tracks the new one lacks look deleted.
+      const state = (await db.meta.get("sync"))?.value as SyncState | undefined;
+      if (state) await db.meta.put({ key: "sync", value: { ...state, cursor: {} } });
+      await db.meta.put({ key: CONNECTION, value: c });
+      await db.meta.put({ key: EPOCH, value: epoch });
+    });
+    this.epoch = epoch;
+    this.tabs.post({ type: "reload" });
     this.connection = c;
     const adapter = c.mode === "local" ? "manual" : c.adapter;
     // Settings are a synced row: on a new device, written before the first sync they would replace the log's own.
@@ -289,9 +663,13 @@ export class AppData {
     };
     this.syncChanged();
     if (c.mode === "local") record();
-    await this.startSync();
-    // startSync set it; TypeScript still holds it as the null set above.
-    void (this.sync as SyncController | null)?.synced.then(record);
+    if (this.tabs.role === "follower") {
+      // The writing tab reloads: this one takes its part, then syncs.
+      await this.tabs.whenWriter();
+      await this.promote();
+    } else await this.startSync();
+    // Set by startSync or promote; TypeScript still holds it as the null set above.
+    void (this.sync as SyncHandle | null)?.synced.then(record);
   }
 
   markBackup() {
@@ -481,31 +859,44 @@ export class AppData {
         else out.push({ table: name, id: rowKey(name, row), row });
       }
     }
-    await db.transaction("rw", db.rows, db.trackPoints, db.meta, async () => {
+    this.sync?.stop();
+    this.closed = true;
+    await db.transaction("rw", [db.rows, db.trackPoints, db.meta, db.outbox], async () => {
       await db.rows.clear();
       await db.trackPoints.clear();
+      await db.outbox.clear();
       await db.rows.bulkPut(out);
       await db.trackPoints.bulkPut(groupTrackPoints(points));
       // Sync starts over: the next one compares every row and track with the storage.
       await db.meta.delete("sync");
+      await db.meta.delete(SYNC_CHECKED);
+      // Every other tab holds the old copy: it stops writing, and reloads.
+      await db.meta.put({ key: EPOCH, value: ulid() });
     });
+    this.tabs.post({ type: "reload" });
     renewDeviceId();
   }
 
   /** Remove the log, sync state and connection from this browser; the next visit is a first run. */
   async deleteEverything() {
     this.sync?.stop();
-    await db.transaction("rw", db.rows, db.trackPoints, db.meta, async () => {
+    this.closed = true;
+    await db.transaction("rw", [db.rows, db.trackPoints, db.meta, db.outbox], async () => {
       await db.rows.clear();
       await db.trackPoints.clear();
+      await db.outbox.clear();
       await db.meta.clear();
+      await db.meta.put({ key: EPOCH, value: ulid() });
     });
+    this.tabs.post({ type: "reload" });
     renewDeviceId();
   }
 
   /** On signing out, once everything has reached the storage: this account's database leaves the browser. */
   async removeThisBrowsersCopy() {
     this.sync?.stop();
+    this.closed = true;
+    this.tabs.post({ type: "reload" });
     await db.delete();
   }
 }

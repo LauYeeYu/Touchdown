@@ -114,30 +114,34 @@ export class JsonTablesBackend implements Backend {
     const next: Cursor = { ...cursor };
     const out: PullResult = { tables: new Map(), changedTracks: [], tracks: [], problems: [], cursor: next };
 
-    const listed = new Map((await this.files.list("tables")).map((f) => [`tables/${f.name}`, f.version]));
-    for (const t of FILE_TABLES) {
-      const path = tablePath(t);
-      const version = listed.get(path);
-      // A table with no file yet reads as empty once, so the rows this device has for it get sent.
-      if (version === undefined) {
-        if (cursor[path] !== ABSENT) out.tables.set(t, []);
-        next[path] = ABSENT;
-        continue;
-      }
-      if (cursor[path] === version) continue;
-      const file = await this.files.read(path);
-      if (!file) continue;
-      const parsed = parseTable(file.data, t);
-      if ("problems" in parsed) {
-        out.problems.push(...parsed.problems.slice(0, 5).map((p) => `${path}: ${p}`));
-        continue;
-      }
-      out.tables.set(t, parsed.rows);
-      next[path] = file.version;
-    }
+    // Both folders are listed, and every changed table file read, at the same time.
+    const [tableFiles, trackFiles] = await Promise.all([this.files.list("tables"), this.files.list("tracks")]);
+    const listed = new Map(tableFiles.map((f) => [`tables/${f.name}`, f.version]));
+    const read = await Promise.all(
+      FILE_TABLES.map(async (t): Promise<StoredRow[] | null> => {
+        const path = tablePath(t);
+        const version = listed.get(path);
+        // A table with no file yet reads as empty once, so the rows this device has for it get sent.
+        if (version === undefined) {
+          next[path] = ABSENT;
+          return cursor[path] !== ABSENT ? [] : null;
+        }
+        if (cursor[path] === version) return null;
+        const file = await this.files.read(path);
+        if (!file) return null;
+        const parsed = parseTable(file.data, t);
+        if ("problems" in parsed) {
+          out.problems.push(...parsed.problems.slice(0, 5).map((p) => `${path}: ${p}`));
+          return null;
+        }
+        next[path] = file.version;
+        return parsed.rows;
+      }),
+    );
+    FILE_TABLES.forEach((t, i) => read[i] && out.tables.set(t, read[i]));
 
     const present = new Set<string>();
-    for (const f of await this.files.list("tracks")) {
+    for (const f of trackFiles) {
       if (!f.name.endsWith(".json")) continue;
       const path = `tracks/${f.name}`;
       const id = f.name.slice(0, -".json".length);

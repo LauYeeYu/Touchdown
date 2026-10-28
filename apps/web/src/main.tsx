@@ -4,7 +4,8 @@ import { createRootRoute, createRoute, createRouter, redirect, RouterProvider } 
 import "./styles/app.css";
 import { AppData, type OpenStep } from "./data/app.ts";
 import { lastAccount, whoAmI } from "./data/account.ts";
-import { openAccountDb } from "./data/db.ts";
+import { db, openAccountDb } from "./data/db.ts";
+import { tabsFor } from "./data/tabs.ts";
 import { standardConnection } from "./data/connection.ts";
 import { standard } from "./data/standard.ts";
 import { Boot, BootError, waitingProgress } from "./components/Boot.tsx";
@@ -73,8 +74,11 @@ declare module "@tanstack/react-router" {
 // read twice and the local backup could be loaded twice.
 let booting: Promise<AppData> | null = null;
 
-/** Follows the account's Standard connection; `connecting` is called before the first sync, which can take a while. */
-async function followStandard(app: AppData, connecting: () => void) {
+/**
+ * Follows the account's Standard connection; `connecting` is called before the first sync, which can take a while. A
+ * tab that does not write the copy follows only when it comes back from connecting; the writing tab does the rest.
+ */
+async function followStandard(app: AppData, writer: boolean, connecting: () => void) {
   const params = new URLSearchParams(location.search);
   const back = params.get("storage") === "connected";
   if (back) {
@@ -82,7 +86,7 @@ async function followStandard(app: AppData, connecting: () => void) {
     history.replaceState(history.state, "", location.pathname + (params.size ? `?${params}` : "") + location.hash);
   }
   const c = app.connection;
-  if (c?.mode === "standard") return;
+  if (c?.mode === "standard" || (!writer && !back)) return;
   if (!back && c && !(c.mode === "private" && c.adapter === "gdrive")) return;
   const st = await standard.status().catch(() => null);
   if (!st?.connected || !st.account || st.status !== "ok") return;
@@ -134,30 +138,44 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
       return new Promise<AppData>(() => {});
     }
     openAccountDb(typeof me === "object" ? me.id : me === "offline" ? lastAccount() : null);
-    let opened = await AppData.open((step, n) => {
+    // Tabs share the browser's copy (docs/12, "Tabs"): one writes it and syncs, the others follow it.
+    const tabs = tabsFor(db.name);
+    const writer = (await tabs.open()) === "writer";
+    let opened = await AppData.open(tabs, (step, n) => {
       pending.delete(step);
       if (n !== undefined) records = n;
       at += SHARE[step];
       report({ at, text: text() });
     });
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && writer) {
       const m = await import("./data/localBackup.ts");
       const step = (t: string) => report({ at: (at = Math.min(PREPARED, at + 0.04)), text: t });
       const hard = (t: string) => step(`Hard refresh. ${t}`);
       if ((await m.loadLocalBackupOnce(opened, step)) || (await m.loadLocalBackupOnHardReload(opened, hard))) {
         // The browser now holds the backup: read it in, carrying the same bar on rather than reloading.
-        opened = await AppData.open((s, n) => s === "log" && n !== undefined && step(`Preparing ${nf.format(n)} records…`));
+        opened = await AppData.open(tabs, (s, n) => s === "log" && n !== undefined && step(`Preparing ${nf.format(n)} records…`));
       }
     }
+    const where = () => (opened.connection?.mode !== "local" && opened.connection?.adapter === "localfs" ? opened.connection.name : "Google Drive");
     // Standard (docs/32): back from connecting Google Drive, or a browser that has not chosen yet, or one syncing the
     // same Google Drive in Private, follows the account's Standard connection by itself.
     let stopCreep = () => {};
-    if (typeof me === "object") await followStandard(opened, () => (stopCreep = creep(PREPARED - 0.02, "Reading your log from Google Drive…")));
+    if (typeof me === "object") await followStandard(opened, writer, () => (stopCreep = creep(PREPARED - 0.02, "Reading your log from Google Drive…")));
     stopCreep();
     // A browser that held a log before the data modes existed keeps it here: Local (docs/32).
-    if (!opened.connection && (opened.store.count("flights") || opened.store.count("sightings"))) await opened.connect({ mode: "local", since: toUtcIso(Date.now()) });
-    // Private mode syncs in the background; the page shows the copy in this browser meanwhile.
-    void opened.startSync();
+    if (writer && !opened.connection && (opened.store.count("flights") || opened.store.count("sightings"))) await opened.connect({ mode: "local", since: toUtcIso(Date.now()) });
+    // Sync runs in the background and the page shows the copy in this browser, once the copy has the storage's tables:
+    // until then (a new browser, or a first download cut short by a reload) the loading screen waits for them. Tracks
+    // come after, in the background.
+    const syncing = opened.startSync();
+    if (!writer || (await opened.tablesMissing())) {
+      const stop = creep(PREPARED - 0.02, `Reading your log from ${where()}…`);
+      await syncing;
+      stop();
+    }
+    if (writer) void opened.takeOutbox();
+    // Development only: the open log, for trying things in the console.
+    if (import.meta.env.DEV) Object.assign(window, { touchdown: opened });
     report({ at: PREPARED, text: "Showing your log…" });
     setSlugData(opened);
     // Airport codes follow the setting on every page (lib/codes.ts).

@@ -47,15 +47,8 @@ export async function chooseStorage(kind: StorageKind): Promise<{ connection: Pr
   };
 }
 
-const KEY = "connection";
-
-export async function readConnection(): Promise<Connection | null> {
-  return ((await db.meta.get(KEY))?.value as Connection | undefined) ?? null;
-}
-
-export async function saveConnection(c: Connection): Promise<void> {
-  await db.meta.put({ key: KEY, value: c });
-}
+/** Where the connection is kept in IndexedDB's meta store; read and written with the log (app.ts). */
+export const CONNECTION = "connection";
 
 /** Meta keys for the Local mode's backup reminder. */
 export const LAST_BACKUP = "lastBackupAt";
