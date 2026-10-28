@@ -92,6 +92,7 @@ Failures are findings, not silent drops.
 
 - Drawn with d3-geo on Natural Earth land (world-atlas) as SVG, no map tiles.
 - Flights: tracks (recorded stretches solid, gaps dashed) or great circles, filterable by year, airline, type. Line weight by how often a route was flown.
+- Pointing at a recorded position on a flight's map or globe (or tapping it) shows the aircraft's state there, as Flightradar24 does: the time (UTC, with its date) and the time since takeoff, altitude, vertical speed (from the positions either side within 20 minutes), ground speed, track and position. The aircraft seen from above marks the position, turned the way it was going. Pointing at a gap says how long and how far nothing was received, or how far the track starts or ends from its airport (`apps/web/src/lib/trackStatus.ts`).
 - Airports: circles sized by visits.
 - Sightings: spots and airports with aircraft counts.
 

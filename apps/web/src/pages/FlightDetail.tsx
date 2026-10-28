@@ -7,6 +7,7 @@ import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, trackIndex } from "../lib/mapdata.ts";
+import { trackSamples } from "../lib/trackStatus.ts";
 import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, nf, offsetLabel, plural, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
@@ -78,6 +79,10 @@ export function FlightDetail() {
   const B = ref.airport(f.divertedToAirportId ?? f.toAirportId);
   const airframe = store.get("airframes", f.airframeId);
   const track = trackIndex(store).get(f.id) ?? null;
+  // The recorded positions with what was recorded at each, for the map's and the globe's hover.
+  const samples = track ? trackSamples(store, f.id) : [];
+  const takeoffMs = f.takeoffAt ? Date.parse(f.takeoffAt) : NaN;
+  const takeoff = Number.isNaN(takeoffMs) ? null : takeoffMs / 1000;
   // The route as the maps draw it: the recorded stretches and the gaps between them.
   const mark = A && B ? mapFlights([v], ref, unit, new Set(), store, Infinity)[0]! : null;
   const trackRow = store.all("tracks").find((t) => t.flightId === f.id);
@@ -233,6 +238,8 @@ export function FlightDetail() {
         flights={mark ? [mark] : []}
         spots={[]}
         greatCircles={track ? [[[A.lon, A.lat], [B.lon, B.lat]]] : undefined}
+        samples={samples}
+        takeoff={takeoff}
         head={mapHead}
         label={`Globe showing ${routeWhat}`}
         onAirportClick={(airport) => navigate({ to: "/airports/$id", params: { id: airport } })}
@@ -240,7 +247,7 @@ export function FlightDetail() {
     ) : (
       <div className="map-wrap">
         <div className="legend">{mapHead}</div>
-        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} recorded={!!track} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${routeWhat}`} />
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} recorded={!!track} samples={samples} takeoff={takeoff} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${routeWhat}`} />
       </div>
     );
 

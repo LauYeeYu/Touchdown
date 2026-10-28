@@ -8,7 +8,8 @@ import { geoDistance, geoGraticule10, geoInterpolate, geoOrthographic, geoPath }
 import { feature } from "topojson-client";
 import type { FeatureCollection } from "geojson";
 import world from "world-atlas/countries-110m.json";
-import { routeSamplesOf, type MapFlight, type MapSpot } from "./maps.tsx";
+import { routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
+import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
 
 type LonLat = [number, number];
@@ -31,7 +32,19 @@ interface Props {
   contained?: boolean;
   /** Great circles drawn dashed under the routes for reference, as on a flight's flat map; not clickable. */
   greatCircles?: LonLat[][];
+  /** On a flight's page, its recorded positions: pointing at one shows the aircraft's state there, at a gap what is missing. */
+  samples?: TrackSample[];
+  /** Takeoff in Unix seconds, for the time since takeoff. */
+  takeoff?: number | null;
 }
+
+type Hover =
+  | { kind: "flight"; f: MapFlight }
+  | { kind: "spot"; s: MapSpot }
+  | { kind: "airport"; a: AirportMark }
+  | { kind: "sample"; i: number }
+  | { kind: "gap"; g: TrackGap }
+  | null;
 
 interface AirportMark {
   id: string;
@@ -100,7 +113,7 @@ function segmentDistance(px: number, py: number, ax: number, ay: number, bx: num
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [] }, handle) {
+export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [], samples = [], takeoff = null }, handle) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const state = useRef({
@@ -110,14 +123,18 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     fitRot: [0, 0] as [number, number],
     width: 0,
     height: 0,
-    hover: null as { kind: "flight"; f: MapFlight } | { kind: "spot"; s: MapSpot } | { kind: "airport"; a: AirportMark } | null,
+    hover: null as Hover,
     dirty: true,
     colours: null as Colours | null,
     velocity: [0, 0] as [number, number],
     inertia: 0,
   });
-  const data = useRef({ flights, spots, onFlightClick, onAirportClick, contained, greatCircles });
-  data.current = { flights, spots, onFlightClick, onAirportClick, contained, greatCircles };
+  // The track's gaps are worked out again only when its positions change.
+  const gapsFor = useRef<{ samples: TrackSample[]; gaps: TrackGap[] }>({ samples: [], gaps: [] });
+  const one = flights.length === 1 ? flights[0]! : null;
+  if (gapsFor.current.samples !== samples) gapsFor.current = { samples, gaps: one && samples.length > 1 ? trackGaps(samples, one.from, one.to, one.fromCode, one.toCode) : [] };
+  const data = useRef({ flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps });
+  data.current = { flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps };
 
   const fit = () => {
     const st = state.current;
@@ -239,6 +256,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
 
       const hoverId = st.hover?.kind === "flight" ? st.hover.f.id : null;
       const lineWidth = Math.min(3, 1.4 + Math.log2(Math.max(1, zoom)) * 0.4);
+      const smp = data.current.samples;
       const drawRoute = (f: MapFlight, width: number, alpha: number) => {
         ctx.globalAlpha = alpha;
         ctx.strokeStyle = c.flown;
@@ -261,6 +279,42 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       for (const f of fl) if (f.id !== hoverId) drawRoute(f, lineWidth, hoverId ? 0.22 : 0.85);
       const hovered = hoverId ? fl.find((f) => f.id === hoverId) : undefined;
       if (hovered) drawRoute(hovered, lineWidth + 1.6, 1);
+      // A gap under the pointer, over its own dashes with the same spacing.
+      if (st.hover?.kind === "gap") {
+        ctx.strokeStyle = c.ink;
+        ctx.lineWidth = lineWidth + 0.6;
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath();
+        path({ type: "LineString", coordinates: [st.hover.g.from, st.hover.g.to] });
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Pointing at the track: at a recorded position, the aircraft from above, turned the way it was going, on a
+      // paper disc.
+      if (st.hover?.kind === "sample") {
+        const p = smp[st.hover.i];
+        const xy = p && geoDistance(p.at, centre) < Math.PI / 2 - 0.01 ? proj(p.at) : null;
+        if (xy) {
+          ctx.globalAlpha = 0.9;
+          ctx.fillStyle = c.paper;
+          ctx.beginPath();
+          ctx.arc(xy[0], xy[1], 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.save();
+          ctx.translate(xy[0], xy[1]);
+          ctx.rotate((screenAngle(smp, st.hover.i, (q) => proj(q) as [number, number] | null) * Math.PI) / 180);
+          ctx.translate(-12, -12);
+          const plane = new Path2D(AIRLINER_TOP);
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = c.paper;
+          ctx.stroke(plane);
+          ctx.fillStyle = c.ink;
+          ctx.fill(plane);
+          ctx.restore();
+        }
+      }
 
       // Spotting locations, sized by aircraft seen; far side hidden.
       const maxAircraft = Math.max(1, ...sp.map((s) => s.aircraft));
@@ -395,6 +449,21 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         const xy = proj(a.at);
         if (xy && Math.hypot(xy[0] - x, xy[1] - y) < 9) return { kind: "airport" as const, a };
       }
+      const { samples: smp, gaps } = data.current;
+      if (smp.length > 1) {
+        const shown = (p: LonLat) => (geoDistance(p, centre) < Math.PI / 2 - 0.01 ? (proj(p) as [number, number] | null) : null);
+        const i = nearest(smp.map((s) => shown(s.at)), x, y, 12);
+        if (i >= 0) return { kind: "sample" as const, i };
+        for (const g of gaps) {
+          const f = geoInterpolate(g.from, g.to);
+          let prev: [number, number] | null = null;
+          for (let k = 0; k <= 40; k++) {
+            const q = shown(f(k / 40) as LonLat);
+            if (q && prev && segmentDistance(x, y, prev[0], prev[1], q[0], q[1]) < 7) return { kind: "gap" as const, g };
+            prev = q;
+          }
+        }
+      }
       let best: MapFlight | null = null;
       let bestD = 8;
       for (const f of fl) {
@@ -419,24 +488,30 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       return best ? { kind: "flight" as const, f: best } : null;
     };
 
-    const setHover = (h: ReturnType<typeof hitTest>, e?: PointerEvent) => {
+    const setHover = (h: Hover, e?: PointerEvent) => {
       const prev = st.hover;
       const same =
         (prev?.kind === "flight" && h?.kind === "flight" && prev.f.id === h.f.id) ||
         (prev?.kind === "spot" && h?.kind === "spot" && prev.s.code === h.s.code) ||
-        (prev?.kind === "airport" && h?.kind === "airport" && prev.a.id === h.a.id);
+        (prev?.kind === "airport" && h?.kind === "airport" && prev.a.id === h.a.id) ||
+        (prev?.kind === "sample" && h?.kind === "sample" && prev.i === h.i) ||
+        (prev?.kind === "gap" && h?.kind === "gap" && prev.g === h.g);
       if (!same) {
         st.hover = h;
         st.dirty = true;
       }
-      cv.style.cursor = h ? "pointer" : drag ? "grabbing" : "grab";
+      cv.style.cursor = h?.kind === "sample" || h?.kind === "gap" ? "crosshair" : h ? "pointer" : drag ? "grabbing" : "grab";
       if (h && e) {
         const tip =
-          h.kind === "flight"
-            ? h.f.tip
-            : h.kind === "spot"
-              ? h.s.tip
-              : `<strong>${escHtml(h.a.name)} (${escHtml(h.a.code)})</strong><br><span class="muted">${h.a.flights} flight${h.a.flights === 1 ? "" : "s"} in this period · click for the airport page</span>`;
+          h.kind === "sample"
+            ? sampleTip(data.current.samples, h.i, data.current.takeoff)
+            : h.kind === "gap"
+              ? gapTip(h.g)
+              : h.kind === "flight"
+                ? h.f.tip
+                : h.kind === "spot"
+                  ? h.s.tip
+                  : `<strong>${escHtml(h.a.name)} (${escHtml(h.a.code)})</strong><br><span class="muted">${h.a.flights} flight${h.a.flights === 1 ? "" : "s"} in this period · click for the airport page</span>`;
         showTip(tip, e.clientX, e.clientY);
       } else hideTip();
     };

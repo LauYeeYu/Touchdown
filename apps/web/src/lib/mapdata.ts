@@ -6,6 +6,7 @@ import { esc } from "../components/overlay.tsx";
 import { dateOnly, dayShort, distance, plural, shortAirport } from "./format.ts";
 import type { FlightView } from "./views.ts";
 import { primaryCode, textCode } from "./codes.ts";
+import { isGap } from "./trackStatus.ts";
 
 /** A recorded position: where, and when (Unix seconds). */
 export interface TrackPoint {
@@ -50,10 +51,8 @@ export function trackInfo(store: Store): Map<string, TrackInfo> {
 // Overview maps draw many flights at a small scale; a few hundred points per track look the same.
 const OVERVIEW_TRACK_POINTS = 400;
 const GAP_KM = 30;
-// Inside a track, a stretch with nothing received for this long and this far is a gap, drawn dashed. Stored tracks
-// keep a point every few minutes at most, so only a gap in the recording is this long.
-const GAP_INSIDE_S = 10 * 60;
-const GAP_INSIDE_KM = 100;
+// Inside a track, a stretch with nothing received for over 10 minutes and 100 km is a gap, drawn dashed (isGap).
+// Stored tracks keep a point every few minutes at most, so only a gap in the recording is this long.
 
 /**
  * Map marks for flights: the recorded track where there is one, else the great circle. What a track does not record
@@ -130,7 +129,7 @@ export function trackRuns(full: TrackPoint[]): { runs: [number, number][][]; gap
   for (let i = 1; i < full.length; i++) {
     const a = full[i - 1]!;
     const b = full[i]!;
-    if (b.t - a.t > GAP_INSIDE_S && km(a.at, b.at) > GAP_INSIDE_KM) {
+    if (isGap(a, b)) {
       runs.push(run);
       gaps.push([a.at, b.at]);
       run = [b.at];

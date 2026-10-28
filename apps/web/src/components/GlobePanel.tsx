@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Globe, type GlobeHandle } from "./Globe.tsx";
 import type { MapFlight, MapSpot } from "./maps.tsx";
 import { Icon } from "../lib/icons.tsx";
+import type { TrackSample } from "../lib/trackStatus.ts";
 
 interface Props {
   flights: MapFlight[];
@@ -20,12 +21,15 @@ interface Props {
   onAirportClick?: (airportId: string) => void;
   /** Dashed reference great circles (a flight's page draws its great circle beside the recorded track). */
   greatCircles?: [number, number][][];
+  /** One flight's recorded positions, for the hover on its track (Globe). */
+  samples?: TrackSample[];
+  takeoff?: number | null;
   /** The stage's height in a page, to match the flat map it replaces; by default it follows the window. */
   height?: number;
   className?: string;
 }
 
-export function GlobePanel({ flights, spots, label, head, note, onFlightClick, onAirportClick, greatCircles, height, className = "" }: Props) {
+export function GlobePanel({ flights, spots, label, head, note, onFlightClick, onAirportClick, greatCircles, samples, takeoff, height, className = "" }: Props) {
   const panel = useRef<HTMLDivElement>(null);
   const globe = useRef<GlobeHandle>(null);
   const [full, setFull] = useState(false);
@@ -58,7 +62,7 @@ export function GlobePanel({ flights, spots, label, head, note, onFlightClick, o
     <div className={`map-wrap globe-panel${full ? " is-full" : ""}${className ? ` ${className}` : ""}`} ref={panel}>
       {head && <div className="legend globe-panel__head">{head}</div>}
       <div className="globe-stage" style={height && !full ? { height } : undefined}>
-        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={`${label}. Drag or use the arrow keys to turn it; pinch, ${full ? "scroll" : "Ctrl-scroll"} or use plus and minus to zoom.`} />
+        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} samples={samples} takeoff={takeoff} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={`${label}. Drag or use the arrow keys to turn it; pinch, ${full ? "scroll" : "Ctrl-scroll"} or use plus and minus to zoom.`} />
         <button type="button" className="globe-expand" onClick={toggle} aria-label={full ? "Leave full screen" : "Show the globe full screen"}>
           <Icon name={full ? "minimize-2" : "maximize-2"} />
           {full ? "Collapse" : "Expand"}

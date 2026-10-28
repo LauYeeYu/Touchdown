@@ -9,6 +9,7 @@ import { feature } from "topojson-client";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import world from "world-atlas/countries-110m.json";
 import { esc, hideTip, showTip } from "./overlay.tsx";
+import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 
 type LonLat = [number, number];
 
@@ -366,12 +367,40 @@ interface FlightMapProps {
   recorded: boolean;
   label: string;
   onAirportClick?: (which: "from" | "to") => void;
+  /** The track's recorded positions: pointing at one shows the aircraft's state there, at a gap what is missing. */
+  samples?: TrackSample[];
+  /** Takeoff in Unix seconds, for the time since takeoff. */
+  takeoff?: number | null;
 }
 
-export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorded, label, onAirportClick }: FlightMapProps) {
+/** What the pointer can find on a flight map, as last drawn. */
+interface TrackHover {
+  /** Each recorded position on screen; null on the far side of the globe. */
+  points: ([number, number] | null)[];
+  gaps: { gap: TrackGap; screen: [number, number][] }[];
+  proj: GeoProjection;
+  path: ReturnType<typeof geoPath>;
+  layer: SVGGElement;
+}
+
+/** The way a position's aircraft points on screen: towards the next position, or on from the one before for the last. */
+export function screenAngle(samples: TrackSample[], i: number, proj: (p: LonLat) => [number, number] | null): number {
+  const last = i === samples.length - 1;
+  if (samples.length < 2) return 0;
+  const [a, b] = last ? [samples[i - 1]!.at, samples[i]!.at] : [samples[i]!.at, samples[i + 1]!.at];
+  const f = geoInterpolate(a, b);
+  const s0 = proj(f(last ? 0.98 : 0) as LonLat);
+  const s1 = proj(f(last ? 1 : 0.02) as LonLat);
+  return s0 && s1 ? (Math.atan2(s1[1] - s0[1], s1[0] - s0[0]) * 180) / Math.PI + 90 : 0;
+}
+
+export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorded, label, onAirportClick, samples = [], takeoff = null }: FlightMapProps) {
   const ref = useRef<SVGSVGElement>(null);
   const clickRef = useRef(onAirportClick);
   clickRef.current = onAirportClick;
+  const hover = useRef<TrackHover | null>(null);
+  const track = useRef({ samples, takeoff });
+  track.current = { samples, takeoff };
   useWidth(
     ref,
     (width) => {
@@ -414,8 +443,80 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
           });
         }
       }
+      // The recorded positions and the gaps, as the pointer finds them; the marker is drawn over everything.
+      const { samples: pts } = track.current;
+      if (recorded && pts.length > 1) {
+        const shown = (p: LonLat) => geoDistance(p, mid) < Math.PI / 2 - 0.01;
+        const onScreen = (p: LonLat) => (shown(p) ? (proj(p) as [number, number] | null) : null);
+        hover.current = {
+          points: pts.map((s) => onScreen(s.at)),
+          gaps: trackGaps(pts, from, to, fromCode, toCode).map((gap) => {
+            const f = geoInterpolate(gap.from, gap.to);
+            return { gap, screen: Array.from({ length: 41 }, (_, k) => onScreen(f(k / 40) as LonLat)).filter((q): q is [number, number] => !!q) };
+          }),
+          proj,
+          path,
+          layer: el(svg, "g", { class: "track-hover" }),
+        };
+      } else hover.current = null;
     },
-    [from.join(), to.join(), line.map((l) => l.length).join(), gaps.length],
+    [from.join(), to.join(), line.map((l) => l.length).join(), gaps.length, samples.length],
   );
+
+  // Pointing at the track: the nearest recorded position within 14px, else a gap within 8px. A tap does the same.
+  useEffect(() => {
+    const svg = ref.current!;
+    const clear = () => {
+      hover.current?.layer.replaceChildren();
+      hideTip();
+    };
+    const show = (e: PointerEvent) => {
+      const h = hover.current;
+      if (!h) return;
+      h.layer.replaceChildren();
+      if ((e.target as Element).closest(".is-clickable")) return hideTip();
+      const r = svg.getBoundingClientRect();
+      const k = svg.viewBox.baseVal.width / r.width;
+      const x = (e.clientX - r.left) * k;
+      const y = (e.clientY - r.top) * k;
+      const { samples: pts, takeoff: off } = track.current;
+      const i = nearest(h.points, x, y, 14);
+      if (i >= 0) {
+        const q = h.points[i]!;
+        const angle = screenAngle(pts, i, (p) => h.proj(p) as [number, number] | null);
+        el(h.layer, "circle", { class: "track-hover__disc", cx: q[0], cy: q[1], r: 12 });
+        el(h.layer, "path", { class: "track-hover__plane", d: AIRLINER_TOP, transform: `translate(${q[0]} ${q[1]}) rotate(${angle.toFixed(1)}) translate(-12 -12)` });
+        showTip(sampleTip(pts, i, off), e.clientX, e.clientY);
+        return;
+      }
+      const g = h.gaps.find(({ screen }) => screen.some((a, n) => n > 0 && segmentDistance(x, y, screen[n - 1]!, a) < 8));
+      if (g) {
+        el(h.layer, "path", { class: "track-hover__gap", d: h.path({ type: "LineString", coordinates: [g.gap.from, g.gap.to] }) ?? "" });
+        showTip(gapTip(g.gap), e.clientX, e.clientY);
+        return;
+      }
+      hideTip();
+    };
+    const down = (e: PointerEvent) => e.pointerType !== "mouse" && show(e);
+    const leave = (e: PointerEvent) => e.pointerType === "mouse" && clear();
+    svg.addEventListener("pointermove", show);
+    svg.addEventListener("pointerdown", down);
+    svg.addEventListener("pointerleave", leave);
+    return () => {
+      svg.removeEventListener("pointermove", show);
+      svg.removeEventListener("pointerdown", down);
+      svg.removeEventListener("pointerleave", leave);
+      hideTip();
+    };
+  }, []);
   return <svg className="map" ref={ref} role="img" aria-label={label} />;
+}
+
+/** The distance from a point to a segment on screen. */
+function segmentDistance(x: number, y: number, [ax, ay]: [number, number], [bx, by]: [number, number]): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len = dx * dx + dy * dy;
+  const t = len ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len)) : 0;
+  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
 }
