@@ -79,7 +79,7 @@ export function AirportPage() {
       {sightings.length > 0 && (
         <span className="legend__item">
           <span className="swatch-dot" />
-          Where you photographed aircraft
+          Spotting locations
         </span>
       )}
       <span className="legend__item">Click another airport to open its page</span>

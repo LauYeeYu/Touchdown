@@ -92,7 +92,7 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
                   <Icon name={p.status === "changed" ? "triangle-alert" : "info"} />
                   <span>
                     {p.note}
-                    {p.status === "changed" && " Tick it to make the change anyway. What was changed since is kept where the change does not touch it."}
+                    {p.status === "changed" && " Tick it to make the change anyway. Later edits to the record are kept where the change does not touch them."}
                   </span>
                 </p>
               )}
@@ -110,7 +110,7 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
       {plan.findings.length > 0 && (
         <section className="section">
           <div className="section__head">
-            <h2 className="section__title">What the checks will say</h2>
+            <h2 className="section__title">Checks</h2>
             <span className="section__aside">{plural(plan.findings.length, "finding")} these changes bring</span>
           </div>
           <FindingList findings={plan.findings} showRule readOnly />

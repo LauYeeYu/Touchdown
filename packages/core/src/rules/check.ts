@@ -112,7 +112,7 @@ function checkAircraftFields(
     out.add("V-MODEL-TYPE", "warning", [r], ["model", "typeCode"], `${label}: model ${rec.model} does not match type code ${rec.typeCode}.${hint}`, [rec.model, rec.typeCode], fixes);
   }
   if (rec.notes && /\b\d{13}\b/.test(rec.notes)) {
-    out.add("V-PRIVATE-IN-NOTES", "info", [r], ["notes"], "The notes contain what looks like a ticket number. Move it to the private ticket field?", [fnv1a(rec.notes)]);
+    out.add("V-PRIVATE-IN-NOTES", "info", [r], ["notes"], "The notes seem to contain a ticket number. Move it to the private ticket field?", [fnv1a(rec.notes)]);
   }
 }
 

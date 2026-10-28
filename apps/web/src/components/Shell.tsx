@@ -327,7 +327,7 @@ export function Shell() {
             </>
           }
         >
-          Your local backup was rebuilt {new Date(newerBackup).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}. Loading it replaces what is in this browser.
+          Your local backup was rebuilt {new Date(newerBackup).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}. Loading it replaces the copy in this browser.
         </NoteBar>
       )}
       <main id="view" tabIndex={-1}>

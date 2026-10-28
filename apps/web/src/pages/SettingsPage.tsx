@@ -77,7 +77,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
     if (!picked) return;
     const { connection } = picked;
     const hasLog = app.store.count("flights") + app.store.count("sightings") > 0;
-    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged. Where both changed the same entry, the later change is kept and the other goes to the log's history. Continue?`)) return;
+    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged. If both changed the same entry, the later change is kept and the other goes to the log's history. Continue?`)) return;
     setBusy(true);
     await app.connect(connection);
     setBusy(false);
@@ -304,7 +304,7 @@ export function SettingsPage() {
       return;
     }
     const n = (back.tables.get("flights")?.length ?? 0) + (back.tables.get("sightings")?.length ?? 0);
-    const merged = app.connection && app.connection.mode !== "local" ? " Your folder's log is then merged in at the next sync. Where both changed the same entry, the later change is kept." : "";
+    const merged = app.connection && app.connection.mode !== "local" ? " Your folder's log is then merged in at the next sync. If both changed the same entry, the later change is kept." : "";
     if (!window.confirm(`Replace everything in this browser with the backup (${plural(n, "flight or sighting", "flights and sightings")})?${merged} Export a backup of the current data first if you might need it.`)) return;
     await app.replaceAll(back.tables);
     location.reload();

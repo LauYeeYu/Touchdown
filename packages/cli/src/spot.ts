@@ -195,8 +195,8 @@ const BASIS: Record<AgentSuggestion["basis"], string> = {
   reference_data: "reference data",
   lookup_data: "a lookup",
   consistency: "your other lines",
-  model_knowledge: "what the agent knows",
-  typed: "what you typed",
+  model_knowledge: "the agent's own knowledge",
+  typed: "the text you typed",
 };
 
 const HINT: Partial<Record<SpotField, string>> = {

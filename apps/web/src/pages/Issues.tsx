@@ -174,7 +174,7 @@ export function Issues() {
           ? "Nothing to review. Every check passed or was accepted."
           : sentence(conflicts.length, count("error"), count("warning"))}
       </h1>
-      <p className="form-sub">Checks never block saving. Fix what is wrong, or mark a warning as right. It comes back only if the values change.</p>
+      <p className="form-sub">Checks never block saving. Fix a mistake, or mark a warning as right. It comes back only if the values change.</p>
       <Tabs
         label="Issues"
         value={tab}

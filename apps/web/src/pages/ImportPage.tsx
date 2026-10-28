@@ -309,7 +309,7 @@ export function ImportPage() {
           </button>
         </nav>
         <h1 className="form-title">Columns of {columns.fileName}</h1>
-        <p className="form-sub">Touchdown worked out what each column holds. Look at the ones marked unclear, change anything that is wrong, then read the rows.</p>
+        <p className="form-sub">Touchdown worked out the meaning of each column. Look at the ones marked unclear, change anything that is wrong, then read the rows.</p>
         <ColumnMapping
           guess={columns.guess}
           value={columns.choice}
@@ -636,7 +636,7 @@ export function ImportPage() {
           <p className="status-line status-line--good">
             <Icon name="circle-check" />
             <span>
-              Made {plural(changesMade.applied, "change")} to your log. {changesMade.messages.join(" ")} Undo {changesMade.applied === 1 ? "it" : "them"} in the history below. <Link to="/issues">See what to review</Link>.
+              Made {plural(changesMade.applied, "change")} to your log. {changesMade.messages.join(" ")} Undo {changesMade.applied === 1 ? "it" : "them"} in the history below. <Link to="/issues">Review the issues</Link>.
             </span>
           </p>
         </div>
@@ -647,7 +647,7 @@ export function ImportPage() {
             <Icon name="circle-check" />
             <span>
               Imported {plural(result.created, "new record")} and filled in {plural(result.updated, "record")}
-              . {result.skipped ? `${result.skipped} ${result.skipped === 1 ? "was" : "were"} skipped or already there. ` : ""}<Link to="/issues">See what to review</Link>.
+              . {result.skipped ? `${result.skipped} ${result.skipped === 1 ? "was" : "were"} skipped or already there. ` : ""}<Link to="/issues">Review the issues</Link>.
             </span>
           </p>
         </div>

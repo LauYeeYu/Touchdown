@@ -16,6 +16,6 @@ export function invitationMessage(link: string, until: string): string {
     "2. ./touchdown login, and allow it in your browser.",
     "3. ./touchdown storage drive (or ./touchdown storage folder PATH if your log syncs through a folder).",
     '4. Type sightings with ./touchdown spot, or ask your agent: "Read ./touchdown add --help, then add these to my Touchdown log with ./touchdown add."',
-    "What you add waits in Touchdown until you review and import it. On Windows, type npm run touchdown -- instead of ./touchdown.",
+    "Anything you add waits in Touchdown until you review and import it. On Windows, type npm run touchdown -- instead of ./touchdown.",
   ].join("\n");
 }

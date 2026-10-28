@@ -153,7 +153,7 @@ export async function inboxCommand(args: string[], ref: RefIndex): Promise<void>
     if (!yes) {
       if (!process.stdin.isTTY) return fail(`Removing ${name} needs --yes when there is no terminal to ask at.`);
       const rl = createInterface({ input: process.stdin, output: process.stdout });
-      const a = (await rl.question(`Delete ${name} from ${place.name}? What it holds is not in your log. [y/N] `)).trim().toLowerCase();
+      const a = (await rl.question(`Delete ${name} from ${place.name}? Its contents are not in your log. [y/N] `)).trim().toLowerCase();
       rl.close();
       if (a !== "y" && a !== "yes") return void console.log("Kept.");
     }

@@ -238,7 +238,7 @@ export function guessMapping(sheet: SheetData, ref: RefIndex): SheetMapping {
       return { index, header, field: named, confidence: "likely", samples, why: "its header (few values fit)" };
     }
     if (byValue.s >= 0.8) return { index, header, field: byValue.f, confidence: "likely", samples, why: `its values look like ${FIELD_DEFS[byValue.f].label.toLowerCase()}` };
-    return { index, header, field: "ignore", confidence: "unsure", samples, why: "neither its header nor its values say what it is" };
+    return { index, header, field: "ignore", confidence: "unsure", samples, why: "neither its header nor its values identify it" };
   });
 
   // One column per field, except for text that can be joined: the surer (then the first) keeps it.

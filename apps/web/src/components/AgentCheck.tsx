@@ -35,9 +35,9 @@ export const AGENT_FIELD_LABEL: Record<AgentField, string> = {
 const BASIS: Record<AgentSuggestion["basis"], string> = {
   reference_data: "from the reference data",
   consistency: "from your other rows",
-  model_knowledge: "from what the agent knows",
+  model_knowledge: "from the agent's own knowledge",
   lookup_data: "from a lookup",
-  typed: "from what you typed",
+  typed: "from the text you typed",
 };
 
 interface PanelProps {

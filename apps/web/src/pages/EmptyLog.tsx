@@ -18,7 +18,7 @@ export function EmptyLog() {
         <h1 className="lead">Your log has not been read from {sync.place} yet.</h1>
         <p className="status-line">
           <Icon name={sync.state === "syncing" ? "refresh-cw" : sync.adapter === "gdrive" ? "cloud-off" : "folder"} />
-          <span>{sync.state === "syncing" ? "It is being read now, and shows here once it is in." : "It shows here once it is read. Until then, what you add is kept in this browser and merged with it."}</span>
+          <span>{sync.state === "syncing" ? "It is being read now, and shows here once it is in." : "It shows here once it is read. Until then, anything you add is kept in this browser and merged with it."}</span>
         </p>
       </div>
     );
@@ -26,7 +26,7 @@ export function EmptyLog() {
   return (
     <div className="page">
       <div className="view-top" />
-      <h1 className="lead">Your log is empty. Bring in what you already have, or start with one flight.</h1>
+      <h1 className="lead">Your log is empty. Bring in your existing log, or start with one flight.</h1>
       <div className="start">
         <Link className="start__item start__item--main" to="/import">
           <Icon name="upload" />
@@ -52,7 +52,7 @@ export function EmptyLog() {
       </div>
       <p className="status-line">
         <Icon name="hard-drive" />
-        <span>{c && c.mode !== "local" ? `What you add is saved in this browser and synced through ${c.name}.` : "Your data stays in this browser. Export a backup from Settings at any time."}</span>
+        <span>{c && c.mode !== "local" ? `Anything you add is saved in this browser and synced through ${c.name}.` : "Your data stays in this browser. Export a backup from Settings at any time."}</span>
       </p>
     </div>
   );

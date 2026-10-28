@@ -167,7 +167,7 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
     if (keys.length) return { error: `sighting ${n}: unexpected keys ${keys.join(", ")}` };
     for (const [k, v] of Object.entries(s.values ?? {})) if (!fields.has(k) || !isText(v, k === "notes" ? 500 : 200)) return { error: `sighting ${n}: field ${k} is not allowed` };
     for (const [k, v] of Object.entries(s.sources ?? {})) if (!fields.has(k) || !SOURCES.has(v as SpotSource)) return { error: `sighting ${n}: unknown source for ${k}` };
-    if (!Array.isArray(s.open) || s.open.some((x) => typeof x !== "string" || x.length > 300) || s.open.length > 20) return { error: `sighting ${n}: malformed notes on what is open` };
+    if (!Array.isArray(s.open) || s.open.some((x) => typeof x !== "string" || x.length > 300) || s.open.length > 20) return { error: `sighting ${n}: malformed notes on the open fields` };
     if (!Array.isArray(s.missing) || s.missing.some((x) => !fields.has(x))) return { error: `sighting ${n}: malformed missing fields` };
     if (s.tags !== undefined && (!Array.isArray(s.tags) || s.tags.length > 20 || s.tags.some((t) => typeof t !== "string" || !/^[a-z_]{1,40}$/.test(t)))) return { error: `sighting ${n}: malformed tags` };
     const v = s.values;
@@ -215,7 +215,7 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
     if (keys.length) return { error: `flight ${n}: unexpected keys ${keys.join(", ")}` };
     for (const [k, v] of Object.entries(fl.values ?? {})) if (!flightFields.has(k) || !isText(v, k === "notes" ? 500 : 200)) return { error: `flight ${n}: field ${k} is not allowed` };
     for (const [k, v] of Object.entries(fl.sources ?? {})) if (!flightFields.has(k) || !SOURCES.has(v as SpotSource)) return { error: `flight ${n}: unknown source for ${k}` };
-    if (!Array.isArray(fl.open) || fl.open.some((x) => typeof x !== "string" || x.length > 300) || fl.open.length > 20) return { error: `flight ${n}: malformed notes on what is open` };
+    if (!Array.isArray(fl.open) || fl.open.some((x) => typeof x !== "string" || x.length > 300) || fl.open.length > 20) return { error: `flight ${n}: malformed notes on the open fields` };
     const v = fl.values ?? {};
     if (!v.flightNumber && !(v.from && v.to) && !v.registration) return { error: `flight ${n} has no flight number, route or registration` };
     for (const k of ["date", "firstFlight"] as const) if (v[k] && !isValidDate(v[k])) return { error: `flight ${n}: ${v[k]} is not a date (YYYY-MM-DD)` };

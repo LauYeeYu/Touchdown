@@ -35,18 +35,18 @@ export function StandardTerms({ open, busy, problem, onAccept, onDecline }: { op
     >
       <div className="terms-dialog__body" ref={body} tabIndex={-1}>
         <h2 id="terms-title" className="terms-dialog__title">
-          Standard mode: what Touchdown can access
+          Standard mode: Touchdown's access to your Google Drive
         </h2>
         <p>Read these terms before you go on. Standard mode starts only once you accept them.</p>
         <p>In Standard mode, Touchdown's server keeps a key to your Google Drive, so your devices sync without asking you to sign in to Google every hour, and a new device picks up your log once you sign in to Touchdown.</p>
         <p>
-          <b>What the server can open.</b> With the key, the server can open the files Touchdown created in your Google Drive (the Touchdown folder), not your other files. That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
+          <b>Files the server can open.</b> With the key, the server can open the files Touchdown created in your Google Drive (the Touchdown folder), not your other files. That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
         </p>
         <p>
-          <b>What it is used for.</b> Only to give your own browser short-lived access for its sync. The server does not read, copy, analyse or keep your log.
+          <b>Use of the key.</b> Only to give your own browser short-lived access for its sync. The server does not read, copy, analyse or keep your log.
         </p>
         <p>
-          <b>How it is protected.</b> The key is encrypted, and the encryption key is kept apart from the database. Both are with Cloudflare, which hosts this site. Nothing is passed on to anyone unless the law requires it. The <a href="/privacy" target="_blank" rel="noopener">privacy policy</a> has the details.
+          <b>Protection of the key.</b> The key is encrypted, and the encryption key is kept apart from the database. Both are with Cloudflare, which hosts this site. Nothing is passed on to anyone unless the law requires it. The <a href="/privacy" target="_blank" rel="noopener">privacy policy</a> has the details.
         </p>
         <p>
           <b>Stopping.</b> Switch to Private or Local in Settings at any time. The key is then revoked with Google and deleted from the server. You can also remove Touchdown's access in your Google account.

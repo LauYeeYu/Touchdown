@@ -335,7 +335,7 @@ function PeopleSection({ me }: { me: Me }) {
           void invite();
         }}
       >
-        <Field label="Who is it for? (only you see this)" wide>
+        <Field label="The person's name (only you see this)" wide>
           <TextInput value={note} onChange={(e) => setNote(e.target.value)} maxLength={80} placeholder="Sam" />
         </Field>
         <button type="submit" className="btn btn--quiet btn--small">

@@ -18,6 +18,7 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 
 - Plain, direct prose. No mannered or decorative writing, no filler, no marketing tone.
 - No semicolons in product copy, the words the site shows (PRODUCT.md, "Brand Commitments"). Split the sentence or join it with "and", "but" or "so".
+- Few sentences, headings or labels in product copy that open with "What", "Who", "Where" or "How" ("What you add…", "Who is it for?"). Name the thing instead (PRODUCT.md, "Brand Commitments").
 - UK English spelling in docs, interface copy, and comments (colour, organise, centre, licence as a noun). Code identifiers and third-party names keep their own spelling (`color` in CSS, "Authorized JavaScript origins" in Google's console).
 - Prefer tables and lists for specs.
 - Mark each design statement as Decided, Proposed, or Open when it matters.

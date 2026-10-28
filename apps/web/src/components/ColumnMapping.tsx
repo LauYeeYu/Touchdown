@@ -46,7 +46,7 @@ export function ColumnMapping({ guess, value, onChange, onUse, onCancel }: { gue
                 <select
                   className="select"
                   value={field}
-                  aria-label={`What ${c.header || `column ${c.index + 1}`} holds`}
+                  aria-label={`Field for ${c.header || `column ${c.index + 1}`}`}
                   onChange={(e) => onChange({ ...value, fields: value.fields.map((f, i) => (i === c.index ? (e.target.value as ColumnField) : f)) })}
                 >
                   <option value="ignore">Not used</option>

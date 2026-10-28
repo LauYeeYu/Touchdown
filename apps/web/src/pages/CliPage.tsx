@@ -89,7 +89,7 @@ function Login() {
   };
 
   if (!valid) return <Frame title="Sign in the command line"><Problem text="This page needs the address the command line opened. Run ./touchdown login again." /></Frame>;
-  if (me === null) return <Frame title="Sign in the command line"><p className="form-sub">Checking who is signed in…</p></Frame>;
+  if (me === null) return <Frame title="Sign in the command line"><p className="form-sub">Checking your sign-in…</p></Frame>;
   if (me === "offline") return <Frame title="Sign in the command line"><Problem text="Touchdown's server cannot be reached. Check the connection and reload." /></Frame>;
   if (me === "signed-out") {
     return (

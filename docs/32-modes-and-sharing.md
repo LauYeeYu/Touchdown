@@ -104,17 +104,17 @@ Decided (U5): the terms are shown when the user chooses Standard, at first run o
 - **Changes.** When the text changes, a user in Standard is asked again the next time they open the app. Declining offers Private or Local, as at first run. Until they answer, their links keep working.
 - **Status of the text.** Version 1 is built (`apps/web/src/components/StandardTerms.tsx`) and covers what basic Standard does: the key, its use for sync only, how it is protected, stopping, changes. The text below is the draft of version 2, which adds share links, for the owner to review (Q-TERMS-TEXT).
 
-> **Standard mode: what Touchdown can access**
+> **Standard mode: Touchdown's access to your storage**
 >
 > In Standard mode, Touchdown's server keeps a key to your storage, so the links you share keep working when you are offline and your devices sync without asking you to sign in to your storage each time.
 >
-> **What we can access.** With the key, Touchdown's server can open the files Touchdown created in your storage (with Google Drive, the Touchdown folder, not your other files). That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
+> **Files we can open.** With the key, Touchdown's server can open the files Touchdown created in your storage (with Google Drive, the Touchdown folder, not your other files). That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
 >
-> **What we use it for.** The server opens only the file behind a link you made, when someone you allowed opens that link, and gives your own browser short-lived access for its sync. It does not read, copy, analyse or keep your log for anything else.
+> **Use of the key.** The server opens only the file behind a link you made, when someone you allowed opens that link, and gives your own browser short-lived access for its sync. It does not read, copy, analyse or keep your log for anything else.
 >
-> **How we protect it.** The key is encrypted, and the encryption key is kept apart from the database. Both are held with Cloudflare, which hosts this site. Requests are not logged with their contents. No ads, no selling, and nothing passed on to anyone unless the law requires it. Page views are counted with Cloudflare Web Analytics, as the privacy policy describes. Ticket numbers and booking references never go into a shared link.
+> **Protection of the key.** The key is encrypted, and the encryption key is kept apart from the database. Both are held with Cloudflare, which hosts this site. Requests are not logged with their contents. No ads, no selling, and nothing passed on to anyone unless the law requires it. Page views are counted with Cloudflare Web Analytics, as the privacy policy describes. Ticket numbers and booking references never go into a shared link.
 >
-> **What others see.** Only what a link shows, and only the people you chose for it. A public link can be opened by anyone who has it.
+> **People who see your links.** Only the people you chose for a link, and only its content. A public link can be opened by anyone who has it.
 >
 > **Stopping.** Switch to Private or Local in Settings at any time. Your links stop at once, the key is revoked with your storage provider and deleted from our server, and everything the server kept about you is deleted. You can also remove Touchdown's access in your Google account's settings.
 >
