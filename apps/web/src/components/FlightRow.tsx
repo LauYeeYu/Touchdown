@@ -30,7 +30,7 @@ function trackText(track: TrackInfo | null): { title: string; detail: string } {
   const from = track?.provider && TRACK_SOURCE[track.provider] ? ` from ${TRACK_SOURCE[track.provider]}` : "";
   if (!track) return { title: "Great circle only", detail: "No recorded track for this flight. The map draws the shortest path between the two airports, not the route flown." };
   if (!track.here) return { title: "Recorded track, not in this browser yet", detail: `The path the aircraft flew${from}. It is read from your storage at the next sync; until then the map draws the great circle.` };
-  if (track.coverage === "partial") return { title: "Recorded track, with gaps", detail: `Part of the path the aircraft flew${from}. The missing stretches are drawn as dashed great circles.` };
+  if (track.coverage === "partial") return { title: "Recorded track, with gaps", detail: `Part of the path the aircraft flew${from}. The missing stretches are drawn as great circles.` };
   return { title: "Recorded track", detail: `The path the aircraft flew${from}, drawn on the map in place of the great circle.` };
 }
 

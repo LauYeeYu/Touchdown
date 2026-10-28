@@ -206,18 +206,18 @@ export function FlightDetail() {
     <>
       {track ? (
         <>
-          <span className="legend__item" title={trackRow?.attribution ?? undefined}>
-            <span className="swatch-line" />
+          <span className="legend__item" title={`Solid where positions were received; a bead marks each position where they are far apart. Point at one for the aircraft's state there.${trackRow?.attribution ? ` ${trackRow.attribution}` : ""}`}>
+            <span className="swatch-line swatch-line--beads" />
             Recorded track
           </span>
           {!!mark?.gaps?.length && (
-            <span className="legend__item">
-              <span className="swatch-line swatch-line--gap" />
+            <span className="legend__item" title="No position was received here: the line is the great circle between the positions either side.">
+              <span className="swatch-line swatch-line--unrecorded" />
               Not recorded
             </span>
           )}
           <span className="legend__item">
-            <span className="swatch-line swatch-line--dashed" />
+            <span className="swatch-line swatch-line--faint" />
             Great circle
           </span>
         </>

@@ -13,7 +13,7 @@ Flight paths: great circles, recorded tracks, and exported figures and videos (r
 
 A recorded track replaces the great circle in maps and exports. Its own distance is stored on the Track (`tracks.distanceKm`) and shown next to the great-circle distance.
 
-A track has gaps where nothing was received: the stretch from the departure to its first point, from its last point to the arrival, and inside it wherever nothing came for over 10 minutes and 100 km (stored tracks keep a point every few minutes at most, so only a gap is that long; oceans, Central Asia, China). Maps draw the recorded stretches solid and the gaps dashed, as great circles.
+A track has gaps where nothing was received: the stretch from the departure to its first point, from its last point to the arrival, and inside it wherever nothing came for over 10 minutes and 100 km (stored tracks keep a point every few minutes at most, so only a gap is that long; oceans, Central Asia, China). Maps draw the recorded stretches solid and the gaps as great circles: dashed on the overview maps, grey dots on a flight's own map (see "Maps in the app").
 
 ### Sources, in order of preference
 
@@ -92,6 +92,7 @@ Failures are findings, not silent drops.
 
 - Drawn with d3-geo on Natural Earth land (world-atlas) as SVG, no map tiles.
 - Flights: tracks (recorded stretches solid, gaps dashed) or great circles, filterable by year, airline, type. Line weight by how often a route was flown.
+- A flight's own map and globe (Decided, built) tell its recorded positions from the lines that join them. The track is solid gold wherever positions were received; where they are more than 10px apart on the map, each recorded position is a bead. A stretch with nothing received is grey dots, since gold means the aircraft was there, and the great circle is a faint dashed reference.
 - Pointing at a recorded position on a flight's map or globe (or tapping it) shows the aircraft's state there, as Flightradar24 does: the time (UTC, with its date) and the time since takeoff, altitude, vertical speed (from the positions either side within 20 minutes), ground speed, track and position. The aircraft seen from above marks the position, turned the way it was going. Pointing at a gap says how long and how far nothing was received, or how far the track starts or ends from its airport (`apps/web/src/lib/trackStatus.ts`).
 - Airports: circles sized by visits.
 - Sightings: spots and airports with aircraft counts.

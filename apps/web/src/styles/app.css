@@ -865,10 +865,11 @@ main {
   cursor: pointer;
 }
 
+/* The great circle beside a recorded track, for reference: faint, so the track's grey gaps read apart from it. */
 .map .gc {
   fill: none;
-  stroke: var(--ink-3);
-  stroke-width: 1.25;
+  stroke: var(--rule-strong);
+  stroke-width: 1;
   stroke-dasharray: 3 4;
 }
 
@@ -886,10 +887,18 @@ main {
   stroke-linejoin: round;
 }
 
-/* A stretch of a recorded track with nothing recorded. */
+/* A stretch of a recorded track with nothing recorded: grey dots, since gold means the aircraft was there. */
 .map .track--gap {
+  stroke: var(--ink-3);
   stroke-width: 2;
-  stroke-dasharray: 2 5;
+  stroke-dasharray: 0.1 5;
+}
+
+/* A recorded position where positions are far apart on the map, so each one can be seen. */
+.map .track-bead {
+  fill: var(--flown);
+  stroke: var(--paper);
+  stroke-width: 1.5;
 }
 
 /* Pointing at a recorded position: the aircraft from above, turned the way it was going, on a paper disc; at a gap,
@@ -910,12 +919,12 @@ main {
   paint-order: stroke;
 }
 
-/* Drawn over the gap's own dashes, on the same path with the same spacing: the dashes darken, nothing moves. */
+/* Drawn over the gap's own dots, on the same path with the same spacing: the dots darken and grow, nothing moves. */
 .map .track-hover__gap {
   fill: none;
   stroke: var(--ink);
-  stroke-width: 2.4;
-  stroke-dasharray: 2 5;
+  stroke-width: 3;
+  stroke-dasharray: 0.1 5;
   stroke-linecap: round;
 }
 
@@ -4202,6 +4211,32 @@ a.wordmark {
 
 .swatch-line--gap {
   border-top: 2px dashed var(--flown);
+}
+
+/* A flight's map: its track with a bead, what it does not record, and the faint great circle. */
+.swatch-line--beads {
+  position: relative;
+}
+
+.swatch-line--beads::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--flown);
+  box-shadow: 0 0 0 1.5px var(--paper);
+  transform: translate(-50%, -50%);
+}
+
+.swatch-line--unrecorded {
+  border-top: 2px dotted var(--ink-3);
+}
+
+.swatch-line--faint {
+  border-top: 1px dashed var(--rule-strong);
 }
 
 .note-bar {

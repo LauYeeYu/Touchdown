@@ -380,6 +380,9 @@ interface TrackHover {
   gaps: { gap: TrackGap; screen: [number, number][] }[];
   proj: GeoProjection;
   path: ReturnType<typeof geoPath>;
+  /** Over the gaps and under the beads: a gap under the pointer. */
+  gapLayer: SVGGElement;
+  /** Over everything: the aircraft at a position under the pointer. */
   layer: SVGGElement;
 }
 
@@ -422,12 +425,18 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
       const landG = el(svg, "g", {});
       for (const f of LAND.features) el(landG, "path", { class: "land", d: path(f) ?? "" });
       const gc = { type: "LineString" as const, coordinates: [from, to] };
+      let gapLayer: SVGGElement | null = null;
       if (recorded) {
         el(svg, "path", { class: "gc", d: path(gc) ?? "" });
         const runs = { type: "MultiLineString" as const, coordinates: line };
         el(svg, "path", { class: "track-halo", d: path(runs) ?? "" });
         el(svg, "path", { class: "track", d: path(runs) ?? "" });
         for (const g of gaps) el(svg, "path", { class: "track track--gap", d: path({ type: "LineString", coordinates: g }) ?? "" });
+        gapLayer = el(svg, "g", { class: "track-hover" });
+        // Where positions are far apart on the map, each one is a bead, so the real ones can be told from the line.
+        const { samples: pts } = track.current;
+        const xy = pts.map((s) => (geoDistance(s.at, mid) < Math.PI / 2 - 0.01 ? (proj(s.at) as [number, number] | null) : null));
+        for (const i of sparsePositions(xy)) el(svg, "circle", { class: "track-bead", cx: xy[i]![0], cy: xy[i]![1], r: 3.4 });
       } else el(svg, "path", { class: "gc gc--primary", d: path(gc) ?? "" });
       for (const [at, code, anchor, which] of [[from, fromCode, "end", "from"], [to, toCode, "start", "to"]] as const) {
         const xy = proj(at);
@@ -445,7 +454,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
       }
       // The recorded positions and the gaps, as the pointer finds them; the marker is drawn over everything.
       const { samples: pts } = track.current;
-      if (recorded && pts.length > 1) {
+      if (recorded && gapLayer && pts.length > 1) {
         const shown = (p: LonLat) => geoDistance(p, mid) < Math.PI / 2 - 0.01;
         const onScreen = (p: LonLat) => (shown(p) ? (proj(p) as [number, number] | null) : null);
         hover.current = {
@@ -456,6 +465,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
           }),
           proj,
           path,
+          gapLayer,
           layer: el(svg, "g", { class: "track-hover" }),
         };
       } else hover.current = null;
@@ -468,12 +478,14 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
     const svg = ref.current!;
     const clear = () => {
       hover.current?.layer.replaceChildren();
+      hover.current?.gapLayer.replaceChildren();
       hideTip();
     };
     const show = (e: PointerEvent) => {
       const h = hover.current;
       if (!h) return;
       h.layer.replaceChildren();
+      h.gapLayer.replaceChildren();
       if ((e.target as Element).closest(".is-clickable")) return hideTip();
       const r = svg.getBoundingClientRect();
       const k = svg.viewBox.baseVal.width / r.width;
@@ -491,7 +503,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
       }
       const g = h.gaps.find(({ screen }) => screen.some((a, n) => n > 0 && segmentDistance(x, y, screen[n - 1]!, a) < 8));
       if (g) {
-        el(h.layer, "path", { class: "track-hover__gap", d: h.path({ type: "LineString", coordinates: [g.gap.from, g.gap.to] }) ?? "" });
+        el(h.gapLayer, "path", { class: "track-hover__gap", d: h.path({ type: "LineString", coordinates: [g.gap.from, g.gap.to] }) ?? "" });
         showTip(gapTip(g.gap), e.clientX, e.clientY);
         return;
       }
@@ -510,6 +522,17 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
     };
   }, []);
   return <svg className="map" ref={ref} role="img" aria-label={label} />;
+}
+
+/** Positions on screen (null where hidden) at least `px` from a neighbour: where a track's record is sparse. */
+export function sparsePositions(xy: ([number, number] | null)[], px = 10): number[] {
+  const out: number[] = [];
+  xy.forEach((q, i) => {
+    if (!q) return;
+    const far = [xy[i - 1], xy[i + 1]].some((n) => n && Math.hypot(n[0] - q[0], n[1] - q[1]) > px);
+    if (far) out.push(i);
+  });
+  return out;
 }
 
 /** The distance from a point to a segment on screen. */
