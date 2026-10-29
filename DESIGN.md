@@ -535,6 +535,7 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 - **Body** (400, 1rem, 1.5): running text and definition values. Most interface text sits one step down at 0.9375rem (nav, buttons, row cells, menu items).
 - **Stat** (650, 1.25rem, 1.25, -0.015em, tabular): values in the fact list under the lead sentence; units inside them at 0.72em, weight 500, in `ink-2`. 1.125rem on phones.
 - **Label** (400, 0.8125rem): column heads, time labels, definition terms, legends, tooltips, the globe's hint line, footer. Credits drop to 0.75rem (0.6875rem under thumbnails). Bottom navigation labels (840px and below) are 0.75rem at 500 (650 for the current tab).
+- **Links:** underlined 1px thick, 1px under the font's own underline position, so the line sits close under the letters.
 - **Chart label** (11px, tabular): axis ticks and bar values (bar values at 600); airport codes on maps and the globe at 600.
 - **Wordmark** (600, 1.125rem, -0.015em; 1.0625rem at 840px and below): "Touchdown" after its mark, in the top bar (see "Wordmark"). The loading screen sets the name alone in the same voice.
 
@@ -615,7 +616,7 @@ Outlined pill (1px `rule-strong`), 40px segments with 30px side padding, equal-w
 Tonal fill (`surface-mid`), no border, 16px corners, 6px padding, the Menu shadow, 6px below the trigger. Pickers in forms use the same surface. Items are 40px high, 10px corners, with a check column that shows on the current item; hover and focus use the state layer.
 
 ### Lead sentence (signature)
-A headline-size sentence in the owner's plain voice with the period's figures inside it at 650. Phrases that refer to data carry a 2px underline in their ink: gold for flown, blue for spotted, half-and-half for both. Hovering or pressing a phrase fills it with that ink's wash and isolates its layer: on Home the map's arcs, spots or the overlap; on Flights that route's arcs and rows; on a flight the page scrolls to the aircraft card and flashes it, because the flight map has no layers.
+A headline-size sentence in the owner's plain voice with the period's figures inside it at 650. Phrases that refer to data carry a 2px underline in their ink, 0.1em under the baseline: gold for flown, blue for spotted, half-and-half for both. Hovering or pressing a phrase fills it with that ink's wash and isolates its layer: on Home the map's arcs, spots or the overlap; on Flights that route's arcs and rows; on a flight the page scrolls to the aircraft card and flashes it, because the flight map has no layers.
 
 ### Fact list
 
