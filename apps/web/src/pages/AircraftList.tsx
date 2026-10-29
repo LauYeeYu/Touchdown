@@ -11,7 +11,14 @@ import { Pager, usePaging } from "../components/Pager.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { useViewState } from "../lib/viewState.ts";
 
-type Filter = "all" | "flown" | "both" | "provisional" | "noFirstFlight";
+type Filter = "all" | "flown" | "both" | "livery";
+
+const FILTERS: [Filter, string][] = [
+  ["all", "All"],
+  ["flown", "Flown on"],
+  ["both", "Flown and photographed"],
+  ["livery", "Special livery"],
+];
 
 const PAGE_SIZE = 50;
 
@@ -20,7 +27,9 @@ export function AircraftList() {
   const { store, ref } = app;
   // Kept for Back (lib/viewState.ts).
   const [q, setQ] = useViewState("q", "");
-  const [filter, setFilter] = useViewState<Filter>("filter", "all");
+  const [kept, setFilter] = useViewState<Filter>("filter", "all");
+  // A filter kept from before a chip was removed shows everything.
+  const filter = FILTERS.some(([k]) => k === kept) ? kept : "all";
   const [sort, setSort] = useViewState<"last" | "count" | "reg">("sort", "last");
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -36,11 +45,9 @@ export function AircraftList() {
         ? v.flights.length > 0
         : filter === "both"
           ? v.flights.length > 0 && v.sightings.length > 0
-          : filter === "provisional"
-            ? !!v.airframe.provisional
-            : filter === "noFirstFlight"
-              ? !v.airframe.firstFlightDate
-              : true,
+          : filter === "livery"
+            ? v.flights.some((f) => f.specialLivery?.trim()) || v.sightings.some((s) => s.specialLivery?.trim())
+            : true,
     )
     .filter((v) => !needle || [v.registration, v.airframe.typeCode, typeName(v.airframe.typeCode, ref), airlineLabel(v.operatorId, ref), v.airframe.msn].join("|").toLowerCase().replace(/[\s-]+/g, "").includes(needle))
     .sort((a, b) =>
@@ -72,15 +79,7 @@ export function AircraftList() {
           <input className="input" type="search" placeholder="Registration, type, airline or serial number" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
         <div className="chips" role="radiogroup" aria-label="Show">
-          {(
-            [
-              ["all", "All"],
-              ["flown", "Flown on"],
-              ["both", "Flown and photographed"],
-              ["provisional", "No serial number"],
-              ["noFirstFlight", "No first flight date"],
-            ] as [Filter, string][]
-          ).map(([k, label]) => (
+          {FILTERS.map(([k, label]) => (
             <button key={k} type="button" role="radio" aria-checked={filter === k} className="chip" onClick={() => setFilter(k)}>
               {label}
             </button>
