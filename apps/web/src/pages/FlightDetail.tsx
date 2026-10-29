@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, parseDateTime, readTrackFile, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
+import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, liveryName, parseDateTime, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
@@ -17,6 +17,7 @@ import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { AltitudeChart } from "../components/charts.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
+import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
 import { MenuButton } from "../components/Menu.tsx";
@@ -94,6 +95,9 @@ export function FlightDetail() {
   const age = built && v.day ? Number(v.day.slice(0, 4)) - Number(built) : null;
   const typeText = f.model ? modelLabel(f.model, f.typeCode, ref, settings.modelNaming ?? "standard") : typeName(f.typeCode, ref);
   const day = v.day;
+  // A special livery takes the stage: the band under the sentence shows the aircraft's photo, so its card does not.
+  const livery = f.specialLivery?.trim() ? liveryName(f.specialLivery) : null;
+  const spottedInLivery = spotted.filter((s) => sameLivery(s.specialLivery, f.specialLivery));
 
   const landDays = f.takeoffAt && f.landingAt ? daysBetween(localDay(f.takeoffAt)!, localDay(f.landingAt)!) : 0;
   const slipped = f.takeoffAt && f.scheduledDate ? daysBetween(f.scheduledDate, localDay(f.takeoffAt)!) : 0;
@@ -398,7 +402,8 @@ export function FlightDetail() {
         ) : (
           typeText && ` on ${article(typeText)} ${typeText}`
         )}
-        {built && ` first flown in ${built}`}
+        {livery && (f.registration || typeText) && ` in its ${livery} livery`}
+        {built && `${livery && (f.registration || typeText) ? "," : ""} first flown in ${built}`}
         {landing && B && `, landing in ${cityName(B) ?? B.name} ${landing}`}.
         {onThis.length > 1 && ` You have flown on it ${plural(onThis.length, "time")}.`}{" "}
         {spotted[0] && (
@@ -409,6 +414,30 @@ export function FlightDetail() {
         )}
       </p>
 
+      {livery && (
+        <LiveryBand
+          names={[livery]}
+          reg={f.registration}
+          alt={`${f.registration ?? "The aircraft"}, ${typeText}`}
+          linked={!!(airframe && f.registration)}
+          about={
+            <>
+              {airframe && f.registration ? (
+                <Link className="stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
+                  {f.registration}
+                </Link>
+              ) : (
+                f.registration
+              )}
+              {[typeText, f.airlineId && airlineLabel(f.airlineId, ref)].filter(Boolean).map((t) => ` · ${t}`)}
+            </>
+          }
+          facts={[
+            { label: "Flown in it", value: flownIn(onThis.filter((o) => sameLivery(o.f.specialLivery, f.specialLivery)).length, onThis.length) },
+            ...(spottedInLivery.length ? [{ label: "Photographed in it", value: photographedIn(spottedInLivery.map((s) => s.seenOn)) }] : []),
+          ]}
+        />
+      )}
       {pickedPanel}
       {routeMap}
 
@@ -480,7 +509,7 @@ export function FlightDetail() {
           </div>
           {/* The whole card opens the aircraft's page, as on Home; the flights listed in it keep their own links. */}
           <article className={`card aircraft-card${airframe ? " stretch" : ""}`} id="aircraft-card">
-            <Photo reg={f.registration} alt={`${f.registration ?? ""}, ${typeText}`} />
+            {!livery && <Photo reg={f.registration} alt={`${f.registration ?? ""}, ${typeText}`} />}
             <div className="card__body">
               {airframe ? (
                 <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
@@ -529,7 +558,7 @@ export function FlightDetail() {
                   </span>
                 </p>
               )}
-              <Credit reg={f.registration} />
+              {!livery && <Credit reg={f.registration} />}
             </div>
           </article>
         </div>
@@ -588,7 +617,10 @@ export function FlightDetail() {
             {(f.specialLivery || f.livery) && (
               <div>
                 <dt>Livery</dt>
-                <dd>{f.specialLivery ?? f.livery}</dd>
+                <dd>
+                  {livery ?? f.livery}
+                  {livery && <span className="muted"> · special livery</span>}
+                </dd>
               </div>
             )}
             <div>

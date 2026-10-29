@@ -3,13 +3,14 @@
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { flightDay, isValidDate, pastedFactsFor, phasesOf, type Flight, type Sighting } from "@touchdown/core";
+import { flightDay, isValidDate, liveryName, pastedFactsFor, phasesOf, sameLivery, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { airlineLabel, dateOnly, dayMonthYear, modelLabel, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
+import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { Field, TextInput } from "../components/form.tsx";
 import { toast } from "../components/overlay.tsx";
@@ -50,7 +51,23 @@ export function AircraftDetail() {
     ...v.flights.map((f) => ({ date: flightDay(f), kind: "flight" as const, f })),
     ...v.sightings.map((s) => ({ date: s.seenOn, kind: "sighting" as const, s })),
   ].sort((x, y) => (x.date ?? "9999").localeCompare(y.date ?? "9999"));
-  const liveries = [...new Set([...v.flights, ...v.sightings].map((r) => r.specialLivery).filter(Boolean))] as string[];
+  // Its special liveries in the order they were first recorded, each named once, capitalised where any record is.
+  const liveries: string[] = [];
+  for (const e of events) {
+    const name = e.kind === "flight" ? e.f.specialLivery : e.s.specialLivery;
+    if (!name?.trim()) continue;
+    const i = liveries.findIndex((l) => sameLivery(l, name));
+    if (i < 0) liveries.push(liveryName(name));
+    else if (liveries[i] === liveries[i]!.toLowerCase()) liveries[i] = liveryName(name);
+  }
+  const flightsIn = v.flights.filter((f) => f.specialLivery?.trim()).length;
+  const sightingsIn = v.sightings.filter((s) => s.specialLivery?.trim());
+  // "…, once in its Centenary livery": said only when the aircraft has one special livery in the log.
+  const only = liveries.length === 1 ? liveries[0] : null;
+  const inLivery = (n: number, total: number) =>
+    !only || !n ? "" : n === total ? (total === 1 ? ` in its ${only} livery` : `, each time in its ${only} livery`) : `, ${n === 1 ? "once" : plural(n, "time")} in its ${only} livery`;
+  const flownClause = inLivery(flightsIn, v.flights.length);
+  const spottedClause = flownClause ? "" : inLivery(sightingsIn.length, v.sightings.length);
   const findings = app.findings().filter((f) => f.records.some((r) => (r.table === "flights" && v.flights.some((x) => x.id === r.id)) || (r.table === "sightings" && v.sightings.some((x) => x.id === r.id))));
   const typeText = a.model ? modelLabel(a.model, a.typeCode, ref, settings.modelNaming ?? "standard") : typeName(a.typeCode, ref);
   const first = events[0];
@@ -89,10 +106,10 @@ export function AircraftDetail() {
 
   const sentence = (
     <>
-      {v.flights.length > 0 && `You flew on ${reg || "this aircraft"} ${v.flights.length === 1 ? "once" : plural(v.flights.length, "time")}`}
-      {v.flights.length > 0 && v.sightings.length > 0 && " and photographed it "}
+      {v.flights.length > 0 && `You flew on ${reg || "this aircraft"} ${v.flights.length === 1 ? "once" : plural(v.flights.length, "time")}${flownClause}`}
+      {v.flights.length > 0 && v.sightings.length > 0 && `${flownClause.startsWith(",") ? "," : ""} and photographed it `}
       {v.flights.length === 0 && v.sightings.length > 0 && `You photographed ${reg || "this aircraft"} `}
-      {v.sightings.length > 0 && (v.sightings.length === 1 ? "once" : plural(v.sightings.length, "time"))}
+      {v.sightings.length > 0 && `${v.sightings.length === 1 ? "once" : plural(v.sightings.length, "time")}${spottedClause}`}
       {first?.date && `, first on ${dateOnly(first.date, { day: "numeric", month: "long", year: "numeric" })}`}
       {first?.kind === "sighting" && first.s.airportId && ` at ${airportWithCode(first.s.airportId, ref)}`}
       {first?.kind === "flight" && ` on ${first.f.flightNumber ?? "a flight"}`}.
@@ -119,7 +136,7 @@ export function AircraftDetail() {
           <Icon name="arrow-left" /> All aircraft
         </Link>
       </nav>
-      <div className="aircraft-hero">
+      <div className={`aircraft-hero${liveries.length ? " aircraft-hero--livery" : ""}`}>
         <div>
           <h1 className="route-hero__code">{reg || "No registration"}</h1>
           <p className="flight-date">
@@ -128,13 +145,27 @@ export function AircraftDetail() {
           </p>
           <p className="lead lead--flight">{sentence}</p>
         </div>
-        <figure className="aircraft-hero__photo card">
-          <Photo reg={reg} alt={`${reg}, ${typeText}`} />
-          <figcaption className="card__body">
-            <Credit reg={reg} />
-          </figcaption>
-        </figure>
+        {!liveries.length && (
+          <figure className="aircraft-hero__photo card">
+            <Photo reg={reg} alt={`${reg}, ${typeText}`} />
+            <figcaption className="card__body">
+              <Credit reg={reg} />
+            </figcaption>
+          </figure>
+        )}
       </div>
+      {liveries.length > 0 && (
+        <LiveryBand
+          names={liveries}
+          reg={reg || null}
+          alt={`${reg}, ${typeText}`}
+          about={[typeText, v.operatorId && airlineLabel(v.operatorId, ref)].filter(Boolean).join(" · ")}
+          facts={[
+            ...(flightsIn ? [{ label: liveries.length > 1 ? "Flown in them" : "Flown in it", value: flownIn(flightsIn, v.flights.length) }] : []),
+            ...(sightingsIn.length ? [{ label: liveries.length > 1 ? "Photographed in them" : "Photographed in it", value: photographedIn(sightingsIn.map((x) => x.seenOn)) }] : []),
+          ]}
+        />
+      )}
 
       <section className="section detail-grid">
         <div>
@@ -145,23 +176,24 @@ export function AircraftDetail() {
           <ul className="timeline">
             {events.map((e) =>
               e.kind === "flight" ? (
-                <li key={e.f.id}>
+                <li key={e.f.id} className={e.f.specialLivery?.trim() ? "is-livery" : undefined}>
                   <span className="dot dot--flown" />
                   <span className="timeline__date">{e.date ? dayMonthYear(e.date) : "No date"}</span>
                   <Link to="/flights/$id" params={{ id: e.f.id }}>
                     Flew {e.f.flightNumber ?? ""} {textCode(ref.airport(e.f.fromAirportId), e.f.fromRaw)} → {textCode(ref.airport(e.f.toAirportId), e.f.toRaw)}
                   </Link>
                   {e.f.registration && e.f.registration !== reg && <span className="muted"> as {e.f.registration}</span>}
+                  {e.f.specialLivery?.trim() && <LiveryNote name={liveries.find((l) => sameLivery(l, e.f.specialLivery)) ?? e.f.specialLivery} />}
                 </li>
               ) : (
-                <li key={e.s.id}>
+                <li key={e.s.id} className={e.s.specialLivery?.trim() ? "is-livery" : undefined}>
                   <span className="dot dot--spotted" />
                   <span className="timeline__date">{e.date ? dayMonthYear(e.date) : "No date"}</span>
                   <Link to="/spotting/$id/edit" params={{ id: e.s.id }}>
                     Spotted at {airportWithCode(e.s.airportId, ref, e.s.airportRaw) || "an unknown place"}
                   </Link>
                   {phasesOf(store, e.s.id).length > 0 && <span className="muted"> · {phasesOf(store, e.s.id).map((p) => PHASE_LABEL[p]?.toLowerCase() ?? p).join(", ")}</span>}
-                  {e.s.specialLivery && <span className="pill pill--livery">{e.s.specialLivery}</span>}
+                  {e.s.specialLivery?.trim() && <LiveryNote name={liveries.find((l) => sameLivery(l, e.s.specialLivery)) ?? e.s.specialLivery} />}
                 </li>
               ),
             )}
@@ -225,7 +257,7 @@ export function AircraftDetail() {
             </div>
             {liveries.length > 0 && (
               <div>
-                <dt>Special liveries seen</dt>
+                <dt>{liveries.length > 1 ? "Special liveries" : "Special livery"}</dt>
                 <dd>{liveries.join(", ")}</dd>
               </div>
             )}
@@ -363,5 +395,15 @@ export function AircraftDetail() {
         </div>
       </section>
     </div>
+  );
+}
+
+/** A timeline record in a special livery: its name after the record. */
+function LiveryNote({ name }: { name: string }) {
+  return (
+    <span className="timeline__livery">
+      <Icon name="paint-roller" />
+      {liveryName(name)} livery
+    </span>
   );
 }

@@ -3361,6 +3361,148 @@ a.wordmark {
   font-variant-numeric: tabular-nums;
 }
 
+/* A record in a special livery: a tonal band that reaches 12px past the column, so its text stays aligned. */
+.timeline li.is-livery {
+  margin-inline: -12px;
+  padding-inline: 12px;
+  border-radius: 14px;
+  border-bottom-color: transparent;
+  background: var(--surface-low);
+}
+
+.timeline li.is-livery + li.is-livery {
+  margin-top: 2px;
+}
+
+.timeline__livery {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-2);
+}
+
+.timeline__livery .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- special livery band ---------- */
+
+/* A flight or an aircraft in a special livery: the reference photo beside the livery's name and facts, as one
+   tonal panel. In gold and blue's world it stays neutral: the photo carries the livery's own colours. */
+.livery-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  margin-top: 28px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--surface-low);
+  transition: background 300ms var(--ease);
+}
+
+/* On a flight page the band opens the aircraft's page, and changes shade under the pointer as a linked card does. */
+.livery-band.stretch:hover {
+  background: color-mix(in srgb, var(--surface-low), var(--ink) 9%);
+}
+
+.livery-band.stretch:hover .stretch__link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.livery-band .photo {
+  height: 100%;
+  min-height: 260px;
+}
+
+.livery-band__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  padding: 28px 28px 24px;
+}
+
+.livery-band__mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.livery-band__mark .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.livery-band__name {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.livery-band__about {
+  margin: 10px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.livery-band__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin: 0;
+}
+
+.livery-band__facts dt {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.livery-band__facts dd {
+  margin: 2px 0 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.livery-band .credit {
+  margin: 0;
+}
+
+.aircraft-hero--livery {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 720px) {
+  .livery-band {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 24px;
+  }
+
+  .livery-band .photo {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 3 / 2;
+  }
+
+  .livery-band__text {
+    padding: 20px 20px 18px;
+  }
+
+  .livery-band__name {
+    font-size: 1.875rem;
+  }
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
