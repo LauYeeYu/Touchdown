@@ -106,7 +106,7 @@ All under `/auth/` (built):
 | `POST /auth/join` | Invitation token, name, email, password key. |
 | `POST /auth/reset` | Reset token, new password key. |
 | `POST /auth/setup` | Setup secret, name, email, password key. |
-| `GET /auth/me` | The signed-in account: name, email, role, sign-in methods, and its sessions (an id, the device, whether it is the command line's). |
+| `GET /auth/me` | The signed-in account: name, email, role, sign-in methods (with when the password was last changed), and its sessions (an id, the device, whether it is the command line's). |
 | `POST /auth/signout`, `POST /auth/signout-others` | End this session, or the others. |
 | `POST /auth/sessions/end` | End one of the account's sessions, by its id from `/auth/me` (the hash of its token, which does not open it). |
 | `POST /auth/cli/approve` | The browser allows the command line: a one-time code for its PKCE challenge ("The command line"). |

@@ -9,6 +9,8 @@ export interface Me {
   email: string;
   role: "owner" | "member";
   password: boolean;
+  /** When the password was set or last changed. */
+  passwordChangedAt: string | null;
   google: string | null;
   /** `id` names a session for signing it out; `cli` marks the command line's. */
   sessions: { id: string; device: string; cli: boolean; createdAt: string; lastUsedAt: string; current: boolean }[];

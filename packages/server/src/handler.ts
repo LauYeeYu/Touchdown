@@ -414,7 +414,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     const me = signedIn();
     const a = me.account;
     const [pw, google, sessions] = await Promise.all([
-      s.db.first("SELECT accountId FROM password_credentials WHERE accountId = ?", [a.id]),
+      s.db.first<{ updatedAt: string }>("SELECT updatedAt FROM password_credentials WHERE accountId = ?", [a.id]),
       s.db.first<{ email: string }>("SELECT email FROM google_identities WHERE accountId = ?", [a.id]),
       s.db.all<{ tokenHash: string; device: string; createdAt: string; lastUsedAt: string; kind: string | null }>("SELECT tokenHash, device, createdAt, lastUsedAt, kind FROM sessions WHERE accountId = ? ORDER BY lastUsedAt DESC", [a.id]),
     ]);
@@ -425,6 +425,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
         email: a.email,
         role: a.role,
         password: !!pw,
+        passwordChangedAt: pw?.updatedAt ?? null,
         google: google?.email ?? null,
         // A session's id is the hash of its token, which does not open it.
         sessions: sessions.map((x) => ({ id: x.tokenHash, device: x.device, cli: x.kind === "cli", createdAt: x.createdAt, lastUsedAt: x.lastUsedAt, current: x.tokenHash === me.tokenHash })),

@@ -104,7 +104,7 @@ describe("setting up the owner", () => {
     expect(noOrigin.status).toBe(403);
     expect((await call(s, jar, "POST", "/auth/setup", { setupToken: SETUP, name: "Owner", email: "o@example.org", key: keyOf("pw") })).status).toBe(200);
     expect(jar.cookie).toMatch(/^td_session=/);
-    expect((await call(s, jar, "GET", "/auth/me")).json).toMatchObject({ name: "Owner", email: "o@example.org", role: "owner", password: true });
+    expect((await call(s, jar, "GET", "/auth/me")).json).toMatchObject({ name: "Owner", email: "o@example.org", role: "owner", password: true, passwordChangedAt: expect.any(String) });
     expect((await call(s, { cookie: null }, "POST", "/auth/setup", { setupToken: SETUP, name: "Again", email: "a@example.org", key: keyOf("pw") })).status).toBe(404);
     expect((await call(s, jar, "GET", "/auth/site")).json).toMatchObject({ setupNeeded: false, signedIn: true });
   });
