@@ -12,6 +12,8 @@ import { toast } from "./overlay.tsx";
 import { invitationMessage } from "../lib/invitation.ts";
 
 const when = (iso: string | null) => (iso ? momentLabel(Date.parse(iso)) : "never");
+/** A day on this device's calendar: "3 Oct 2026". */
+const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 function LinkBox({ link, note }: { link: Link; note: string }) {
@@ -185,66 +187,85 @@ export function AccountSection({ app }: { app: AppData }) {
   return (
     <>
       <h2 className="form-section">Account</h2>
-      <ul className="rows overrides">
-        <li className="history-row">
-          <span>
-            {me.name}
-            <small>{me.role === "owner" ? "Owner of this site" : "Name"}</small>
-          </span>
-          <button type="button" className="btn btn--quiet btn--small" onClick={() => { setName(me.name); setEditing(editing === "name" ? null : "name"); }}>Change</button>
-        </li>
-        {editing === "name" && (
-          <li>
-            <form
-              className="inline-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void account.rename(name).then(done, (err: unknown) => toast(message(err)));
-              }}
-            >
-              <Field label="Name" wide>
-                <TextInput value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required autoComplete="name" />
-              </Field>
-              <button type="submit" className="btn btn--quiet btn--small">Save</button>
-            </form>
-          </li>
-        )}
-        <li className="history-row">
-          <span>
-            {me.email}
-            <small>Email address</small>
-          </span>
-          {me.password && <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "email" ? null : "email")}>Change</button>}
-        </li>
-        {editing === "email" && <li><EmailForm me={me} onDone={done} /></li>}
-        <li className="history-row">
-          <span>
-            {me.password ? "Password set" : "No password"}
-            <small>Password</small>
-          </span>
-          <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "password" ? null : "password")}>{me.password ? "Change" : "Set one"}</button>
-        </li>
-        {editing === "password" && <li><PasswordForm me={me} onDone={done} /></li>}
-        {(me.google || googleOn) && (
-          <li className="history-row">
-            <span>
-              {me.google ?? "Not connected"}
-              <small>Google sign-in</small>
-            </span>
-            {me.google ? (
-              me.password && (
-                <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.disconnectGoogle().then(load, (e: unknown) => toast(message(e)))}>
-                  Remove
-                </button>
-              )
-            ) : (
-              <a className="btn btn--quiet btn--small" href="/auth/google/start?link=1">
-                Connect
-              </a>
+      {/* Material's account lists: each item the thing and its value under it, in two cards side by side (one above the
+          other on phones): the account's details and the ways to sign in to it. */}
+      <div className="account-grid">
+        <section aria-labelledby="account-profile">
+          <h3 className="account-group" id="account-profile">
+            Profile
+          </h3>
+          <ul className="account-card">
+            <li className="account-item">
+              <span className="account-item__text">
+                Name
+                <small>
+                  {me.name}
+                  {me.role === "owner" ? " · owner of this site" : ""}
+                </small>
+              </span>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => { setName(me.name); setEditing(editing === "name" ? null : "name"); }}>Change</button>
+            </li>
+            {editing === "name" && (
+              <li className="account-card__form">
+                <form
+                  className="inline-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void account.rename(name).then(done, (err: unknown) => toast(message(err)));
+                  }}
+                >
+                  <Field label="Name" wide>
+                    <TextInput value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required autoComplete="name" />
+                  </Field>
+                  <button type="submit" className="btn btn--quiet btn--small">Save</button>
+                </form>
+              </li>
             )}
-          </li>
-        )}
-      </ul>
+            <li className="account-item">
+              <span className="account-item__text">
+                Email address
+                <small>{me.email}</small>
+              </span>
+              {me.password && <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "email" ? null : "email")}>Change</button>}
+            </li>
+            {editing === "email" && <li className="account-card__form"><EmailForm me={me} onDone={done} /></li>}
+          </ul>
+        </section>
+        <section aria-labelledby="account-signin">
+          <h3 className="account-group" id="account-signin">
+            Sign-in methods
+          </h3>
+          <ul className="account-card">
+            <li className="account-item">
+              <span className="account-item__text">
+                Password
+                <small>{!me.password ? "Not set" : me.passwordChangedAt ? `Last changed ${day(me.passwordChangedAt)}` : "Set"}</small>
+              </span>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "password" ? null : "password")}>{me.password ? "Change" : "Set one"}</button>
+            </li>
+            {editing === "password" && <li className="account-card__form"><PasswordForm me={me} onDone={done} /></li>}
+            {(me.google || googleOn) && (
+              <li className="account-item">
+                <span className="account-item__text">
+                  Google
+                  <small>{me.google ?? "Not connected"}</small>
+                </span>
+                {me.google ? (
+                  me.password && (
+                    <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.disconnectGoogle().then(load, (e: unknown) => toast(message(e)))}>
+                      Remove
+                    </button>
+                  )
+                ) : (
+                  <a className="btn btn--quiet btn--small" href="/auth/google/start?link=1">
+                    Connect
+                  </a>
+                )}
+              </li>
+            )}
+          </ul>
+        </section>
+      </div>
 
       <h3 className="form-subsection">Signed in on</h3>
       <ul className="rows overrides">
