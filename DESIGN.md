@@ -600,6 +600,7 @@ Pills in ink and neutral; the only filled button is the primary action.
 - **Icon button:** 40px round, transparent, `ink-2` icon at 18px; hover and press add the state layers.
 - **Add:** an icon button in the header like its neighbours (a plus, before More), at every width. It opens the Add menu (Flight, Sighting, Spotting session). Nothing in the header is filled: the black primary pill belongs to a page's own main action, not to the bar.
 - **Text link with arrow:** 600 weight, no underline at rest, underline on hover.
+- **Labels:** a button's label stays on one line. In a list row, the row's buttons move under its text when the two do not fit side by side (on phones), instead of squeezing either.
 - **Transitions:** 160ms on background, border and transform with the standard ease.
 
 ### Segmented period control

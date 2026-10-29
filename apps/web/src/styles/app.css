@@ -403,6 +403,7 @@ img {
   border: 1px solid transparent;
   font-size: 0.9375rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: background-color 160ms var(--ease), border-color 160ms var(--ease), transform 160ms var(--ease);
 }
@@ -3856,15 +3857,23 @@ a.wordmark {
 
 .history-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px 16px;
   padding: 12px 0;
   border-bottom: 1px solid var(--rule);
 }
 
 .history-row > span {
   display: grid;
+}
+
+/* The text keeps room to read, so on a phone the buttons go under it instead of squeezing it or each other. */
+.history-row > span:first-child {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .history-row small {
