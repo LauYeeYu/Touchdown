@@ -59,11 +59,15 @@ export function Flights() {
     return search(v);
   };
   const shown = views.filter(matches);
+  const shownIds = new Set(shown.map((v) => v.f.id));
   const shownKey = shown.map((v) => v.f.id).join(",");
+  // The map draws the whole period, so a search or a filter never moves it: the flights left out turn grey.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const marks = useMemo(() => mapFlights(shown, ref, unit, new Set(), store), [shownKey, version, unit]);
-  const hasGaps = marks.some((m) => m.gaps?.length);
-  const recordedShown = marks.filter((m) => m.track).length;
+  const marks = useMemo(() => mapFlights(views, ref, unit, new Set(), store), [data, unit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const muted = useMemo(() => (shown.length < views.length ? new Set(views.filter((v) => !shownIds.has(v.f.id)).map((v) => v.f.id)) : null), [shownKey, data]);
+  const hasGaps = marks.some((m) => m.gaps?.length && shownIds.has(m.id));
+  const recordedShown = marks.filter((m) => m.track && shownIds.has(m.id)).length;
   const shownKm = shown.reduce((s, v) => s + (v.km ?? 0), 0);
 
   const opening = year === "all" ? `Since ${years[0] ?? thisYear} you have taken` : year === thisYear ? `So far in ${year} you have taken` : `In ${year} you took`;
@@ -174,11 +178,12 @@ export function Flights() {
           flights={marks}
           mode="fit"
           activeIds={active ? new Set(shown.filter(isActive).map((v) => v.f.id)) : null}
+          mutedIds={muted}
           onArcEnter={(f) => setHover({ kind: "id", key: f.id })}
           onArcLeave={() => setHover(null)}
           onArcClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
           onAirportClick={(id) => navigate({ to: "/airports/$id", params: { id } })}
-          label={`Map of ${plural(shown.length, "flight")}`}
+          label={`Map of ${plural(views.length, "flight")}${muted ? `, ${shown.length} of them matching the search and filters` : ""}`}
         />
       </div>
       <div className="filters" role="search">

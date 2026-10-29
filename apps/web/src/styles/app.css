@@ -846,7 +846,7 @@ main {
   stroke-width: 1.75;
   stroke-linecap: round;
   opacity: 0.85;
-  transition: opacity 200ms var(--ease), stroke-width 200ms var(--ease);
+  transition: opacity 200ms var(--ease), stroke-width 200ms var(--ease), stroke 200ms var(--ease);
 }
 
 .map .arc--track {
@@ -985,6 +985,36 @@ main {
 .map .arc.is-active {
   stroke-width: 3;
   opacity: 1;
+}
+
+/* A flight a search or a filter leaves out: grey and faint behind the others, so the map keeps its frame. The layer
+   fades as one, so a route flown many times is as faint as one flown once. */
+.map .arcs-muted {
+  opacity: 0.35;
+}
+
+.map .arc.is-muted {
+  stroke: var(--ink-3);
+  stroke-width: 1.25;
+  opacity: 1;
+}
+
+.map .arc.arc--bead.is-muted {
+  display: none;
+}
+
+.map .arc-hit.is-muted {
+  pointer-events: none;
+}
+
+.map .airport,
+.map .airport-label {
+  transition: opacity 200ms var(--ease);
+}
+
+.map .airport.is-muted,
+.map .airport-label.is-muted {
+  opacity: 0.35;
 }
 
 /* ---------- tooltip ---------- */

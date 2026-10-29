@@ -130,15 +130,31 @@ function samplePoints(flights: MapFlight[], spots: MapSpot[]): LonLat[] {
   return [...routeSamples(flights).flat(), ...spots.map((s) => s.at)];
 }
 
-/** Bring the given flights forward and fade the rest (or clear the highlight). */
-function applyActive(svg: SVGSVGElement, active: Set<string> | null | undefined) {
+/**
+ * Bring the active flights forward and fade the rest (or clear the highlight), and grey out the muted ones with the
+ * airports only they use. Only classes and the drawing order change, so the map keeps its frame.
+ */
+function applyHighlight(svg: SVGSVGElement, flights: MapFlight[], active: Set<string> | null | undefined, muted: Set<string> | null | undefined) {
   svg.classList.toggle("is-focus-route", !!active?.size);
-  for (const p of svg.querySelectorAll<SVGElement>(".arc")) {
-    const on = !!active?.has(p.dataset.id ?? "");
-    p.classList.toggle("is-active", on);
-    // Above the other arcs, under the hit areas.
-    if (on) p.parentNode?.insertBefore(p, p.parentNode.querySelector(".arc-hit"));
+  const arcs = [...svg.querySelectorAll<SVGElement>(".arc")];
+  for (const p of arcs) {
+    const id = p.dataset.id ?? "";
+    p.classList.toggle("is-active", !!active?.has(id));
+    p.classList.toggle("is-muted", !!muted?.has(id));
   }
+  for (const h of svg.querySelectorAll<SVGElement>(".arc-hit")) h.classList.toggle("is-muted", !!muted?.has(h.dataset.id ?? ""));
+  // Muted in their own layer under the rest, faded as one so routes flown many times do not add up; active on top;
+  // each in drawing order, and all under the hit areas.
+  const layer = svg.querySelector(".arcs-muted");
+  const group = svg.querySelector(".arcs");
+  const hits = group?.querySelector(".arc-hit") ?? null;
+  const rank = (p: SVGElement) => (p.classList.contains("is-active") ? 1 : 0);
+  for (const p of arcs.sort((a, b) => rank(a) - rank(b) || Number(a.dataset.order) - Number(b.dataset.order))) {
+    if (p.classList.contains("is-muted")) layer?.append(p);
+    else group?.insertBefore(p, hits);
+  }
+  const used = new Set(flights.filter((f) => !muted?.has(f.id)).flatMap((f) => [f.fromCode, f.toCode]));
+  for (const a of svg.querySelectorAll<SVGElement>("[data-code]")) a.classList.toggle("is-muted", !!muted?.size && !used.has(a.dataset.code ?? ""));
 }
 
 function useWidth(ref: React.RefObject<Element | null>, onResize: (w: number) => void, deps: unknown[]) {
@@ -173,14 +189,18 @@ interface WorldMapProps {
   onAirportClick?: (airportId: string) => void;
   /** Flights to bring forward; the others fade. */
   activeIds?: Set<string> | null;
+  /** Flights a search or a filter leaves out: grey behind the rest, still framing the map. */
+  mutedIds?: Set<string> | null;
   label: string;
 }
 
-export function WorldMap({ flights, spots = [], mode = "auto", className = "", onArcEnter, onArcLeave, onArcClick, onAirportClick, activeIds, label }: WorldMapProps) {
+export function WorldMap({ flights, spots = [], mode = "auto", className = "", onArcEnter, onArcLeave, onArcClick, onAirportClick, activeIds, mutedIds, label }: WorldMapProps) {
   const ref = useRef<SVGSVGElement>(null);
   const activeKey = activeIds ? [...activeIds].sort().join(",") : "";
-  const activeRef = useRef(activeIds);
-  activeRef.current = activeIds;
+  const mutedKey = mutedIds ? [...mutedIds].sort().join(",") : "";
+  const highlight = useRef({ flights, activeIds, mutedIds });
+  highlight.current = { flights, activeIds, mutedIds };
+  const apply = (svg: SVGSVGElement) => applyHighlight(svg, highlight.current.flights, highlight.current.activeIds, highlight.current.mutedIds);
   const handlers = useRef({ onArcEnter, onArcLeave, onArcClick, onAirportClick });
   handlers.current = { onArcEnter, onArcLeave, onArcClick, onAirportClick };
   const dataKey = flights.map((f) => `${f.id}:${f.track?.length ?? 0}`).join(",") + "|" + spots.map((s) => `${s.code}:${s.aircraft}`).join(",");
@@ -242,13 +262,15 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
       const landG = el(svg, "g", {});
       for (const f of LAND.features) el(landG, "path", { class: "land", d: path(f) ?? "" });
 
-      const arcs = el(svg, "g", {});
+      el(svg, "g", { class: "arcs-muted" });
+      const arcs = el(svg, "g", { class: "arcs" });
       const arcPaths: SVGPathElement[] = [];
+      let order = 0;
       flights.forEach((f, i) => {
         const d = path(lines[i]!) ?? "";
-        arcPaths.push(el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, d }));
+        arcPaths.push(el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d }));
         for (const g of f.gaps ?? []) {
-          el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, d: path({ type: "LineString", coordinates: g }) ?? "" });
+          el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d: path({ type: "LineString", coordinates: g }) ?? "" });
         }
       });
       // A bead at each recorded position where they are far apart on the map, so the real positions show among the lines.
@@ -256,11 +278,11 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
       for (const f of flights) {
         for (const run of f.beads ?? []) {
           const xy = run.map(shown);
-          for (const i of sparsePositions(xy)) el(arcs, "circle", { class: `arc arc--bead${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, cx: xy[i]![0], cy: xy[i]![1], r: 2.4 });
+          for (const i of sparsePositions(xy)) el(arcs, "circle", { class: `arc arc--bead${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, cx: xy[i]![0], cy: xy[i]![1], r: 2.4 });
         }
       }
       flights.forEach((f, i) => {
-        const hit = el(arcs, "path", { class: "arc-hit", d: path(routes[i]!) ?? "" });
+        const hit = el(arcs, "path", { class: "arc-hit", "data-id": f.id, d: path(routes[i]!) ?? "" });
         hit.addEventListener("pointerenter", (ev) => {
           showTip(f.tip, ev.clientX, ev.clientY);
           handlers.current.onArcEnter?.(f);
@@ -304,7 +326,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         if (spotR.has(code)) continue;
         const xy = proj(v.at);
         if (!xy) continue;
-        const dot = el(apG, "circle", { class: "airport", cx: xy[0], cy: xy[1], r: 4 });
+        const dot = el(apG, "circle", { class: "airport", "data-code": code, cx: xy[0], cy: xy[1], r: 4 });
         // A larger invisible target, so the small dot is easy to point at and tap.
         const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 11, tabindex: 0, role: "link", "aria-label": `${v.name}: ${v.n} flights. Open the airport page` });
         const tip = `<strong>${esc(v.name)} (${esc(code)})</strong><br><span class="muted">${v.n} flight${v.n === 1 ? "" : "s"} in this period · click for the airport page</span>`;
@@ -347,20 +369,20 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           const pick = tries.find((t) => !blocked(t[3], d.i));
           if (!pick) return;
           boxes.push(pick[3]);
-          const t = el(apG, "text", { class: "airport-label is-link", x: pick[0], y: pick[1], "text-anchor": pick[2] });
+          const t = el(apG, "text", { class: "airport-label is-link", "data-code": d.code, x: pick[0], y: pick[1], "text-anchor": pick[2] });
           t.textContent = d.code;
           if (d.id) clickable(t, d.id);
         });
-      applyActive(svg, activeRef.current);
+      apply(svg);
     },
     [dataKey, mode],
   );
 
   // Highlighting only toggles classes, so it never redraws the map; a redraw applies it again.
   useEffect(() => {
-    if (ref.current) applyActive(ref.current, activeRef.current);
+    if (ref.current) apply(ref.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeKey, dataKey]);
+  }, [activeKey, mutedKey, dataKey]);
 
   return <svg className={`map ${className}`} ref={ref} role="img" aria-label={label} />;
 }
