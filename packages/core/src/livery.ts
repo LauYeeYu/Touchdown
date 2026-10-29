@@ -20,6 +20,17 @@ export const LIVERY_KEPT_DAYS = 365;
 
 const liveryKey = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
+/** Whether two records name the same special livery, whatever the case and spacing, and with or without "livery". */
+export function sameLivery(a: string | null | undefined, b: string | null | undefined): boolean {
+  return !!a?.trim() && !!b?.trim() && liveryKey(liveryName(a)) === liveryKey(liveryName(b));
+}
+
+/** A special livery's name without a closing "livery", for "in its … livery": "Anniversary Livery" gives "Anniversary". */
+export function liveryName(name: string): string {
+  const t = name.replace(/\s+/g, " ").trim();
+  return t.replace(/\s+livery$/i, "") || t;
+}
+
 const worn = (records: LiveryRecord[]) =>
   records.filter((r): r is { date: string; specialLivery: string } => !!r.date && !!r.specialLivery?.trim()).sort((a, b) => a.date.localeCompare(b.date));
 

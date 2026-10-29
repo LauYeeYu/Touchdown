@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cityName, formatModel, guessSeatPosition, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel, RefIndex } from "../src/index.ts";
+import { cityName, formatModel, guessSeatPosition, liveryName, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel, RefIndex, sameLivery } from "../src/index.ts";
 import { shortAirport } from "../src/view/index.ts";
 import { ref, refTables } from "./fixtures.ts";
 
@@ -99,5 +99,18 @@ describe("airport cities", () => {
     expect(shortAirport("d", r)).toBe("Boston Logan");
     // A word as common as "Saint" does not name the city.
     expect(shortAirport("e", r)).toBe("Saint-Étienne Saint-Exupéry");
+  });
+});
+
+describe("special liveries", () => {
+  it("names a livery without a closing 'livery' and compares names loosely", () => {
+    expect(liveryName("Anniversary Livery")).toBe("Anniversary");
+    expect(liveryName("  Retro  livery ")).toBe("Retro");
+    expect(liveryName("Livery")).toBe("Livery");
+    expect(liveryName("Sports Team")).toBe("Sports Team");
+    expect(sameLivery("Retro  Livery", "retro livery")).toBe(true);
+    expect(sameLivery("Retro", "Retro Livery")).toBe(true);
+    expect(sameLivery("Retro", "Classic")).toBe(false);
+    expect(sameLivery(null, "")).toBe(false);
   });
 });
