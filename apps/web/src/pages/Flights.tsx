@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { flightStats, todayIn } from "@touchdown/core";
-import { flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
+import { flightSearch, flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { routeCodes } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
@@ -51,18 +51,12 @@ export function Flights() {
 
   const { views, fs, tracks, trackMeta, review, withoutTrack } = data;
   const airlines = [...new Set(views.map((v) => v.f.airlineId).filter((x): x is string => !!x))].sort((a, b) => airlineLabel(a, ref).localeCompare(airlineLabel(b, ref)));
-  const needle = q.trim().toLowerCase().replace(/\s+/g, "");
+  const needle = q.trim();
+  const search = useMemo(() => flightSearch(needle, ref), [needle, ref]);
   const matches = (v: FlightView) => {
     if (airline && v.f.airlineId !== airline) return false;
     if (recordedOnly && !tracks.has(v.f.id)) return false;
-    if (!needle) return true;
-    const a = ref.airport(v.f.fromAirportId);
-    const b = ref.airport(v.f.toAirportId);
-    const hay = [v.f.flightNumber, v.fromCode, v.toCode, a?.icao, b?.icao, a?.city, b?.city, v.f.registration, airlineLabel(v.f.airlineId, ref), v.f.typeCode]
-      .join("|")
-      .toLowerCase()
-      .replace(/\s+/g, "");
-    return hay.includes(needle);
+    return search(v);
   };
   const shown = views.filter(matches);
   const shownKey = shown.map((v) => v.f.id).join(",");
@@ -191,7 +185,7 @@ export function Flights() {
         <label className="search">
           <span className="visually-hidden">Search flights</span>
           <Icon name="search" />
-          <input className="input" type="search" placeholder="Flight number, airport, registration or type" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+          <input className="input" type="search" placeholder="Flight number, route, airport, registration or type" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
         <label>
           <span className="visually-hidden">Airline</span>

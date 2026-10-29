@@ -2,7 +2,7 @@
 // flight's page, in the terminal or as JSON.
 
 import { arrivalAirportId, phasesOf, type Flight, type Sighting } from "@touchdown/core";
-import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, inPeriod, PHASE_LABEL, REASON_LABEL, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
+import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, flightSearch, inPeriod, PHASE_LABEL, REASON_LABEL, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
 import { aircraftLabel, airportJson, duration, findingJson, findingsOf, flightJson, openFindings, sightingJson, timeLabel, trackOf } from "./shape.ts";
 import { argsOrHelp, fail, fields, findAirport, findFlight, notFound, openOrFail, periodLabel, periodOf, plain, printJson, privateFields, readOptions, section, table, type OpenedLog } from "./read.ts";
 import { bold, dim, plural, red, yellow } from "./term.ts";
@@ -16,7 +16,8 @@ Your flights, newest first, as the Flights page lists them.
   --airline X     flown with this airline: its IATA or ICAO code, or its name
   --airport X     from or to this airport: its IATA or ICAO code
   --type X        on this type: its ICAO type code (A21N)
-  --search TEXT   as the Flights page's search: flight number, airports, cities, registration, airline, type
+  --search TEXT   as the Flights page's search: flight number, airports, cities, registration, airline, type,
+                  or a route: "SHA-PEK" either way, "SHA > PEK" one way
   --recorded      only flights with a recorded track
 ${readOptions(16)}`;
 
@@ -84,7 +85,7 @@ export async function flightsCommand(args: string[]) {
   const airline = airlineOf(log, json, a.values.get("--airline"));
   const airport = airportOf(log, json, a.values.get("--airport"));
   const type = a.values.get("--type")?.toUpperCase();
-  const needle = squash(a.values.get("--search") ?? "");
+  const search = flightSearch(a.values.get("--search") ?? "", log.ref);
   const recorded = a.flags.has("--recorded");
   const tracked = new Set(log.store.all("tracks").map((t) => t.flightId));
 
@@ -94,12 +95,7 @@ export async function flightsCommand(args: string[]) {
     .filter((v) => !airport || v.f.fromAirportId === airport || v.f.toAirportId === airport || arrivalAirportId(v.f) === airport)
     .filter((v) => !type || v.f.typeCode === type)
     .filter((v) => !recorded || tracked.has(v.f.id))
-    .filter((v) => {
-      if (!needle) return true;
-      const from = log.ref.airport(v.f.fromAirportId);
-      const to = log.ref.airport(v.f.toAirportId);
-      return squash([v.f.flightNumber, v.fromCode, v.toCode, from?.icao, to?.icao, from?.city, to?.city, v.f.registration, airlineLabel(v.f.airlineId, log.ref), v.f.typeCode].join("|")).includes(needle);
-    })
+    .filter(search)
     .reverse();
   const km = shown.reduce((n, v) => n + (v.km ?? 0), 0);
 
