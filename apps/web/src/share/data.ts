@@ -12,9 +12,12 @@ export const shareId = () => location.pathname.split("/")[2] ?? "";
 /** Rows as a link sends them carry no sync columns; the store wants them filled. */
 const SYSTEM = { rev: 1, updatedAt: "1970-01-01T00:00:00Z", updatedBy: "share", basedOn: null, versionVector: null, deleted: false };
 
-/** Flights whose tracks one request asks for, and requests at once: the server reads each request's files at once too. */
-const TRACKS_PER_REQUEST = 25;
-const REQUESTS_AT_ONCE = 4;
+/**
+ * Flights whose tracks one request asks for, and requests at once: the server reads each request's files at once too,
+ * and takes at most 15 a request.
+ */
+const TRACKS_PER_REQUEST = 10;
+const REQUESTS_AT_ONCE = 6;
 
 export interface TrackProgress {
   done: number;
@@ -90,8 +93,9 @@ export class ShareData {
 
   /**
    * Read the link's recorded tracks into its store, as the app's sync reads tracks: newest flights first, several
-   * requests at a time, each request's tracks shown as soon as they arrive. A track that cannot be read stays a great
-   * circle. Read once, however often it is asked.
+   * requests at a time, each request's tracks shown as soon as they arrive. A request the server could not answer is
+   * asked again once, in two halves. A track that still cannot be read stays a great circle. Read once, however often
+   * it is asked.
    */
   loadTracks(): Promise<void> {
     this.reading ??= this.readTracks();
@@ -102,31 +106,40 @@ export class ShareData {
     const when = new Map(this.store.all("flights").map((f) => [f.id, f.takeoffAt ?? f.scheduledDate ?? ""]));
     const flights = [...new Set(this.store.all("tracks").map((t) => t.flightId))].filter((id) => when.has(id)).sort((a, b) => when.get(b)!.localeCompare(when.get(a)!));
     if (!flights.length) return;
-    const batches: string[][] = [];
-    for (let i = 0; i < flights.length; i += TRACKS_PER_REQUEST) batches.push(flights.slice(i, i + TRACKS_PER_REQUEST));
+    const queue: { flights: string[]; again: boolean }[] = [];
+    for (let i = 0; i < flights.length; i += TRACKS_PER_REQUEST) queue.push({ flights: flights.slice(i, i + TRACKS_PER_REQUEST), again: false });
     let done = 0;
     this.tracks = { done, total: flights.length };
     this.notify();
-    let next = 0;
     const worker = async () => {
-      while (next < batches.length) {
-        const batch = batches[next++]!;
-        try {
-          const res = await fetch(`/p/${encodeURIComponent(this.id)}/tracks?flights=${batch.map(encodeURIComponent).join(",")}`, { credentials: "omit" });
-          if (res.ok) {
-            const { tracks } = (await res.json()) as { tracks?: Record<string, Row<"track_points">[]> };
-            const points = Object.values(tracks ?? {}).flat();
-            if (points.length) this.store.putRaw("track_points", points);
-          }
-        } catch {
-          // Left as great circles.
+      while (queue.length) {
+        const batch = queue.shift()!;
+        if ((await this.readBatch(batch.flights)) === "failed" && !batch.again && batch.flights.length > 1) {
+          const half = Math.ceil(batch.flights.length / 2);
+          queue.push({ flights: batch.flights.slice(0, half), again: true }, { flights: batch.flights.slice(half), again: true });
+          continue;
         }
-        done += batch.length;
+        done += batch.flights.length;
         this.tracks = done < flights.length ? { done, total: flights.length } : null;
         this.notify();
       }
     };
-    await Promise.all(Array.from({ length: Math.min(REQUESTS_AT_ONCE, batches.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(REQUESTS_AT_ONCE, queue.length) }, worker));
+  }
+
+  /** One request's tracks into the store. "failed" when the server could not answer it, or did not answer at all. */
+  private async readBatch(flights: string[]): Promise<"read" | "failed" | "refused"> {
+    try {
+      const res = await fetch(`/p/${encodeURIComponent(this.id)}/tracks?flights=${flights.map(encodeURIComponent).join(",")}`, { credentials: "omit" });
+      // A stopped link, or too many requests: asking again would not help.
+      if (!res.ok) return res.status >= 500 ? "failed" : "refused";
+      const { tracks } = (await res.json()) as { tracks?: Record<string, Row<"track_points">[]> };
+      const points = Object.values(tracks ?? {}).flat();
+      if (points.length) this.store.putRaw("track_points", points);
+      return "read";
+    } catch {
+      return "failed";
+    }
   }
 }
 
