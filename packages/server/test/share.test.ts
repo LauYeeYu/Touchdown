@@ -78,10 +78,11 @@ function fakeDrive() {
         return Response.json({ files: drive.marked ? [{ id: root, name: "Touchdown", version: "1", mimeType: FOLDER_MIME, createdTime: "2026-01-01T00:00:00Z" }] : [] });
       }
       const parent = /'([^']+)' in parents/.exec(q)![1]!;
-      const name = /name = '([^']+)'/.exec(q)?.[1];
+      // One name, or several joined with "or".
+      const names = [...q.matchAll(/name = '([^']+)'/g)].map((x) => x[1]!);
       const onlyFolders = q.includes(`mimeType = '${FOLDER_MIME}'`);
       lists.push(files.get(parent)?.name ?? parent);
-      const found = [...files.values()].filter((f) => f.parent === parent && (!name || f.name === name) && (!onlyFolders || f.mimeType === FOLDER_MIME));
+      const found = [...files.values()].filter((f) => f.parent === parent && (!names.length || names.includes(f.name)) && (!onlyFolders || f.mimeType === FOLDER_MIME));
       return Response.json({ files: found.map((f) => ({ id: f.id, name: f.name, version: String(f.version), mimeType: f.mimeType })) });
     }
     const m = url.pathname.match(/^\/drive\/v3\/files\/([^/]+)$/);
@@ -265,16 +266,24 @@ describe("opening a share link", () => {
     expect((await open(t.s, `/p/${made.json.id}/content`)).status).toBe(200);
   });
 
-  it("gives a flight's track only for a flight the link shows", async () => {
+  it("gives the tracks of the flights the link shows, many in one request", async () => {
     const t = await site();
     const flight = await make(t, { kind: "flight", subject: t.shared.id });
-    const track = await open(t.s, `/p/${flight.json.id}/tracks/${t.shared.id}`);
-    expect(track.status).toBe(200);
-    expect((track.json.points as unknown[]).length).toBe(5);
-    expect((await open(t.s, `/p/${flight.json.id}/tracks/${t.other.id}`)).status).toBe(404);
+    const one = await open(t.s, `/p/${flight.json.id}/tracks?flights=${t.shared.id},${t.other.id}`);
+    expect(one.status).toBe(200);
+    const tracks = one.json.tracks as Record<string, unknown[]>;
+    expect(Object.keys(tracks)).toEqual([t.shared.id]);
+    expect(tracks[t.shared.id]).toHaveLength(5);
     const log = await make(t, { kind: "log" });
-    expect((await open(t.s, `/p/${log.json.id}/tracks/${t.other.id}`)).status).toBe(200);
+    const both = (await open(t.s, `/p/${log.json.id}/tracks?flights=${t.shared.id},${t.other.id}`)).json.tracks as Record<string, unknown[]>;
+    expect(Object.keys(both).sort()).toEqual([t.shared.id, t.other.id].sort());
     expect(t.drive.downloads.every((p) => p.startsWith("tables/") || p.startsWith("tracks/"))).toBe(true);
+    // Asking for tracks is not an opening.
+    expect(((await call(t.s, t.owner, "GET", "/api/shares")).json.shares as { timesOpened: number }[]).every((x) => x.timesOpened === 0)).toBe(true);
+    // Nothing asked for, too many at once, or not an id: refused.
+    expect((await open(t.s, `/p/${log.json.id}/tracks`)).status).toBe(400);
+    expect((await open(t.s, `/p/${log.json.id}/tracks?flights=${Array.from({ length: 41 }, (_, i) => `f${i}`).join(",")}`)).status).toBe(400);
+    expect((await open(t.s, `/p/${log.json.id}/tracks?flights=a'b`)).status).toBe(400);
   });
 
   it("limits how often one address may ask", async () => {

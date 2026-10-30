@@ -12,12 +12,18 @@ export type ShareKind = (typeof SHARE_KINDS)[number];
 /** The owner's corrections and groupings, so the shared pages read as the owner's do. */
 const OWNERS = ["airport_overrides", "operator_overrides", "aircraft_type_overrides", "family_overrides"] as const satisfies readonly TableName[];
 
+/**
+ * The owner's display choices a link keeps, so its pages read as the owner's do (miles, ICAO codes). Nothing else of
+ * the settings row is sent: it also says where the log is stored and the home airport.
+ */
+export const SHARE_SETTINGS = ["distanceUnit", "codeDisplay", "modelNaming"] as const;
+
 /** The tables the server reads for each kind (docs/32, "What the server reads"). */
 export const SHARE_TABLES: Record<ShareKind, readonly TableName[]> = {
-  flight: ["flights", "airframes", "photo_links", "tracks", ...OWNERS],
-  sighting: ["sightings", "sighting_phases", "sighting_tags", "photo_links", "airframes", ...OWNERS],
-  aircraft: ["airframes", "registration_periods", "operator_periods", "flights", "sightings", "sighting_phases", ...OWNERS],
-  log: ["flights", "sightings", "sighting_phases", "sighting_tags", "photo_links", "airframes", "registration_periods", "operator_periods", "tracks", ...OWNERS],
+  flight: ["flights", "airframes", "photo_links", "tracks", "settings", ...OWNERS],
+  sighting: ["sightings", "sighting_phases", "sighting_tags", "photo_links", "airframes", "settings", ...OWNERS],
+  aircraft: ["airframes", "registration_periods", "operator_periods", "flights", "sightings", "sighting_phases", "tracks", "settings", ...OWNERS],
+  log: ["flights", "sightings", "sighting_phases", "sighting_tags", "photo_links", "airframes", "registration_periods", "operator_periods", "tracks", "settings", ...OWNERS],
 };
 
 export type ShareRow = Record<string, unknown>;
@@ -67,6 +73,8 @@ export function shareContent(kind: ShareKind, subject: string | null, anchor: Sh
     out[t] = [...(out[t] ?? []), ...list.map((r) => shareRow(t, r))];
   };
   for (const t of OWNERS) put(t, rows(t));
+  const settings = rows("settings")[0];
+  if (settings) out.settings = [{ id: settings.id, ...Object.fromEntries(SHARE_SETTINGS.map((k) => [k, settings[k] ?? null])) }];
   const done = (shown: string | null, gone = false): ShareContent => ({ format: "touchdown-share", version: 1, kind, subject: shown, gone, tables: gone ? {} : out });
 
   switch (kind) {
@@ -100,7 +108,10 @@ export function shareContent(kind: ShareKind, subject: string | null, anchor: Sh
       put("airframes", [a]);
       put("registration_periods", rows("registration_periods").filter((p) => p.airframeId === a.id));
       put("operator_periods", rows("operator_periods").filter((p) => p.airframeId === a.id));
-      put("flights", rows("flights").filter((f) => f.airframeId === a.id));
+      const flights = rows("flights").filter((f) => f.airframeId === a.id);
+      const flightIds = new Set(flights.map((f) => f.id));
+      put("flights", flights);
+      put("tracks", rows("tracks").filter((t) => flightIds.has(t.flightId as string)));
       const sightings = rows("sightings").filter((s) => s.airframeId === a.id);
       put("sightings", sightings);
       const ids = new Set(sightings.map((s) => s.id));
@@ -128,15 +139,13 @@ export function shareContent(kind: ShareKind, subject: string | null, anchor: Sh
 }
 
 /**
- * The track a link may show for a flight: a flight link's own, or any flight's in a whole-log link. Null when the link
- * does not show that flight or it has no recorded track.
+ * The recorded tracks a link may show, by flight id: those of the flights in its content (a flight link's own, an
+ * aircraft's flights, every flight of a whole log). A flight outside the content has none.
  */
-export function shareTrackId(kind: ShareKind, subject: string | null, flightId: string, tables: ShareTables): string | null {
-  if (kind !== "log" && !(kind === "flight" && subject === flightId)) return null;
-  if (!live(tables.flights).some((f) => f.id === flightId)) return null;
-  const t = live(tables.tracks).find((x) => x.flightId === flightId);
-  return t ? (t.id as string) : null;
+export function shareTracks(content: ShareContent): Map<string, string> {
+  const flights = new Set((content.tables.flights ?? []).map((f) => f.id));
+  const out = new Map<string, string>();
+  for (const t of content.tables.tracks ?? []) if (flights.has(t.flightId) && typeof t.id === "string") out.set(t.flightId as string, t.id);
+  return out;
 }
 
-/** The tables to read for a track request: just enough to check the flight and find its track. */
-export const SHARE_TRACK_TABLES: readonly TableName[] = ["flights", "tracks"];

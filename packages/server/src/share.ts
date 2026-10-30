@@ -3,7 +3,7 @@
 // tables/ folder in the owner's Google Drive, reads only the files the link's kind needs (never one in private/), and
 // sends what core's shareContent picks out of them. The result is kept under the versions of the files it came from.
 
-import { SHARE_KINDS, SHARE_TABLES, SHARE_TRACK_TABLES, shareContent, shareTrackId, type ShareAnchor, type ShareKind, type ShareTables } from "@touchdown/core/share";
+import { SHARE_KINDS, SHARE_TABLES, shareContent, shareTracks, type ShareAnchor, type ShareContent, type ShareKind, type ShareTables } from "@touchdown/core/share";
 import type { TableName } from "@touchdown/core";
 import { googleAccess, GoogleError } from "./google.ts";
 import { b64url } from "./crypto.ts";
@@ -132,14 +132,28 @@ function tooMany(request: Request, now: number): boolean {
   return ++h.n > PER_MINUTE;
 }
 
+/** Flights whose tracks one request may ask for. */
+const TRACKS_AT_ONCE = 40;
+/** Track files read from Google Drive at the same time, for one request. */
+const READS_AT_ONCE = 8;
+
+/** Run `work` on every item, `n` at a time. */
+async function inTurn<T>(items: T[], n: number, work: (item: T) => Promise<void>) {
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (next < items.length) await work(items[next++]!);
+  }));
+}
+
 /**
- * /p/<id>: the share page, /p/<id>/content: what the link shows, /p/<id>/tracks/<flight id>: a flight's track in a
- * whole-log link. Without a session. A link that does not exist and one that was stopped answer the same.
+ * /p/<id>: the share page, /p/<id>/content: what the link shows, /p/<id>/tracks?flights=a,b: the recorded tracks of
+ * those of its flights that have one, read at once. Without a session. A link that does not exist and one that was
+ * stopped answer the same.
  */
 export async function sharePage(request: Request, s: Server, url: URL, now: number, shareFiles: string): Promise<Response> {
   if (request.method !== "GET" && request.method !== "HEAD") return json(405, { error: "Not allowed." });
   if (tooMany(request, now)) return json(429, { error: "Too many requests. Wait a minute." }, { "Retry-After": "60" });
-  const m = url.pathname.match(/^\/p\/([^/]+)(?:\/(content|tracks\/([A-Za-z0-9_-]{1,64})))?\/?$/);
+  const m = url.pathname.match(/^\/p\/([^/]+)(?:\/(content|tracks))?\/?$/);
   const id = m?.[1] && SHARE_ID.test(m[1]) ? m[1] : null;
   const share = id ? await s.db.first<ShareRow>("SELECT * FROM shares WHERE id = ?", [id]) : null;
 
@@ -149,6 +163,8 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
     return new Response(page.body, { status: share ? 200 : 404, headers: page.headers });
   }
   if (!share) return NOT_FOUND();
+  const flights = m[2] === "tracks" ? [...new Set((url.searchParams.get("flights") ?? "").split(",").filter(Boolean))] : [];
+  if (m[2] === "tracks" && (!flights.length || flights.length > TRACKS_AT_ONCE || !flights.every((f) => RECORD_ID.test(f)))) return json(400, { error: "Ask for 1 to 40 flights." });
 
   const conn = await s.db.first<StorageRow>("SELECT * FROM storage_connections WHERE accountId = ?", [share.accountId]);
   if (!conn || conn.status === "broken" || !standardOn(s)) return NOT_AVAILABLE();
@@ -159,52 +175,55 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
     const place = await foldersOf(s, conn, token);
     if (!place) return NOT_AVAILABLE();
     const listed = new Map((await children(s, token, place.tables)).map((f) => [f.name, f] as const));
-    const need = m[2] === "content" ? SHARE_TABLES[share.kind] : SHARE_TRACK_TABLES;
+    const need = SHARE_TABLES[share.kind];
     const versions = need.map((t) => `${t}:${listed.get(`${t}.json`)?.version ?? "-"}`).join(",");
     const read = async (): Promise<ShareTables> => {
       const out: ShareTables = {};
       await Promise.all(
         need.map(async (t: TableName) => {
           const f = listed.get(`${t}.json`);
-          if (!f) return;
-          const file = JSON.parse(await download(s, token, f.id)) as { rows?: Record<string, unknown>[] };
-          out[t] = file.rows ?? [];
+          if (f) out[t] = (JSON.parse(await download(s, token, f.id)) as { rows?: Record<string, unknown>[] }).rows ?? [];
         }),
       );
       return out;
     };
+    // The content, kept under the versions of the files it came from: the tracks' requests use it too.
+    const key = `content|${share.id}|${share.kind}|${share.subject}|${share.anchor ?? ""}|${versions}`;
+    let text = await cache.get(key);
+    if (!text) {
+      text = JSON.stringify(shareContent(share.kind, share.subject || null, (share.anchor as ShareAnchor | null) ?? null, await read()));
+      await cache.put(key, text);
+    }
 
     if (m[2] === "content") {
-      const key = `content|${share.id}|${share.kind}|${share.subject}|${share.anchor ?? ""}|${versions}`;
-      let text = await cache.get(key);
-      if (!text) {
-        text = JSON.stringify(shareContent(share.kind, share.subject || null, (share.anchor as ShareAnchor | null) ?? null, await read()));
-        await cache.put(key, text);
-      }
       // Counted when the content is asked for, so a chat app's preview of the page is not.
       await s.db.run("UPDATE shares SET timesOpened = timesOpened + 1, lastOpenedAt = ? WHERE id = ?", [toUtcIso(now), share.id]);
       return new Response(text, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
     }
 
-    const flightId = m[3]!;
-    const trackKey = `track|${share.id}|${flightId}|${versions}`;
-    let trackId = await cache.get(trackKey);
-    if (!trackId) {
-      trackId = shareTrackId(share.kind, share.subject || null, flightId, await read()) ?? "";
-      await cache.put(trackKey, trackId);
+    // Only the tracks of flights the link shows; a flight outside it is left out, as one without a track is.
+    const allowed = shareTracks(JSON.parse(text) as ShareContent);
+    const wanted = flights.flatMap((f) => {
+      const t = allowed.get(f);
+      return t && RECORD_ID.test(t) ? [{ flightId: f, trackId: t }] : [];
+    });
+    const tracks: Record<string, unknown[]> = {};
+    if (wanted.length && place.tracks) {
+      const names = wanted.map((w) => `name = '${w.trackId}.json'`).join(" or ");
+      const files = new Map((await children(s, token, place.tracks, `(${names})`)).map((f) => [f.name, f] as const));
+      await inTurn(wanted, READS_AT_ONCE, async (w) => {
+        const file = files.get(`${w.trackId}.json`);
+        if (!file) return;
+        const pointsKey = `points|${file.id}|${file.version}`;
+        let points = await cache.get(pointsKey);
+        if (!points) {
+          points = JSON.stringify((JSON.parse(await download(s, token, file.id)) as { rows?: Record<string, unknown>[] }).rows ?? []);
+          await cache.put(pointsKey, points);
+        }
+        tracks[w.flightId] = JSON.parse(points) as unknown[];
+      });
     }
-    if (!trackId) return NOT_FOUND();
-    if (!RECORD_ID.test(trackId) || !place.tracks) return NOT_FOUND();
-    const file = (await children(s, token, place.tracks, `name = '${trackId}.json'`))[0];
-    if (!file) return NOT_FOUND();
-    const pointsKey = `points|${file.id}|${file.version}`;
-    let text = await cache.get(pointsKey);
-    if (!text) {
-      const rows = (JSON.parse(await download(s, token, file.id)) as { rows?: Record<string, unknown>[] }).rows ?? [];
-      text = JSON.stringify({ points: rows });
-      await cache.put(pointsKey, text);
-    }
-    return new Response(text, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+    return new Response(JSON.stringify({ tracks }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
   } catch (e) {
     // Google down, the folder gone or out of reach: the page says the link is not available right now.
     if (e instanceof GoogleError || e instanceof DriveError || e instanceof TypeError || e instanceof SyntaxError) return NOT_AVAILABLE();

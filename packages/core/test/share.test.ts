@@ -2,7 +2,7 @@
 // they point to, never a private value, a deleted entry, a sync column or import bookkeeping, whatever the log holds.
 
 import { describe, expect, it } from "vitest";
-import { isPrivateTable, mergeAirframes, saveFlight, saveSighting, SHARE_KINDS, SHARE_TABLES, shareContent, shareTrackId, TABLES, type ShareTables, type Store, type TableName } from "../src/index.ts";
+import { isPrivateTable, mergeAirframes, saveFlight, saveSighting, SHARE_KINDS, SHARE_TABLES, shareContent, shareTracks, TABLES, updateSettings, type ShareTables, type Store, type TableName } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 // Made-up private values: none may appear in any link's content.
@@ -93,12 +93,25 @@ describe("a share link's content", () => {
   });
 
   it("gives a track only for a flight the link shows", () => {
-    const { store, shared, other } = log();
+    const { store, shared, other, sighting } = log();
     const t = everything(store);
     const track = store.all("tracks")[0]!.id;
-    expect(shareTrackId("flight", shared.id, shared.id, t)).toBe(track);
-    expect(shareTrackId("flight", shared.id, other.id, t)).toBeNull();
-    expect(shareTrackId("log", null, shared.id, t)).toBe(track);
-    expect(shareTrackId("aircraft", "x", shared.id, t)).toBeNull();
+    const airframe = store.get("flights", shared.id)!.airframeId!;
+    expect([...shareTracks(shareContent("flight", shared.id, null, t))]).toEqual([[shared.id, track]]);
+    expect([...shareTracks(shareContent("flight", other.id, null, t))]).toEqual([]);
+    expect([...shareTracks(shareContent("log", null, null, t))]).toEqual([[shared.id, track]]);
+    expect([...shareTracks(shareContent("aircraft", airframe, null, t))]).toEqual([[shared.id, track]]);
+    expect([...shareTracks(shareContent("sighting", sighting.id, null, t))]).toEqual([]);
+  });
+
+  it("keeps the owner's display choices and nothing else of the settings", () => {
+    const { store, shared } = log();
+    updateSettings(store, { distanceUnit: "mi", codeDisplay: "icao", storageAccount: "owner@example.org", storageLocation: "ZZfolder", homeAirportId: "ap_egll" });
+    for (const [kind, subject] of [["flight", shared.id], ["log", null]] as const) {
+      const c = shareContent(kind, subject, null, everything(store));
+      expect(c.tables.settings).toEqual([expect.objectContaining({ distanceUnit: "mi", codeDisplay: "icao" })]);
+      const text = JSON.stringify(c.tables.settings);
+      for (const leak of ["owner@example.org", "ZZfolder", "ap_egll", "storage", "homeAirport", "dataMode"]) expect(text, kind).not.toContain(leak);
+    }
   });
 });
