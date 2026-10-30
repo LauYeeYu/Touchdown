@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cityName, formatModel, guessSeatPosition, liveryName, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel, RefIndex, sameLivery } from "../src/index.ts";
+import { cityName, formatModel, guessSeatPosition, liveryName, liveryNames, normaliseRegistration, parseFareClass, parseFlightNumber, parseModel, RefIndex, sameLivery } from "../src/index.ts";
 import { shortAirport } from "../src/view/index.ts";
 import { ref, refTables } from "./fixtures.ts";
 
@@ -112,5 +112,10 @@ describe("special liveries", () => {
     expect(sameLivery("Retro", "Retro Livery")).toBe(true);
     expect(sameLivery("Retro", "Classic")).toBe(false);
     expect(sameLivery(null, "")).toBe(false);
+  });
+
+  it("lists the liveries of several records once each, capitalised where any record is", () => {
+    expect(liveryNames(["centenary", null, "Centenary Livery", " ", "Pride", "pride livery"])).toEqual(["Centenary", "Pride"]);
+    expect(liveryNames([])).toEqual([]);
   });
 });

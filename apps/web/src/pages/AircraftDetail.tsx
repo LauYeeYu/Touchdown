@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { flightDay, isValidDate, liveryName, pastedFactsFor, phasesOf, sameLivery, type Flight, type Sighting } from "@touchdown/core";
+import { flightDay, isValidDate, liveryName, liveryNames, pastedFactsFor, phasesOf, sameLivery, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -52,14 +52,7 @@ export function AircraftDetail() {
     ...v.sightings.map((s) => ({ date: s.seenOn, kind: "sighting" as const, s })),
   ].sort((x, y) => (x.date ?? "9999").localeCompare(y.date ?? "9999"));
   // Its special liveries in the order they were first recorded, each named once, capitalised where any record is.
-  const liveries: string[] = [];
-  for (const e of events) {
-    const name = e.kind === "flight" ? e.f.specialLivery : e.s.specialLivery;
-    if (!name?.trim()) continue;
-    const i = liveries.findIndex((l) => sameLivery(l, name));
-    if (i < 0) liveries.push(liveryName(name));
-    else if (liveries[i] === liveries[i]!.toLowerCase()) liveries[i] = liveryName(name);
-  }
+  const liveries = liveryNames(events.map((e) => (e.kind === "flight" ? e.f.specialLivery : e.s.specialLivery)));
   const flightsIn = v.flights.filter((f) => f.specialLivery?.trim()).length;
   const sightingsIn = v.sightings.filter((s) => s.specialLivery?.trim());
   // "…, once in its Centenary livery": said only when the aircraft has one special livery in the log.

@@ -31,6 +31,21 @@ export function liveryName(name: string): string {
   return t.replace(/\s+livery$/i, "") || t;
 }
 
+/**
+ * The special liveries named in records, in the order given, each once (`sameLivery`), without a closing "livery"
+ * and capitalised where any record is: "centenary", "Centenary Livery" and "Pride" give "Centenary" and "Pride".
+ */
+export function liveryNames(names: (string | null | undefined)[]): string[] {
+  const out: string[] = [];
+  for (const name of names) {
+    if (!name?.trim()) continue;
+    const i = out.findIndex((l) => sameLivery(l, name));
+    if (i < 0) out.push(liveryName(name));
+    else if (out[i] === out[i]!.toLowerCase()) out[i] = liveryName(name);
+  }
+  return out;
+}
+
 const worn = (records: LiveryRecord[]) =>
   records.filter((r): r is { date: string; specialLivery: string } => !!r.date && !!r.specialLivery?.trim()).sort((a, b) => a.date.localeCompare(b.date));
 
