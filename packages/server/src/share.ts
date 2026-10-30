@@ -3,7 +3,7 @@
 // tables/ folder in the owner's Google Drive, reads only the files the link's kind needs (never one in private/), and
 // sends what core's shareContent picks out of them. The result is kept under the versions of the files it came from.
 
-import { SHARE_KINDS, SHARE_TABLES, shareContent, shareTracks, type ShareAnchor, type ShareContent, type ShareKind, type ShareTables } from "@touchdown/core/share";
+import { SCHEMA_VERSION, SHARE_KINDS, SHARE_TABLES, shareContent, shareTracks, upgradeTableFile, type ShareAnchor, type ShareContent, type ShareKind, type ShareTables, type TableFile } from "@touchdown/core/share";
 import type { TableName } from "@touchdown/core";
 import { googleAccess, GoogleError } from "./google.ts";
 import { b64url } from "./crypto.ts";
@@ -137,6 +137,19 @@ const TRACKS_AT_ONCE = 40;
 /** Track files read from Google Drive at the same time, for one request. */
 const READS_AT_ONCE = 8;
 
+/** A table file written by a newer version of the app than this server: the link waits until the server is updated. */
+class NewerLog extends Error {}
+
+/**
+ * The rows of a table file as this version reads them. The server never writes the log or upgrades it: a file from an
+ * older version is brought up to date here, in memory, as the app does when it reads one, and a newer one is refused.
+ */
+function rowsOf(text: string, table: TableName): Record<string, unknown>[] {
+  const file = JSON.parse(text) as TableFile;
+  if (typeof file.schemaVersion === "number" && file.schemaVersion > SCHEMA_VERSION) throw new NewerLog();
+  return upgradeTableFile(file, table).rows ?? [];
+}
+
 /** Run `work` on every item, `n` at a time. */
 async function inTurn<T>(items: T[], n: number, work: (item: T) => Promise<void>) {
   let next = 0;
@@ -182,7 +195,7 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
       await Promise.all(
         need.map(async (t: TableName) => {
           const f = listed.get(`${t}.json`);
-          if (f) out[t] = (JSON.parse(await download(s, token, f.id)) as { rows?: Record<string, unknown>[] }).rows ?? [];
+          if (f) out[t] = rowsOf(await download(s, token, f.id), t);
         }),
       );
       return out;
@@ -217,7 +230,7 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
         const pointsKey = `points|${file.id}|${file.version}`;
         let points = await cache.get(pointsKey);
         if (!points) {
-          points = JSON.stringify((JSON.parse(await download(s, token, file.id)) as { rows?: Record<string, unknown>[] }).rows ?? []);
+          points = JSON.stringify(rowsOf(await download(s, token, file.id), "track_points"));
           await cache.put(pointsKey, points);
         }
         tracks[w.flightId] = JSON.parse(points) as unknown[];
@@ -225,8 +238,9 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
     }
     return new Response(JSON.stringify({ tracks }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
   } catch (e) {
-    // Google down, the folder gone or out of reach: the page says the link is not available right now.
-    if (e instanceof GoogleError || e instanceof DriveError || e instanceof TypeError || e instanceof SyntaxError) return NOT_AVAILABLE();
+    // Google down, the folder gone or out of reach, or a log written by a newer version: the page says the link is
+    // not available right now.
+    if (e instanceof GoogleError || e instanceof DriveError || e instanceof NewerLog || e instanceof TypeError || e instanceof SyntaxError) return NOT_AVAILABLE();
     throw e;
   }
 }

@@ -6,6 +6,10 @@
 
 import { PRIVATE_FIELDS, TABLES, type TableName } from "./schema/tables.ts";
 
+// Reading the log's files as this version does, for the server.
+export { SCHEMA_VERSION } from "./schema/tables.ts";
+export { upgradeTableFile, type TableFile } from "./schema/upgrade.ts";
+
 export const SHARE_KINDS = ["flight", "sighting", "aircraft", "log"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
 

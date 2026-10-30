@@ -110,7 +110,7 @@ function writeLog(drive: ReturnType<typeof fakeDrive>, store: Store) {
 async function site() {
   let t = Date.parse("2026-10-24T09:00:00Z");
   const drive = fakeDrive();
-  const google = { broken: false, refreshed: 0 };
+  const google = { broken: false, refreshed: 0, methods: [] as string[] };
   const s: Server = {
     db: sqliteFile(":memory:"),
     config: { origins: [SITE], setupToken: SETUP, google: { clientId: "client", clientSecret: "secret" }, tokenKey: KEY },
@@ -125,6 +125,7 @@ async function site() {
       }
       if (url.host === "www.googleapis.com") {
         expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer access-1");
+        google.methods.push(init?.method ?? "GET");
         return drive.handler(url);
       }
       return new Response("not found", { status: 404 });
@@ -284,6 +285,25 @@ describe("opening a share link", () => {
     expect((await open(t.s, `/p/${log.json.id}/tracks`)).status).toBe(400);
     expect((await open(t.s, `/p/${log.json.id}/tracks?flights=${Array.from({ length: 41 }, (_, i) => `f${i}`).join(",")}`)).status).toBe(400);
     expect((await open(t.s, `/p/${log.json.id}/tracks?flights=a'b`)).status).toBe(400);
+  });
+
+  it("reads a log an older version wrote without changing it, and waits on one a newer version wrote", async () => {
+    const t = await site();
+    const made = await make(t, { kind: "flight", subject: t.shared.id });
+    // flights.json as version 4 wrote it: no versionVector column yet.
+    const file = toTableFile(t.store, "flights");
+    const old = { ...file, schemaVersion: 4, columns: file.columns.filter((c) => c !== "versionVector"), rows: file.rows.map(({ versionVector: _, ...r }) => r) };
+    t.drive.write("tables/flights.json", stringifyTableFile(old));
+    const r = await open(t.s, `/p/${made.json.id}/content`);
+    expect(r.status).toBe(200);
+    expect((r.json.tables as Record<string, unknown[]>).flights).toEqual([expect.objectContaining({ flightNumber: "XY401" })]);
+    // The server only ever reads the owner's Drive.
+    expect(t.google.methods.every((m) => m === "GET")).toBe(true);
+
+    t.drive.write("tables/flights.json", stringifyTableFile({ ...file, schemaVersion: 99 }));
+    const newer = await open(t.s, `/p/${made.json.id}/content`);
+    expect(newer.status).toBe(503);
+    expect(newer.json).toEqual({ error: "not-available" });
   });
 
   it("limits how often one address may ask", async () => {
