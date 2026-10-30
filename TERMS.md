@@ -1,6 +1,6 @@
 # Touchdown terms of service
 
-Effective 24 October 2026.
+Effective 29 October 2026.
 
 These terms cover the Touchdown website run from this repository by its owner. By using it you agree to them.
 
@@ -20,13 +20,18 @@ These terms cover the Touchdown website run from this repository by its owner. B
 - Your log is yours. It is kept in your browser and in storage you choose. The [privacy policy](PRIVACY.md) says what the server keeps.
 - You are responsible for your own storage and for keeping backups. In Local mode the browser holds the only copy.
 - Do not enter other people's personal data unless you may.
+- In Standard mode you can share links. Anyone who has a link can open it, without signing in, until you stop it, and it shows the notes and photo links on that page. Share only what you are happy for others to see, and stop a link on the Shared links page when it should no longer work.
 
 ## Use
 
 Do not:
-- try to reach another person's account or data
+- try to reach another person's account or data, including by guessing share links
 - try to get around the sign-in, or overload the site or the services it uses
 - use the site for anything unlawful
+
+## Opening a link someone shared
+
+A share link's page shows what the person who shared it chose to share. You can open it without an account. These terms' rules on use apply to you too.
 
 ## Other services
 

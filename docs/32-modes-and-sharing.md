@@ -44,7 +44,7 @@ The Local warning (Decided that there is one; wording Proposed):
 
 Settings shows the same warning while the user is in Local mode. A note bar reminds the user to export a backup when the last one is more than 30 days old (counted from choosing Local when there has been none) and the log has changed since; it offers "Export a backup" and "Not now" (built).
 
-Built (basic Standard, without share links): where the site has the encryption key and Google configured (`TOKEN_KEY`, `GOOGLE_CLIENT_SECRET`), Standard is offered and preselected, with the note "Share links come in a later version."; elsewhere it shows "Not available on this site." and Private is preselected.
+Built: where the site has the encryption key and Google configured (`TOKEN_KEY`, `GOOGLE_CLIENT_SECRET`), Standard is offered and preselected, with the note "Links you share keep working while you are offline."; elsewhere it shows "Not available on this site." and Private is preselected.
 
 ### Changing mode
 
@@ -102,7 +102,7 @@ Decided (U5): the terms are shown when the user chooses Standard, at first run o
 
 - **Versions.** Each version has a number. The server records the version accepted and when, as a date-time with offset.
 - **Changes.** When the text changes, a user in Standard is asked again the next time they open the app. Declining offers Private or Local, as at first run. Until they answer, their links keep working.
-- **Status of the text.** Version 1 is built (`apps/web/src/components/StandardTerms.tsx`) and covers what basic Standard does: the key, its use for sync only, how it is protected, stopping, changes. The text below is the draft of version 2, which adds share links, for the owner to review (Q-TERMS-TEXT).
+- **Status of the text.** Version 2 is built (`apps/web/src/components/StandardTerms.tsx`, `TERMS_VERSION` in the server's `handler.ts`): version 1's key, sync, protection, stopping and changes, with share links added. A user who accepted version 1 accepts version 2 in the Share dialog before their first link; making a link without it is refused. The text below is the draft it was written from, for the owner to review (Q-TERMS-TEXT).
 
 > **Standard mode: Touchdown's access to your storage**
 >
@@ -132,7 +132,7 @@ Decided: links are a Standard-mode feature. The server reads a link's file from 
 
 #### What a link shows
 
-Proposed. A link shows one page, read-only, and the viewer receives only what that page needs.
+Decided, built. A link shows one page, read-only, and the viewer receives only what that page needs.
 
 | Kind | Made from | The page | The viewer receives |
 |------|-----------|----------|---------------------|
@@ -145,17 +145,17 @@ Notes and photo links are shared with their records: the page shows them as the 
 
 #### One link per thing
 
-Proposed. A flight, sighting or aircraft has at most one link, and there is one link for the whole log. Share on a page that has a link shows that link. A new address for the same thing means stopping the link and sharing again.
+Decided, built. A flight, sighting or aircraft has at most one link, and there is one link for the whole log. Share on a page that has a link shows that link. A new address for the same thing means stopping the link and sharing again.
 
 #### Address
 
-Proposed: `https://<site>/p/<id>`, where the id is 128 random bits in base64url (22 characters), not made from the record. Pages inside a whole-log link follow a `#`, with the app's own addresses ([31](31-ui.md), "Addresses"): `/p/<id>#/flights/2025-03-14T0812-AMS-MAD`. The part after `#` never reaches the server.
+Decided, built: `https://<site>/p/<id>`, where the id is 128 random bits in base64url (22 characters), not made from the record. Pages inside a whole-log link follow a `#`, with the app's own addresses ([31](31-ui.md), "Addresses"): `/p/<id>#/flights/2025-03-14T0812-AMS-MAD`. The part after `#` never reaches the server.
 
 #### Reading the log live
 
-Decided (changed): a link shows the log as it is in the owner's storage now. There are no share files: when a link is opened, the server reads the log's own table files, picks out what the link shows and sends only that. An edit shows on the shared page as soon as it reaches the storage, from any device or the CLI.
+Decided (changed), built (`packages/server/src/share.ts`, `packages/core/src/share.ts`): a link shows the log as it is in the owner's storage now. There are no share files: when a link is opened, the server reads the log's own table files, picks out what the link shows and sends only that. An edit shows on the shared page as soon as it reaches the storage, from any device or the CLI.
 
-Proposed:
+How:
 
 1. **Share.** The app asks the server for a link (`POST /api/shares` with the kind, the subject and, for an aircraft, an anchor record). The server makes the id and the row, and the dialog shows the address at once.
 2. **Opening it.** The server finds the row (none: not found), then lists the log's `tables/` folder with each file's version, one request. It reads only the files the kind needs ([What the server reads](#what-the-server-reads)), from its cache when it holds that version of a file, otherwise from the owner's storage with the owner's key.
@@ -176,7 +176,7 @@ When things change:
 
 #### What the server reads
 
-Proposed. The server reads a fixed list of tables for each kind, and never anything else:
+Decided, built. The server reads a fixed list of tables for each kind, and never anything else:
 
 | Kind | Tables |
 |------|--------|
@@ -188,7 +188,7 @@ Proposed. The server reads a fixed list of tables for each kind, and never anyth
 
 Private data is kept apart in the storage ([Private data](#private-data)), so the files on this list hold none: a link never reads a ticket number, even to leave it out.
 
-The log's folder: the app tells the server where it is when it makes a link (the Google Drive folder id), and the server keeps it on the storage connection (`location`).
+The log's folder: the server finds it as the app does, by the mark the app puts on the Touchdown folder (the oldest such folder), when the first link is made, and keeps its id on the storage connection (`location`). Connecting Google Drive again keeps it.
 
 Reference data (airports, airlines, aircraft types) is not read from the log: the viewer loads the same reference files as the app, from its own files ([The public page](#the-public-page)), and applies the owner's corrections it received.
 
@@ -196,7 +196,7 @@ Built for the JSON tables layout. A SQLite-file log would need a SQLite reader i
 
 #### Private data
 
-Decided (changed): data that must never leave the owner's devices is kept in its own files, apart from the tables a link reads.
+Decided (changed), built (`packages/core/src/private.ts`, schema version 7): data that must never leave the owner's devices is kept in its own files, apart from the tables a link reads.
 
 - **The `flight_private` table** holds a flight's ticket number and booking reference, one row per flight, with the flight's own id as its id ([10](10-domain-model.md)). Two devices adding a ticket number to the same flight make the same row, which sync merges field by field like any other ([12](12-storage-and-sync.md), "Sync algorithm").
 - **On the way in.** A flight's `ticketNumber` and `bookingRef` still arrive with the flight (the form, an import row, `touchdown add`), as a sighting's `phase` does. Writing the flight moves them into `flight_private` in the same change, and they stay empty in `flights`. Opening the log does the same for any flight that still holds them (a log or a backup from before, an edit queued on a device that had not updated), as an ordinary edit that syncs and merges like any other.
@@ -205,19 +205,19 @@ Decided (changed): data that must never leave the owner's devices is kept in its
 
 #### Rules
 
-Proposed:
+Decided, built:
 - **Not found means not found.** An id that never existed and a stopped link give the same page.
-- **No guessing.** Ids are random, and requests to `/p/` are rate-limited per IP address.
+- **No guessing.** Ids are random, and requests to `/p/` are limited to 120 a minute per IP address, in each instance of the server.
 - **Owners are not named.** A shared page does not say whose log it is (Q-SHARE-NAME).
 
 #### Requests
 
-Proposed. The `/api/shares` requests need a browser's session (not the command line's) and a working Standard connection.
+Decided, built. The `/api/shares` requests need a browser's session (not the command line's) and a working Standard connection.
 
 | Request | Does |
 |---------|------|
 | `GET /api/shares` | The account's links. |
-| `POST /api/shares` | Make a link: kind, subject, anchor, and the log's folder. Gives the id and the address, or the existing link for that thing. |
+| `POST /api/shares` | Make a link: kind, subject and, for an aircraft, its anchor. Gives the id and the address, or the existing link for that thing. Refused until the current terms are accepted. |
 | `DELETE /api/shares/<id>` | Stop one link. |
 | `DELETE /api/shares` | Stop every link. |
 | `GET /p/<id>` | The viewer page, without a session. |
@@ -228,18 +228,18 @@ Proposed. The `/api/shares` requests need a browser's session (not the command l
 
 Decided (U3): `/p/<id>` is the only route with user content outside the sign-in; the others are the sign-in pages, the privacy policy and the terms ([33](33-accounts-and-sign-in.md)). It serves the content of one link and nothing else.
 
-Proposed:
+Decided, built (`apps/web/src/share/`):
 - **Not the app.** A separate viewer page with its own build (`share.html`, `vite.share.config.ts`), as the sign-in pages have. Its files are served from `/share-files/`, which holds code, styles, fonts, the world map and the reference data, no user content, and opens without a session as `/signin-files/` does.
 - **Three requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the content, and `GET /p/<id>/tracks/<flight id>` a flight's track in a whole-log link. No other API.
 - **Read-only.** No editing, no menus, no links into the app. The pages reuse the core view code and the app's map, livery band, times and chart components. Photos come from planespotters.net, as in the app.
 - **Footer.** "Shared from Touchdown", with the privacy policy.
-- **No analytics.** The share page carries no page-view counting, so people who open a link are not counted by anyone but the link's own count.
-- **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and the app's strict Content Security Policy. Link previews in chat apps get a plain title ("Shared from Touchdown") and nothing from the log (Q-SHARE-PREVIEW).
+- **No analytics.** The share page carries no page-view counting, so people who open a link are not counted by anyone but the link's own count: its HTML is sent with `Cache-Control: no-transform`, so Cloudflare adds no script, and its Content Security Policy would block one anyway.
+- **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and a Content Security Policy of its own (`SHARE_CSP` in `packages/server/src/headers.ts`): its own files and planespotters.net, no Google and no Cloudflare Web Analytics. Link previews in chat apps get a plain title ("Shared from Touchdown") and nothing from the log (Q-SHARE-PREVIEW).
 - **The gate.** The server lets `/p/*` and `/share-files/*` through without a session; every other address still needs one ([33](33-accounts-and-sign-in.md)).
 
 ### Managing links
 
-Proposed. Each user manages their links on a **Shared links** page (`/shares`), in Standard mode, opened from the More menu and from every Share dialog.
+Decided, built (`apps/web/src/pages/SharedLinks.tsx`, `components/ShareDialog.tsx`). Each user manages their links on a **Shared links** page (`/shares`), in Standard mode, opened from the More menu and from every Share dialog.
 
 - **Sentence.** "You have 4 shared links. Anyone with a link can open it."
 - **Rows.** One per link, newest first: what it shows, named from the browser's copy of the log ("Flight ZZ778 LHR → JFK, 14 Oct 2025", "Aircraft G-ZZLV", "Whole log"), when it was made, and how often and when it was last opened.
@@ -261,9 +261,9 @@ The CLI cannot manage links yet: its session reaches only `/auth/me`, sign-out a
 
 ### Settings in Standard mode
 
-Proposed:
+Proposed, apart from the line on links, which is built:
 - **Data mode:** the current mode, and "Change".
-- **Shared links:** how many, and "Manage links", which opens Shared links.
+- **Shared links:** how many, and "Manage links", which opens Shared links (built).
 - **Storage connection:** the backend, the account, connected since, and status, with Reconnect. Disconnecting means leaving Standard.
 - **Terms:** the version accepted and when, with a way to read them again.
 
@@ -287,7 +287,7 @@ Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Sta
 
 Not stored on the server: the log or any part of it (a link's row names its record only by id; the server's cache of a link's content lives in the Worker's cache, not the database, and expires on its own), access tokens, who opened a link, and request contents.
 
-Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data) and `consents`. `shares` comes with share links.
+Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data), `consents` and `shares` (server schema version 4).
 
 Protection (Proposed):
 - **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.
