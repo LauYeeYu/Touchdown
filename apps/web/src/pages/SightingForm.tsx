@@ -10,6 +10,8 @@ import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
 import { airlineLabel, dayMonthYear, PHASE_LABEL, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { airportOptions, Field, LiveryQuestion, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
+import { ShareButton } from "../components/ShareDialog.tsx";
+import { linkFor, useShares } from "../data/shares.ts";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -19,6 +21,7 @@ type Phase = (typeof PHASES)[number];
 export function SightingForm({ edit = false }: { edit?: boolean }) {
   const params = useParams({ strict: false }) as { id?: string };
   const { app } = useApp();
+  const shareList = useShares(app.connection?.mode === "standard");
   const { store, ref } = app;
   const navigate = useNavigate();
   const existing = edit && params.id ? store.get("sightings", params.id) : null;
@@ -79,7 +82,8 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
     }
   };
   const remove = () => {
-    if (!existing || !window.confirm(`Delete this sighting of ${existing.registration ?? "this aircraft"}?`)) return;
+    const shared = existing && linkFor(shareList, "sighting", existing.id) ? " Its share link stays and says it is no longer shared." : "";
+    if (!existing || !window.confirm(`Delete this sighting of ${existing.registration ?? "this aircraft"}?${shared}`)) return;
     app.deleteRecord("sightings", existing.id);
     toast("Sighting deleted.");
     navigate({ to: "/spotting" });
@@ -189,6 +193,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
                 <Icon name="trash" />
                 Delete
               </button>
+              <ShareButton kind="sighting" subject={existing.id} />
             </>
           ) : (
             <>

@@ -20,6 +20,7 @@ import { download } from "../lib/download.ts";
 import { connectStandard, FOLDERS_ONLY_HERE, STANDARD_NOTE, STANDARD_UNAVAILABLE, takeStandardError } from "./FirstRun.tsx";
 import { standard, type StandardStatus } from "../data/standard.ts";
 import { StandardTerms } from "../components/StandardTerms.tsx";
+import { useShares } from "../data/shares.ts";
 
 const LEAVE_STANDARD = "Leaving Standard revokes Touchdown's key to your Google Drive and deletes it from the server. Your log in Google Drive is left as it is. Continue?";
 
@@ -133,6 +134,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           }}
         />
       )}
+      {chosen === current && current === "standard" && <SharedLinksLine />}
       {choosing && (
         <>
           <h3 className="form-subsection">Storage</h3>
@@ -478,5 +480,19 @@ export function SettingsPage() {
         <li>Map: Natural Earth (public domain) via world-atlas. Icons: Lucide (ISC). Typeface: Source Sans 3 (SIL Open Font License). Reference photos: planespotters.net, credited on each photo.</li>
       </ul>
     </div>
+  );
+}
+
+/** In Standard mode: how many links are shared, and the way to them (docs/32, "Settings in Standard mode"). */
+function SharedLinksLine() {
+  const list = useShares(true);
+  return (
+    <p className="status-line">
+      <Icon name="link" />
+      <span>
+        {list ? (list.links.length ? `${plural(list.links.length, "shared link")}.` : "No shared links.") : "Shared links."}{" "}
+        <Link to="/shares">Manage links</Link>
+      </span>
+    </p>
   );
 }

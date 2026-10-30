@@ -2529,6 +2529,94 @@ a.btn--primary {
   margin: 0;
 }
 
+/* ---------- share links (docs/32, "Managing links") ---------- */
+
+/* The Share dialog: a small card over the page, the link's address in the tonal link box. */
+.share-dialog {
+  width: min(32rem, calc(100vw - 32px));
+  padding: 22px 24px 18px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-pop);
+}
+
+.share-dialog::backdrop {
+  background: rgba(23, 22, 19, 0.5);
+}
+
+.share-dialog__title {
+  margin: 0 0 10px;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.share-dialog__text {
+  max-width: 62ch;
+  margin: 0 0 14px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.share-dialog__link {
+  width: 100%;
+}
+
+.share-dialog__meta {
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.share-dialog__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.share-dialog__all {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+/* Shared links: the account lists' tonal card, one item per link with Copy link and a menu at its end. */
+.account-card.shares-list {
+  margin-top: 20px;
+}
+
+.shares-list__title {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.shares-list__title:hover {
+  text-decoration: underline;
+}
+
+.shares-list__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.shares-empty {
+  margin-top: 20px;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  background: var(--surface-low);
+  color: var(--ink-2);
+}
+
+.aircraft-hero__actions {
+  margin-top: 14px;
+}
+
 /* ---------- Settings: account and people (docs/33) ---------- */
 
 /* Material's account lists: a tonal card per group, each item a two-line list item (the thing, then its value in

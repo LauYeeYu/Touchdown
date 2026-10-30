@@ -15,7 +15,7 @@ import { StandardTerms } from "../components/StandardTerms.tsx";
 import { Wordmark } from "../components/Wordmark.tsx";
 
 export const STANDARD_UNAVAILABLE = "Not available on this site.";
-export const STANDARD_NOTE = "Share links come in a later version.";
+export const STANDARD_NOTE = "Links you share keep working while you are offline.";
 export const FOLDERS_ONLY_HERE = "Needs Chrome or Edge on a computer.";
 
 /** A `storage-error` from the way back from Google, taken off the address once read. */

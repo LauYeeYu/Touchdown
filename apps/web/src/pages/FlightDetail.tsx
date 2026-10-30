@@ -12,6 +12,8 @@ import { trackSamples } from "../lib/trackStatus.ts";
 import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, nf, offsetLabel, plural, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
+import { ShareButton } from "../components/ShareDialog.tsx";
+import { linkFor, useShares } from "../data/shares.ts";
 import { GlobePanel } from "../components/GlobePanel.tsx";
 import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { AltitudeChart } from "../components/charts.tsx";
@@ -69,6 +71,7 @@ export function FlightDetail() {
   const [picked, setPicked] = useState<PickedTrack | null>(null);
   const trackInput = useRef<HTMLInputElement>(null);
   const mapStyle = useMapStyle();
+  const shareList = useShares(app.connection?.mode === "standard");
 
   const all = sortedFlights(store, ref);
   const idx = all.findIndex((v) => v.f.id === id);
@@ -136,7 +139,8 @@ export function FlightDetail() {
   };
 
   const remove = () => {
-    if (!window.confirm(`Delete ${f.flightNumber ?? "this flight"}${day ? ` on ${dayMonthYear(day)}` : ""}? It can be restored from the history later.`)) return;
+    const shared = linkFor(shareList, "flight", f.id) ? " Its share link stays and says it is no longer shared." : "";
+    if (!window.confirm(`Delete ${f.flightNumber ?? "this flight"}${day ? ` on ${dayMonthYear(day)}` : ""}? It can be restored from the history later.${shared}`)) return;
     app.deleteRecord("flights", f.id);
     toast("Flight deleted.");
     navigate({ to: "/flights" });
@@ -350,6 +354,7 @@ export function FlightDetail() {
             <Icon name="pencil" />
             Edit
           </Link>
+          <ShareButton kind="flight" subject={f.id} />
           {trackRow ? (
             <MenuButton
               className="btn btn--quiet btn--small"

@@ -207,6 +207,8 @@ export function Shell() {
               items={[
                 { label: "Import", icon: <Icon name="upload" />, onSelect: () => navigate({ to: "/import" }) },
                 { label: "Issues", icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/issues" }) },
+                // Share links are a Standard-mode feature (docs/32).
+                ...(app.connection?.mode === "standard" ? [{ label: "Shared links", icon: <Icon name="link" />, onSelect: () => navigate({ to: "/shares" }) }] : []),
                 { label: "Settings", icon: <Icon name="settings" />, onSelect: () => navigate({ to: "/settings" }) },
               ]}
             >

@@ -26,6 +26,7 @@ import { AirportPage } from "./pages/AirportPage.tsx";
 import { ImportPage } from "./pages/ImportPage.tsx";
 import { Issues } from "./pages/Issues.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
+import { SharedLinks } from "./pages/SharedLinks.tsx";
 import { FirstRun } from "./pages/FirstRun.tsx";
 import { CliPage } from "./pages/CliPage.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
@@ -58,8 +59,9 @@ const globeR = createRoute({ getParentRoute: () => root, path: "/globe", beforeL
 const importR = createRoute({ getParentRoute: () => root, path: "/import", component: ImportPage, validateSearch: (s: Record<string, unknown>): { inbox?: string } => (typeof s.inbox === "string" ? { inbox: s.inbox } : {}) });
 const issues = createRoute({ getParentRoute: () => root, path: "/issues", component: Issues });
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: SettingsPage });
+const sharedLinks = createRoute({ getParentRoute: () => root, path: "/shares", component: SharedLinks });
 
-const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings]);
+const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings, sharedLinks]);
 
 // Back returns to where the page was scrolled; a new page starts at the top.
 const router = createRouter({ routeTree, defaultPreload: false, scrollRestoration: true });

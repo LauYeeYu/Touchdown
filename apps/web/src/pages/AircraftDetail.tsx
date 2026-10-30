@@ -10,6 +10,7 @@ import { airportWithCode, textCode } from "../lib/codes.ts";
 import { airlineLabel, dateOnly, dayMonthYear, modelLabel, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
+import { ShareButton } from "../components/ShareDialog.tsx";
 import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { Field, TextInput } from "../components/form.tsx";
@@ -136,6 +137,9 @@ export function AircraftDetail() {
             <b>{typeText || "Type not recorded"}</b>
             {v.operatorId && ` · ${airlineLabel(v.operatorId, ref)}`}
           </p>
+          <div className="actions aircraft-hero__actions">
+            <ShareButton kind="aircraft" subject={v.airframe.id} anchor={events[0] ? `${events[0].kind === "flight" ? "flights" : "sightings"}/${events[0].kind === "flight" ? events[0].f.id : events[0].s.id}` : null} />
+          </div>
           <p className="lead lead--flight">{sentence}</p>
         </div>
         {!liveries.length && (
