@@ -177,6 +177,32 @@ describe("sync between devices", () => {
     expect(snapshot(a.store)).toEqual(snapshot(b.store));
   });
 
+  it("takes the stored version over an old copy of another device's row written before version vectors, listing nothing", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const c = await device(folder, "dev_c", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100", seat: "1A" });
+    // As an older version of the app wrote it, and every device took it.
+    a.store.load("flights", [{ ...a.store.peek("flights", f.id)!, versionVector: null }]);
+    await settle([a, b, c]);
+    // b is closed for a while; a and then c edit the entry.
+    clock.tick();
+    a.store.update("flights", f.id, { seat: "2B" });
+    await settle([a, c]);
+    clock.tick();
+    c.store.update("flights", f.id, { departureGate: "B7" });
+    await settle([a, c]);
+    const stored = versions(folder);
+    // b opens again on its copy: the stored version replaced it, and nothing is listed or sent.
+    const report = await b.engine.sync();
+    expect(b.store.get("flights", f.id)).toMatchObject({ seat: "2B", departureGate: "B7" });
+    expect(conflicts(b.store)).toEqual([]);
+    expect(report.sent).toBe(0);
+    expect(versions(folder)).toEqual(stored);
+  });
+
   it("sends nothing when two devices make the same edit side by side", async () => {
     const folder = new MemoryFolder();
     const clock = testClock();

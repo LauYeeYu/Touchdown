@@ -277,6 +277,12 @@ export class SyncEngine {
         keepMine();
         continue;
       }
+      // Another device's version with no edit of this device's waiting on it is only an old copy of the storage's (one
+      // last written before version vectors, which cannot tell what it was made from): the storage has replaced it.
+      if (!queued && String(mine.updatedBy) !== this.store.deviceId) {
+        takeTheirs();
+        continue;
+      }
       // Made side by side. What is kept becomes a new version on top of both, unless it is the stored version.
       const mineLater = isNewer(mine, theirs);
       let merged: { values: Record<string, unknown>; conflicts: FieldConflict[] };
