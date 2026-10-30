@@ -7,7 +7,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { reconcile, RefIndex, refOverridesOf, SCHEMA_VERSION, Store, type TableName } from "@touchdown/core";
+import { reconcile, RefIndex, refOverridesOf, SCHEMA_VERSION, settleOlder, Store, type TableName } from "@touchdown/core";
 import { SyncEngine, type SyncState, type SyncStateStore } from "@touchdown/storage";
 import { loadRefTables } from "@touchdown/refdata";
 import { privatePath } from "./paths.ts";
@@ -85,7 +85,8 @@ export async function openForWriting(say: (line: string) => void = () => {}, sto
   await engine.start();
   const before = engine.waiting;
   say(`Reading your log from ${s.name}…`);
-  const report = await engine.sync({ full: true });
+  // Values an older version left in a row are moved once the log is read, before anything is sent, as in the web app.
+  const report = await engine.sync({ full: true, settle: () => settleOlder(store) });
   const ref = new RefIndex(loadRefTables());
   ref.setUserOverrides(refOverridesOf(store));
   // What two devices made side by side is settled here as in the web app, and sent with the review.
@@ -96,7 +97,8 @@ export async function openForWriting(say: (line: string) => void = () => {}, sto
 
 /** Send what changed, then read it back: rows the storage shows are confirmed; the others wait for the next run. */
 export async function sendChanges(w: WritableLog): Promise<{ sent: number; waiting: number }> {
-  const out = await w.engine.sync();
-  await w.engine.sync();
+  const settle = () => settleOlder(w.store);
+  const out = await w.engine.sync({ settle });
+  await w.engine.sync({ settle });
   return { sent: out.sent, waiting: w.engine.waiting };
 }
