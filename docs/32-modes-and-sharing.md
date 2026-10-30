@@ -225,7 +225,7 @@ Decided, built. The `/api/shares` requests need a browser's session (not the com
 | `DELETE /api/shares` | Stop every link. |
 | `GET /p/<id>` | The viewer page, without a session. |
 | `GET /p/<id>/content` | The link's content, without a session. |
-| `GET /p/<id>/tracks?flights=<id>,…` | The recorded tracks of up to 40 of the link's flights, without a session. A flight the link does not show, or one without a track, is left out. The server reads the track files 8 at a time and keeps each under its version. |
+| `GET /p/<id>/tracks?flights=<id>,…` | The recorded tracks of up to 15 of the link's flights, without a session. A flight the link does not show, or one without a track, is left out. The server reads the track files 6 at a time and keeps the answer whole, under the versions of its files ([Costs and limits](#costs-and-limits)). |
 
 ### The public page
 
@@ -320,4 +320,5 @@ As in [12](12-storage-and-sync.md):
 
 - **D1.** The free plan's limits are far above what a few users' accounts and links need. Recheck them before launch.
 - **Each link opening.** One row read and one count written in D1, one listing of the `tables/` folder, and a read of a table file only when the server's cache does not hold that version of it, plus a token refresh when the Worker has no access token in memory. Access tokens are kept only in the Worker's memory, never stored.
+- **Calls per request.** Decided: Cloudflare's free plan lets one request make 50 calls to Google Drive, D1 and the cache together, and a request over it fails with error 1101. A tracks request makes at most 29 besides its downloads (the Worker's table check, the Drive access, the folder search, the content read again when the cache has lost it), so it takes at most 15 flights and keeps its answer in the cache as one entry, not one per track. `packages/server/test/share.test.ts` counts the calls of the largest request with nothing kept.
 - **CPU.** Picking a link's content out of the tables means parsing them: about 0.8 MB of JSON for a log of a few thousand records, a few milliseconds, within the free plan's 10 ms. It runs only on the first opening after a change, since the result is cached by file version. A much larger log may need the paid plan.

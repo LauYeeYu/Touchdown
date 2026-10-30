@@ -132,10 +132,14 @@ function tooMany(request: Request, now: number): boolean {
   return ++h.n > PER_MINUTE;
 }
 
-/** Flights whose tracks one request may ask for. */
-const TRACKS_AT_ONCE = 40;
+/**
+ * Flights whose tracks one request may ask for. Cloudflare's free plan lets a request make 50 calls to Google Drive,
+ * the database and the cache together. A tracks request makes at most 29 besides its downloads, with nothing kept yet
+ * and the content read again, so 15 track files leave room.
+ */
+const TRACKS_AT_ONCE = 15;
 /** Track files read from Google Drive at the same time, for one request. */
-const READS_AT_ONCE = 8;
+const READS_AT_ONCE = 6;
 
 /** A table file written by a newer version of the app than this server: the link waits until the server is updated. */
 class NewerLog extends Error {}
@@ -177,7 +181,7 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
   }
   if (!share) return NOT_FOUND();
   const flights = m[2] === "tracks" ? [...new Set((url.searchParams.get("flights") ?? "").split(",").filter(Boolean))] : [];
-  if (m[2] === "tracks" && (!flights.length || flights.length > TRACKS_AT_ONCE || !flights.every((f) => RECORD_ID.test(f)))) return json(400, { error: "Ask for 1 to 40 flights." });
+  if (m[2] === "tracks" && (!flights.length || flights.length > TRACKS_AT_ONCE || !flights.every((f) => RECORD_ID.test(f)))) return json(400, { error: `Ask for 1 to ${TRACKS_AT_ONCE} flights.` });
 
   const conn = await s.db.first<StorageRow>("SELECT * FROM storage_connections WHERE accountId = ?", [share.accountId]);
   if (!conn || conn.status === "broken" || !standardOn(s)) return NOT_AVAILABLE();
@@ -220,23 +224,28 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
       const t = allowed.get(f);
       return t && RECORD_ID.test(t) ? [{ flightId: f, trackId: t }] : [];
     });
-    const tracks: Record<string, unknown[]> = {};
+    let out = '{"tracks":{}}';
     if (wanted.length && place.tracks) {
       const names = wanted.map((w) => `name = '${w.trackId}.json'`).join(" or ");
       const files = new Map((await children(s, token, place.tracks, `(${names})`)).map((f) => [f.name, f] as const));
-      await inTurn(wanted, READS_AT_ONCE, async (w) => {
+      const found = wanted.flatMap((w) => {
         const file = files.get(`${w.trackId}.json`);
-        if (!file) return;
-        const pointsKey = `points|${file.id}|${file.version}`;
-        let points = await cache.get(pointsKey);
-        if (!points) {
-          points = JSON.stringify(rowsOf(await download(s, token, file.id), "track_points"));
-          await cache.put(pointsKey, points);
-        }
-        tracks[w.flightId] = JSON.parse(points) as unknown[];
+        return file ? [{ ...w, file }] : [];
       });
+      // The answer is kept whole, under the versions of its files: one call to the cache however many tracks it holds.
+      const key = `tracks|${found.map((f) => `${f.flightId}:${f.file.id}:${f.file.version}`).join(",")}`;
+      const kept = found.length ? await cache.get(key) : null;
+      if (kept) out = kept;
+      else if (found.length) {
+        const tracks: Record<string, unknown[]> = {};
+        await inTurn(found, READS_AT_ONCE, async (f) => {
+          tracks[f.flightId] = rowsOf(await download(s, token, f.file.id), "track_points");
+        });
+        out = JSON.stringify({ tracks });
+        await cache.put(key, out);
+      }
     }
-    return new Response(JSON.stringify({ tracks }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+    return new Response(out, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
   } catch (e) {
     // Google down, the folder gone or out of reach, or a log written by a newer version: the page says the link is
     // not available right now.

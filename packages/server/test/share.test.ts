@@ -107,6 +107,8 @@ function writeLog(drive: ReturnType<typeof fakeDrive>, store: Store) {
   for (const [trackId, rows] of byTrack) drive.write(`tracks/${trackId}.json`, stringifyTableFile({ ...points, rows }));
 }
 
+let connections = 0;
+
 async function site() {
   let t = Date.parse("2026-10-24T09:00:00Z");
   const drive = fakeDrive();
@@ -135,7 +137,8 @@ async function site() {
   expect((await call(s, owner, "POST", "/auth/setup", { setupToken: SETUP, name: "Owner", email: "owner@example.org", key: keyOf("owner password") })).status).toBe(200);
   const me = (await call(s, owner, "GET", "/auth/me")).json;
   // Standard mode connected, as Settings does through Google (tested in server.test.ts).
-  const id = "conn-1";
+  // A connection of its own, so what the server keeps in memory for one (its Drive access, its folders) starts empty.
+  const id = `conn-${++connections}`;
   const sealed = await sealToken(KEY, JSON.stringify({ refresh_token: "refresh-1" }), `${id}|${me.id}`);
   await s.db.run(
     `INSERT INTO storage_connections (id, accountId, backend, format, location, externalAccount, scope, tokenCiphertext, tokenIv, tokenKeyId, tokenFormat, status, statusAt, createdAt, lastUsedAt)
@@ -283,8 +286,38 @@ describe("opening a share link", () => {
     expect(((await call(t.s, t.owner, "GET", "/api/shares")).json.shares as { timesOpened: number }[]).every((x) => x.timesOpened === 0)).toBe(true);
     // Nothing asked for, too many at once, or not an id: refused.
     expect((await open(t.s, `/p/${log.json.id}/tracks`)).status).toBe(400);
-    expect((await open(t.s, `/p/${log.json.id}/tracks?flights=${Array.from({ length: 41 }, (_, i) => `f${i}`).join(",")}`)).status).toBe(400);
+    expect((await open(t.s, `/p/${log.json.id}/tracks?flights=${Array.from({ length: 16 }, (_, i) => `f${i}`).join(",")}`)).status).toBe(400);
     expect((await open(t.s, `/p/${log.json.id}/tracks?flights=a'b`)).status).toBe(400);
+  });
+
+  it("answers the most tracks a request may ask for within Cloudflare's 50 calls, and from the cache when asked again", async () => {
+    const t = await site();
+    const points = [0, 1, 2].map((i) => ({ t: 1773500000 + i * 60, lat: 51.47 + i * 0.1, lon: -0.45 - i * 0.5, altitudeFt: 30000, groundSpeedKt: 450, headingDeg: 280 }));
+    const flights = Array.from({ length: 15 }, (_, i) => {
+      const f = saveFlight(t.store, ref, { scheduledDate: `2026-06-${String(i + 1).padStart(2, "0")}`, flightNumber: `XY${500 + i}`, fromRaw: "EGLL", toRaw: "KJFK", registrationRaw: "G-ZZSC", typeCode: "A359" }).row;
+      attachTrack(t.store, f.id, points, { provider: "fr24_csv", attribution: "Track data: test", coverage: "partial" });
+      return f.id;
+    });
+    writeLog(t.drive, t.store);
+    const log = await make(t, { kind: "log" });
+    // Every call the server makes from here on: to Google, to the database and to the cache.
+    let calls = 0;
+    const counted = <T extends object>(o: T): T => new Proxy(o, { get: (x, k) => (typeof (x as never)[k] === "function" ? (...a: unknown[]) => (calls++, (x as never as Record<PropertyKey, (...a: unknown[]) => unknown>)[k]!(...a)) : (x as never)[k]) });
+    const fetcher = t.s.fetch!;
+    t.s.fetch = (i, init) => (calls++, fetcher(i, init));
+    t.s.db = counted(t.s.db);
+    t.s.cache = counted(t.s.cache!);
+    const ask = () => open(t.s, `/p/${log.json.id}/tracks?flights=${flights.join(",")}`);
+    const first = await ask();
+    expect(first.status).toBe(200);
+    expect(Object.keys(first.json.tracks as object).sort()).toEqual([...flights].sort());
+    // Fewer than 50 even here, where the server's tables check and the Touchdown folder's search count too.
+    expect(calls).toBeLessThan(50);
+    const downloads = t.drive.downloads.length;
+    calls = 0;
+    expect((await ask()).text).toBe(first.text);
+    expect(t.drive.downloads.length).toBe(downloads);
+    expect(calls).toBeLessThan(10);
   });
 
   it("reads a log an older version wrote without changing it, and waits on one a newer version wrote", async () => {
