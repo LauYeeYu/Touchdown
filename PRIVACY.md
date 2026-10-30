@@ -1,6 +1,6 @@
 # Touchdown privacy policy
 
-Effective 29 October 2026.
+Effective 30 October 2026.
 
 This policy covers the Touchdown website run from this repository by its owner, for people the owner invites. It says what the site keeps about you, where your log is, and what Touchdown does with data from Google.
 
@@ -67,10 +67,10 @@ Standard mode is offered only after you accept its terms, which say the same as 
 In Standard mode you can share a link to a flight, a sighting, an aircraft or your whole log. You manage them on the Shared links page.
 
 - **Who can open a link:** anyone who has its address, without signing in, until you stop it. The address is random and cannot be guessed from the record.
-- **What it shows:** that page, read-only, with the notes and photo links on it. Never a ticket number or booking reference, never an entry you deleted, and nothing else from your log. A whole-log link shows every flight, sighting and aircraft.
+- **What it shows:** that page, read-only, with the notes and photo links on it. Never a ticket number or booking reference, never an entry you deleted, and nothing else from your log. A whole-log link shows every flight, sighting and aircraft, and your name as your account has it, in the page's title ("Sam's log").
 - **How it works:** when the link is opened, the server reads the files the link needs from your Touchdown folder with the key above, picks out what the link shows and sends only that. It keeps the result in Cloudflare's cache for up to a day, under the version of the files it came from, so the next opening is quicker. Your log itself stays in your Google Drive.
 - **What is recorded:** how many times a link was opened and when last. Not who opened it.
-- **The page:** a link's page is not indexed by search engines, tells the next site nothing about where it was opened, and has no analytics. It names nobody: it does not say whose log it is. The browser of the person opening it contacts planespotters.net for aircraft photos, as yours does. It sets no cookies. While it is open, it keeps where each page was scrolled, the page's choices (such as the year shown) and the photos it found in that tab's session storage, which goes when the tab is closed.
+- **The page:** a link's page is not indexed by search engines, tells the next site nothing about where it was opened, and has no analytics. Other than a whole log's title, it names nobody: a link to a flight, a sighting or an aircraft does not say whose log it is. The browser of the person opening it contacts planespotters.net for aircraft photos, as yours does. It sets no cookies. While it is open, it keeps where each page was scrolled, the page's choices (such as the year shown) and the photos it found in that tab's session storage, which goes when the tab is closed.
 
 ## Other services your browser contacts
 

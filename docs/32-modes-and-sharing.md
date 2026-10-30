@@ -162,8 +162,9 @@ How:
 1. **Share.** The app asks the server for a link (`POST /api/shares` with the kind, the subject and, for an aircraft, an anchor record). The server makes the id and the row, and the dialog shows the address at once.
 2. **Opening it.** The server finds the row (none: not found), then lists the log's `tables/` folder with each file's version, one request. It reads only the files the kind needs ([What the server reads](#what-the-server-reads)), from its cache when it holds that version of a file, otherwise from the owner's storage with the owner's key.
 3. **Picking out.** A core function per kind takes those tables and the subject and returns the link's content: the subject's rows and the rows they point to, without deleted entries, private columns, sync columns or import bookkeeping. The result is cached under the link's id and the versions of the files it came from, so it is worked out again only after one of them changed.
-4. **Counting.** The server counts the opening (how many times, and when last). It does not record who opened it. A page load without the content (a chat app's preview) is not counted.
-5. **The viewer** shows the content ([The public page](#the-public-page)).
+4. **Naming.** For a whole log, the server adds the owner's account name ([Rules](#rules)).
+5. **Counting.** The server counts the opening (how many times, and when last). It does not record who opened it. A page load without the content (a chat app's preview) is not counted.
+6. **The viewer** shows the content ([The public page](#the-public-page)).
 
 Why this is safe when the log changes:
 - **Links never write.** Opening a link only reads, so links add nothing to what devices write and merge ([12](12-storage-and-sync.md), "Sync algorithm").
@@ -211,7 +212,7 @@ Decided (changed), built (`packages/core/src/private.ts`, schema version 7): dat
 Decided, built:
 - **Not found means not found.** An id that never existed and a stopped link give the same page.
 - **No guessing.** Ids are random, and requests to `/p/` are limited to 120 a minute per IP address, in each instance of the server.
-- **Owners are not named.** A shared page does not say whose log it is (Q-SHARE-NAME).
+- **A whole log names its owner, nothing else does.** Decided (changed): a whole-log link's page is titled with the owner's account name, "Alex's log", the name whole and as written, in any script (isolated, so a right-to-left name stays before "'s log"). The server adds it to the content when it is sent, not to what it caches, so a new name shows at the next opening. The share dialog says so before the link is made. A flight, sighting or aircraft link does not say whose log it is (Q-SHARE-NAME).
 
 #### Requests
 
