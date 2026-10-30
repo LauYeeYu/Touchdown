@@ -59,14 +59,17 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 8: Standard mode and sharing
 
-- Deliver: Standard mode ([32](32-modes-and-sharing.md)): connecting storage through the Worker (Google Drive first), encrypted keys in D1, the terms with recorded acceptance, mode changes in Settings, share links of the four kinds with the three audiences, the public share page, Settings "Sharing and access".
+- Deliver: Standard mode ([32](32-modes-and-sharing.md)): connecting storage through the Worker (Google Drive first), encrypted keys in D1, the terms with recorded acceptance, mode changes in Settings, share links of the four kinds (flight, sighting, aircraft, the whole log), public and lasting until stopped, the share page `/p/<id>`, the Shared links page and the Share buttons.
 - Needs: phase 3 (storage and sync) and the sign-in and server of phase 4.
 - Built so far: basic Standard, without share links: terms version 1, connecting Google Drive through the server with the key encrypted (`storage_connections`, `consents`), short-lived access for sync, new devices following Standard, leaving it revokes and deletes the key. Does not depend on phases 5–7.
+- Next, in order (Proposed): (1) the server's `shares` table, `/api/shares` and `/p/<id>` with reading the file from Drive, the cache and the counts; (2) the core functions that build each kind's file, with tests; (3) in the app, the Share dialog on flight and aircraft pages, writing files after sync, and the Shared links page; (4) the viewer for flights and aircraft; (5) sightings and the whole log; (6) terms version 2, `PRIVACY.md` and `TERMS.md`.
 - Done when:
   - Leaving Standard stops every link at once, revokes the key with the provider and leaves no row for the user on the server (scripted test).
-  - A link opens only for its audience; any other request, a guessed id included, gets the same "not found".
+  - A stopped link and a guessed id get the same "not found".
+  - No share file holds a ticket number or booking reference (tests over every kind).
+  - A device that has not synced never writes an older file over a newer one, a deleted record's link says it is no longer shared, and an aircraft's link moves with a merge (tests).
   - No token appears in logs, responses or the browser (test with a canary token).
-  - The public page serves nothing but public links' content.
+  - The share page serves nothing but one link's content.
 
 ## Phase 9: The command line on a par with the web app
 

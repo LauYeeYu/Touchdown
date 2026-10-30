@@ -178,7 +178,7 @@ Touchdown/
     edit-<date>-<time>.json   changes to records in the log, from `touchdown edit` (also delete-, aircraft-,
                               issues-, undo-, families-, settings-; 34), the same way
   shares/
-    <shareId>.json         what a shared link shows, private fields removed (Standard mode, 32)
+    <shareId>.json.gz      what a shared link shows, private fields removed (Standard mode, 32)
   backups/
     <YYYY-MM-DD>/...       daily copy of manifest + tables, last 14 kept
 ```

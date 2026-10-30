@@ -113,9 +113,10 @@ Worker "touchdown" (or the same server on any machine, 33)
                           (single-page-app fallback for unknown paths)
      /api/*               lookup service (13)
      /api/storage/*       Standard mode: connecting storage, short-lived tokens (32)
-     /api/shares/*        Standard mode: links and their content (32)
-     /shared/<id>         a link for invited users, inside the app
-     /p/<id>              public share page; the only path with user content outside the sign-in
+     /api/shares/*        Standard mode: making, changing and stopping links (32)
+     /p/<id>              a shared link's page and content, without a session; the only path with
+                          user content outside the sign-in
+     /share-files/*       the share page's own code and styles, without a session; no user content
      D1                   accounts, sessions, invitations (33); Standard-mode storage keys
                           and link settings (32)
      /api/storage/*       Standard mode: terms, connecting Google Drive, short-lived access (32)

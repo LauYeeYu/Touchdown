@@ -15,7 +15,7 @@ React + Vite, TypeScript everywhere (web app, shared core package, companion CLI
 ## Users
 
 - Primary: the owner, an aviation enthusiast who both flies as a passenger and photographs aircraft (spotting). Job: keep one accurate record of every aircraft flown on and every aircraft photographed, and explore statistics about both.
-- Secondary: a few friends with the same hobby, each using their own account and storage. Each user's data is private; there are no social or sharing features.
+- Secondary: a few friends with the same hobby, each using their own account and storage. Each user's data is private. The only sharing is the links a user makes to a flight, a sighting, an aircraft or the whole log; there are no other social features.
 
 ## Product Purpose
 

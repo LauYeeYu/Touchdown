@@ -110,11 +110,11 @@ Decided (U5): the terms are shown when the user chooses Standard, at first run o
 >
 > **Files we can open.** With the key, Touchdown's server can open the files Touchdown created in your storage (with Google Drive, the Touchdown folder, not your other files). That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
 >
-> **Use of the key.** The server opens only the file behind a link you made, when someone you allowed opens that link, and gives your own browser short-lived access for its sync. It does not read, copy, analyse or keep your log for anything else.
+> **Use of the key.** The server opens only the file behind a link you made, when someone opens that link, and gives your own browser short-lived access for its sync. It does not read, copy, analyse or keep your log for anything else.
 >
 > **Protection of the key.** The key is encrypted, and the encryption key is kept apart from the database. Both are held with Cloudflare, which hosts this site. Requests are not logged with their contents. No ads, no selling, and nothing passed on to anyone unless the law requires it. Page views are counted with Cloudflare Web Analytics, as the privacy policy describes. Ticket numbers and booking references never go into a shared link.
 >
-> **People who see your links.** Only the people you chose for a link, and only its content. A public link can be opened by anyone who has it.
+> **People who see your links.** Anyone who has one of your links can open it, without signing in, until you stop sharing it. They see only that link's page, with the notes and photo links on it.
 >
 > **Stopping.** Switch to Private or Local in Settings at any time. Your links stop at once, the key is revoked with your storage provider and deleted from our server, and everything the server kept about you is deleted. You can also remove Touchdown's access in your Google account's settings.
 >
@@ -124,59 +124,133 @@ Decided (U5): the terms are shown when the user chooses Standard, at first run o
 
 ### Sharing
 
-Decided (U6, Q-SHARE-SCOPE): a link can show one flight or sighting, an aircraft, the statistics for a period, or the whole log.
+Decided (U6, Q-SHARE-SCOPE, changed): a link can show one flight or sighting, an aircraft, or the whole log. There is no link for statistics alone: the whole log's link includes Statistics.
 
-Decided (U6, Q-SHARE-AUDIENCE): the sharer chooses who can open each link.
+Decided (Q-SHARE-AUDIENCE, changed): for now every link is public. Anyone who has the address can open it, without signing in. A link lasts until its owner stops it: there are no end dates. Choosing who can open a link (chosen invited users, every invited user) may come later ([Later](#later)).
 
-| Audience | Who can open it | Address |
-|----------|-----------------|---------|
-| Chosen people | Invited users the sharer names by email | `/shared/<id>` |
-| Everyone invited | Every user who passes the sign-in | `/shared/<id>` |
-| Anyone with the link | Anyone; no sign-in | `/p/<id>` |
+Decided: links are a Standard-mode feature. The server reads a link's file from the owner's storage with the owner's key, so a link works while the owner is offline. Private and Local show no Share button.
 
-A chosen person must also be on the sign-in allowlist. When the sharer names an email, the app says that person also needs an invitation from the site's owner (it cannot read the allowlist).
+#### What a link shows
 
-Each link has (Proposed):
-- what it shows;
-- its audience;
-- whether notes and photo links are included (both off by default);
-- an optional end date;
-- when it was made, when it was last opened, and how often.
+Proposed. A link shows one page, read-only, and its file holds only what that page needs.
 
-Private fields are never included.
+| Kind | Made from | The page | The file holds |
+|------|-----------|----------|----------------|
+| `flight` | A flight's page | The flight's page: the sentence, the livery band, the map with the recorded track, the times, the seat and details, the aircraft card with the aircraft's facts | The flight, its track, the aircraft's facts. Not the user's other flights on that aircraft. |
+| `sighting` | The sighting's page (its edit page today) | A sighting page made for the viewer (the app has none): the aircraft's photo, registration, type, airline, place, day, statuses and livery | The sighting, its statuses, the aircraft's facts |
+| `aircraft` | An aircraft's page | The aircraft's page: the sentence, the livery band, the facts, the timeline of the user's flights and sightings of it | The aircraft, its registrations, the user's flights on it and sightings of it, without tracks |
+| `log` | Shared links ("Share your whole log") | Home, Flights, Spotting, Aircraft and Statistics, read-only, with the period control, and the flight and aircraft pages they open, all inside the link | Every flight, sighting and aircraft, with tracks simplified for the map |
 
-How a link is served (Proposed):
+Never in a file:
+- **Private fields:** ticket numbers and booking references ([The file](#the-file)).
+- **Everything that is not the log's records:** settings, imports, issues, checks, the inbox.
 
-1. **The owner's app writes the content.** Each link's content goes into a file in the `shares` area of the owner's storage ([12](12-storage-and-sync.md)): the rows the link shows, in the JSON tables layout, private fields removed. The app rewrites the file during sync when those rows change. So a link shows the log as of the owner's last sync.
-2. **The Worker checks the request.** When someone opens the link, the Worker checks that the link exists, has not been stopped or passed its end date, and that the viewer is allowed. A chosen-people link needs the signed-in email to be on its list; an everyone-invited link needs any valid sign-in; a public link needs nothing.
-3. **The Worker returns the file.** It reads that one file from the owner's storage with the owner's key and returns it without parsing it. A short cache (about a minute) is purged when the link stops.
-4. **The viewer shows it.** The page renders the content read-only, using the same core code as the app.
+Notes and photo links are shared with their records: the page shows them as the app does. There is no switch to leave them out.
 
-Rules (Proposed):
-- **Not found means not found.** A link that does not exist, has stopped, or is not open to this viewer gives the same "not found", so its existence is not revealed.
-- **Unguessable ids.** Link ids are 128 random bits (base64url), not made from the record.
-- **Changing audience changes the address.** Moving a link between invited and public changes it between `/shared/` and `/p/`; the old address answers "not found".
+#### One link per thing
+
+Proposed. A flight, sighting or aircraft has at most one link, and there is one link for the whole log. Share on a page that has a link shows that link. A new address for the same thing means stopping the link and sharing again.
+
+#### Address
+
+Proposed: `https://<site>/p/<id>`, where the id is 128 random bits in base64url (22 characters), not made from the record. Pages inside a whole-log link follow a `#`, with the app's own addresses ([31](31-ui.md), "Addresses"): `/p/<id>#/flights/2025-03-14T0812-AMS-MAD`. The part after `#` never reaches the server.
+
+#### Making a link and keeping it current
+
+Proposed:
+
+1. **Share.** The app asks the server for a link (`POST /api/shares` with the kind and the subject). The server makes the id and the row.
+2. **The file first.** The app builds the link's file from the browser's copy of the log, writes it to the owner's storage and sends the server where it is and its hash. Only then does the dialog show the address, so a new link never opens empty. If writing fails, the dialog says so and the row is removed.
+3. **Kept current.** After a sync that leaves nothing waiting, so that the browser's copy is the storage's, the app builds each link's file again, a few seconds later and when the browser is idle. When the hash differs from the one on the server, it writes the file and sends the new hash. A device whose copy is behind writes nothing until it has synced, so it never puts back older content. Any of the owner's devices can do this, and they build the same file from the same log. A link shows the log as of the owner's last sync.
+4. **Opening it.** The Worker finds the row (none: not found), then looks in its cache under the id and the hash, and otherwise reads the file from the owner's storage with the owner's key. It returns the file as it is, without parsing it, and counts the opening: how many times, and when last. It does not record who opened it. A stopped link fails at the first step, so nothing needs purging, and a changed file has a new hash, so the cache never serves old content.
+5. **The viewer** shows it ([The public page](#the-public-page)).
+
+When things change:
+- **The record is deleted,** on any device or from the CLI. The link stays, and its page says "This flight is no longer shared." The Shared links page says the flight was deleted, with Stop sharing. If the record comes back (an undone import), the link shows it again.
+- **The aircraft is merged** into another, as happens when its serial number becomes known. The next device to build the link's file finds the aircraft gone, reads the link's last file from the storage and moves the link to the aircraft that now holds the flights and sightings it showed.
+- **The key is broken** ([Connecting storage](#connecting-storage), "Broken key"). The link says "This link is not available right now." until the owner connects again.
+- **The owner leaves Standard.** Every link stops, as in [Changing mode](#changing-mode). Coming back to Standard does not bring them back.
+
+#### The file
+
+Proposed:
+- **Format.** JSON in the JSON tables layout ([12](12-storage-and-sync.md)) with a header: `format` (`touchdown-share`), `version`, `kind`, `madeAt`. Compressed with gzip, written as `shares/<id>.json.gz`, and returned with `Content-Encoding: gzip`, so a whole log stays small and the Worker does no work on it.
+- **Fields.** Every field the schema marks private is removed (today the ticket number and the booking reference), so a private field added later is never shared by mistake.
+- **Reference data.** The airports, airlines and aircraft types the file names, with the owner's own corrections and aircraft families applied, so its pages read as the owner's do.
+- **Tracks.** A flight link has the flight's recorded track. A whole-log link has every track simplified for the map, and the app keeps each simplified track until its track changes, so building the file again stays quick.
+- **Built by core.** One function per kind in the core package, so the CLI can build the same files later, with tests that no private field reaches any kind's file.
+
+#### Rules
+
+Proposed:
+- **Not found means not found.** An id that never existed and a stopped link give the same page.
+- **No guessing.** Ids are random, and requests to `/p/` are rate-limited per IP address.
+- **Owners are not named.** A shared page does not say whose log it is (Q-SHARE-NAME).
+
+#### Requests
+
+Proposed. The `/api/shares` requests need a browser's session (not the command line's) and a working Standard connection.
+
+| Request | Does |
+|---------|------|
+| `GET /api/shares` | The account's links. |
+| `POST /api/shares` | Make a link: kind and subject. Gives the id and the address, or the existing link for that thing. |
+| `PATCH /api/shares/<id>` | Record where the file is and its hash, or move an aircraft's link to the aircraft it was merged into. |
+| `DELETE /api/shares/<id>` | Stop one link. The app then removes its file. |
+| `DELETE /api/shares` | Stop every link. |
+| `GET /p/<id>` | The viewer page, without a session. |
+| `GET /p/<id>/content` | The link's file, without a session. |
 
 ### The public page
 
-Decided (U3, changed): `/p/<id>` is the only route with user content outside the sign-in; the others are the sign-in pages, the privacy policy and the terms ([33](33-accounts-and-sign-in.md)). It serves the content of one public link and nothing else.
+Decided (U3): `/p/<id>` is the only route with user content outside the sign-in; the others are the sign-in pages, the privacy policy and the terms ([33](33-accounts-and-sign-in.md)). It serves the content of one link and nothing else.
 
-- **Not the app.** It is a small separate viewer page with its own build entry. The app itself stays behind the sign-in.
-- **Two requests only.** It answers `GET /p/<id>` and `GET /p/<id>/content`, and offers no other API.
-- **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and the same strict Content Security Policy as the app.
-- **Rate limit.** Requests are limited per IP address.
-- **The gate.** The server lets `/p/*` through without a session; every other address still needs one ([33](33-accounts-and-sign-in.md)).
+Proposed:
+- **Not the app.** A separate viewer page with its own build (`share.html`, `vite.share.config.ts`), as the sign-in pages have. Its files are served from `/share-files/`, which holds code, styles, fonts and the world map, no user content, and opens without a session as `/signin-files/` does.
+- **Two requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the file. No other API.
+- **Read-only.** No editing, no menus, no links into the app. The pages reuse the core view code and the app's map, livery band, times and chart components. Photos come from planespotters.net, as in the app.
+- **Footer.** "Shared from Touchdown", with the privacy policy.
+- **No analytics.** The share page carries no page-view counting, so people who open a link are not counted by anyone but the link's own count.
+- **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and the app's strict Content Security Policy. Link previews in chat apps get a plain title ("Shared from Touchdown") and nothing from the log (Q-SHARE-PREVIEW).
+- **The gate.** The server lets `/p/*` and `/share-files/*` through without a session; every other address still needs one ([33](33-accounts-and-sign-in.md)).
 
-### Settings: Sharing and access
+### Managing links
 
-Shown in Standard (Proposed):
+Proposed. Each user manages their links on a **Shared links** page (`/shares`), in Standard mode, opened from the More menu and from every Share dialog.
 
+- **Sentence.** "You have 4 shared links. Anyone with a link can open it."
+- **Rows.** One per link, newest first: what it shows, named from the browser's copy of the log ("Flight ZZ778 LHR → JFK, 14 Oct 2025", "Aircraft G-ZZLV", "Whole log"), when it was made, and how often and when it was last opened.
+- **State.** A row says so when its record was deleted, when its file waits for this browser to sync, or when the storage needs connecting again.
+- **Actions.** Copy link, Open (a new tab) and Stop sharing, with a confirmation. "Stop all links" at the end.
+- **Whole log.** "Share your whole log" at the top, when there is no such link.
+- **Empty.** "No shared links. Share a flight, a sighting or an aircraft from its page, or your whole log from here."
+- **Other modes.** In Private and Local the page says links need Standard mode, with "Change in Settings".
+
+The Share button sits on the flight, sighting and aircraft pages, in Standard mode only, and reads "Shared" when the thing has a link. It opens a dialog:
+
+| | The dialog |
+|---|---|
+| No link yet | "Share this flight". "Anyone with the link can see this flight, notes and photo links included. Ticket numbers and booking references are never shared." "Create link". |
+| Making it | "Making the link…" while the file is written. |
+| A link | The address with Copy (and, on phones, the system's share sheet), how often it was opened, "Stop sharing", and "All shared links". |
+| Terms not accepted | Standard users who accepted version 1 accept version 2, which covers links, before their first link ([Terms](#terms)). |
+
+The CLI cannot manage links yet: its session reaches only `/auth/me`, sign-out and Standard's storage access ([33](33-accounts-and-sign-in.md), "The command line").
+
+### Settings in Standard mode
+
+Proposed:
 - **Data mode:** the current mode, and "Change".
-- **Links:** one row per link, with what it shows, its audience, when it was made, and when and how often it was opened. Each row has Copy link, Change audience or end date, and Stop sharing. "Stop all links" ends them all.
+- **Shared links:** how many, and "Manage links", which opens Shared links.
 - **Storage connection:** the backend, the account, connected since, and status, with Reconnect. Disconnecting means leaving Standard.
 - **Terms:** the version accepted and when, with a way to read them again.
 
-Pages that can be shared (a flight, a sighting, an aircraft, Statistics, and the Flights list for the whole log) get a Share button in Standard. Other modes show no Share button.
+### Later
+
+Not in the first version (Proposed):
+- **Audiences.** Links for chosen invited users or for every invited user, at `/shared/<id>` inside the app, and a `share_people` table.
+- **End dates.**
+- **Managing links from the CLI.**
 
 ## What the server stores
 
@@ -186,13 +260,12 @@ Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Sta
 |-------|---------|
 | `storage_connections` | `id`, `accountId`, `backend`, `format`, `location`, `externalAccount`, `scope`, `tokenCiphertext`, `tokenIv`, `tokenKeyId`, `tokenFormat`, `status` (`ok`, `broken`), `statusAt`, `createdAt`, `lastUsedAt` |
 | `consents` | `accountId`, `termsVersion`, `acceptedAt` |
-| `shares` | `id`, `accountId`, `kind` (`flight`, `sighting`, `aircraft`, `period`, `log`), `subject` (the record's address or the period), `audience` (`people`, `invited`, `public`), `includeNotes`, `includePhotoLinks`, `fileName`, `createdAt`, `updatedAt`, `endsAt`, `timesOpened`, `lastOpenedAt` |
-| `share_people` | `shareId`, `email` |
+| `shares` | `id`, `accountId`, `kind` (`flight`, `sighting`, `aircraft`, `log`), `subject` (the record's id; empty for `log`), `fileRef` (where the file is in the storage, such as a Google Drive file id), `contentHash`, `contentAt`, `createdAt`, `updatedAt`, `timesOpened`, `lastOpenedAt` |
 | `meta` | `schemaVersion` |
 
-Not stored on the server: the log or any part of it (share files stay in the user's storage), access tokens, who opened a link, and request contents.
+Not stored on the server: the log or any part of it (share files stay in the user's storage, and a link's row names its record only by id), access tokens, who opened a link, and request contents.
 
-Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data) and `consents`. `shares` and `share_people` come with share links.
+Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data) and `consents`. `shares` comes with share links.
 
 Protection (Proposed):
 - **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.
@@ -219,5 +292,5 @@ As in [12](12-storage-and-sync.md):
 ## Costs and limits
 
 - **D1.** The free plan's limits are far above what a few users' accounts and links need. Recheck them before launch.
-- **Each link opening.** One read from the owner's storage, plus a token refresh when the Worker has no access token in memory. Access tokens are kept only in the Worker's memory, never stored.
+- **Each link opening.** One row read and one count written in D1, and a read from the owner's storage only when the Worker's cache does not hold that version of the file, plus a token refresh when the Worker has no access token in memory. Access tokens are kept only in the Worker's memory, never stored.
 - **CPU.** The Worker passes the file through without parsing it, so a link fits the free plan's CPU time.

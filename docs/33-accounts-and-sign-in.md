@@ -10,7 +10,7 @@ How people get into the hosted site (U3): the website signs them in itself, and 
 | Sign in with an email address and a password, or with Google. An account can have both. | Decided |
 | Only invited people get an account. The owner makes a single-use link and sends it themselves (chat, email); the site sends no email. | Decided |
 | The server runs on Cloudflare (a Worker with a D1 database) or on any machine (a Node server with a SQLite file), from one codebase. | Decided |
-| Someone who is not signed in sees only the sign-in pages, the privacy policy and the terms, and later the public share page `/p/<id>` ([32](32-modes-and-sharing.md)). The app's own files need a session too. | Decided |
+| Someone who is not signed in sees only the sign-in pages, the privacy policy and the terms, and later a shared link's page `/p/<id>` with its own files under `/share-files/` ([32](32-modes-and-sharing.md), "The public page"). The app's own files need a session too. | Decided |
 | Passwords are hashed in the browser before they are sent (see Passwords). | Decided |
 | Built: the server (`packages/server`), the sign-in pages (`apps/web/signin.html`, `src/signin/`), Settings → Account and People, the Cloudflare Worker and the Node server. | Built |
 
