@@ -139,7 +139,7 @@ Decided, built. A link shows one page, read-only, and the viewer receives only w
 | `flight` | A flight's page | The flight's page: the sentence, the livery band, the map with the recorded track, the times, the seat and details, the aircraft card with the aircraft's facts | The flight, its track and photo links, the aircraft's facts. Not the user's other flights on that aircraft. |
 | `sighting` | The sighting's page (its edit page today) | A sighting page made for the viewer (the app has none): the aircraft's photo, registration, type, airline, place, day, statuses and livery | The sighting, its statuses, tags and photo links, the aircraft's facts |
 | `aircraft` | An aircraft's page | The aircraft's page: the sentence, the livery band, the facts, the timeline of the user's flights and sightings of it | The aircraft, its registration and operator periods, the user's flights on it and sightings of it, without tracks |
-| `log` | Shared links ("Share your whole log") | Home, Flights, Spotting, Aircraft and Statistics, read-only, with the period control, and the flight and aircraft pages they open, all inside the link | Every flight, sighting and aircraft and their child rows. A flight's track is fetched when its page is opened; the overview maps draw great circles. |
+| `log` | Home's share icon, or Shared links ("Share your whole log") | Home, Flights, Spotting, Aircraft and Statistics, read-only, with the period control, and the flight and aircraft pages they open, all inside the link | Every flight, sighting and aircraft and their child rows. A flight's track is fetched when its page is opened; the overview maps draw great circles. |
 
 Notes and photo links are shared with their records: the page shows them as the app does. There is no switch to leave them out. The viewer never receives private data, deleted entries, the rows' sync columns (`rev`, `updatedBy`, `versionVector`, …) or import bookkeeping (`sourceBatchId`, `sourceRow`), and nothing that is not the log's records: settings, imports, issues, checks, history, the inbox.
 
@@ -249,7 +249,7 @@ Decided, built (`apps/web/src/pages/SharedLinks.tsx`, `components/ShareDialog.ts
 - **Empty.** "No shared links. Share a flight, a sighting or an aircraft from its page, or your whole log from here."
 - **Other modes.** In Private and Local the page says links need Standard mode, with "Change in Settings".
 
-The Share button sits on the flight, sighting and aircraft pages, in Standard mode only, and reads "Shared" when the thing has a link. It opens a dialog:
+The Share button sits on the flight, sighting and aircraft pages, in Standard mode only, and reads "Shared" when the thing has a link. The whole log's is an icon at the end of Home's period control, a link icon once the log is shared. Both open a dialog:
 
 | | The dialog |
 |---|---|
