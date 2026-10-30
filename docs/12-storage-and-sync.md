@@ -249,8 +249,74 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 - Migration steps are defined once in core (add column, rename column, add table, transform values). Each backend has a runner: JSON tables rewrite the files; SQL backends run generated DDL plus data updates.
 - Version 7 (built, `movePrivateFiles` in `packages/storage/src/jsonTables.ts`): tables marked private live in `private/`. Opening the log moves a file such a table still has in `tables/` (left by an older version): its rows are written into the file in `private/` as a push would write them, so a newer row there is never replaced, and only then is the old file removed. A device that stops half way finds the old file at its next opening and finishes. The flights' private values are moved by an edit in the first sync (step 3 of "Sync algorithm"; [32](32-modes-and-sharing.md), "Private data").
 - Built so far: adding columns (`MIGRATIONS` and `upgradeTableFile` in core). Table files and backups from an older version are upgraded as they are read, and written in the current version from then on; opening a JSON tables folder moves its manifest to the current version.
-- Before migrating, the app writes a backup. Rows' previous forms go to `record_history` with reason `migration` when values are transformed.
+- Decided: no backup is written before a migration, and moved values leave no `migration` history. A migration is made safe instead: it follows the rules under "Rules for a new version", and its tests run two devices through it at once and a device opening it on an old copy.
 - If the log, or a table file in it, was written by a newer version than the app understands, the app stops syncing and asks for a reload (built): a bar under the masthead, "A newer version of Touchdown has changed your log … Reload to update the app", with a Reload button, and "Reload to update" as the save state. The app is not read-only: edits made meanwhile are kept in the browser and sent after the reload, which loads the new version. Such a file is never written over. Table files of an older version are upgraded as they are read, so a newer app reads what an older one wrote. The command line refuses a log newer than itself ("git pull, then npm install"), and `review` refuses an older one until the web app has opened it once.
+
+### Old copies and upgrades
+
+Decided, built. A browser can hold a copy of the log that is weeks old (a computer or a phone not used for a while) and open a newer version of the app with it. What then happens:
+
+| Case | What happens |
+|---|---|
+| The new version moves values to a new place (versions 6 and 7) | The copy reads the log first. Values are moved after the pull, on the newest rows (step 3 of "Sync algorithm"), so none of the copy's old values come back. On a log another device has moved already, nothing is left to move and nothing is sent. |
+| The copy is older than the stored rows | Each stored version was made on top of the copy's, or replaced it: the stored versions are taken. Nothing is listed or sent. |
+| The copy's rows were last written before version vectors (version 5) | The vectors cannot tell. A version this device did not make, with no edits of its own waiting, is taken as replaced (step 2, "An old copy"). |
+| The copy has edits it has not sent | They merge field by field against the version they started from, which is queued with them. Only a field also changed elsewhere is listed. |
+| A tab of an older version is still open when the log moves on | It stops syncing at the first newer file and asks for a reload. Its edits wait in the browser and are sent after the reload. It does not repeat what it did when it opened. |
+| Two devices upgrade at once | Each moves the same values the same way (new rows take ids made from the row's version), and sync takes one of the identical versions without sending it again. Tested with the devices' reads and writes interleaved (`packages/storage/test/private.test.ts`). |
+| A share link's server reading the log | It never writes or upgrades the log. Files from an older version are brought up to date in memory as they are read. A file from a newer version makes the link "not available right now" until the server is updated, which comes with the same deploy as the app ([32](32-modes-and-sharing.md), "Reading the log live"). |
+| The command line | `review` refuses a log at another version. It reads the log, settles, and only then sends (`packages/cli/src/write.ts`). A copy of the CLI that was not updated refuses a newer log. |
+
+What went wrong before this was decided, at version 7: the app moved ticket numbers when it opened, on the copy it held, before the sync engine was noting edits. A browser whose copy was older than other devices' latest edits rewrote every flight with a ticket number from that copy. Sync could not tell what the rewrite started from, so it listed every field that differed and kept the rewrite, the later version. Older values replaced newer ones made on other devices (an operating airline, a livery name), and the newer ones were listed as "the other change". Another browser then sent a new version of nearly every row although nothing had changed. Values replaced this way are in the listed conflicts: choosing the other change puts them back.
+
+### Every version, checked
+
+| Version | What changed | How older data is brought up | Checked |
+|---|---|---|---|
+| 2 | `basedOn` on every table | Added as empty when a file is read. | Fine. |
+| 3 | Settings `dataMode`, `storageAccount` | Added as empty. | Fine. |
+| 4 | The agent check's settings and `agent_rules` removed | Columns dropped when read. Rows of a table the schema no longer has are removed from the browser. | Fine. |
+| 5 | `versionVector`, `sync_conflicts` | Added as empty. A missing table file is an empty table. From here on an older app stops at a newer file. | Rows without vectors made an old copy list false conflicts. Fixed ("An old copy"). |
+| 6 | `sighting_phases`: statuses moved out of a sighting's `phase` and notes | Statuses not moved yet are read where they are (`phaseIndex`, `phasesOf`). The move makes the same rows on every device, and the same status added twice is folded into one by `reconcile`. | Was moved when the app opened. Fixed: moved after the pull. |
+| 7 | `flight_private`, and private tables in `private/` | Files moved on opening, as a push writes (a newer row is never replaced, the old file removed last). An older app's file written back to `tables/` is moved again. Ticket numbers moved by an edit after the pull. A link never shows them while they wait (`shareRow` drops private columns). | Was moved when the app opened. Fixed: moved after the pull. |
+
+The other stores with versions:
+
+| Store | Versions | Checked |
+|---|---|---|
+| Browser database (IndexedDB) | 1 rows, 2 one record per track, 3 the outbox | Upgrades run in one transaction and are checked against the original rows. A tab on the older version is told, and reloads. Fine. |
+| Server database | 1 to 4: what a Google sign-in is for, the session's kind, share links | Additive only: tables made when missing, a column added after checking it is missing. An older Worker still running during a deploy ignores what it does not know. Two instances adding one column at once fail one request, and the next request finds the column. Fine. |
+| Inbox files | 1 to 3 | Versions 1, 2 and 3 are read. A newer file is refused with "an inbox file from another version of Touchdown". Fine. |
+| Backups | As the log | Read through the same upgrades. A Local browser moves values when it opens, a synced one after its first sync. A backup from a newer version is refused. Restored into a synced log, the backup's rows are old copies: the storage's versions are kept and only entries it lacks are added. |
+| The sync queue | Each row's starting version kept since version 5 | An edit left unsent since before then has no starting version: its row merges with every differing field listed. |
+| The command line's unsent rows (`data/private/cli-sync.json`) | — | Values an older version left are moved before anything is sent. |
+
+Known limit:
+
+- Proposed: edits made in Local mode are not queued, because nothing syncs. Connecting the same log's storage later merges them without the version they started from: every field that differs is listed and the later value is kept. Keeping the queue in Local mode too would let them merge like any other edit.
+
+### Rules for a new version
+
+Decided:
+
+1. Columns are added through `MIGRATIONS` in core. A column is never renamed or retyped in place: add the new one and move the values.
+2. Values that move are moved by a function called from `settleOlder` (core `reconcile.ts`). It changes nothing when there is nothing to move, makes the same rows on every device (ids made from the row's version, as `settlePhases` does), and runs after the pull (the sync engine's `settle`), never when a synced copy opens. A Local copy runs it when it opens.
+3. Nothing changes rows before the sync engine is noting edits.
+4. A value that arrives with a record and is then moved (a sighting's `phase`, a flight's `ticketNumber`) keeps its column, so older imports, inbox files and backups still read, and readers count a value not moved yet.
+5. A table that moves between folders is moved as a push writes: a newer row in the new place is never replaced, and the old file is removed last.
+6. The server's database only gains tables and columns: an older Worker may run beside the new one during a deploy.
+7. Tests: two devices upgrading at once with their reads and writes interleaved, and a device opening the upgrade on a copy older than other devices' edits, where nothing comes back, nothing is listed and nothing is sent.
+
+### Common issues
+
+| What the user sees | Why | What to do |
+|---|---|---|
+| "Changed on two devices" items right after opening a browser not used for a while, the newer value shown as "the other change" | An app from before the version 7 fix rewrote rows when it opened | Choose the other change on the Issues page. |
+| Every row sent again although nothing changed | Same cause; merges that came out as the stored version made new versions | Fixed, nothing to do. |
+| "Reload to update" in the masthead | The log, or a file in it, was written by a newer version | Reload. Edits made meanwhile are kept and sent after the reload. |
+| `review` refuses the log | The log is at another schema version than the CLI | A newer log: `git pull`, then `npm install`. An older one: open the web app once. |
+| "Changed on two devices" after switching from Local back to syncing the same log | Edits made in Local mode are not queued (a known limit above) | Choose on the Issues page. |
+| A restored backup's older values do not come back in a synced mode | The storage's newer versions replace the restored copies | Restore in Local mode, or edit the entries again. |
 
 ## File adapters
 
