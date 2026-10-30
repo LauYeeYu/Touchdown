@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
+import { flightDay, liveryNames } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
 import { airlineLabel, dateOnly, plural, typeName } from "../lib/format.ts";
@@ -34,6 +35,17 @@ export function AircraftList() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const views = useMemo(() => aircraftViews(store).filter((v) => v.flights.length || v.sightings.length), [store, version]);
+  // Each aircraft's special liveries, in the order its records first name them.
+  const liveries = useMemo(
+    () =>
+      new Map(
+        views.map((v) => {
+          const named = [...v.flights.map((f) => ({ day: flightDay(f), name: f.specialLivery })), ...v.sightings.map((s) => ({ day: s.seenOn, name: s.specialLivery }))];
+          return [v.airframe.id, liveryNames(named.sort((a, b) => (a.day ?? "").localeCompare(b.day ?? "")).map((r) => r.name))];
+        }),
+      ),
+    [views],
+  );
   const flown = views.filter((v) => v.flights.length).length;
   const both = views.filter((v) => v.flights.length && v.sightings.length).length;
   const provisional = views.filter((v) => v.airframe.provisional).length;
@@ -46,7 +58,7 @@ export function AircraftList() {
         : filter === "both"
           ? v.flights.length > 0 && v.sightings.length > 0
           : filter === "livery"
-            ? v.flights.some((f) => f.specialLivery?.trim()) || v.sightings.some((s) => s.specialLivery?.trim())
+            ? !!liveries.get(v.airframe.id)?.length
             : true,
     )
     .filter((v) => !needle || [v.registration, v.airframe.typeCode, typeName(v.airframe.typeCode, ref), airlineLabel(v.operatorId, ref), v.airframe.msn].join("|").toLowerCase().replace(/[\s-]+/g, "").includes(needle))
@@ -109,7 +121,18 @@ export function AircraftList() {
           <li key={v.airframe.id}>
             <Link className="row row--aircraft" to="/aircraft/$id" params={{ id: v.airframe.id }}>
               <span className="row__route-wrap">
-                <span className="row__route">{v.registration ?? "No registration"}</span>
+                <span className="row__route">
+                  {v.registration ?? "No registration"}
+                  {liveries.get(v.airframe.id)?.map((name) => (
+                    <span key={name} className="pill pill--paint" title={`${name} livery`}>
+                      <Icon name="paint-roller" />
+                      <span>
+                        <span className="visually-hidden">Special livery: </span>
+                        {name}
+                      </span>
+                    </span>
+                  ))}
+                </span>
                 {/* Phones hide the type column, so the type code moves under the registration. */}
                 {v.airframe.typeCode && <span className="row__cities row__type-phone">{v.airframe.typeCode}</span>}
               </span>

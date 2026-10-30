@@ -3598,6 +3598,25 @@ a.wordmark {
   color: var(--spotted-ink);
 }
 
+/* A special livery after an aircraft's registration in the Aircraft list: neutral, as the livery band is, since the
+   aircraft may have been flown or photographed in it, and marked with the band's paint roller. A long name is cut. */
+.pill--paint {
+  gap: 4px;
+  max-width: 100%;
+}
+
+.pill--paint .icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+.pill--paint > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ---------- spotting and aircraft rows ---------- */
 
 .row--sighting {
@@ -4593,7 +4612,12 @@ a.wordmark {
   }
 
   .row--aircraft {
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  /* A long livery name is cut inside the column instead of widening the row. */
+  .row--aircraft .row__route-wrap {
+    min-width: 0;
   }
 
   .row--aircraft .row__cell {
