@@ -2486,7 +2486,8 @@ a.btn--primary {
 
 /* Standard mode's terms: a modal dialog, so they cannot be scrolled past. The text scrolls; the buttons stay in view. */
 .terms-dialog {
-  width: min(42rem, calc(100vw - 32px));
+  /* As wide as a comfortable line of its text, which fills it. */
+  width: min(36rem, calc(100vw - 32px));
   max-height: min(88vh, 46rem);
   padding: 0;
   border: 1px solid var(--rule-strong);
@@ -2521,7 +2522,6 @@ a.btn--primary {
 }
 
 .terms-dialog p {
-  max-width: 62ch;
   margin: 0 0 10px;
   font-size: 0.9375rem;
   line-height: 1.55;
