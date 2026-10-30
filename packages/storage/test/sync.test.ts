@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { commitImport, matchCandidates, parseSource, reconcile, RefIndex, saveFlight, SCHEMA_VERSION, Store, TABLES, updateSettings, type TableName } from "@touchdown/core";
+import { commitImport, matchCandidates, parseSource, reconcile, RefIndex, rowVersion, saveFlight, SCHEMA_VERSION, Store, TABLES, updateSettings, type TableName } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
 import { JsonTablesBackend, MemoryFolder, MemorySyncState, mergeText, SchemaTooNewError, SyncEngine } from "../src/index.ts";
-import { conflicts, device, FLIGHTS, race, settle, snapshot, testClock, type Device } from "./helpers.ts";
+import { conflicts, device, FLIGHTS, race, settle, snapshot, testClock, versions, type Device } from "./helpers.ts";
 
 describe("sync between devices", () => {
   it("sends a log to empty storage and brings it to another device", async () => {
@@ -175,6 +175,29 @@ describe("sync between devices", () => {
     await settle([a, b]);
     expect(b.store.get("flights", f.id)?.seat).toBe("2B");
     expect(snapshot(a.store)).toEqual(snapshot(b.store));
+  });
+
+  it("sends nothing when two devices make the same edit side by side", async () => {
+    const folder = new MemoryFolder();
+    const clock = testClock();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100", scheduledDate: "2026-02-01" });
+    await settle([a, b]);
+    clock.tick();
+    a.store.update("flights", f.id, { seat: "3A" });
+    b.store.update("flights", f.id, { seat: "3A" });
+    await a.engine.sync();
+    const stored = versions(folder);
+    const report = await b.engine.sync();
+    // b takes a's version as it is: it holds b's edit already.
+    expect(report.sent).toBe(0);
+    expect(versions(folder)).toEqual(stored);
+    expect(rowVersion(b.store.get("flights", f.id)!)).toBe(rowVersion(a.store.get("flights", f.id)!));
+    await settle([a, b]);
+    expect(versions(folder)).toEqual(stored);
+    expect(conflicts(a.store)).toEqual([]);
+    expect(a.engine.waiting + b.engine.waiting).toBe(0);
   });
 
   it("lists a setting changed on two devices", async () => {

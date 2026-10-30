@@ -5,10 +5,11 @@
 // it back. When the stored and local versions of a row differ and one was made on top of the other (version vectors),
 // that one is kept. Versions made side by side are merged field by field (merge.ts): a new version on top of both,
 // with each field edited on both devices kept as the later version has it and the other value listed in
-// sync_conflicts for the user to choose on the Issues page.
+// sync_conflicts for the user to choose on the Issues page. A merge that comes out as the stored version is that
+// version: nothing new is made or sent.
 
 import { conflictMatters, rowKey, toUtcIso, ulidFrom, type Change, type Row, type Store, type TableName } from "@touchdown/core";
-import { dataFields, mergeRow, type FieldConflict } from "./merge.ts";
+import { dataFields, mergeRow, sameValue, type FieldConflict } from "./merge.ts";
 import type { Backend, Cursor, PullResult, PushItem, StoredRow } from "./types.ts";
 import { isBasedOn, isNewer, versionOf } from "./version.ts";
 
@@ -79,6 +80,10 @@ const TRACKS_AT_ONCE = 64;
 const TRACKS_PER_SAVE = 16;
 
 const queueKey = (table: TableName, key: string) => `${table}|${key}`;
+
+/** Whether merged values are the stored row's: every column, and whether it is deleted. */
+const sameRow = (table: TableName, values: Record<string, unknown>, stored: StoredRow) =>
+  dataFields(table).every((f) => sameValue(values[f], stored[f])) && !!values.deleted === !!stored.deleted;
 const trackOf = (pointKey: string) => pointKey.slice(0, pointKey.lastIndexOf("|"));
 
 // Tables whose versions made side by side are not merged field by field or listed: history is only ever added to,
@@ -265,8 +270,7 @@ export class SyncEngine {
         keepMine();
         continue;
       }
-      // Made side by side. What is kept becomes a new version on top of both, even when the two hold the same values,
-      // so each device's versions of a row follow one another and its next edit counts on from its last.
+      // Made side by side. What is kept becomes a new version on top of both, unless it is the stored version.
       const mineLater = isNewer(mine, theirs);
       let merged: { values: Record<string, unknown>; conflicts: FieldConflict[] };
       if (QUIET.has(table)) {
@@ -279,11 +283,18 @@ export class SyncEngine {
         const base = queued?.base && (versionOf(queued.base) === theirVersion || isBasedOn(theirs, queued.base)) ? queued.base : null;
         merged = mergeRow(table, base, mine, theirs, mineLater);
       }
+      report.conflicts += merged.conflicts.length;
+      for (const conflict of merged.conflicts) found.push({ table, key, conflict, mine, theirs });
+      // Nothing of this device's version is left that the stored one lacks (the same edit made on both, or a value
+      // listed and kept as stored): the stored version is taken, and nothing is sent. Its next edit counts on from the
+      // stored version, which holds an edit this device's lacked, so it still follows every version it replaces.
+      if (sameRow(table, merged.values, theirs)) {
+        takeTheirs();
+        continue;
+      }
       // This device's edits now start from the stored version.
       this.queue.set(k, { table, key, replaces: [...new Set([...(queued?.replaces ?? []), theirVersion])], base: theirs });
       this.store.merged(table, key, merged.values, theirs);
-      report.conflicts += merged.conflicts.length;
-      for (const conflict of merged.conflicts) found.push({ table, key, conflict, mine, theirs });
     }
     // Rows only here: queued ones are sent anyway; any other went missing from the storage and is sent again.
     for (const mine of this.store.allWithDeleted(table)) {

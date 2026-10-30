@@ -27,6 +27,9 @@ export async function device(files: FileAdapter, id: string, now: () => number) 
   return { id, store, engine };
 }
 
+/** Each file's version, to tell whether a device wrote anything. */
+export const versions = (folder: { files: Map<string, { version: string }> }) => Object.fromEntries([...folder.files].map(([path, f]) => [path, f.version]));
+
 /** Every row of every table, tombstones included, in a fixed order. */
 export function snapshot(store: Store) {
   return Object.fromEntries(
