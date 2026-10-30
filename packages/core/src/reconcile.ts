@@ -263,6 +263,20 @@ function settledConflicts(store: Store, now: number) {
 }
 
 /**
+ * Move what a log or a backup from an older version keeps where it no longer belongs: statuses in a sighting's phase or
+ * notes to its phases (phases.ts), a flight's ticket number and booking reference to its private row (private.ts).
+ * Changes nothing when there is nothing to move. A copy that syncs does it once the storage's rows are in (the sync
+ * engine's `settle`), not when it opens: a copy days old would make versions beside the ones other devices made since,
+ * and bring back the values they replaced.
+ */
+export function settleOlder(store: Store) {
+  store.batch(() => {
+    settlePhases(store);
+    settlePrivate(store);
+  });
+}
+
+/**
  * Settle what two devices made side by side, then link records to aircraft again (which merges aircraft made twice).
  * Run after rows arrive from sync; it changes nothing when there is nothing to settle.
  */
@@ -271,8 +285,7 @@ export function reconcile(store: Store, ref: RefIndex, now: number = Date.now())
     const report: ReconcileReport = { merged: 0, renamed: 0, restored: 0 };
     // Statuses and private values still in records (a log or backup from an older version) first, so they settle
     // with the rest.
-    settlePhases(store);
-    settlePrivate(store);
+    settleOlder(store);
     sameFileImportedTwice(store, report);
     operatorsAddedTwice(store, now, report);
     familiesChosenTwice(store, now, report);

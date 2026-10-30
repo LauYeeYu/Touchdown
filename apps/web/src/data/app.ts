@@ -12,8 +12,7 @@ import {
   conflictsToShow,
   phasesOf,
   setPhases,
-  settlePhases,
-  settlePrivate,
+  settleOlder,
   reconcile,
   resolveConflict,
   operatorFromOverride,
@@ -258,10 +257,11 @@ export class AppData {
     const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)), tabs, (meta[0]?.value as Connection | undefined) ?? null, meta[1]?.value ?? null, outbox);
     // Read with the rows, so it says whether these rows hold the storage's tables.
     app.tablesAtOpen = hasTables((meta[2]?.value as SyncState | undefined) ?? null);
-    // Statuses a log from an older version keeps in a sighting's phase or notes become its phases (core phases.ts), and
-    // a flight's ticket number and booking reference go to its private row (core private.ts).
-    settlePhases(store);
-    settlePrivate(store);
+    // Statuses a log from an older version keeps in a sighting's phase or notes become its phases, and a flight's ticket
+    // number and booking reference go to its private row (core settleOlder). A copy that syncs does it in each sync,
+    // once the storage's rows are in: done here on a copy days old, its versions would stand beside the ones other
+    // devices made since and bring back the values those replaced.
+    if (!app.connection || app.connection.mode === "local") settleOlder(store);
     return app;
   }
 

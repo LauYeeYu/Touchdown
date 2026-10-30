@@ -71,6 +71,12 @@ export interface SyncOptions {
   full?: boolean;
   /** Called once the tables' rows are merged and saved, before tracks are read. */
   tablesIn?: () => void;
+  /**
+   * Changes the app makes by itself to rows an older version left (core `settleOlder`): made once the stored rows are
+   * merged, so they start from the newest version and merge with other devices' edits like any edit, and sent in this
+   * round.
+   */
+  settle?: () => void;
   progress?: (p: SyncProgress) => void;
 }
 
@@ -198,6 +204,7 @@ export class SyncEngine {
     });
     for (const [path, version] of Object.entries(pulled.cursor)) if (!path.startsWith("tracks/")) this.cursor[path] = version;
     await this.save();
+    opts.settle?.();
     opts.tablesIn?.();
 
     const items: PushItem[] = [];

@@ -18,13 +18,22 @@ export function testClock() {
 
 export type Device = Awaited<ReturnType<typeof device>>;
 
-export async function device(files: FileAdapter, id: string, now: () => number) {
+export async function device(files: FileAdapter, id: string, now: () => number, state = new MemorySyncState()) {
   const store = new Store({ deviceId: id, now });
   const backend = new JsonTablesBackend(files, id);
   await backend.open();
-  const engine = new SyncEngine(store, backend, new MemorySyncState(), now);
+  const engine = new SyncEngine(store, backend, state, now);
   await engine.start();
-  return { id, store, engine };
+  return { id, store, engine, state };
+}
+
+/** A device opened again, as the browser opens the app: the copy and the sync state it kept, a new engine. */
+export async function reopen(files: FileAdapter, d: Device, now: () => number): Promise<Device> {
+  d.engine.stop();
+  const again = await device(files, d.id, now, d.state);
+  // Loaded as the app loads its copy: not an edit.
+  for (const t of Object.keys(TABLES) as TableName[]) again.store.load(t, d.store.allWithDeleted(t) as never);
+  return again;
 }
 
 /** Each file's version, to tell whether a device wrote anything. */

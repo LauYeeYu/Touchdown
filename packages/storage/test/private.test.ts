@@ -3,10 +3,10 @@
 // same time and with their reads and writes interleaved, move both, and end with the same log and nothing lost.
 
 import { describe, expect, it } from "vitest";
-import { reconcile, RefIndex, settlePrivate, stringifyTableFile, Store, toTableFile, FILE_TABLES, type TableName } from "@touchdown/core";
+import { reconcile, RefIndex, settleOlder, settlePrivate, stringifyTableFile, Store, toTableFile, FILE_TABLES, type TableName } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
 import { MemoryFolder } from "../src/index.ts";
-import { conflicts, device, random, snapshot, testClock, type Device } from "./helpers.ts";
+import { conflicts, device, random, reopen, snapshot, testClock, versions, type Device } from "./helpers.ts";
 
 const ref = new RefIndex(loadRefTables());
 const encoder = new TextEncoder();
@@ -104,6 +104,40 @@ describe("a log from before private data had its own place", () => {
     for (const f of flights.slice(1)) expect(a.store.get("flight_private", f.id)?.ticketNumber).toBeTruthy();
     // Both devices moved the first flight's ticket on their own: the later value is kept and the other listed.
     expect(conflicts(a.store).every((c) => c.tableName === "flight_private" && c.field === "ticketNumber")).toBe(true);
+  });
+
+  it("brings back nothing and sends nothing when a device opens the update on a copy from before other devices' edits", async () => {
+    const { folder, flights } = await oldFolder();
+    const clock = testClock();
+    // Device b reads the log as version 6 left it, then is closed for a while.
+    const b = await device(folder, "dev_b", clock.now);
+    await b.engine.sync();
+    // Meanwhile device a updates, moves the private values and edits a flight and its notes.
+    const a = await device(folder, "dev_a", clock.now);
+    const settle = (d: Device) => ({ settle: () => settleOlder(d.store) });
+    await a.engine.sync(settle(a));
+    reconcile(a.store, ref);
+    clock.tick(60);
+    a.store.update("flights", flights[0]!.id, { seat: "14C", notes: "Window seat." });
+    a.store.update("flights", flights[1]!.id, { seat: "2A" });
+    for (let i = 0; i < 3; i++) await a.engine.sync(settle(a));
+    const stored = versions(folder);
+
+    // Device b opens the update on the copy it kept: it reads the log first and settles after, as the app does.
+    clock.tick(3600);
+    const b2 = await reopen(folder, b, clock.now);
+    for (let i = 0; i < 3; i++) {
+      await b2.engine.sync(settle(b2));
+      reconcile(b2.store, ref);
+    }
+    expect(b2.store.get("flights", flights[0]!.id)).toMatchObject({ seat: "14C", notes: "Window seat.", ticketNumber: null });
+    expect(b2.store.get("flights", flights[1]!.id)).toMatchObject({ seat: "2A" });
+    for (const [i, f] of flights.entries()) expect(b2.store.get("flight_private", f.id)).toMatchObject({ ticketNumber: TICKETS[i] });
+    expect(conflicts(b2.store)).toEqual([]);
+    expect(b2.engine.waiting).toBe(0);
+    // Nothing was written: the log already had all of it.
+    expect(versions(folder)).toEqual(stored);
+    expect(snapshot(b2.store)).toEqual(snapshot(a.store));
   });
 
   it("never replaces a newer row in private/ with the one left in tables/", async () => {

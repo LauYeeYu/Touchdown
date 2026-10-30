@@ -3,7 +3,7 @@
 // returns, and every few minutes. Only the tab that writes the browser's copy syncs (tabs.ts); the others show its
 // sync and ask it to sync (TabSync).
 
-import { FILE_TABLES, ulid, type Store } from "@touchdown/core";
+import { FILE_TABLES, settleOlder, ulid, type Store } from "@touchdown/core";
 import { GoogleDrive, JsonTablesBackend, SchemaTooNewError, SignInNeeded, SyncEngine, tablePath, type FileAdapter, type QueuedRow, type SyncState, type SyncStateStore } from "@touchdown/storage";
 import type { StorageKind, SyncedConnection } from "./connection.ts";
 import { db } from "./db.ts";
@@ -305,6 +305,7 @@ export class SyncController implements SyncHandle {
     try {
       const report = await this.engine.sync({
         full,
+        settle: () => settleOlder(this.store),
         tablesIn: () => this.set({ tables: true }),
         progress: (p) => this.set({ tracks: p.tracksDone < p.tracksTotal ? { done: p.tracksDone, total: p.tracksTotal } : null }),
       });
