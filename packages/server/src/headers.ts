@@ -25,6 +25,25 @@ const CSP = [
   "frame-ancestors 'none'",
 ].join("; ");
 
+/**
+ * A share link's page (docs/32, "The public page"): its own files and planespotters.net's photos, nothing else. No
+ * Google, and no Cloudflare Web Analytics even if Cloudflare added its script: people who open a link are not counted.
+ */
+export const SHARE_CSP = [
+  "default-src 'self'",
+  `script-src 'self' '${THEME_SCRIPT_HASH}'`,
+  "style-src 'self'",
+  "img-src 'self' data: blob: https://*.plnspttrs.net",
+  "font-src 'self'",
+  "connect-src 'self' https://api.planespotters.net",
+  "frame-src 'none'",
+  "worker-src 'none'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join("; ");
+
 export const SECURITY_HEADERS: Record<string, string> = {
   "Content-Security-Policy": CSP,
   "Strict-Transport-Security": "max-age=31536000",
@@ -41,10 +60,17 @@ export const SECURITY_HEADERS: Record<string, string> = {
 export function withHeaders(res: Response, path: string): Response {
   const out = new Response(res.body, res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) out.headers.set(k, v);
+  // A shared link's page tells nobody where it was opened from (docs/32, "The public page").
+  const shared = path === "/p" || path.startsWith("/p/") || path.startsWith("/share-files/");
+  if (shared) {
+    out.headers.set("Referrer-Policy", "no-referrer");
+    out.headers.set("Content-Security-Policy", SHARE_CSP);
+  }
   if ((out.headers.get("Content-Type") ?? "").startsWith("text/html")) {
-    // The page is checked with the server on every visit, so a new deployment is picked up at once.
-    out.headers.set("Cache-Control", "no-cache");
-  } else if (path.startsWith("/assets/") && res.ok) {
+    // The page is checked with the server on every visit, so a new deployment is picked up at once. A shared page is
+    // also left as it is, so Cloudflare adds no page-view counting to it.
+    out.headers.set("Cache-Control", shared ? "no-cache, no-transform" : "no-cache");
+  } else if ((path.startsWith("/assets/") || path.startsWith("/share-files/assets/")) && res.ok) {
     // Built files carry a content hash in their names.
     out.headers.set("Cache-Control", "public, max-age=31536000, immutable");
   }

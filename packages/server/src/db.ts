@@ -17,7 +17,7 @@ export interface Database {
   batch(statements: Statement[]): Promise<void>;
 }
 
-export const SERVER_SCHEMA_VERSION = 3;
+export const SERVER_SCHEMA_VERSION = 4;
 
 /** The server's tables. Removing a row never relies on cascades: the code deletes dependent rows itself. */
 const TABLES = [
@@ -115,6 +115,19 @@ const TABLES = [
     acceptedAt TEXT NOT NULL,
     PRIMARY KEY (accountId, termsVersion)
   )`,
+  // Share links (docs/32, "What the server stores"): a link names its record only by id, never anything from the log.
+  // One link per thing: the whole log's has an empty subject.
+  `CREATE TABLE IF NOT EXISTS shares (
+    id TEXT PRIMARY KEY,
+    accountId TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('flight', 'sighting', 'aircraft', 'log')),
+    subject TEXT NOT NULL,
+    anchor TEXT,
+    createdAt TEXT NOT NULL,
+    timesOpened INTEGER NOT NULL DEFAULT 0,
+    lastOpenedAt TEXT
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS shares_thing ON shares (accountId, kind, subject)`,
 ];
 
 /** Changes to tables made by an older version, by the version that brings them. New tables need none. */

@@ -6,6 +6,7 @@ import { b64url, hashToken, newSalt, openToken, passwordHash, randomToken, sameS
 import { siteId, type Database } from "./db.ts";
 import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
 import { withHeaders } from "./headers.ts";
+import { shareApi, sharePage, type ShareCache } from "./share.ts";
 
 export interface ServerConfig {
   /** The site's addresses, such as https://touchdown.example.org; the first is used in links. */
@@ -20,8 +21,11 @@ export interface ServerConfig {
   tokenKey?: string;
 }
 
-/** The version of Standard mode's terms (docs/32, "Terms"); the app shows its text. */
-export const TERMS_VERSION = 1;
+/**
+ * The version of Standard mode's terms (docs/32, "Terms"); the app shows its text. Version 2 covers share links: a
+ * link is made only once it is accepted.
+ */
+export const TERMS_VERSION = 2;
 
 export interface Assets {
   fetch(request: Request): Promise<Response>;
@@ -34,10 +38,12 @@ export interface Server {
   now?: () => number;
   /** For Google's token endpoint; tests pass their own. */
   fetch?: typeof fetch;
+  /** Where a share link's content is kept under the versions of the files it came from (docs/32); memory if not given. */
+  cache?: ShareCache;
 }
 
 /** A time as stored: ISO 8601 in UTC, to the second (2026-10-24T09:15:00Z). Compares correctly as text. */
-const toUtcIso = (ms: number) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+export const toUtcIso = (ms: number) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
 const newId = () => crypto.randomUUID();
 
 const DAY = 86_400_000;
@@ -53,6 +59,8 @@ const CLI_CODE_MINUTES = 5;
 const CLI_ALLOWED = new Set(["GET /auth/me", "POST /auth/signout", "GET /api/storage", "POST /api/storage/token"]);
 /** The sign-in pages' own build; everything in it may be fetched without a session. */
 export const SIGNIN_FILES = "/signin-files/";
+/** The share page's own build (docs/32, "The public page"): code, styles and reference data, no user content. */
+export const SHARE_FILES = "/share-files/";
 const PUBLIC_PAGES = /^\/(signin|setup|join\/[^/]+|reset\/[^/]+)\/?$/;
 /** The privacy policy and the terms: static pages built from PRIVACY.md and TERMS.md, open to anyone. */
 const POLICY_PAGES = /^\/(privacy|terms)\/?$/;
@@ -79,7 +87,7 @@ interface Session {
 
 // No TypeScript-only syntax in this package (such as constructor parameter properties): the Node server runs it
 // with Node's own type stripping.
-class Fail extends Error {
+export class Fail extends Error {
   readonly status: number;
   readonly headers: Record<string, string>;
   constructor(status: number, message: string, headers: Record<string, string> = {}) {
@@ -91,7 +99,7 @@ class Fail extends Error {
 
 // ---------- small helpers ----------
 
-function json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
+export function json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...headers } });
 }
 
@@ -110,7 +118,7 @@ function bearerOf(request: Request): string | null {
 }
 
 /** Changes from a browser must come from the site's own pages. A bearer token is never sent by a browser on its own. */
-function checkOrigin(request: Request, s: Server) {
+export function checkOrigin(request: Request, s: Server) {
   if (request.method === "GET" || request.method === "HEAD" || bearerOf(request)) return;
   const origin = request.headers.get("Origin");
   if (!origin || !s.config.origins.includes(origin)) throw new Fail(403, "Not allowed from here.");
@@ -137,7 +145,7 @@ function plainPath(path: string): boolean {
 }
 
 /** The site's own address for this request: the one it came to, when it is one of the site's. */
-function siteOrigin(s: Server, url: URL): string {
+export function siteOrigin(s: Server, url: URL): string {
   return s.config.origins.includes(url.origin) ? url.origin : (s.config.origins[0] ?? url.origin);
 }
 
@@ -168,7 +176,7 @@ function token(v: unknown): string {
   return v;
 }
 
-async function body(request: Request): Promise<Record<string, unknown>> {
+export async function body(request: Request): Promise<Record<string, unknown>> {
   const text = await request.text();
   if (text.length > 10_000) throw new Fail(413, "Too large.");
   try {
@@ -199,6 +207,9 @@ export async function handle(request: Request, s: Server): Promise<Response> {
   try {
     const site = await siteId(s.db, randomToken, toUtcIso(now));
     if (path.startsWith("/auth/")) return withHeaders(await auth(request, s, url, now, site), path);
+    // A share link's page and content, and the share page's own files: open without a session (docs/32).
+    if (path === "/p" || path.startsWith("/p/")) return withHeaders(await sharePage(request, s, url, now, SHARE_FILES), path);
+    if (path.startsWith(SHARE_FILES)) return withHeaders(await s.assets.fetch(request), path);
 
     const session = await currentSession(request, s, now);
     const done = (res: Response) => {
@@ -221,6 +232,10 @@ export async function handle(request: Request, s: Server): Promise<Response> {
       return withHeaders(json(401, { error: "Sign in first." }), path);
     }
     if (path.startsWith("/api/storage")) return done(await storage(request, s, url, now, session));
+    if (path === "/api/shares" || path.startsWith("/api/shares/")) {
+      checkCli(session, request.method, path);
+      return done(await shareApi(request, s, url, now, session.account.id));
+    }
     if (path.startsWith("/api/")) return done(json(404, { error: "Not found." }));
     return done(await s.assets.fetch(request));
   } catch (e) {
@@ -673,6 +688,7 @@ async function removeAccount(s: Server, id: string) {
     { sql: "DELETE FROM invites WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM storage_connections WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM consents WHERE accountId = ?", params: [id] },
+    { sql: "DELETE FROM shares WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM accounts WHERE id = ?", params: [id] },
   ]);
 }
@@ -708,15 +724,17 @@ async function openInvite(s: Server, t: string, purpose: "join" | "reset" | null
 
 // ---------- Standard mode: the storage key (docs/32, "Connecting storage") ----------
 
-const standardOn = (s: Server) => !!(s.config.google && s.config.tokenKey);
+export const standardOn = (s: Server) => !!(s.config.google && s.config.tokenKey);
 
 function withParam(path: string, key: string, value: string): string {
   return `${path}${path.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(value)}`;
 }
 
-interface StorageRow {
+export interface StorageRow {
   id: string;
   accountId: string;
+  /** The log's folder in the storage (a Google Drive folder id), told by the app when it makes a link. */
+  location: string | null;
   externalAccount: string | null;
   tokenCiphertext: string;
   tokenIv: string;
@@ -726,18 +744,19 @@ interface StorageRow {
 async function saveStorageKey(s: Server, accountId: string, externalAccount: string, scope: string, refreshToken: string, nowIso: string) {
   // One connection per account: connecting again replaces the key in the same row. The old key is not revoked,
   // because with Google that would also end the new one (it belongs to the same grant).
-  const existing = await s.db.first<{ id: string }>("SELECT id FROM storage_connections WHERE accountId = ?", [accountId]);
+  const existing = await s.db.first<{ id: string; location: string | null }>("SELECT id, location FROM storage_connections WHERE accountId = ?", [accountId]);
   const id = existing?.id ?? newId();
   const sealed = await sealToken(s.config.tokenKey!, JSON.stringify({ refresh_token: refreshToken }), `${id}|${accountId}`);
   await s.db.run(
     `INSERT OR REPLACE INTO storage_connections
       (id, accountId, backend, format, location, externalAccount, scope, tokenCiphertext, tokenIv, tokenKeyId, tokenFormat, status, statusAt, createdAt, lastUsedAt)
-     VALUES (?, ?, 'gdrive', 'json_tables', NULL, ?, ?, ?, ?, '1', 1, 'ok', ?, ?, NULL)`,
-    [id, accountId, externalAccount, scope, sealed.ciphertext, sealed.iv, nowIso, nowIso],
+     VALUES (?, ?, 'gdrive', 'json_tables', ?, ?, ?, ?, ?, '1', 1, 'ok', ?, ?, NULL)`,
+    // Connecting again keeps the log's folder, so the links work again at once.
+    [id, accountId, existing?.location ?? null, externalAccount, scope, sealed.ciphertext, sealed.iv, nowIso, nowIso],
   );
 }
 
-async function storageKey(s: Server, row: StorageRow): Promise<string> {
+export async function storageKey(s: Server, row: StorageRow): Promise<string> {
   const plain = await openToken(s.config.tokenKey!, { ciphertext: row.tokenCiphertext, iv: row.tokenIv }, `${row.id}|${row.accountId}`);
   return (JSON.parse(plain) as { refresh_token: string }).refresh_token;
 }
@@ -755,6 +774,8 @@ async function dropStorageKey(s: Server, accountId: string) {
   await s.db.batch([
     { sql: "DELETE FROM storage_connections WHERE accountId = ?", params: [accountId] },
     { sql: "DELETE FROM consents WHERE accountId = ?", params: [accountId] },
+    // Leaving Standard stops every link at once (docs/32, "Changing mode").
+    { sql: "DELETE FROM shares WHERE accountId = ?", params: [accountId] },
   ]);
 }
 

@@ -370,7 +370,7 @@ describe("the command line", () => {
     expect((await asCli(s, token, "GET", "/auth/people")).status).toBe(403);
     expect((await asCli(s, token, "POST", "/auth/name", { name: "Someone" })).status).toBe(403);
     expect((await asCli(s, token, "POST", "/auth/cli/approve", { challenge: challengeOf(VERIFIER) })).status).toBe(403);
-    expect((await asCli(s, token, "POST", "/api/storage/terms", { version: 1 })).status).toBe(403);
+    expect((await asCli(s, token, "POST", "/api/storage/terms", { version: 2 })).status).toBe(403);
     expect((await asCli(s, token, "GET", "/settings")).status).toBe(401);
     // A command line's token is no cookie, and a browser's cookie token is no bearer token.
     expect((await call(s, { cookie: `td_session=${token}` }, "GET", "/auth/me")).status).toBe(401);
@@ -464,10 +464,10 @@ describe("Standard mode's storage key", () => {
   it("needs the terms first, then keeps the key encrypted and gives the browser short-lived access", async () => {
     const { s, owner, google, connect } = await standardSite();
     expect((await call(s, owner, "GET", "/auth/site")).json.standard).toBe(true);
-    expect((await call(s, owner, "GET", "/api/storage")).json).toMatchObject({ available: true, termsVersion: 1, accepted: false, connected: false });
+    expect((await call(s, owner, "GET", "/api/storage")).json).toMatchObject({ available: true, termsVersion: 2, accepted: false, connected: false });
     expect((await connect()).location).toBe("/settings?storage-error=terms");
     expect((await call(s, owner, "POST", "/api/storage/terms", { version: 99 })).status).toBe(409);
-    expect((await call(s, owner, "POST", "/api/storage/terms", { version: 1 })).status).toBe(200);
+    expect((await call(s, owner, "POST", "/api/storage/terms", { version: 2 })).status).toBe(200);
     expect((await connect()).location).toBe("/settings?storage=connected");
     expect((await call(s, owner, "GET", "/api/storage")).json).toMatchObject({ accepted: true, connected: true, account: "owner@gmail.example", status: "ok" });
     // The Google account connected for Standard also signs in from now on.
@@ -494,14 +494,14 @@ describe("Standard mode's storage key", () => {
     const { s, owner, connect } = await standardSite();
     const me = (await call(s, owner, "GET", "/auth/me")).json;
     await s.db.run("INSERT INTO google_identities (accountId, sub, email, linkedAt) VALUES (?, ?, ?, ?)", [String(me.id), "g-other", "other@gmail.example", "2026-10-24T09:00:00Z"]);
-    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    await call(s, owner, "POST", "/api/storage/terms", { version: 2 });
     expect((await connect()).location).toBe("/settings?storage=connected");
     expect((await call(s, owner, "GET", "/auth/me")).json.google).toBe("other@gmail.example");
   });
 
   it("marks a key Google no longer accepts, and leaving revokes and deletes it", async () => {
     const { s, owner, google, connect } = await standardSite();
-    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    await call(s, owner, "POST", "/api/storage/terms", { version: 2 });
     await connect();
     google.broken = true;
     expect((await call(s, owner, "POST", "/api/storage/token")).status).toBe(409);
@@ -521,7 +521,7 @@ describe("Standard mode's storage key", () => {
 
   it("says Google did not answer when its token endpoint fails for another reason", async () => {
     const { s, owner, connect } = await standardSite();
-    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    await call(s, owner, "POST", "/api/storage/terms", { version: 2 });
     await connect();
     const realFetch = s.fetch!;
     s.fetch = async (input, init) => (new URLSearchParams(String(init?.body)).get("grant_type") === "refresh_token" ? Response.json({ error: "invalid_client" }, { status: 401 }) : realFetch(input, init));
@@ -532,7 +532,7 @@ describe("Standard mode's storage key", () => {
 
   it("returns to the page it came from when Drive is unticked, no key is given, or the user cancels", async () => {
     const { s, owner, google, connect } = await standardSite();
-    await call(s, owner, "POST", "/api/storage/terms", { version: 1 });
+    await call(s, owner, "POST", "/api/storage/terms", { version: 2 });
     google.scope = "openid email";
     expect((await connect()).location).toBe("/settings?storage-error=no-drive");
     google.scope = "openid email https://www.googleapis.com/auth/drive.file";
@@ -547,7 +547,7 @@ describe("Standard mode's storage key", () => {
     const t = await invite(s, owner);
     const sam: Jar = { cookie: null };
     await call(s, sam, "POST", "/auth/join", { invite: t, name: "Sam", email: "sam@example.org", key: keyOf("sam") });
-    await call(s, sam, "POST", "/api/storage/terms", { version: 1 });
+    await call(s, sam, "POST", "/api/storage/terms", { version: 2 });
     const begin = await call(s, sam, "GET", "/api/storage/connect?next=%2F");
     const to = new URL(begin.res.headers.get("Location")!);
     google.claims = { iss: "https://accounts.google.com", aud: CLIENT, sub: "g-sam", email: "sam@gmail.example", email_verified: true, exp: Date.parse("2026-10-24T10:00:00Z") / 1000, nonce: to.searchParams.get("nonce") };
@@ -573,7 +573,8 @@ describe("Standard mode's storage key", () => {
     ]);
     const s: Server = { db, config: { origins: [SITE] }, assets: { fetch: async () => new Response("") } };
     expect((await call(s, { cookie: null }, "GET", "/auth/site")).json.siteId).toBe("old-site");
-    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 3 });
+    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 4 });
+    await expect(db.first("SELECT subject FROM shares LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT purpose FROM google_logins LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT kind FROM sessions LIMIT 1")).resolves.toBeNull();
   });
