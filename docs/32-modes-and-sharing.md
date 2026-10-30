@@ -54,7 +54,7 @@ From Settings, at any time (Proposed):
 |-----------|--------------|
 | Local → Private | The user connects storage; the browser's log is written to it; sync starts. |
 | Local or Private → Standard | The terms; the server connects the storage (a local folder must first move to online storage); in Private, the same storage is kept. |
-| Standard → Private | Every link stops at once. The key is revoked with the storage provider and deleted. The user's server rows and the share files are deleted. The log in the storage is untouched; the browser connects to it on its own again. |
+| Standard → Private | Every link stops at once. The key is revoked with the storage provider and deleted. The user's server rows are deleted. The log in the storage is untouched; the browser connects to it on its own again. |
 | Standard or Private → Local | The browser makes sure it holds the whole log, then disconnects the storage (and, from Standard, does everything in the row above). The log in the storage is left as it is; the app offers to delete it. The Local warning is shown first. |
 
 ## Recording the backend
@@ -132,20 +132,16 @@ Decided: links are a Standard-mode feature. The server reads a link's file from 
 
 #### What a link shows
 
-Proposed. A link shows one page, read-only, and its file holds only what that page needs.
+Proposed. A link shows one page, read-only, and the viewer receives only what that page needs.
 
-| Kind | Made from | The page | The file holds |
-|------|-----------|----------|----------------|
-| `flight` | A flight's page | The flight's page: the sentence, the livery band, the map with the recorded track, the times, the seat and details, the aircraft card with the aircraft's facts | The flight, its track, the aircraft's facts. Not the user's other flights on that aircraft. |
-| `sighting` | The sighting's page (its edit page today) | A sighting page made for the viewer (the app has none): the aircraft's photo, registration, type, airline, place, day, statuses and livery | The sighting, its statuses, the aircraft's facts |
-| `aircraft` | An aircraft's page | The aircraft's page: the sentence, the livery band, the facts, the timeline of the user's flights and sightings of it | The aircraft, its registrations, the user's flights on it and sightings of it, without tracks |
-| `log` | Shared links ("Share your whole log") | Home, Flights, Spotting, Aircraft and Statistics, read-only, with the period control, and the flight and aircraft pages they open, all inside the link | Every flight, sighting and aircraft, with tracks simplified for the map |
+| Kind | Made from | The page | The viewer receives |
+|------|-----------|----------|---------------------|
+| `flight` | A flight's page | The flight's page: the sentence, the livery band, the map with the recorded track, the times, the seat and details, the aircraft card with the aircraft's facts | The flight, its track and photo links, the aircraft's facts. Not the user's other flights on that aircraft. |
+| `sighting` | The sighting's page (its edit page today) | A sighting page made for the viewer (the app has none): the aircraft's photo, registration, type, airline, place, day, statuses and livery | The sighting, its statuses, tags and photo links, the aircraft's facts |
+| `aircraft` | An aircraft's page | The aircraft's page: the sentence, the livery band, the facts, the timeline of the user's flights and sightings of it | The aircraft, its registration and operator periods, the user's flights on it and sightings of it, without tracks |
+| `log` | Shared links ("Share your whole log") | Home, Flights, Spotting, Aircraft and Statistics, read-only, with the period control, and the flight and aircraft pages they open, all inside the link | Every flight, sighting and aircraft and their child rows. A flight's track is fetched when its page is opened; the overview maps draw great circles. |
 
-Never in a file:
-- **Private fields:** ticket numbers and booking references ([The file](#the-file)).
-- **Everything that is not the log's records:** settings, imports, issues, checks, the inbox.
-
-Notes and photo links are shared with their records: the page shows them as the app does. There is no switch to leave them out.
+Notes and photo links are shared with their records: the page shows them as the app does. There is no switch to leave them out. The viewer never receives private data, deleted entries, the rows' sync columns (`rev`, `updatedBy`, `versionVector`, …) or import bookkeeping (`sourceBatchId`, `sourceRow`), and nothing that is not the log's records: settings, imports, issues, checks, history, the inbox.
 
 #### One link per thing
 
@@ -155,30 +151,57 @@ Proposed. A flight, sighting or aircraft has at most one link, and there is one 
 
 Proposed: `https://<site>/p/<id>`, where the id is 128 random bits in base64url (22 characters), not made from the record. Pages inside a whole-log link follow a `#`, with the app's own addresses ([31](31-ui.md), "Addresses"): `/p/<id>#/flights/2025-03-14T0812-AMS-MAD`. The part after `#` never reaches the server.
 
-#### Making a link and keeping it current
+#### Reading the log live
+
+Decided (changed): a link shows the log as it is in the owner's storage now. There are no share files: when a link is opened, the server reads the log's own table files, picks out what the link shows and sends only that. An edit shows on the shared page as soon as it reaches the storage, from any device or the CLI.
 
 Proposed:
 
-1. **Share.** The app asks the server for a link (`POST /api/shares` with the kind and the subject). The server makes the id and the row.
-2. **The file first.** The app builds the link's file from the browser's copy of the log, writes it to the owner's storage and sends the server where it is and its hash. Only then does the dialog show the address, so a new link never opens empty. If writing fails, the dialog says so and the row is removed.
-3. **Kept current.** After a sync that leaves nothing waiting, so that the browser's copy is the storage's, the app builds each link's file again, a few seconds later and when the browser is idle. When the hash differs from the one on the server, it writes the file and sends the new hash. A device whose copy is behind writes nothing until it has synced, so it never puts back older content. Any of the owner's devices can do this, and they build the same file from the same log. A link shows the log as of the owner's last sync.
-4. **Opening it.** The Worker finds the row (none: not found), then looks in its cache under the id and the hash, and otherwise reads the file from the owner's storage with the owner's key. It returns the file as it is, without parsing it, and counts the opening: how many times, and when last. It does not record who opened it. A stopped link fails at the first step, so nothing needs purging, and a changed file has a new hash, so the cache never serves old content.
-5. **The viewer** shows it ([The public page](#the-public-page)).
+1. **Share.** The app asks the server for a link (`POST /api/shares` with the kind, the subject and, for an aircraft, an anchor record). The server makes the id and the row, and the dialog shows the address at once.
+2. **Opening it.** The server finds the row (none: not found), then lists the log's `tables/` folder with each file's version, one request. It reads only the files the kind needs ([What the server reads](#what-the-server-reads)), from its cache when it holds that version of a file, otherwise from the owner's storage with the owner's key.
+3. **Picking out.** A core function per kind takes those tables and the subject and returns the link's content: the subject's rows and the rows they point to, without deleted entries, private columns, sync columns or import bookkeeping. The result is cached under the link's id and the versions of the files it came from, so it is worked out again only after one of them changed.
+4. **Counting.** The server counts the opening (how many times, and when last). It does not record who opened it. A page load without the content (a chat app's preview) is not counted.
+5. **The viewer** shows the content ([The public page](#the-public-page)).
+
+Why this is safe when the log changes:
+- **Links never write.** Opening a link only reads, so links add nothing to what devices write and merge ([12](12-storage-and-sync.md), "Sync algorithm").
+- **Files changing while read.** A device may be writing several table files during a sync while the server reads them, so a flight can name an aircraft not written yet. The content is built from what each file held; the viewer shows what is there (the registration as typed when the aircraft is missing), and the next opening after the files settle shows them together, since the cache follows each file's version.
+- **A stopped link** fails at the first step, so no cache needs purging.
 
 When things change:
 - **The record is deleted,** on any device or from the CLI. The link stays, and its page says "This flight is no longer shared." The Shared links page says the flight was deleted, with Stop sharing. If the record comes back (an undone import), the link shows it again.
-- **The aircraft is merged** into another, as happens when its serial number becomes known. The next device to build the link's file finds the aircraft gone, reads the link's last file from the storage and moves the link to the aircraft that now holds the flights and sightings it showed.
+- **The aircraft is merged** into another, as happens when its serial number becomes known. An aircraft link keeps one of the aircraft's flights or sightings as its anchor. When the aircraft is gone, the server shows the aircraft the anchor record belongs to now. A record keeps its id through a merge, so this follows every kind of merge without anything new in the log.
 - **The key is broken** ([Connecting storage](#connecting-storage), "Broken key"). The link says "This link is not available right now." until the owner connects again.
 - **The owner leaves Standard.** Every link stops, as in [Changing mode](#changing-mode). Coming back to Standard does not bring them back.
 
-#### The file
+#### What the server reads
 
-Proposed:
-- **Format.** JSON in the JSON tables layout ([12](12-storage-and-sync.md)) with a header: `format` (`touchdown-share`), `version`, `kind`, `madeAt`. Compressed with gzip, written as `shares/<id>.json.gz`, and returned with `Content-Encoding: gzip`, so a whole log stays small and the Worker does no work on it.
-- **Fields.** Every field the schema marks private is removed (today the ticket number and the booking reference), so a private field added later is never shared by mistake.
-- **Reference data.** The airports, airlines and aircraft types the file names, with the owner's own corrections and aircraft families applied, so its pages read as the owner's do.
-- **Tracks.** A flight link has the flight's recorded track. A whole-log link has every track simplified for the map, and the app keeps each simplified track until its track changes, so building the file again stays quick.
-- **Built by core.** One function per kind in the core package, so the CLI can build the same files later, with tests that no private field reaches any kind's file.
+Proposed. The server reads a fixed list of tables for each kind, and never anything else:
+
+| Kind | Tables |
+|------|--------|
+| `flight` | `flights`, `airframes`, `photo_links`, `tracks` (to find the flight's track) and that track's points |
+| `sighting` | `sightings`, `sighting_phases`, `sighting_tags`, `photo_links`, `airframes` |
+| `aircraft` | `airframes`, `registration_periods`, `operator_periods`, `flights`, `sightings`, `sighting_phases`, `photo_links` |
+| `log` | All of the above, and a flight's track points when its page asks for them |
+| Every kind | The owner's corrections and groupings: `airport_overrides`, `operator_overrides`, `aircraft_type_overrides`, `family_overrides` |
+
+Private data is kept apart in the storage ([Private data](#private-data)), so the files on this list hold none: a link never reads a ticket number, even to leave it out.
+
+The log's folder: the app tells the server where it is when it makes a link (the Google Drive folder id), and the server keeps it on the storage connection (`location`).
+
+Reference data (airports, airlines, aircraft types) is not read from the log: the viewer loads the same reference files as the app, from its own files ([The public page](#the-public-page)), and applies the owner's corrections it received.
+
+Built for the JSON tables layout. A SQLite-file log would need a SQLite reader in the server before its links work.
+
+#### Private data
+
+Decided (changed): data that must never leave the owner's devices is kept in its own files, apart from the tables a link reads.
+
+- **The `flight_private` table** holds a flight's ticket number and booking reference, one row per flight, with the flight's own id as its id ([10](10-domain-model.md)). Two devices adding a ticket number to the same flight make the same row, which sync merges field by field like any other ([12](12-storage-and-sync.md), "Sync algorithm").
+- **On the way in.** A flight's `ticketNumber` and `bookingRef` still arrive with the flight (the form, an import row, `touchdown add`), as a sighting's `phase` does. Writing the flight moves them into `flight_private` in the same change, and they stay empty in `flights`. Opening the log does the same for any flight that still holds them (a log or a backup from before, an edit queued on a device that had not updated), as an ordinary edit that syncs and merges like any other.
+- **The `private/` folder** holds every table whose rows can contain a private value: `flight_private`; `record_history`, which keeps earlier versions of whole rows; and `sync_conflicts`, which keeps both values of a field in conflict ([12](12-storage-and-sync.md), "File backend: JSON tables").
+- **The rule in the schema.** A table marked private is stored under `private/`. A column marked private in any other table only carries a value on its way in. Tests check that every write leaves those columns empty, and the server drops any column marked private from what it sends anyway.
 
 #### Rules
 
@@ -194,20 +217,20 @@ Proposed. The `/api/shares` requests need a browser's session (not the command l
 | Request | Does |
 |---------|------|
 | `GET /api/shares` | The account's links. |
-| `POST /api/shares` | Make a link: kind and subject. Gives the id and the address, or the existing link for that thing. |
-| `PATCH /api/shares/<id>` | Record where the file is and its hash, or move an aircraft's link to the aircraft it was merged into. |
-| `DELETE /api/shares/<id>` | Stop one link. The app then removes its file. |
+| `POST /api/shares` | Make a link: kind, subject, anchor, and the log's folder. Gives the id and the address, or the existing link for that thing. |
+| `DELETE /api/shares/<id>` | Stop one link. |
 | `DELETE /api/shares` | Stop every link. |
 | `GET /p/<id>` | The viewer page, without a session. |
-| `GET /p/<id>/content` | The link's file, without a session. |
+| `GET /p/<id>/content` | The link's content, without a session. |
+| `GET /p/<id>/tracks/<flight id>` | A flight's track in a whole-log link, without a session; only for a flight the link shows. |
 
 ### The public page
 
 Decided (U3): `/p/<id>` is the only route with user content outside the sign-in; the others are the sign-in pages, the privacy policy and the terms ([33](33-accounts-and-sign-in.md)). It serves the content of one link and nothing else.
 
 Proposed:
-- **Not the app.** A separate viewer page with its own build (`share.html`, `vite.share.config.ts`), as the sign-in pages have. Its files are served from `/share-files/`, which holds code, styles, fonts and the world map, no user content, and opens without a session as `/signin-files/` does.
-- **Two requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the file. No other API.
+- **Not the app.** A separate viewer page with its own build (`share.html`, `vite.share.config.ts`), as the sign-in pages have. Its files are served from `/share-files/`, which holds code, styles, fonts, the world map and the reference data, no user content, and opens without a session as `/signin-files/` does.
+- **Three requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the content, and `GET /p/<id>/tracks/<flight id>` a flight's track in a whole-log link. No other API.
 - **Read-only.** No editing, no menus, no links into the app. The pages reuse the core view code and the app's map, livery band, times and chart components. Photos come from planespotters.net, as in the app.
 - **Footer.** "Shared from Touchdown", with the privacy policy.
 - **No analytics.** The share page carries no page-view counting, so people who open a link are not counted by anyone but the link's own count.
@@ -220,7 +243,7 @@ Proposed. Each user manages their links on a **Shared links** page (`/shares`), 
 
 - **Sentence.** "You have 4 shared links. Anyone with a link can open it."
 - **Rows.** One per link, newest first: what it shows, named from the browser's copy of the log ("Flight ZZ778 LHR → JFK, 14 Oct 2025", "Aircraft G-ZZLV", "Whole log"), when it was made, and how often and when it was last opened.
-- **State.** A row says so when its record was deleted, when its file waits for this browser to sync, or when the storage needs connecting again.
+- **State.** A row says so when its record was deleted, or when the storage needs connecting again.
 - **Actions.** Copy link, Open (a new tab) and Stop sharing, with a confirmation. "Stop all links" at the end.
 - **Whole log.** "Share your whole log" at the top, when there is no such link.
 - **Empty.** "No shared links. Share a flight, a sighting or an aircraft from its page, or your whole log from here."
@@ -231,7 +254,6 @@ The Share button sits on the flight, sighting and aircraft pages, in Standard mo
 | | The dialog |
 |---|---|
 | No link yet | "Share this flight". "Anyone with the link can see this flight, notes and photo links included. Ticket numbers and booking references are never shared." "Create link". |
-| Making it | "Making the link…" while the file is written. |
 | A link | The address with Copy (and, on phones, the system's share sheet), how often it was opened, "Stop sharing", and "All shared links". |
 | Terms not accepted | Standard users who accepted version 1 accept version 2, which covers links, before their first link ([Terms](#terms)). |
 
@@ -260,10 +282,10 @@ Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Sta
 |-------|---------|
 | `storage_connections` | `id`, `accountId`, `backend`, `format`, `location`, `externalAccount`, `scope`, `tokenCiphertext`, `tokenIv`, `tokenKeyId`, `tokenFormat`, `status` (`ok`, `broken`), `statusAt`, `createdAt`, `lastUsedAt` |
 | `consents` | `accountId`, `termsVersion`, `acceptedAt` |
-| `shares` | `id`, `accountId`, `kind` (`flight`, `sighting`, `aircraft`, `log`), `subject` (the record's id; empty for `log`), `fileRef` (where the file is in the storage, such as a Google Drive file id), `contentHash`, `contentAt`, `createdAt`, `updatedAt`, `timesOpened`, `lastOpenedAt` |
+| `shares` | `id`, `accountId`, `kind` (`flight`, `sighting`, `aircraft`, `log`), `subject` (the record's id; empty for `log`), `anchor` (an aircraft link's flight or sighting, as `flights/<id>` or `sightings/<id>`), `createdAt`, `timesOpened`, `lastOpenedAt` |
 | `meta` | `schemaVersion` |
 
-Not stored on the server: the log or any part of it (share files stay in the user's storage, and a link's row names its record only by id), access tokens, who opened a link, and request contents.
+Not stored on the server: the log or any part of it (a link's row names its record only by id; the server's cache of a link's content lives in the Worker's cache, not the database, and expires on its own), access tokens, who opened a link, and request contents.
 
 Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data) and `consents`. `shares` comes with share links.
 
@@ -292,5 +314,5 @@ As in [12](12-storage-and-sync.md):
 ## Costs and limits
 
 - **D1.** The free plan's limits are far above what a few users' accounts and links need. Recheck them before launch.
-- **Each link opening.** One row read and one count written in D1, and a read from the owner's storage only when the Worker's cache does not hold that version of the file, plus a token refresh when the Worker has no access token in memory. Access tokens are kept only in the Worker's memory, never stored.
-- **CPU.** The Worker passes the file through without parsing it, so a link fits the free plan's CPU time.
+- **Each link opening.** One row read and one count written in D1, one listing of the `tables/` folder, and a read of a table file only when the server's cache does not hold that version of it, plus a token refresh when the Worker has no access token in memory. Access tokens are kept only in the Worker's memory, never stored.
+- **CPU.** Picking a link's content out of the tables means parsing them: about 0.8 MB of JSON for a log of a few thousand records, a few milliseconds, within the free plan's 10 ms. It runs only on the first opening after a change, since the result is cached by file version. A much larger log may need the paid plan.

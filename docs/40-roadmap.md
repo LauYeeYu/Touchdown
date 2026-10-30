@@ -62,12 +62,12 @@ The order puts the riskiest part first: the data model and identity rules are te
 - Deliver: Standard mode ([32](32-modes-and-sharing.md)): connecting storage through the Worker (Google Drive first), encrypted keys in D1, the terms with recorded acceptance, mode changes in Settings, share links of the four kinds (flight, sighting, aircraft, the whole log), public and lasting until stopped, the share page `/p/<id>`, the Shared links page and the Share buttons.
 - Needs: phase 3 (storage and sync) and the sign-in and server of phase 4.
 - Built so far: basic Standard, without share links: terms version 1, connecting Google Drive through the server with the key encrypted (`storage_connections`, `consents`), short-lived access for sync, new devices following Standard, leaving it revokes and deletes the key. Does not depend on phases 5–7.
-- Next, in order (Proposed): (1) the server's `shares` table, `/api/shares` and `/p/<id>` with reading the file from Drive, the cache and the counts; (2) the core functions that build each kind's file, with tests; (3) in the app, the Share dialog on flight and aircraft pages, writing files after sync, and the Shared links page; (4) the viewer for flights and aircraft; (5) sightings and the whole log; (6) terms version 2, `PRIVACY.md` and `TERMS.md`.
+- Next, in order (Proposed): (1) private data in its own table and folder (schema version 7, [32](32-modes-and-sharing.md), "Private data"); (2) the core functions that pick out each kind's content from the log's tables, with tests; (3) the server's `shares` table, `/api/shares` and `/p/<id>`, reading the log's files from Drive with a cache by file version; (4) in the app, the Share dialog on flight, sighting and aircraft pages and the Shared links page; (5) the viewer; (6) terms version 2, `PRIVACY.md` and `TERMS.md`.
 - Done when:
   - Leaving Standard stops every link at once, revokes the key with the provider and leaves no row for the user on the server (scripted test).
   - A stopped link and a guessed id get the same "not found".
-  - No share file holds a ticket number or booking reference (tests over every kind).
-  - A device that has not synced never writes an older file over a newer one, a deleted record's link says it is no longer shared, and an aircraft's link moves with a merge (tests).
+  - No link's content holds a ticket number, a booking reference, a deleted entry or a sync column, and the server never reads a file in `private/` (tests over every kind).
+  - Every write leaves the flights' private columns empty, two devices moving private data at once end with one `flight_private` row per flight, and a deleted record's link says it is no longer shared while an aircraft's link follows a merge (tests).
   - No token appears in logs, responses or the browser (test with a canary token).
   - The share page serves nothing but one link's content.
 

@@ -64,7 +64,7 @@ Every backend implements the same row-level interface. Built in `packages/storag
 
 ```ts
 type StoredRow = Record<string, unknown>;   // a schema row, system columns included, validated by the schema
-type FileArea = "inbox" | "checks" | "attachments" | "shares";   // files kept with the log
+type FileArea = "inbox" | "checks" | "attachments";   // files kept with the log
 
 interface Backend {
   id: "json_tables" | "sqlite_file";          // later: "sqlite_local" | "postgres" | "d1"
@@ -93,7 +93,7 @@ interface FileAdapter {                                         // used by file 
 
 - File backends implement `pull`/`push` by reading whole files through a file adapter, merging, and writing them back.
 - Server backends implement them with SQL: `pull` selects rows with `updated_at` after the cursor; `push` uses conditional writes (`UPDATE … WHERE id = ? AND rev = ?`) so the database itself detects conflicts.
-- File areas (`inbox`, `checks`, `attachments`, `shares`) are folders in file backends and a files table (or the provider's file storage) in server backends, so the CLI's inbox and the agent check hand-off work the same on every backend. (Proposed)
+- File areas (`inbox`, `checks`, `attachments`) are folders in file backends and a files table (or the provider's file storage) in server backends, so the CLI's inbox and the agent check hand-off work the same on every backend. (Proposed)
 - Validation runs on both sides of every backend: rows that do not match the schema are rejected, never stored.
 
 ## Sync algorithm
@@ -166,6 +166,10 @@ Touchdown/
     airframes.json
     registration_periods.json
     ...                    one file per user table from 10
+  private/                 tables whose rows can hold private data, never read by a share link (32)
+    flight_private.json    ticket numbers and booking references
+    record_history.json    earlier versions of rows
+    sync_conflicts.json    both values of a field changed on two devices
   tracks/
     <trackId>.json         track_points of one track
   attachments/
@@ -177,10 +181,8 @@ Touchdown/
     add-<date>-<time>.json    flights and sightings from `touchdown add` (21), the same way
     edit-<date>-<time>.json   changes to records in the log, from `touchdown edit` (also delete-, aircraft-,
                               issues-, undo-, families-, settings-; 34), the same way
-  shares/
-    <shareId>.json.gz      what a shared link shows, private fields removed (Standard mode, 32)
   backups/
-    <YYYY-MM-DD>/...       daily copy of manifest + tables, last 14 kept
+    <YYYY-MM-DD>/...       daily copy of manifest, tables and private, last 14 kept
 ```
 
 Table file format:
@@ -243,6 +245,7 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 
 - The stored schema version is in `manifest.json` (JSON tables) or the `meta` table (SQLite, server backends).
 - Migration steps are defined once in core (add column, rename column, add table, transform values). Each backend has a runner: JSON tables rewrite the files; SQL backends run generated DDL plus data updates.
+- Version 7 (Proposed): tables marked private live in `private/`. Opening the log moves a file such a table still has in `tables/` (left by an older version): its rows are written into the file in `private/` as a push would write them, so a newer row there is never replaced, and only then is the old file removed. A device that stops half way finds the old file at its next opening and finishes. The flights' private values are moved by an edit when the log is opened ([32](32-modes-and-sharing.md), "Private data").
 - Built so far: adding columns (`MIGRATIONS` and `upgradeTableFile` in core). Table files and backups from an older version are upgraded as they are read, and written in the current version from then on; opening a JSON tables folder moves its manifest to the current version.
 - Before migrating, the app writes a backup. Rows' previous forms go to `record_history` with reason `migration` when values are transformed.
 - If the log, or a table file in it, was written by a newer version than the app understands, the app stops syncing and asks for a reload (built): a bar under the masthead, "A newer version of Touchdown has changed your log … Reload to update the app", with a Reload button, and "Reload to update" as the save state. The app is not read-only: edits made meanwhile are kept in the browser and sent after the reload, which loads the new version. Such a file is never written over. Table files of an older version are upgraded as they are read, so a newer app reads what an older one wrote. The command line refuses a log newer than itself ("git pull, then npm install"), and `review` refuses an older one until the web app has opened it once.

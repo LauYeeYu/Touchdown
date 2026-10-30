@@ -60,7 +60,8 @@ User data
   sightings ─< sighting_tags, sighting_phases
   flights / sightings ─< photo_links
   flights ─< tracks ─< track_points
-  any user row ─< field_provenance, external_ids, record_history, sync_conflicts
+  flights ─ flight_private                       (private/)
+  any user row ─< field_provenance, external_ids, record_history, sync_conflicts   (the last two: private/)
   import_batches        issue_acks ─< issue_ack_records
   settings, family_overrides, saved_views ─< saved_view_filters
   airport_overrides, operator_overrides, aircraft_type_overrides
@@ -162,8 +163,8 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `bookingClass` | text | `T` | Single letter. |
 | `fareBrand` | text | `Basic` | |
 | `reason` | enum | `leisure` | `leisure`, `business`, `crew`, `other` (same set as FR24). |
-| `ticketNumber` | text | | **Private.** |
-| `bookingRef` | text | | **Private.** PNR. |
+| `ticketNumber` | text | | **Private.** Input only: writing the flight moves it into `flight_private`, and it stays empty here ([32](32-modes-and-sharing.md), "Private data"). |
+| `bookingRef` | text | | **Private.** PNR. Input only, as `ticketNumber`. |
 | `registration`, `registrationRaw` | text | `D-ABCD`, `dabcd` | Normalised and as entered. |
 | `typeCode`, `typeCodeRaw` | text | `A359` | |
 | `model`, `modelRaw` | text | `A350-941`, `A350941` | Standard form (manufacturer designation) and as entered (any style; requirement D4). |
@@ -176,6 +177,8 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `sourceKind` | enum | `fr24_csv` | `manual`, `fr24_csv`, `sheet`, `csv`, `api` |
 | `sourceBatchId` | ref import_batches | | |
 | `sourceRow` | integer | | Row number in the source file. |
+
+**flight_private**: a flight's private data, kept in the `private/` folder apart from the tables a share link reads ([32](32-modes-and-sharing.md), "Private data"). One row per flight, its id the flight's id. `flightId` (ref flights), `ticketNumber` (text; 13 digits + `/coupon`), `bookingRef` (text; PNR). Both private.
 
 Derived, not stored: manufacturer and family (from type), route, distance (unless overridden), duration (unless overridden), and the **flight day** (local date of `takeoffAt`, else `departureAt`, else `scheduledDate`; used for stats, calendars, and ordering).
 
@@ -303,3 +306,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 | 4 | `settings.agentChecker`, `settings.sendNotesToAgent` and the `agent_rules` table removed: the agent check's settings belong to the CLI on each computer ([22](22-agent-verification.md)). Older files have the columns dropped when read; an `agent_rules` file is not read. |
 | 5 | `versionVector` system column and the `sync_conflicts` table, for merging edits field by field ([12](12-storage-and-sync.md)). Older rows have no vector until they are next changed. |
 | 6 | `sighting_phases` table: a sighting holds every status it was seen in. Opening the log moves each sighting's `phase`, and statuses an older import wrote into the notes ("Also taxiing"), into it. |
+| 7 | `flight_private` table, and the `private/` folder for it, `record_history` and `sync_conflicts` ([32](32-modes-and-sharing.md), "Private data"). Opening the log moves each flight's `ticketNumber` and `bookingRef` into `flight_private`; the JSON tables backend moves the history and conflict files from `tables/` to `private/`. |
