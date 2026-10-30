@@ -1,14 +1,17 @@
 // The JSON tables file backend (docs/12-storage-and-sync.md, "File backend: JSON tables"), over any file adapter:
-// a manifest, one file per table, one file per track's points, and the file areas as folders.
+// a manifest, one file per table (tables whose rows can hold private data in private/, the others in tables/), one
+// file per track's points, and the file areas as folders.
 
 import {
   allColumns,
   checkTableFile,
   FILE_TABLES,
+  isPrivateTable,
   rowKey,
   SCHEMA_NAME,
   SCHEMA_VERSION,
   stringifyTableFile,
+  tableFilePath,
   TABLES,
   upgradeTableFile,
   type Manifest,
@@ -27,7 +30,7 @@ export class SchemaTooNewError extends Error {
   }
 }
 
-export const tablePath = (t: TableName) => `tables/${t}.json`;
+export const tablePath = tableFilePath;
 const ABSENT = "";
 const trackPath = (trackId: string) => `tracks/${trackId}.json`;
 
@@ -107,16 +110,42 @@ export class JsonTablesBackend implements Backend {
       const tables = Object.fromEntries(FILE_TABLES.map((t) => [t, tablePath(t)]));
       await this.files.write("manifest.json", encoder.encode(JSON.stringify({ ...manifest, schemaVersion: SCHEMA_VERSION, tables, lastWriter: this.deviceId }, null, 2) + "\n"));
     }
+    await this.movePrivateFiles();
     return { schemaVersion: version, created: false };
+  }
+
+  /**
+   * Private tables still in tables/ (written before version 7) move to private/ (docs/12, "Schema migrations"): their
+   * rows go into the file there as a push writes them, so a newer row there is never replaced, and only then is the
+   * old file removed. A device that stops half way finds the old file next time and finishes. An unreadable old file
+   * is left where it is.
+   */
+  private async movePrivateFiles() {
+    const listed = new Set((await this.files.list("tables")).map((f) => f.name));
+    for (const t of FILE_TABLES.filter(isPrivateTable)) {
+      const old = `tables/${t}.json`;
+      if (!listed.has(`${t}.json`)) continue;
+      const file = await this.files.read(old);
+      if (file) {
+        const parsed = parseTable(file.data, t);
+        if ("problems" in parsed) continue;
+        // An unreadable file in private/ is never written over, so the old one stays too.
+        const target = await this.files.read(tablePath(t));
+        if (target && "problems" in parseTable(target.data, t)) continue;
+        // A row the file in private/ has in another version keeps that version: it was made since.
+        await this.push(parsed.rows.map((row) => ({ table: t, row, replaces: [] })));
+      }
+      await this.files.remove(old);
+    }
   }
 
   async pull(cursor: Cursor): Promise<PullResult> {
     const next: Cursor = { ...cursor };
     const out: PullResult = { tables: new Map(), changedTracks: [], tracks: [], problems: [], cursor: next };
 
-    // Both folders are listed, and every changed table file read, at the same time.
-    const [tableFiles, trackFiles] = await Promise.all([this.files.list("tables"), this.files.list("tracks")]);
-    const listed = new Map(tableFiles.map((f) => [`tables/${f.name}`, f.version]));
+    // The folders are listed, and every changed table file read, at the same time.
+    const [tableFiles, privateFiles, trackFiles] = await Promise.all([this.files.list("tables"), this.files.list("private"), this.files.list("tracks")]);
+    const listed = new Map<string, string>([...tableFiles.map((f) => [`tables/${f.name}`, f.version] as const), ...privateFiles.map((f) => [`private/${f.name}`, f.version] as const)]);
     const read = await Promise.all(
       FILE_TABLES.map(async (t): Promise<StoredRow[] | null> => {
         const path = tablePath(t);
