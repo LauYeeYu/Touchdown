@@ -133,6 +133,7 @@ export function styleVersion(): Plugin {
 // behind the sign-in; the Node server (`npm run serve`) is, like the hosted site.
 const PRIVATE = resolve(import.meta.dirname, "../../data/private");
 const SIGNIN_PAGES = /^\/(signin|setup|join\/[^/?]+|reset\/[^/?]+)\/?(\?.*)?$/;
+const SHARE_PAGE = /^\/p\/[A-Za-z0-9_-]{22}\/?(\?.*)?$/;
 
 function accounts(): Plugin {
   return {
@@ -168,7 +169,12 @@ function accounts(): Plugin {
           req.url = "/signin.html";
           return next();
         }
-        if (!url.startsWith("/auth/") && !url.startsWith("/api/storage")) return next();
+        // A share link's page is the share page's own entry; its content and tracks come from the server (docs/32).
+        if (SHARE_PAGE.test(url)) {
+          req.url = "/share.html";
+          return next();
+        }
+        if (!url.startsWith("/auth/") && !url.startsWith("/api/storage") && !url.startsWith("/api/shares") && !url.startsWith("/p/")) return next();
         const chunks: Buffer[] = [];
         for await (const c of req) chunks.push(c as Buffer);
         const headers = new Headers();

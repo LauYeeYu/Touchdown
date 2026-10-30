@@ -24,20 +24,13 @@ import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
 import { MenuButton } from "../components/Menu.tsx";
 import { NotFound } from "./NotFound.tsx";
+import { TimeCell } from "../components/TimeCell.tsx";
+import { article, partOfDay } from "../lib/flightText.ts";
 
 /** A track file the user chose for the flight: what it would save, or why it cannot be used. */
 type PickedTrack = { name: string; problem: string } | { name: string; read: number; change: Extract<InboxChange, { op: "track" }>; startKm: number | null; endKm: number | null };
 
 /** "an Airbus", "an Embraer", "a Boeing". */
-function article(word: string): string {
-  return /^[aeiou]/i.test(word) ? "an" : "a";
-}
-
-function partOfDay(dt: string): "night" | "morning" | "afternoon" | "evening" {
-  const h = Number(clock(dt).slice(0, 2));
-  return h < 5 ? "night" : h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
-}
-
 const SOURCE_TEXT: Record<string, string> = {
   fr24_csv: "Imported from a my.flightradar24.com CSV.",
   sheet: "Imported from a spreadsheet.",
@@ -45,20 +38,6 @@ const SOURCE_TEXT: Record<string, string> = {
   manual: "Entered by hand.",
   api: "Filled from a flight lookup.",
 };
-
-function TimeCell({ label, dt, extra }: { label: string; dt: string; extra?: React.ReactNode }) {
-  const day = localDay(dt)!;
-  return (
-    <div className="time">
-      <p className="time__label">{label}</p>
-      <p className="time__clock">{clock(dt)}</p>
-      <p className="time__date">
-        {dayShort(day)} · {offsetLabel(dt)}
-      </p>
-      {extra}
-    </div>
-  );
-}
 
 export function FlightDetail() {
   const { id } = useParams({ from: "/flights/$id" });

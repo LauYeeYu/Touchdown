@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json && vite build && vite build -c vite.signin.config.ts",
+    "build": "tsc -p tsconfig.json && vite build && vite build -c vite.signin.config.ts && vite build -c vite.share.config.ts",
     "preview": "vite preview",
     "deploy": "wrangler deploy"
   },

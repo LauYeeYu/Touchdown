@@ -2617,6 +2617,139 @@ a.shares-list__title:hover {
   margin-top: 14px;
 }
 
+/* ---------- the share page (docs/32, "The public page") ---------- */
+
+/* A quiet band with the wordmark alone: no navigation, nothing to sign in to. */
+.share-head {
+  background: var(--surface-mid);
+}
+
+.share-head__inner {
+  display: flex;
+  align-items: center;
+  width: min(var(--page), 100% - 2 * var(--gutter));
+  height: 56px;
+  margin-inline: auto;
+}
+
+.share-main {
+  padding-bottom: 72px;
+}
+
+.share-foot {
+  border-top: 1px solid var(--rule);
+  padding: 20px 0 40px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.share-foot p {
+  width: min(var(--page), 100% - 2 * var(--gutter));
+  margin: 0 auto;
+}
+
+.share-foot a {
+  color: var(--ink-3);
+}
+
+.share-message {
+  max-width: 36rem;
+  margin: 14vh 0 0;
+}
+
+.share-message__title {
+  margin: 0 0 10px;
+  font-size: 1.75rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.share-message__text {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.share-loading {
+  margin: 14vh 0 0;
+  color: var(--ink-3);
+}
+
+/* A whole log's lists: date, the record, and what it was on or where, one row each, the row opening its page. */
+.share-rows {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.share-rows > li {
+  border-bottom: 1px solid var(--rule);
+}
+
+.share-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 16px;
+  margin-inline: -12px;
+  padding: 12px;
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.share-row:hover {
+  background: var(--surface-mid);
+}
+
+.share-row__date {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.share-row__main {
+  display: grid;
+  min-width: 0;
+}
+
+.share-row__main b {
+  font-weight: 600;
+}
+
+.share-row__main small {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.share-row__side {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .share-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .share-row__date {
+    grid-column: 1 / -1;
+    font-size: 0.8125rem;
+  }
+}
+
+.share-notes {
+  white-space: pre-wrap;
+}
+
+.share-photo-link + .share-photo-link {
+  margin-left: 12px;
+}
+
+.share-dl {
+  max-width: 40rem;
+}
+
 /* ---------- Settings: account and people (docs/33) ---------- */
 
 /* Material's account lists: a tonal card per group, each item a two-line list item (the thing, then its value in

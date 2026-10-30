@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f2ede2" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <!-- A link's preview in a chat app says only where it comes from (docs/32, Q-SHARE-PREVIEW). -->
+    <meta property="og:title" content="Shared from Touchdown" />
+    <meta property="og:description" content="A flight, an aircraft or a log of flights and aircraft." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Shared from Touchdown</title>
+    <script>
+      // Apply the chosen theme before first paint. The Content Security Policy allows this one script by hash.
+      try {
+        var t = localStorage.getItem("td-theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <!-- One shared link's page (docs/32, "The public page"). Built on its own, served without a session. -->
+    <div id="root"></div>
+    <script type="module" src="/src/share/main.tsx"></script>
+  </body>
+</html>
