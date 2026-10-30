@@ -179,20 +179,24 @@ export function AircraftDetail() {
                 <li key={e.f.id} className={e.f.specialLivery?.trim() ? "is-livery" : undefined}>
                   <span className="dot dot--flown" />
                   <span className="timeline__date">{e.date ? dayMonthYear(e.date) : "No date"}</span>
-                  <Link to="/flights/$id" params={{ id: e.f.id }}>
-                    Flew {e.f.flightNumber ?? ""} {textCode(ref.airport(e.f.fromAirportId), e.f.fromRaw)} → {textCode(ref.airport(e.f.toAirportId), e.f.toRaw)}
-                  </Link>
-                  {e.f.registration && e.f.registration !== reg && <span className="muted"> as {e.f.registration}</span>}
+                  <span className="timeline__what">
+                    <Link to="/flights/$id" params={{ id: e.f.id }}>
+                      Flew {e.f.flightNumber ?? ""} {textCode(ref.airport(e.f.fromAirportId), e.f.fromRaw)} → {textCode(ref.airport(e.f.toAirportId), e.f.toRaw)}
+                    </Link>
+                    {e.f.registration && e.f.registration !== reg && <span className="muted"> as {e.f.registration}</span>}
+                  </span>
                   {e.f.specialLivery?.trim() && <LiveryNote name={liveries.find((l) => sameLivery(l, e.f.specialLivery)) ?? e.f.specialLivery} />}
                 </li>
               ) : (
                 <li key={e.s.id} className={e.s.specialLivery?.trim() ? "is-livery" : undefined}>
                   <span className="dot dot--spotted" />
                   <span className="timeline__date">{e.date ? dayMonthYear(e.date) : "No date"}</span>
-                  <Link to="/spotting/$id/edit" params={{ id: e.s.id }}>
-                    Spotted at {airportWithCode(e.s.airportId, ref, e.s.airportRaw) || "an unknown place"}
-                  </Link>
-                  {phasesOf(store, e.s.id).length > 0 && <span className="muted"> · {phasesOf(store, e.s.id).map((p) => PHASE_LABEL[p]?.toLowerCase() ?? p).join(", ")}</span>}
+                  <span className="timeline__what">
+                    <Link to="/spotting/$id/edit" params={{ id: e.s.id }}>
+                      Spotted at {airportWithCode(e.s.airportId, ref, e.s.airportRaw) || "an unknown place"}
+                    </Link>
+                  </span>
+                  {phasesOf(store, e.s.id).length > 0 && <span className="timeline__more">{phaseList(phasesOf(store, e.s.id))}</span>}
                   {e.s.specialLivery?.trim() && <LiveryNote name={liveries.find((l) => sameLivery(l, e.s.specialLivery)) ?? e.s.specialLivery} />}
                 </li>
               ),
@@ -398,7 +402,10 @@ export function AircraftDetail() {
   );
 }
 
-/** A timeline record in a special livery: its name after the record. */
+/** A sighting's statuses on their own line: "Taking off, taxiing". */
+const phaseList = (phases: string[]) => phases.map((p, i) => (i ? (PHASE_LABEL[p] ?? p).toLowerCase() : (PHASE_LABEL[p] ?? p))).join(", ");
+
+/** A timeline record in a special livery: its name on a line under the record. */
 function LiveryNote({ name }: { name: string }) {
   return (
     <span className="timeline__livery">

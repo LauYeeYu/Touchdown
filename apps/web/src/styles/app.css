@@ -3398,9 +3398,11 @@ a.wordmark {
   padding: 0;
 }
 
+/* Dot, date, then the record as running text, so a long record wraps under itself and not under the dot. A
+   sighting's statuses and a special livery each take a line under it. */
 .timeline li {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto 108px minmax(0, 1fr);
   align-items: baseline;
   gap: 4px 10px;
   padding: 10px 0;
@@ -3408,14 +3410,29 @@ a.wordmark {
   font-size: 0.9375rem;
 }
 
+/* On the first line's middle. */
 .timeline .dot {
-  align-self: center;
+  align-self: start;
+  margin-top: calc(0.5lh - 4px);
 }
 
 .timeline__date {
-  min-width: 108px;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
+}
+
+.timeline__what {
+  min-width: 0;
+}
+
+/* The registration a flight was under. */
+.timeline__what .muted {
+  color: var(--ink-2);
+}
+
+.timeline__more {
+  grid-column: 3;
+  color: var(--ink-2);
 }
 
 /* A record in a special livery: a tonal band that reaches 12px past the column, so its text stays aligned. */
@@ -3432,6 +3449,7 @@ a.wordmark {
 }
 
 .timeline__livery {
+  grid-column: 3;
   display: inline-flex;
   align-items: center;
   gap: 5px;
