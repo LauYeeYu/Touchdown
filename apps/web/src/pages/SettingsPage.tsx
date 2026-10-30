@@ -78,7 +78,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
     if (!picked) return;
     const { connection } = picked;
     const hasLog = app.store.count("flights") + app.store.count("sightings") > 0;
-    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged. If both changed the same entry, the later change is kept and the other goes to the log's history. Continue?`)) return;
+    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged. If both changed the same entry, the later change is kept and the other is listed on the Issues page. Continue?`)) return;
     setBusy(true);
     await app.connect(connection);
     setBusy(false);
