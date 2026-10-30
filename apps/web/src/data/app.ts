@@ -157,6 +157,8 @@ export class AppData {
   private cache: { version: number; findings: Finding[]; resolvedOverlaps: ReturnType<typeof resolveAirframes>["overlaps"] } | null = null;
   /** How this browser keeps the log; null until the first run has asked (docs/32). */
   connection: Connection | null = null;
+  /** The share page's copy of a link's content (src/share/data.ts) is read-only: pages leave out what changes the log. */
+  readonly readOnly: boolean = false;
   /** Syncing, in Private and Standard mode. */
   sync: SyncHandle | null = null;
   private syncListeners = new Set<() => void>();

@@ -2,7 +2,8 @@
 // aircraft photographed there. Opened from an airport or a spotting location on any map.
 
 import { Fragment, useMemo } from "react";
-import { Link, useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { cityName } from "@touchdown/core";
 import { airportSummary } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
@@ -57,8 +58,10 @@ export function AirportPage() {
   const marks = useMemo(() => mapFlights(here, ref, unit, new Set(), store), [hereKey, version, unit]);
   const spots = useMemo(() => mapSpots(sightings, ref), [sightings, ref]);
 
+  // A share link names nobody (docs/32, "The public page"): "Left from LHR 3 times", not "You left".
+  const shared = app.readOnly;
   if (!ap || (!data.everFlown && !data.everSpotted)) {
-    return <NotFound what={ap ? `${shortAirport(id, ref)} is not in your log.` : "That airport is not in the reference data."} back={{ to: "/stats", label: "Statistics" }} />;
+    return <NotFound what={ap ? `${shortAirport(id, ref)} is not in ${shared ? "this link" : "your log"}.` : "That airport is not in the reference data."} back={{ to: "/stats", label: "Statistics" }} />;
   }
 
   const name = shortAirport(id, ref);
@@ -86,7 +89,8 @@ export function AirportPage() {
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
     </>
   );
-  const opening = year === "all" ? "" : year === thisYear ? `So far in ${year} ` : `In ${year} `;
+  const opening = year === "all" ? "" : year === thisYear ? `So far in ${year}${shared ? ", " : " "}` : `In ${year}${shared ? ", " : " "}`;
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
   const flownParts: { lead: string; n: number }[] = [];
   if (dep) flownParts.push({ lead: `left from ${name}`, n: dep });
   if (land) flownParts.push({ lead: `landed ${dep ? "there" : `at ${name}`}`, n: land });
@@ -122,11 +126,11 @@ export function AirportPage() {
           <>
             {flownText && (
               <>
-                {opening ? opening + "you" : "You"}{" "}
+                {shared ? opening : `${opening ? opening + "you" : "You"} `}
                 {flownParts.map((p, i) => (
                   <Fragment key={p.lead}>
                     {i > 0 && (i === flownParts.length - 1 ? " and " : ", ")}
-                    {p.lead} <Fig>{times(p.n)}</Fig>
+                    {shared && !opening && i === 0 ? cap(p.lead) : p.lead} <Fig>{times(p.n)}</Fig>
                   </Fragment>
                 ))}
                 .{" "}
@@ -134,7 +138,7 @@ export function AirportPage() {
             )}
             {sightings.length > 0 && (
               <>
-                {flownText ? "You photographed" : `${opening ? opening + "you" : "You"} photographed`} <Fig>{plural(spotted.length, "aircraft", "aircraft")}</Fig> {flownText ? "there" : `at ${name}`} on{" "}
+                {shared ? (flownText || !opening ? "Photographed" : `${opening}photographed`) : flownText ? "You photographed" : `${opening ? opening + "you" : "You"} photographed`} <Fig>{plural(spotted.length, "aircraft", "aircraft")}</Fig> {flownText ? "there" : `at ${name}`} on{" "}
                 <Fig>{plural(days.size, "day")}</Fig>.
               </>
             )}
@@ -264,7 +268,7 @@ export function AirportPage() {
                     <span className="dot dot--spotted" />
                     {e.count}
                   </span>
-                  <span className="row__num tabular" title={flown ? "Flights you took on this aircraft" : ""}>
+                  <span className="row__num tabular" title={flown ? (shared ? "Flights on this aircraft" : "Flights you took on this aircraft") : ""}>
                     {flown > 0 && <span className="dot dot--flown" />}
                     {flown || "—"}
                   </span>

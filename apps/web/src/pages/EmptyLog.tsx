@@ -1,6 +1,6 @@
 // First run: nothing logged yet. Offer the import first, since most users arrive with an existing log.
 
-import { Link } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { useSyncInfo } from "../components/ModeChoice.tsx";
 import { useApp } from "../data/context.tsx";
 import { Icon } from "../lib/icons.tsx";

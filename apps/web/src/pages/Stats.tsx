@@ -325,18 +325,21 @@ function Pivot({ ctx, flights, sightings, label }: { ctx: StatsContext; flights:
               ))}
           </select>
         </label>
-        <button
-          type="button"
-          className="btn btn--quiet btn--small"
-          onClick={() => {
-            const n = window.prompt("Name this view", `${rowDim.label}${colDim ? ` by ${colDim.label}` : ""}`);
-            if (!n) return;
-            app.saveView({ name: n, dataset, rowDimension: rowDim.id, columnDimension: colDim?.id ?? null, measure });
-            toast("View saved.");
-          }}
-        >
-          Save this view
-        </button>
+        {/* Saved views belong to the log: a share link only reads it. */}
+        {!app.readOnly && (
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            onClick={() => {
+              const n = window.prompt("Name this view", `${rowDim.label}${colDim ? ` by ${colDim.label}` : ""}`);
+              if (!n) return;
+              app.saveView({ name: n, dataset, rowDimension: rowDim.id, columnDimension: colDim?.id ?? null, measure });
+              toast("View saved.");
+            }}
+          >
+            Save this view
+          </button>
+        )}
       </div>
       {saved.length > 0 && (
         <div className="chips saved-views" aria-label="Saved views">

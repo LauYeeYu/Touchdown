@@ -1,7 +1,8 @@
 // One flight: the route at full size, the date, a sentence, the track map, dated local times, the aircraft.
 
 import { useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useReachable } from "../lib/link.tsx";
 import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
@@ -44,6 +45,9 @@ export function FlightDetail() {
   const { app } = useApp();
   const { store, ref } = app;
   const navigate = useNavigate();
+  const reachable = useReachable();
+  // A share link names nobody and leaves out what changes the log or is private (docs/32, "The public page").
+  const shared = app.readOnly;
   const settings = app.settings();
   const unit = settings.distanceUnit ?? "km";
   const [showTicket, setShowTicket] = useState(false);
@@ -54,7 +58,7 @@ export function FlightDetail() {
 
   const all = sortedFlights(store, ref);
   const idx = all.findIndex((v) => v.f.id === id);
-  if (idx < 0) return <NotFound what="That flight is not in your log." back={{ to: "/flights", label: "All flights" }} />;
+  if (idx < 0) return <NotFound what={shared ? "That flight is not in this link." : "That flight is not in your log."} back={{ to: "/flights", label: "All flights" }} />;
   const v = all[idx]!;
   const f: Flight = v.f;
   // Kept in the flight's private row (docs/32, "Private data").
@@ -223,9 +227,9 @@ export function FlightDetail() {
           </span>
         </>
       ) : (
-        <span className="legend__item" title={trackRow ? "The recorded track is read from your storage at the next sync." : undefined}>
+        <span className="legend__item" title={trackRow && !shared ? "The recorded track is read from your storage at the next sync." : undefined}>
           <span className="swatch-line" />
-          {trackRow ? "Great circle · the recorded track is not in this browser yet" : "Great circle · no recorded track for this flight"}
+          {trackRow ? (shared ? "Great circle · the recorded track is loading" : "Great circle · the recorded track is not in this browser yet") : "Great circle · no recorded track for this flight"}
         </span>
       )}
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
@@ -243,12 +247,12 @@ export function FlightDetail() {
         takeoff={takeoff}
         head={mapHead}
         label={`Globe showing ${routeWhat}`}
-        onAirportClick={(airport) => navigate({ to: "/airports/$id", params: { id: airport } })}
+        onAirportClick={reachable("/airports/$id", undefined) ? (airport) => navigate({ to: "/airports/$id", params: { id: airport } }) : undefined}
       />
     ) : (
       <div className="map-wrap">
         <div className="legend">{mapHead}</div>
-        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} recorded={!!track} samples={samples} takeoff={takeoff} onAirportClick={(which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } })} label={`Map of ${routeWhat}`} />
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} recorded={!!track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={`Map of ${routeWhat}`} />
       </div>
     );
 
@@ -328,49 +332,60 @@ export function FlightDetail() {
           {f.flightNumber && ` · ${f.flightNumber}`}
           {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
         </p>
-        <div className="actions">
-          <Link className="btn btn--quiet btn--small" to="/flights/$id/edit" params={{ id: f.id }}>
-            <Icon name="pencil" />
-            Edit
-          </Link>
-          <ShareButton kind="flight" subject={f.id} />
-          {trackRow ? (
-            <MenuButton
-              className="btn btn--quiet btn--small"
-              label="Recorded track"
-              items={[
-                ...(samples.length > 1 ? [{ label: "Download as KML", icon: <Icon name="download" />, onSelect: downloadTrack }] : []),
-                { label: "Replace with a track file", icon: <Icon name="upload" />, onSelect: chooseTrack },
-                { label: "Remove the track", icon: <Icon name="trash" />, onSelect: dropTrack },
-              ]}
-            >
-              <Icon name="route" />
-              Track
-            </MenuButton>
-          ) : (
-            <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack} title="Add the recorded track from a Flightradar24 CSV or KML file, or a KML or GPX file">
-              <Icon name="route" />
-              Add track
+        {shared ? (
+          samples.length > 1 && (
+            <div className="actions">
+              <button type="button" className="btn btn--quiet btn--small" onClick={downloadTrack}>
+                <Icon name="download" />
+                Track as KML
+              </button>
+            </div>
+          )
+        ) : (
+          <div className="actions">
+            <Link className="btn btn--quiet btn--small" to="/flights/$id/edit" params={{ id: f.id }}>
+              <Icon name="pencil" />
+              Edit
+            </Link>
+            <ShareButton kind="flight" subject={f.id} />
+            {trackRow ? (
+              <MenuButton
+                className="btn btn--quiet btn--small"
+                label="Recorded track"
+                items={[
+                  ...(samples.length > 1 ? [{ label: "Download as KML", icon: <Icon name="download" />, onSelect: downloadTrack }] : []),
+                  { label: "Replace with a track file", icon: <Icon name="upload" />, onSelect: chooseTrack },
+                  { label: "Remove the track", icon: <Icon name="trash" />, onSelect: dropTrack },
+                ]}
+              >
+                <Icon name="route" />
+                Track
+              </MenuButton>
+            ) : (
+              <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack} title="Add the recorded track from a Flightradar24 CSV or KML file, or a KML or GPX file">
+                <Icon name="route" />
+                Add track
+              </button>
+            )}
+            <button type="button" className="btn btn--quiet btn--small" onClick={remove}>
+              <Icon name="trash" />
+              Delete
             </button>
-          )}
-          <button type="button" className="btn btn--quiet btn--small" onClick={remove}>
-            <Icon name="trash" />
-            Delete
-          </button>
-          <input
-            ref={trackInput}
-            type="file"
-            accept=".csv,.kml,.gpx,text/csv,application/vnd.google-earth.kml+xml,application/gpx+xml"
-            className="visually-hidden"
-            tabIndex={-1}
-            aria-hidden="true"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void pickTrack(file);
-              e.target.value = "";
-            }}
-          />
-        </div>
+            <input
+              ref={trackInput}
+              type="file"
+              accept=".csv,.kml,.gpx,text/csv,application/vnd.google-earth.kml+xml,application/gpx+xml"
+              className="visually-hidden"
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void pickTrack(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <p className="lead lead--flight">
@@ -391,10 +406,10 @@ export function FlightDetail() {
         {livery && (f.registration || typeText) && ` in its ${livery} livery`}
         {built && `${livery && (f.registration || typeText) ? "," : ""} first flown in ${built}`}
         {landing && B && `, landing in ${cityName(B) ?? B.name} ${landing}`}.
-        {onThis.length > 1 && ` You have flown on it ${plural(onThis.length, "time")}.`}{" "}
+        {onThis.length > 1 && ` ${shared ? "Flown on it" : "You have flown on it"} ${plural(onThis.length, "time")}.`}{" "}
         {spotted[0] && (
           <span className="phrase phrase--spotted" {...phraseProps}>
-            You photographed this aircraft{spotted[0].airportId ? ` at ${cityName(ref.airport(spotted[0].airportId)) ?? shortAirport(spotted[0].airportId, ref)}` : ""}
+            {shared ? "Photographed" : "You photographed this aircraft"}{spotted[0].airportId ? ` at ${cityName(ref.airport(spotted[0].airportId)) ?? shortAirport(spotted[0].airportId, ref)}` : ""}
             {spotted[0].seenOn ? ` on ${dateOnly(spotted[0].seenOn, { day: "numeric", month: "long", year: "numeric" })}` : ""}.
           </span>
         )}
@@ -609,28 +624,30 @@ export function FlightDetail() {
                 </dd>
               </div>
             )}
-            <div>
-              <dt>Ticket number</dt>
-              <dd>
-                {!ticketNumber ? (
-                  <span className="muted">Not recorded</span>
-                ) : showTicket ? (
-                  <>
-                    {ticketNumber}{" "}
-                    <button type="button" className="link-btn" onClick={() => setShowTicket(false)}>
-                      Hide
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="muted">Hidden · private field</span>{" "}
-                    <button type="button" className="link-btn" onClick={() => setShowTicket(true)}>
-                      Show
-                    </button>
-                  </>
-                )}
-              </dd>
-            </div>
+            {!shared && (
+              <div>
+                <dt>Ticket number</dt>
+                <dd>
+                  {!ticketNumber ? (
+                    <span className="muted">Not recorded</span>
+                  ) : showTicket ? (
+                    <>
+                      {ticketNumber}{" "}
+                      <button type="button" className="link-btn" onClick={() => setShowTicket(false)}>
+                        Hide
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="muted">Hidden · private field</span>{" "}
+                      <button type="button" className="link-btn" onClick={() => setShowTicket(true)}>
+                        Show
+                      </button>
+                    </>
+                  )}
+                </dd>
+              </div>
+            )}
           </dl>
           {f.notes && (
             <>

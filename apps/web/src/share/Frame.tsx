@@ -1,15 +1,16 @@
-// The share page's frame (docs/32-modes-and-sharing.md, "The public page"): the wordmark, the page, and the footer
-// that says where it comes from. No menus and no way into the app: a shared page shows one link and nothing else.
+// The share page's frame while the link opens, or when it does not: the app's masthead with the wordmark alone, a
+// message, and the footer (docs/32-modes-and-sharing.md, "The public page"). Once the link is open, its pages have the
+// app's own frame (Shell.tsx).
 
 import type { ReactNode } from "react";
-import { Icon } from "../lib/icons.tsx";
 import { Wordmark } from "../components/Wordmark.tsx";
+import { SiteFoot } from "./Shell.tsx";
 
 export function Frame({ children }: { children: ReactNode }) {
   return (
     <>
-      <header className="share-head">
-        <div className="share-head__inner">
+      <header className="masthead">
+        <div className="page masthead__bar">
           <span className="wordmark">
             <Wordmark />
           </span>
@@ -18,29 +19,9 @@ export function Frame({ children }: { children: ReactNode }) {
       <main id="view" className="page share-main">
         {children}
       </main>
-      <footer className="share-foot">
-        <p>
-          Shared from Touchdown, a log of flights and aircraft. <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a>
-        </p>
-      </footer>
+      <SiteFoot />
     </>
   );
-}
-
-/** Back to the whole log's list, inside a whole-log link. */
-export function Back({ href, label }: { href: string; label: string }) {
-  return (
-    <nav className="crumbs" aria-label="Back">
-      <a href={href}>
-        <Icon name="arrow-left" /> {label}
-      </a>
-    </nav>
-  );
-}
-
-/** A record the link no longer shows: deleted from the log since. */
-export function Gone({ what }: { what: string }) {
-  return <Message title={what} text="It was taken out of the log it was shared from." />;
 }
 
 export function Message({ title, text }: { title: string; text: string }) {

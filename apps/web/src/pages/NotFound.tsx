@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { Icon } from "../lib/icons.tsx";
 
 export function NotFound({ what = "There is no page at this address.", back = { to: "/", label: "Home" } }: { what?: string; back?: { to: string; label: string } }) {

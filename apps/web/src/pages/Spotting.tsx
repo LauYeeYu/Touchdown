@@ -1,7 +1,8 @@
 // Spotting: the period's sightings in a sentence, where they happened, then each session (a day at a place).
 
 import { useMemo } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { phaseIndex, sightingStats, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -57,7 +58,20 @@ export function Spotting() {
   };
   const shownSessions = sessions.map((x) => ({ ...x, shown: x.sightings.filter(matches) })).filter((x) => x.shown.length);
   const paging = usePaging(shownSessions, SESSIONS_PER_PAGE, `${year}|${needle}|${airport}`);
-  const when = year === "all" ? `Since ${years[0] ?? thisYear} you have spotted` : year === thisYear ? `So far in ${year} you have spotted` : `In ${year} you spotted`;
+  // A share link names nobody (docs/32, "The public page").
+  const shared = app.readOnly;
+  const first = years[0] ?? thisYear;
+  const when = shared
+    ? year === "all"
+      ? `Since ${first},`
+      : year === thisYear
+        ? `So far in ${year},`
+        : `In ${year},`
+    : year === "all"
+      ? `Since ${first} you have spotted`
+      : year === thisYear
+        ? `So far in ${year} you have spotted`
+        : `In ${year} you spotted`;
   const busiest = [...sessions].sort((a, b) => b.sightings.length - a.sightings.length)[0];
   const topAirline = ss.byAirline.items[0];
   const topType = ss.byType.items[0];
@@ -66,21 +80,24 @@ export function Spotting() {
     <div className="page">
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
-        <span className="view-top__actions hide-phone">
-          <Link className="btn btn--quiet" to="/spotting/session">
-            <Icon name="notebook-pen" />
-            Log a session
-          </Link>
-        </span>
+        {!shared && (
+          <span className="view-top__actions hide-phone">
+            <Link className="btn btn--quiet" to="/spotting/session">
+              <Icon name="notebook-pen" />
+              Log a session
+            </Link>
+          </span>
+        )}
       </div>
       <h1 className="lead">
         {sightings.length ? (
           <>
             {when} <Fig>{plural(ss.aircraft.value, "aircraft", "aircraft")}</Fig>
-            {year !== "all" && newCount > 0 && newCount !== ss.aircraft.value && <> ({nf.format(newCount)} new to your log)</>} at <Fig>{plural(ss.airports.value, "airport")}</Fig>, on {plural(sessions.length, "day out", "days out")}.
+            {shared && " spotted"}
+            {year !== "all" && newCount > 0 && newCount !== ss.aircraft.value && <> ({nf.format(newCount)} new to {shared ? "the log" : "your log"})</>} at <Fig>{plural(ss.airports.value, "airport")}</Fig>, on {plural(sessions.length, "day out", "days out")}.
           </>
         ) : (
-          `No sightings logged in ${year === "all" ? "your log" : year}.`
+          `No sightings logged in ${year === "all" ? (shared ? "the log" : "your log") : year}.`
         )}
       </h1>
       {sightings.length > 0 && (
@@ -198,7 +215,7 @@ export function Spotting() {
                         </span>
                       ))}
                     </span>
-                    <span className="row__track" title={s.airframeId && flown.has(s.airframeId) ? "You flew on this aircraft" : ""}>
+                    <span className="row__track" title={s.airframeId && flown.has(s.airframeId) ? (shared ? "Flown on too" : "You flew on this aircraft") : ""}>
                       {s.airframeId && flown.has(s.airframeId) && <Icon name="tickets-plane" />}
                     </span>
                   </Link>

@@ -1,17 +1,24 @@
-// A sighting on a shared link (docs/32-modes-and-sharing.md, "What a link shows"): the app has no page for one, so it
-// is made here: the aircraft's photo, its registration, type and airline, where and when it was seen, in which
-// statuses, and its livery.
+// A sighting on a shared link (docs/32-modes-and-sharing.md, "What a link shows"): the app has no page for one (a
+// sighting opens in its form), so it is made here from the app's parts: the aircraft's photo, its registration, type
+// and airline, where and when it was seen, in which statuses, and its livery.
 
-import { liveryName, phasesOf, type RefIndex, type Store } from "@touchdown/core";
+import { useParams } from "@tanstack/react-router";
+import { liveryName, phasesOf } from "@touchdown/core";
+import { useApp } from "../data/context.tsx";
 import { airportWithCode } from "../lib/codes.ts";
 import { airlineLabel, dateOnly, PHASE_LABEL, TAG_LABEL, typeName } from "../lib/format.ts";
+import { Icon } from "../lib/icons.tsx";
+import { Link } from "../lib/link.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
-import { Gone } from "./Frame.tsx";
+import { NotFound } from "../pages/NotFound.tsx";
 
-export function SightingView({ store, ref, sightingId }: { store: Store; ref: RefIndex; sightingId: string }) {
-  const s = store.get("sightings", sightingId);
-  if (!s) return <Gone what="This sighting is no longer shared." />;
+export function SightingView() {
+  const { id } = useParams({ strict: false }) as { id?: string };
+  const { app } = useApp();
+  const { store, ref } = app;
+  const s = id ? store.get("sightings", id) : null;
+  if (!s) return <NotFound what="That sighting is not in this link." back={{ to: "/spotting", label: "Spotting" }} />;
   const a = store.get("airframes", s.airframeId);
   const typeText = s.model ? s.model : typeName(s.typeCode ?? a?.typeCode ?? null, ref);
   const place = s.spotName ?? airportWithCode(s.airportId, ref, s.airportRaw);
@@ -23,10 +30,23 @@ export function SightingView({ store, ref, sightingId }: { store: Store; ref: Re
   const reg = s.registration ?? s.registrationRaw ?? "";
 
   return (
-    <>
+    <div className="page">
+      <nav className="crumbs" aria-label="Back">
+        <Link to="/spotting">
+          <Icon name="arrow-left" /> Spotting
+        </Link>
+      </nav>
       <div className={`aircraft-hero${livery ? " aircraft-hero--livery" : ""}`}>
         <div>
-          <h1 className="route-hero__code">{reg || "No registration"}</h1>
+          <h1 className="route-hero__code">
+            {a ? (
+              <Link className="route-hero__link" to="/aircraft/$id" params={{ id: a.id }}>
+                {reg || "No registration"}
+              </Link>
+            ) : (
+              reg || "No registration"
+            )}
+          </h1>
           <p className="flight-date">
             <b>{typeText || "Type not recorded"}</b>
             {(s.operatorId || s.operatorRaw) && ` · ${s.operatorId ? airlineLabel(s.operatorId, ref) : s.operatorRaw}`}
@@ -110,6 +130,6 @@ export function SightingView({ store, ref, sightingId }: { store: Store; ref: Re
           )}
         </dl>
       </section>
-    </>
+    </div>
   );
 }

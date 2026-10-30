@@ -1,7 +1,7 @@
 // One flight in a list (Flights, airport pages), with the column heads that go above a list of them.
 
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { useApp } from "../data/context.tsx";
 import type { FlightView } from "../lib/views.ts";
 import type { TrackInfo } from "../lib/mapdata.ts";
@@ -26,10 +26,13 @@ export function FlightCols() {
 }
 
 /** What the track icon means, for its tooltip and for screen readers. */
-function trackText(track: TrackInfo | null): { title: string; detail: string } {
+function trackText(track: TrackInfo | null, shared: boolean): { title: string; detail: string } {
   const from = track?.provider && TRACK_SOURCE[track.provider] ? ` from ${TRACK_SOURCE[track.provider]}` : "";
   if (!track) return { title: "Great circle only", detail: "No recorded track for this flight. The map draws the shortest path between the two airports, not the route flown." };
-  if (!track.here) return { title: "Recorded track, not in this browser yet", detail: `The path the aircraft flew${from}. It is read from your storage at the next sync. Until then the map draws the great circle.` };
+  if (!track.here)
+    return shared
+      ? { title: "Recorded track, loading", detail: `The path the aircraft flew${from}. Until it is in, the map draws the great circle.` }
+      : { title: "Recorded track, not in this browser yet", detail: `The path the aircraft flew${from}. It is read from your storage at the next sync. Until then the map draws the great circle.` };
   if (track.coverage === "partial") return { title: "Recorded track, with gaps", detail: `Part of the path the aircraft flew${from}. The missing stretches are drawn as great circles.` };
   return { title: "Recorded track", detail: `The path the aircraft flew${from}, drawn on the map in place of the great circle.` };
 }
@@ -48,7 +51,7 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
   const { app } = useApp();
   const { ref } = app;
   const unit = app.settings().distanceUnit ?? "km";
-  const t = trackText(track);
+  const t = trackText(track, app.readOnly);
   const tip = (e: React.PointerEvent) => showTip(`<strong>${esc(t.title)}</strong><br><span class="muted">${esc(t.detail)}</span>`, e.clientX, e.clientY);
   return (
     <li>

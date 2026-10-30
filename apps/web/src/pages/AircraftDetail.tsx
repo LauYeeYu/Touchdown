@@ -2,7 +2,8 @@
 // Tools from docs/11-aircraft-identity.md: set the serial number, edit facts, merge two airframes.
 
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { flightDay, isValidDate, liveryName, liveryNames, pastedFactsFor, phasesOf, sameLivery, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
@@ -45,7 +46,9 @@ export function AircraftDetail() {
   const [mergeQ, setMergeQ] = useState("");
   const [paste, setPaste] = useState("");
 
-  if (!v) return <NotFound what="That aircraft is not in your log." back={{ to: "/aircraft", label: "All aircraft" }} />;
+  // A share link names nobody (docs/32, "The public page"), and leaves out what changes the log.
+  const shared = app.readOnly;
+  if (!v) return <NotFound what={shared ? "That aircraft is not in this link." : "That aircraft is not in your log."} back={{ to: "/aircraft", label: "All aircraft" }} />;
   const a = v.airframe;
   const regs = store.all("registration_periods").filter((p) => p.airframeId === a.id);
   const events: Event[] = [
@@ -100,9 +103,9 @@ export function AircraftDetail() {
 
   const sentence = (
     <>
-      {v.flights.length > 0 && `You flew on ${reg || "this aircraft"} ${v.flights.length === 1 ? "once" : plural(v.flights.length, "time")}${flownClause}`}
-      {v.flights.length > 0 && v.sightings.length > 0 && `${flownClause.startsWith(",") ? "," : ""} and photographed it `}
-      {v.flights.length === 0 && v.sightings.length > 0 && `You photographed ${reg || "this aircraft"} `}
+      {v.flights.length > 0 && `${shared ? "Flown on" : `You flew on ${reg || "this aircraft"}`} ${v.flights.length === 1 ? "once" : plural(v.flights.length, "time")}${flownClause}`}
+      {v.flights.length > 0 && v.sightings.length > 0 && `${flownClause.startsWith(",") ? "," : ""} and photographed ${shared ? "" : "it "}`}
+      {v.flights.length === 0 && v.sightings.length > 0 && (shared ? "Photographed " : `You photographed ${reg || "this aircraft"} `)}
       {v.sightings.length > 0 && `${v.sightings.length === 1 ? "once" : plural(v.sightings.length, "time")}${spottedClause}`}
       {first?.date && `, first on ${dateOnly(first.date, { day: "numeric", month: "long", year: "numeric" })}`}
       {first?.kind === "sighting" && first.s.airportId && ` at ${airportWithCode(first.s.airportId, ref)}`}
@@ -284,115 +287,119 @@ export function AircraftDetail() {
             </p>
           )}
 
-          <h3 className="subhead">Correct this aircraft</h3>
-          <div className="paste-facts">
-            <Field label="Paste from a web page" hint="Open one of the sites above, select all and copy, then paste here. The serial number, line number, first flight and delivery dates are read from the text.">
-              <textarea className="input textarea" rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Serial number 10741 · First flight date 17/09/2011 …" />
-            </Field>
-            {pasted && (
-              <div className="paste-facts__found">
-                {Object.keys(pastedPatch).length ? (
-                  <p>
-                    Found{pasted.site ? ` on ${pasted.site}` : ""}:{" "}
-                    {[
-                      pastedPatch.msn && `serial number ${pastedPatch.msn}`,
-                      pastedPatch.lineNumber && `line ${pastedPatch.lineNumber}`,
-                      pastedPatch.firstFlightDate && `first flight ${dayMonthYear(pastedPatch.firstFlightDate)}`,
-                      pastedPatch.deliveryDate && `delivered ${dayMonthYear(pastedPatch.deliveryDate)}`,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
-                    .
-                  </p>
-                ) : (
-                  <p className="muted">{pasted.msn || pasted.firstFlightDate ? "Nothing new: these values are already saved." : "No serial number or dates found in this text."}</p>
-                )}
-                {pasted.firstFlightMonth && !pasted.firstFlightDate && <p className="muted">The page gives only the month of the first flight ({pasted.firstFlightMonth}), and a date needs the day.</p>}
-                {pastedProblem && (
-                  <p className="paste-facts__warn">
-                    <Icon name="info" /> This may be another aircraft: {pastedProblem}.
-                  </p>
-                )}
-                {Object.keys(pastedPatch).length > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn--quiet btn--small"
-                    onClick={() => {
-                      app.updateAirframe(a.id, pastedPatch);
-                      setPaste("");
-                      toast("Saved from the pasted page.");
-                    }}
-                  >
-                    Save these
-                  </button>
+          {!shared && (
+            <>
+              <h3 className="subhead">Correct this aircraft</h3>
+              <div className="paste-facts">
+                <Field label="Paste from a web page" hint="Open one of the sites above, select all and copy, then paste here. The serial number, line number, first flight and delivery dates are read from the text.">
+                  <textarea className="input textarea" rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Serial number 10741 · First flight date 17/09/2011 …" />
+                </Field>
+                {pasted && (
+                  <div className="paste-facts__found">
+                    {Object.keys(pastedPatch).length ? (
+                      <p>
+                        Found{pasted.site ? ` on ${pasted.site}` : ""}:{" "}
+                        {[
+                          pastedPatch.msn && `serial number ${pastedPatch.msn}`,
+                          pastedPatch.lineNumber && `line ${pastedPatch.lineNumber}`,
+                          pastedPatch.firstFlightDate && `first flight ${dayMonthYear(pastedPatch.firstFlightDate)}`,
+                          pastedPatch.deliveryDate && `delivered ${dayMonthYear(pastedPatch.deliveryDate)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                        .
+                      </p>
+                    ) : (
+                      <p className="muted">{pasted.msn || pasted.firstFlightDate ? "Nothing new: these values are already saved." : "No serial number or dates found in this text."}</p>
+                    )}
+                    {pasted.firstFlightMonth && !pasted.firstFlightDate && <p className="muted">The page gives only the month of the first flight ({pasted.firstFlightMonth}), and a date needs the day.</p>}
+                    {pastedProblem && (
+                      <p className="paste-facts__warn">
+                        <Icon name="info" /> This may be another aircraft: {pastedProblem}.
+                      </p>
+                    )}
+                    {Object.keys(pastedPatch).length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn--quiet btn--small"
+                        onClick={() => {
+                          app.updateAirframe(a.id, pastedPatch);
+                          setPaste("");
+                          toast("Saved from the pasted page.");
+                        }}
+                      >
+                        Save these
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-          <form
-            className="inline-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!msn.trim()) return;
-              app.updateAirframe(a.id, { msn: msn.trim(), manufacturer: a.manufacturer ?? ref.manufacturerOf(a.typeCode) });
-              setMsn("");
-              toast("Serial number saved. This aircraft is now confirmed.");
-            }}
-          >
-            <Field label="Serial number (MSN)" hint="From the manufacturer, e.g. on airfleets.net or planespotters.net">
-              <TextInput value={msn} onChange={(e) => setMsn(e.target.value)} placeholder={a.msn ?? "e.g. 10741"} />
-            </Field>
-            <button type="submit" className="btn btn--quiet btn--small" disabled={!msn.trim()}>
-              Save
-            </button>
-          </form>
-          <form
-            className="inline-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!isValidDate(ffd)) return;
-              app.updateAirframe(a.id, { firstFlightDate: ffd });
-              setFfd("");
-              toast("First flight date saved.");
-            }}
-          >
-            <Field label="First flight date">
-              <input className="input" type="date" value={ffd} onChange={(e) => setFfd(e.target.value)} />
-            </Field>
-            <button type="submit" className="btn btn--quiet btn--small" disabled={!isValidDate(ffd)}>
-              Save
-            </button>
-          </form>
-          <div className="inline-form inline-form--merge">
-            <Field label="Same aircraft as…" hint="Two entries for one physical aircraft, for example after a registration change. Their records move here.">
-              <TextInput value={mergeQ} onChange={(e) => setMergeQ(e.target.value)} placeholder="Registration of the other entry" />
-            </Field>
-            {mergeCandidates.length > 0 && (
-              <ul className="merge-list">
-                {mergeCandidates.map((c) => (
-                  <li key={c.airframe.id}>
-                    <span>
-                      <b>{c.registration}</b> · {typeName(c.airframe.typeCode, ref)} · {plural(c.flights.length + c.sightings.length, "record")}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn--quiet btn--small"
-                      onClick={() => {
-                        if (!window.confirm(`Merge ${c.registration} into ${reg}? Its ${plural(c.flights.length + c.sightings.length, "record")} move to this aircraft.`)) return;
-                        app.mergeAirframes(a.id, c.airframe.id);
-                        setMergeQ("");
-                        toast("Merged.");
-                        navigate({ to: "/aircraft/$id", params: { id: a.id } });
-                      }}
-                    >
-                      <Icon name="merge" />
-                      Merge here
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+              <form
+                className="inline-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!msn.trim()) return;
+                  app.updateAirframe(a.id, { msn: msn.trim(), manufacturer: a.manufacturer ?? ref.manufacturerOf(a.typeCode) });
+                  setMsn("");
+                  toast("Serial number saved. This aircraft is now confirmed.");
+                }}
+              >
+                <Field label="Serial number (MSN)" hint="From the manufacturer, e.g. on airfleets.net or planespotters.net">
+                  <TextInput value={msn} onChange={(e) => setMsn(e.target.value)} placeholder={a.msn ?? "e.g. 10741"} />
+                </Field>
+                <button type="submit" className="btn btn--quiet btn--small" disabled={!msn.trim()}>
+                  Save
+                </button>
+              </form>
+              <form
+                className="inline-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!isValidDate(ffd)) return;
+                  app.updateAirframe(a.id, { firstFlightDate: ffd });
+                  setFfd("");
+                  toast("First flight date saved.");
+                }}
+              >
+                <Field label="First flight date">
+                  <input className="input" type="date" value={ffd} onChange={(e) => setFfd(e.target.value)} />
+                </Field>
+                <button type="submit" className="btn btn--quiet btn--small" disabled={!isValidDate(ffd)}>
+                  Save
+                </button>
+              </form>
+              <div className="inline-form inline-form--merge">
+                <Field label="Same aircraft as…" hint="Two entries for one physical aircraft, for example after a registration change. Their records move here.">
+                  <TextInput value={mergeQ} onChange={(e) => setMergeQ(e.target.value)} placeholder="Registration of the other entry" />
+                </Field>
+                {mergeCandidates.length > 0 && (
+                  <ul className="merge-list">
+                    {mergeCandidates.map((c) => (
+                      <li key={c.airframe.id}>
+                        <span>
+                          <b>{c.registration}</b> · {typeName(c.airframe.typeCode, ref)} · {plural(c.flights.length + c.sightings.length, "record")}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn--quiet btn--small"
+                          onClick={() => {
+                            if (!window.confirm(`Merge ${c.registration} into ${reg}? Its ${plural(c.flights.length + c.sightings.length, "record")} move to this aircraft.`)) return;
+                            app.mergeAirframes(a.id, c.airframe.id);
+                            setMergeQ("");
+                            toast("Merged.");
+                            navigate({ to: "/aircraft/$id", params: { id: a.id } });
+                          }}
+                        >
+                          <Icon name="merge" />
+                          Merge here
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </section>
     </div>

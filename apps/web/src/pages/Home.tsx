@@ -1,7 +1,8 @@
 // Home: the period in one sentence, the main stats, and the period's map; then context below.
 
 import { useMemo } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { flightStats, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -65,12 +66,32 @@ export function Home() {
   }, [store, ref, version, year, unit]);
 
   const issues = app.findings().filter((f) => f.severity !== "info");
-  if (!store.count("flights") && !store.count("sightings")) return <EmptyLog />;
+  if (!store.count("flights") && !store.count("sightings"))
+    return app.readOnly ? (
+      <div className="page placeholder">
+        <h1 className="lead">Nothing has been logged yet.</h1>
+      </div>
+    ) : (
+      <EmptyLog />
+    );
 
   const { views, fs, ss, sessions, both } = d;
   const past = year === "all" || year === thisYear;
   const firstYear = years[0] ?? thisYear;
-  const when = year === "all" ? `Since you started logging in ${firstYear}, you have` : year === thisYear ? `So far in ${year} you have` : `In ${year} you`;
+  // A share link names nobody (docs/32, "The public page"): its sentence counts what the log holds.
+  const shared = app.readOnly;
+  const yourLog = shared ? "the log" : "your log";
+  const when = shared
+    ? year === "all"
+      ? `Since ${firstYear},`
+      : year === thisYear
+        ? `So far in ${year},`
+        : `In ${year},`
+    : year === "all"
+      ? `Since you started logging in ${firstYear}, you have`
+      : year === thisYear
+        ? `So far in ${year} you have`
+        : `In ${year} you`;
   const flownAircraft = fs.aircraft.value;
   const spotAirports = ss.airports.value;
 
@@ -87,7 +108,7 @@ export function Home() {
 
   const flownPart = views.length ? (
     <>
-      {past ? "flown" : "flew"}{" "}
+      {!shared && <>{past ? "flown " : "flew "}</>}
       <Phrase kind="flown" bind={bind}>
         <Fig>{plural(views.length, "flight")}</Fig>
       </Phrase>
@@ -112,9 +133,10 @@ export function Home() {
   ) : null;
   const spotPart = ss.aircraft.value ? (
     <>
-      spotted{" "}
+      {!shared && "spotted "}
       <Phrase kind="spotted" bind={bind}>
-        <Fig>{plural(ss.aircraft.value, "aircraft", "aircraft")}</Fig> at {plural(spotAirports, "airport")}
+        <Fig>{plural(ss.aircraft.value, "aircraft", "aircraft")}</Fig>
+        {shared && " spotted"} at {plural(spotAirports, "airport")}
       </Phrase>
     </>
   ) : null;
@@ -134,7 +156,7 @@ export function Home() {
       </div>
       <h1 className="lead">
         {!flownPart && !spotPart ? (
-          `Nothing logged in ${year === "all" ? "your log yet" : year}.`
+          `Nothing logged ${year === "all" ? (shared ? "yet" : "in your log yet") : `in ${year}`}.`
         ) : (
           <>
             {when} {flownPart}
@@ -143,9 +165,9 @@ export function Home() {
             {both.length > 0 && (
               <>
                 {" "}
-                You flew on{" "}
+                {shared ? "Flown on " : "You flew on "}
                 <Phrase kind="both" bind={bind}>
-                  <Fig>{both.length}</Fig> of the aircraft you photographed
+                  <Fig>{both.length}</Fig> of the aircraft {shared ? "photographed" : "you photographed"}
                 </Phrase>
                 .
               </>
@@ -256,7 +278,7 @@ export function Home() {
                   {lastSession.date && <b>{dayShort(lastSession.date)}</b>} · {plural(lastSession.aircraft, "aircraft", "aircraft")} seen
                   {lastSession.newAircraft > 0 && (
                     <>
-                      , <span className="tag-new">{lastSession.newAircraft} new</span> to your log
+                      , <span className="tag-new">{lastSession.newAircraft} new</span> to {yourLog}
                     </>
                   )}
                 </p>
@@ -298,7 +320,7 @@ export function Home() {
             Flown and photographed
           </h2>
           <span className="section__aside">
-            {plural(both.length, "aircraft", "aircraft")} in {year === "all" ? "your log" : year}
+            {plural(both.length, "aircraft", "aircraft")} in {year === "all" ? yourLog : year}
           </span>
         </div>
         {both.length ? (
@@ -357,7 +379,7 @@ export function Home() {
               <span className="dot dot--spotted" />
               New aircraft spotted
             </h3>
-            <p className="chart__sub">{plural(newByMonth.reduce((a, b) => a + b, 0), "aircraft", "aircraft")} added to your log, by month</p>
+            <p className="chart__sub">{plural(newByMonth.reduce((a, b) => a + b, 0), "aircraft", "aircraft")} added to {yourLog}, by month</p>
             <MonthChart values={newByMonth} color="var(--spotted)" unitOne="new aircraft" unitMany="new aircraft" futureFrom={futureFrom} yearLabel={year === "all" ? "" : year} />
           </div>
         </div>

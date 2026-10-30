@@ -1,7 +1,7 @@
 // Aircraft: every airframe in the log, counted once however many registrations it had (requirement I4).
 
 import { useMemo } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { flightDay, liveryNames } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
@@ -77,11 +77,20 @@ export function AircraftList() {
       <h1 className="lead">
         {views.length ? (
           <>
-            Your log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: you flew on <Fig>{flown}</Fig>, and <Fig>{both}</Fig> of those you also photographed.{" "}
-            {provisional > 0 && `${provisional === views.length ? "All are" : provisional === 1 ? "One is" : `${provisional} are`} matched by registration until a serial number is known.`}
+            {app.readOnly ? (
+              // A share link names nobody (docs/32, "The public page"), and leaves out how aircraft are matched.
+              <>
+                The log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: <Fig>{flown}</Fig> flown on, and <Fig>{both}</Fig> of those also photographed.
+              </>
+            ) : (
+              <>
+                Your log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: you flew on <Fig>{flown}</Fig>, and <Fig>{both}</Fig> of those you also photographed.{" "}
+                {provisional > 0 && `${provisional === views.length ? "All are" : provisional === 1 ? "One is" : `${provisional} are`} matched by registration until a serial number is known.`}
+              </>
+            )}
           </>
         ) : (
-          "No aircraft yet. They appear as you log flights and sightings with registrations."
+          app.readOnly ? "No aircraft in the log." : "No aircraft yet. They appear as you log flights and sightings with registrations."
         )}
       </h1>
       <div className="filters" role="search">

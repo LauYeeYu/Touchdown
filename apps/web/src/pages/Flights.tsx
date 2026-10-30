@@ -1,7 +1,8 @@
 // Flights: the period in a sentence, the period's routes on a map, then the list grouped by month.
 
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { Link } from "../lib/link.tsx";
 import { flightStats, todayIn } from "@touchdown/core";
 import { flightSearch, flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
@@ -70,7 +71,20 @@ export function Flights() {
   const recordedShown = marks.filter((m) => m.track && shownIds.has(m.id)).length;
   const shownKm = shown.reduce((s, v) => s + (v.km ?? 0), 0);
 
-  const opening = year === "all" ? `Since ${years[0] ?? thisYear} you have taken` : year === thisYear ? `So far in ${year} you have taken` : `In ${year} you took`;
+  // A share link names nobody (docs/32, "The public page").
+  const shared = app.readOnly;
+  const first = years[0] ?? thisYear;
+  const opening = shared
+    ? year === "all"
+      ? `Since ${first},`
+      : year === thisYear
+        ? `So far in ${year},`
+        : `In ${year},`
+    : year === "all"
+      ? `Since ${first} you have taken`
+      : year === thisYear
+        ? `So far in ${year} you have taken`
+        : `In ${year} you took`;
   const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
   const topRoute = fs.byRoute.items[0];
   const [ra, rb] = topRoute ? routeCodes(topRoute.key, ref, " ").split(" ") : [];
@@ -102,10 +116,12 @@ export function Flights() {
     <div className="page">
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
-        <Link className="btn btn--quiet hide-phone" to="/flights/new">
-          <Icon name="plus" />
-          Add flight
-        </Link>
+        {!shared && (
+          <Link className="btn btn--quiet hide-phone" to="/flights/new">
+            <Icon name="plus" />
+            Add flight
+          </Link>
+        )}
       </div>
       <h1 className="lead">
         {views.length ? (
@@ -137,7 +153,7 @@ export function Flights() {
             )}
             {topRoute && topRoute.count > 1 && (
               <>
-                {longest?.km && longest.route ? " " : ""}The route you flew most was{" "}
+                {longest?.km && longest.route ? " " : ""}{shared ? "The route flown most was" : "The route you flew most was"}{" "}
                 <span className="phrase phrase--flown" {...bind(topRoute.key)}>
                   <Fig>
                     {ra} ⇄ {rb}
@@ -149,7 +165,7 @@ export function Flights() {
             )}
           </>
         ) : (
-          `No flights logged in ${year === "all" ? "your log" : year}.`
+          `No flights logged in ${year === "all" ? (shared ? "the log" : "your log") : year}.`
         )}
       </h1>
       <div className="map-wrap">
@@ -207,7 +223,8 @@ export function Flights() {
           <input type="checkbox" checked={recordedOnly} onChange={(e) => setRecordedOnly(e.target.checked)} />
           Recorded tracks only
         </label>
-        {withoutTrack > 0 && (
+        {/* For the owner, to send to someone who can find the tracks: not on a share link. */}
+        {withoutTrack > 0 && !shared && (
           <button
             type="button"
             className="btn btn--quiet btn--small"
