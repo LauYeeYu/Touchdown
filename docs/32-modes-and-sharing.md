@@ -132,16 +132,18 @@ Decided: links are a Standard-mode feature. The server reads a link's file from 
 
 #### What a link shows
 
-Decided, built. A link shows one page, read-only, and the viewer receives only what that page needs.
+Decided (changed), built. A link opens on the app's own pages, read-only ([The public page](#the-public-page)), and the viewer receives only what those pages need.
 
-| Kind | Made from | The page | The viewer receives |
-|------|-----------|----------|---------------------|
-| `flight` | A flight's page | The flight's page: the sentence, the livery band, the map with the recorded track, the times, the seat and details, the aircraft card with the aircraft's facts | The flight, its track and photo links, the aircraft's facts. Not the user's other flights on that aircraft. |
-| `sighting` | The sighting's page (its edit page today) | A sighting page made for the viewer (the app has none): the aircraft's photo, registration, type, airline, place, day, statuses and livery | The sighting, its statuses, tags and photo links, the aircraft's facts |
-| `aircraft` | An aircraft's page | The aircraft's page: the sentence, the livery band, the facts, the timeline of the user's flights and sightings of it | The aircraft, its registration and operator periods, the user's flights on it and sightings of it, without tracks |
-| `log` | Home's share icon, or Shared links ("Share your whole log") | Home, Flights, Spotting, Aircraft and Statistics, read-only, with the period control, and the flight and aircraft pages they open, all inside the link | Every flight, sighting and aircraft and their child rows. A flight's track is fetched when its page is opened; the overview maps draw great circles. |
+| Kind | Made from | The pages | The viewer receives |
+|------|-----------|-----------|---------------------|
+| `flight` | A flight's page | The app's flight page: the sentence, the livery band, the map or globe with the recorded track, the times, the altitude, the seat and details, the aircraft card | The flight, its track and photo links, the aircraft's facts. Not the user's other flights on that aircraft. |
+| `sighting` | The sighting's page (its edit page today) | A sighting page made from the app's parts (the app has none): the aircraft's photo, registration, type, airline, place, day, statuses and livery | The sighting, its statuses, tags and photo links, the aircraft's facts |
+| `aircraft` | An aircraft's page | The app's aircraft page: the sentence, the livery band, the facts, the timeline; and the pages of the user's flights on it and sightings of it | The aircraft, its registration and operator periods, the user's flights on it with their tracks, and sightings of it |
+| `log` | Home's share icon, or Shared links ("Share your whole log") | The app's pages: Home (the sentence, facts, map and globe, the latest flight and session, month by month), Flights and Spotting with their search and filters, Aircraft, Statistics with its globe, and the flight, aircraft, airport and sighting pages they open, all inside the link | Every flight, sighting and aircraft and their child rows, and every recorded track |
 
-Notes and photo links are shared with their records: the page shows them as the app does. There is no switch to leave them out. The viewer never receives private data, deleted entries, the rows' sync columns (`rev`, `updatedBy`, `versionVector`, …) or import bookkeeping (`sourceBatchId`, `sourceRow`), and nothing that is not the log's records: settings, imports, issues, checks, history, the inbox.
+Notes and photo links are shared with their records: the page shows them as the app does. There is no switch to leave them out. Of the settings, only the owner's display choices are sent (distance unit, code style, model naming), so the pages read as the owner's do. The viewer never receives private data, deleted entries, the rows' sync columns (`rev`, `updatedBy`, `versionVector`, …) or import bookkeeping (`sourceBatchId`, `sourceRow`), and nothing else that is not the log's records: the rest of the settings (where the log is stored, the home airport), imports, issues, checks, saved views, history, the inbox.
+
+The pages speak of the log, not to its owner: "So far in 2026, 41 flights …", "Flown on twice", not "you have flown". They leave out what changes the log, the owner's checks and the owner's tools (the list of flights without a track, saved views). A link to a page the link does not show, such as an airport inside a flight's link, is plain text.
 
 #### One link per thing
 
@@ -149,7 +151,7 @@ Decided, built. A flight, sighting or aircraft has at most one link, and there i
 
 #### Address
 
-Decided, built: `https://<site>/p/<id>`, where the id is 128 random bits in base64url (22 characters), not made from the record. Pages inside a whole-log link follow a `#`, with the app's own addresses ([31](31-ui.md), "Addresses"): `/p/<id>#/flights/2025-03-14T0812-AMS-MAD`. The part after `#` never reaches the server.
+Decided, built: `https://<site>/p/<id>`, where the id is 128 random bits in base64url (22 characters), not made from the record. Pages inside a link follow a `#`, with the app's own addresses ([31](31-ui.md), "Addresses"): `/p/<id>#/flights/2025-03-14T0812-AMS-MAD`. The part after `#` never reaches the server. A flight, sighting or aircraft link opens on its record's page.
 
 #### Reading the log live
 
@@ -167,6 +169,7 @@ Why this is safe when the log changes:
 - **Links never write.** Opening a link only reads, so links add nothing to what devices write and merge ([12](12-storage-and-sync.md), "Sync algorithm").
 - **Files changing while read.** A device may be writing several table files during a sync while the server reads them, so a flight can name an aircraft not written yet. The content is built from what each file held; the viewer shows what is there (the registration as typed when the aircraft is missing), and the next opening after the files settle shows them together, since the cache follows each file's version.
 - **A stopped link** fails at the first step, so no cache needs purging.
+- **A log of another version.** The server never writes the log and never upgrades it, whatever version it is at. A table file an older version wrote is brought up to date in memory as it is read, as the app reads one (`upgradeTableFile` in core). A file written by a newer version than the server makes the link "not available right now" rather than show it wrongly. The server and the app are deployed together, so this lasts only while an older server runs beside a newer app ([12](12-storage-and-sync.md), "Old copies and upgrades").
 
 When things change:
 - **The record is deleted,** on any device or from the CLI. The link stays, and its page says "This flight is no longer shared." The Shared links page says the flight was deleted, with Stop sharing. If the record comes back (an undone import), the link shows it again.
@@ -182,9 +185,9 @@ Decided, built. The server reads a fixed list of tables for each kind, and never
 |------|--------|
 | `flight` | `flights`, `airframes`, `photo_links`, `tracks` (to find the flight's track) and that track's points |
 | `sighting` | `sightings`, `sighting_phases`, `sighting_tags`, `photo_links`, `airframes` |
-| `aircraft` | `airframes`, `registration_periods`, `operator_periods`, `flights`, `sightings`, `sighting_phases`, `photo_links` |
-| `log` | All of the above, and a flight's track points when its page asks for them |
-| Every kind | The owner's corrections and groupings: `airport_overrides`, `operator_overrides`, `aircraft_type_overrides`, `family_overrides` |
+| `aircraft` | `airframes`, `registration_periods`, `operator_periods`, `flights`, `sightings`, `sighting_phases`, `tracks`, and the points of its flights' tracks |
+| `log` | All of the above, and the track points of its flights |
+| Every kind | The owner's corrections and groupings: `airport_overrides`, `operator_overrides`, `aircraft_type_overrides`, `family_overrides`; and `settings`, of which only the display choices are sent |
 
 Private data is kept apart in the storage ([Private data](#private-data)), so the files on this list hold none: a link never reads a ticket number, even to leave it out.
 
@@ -222,17 +225,19 @@ Decided, built. The `/api/shares` requests need a browser's session (not the com
 | `DELETE /api/shares` | Stop every link. |
 | `GET /p/<id>` | The viewer page, without a session. |
 | `GET /p/<id>/content` | The link's content, without a session. |
-| `GET /p/<id>/tracks/<flight id>` | A flight's track in a whole-log link, without a session; only for a flight the link shows. |
+| `GET /p/<id>/tracks?flights=<id>,…` | The recorded tracks of up to 40 of the link's flights, without a session. A flight the link does not show, or one without a track, is left out. The server reads the track files 8 at a time and keeps each under its version. |
 
 ### The public page
 
 Decided (U3): `/p/<id>` is the only route with user content outside the sign-in; the others are the sign-in pages, the privacy policy and the terms ([33](33-accounts-and-sign-in.md)). It serves the content of one link and nothing else.
 
-Decided, built (`apps/web/src/share/`):
-- **Not the app.** A separate viewer page with its own build (`share.html`, `vite.share.config.ts`), as the sign-in pages have. Its files are served from `/share-files/`, which holds code, styles, fonts, the world map and the reference data, no user content, and opens without a session as `/signin-files/` does.
-- **Three requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the content, and `GET /p/<id>/tracks/<flight id>` a flight's track in a whole-log link. No other API.
-- **Read-only.** No editing, no menus, no links into the app. The pages reuse the core view code and the app's map, livery band, times and chart components. Photos come from planespotters.net, as in the app.
-- **Footer.** "Shared from Touchdown", with the privacy policy.
+Decided (changed), built (`apps/web/src/share/`):
+- **The app's pages, not the app.** A page with its own build (`share.html`, `vite.share.config.ts`), as the sign-in pages have, that shows the app's own pages (`src/pages`) over the link's content: a read-only stand-in for the app's data (`src/share/data.ts`, `readOnly`), and the app's routes at `#` addresses (`src/share/router.tsx`). It never opens the app's database and never syncs. Its files are served from `/share-files/`, which holds code, styles, fonts, the world map and the reference data, no user content, and opens without a session as `/signin-files/` does.
+- **Its requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the content, and `GET /p/<id>/tracks?flights=…` the recorded tracks. No other API.
+- **Tracks.** Read once the page shows, as the app's sync reads them: newest flights first, 25 a request and 4 requests at a time, each request's tracks drawn as they arrive. Until a flight's track is in, its maps draw the great circle, and the masthead counts them ("Tracks 12 of 40").
+- **Read-only.** The app's masthead with the wordmark, and for a whole log the main navigation (the bottom bar on phones). No editing, no Issues, no menus, no links into the app ([What a link shows](#what-a-link-shows)). Photos come from planespotters.net, as in the app.
+- **The visitor's browser.** Nothing is kept beyond the tab: where each page was scrolled, the page's choices (such as the year shown) and the photos found, in session storage. No database, no local storage, no cookies.
+- **Footer.** "Shared from Touchdown, a log of flights and aircraft. Read only, and as it is now in its owner's log.", the data credits, the privacy policy and the terms.
 - **No analytics.** The share page carries no page-view counting, so people who open a link are not counted by anyone but the link's own count: its HTML is sent with `Cache-Control: no-transform`, so Cloudflare adds no script, and its Content Security Policy would block one anyway.
 - **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and a Content Security Policy of its own (`SHARE_CSP` in `packages/server/src/headers.ts`): its own files and planespotters.net, no Google and no Cloudflare Web Analytics. Link previews in chat apps get a plain title ("Shared from Touchdown") and nothing from the log (Q-SHARE-PREVIEW).
 - **The gate.** The server lets `/p/*` and `/share-files/*` through without a session; every other address still needs one ([33](33-accounts-and-sign-in.md)).
