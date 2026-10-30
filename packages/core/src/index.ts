@@ -14,6 +14,7 @@ export * from "./conflicts.ts";
 export * from "./reconcile.ts";
 export * from "./phases.ts";
 export * from "./private.ts";
+export * from "./share.ts";
 export * from "./derive.ts";
 export * from "./livery.ts";
 export * from "./identity/resolve.ts";
