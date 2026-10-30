@@ -53,10 +53,13 @@ export function flownIn(n: number, total: number): string {
   return `${n} of ${plural(total, "flight")}`;
 }
 
-/** Days the aircraft was photographed in the livery: "9 Jun 2025", "3 times, first 9 Jun 2025". */
+/** Days the aircraft was photographed in the livery: "9 Jun 2025", "3 times, first 9 Jun 2025". A narrow band breaks
+ * the line after the count, never inside the date. */
 export function photographedIn(days: (string | null)[]): string {
   const known = days.filter((d): d is string => !!d).sort();
-  const first = known[0] ? dayMonthYear(known[0]) : null;
+  const first = known[0] ? dayMonthYear(known[0]).replace(/ /g, NBSP) : null;
   if (days.length === 1) return first ?? "Once, no date";
-  return first ? `${plural(days.length, "time")}, first ${first}` : plural(days.length, "time");
+  return first ? `${plural(days.length, "time")}, first${NBSP}${first}` : plural(days.length, "time");
 }
+
+const NBSP = "\u00a0";
