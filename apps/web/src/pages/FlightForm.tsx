@@ -3,7 +3,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { cityName, looksLikeOperatorName, parseDateTime, parseFlightNumber, todayIn, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
+import { cityName, looksLikeOperatorName, parseDateTime, parseFlightNumber, todayIn, withPrivate, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { textCode } from "../lib/codes.ts";
 import { draftFindings } from "../data/draft.ts";
@@ -82,7 +82,8 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
   const settings = app.settings();
   const existing = edit && params.id ? app.store.get("flights", params.id) : null;
-  const [d, setD] = useState<Draft>(() => fromFlight(existing));
+  // The ticket number and booking reference are in the flight's private row (docs/32, "Private data").
+  const [d, setD] = useState<Draft>(() => fromFlight(existing && withPrivate(app.store, existing)));
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
   const setTime = (k: TimeKey, part: "date" | "time", v: string) => setD((x) => ({ ...x, times: { ...x.times, [k]: { ...x.times[k], [part]: v } } }));

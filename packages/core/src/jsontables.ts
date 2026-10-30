@@ -2,7 +2,7 @@
 // table with the column list once and every row with exactly those columns, plus a manifest.
 
 import { allColumns } from "./schema/columns.ts";
-import { SCHEMA_NAME, SCHEMA_VERSION, TABLES, type TableName } from "./schema/tables.ts";
+import { isPrivateTable, SCHEMA_NAME, SCHEMA_VERSION, TABLES, type TableName } from "./schema/tables.ts";
 import { validateRow } from "./schema/validate.ts";
 import type { Store } from "./store.ts";
 
@@ -25,6 +25,12 @@ export interface Manifest {
 /** Tables stored as files; track points live in tracks/<trackId>.json instead. */
 export const FILE_TABLES = (Object.keys(TABLES) as TableName[]).filter((t) => t !== "track_points");
 
+/**
+ * A table's file in the JSON tables folder: tables whose rows can hold private data in private/, apart from the ones a
+ * share link reads (docs/32, "Private data"), the others in tables/.
+ */
+export const tableFilePath = (t: TableName) => `${isPrivateTable(t) ? "private" : "tables"}/${t}.json`;
+
 export function toTableFile(store: Store, table: TableName): TableFile {
   const columns = allColumns(TABLES[table]).map((c) => c.name);
   const rows = store.allWithDeleted(table).map((r) => Object.fromEntries(columns.map((c) => [c, (r as Record<string, unknown>)[c] ?? null])));
@@ -36,7 +42,7 @@ export function manifestFor(store: Store): Manifest {
     schema: SCHEMA_NAME,
     schemaVersion: SCHEMA_VERSION,
     backend: "json_tables",
-    tables: Object.fromEntries(FILE_TABLES.map((t) => [t, `tables/${t}.json`])),
+    tables: Object.fromEntries(FILE_TABLES.map((t) => [t, tableFilePath(t)])),
     lastWriter: store.deviceId,
   };
 }
@@ -61,6 +67,10 @@ export const MIGRATIONS: { to: number; addColumns?: { table: TableName | "*"; co
   // A sighting holds every status it was seen in, in the new sighting_phases table. Opening the log moves each
   // sighting's phase, and statuses an older import kept in its notes ("Also taxiing"), into it (core phases.ts).
   { to: 6 },
+  // Private data apart (docs/32, "Private data"): the new flight_private table starts empty, and opening the log moves
+  // each flight's ticket number and booking reference into it (core private.ts). The JSON tables backend keeps
+  // private tables in private/ and moves their files there from tables/.
+  { to: 7 },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */

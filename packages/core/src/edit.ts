@@ -13,6 +13,7 @@ import { identityKeyFor, normaliseMsn } from "./identity/facts.ts";
 import { resolveAirframes, type ResolveResult } from "./identity/resolve.ts";
 import { toUtcIso } from "./time/index.ts";
 import { setPhases } from "./phases.ts";
+import { setPrivate, splitPrivate } from "./private.ts";
 
 export interface EditOptions {
   /** The time recorded in history and provenance; defaults to now. */
@@ -66,15 +67,21 @@ function withNamedOperator<T extends Partial<FlightValues> | Partial<SightingVal
   return op ? ({ ...v, [id]: op.id } as T) : v;
 }
 
-/** Add a flight, or change one (`id`). */
+/**
+ * Add a flight, or change one (`id`). A ticket number or booking reference in `values` goes to the flight's private
+ * row, never into the flight (docs/32, "Private data"); one not given is kept, and null clears it.
+ */
 export function saveFlight(store: Store, ref: RefIndex, values: Partial<FlightValues>, id?: string, opts: EditOptions = {}): { row: Row<"flights">; resolved: ResolveResult } {
   return store.batch(() => {
-    const v = withNamedOperator(store, ref, kept(normaliseFlight(values, ref), values, opts.keepNormalised), "airlineRaw", "airlineId");
+    const { rest, given } = splitPrivate(values);
+    const v = withNamedOperator(store, ref, kept(normaliseFlight(rest, ref), rest, opts.keepNormalised), "airlineRaw", "airlineId");
     let row: Row<"flights">;
     if (id) {
       keepHistory(store, "flights", id, opts);
+      if (Object.keys(given).length) keepHistory(store, "flight_private", id, opts);
       row = store.update("flights", id, v);
     } else row = store.insert("flights", { sourceKind: "manual", ...v });
+    if (Object.keys(given).length || row.ticketNumber != null || row.bookingRef != null) setPrivate(store, row.id, given);
     const resolved = resolveAirframes(store, ref);
     return { row: store.get("flights", row.id)!, resolved };
   });
@@ -125,11 +132,15 @@ export function saveSightings(store: Store, ref: RefIndex, list: { values: Parti
   });
 }
 
-/** Delete a flight or a sighting: a sighting's tags and statuses, and the record's photo links, go with it. */
+/**
+ * Delete a flight or a sighting: a flight's private row, a sighting's tags and statuses, and the record's photo links
+ * go with it.
+ */
 export function deleteRecord(store: Store, ref: RefIndex, table: "flights" | "sightings", id: string, opts: EditOptions = {}): { resolved: ResolveResult } {
   return store.batch(() => {
     keepHistory(store, table, id, opts);
     store.remove(table, id);
+    if (table === "flights" && store.get("flight_private", id)) store.remove("flight_private", id);
     if (table === "sightings") for (const t of store.all("sighting_tags")) if (t.sightingId === id) store.remove("sighting_tags", t.id);
     if (table === "sightings") for (const p of store.all("sighting_phases")) if (p.sightingId === id) store.remove("sighting_phases", p.id);
     for (const p of store.all("photo_links")) if (p.ownerTable === table && p.ownerId === id) store.remove("photo_links", p.id);
@@ -280,6 +291,9 @@ export function resolveConflict(store: Store, ref: RefIndex, id: string, use: "k
           // As a deletion by the user: a sighting's tags go with it.
           if (table === "flights" || table === "sightings") deleteRecord(store, ref, table, c.recordId, { ...opts, history: false });
           else store.remove(table, c.recordId);
+        } else if (table === "flights" && (x.field === "ticketNumber" || x.field === "bookingRef")) {
+          // A conflict listed before private data had its own table: the value goes where the flight's is kept now.
+          if (store.get("flights", c.recordId)) setPrivate(store, c.recordId, { [x.field]: (other as string | null) ?? null });
         } else if (store.get(table, c.recordId)) store.update(table, c.recordId, { [x.field]: other } as never);
       }
     }

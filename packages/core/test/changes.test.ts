@@ -187,7 +187,9 @@ describe("importing a change file", () => {
     expect(planChanges(store, ref, changes).changes.map((c) => c.status)).toEqual(["pending", "pending", "pending", "pending", "pending", "pending"]);
     const r = applyChanges(store, ref, changes, () => true, { fileName: "edit-2026-10-24-1200.json", now: NOW });
     expect(r).toMatchObject({ applied: 6, skipped: 0 });
-    expect(store.get("flights", flight.id)).toMatchObject({ seat: "14A", departureGate: null, ticketNumber: "0019990000001" });
+    // The ticket number, which the edit left alone, is kept in the flight's private row (docs/32, "Private data").
+    expect(store.get("flights", flight.id)).toMatchObject({ seat: "14A", departureGate: null, ticketNumber: null });
+    expect(store.get("flight_private", flight.id)).toMatchObject({ ticketNumber: "0019990000001" });
     expect(store.get("sightings", sighting.id)).toBeNull();
     expect(store.get("airframes", airframeId)).toMatchObject({ msn: "30001", provisional: false });
     expect(store.all("issue_acks")).toMatchObject([{ ruleId: "V-REG-COUNTRY", note: "leased" }]);

@@ -107,7 +107,9 @@ describe("importing a file to the inbox", () => {
     const done = await run(reviewCommand, ["--yes", "--json"]);
     expect(done.json()).toMatchObject({ ok: true, imported: { rows: 2, changes: 0 } });
     const web = await webApp();
-    expect(web.store.all("flights").find((f) => f.flightNumber === "DL9002")).toMatchObject({ ticketNumber: TICKET, seat: "21F" });
+    const dl = web.store.all("flights").find((f) => f.flightNumber === "DL9002")!;
+    expect(dl).toMatchObject({ ticketNumber: null, seat: "21F" });
+    expect(web.store.get("flight_private", dl.id)).toMatchObject({ ticketNumber: TICKET });
     expect(web.store.get("flights", flightId)!.seat).toBe("12A");
     expect(web.store.all("import_batches").find((b) => b.fileName === "flights.csv")).toMatchObject({ status: "committed" });
     for (const x of [r, shown, text, done]) expect(x.text).not.toContain(TICKET);
@@ -155,7 +157,9 @@ describe("backup and export", () => {
     expect(statSync(zip).mode & 0o077).toBe(0);
     const b = readBackup(new Uint8Array(readFileSync(zip)));
     expect(b.problems).toEqual([]);
-    expect(b.tables.get("flights")!.find((f) => f.flightNumber === "DL9002")).toMatchObject({ ticketNumber: TICKET });
+    const dl = b.tables.get("flights")!.find((f) => f.flightNumber === "DL9002")!;
+    expect(dl).toMatchObject({ ticketNumber: null });
+    expect(b.tables.get("flight_private")!.find((p) => p.id === dl.id)).toMatchObject({ ticketNumber: TICKET });
     expect(b.tables.get("track_points")).toHaveLength(30);
     expect(r.text).not.toContain(TICKET);
 

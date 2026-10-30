@@ -8,6 +8,7 @@ import { flightDay } from "../derive.ts";
 import { addDays, instant, parseDateTime, toUtcIso } from "../time/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
 import { addPhases, phasesOf, settlePhases, type Phase } from "../phases.ts";
+import { settlePrivate, withPrivate } from "../private.ts";
 import { applyAirframeFacts as applyLookupFacts } from "../identity/facts.ts";
 
 export type MatchKind = "new" | "identical" | "update" | "conflict" | "duplicate";
@@ -144,7 +145,8 @@ export function matchCandidates(store: Store, candidates: Candidate[]): Match[] 
       for (const k of flightKeys(c.values)) {
         const hit = flightIndex.get(k);
         if (hit && !used.has(hit.id)) {
-          existing = hit;
+          // Compared with its ticket number and booking reference, which are in its private row.
+          existing = withPrivate(store, hit);
           break;
         }
       }
@@ -339,8 +341,10 @@ export function commitImport(
       rowsEdited: agentRows.size,
     });
 
-    // Statuses the rows brought are the sightings' statuses now.
+    // Statuses the rows brought are the sightings' statuses now, and ticket numbers and booking references go to the
+    // flights' private rows.
     settlePhases(store);
+    settlePrivate(store);
     resolveAirframes(store, ref);
     applyAirframeFacts(store, ref, facts, source.fileName, now);
     return result;
@@ -443,6 +447,7 @@ export function undoImport(store: Store, ref: RefIndex, batchId: string, force =
           continue;
         }
         store.remove(table, r.id);
+        if (table === "flights" && store.get("flight_private", r.id)) store.remove("flight_private", r.id);
         for (const t of store.all("sighting_tags")) if (t.sightingId === r.id) store.remove("sighting_tags", t.id);
         for (const p of store.all("sighting_phases")) if (p.sightingId === r.id) store.remove("sighting_phases", p.id);
         for (const e of store.all("external_ids")) if (e.ownerId === r.id) store.remove("external_ids", e.id);
@@ -478,6 +483,8 @@ export function undoImport(store: Store, ref: RefIndex, batchId: string, force =
     }
     // Records edited since were left alone; the batch stays open so a forced undo can finish the job.
     if (!result.editedSince.length) store.update("import_batches", batchId, { status: "undone" });
+    // A version put back from before private data had its own table still holds it on the flight.
+    settlePrivate(store);
     resolveAirframes(store, ref);
     return result;
   });

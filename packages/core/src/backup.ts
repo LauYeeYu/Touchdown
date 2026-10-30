@@ -2,7 +2,8 @@
 // fields included, restorable into either file backend. CSV exports per table, flattened.
 
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
-import { FILE_TABLES, checkTableFile, manifestFor, stringifyTableFile, toTableFile, upgradeTableFile, type TableFile } from "./jsontables.ts";
+import { FILE_TABLES, checkTableFile, manifestFor, stringifyTableFile, tableFilePath, toTableFile, upgradeTableFile, type TableFile } from "./jsontables.ts";
+import { privateIndex } from "./private.ts";
 import { allColumns } from "./schema/columns.ts";
 import { PRIVATE_FIELDS, SCHEMA_NAME, SCHEMA_VERSION, TABLES, type TableName } from "./schema/tables.ts";
 import type { Store } from "./store.ts";
@@ -11,7 +12,8 @@ export function backupZip(store: Store): Uint8Array {
   const files: Record<string, Uint8Array> = {
     "Touchdown/manifest.json": strToU8(JSON.stringify(manifestFor(store), null, 2) + "\n"),
   };
-  for (const t of FILE_TABLES) files[`Touchdown/tables/${t}.json`] = strToU8(stringifyTableFile(toTableFile(store, t)));
+  // As the folder in the storage is laid out: private tables in private/ (docs/12).
+  for (const t of FILE_TABLES) files[`Touchdown/${tableFilePath(t)}`] = strToU8(stringifyTableFile(toTableFile(store, t)));
   // Track points are stored per track (docs/12), so each track's points go in their own file.
   const points = toTableFile(store, "track_points");
   const byTrack = new Map<string, Record<string, unknown>[]>();
@@ -48,8 +50,9 @@ export function readBackup(data: Uint8Array): BackupContents {
   }
   const base = manifestPath.slice(0, -"manifest.json".length);
   for (const t of FILE_TABLES) {
-    const path = `${base}tables/${t}.json`;
-    if (!files[path]) continue;
+    // A backup from before version 7 keeps every table in tables/.
+    const path = [`${base}${tableFilePath(t)}`, `${base}tables/${t}.json`].find((p) => files[p]);
+    if (!path) continue;
     const file = upgradeTableFile(JSON.parse(strFromU8(files[path]!)) as TableFile, t);
     const problems = checkTableFile(file, t);
     if (problems.length) out.problems.push(...problems.map((p) => `${p.table}: ${p.message}`));
@@ -75,13 +78,20 @@ export function csvCell(v: unknown): string {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** One table as CSV. Private fields only when asked for; tombstones are left out. */
+/**
+ * One table as CSV. Private fields only when asked for: a flight's come from its private row (docs/32, "Private
+ * data"). Tombstones are left out.
+ */
 export function tableCsv(store: Store, table: TableName, includePrivate = false): string {
   const cols = allColumns(TABLES[table])
     .map((c) => c.name)
     .filter((c) => includePrivate || !PRIVATE_FIELDS.includes(`${table}.${c}`))
     .filter((c) => c !== "deleted" && c !== "basedOn" && c !== "versionVector");
   const lines = [cols.join(",")];
-  for (const r of store.all(table)) lines.push(cols.map((c) => csvCell((r as Record<string, unknown>)[c])).join(","));
+  const priv = table === "flights" && includePrivate ? privateIndex(store) : null;
+  for (const r of store.all(table)) {
+    const row = priv ? { ...r, ...priv.get(r.id) } : r;
+    lines.push(cols.map((c) => csvCell((row as Record<string, unknown>)[c])).join(","));
+  }
   return lines.join("\r\n") + "\r\n";
 }

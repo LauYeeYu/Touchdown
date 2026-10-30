@@ -6,6 +6,7 @@
 import { flightDay } from "../derive.ts";
 import { refOverridesOf, tagsOf } from "../edit.ts";
 import { phasesOf } from "../phases.ts";
+import { withPrivate } from "../private.ts";
 import { applyChange, changeStatus, copyStore, currentFindings, type ChangeStatus, type InboxChange } from "../import/changes.ts";
 import { airframeFactsEffect } from "../identity/facts.ts";
 import { registrationMatchForm } from "../normalise/registration.ts";
@@ -287,6 +288,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
       const rowOf = (table: "flights" | "sightings" | "airframes", id: string) => {
         const r = shown.peek(table, id);
         if (!r || (r as { deleted?: boolean }).deleted) return null;
+        if (table === "flights") return withPrivate(shown, r as Row<"flights">) as unknown as Record<string, unknown>;
         return { ...r, ...(table === "sightings" && { tags: tagsOf(shown, id), phases: phasesOf(shown, id) }) } as Record<string, unknown>;
       };
       let before: Record<string, unknown> | null = null;

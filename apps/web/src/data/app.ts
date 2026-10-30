@@ -13,6 +13,7 @@ import {
   phasesOf,
   setPhases,
   settlePhases,
+  settlePrivate,
   reconcile,
   resolveConflict,
   operatorFromOverride,
@@ -257,8 +258,10 @@ export class AppData {
     const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)), tabs, (meta[0]?.value as Connection | undefined) ?? null, meta[1]?.value ?? null, outbox);
     // Read with the rows, so it says whether these rows hold the storage's tables.
     app.tablesAtOpen = hasTables((meta[2]?.value as SyncState | undefined) ?? null);
-    // Statuses a log from an older version keeps in a sighting's phase or notes become its phases (core phases.ts).
+    // Statuses a log from an older version keeps in a sighting's phase or notes become its phases (core phases.ts), and
+    // a flight's ticket number and booking reference go to its private row (core private.ts).
     settlePhases(store);
+    settlePrivate(store);
     return app;
   }
 

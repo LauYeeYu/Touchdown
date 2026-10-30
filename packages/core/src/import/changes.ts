@@ -20,6 +20,7 @@ import { parseDateTime, toUtcIso, zonedDateTime } from "../time/index.ts";
 import { phaseOf, readMapped, type ColumnField } from "./mapping.ts";
 import { buildFlightTimes } from "./times.ts";
 import { phasesOf, setPhases } from "../phases.ts";
+import { withPrivate } from "../private.ts";
 import { undoImport } from "./pipeline.ts";
 import { attachTrack, MAX_TRACK_POINTS, removeTrack, simplifyTrack, trackDistanceKm, type TrackFile, type TrackPointInput } from "../tracks.ts";
 
@@ -404,7 +405,7 @@ export function flightEdit(store: Store, ref: RefIndex, f: Flight, input: EditIn
     } else if (k === "bookingClass") set.bookingClass = text.trim().toUpperCase();
     else set[FLIGHT_STORED[k as keyof typeof FLIGHT_STORED][0]!] = text.trim();
   }
-  const d = diff(f as unknown as Record<string, unknown>, set, cleared.flatMap((k) => FLIGHT_STORED[k] ?? []));
+  const d = diff(withPrivate(store, f) as unknown as Record<string, unknown>, set, cleared.flatMap((k) => FLIGHT_STORED[k] ?? []));
   return { change: { op: "edit", table: "flights", id: f.id, rev: f.rev, set: d.set as Record<string, string | number | boolean | null>, clear: d.clear }, notes };
 }
 
@@ -559,8 +560,10 @@ export function changeStatus(store: Store, ref: RefIndex, c: InboxChange, findin
   const done = (note: string | null = null) => ({ status: "done" as const, note });
   switch (c.op) {
     case "edit": {
-      const cur = store.get(c.table, c.id);
-      if (!cur) return { status: "missing", note: "It is no longer in the log." };
+      const row = store.get(c.table, c.id);
+      if (!row) return { status: "missing", note: "It is no longer in the log." };
+      // A flight's ticket number and booking reference are in its private row.
+      const cur = c.table === "flights" ? withPrivate(store, row as Row<"flights">) : row;
       const same = Object.entries(c.set).every(([k, v]) => ((cur as unknown as Record<string, unknown>)[k] ?? null) === v) && c.clear.every((k) => ((cur as unknown as Record<string, unknown>)[k] ?? null) === null);
       const now = c.table === "sightings" ? tagsOf(store, c.id).sort() : [];
       const sameTags = c.tags === undefined || (c.tags.length === now.length && [...c.tags].sort().every((t, i) => t === now[i]));
@@ -634,8 +637,10 @@ export function changeStatus(store: Store, ref: RefIndex, c: InboxChange, findin
 export function applyChange(store: Store, ref: RefIndex, c: InboxChange, findings: () => Finding[], opts: EditOptions = {}): string | null {
   switch (c.op) {
     case "edit": {
-      const cur = store.get(c.table, c.id);
-      if (!cur) return null;
+      const row = store.get(c.table, c.id);
+      if (!row) return null;
+      // A flight with its private values, so an edit that leaves them alone writes them back as they are.
+      const cur = c.table === "flights" ? withPrivate(store, row as Row<"flights">) : row;
       const values = editedValues(cur, c);
       // A registration, type or model fixed after it was typed keeps its fix when the edit leaves it alone.
       const touched = new Set([...Object.keys(c.set), ...c.clear]);

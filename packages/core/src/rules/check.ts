@@ -9,6 +9,7 @@ import { fnv1a } from "../ids.ts";
 import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, greatCircleKm } from "../derive.ts";
 import { normaliseRegistration, registrationMatchForm } from "../normalise/registration.ts";
 import { liveryAround } from "../livery.ts";
+import { privateIndex, type FlightPrivateValues } from "../private.ts";
 import { isSeatFormat, parseFlightNumber } from "../normalise/flight.ts";
 import { addDays, daysBetween, formatOffset, instant, localDateOf, offsetAt, parseDateTime, todayIn, zonedDateTime } from "../time/index.ts";
 
@@ -74,7 +75,7 @@ export function checkAll(store: Store, ref: RefIndex, opts: CheckOptions = {}): 
 
   for (const f of flights) checkFlight(out, f, ref, today, airframes);
   for (const s of sightings) checkSighting(out, s, ref, today, airframes);
-  checkCross(out, flights, sightings, airframes, ref, opts);
+  checkCross(out, flights, sightings, airframes, ref, opts, privateIndex(store));
   return out.findings;
 }
 
@@ -290,6 +291,8 @@ function checkCross(
   airframes: Map<string, Airframe>,
   ref: RefIndex,
   opts: CheckOptions,
+  // Ticket numbers, from the flights' private rows (docs/32, "Private data").
+  tickets: Map<string, FlightPrivateValues>,
 ) {
   // C-TYPE-MISMATCH: record type differs from its airframe's type.
   const recs: { r: RecordRef; rec: Flight | Sighting }[] = [
@@ -340,7 +343,7 @@ function checkCross(
     }
   }
   // C-DUP-TICKET: same ticket number and coupon. The number itself is private and never shown.
-  for (const [, list] of groupBy(flights, (f) => f.ticketNumber?.replace(/\s+/g, "") || null)) {
+  for (const [, list] of groupBy(flights, (f) => tickets.get(f.id)?.ticketNumber?.replace(/\s+/g, "") || null)) {
     if (list.length > 1) {
       out.add("C-DUP-TICKET", "warning", list.map((f) => F(f.id)), ["ticketNumber"], `${list.map(flightLabel).join(" and ")} have the same ticket number and coupon. One coupon is probably mistyped.`, []);
     }

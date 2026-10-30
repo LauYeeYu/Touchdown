@@ -37,7 +37,7 @@ describe("schema", () => {
   });
 
   it("marks the private fields", () => {
-    expect(PRIVATE_FIELDS).toEqual(["flights.ticketNumber", "flights.bookingRef"]);
+    expect(PRIVATE_FIELDS).toEqual(["flights.ticketNumber", "flights.bookingRef", "flight_private.ticketNumber", "flight_private.bookingRef"]);
   });
 });
 

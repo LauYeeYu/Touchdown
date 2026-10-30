@@ -68,7 +68,7 @@ export function flightJson(log: OpenedLog, v: FlightView) {
     specialLivery: f.specialLivery,
     notes: f.notes,
     track: trackOf(log, f.id),
-    private: privateFields(f),
+    private: privateFields(log, f),
   };
 }
 

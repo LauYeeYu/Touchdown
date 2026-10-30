@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, liveryName, parseDateTime, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
+import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
@@ -75,6 +75,8 @@ export function FlightDetail() {
   if (idx < 0) return <NotFound what="That flight is not in your log." back={{ to: "/flights", label: "All flights" }} />;
   const v = all[idx]!;
   const f: Flight = v.f;
+  // Kept in the flight's private row (docs/32, "Private data").
+  const { ticketNumber } = privateOf(store, f.id);
   const prev = all[idx - 1];
   const next = all[idx + 1];
   const A = ref.airport(f.fromAirportId);
@@ -626,11 +628,11 @@ export function FlightDetail() {
             <div>
               <dt>Ticket number</dt>
               <dd>
-                {!f.ticketNumber ? (
+                {!ticketNumber ? (
                   <span className="muted">Not recorded</span>
                 ) : showTicket ? (
                   <>
-                    {f.ticketNumber}{" "}
+                    {ticketNumber}{" "}
                     <button type="button" className="link-btn" onClick={() => setShowTicket(false)}>
                       Hide
                     </button>

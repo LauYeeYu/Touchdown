@@ -9,6 +9,7 @@ import { conflictMatters, listConflict } from "./conflicts.ts";
 import { toUtcIso } from "./time/index.ts";
 import { resolveAirframes, type ResolveResult } from "./identity/resolve.ts";
 import { settlePhases } from "./phases.ts";
+import { settlePrivate } from "./private.ts";
 import { refOverridesOf } from "./edit.ts";
 import type { RefIndex } from "./ref/index.ts";
 import { TABLES, type TableName } from "./schema/tables.ts";
@@ -268,8 +269,10 @@ function settledConflicts(store: Store, now: number) {
 export function reconcile(store: Store, ref: RefIndex, now: number = Date.now()): { report: ReconcileReport; resolved: ResolveResult } {
   return store.batch(() => {
     const report: ReconcileReport = { merged: 0, renamed: 0, restored: 0 };
-    // Statuses still in records (a log or backup from an older version) first, so they settle with the rest.
+    // Statuses and private values still in records (a log or backup from an older version) first, so they settle
+    // with the rest.
     settlePhases(store);
+    settlePrivate(store);
     sameFileImportedTwice(store, report);
     operatorsAddedTwice(store, now, report);
     familiesChosenTwice(store, now, report);

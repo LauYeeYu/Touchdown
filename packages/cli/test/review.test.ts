@@ -89,7 +89,9 @@ describe("reviewing in the terminal", () => {
     expect(readdirSync(join(LOG, "attachments", "imports"))).toHaveLength(1);
 
     const web = await webApp();
-    expect(web.store.all("flights").find((f) => f.flightNumber === "DL9002")).toMatchObject({ ticketNumber: TICKET, fromRaw: "KJFK" });
+    const dl = web.store.all("flights").find((f) => f.flightNumber === "DL9002")!;
+    expect(dl).toMatchObject({ ticketNumber: null, fromRaw: "KJFK" });
+    expect(web.store.get("flight_private", dl.id)).toMatchObject({ ticketNumber: TICKET });
     for (const r of [added, shown, done]) expect(r.text).not.toContain(TICKET);
   });
 

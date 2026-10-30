@@ -19,6 +19,9 @@ export interface TableDef {
   readonly name: string; // snake_case table name
   readonly kind: TableKind;
   readonly columns: readonly ColumnDef[];
+  // Its rows can hold private data: kept apart from the tables a share link reads (the JSON tables' private/ folder)
+  // and never read for a link (docs/32, "Private data").
+  readonly private?: boolean;
 }
 
 type Opts = { required?: boolean; private?: boolean; unique?: boolean };
@@ -60,7 +63,8 @@ export const table = <const N extends string, const K extends TableKind, const C
   name: N,
   kind: K,
   columns: C,
-) => ({ name, kind, columns }) as const;
+  opts: { private?: boolean } = {},
+) => ({ name, kind, columns, ...(opts.private ? { private: true } : {}) }) as { readonly name: N; readonly kind: K; readonly columns: C; readonly private?: boolean };
 
 // ---- Types derived from definitions ----
 

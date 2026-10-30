@@ -133,7 +133,7 @@ export async function flightCommand(args: string[]) {
 
   if (json) return printJson({ ok: true, from: log.from, flight: shape, findings: findings.map(findingJson) });
   const t = trackOf(log, f.id);
-  const priv = privateFields(f);
+  const priv = privateFields(log, f);
   const arrival = f.divertedToAirportId ?? f.toAirportId;
   console.log(bold([f.flightNumber, route(v), v.day && plain(dayLong(v.day))].filter(Boolean).join(" · ")));
   for (const line of fields([

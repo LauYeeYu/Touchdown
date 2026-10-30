@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -54,6 +54,7 @@ export const flights = table("flights", "user", [
   c.text("bookingClass"),
   c.text("fareBrand"),
   c.enum("reason", FLIGHT_REASONS),
+  // Input only (docs/32, "Private data"): writing the flight moves them into flight_private, and they stay empty here.
   c.text("ticketNumber", { private: true }),
   c.text("bookingRef", { private: true }),
   c.text("registration"),
@@ -97,6 +98,17 @@ export const sightings = table("sightings", "user", [
   c.text("notes"),
   ...sourceColumns,
 ]);
+
+/**
+ * A flight's private data, apart from the tables a share link reads (docs/32, "Private data"): one row per flight,
+ * whose id is the flight's id, so two devices adding a ticket number to one flight make the same row.
+ */
+export const flightPrivate = table(
+  "flight_private",
+  "child",
+  [c.ref("flightId", "flights", { required: true }), c.text("ticketNumber", { private: true }), c.text("bookingRef", { private: true })],
+  { private: true },
+);
 
 /** The statuses a sighting was seen in, all equal (landing and taxiing): a list, so a child table. */
 export const sightingPhases = table("sighting_phases", "child", [
@@ -189,35 +201,47 @@ export const externalIds = table("external_ids", "child", [
   c.text("value"),
 ]);
 
-export const recordHistory = table("record_history", "child", [
-  c.text("tableName", { required: true }),
-  c.id("recordId", { required: true }),
-  c.integer("recordRev"),
-  c.json("row"),
-  c.datetime("changedAt"),
-  c.ref("batchId", "import_batches"),
-  c.enum("reason", HISTORY_REASONS),
-]);
+// Private: earlier versions of whole rows, a flight's ticket number among them.
+export const recordHistory = table(
+  "record_history",
+  "child",
+  [
+    c.text("tableName", { required: true }),
+    c.id("recordId", { required: true }),
+    c.integer("recordRev"),
+    c.json("row"),
+    c.datetime("changedAt"),
+    c.ref("batchId", "import_batches"),
+    c.enum("reason", HISTORY_REASONS),
+  ],
+  { private: true },
+);
 
 /**
  * One field edited on two devices before either saw the other's edit (docs/12, "Sync algorithm"). Sync keeps one value
  * and the other waits here until the user chooses on the Issues page. Values are JSON text ("\"12A\"", "null").
  */
-export const syncConflicts = table("sync_conflicts", "child", [
-  c.text("tableName", { required: true }),
-  // The row's key: an id, or a fixed one such as the settings row's.
-  c.text("recordId", { required: true }),
-  c.text("field", { required: true }),
-  c.text("keptValue"),
-  c.text("otherValue"),
-  c.text("keptBy"),
-  c.datetime("keptAt"),
-  c.text("otherBy"),
-  c.datetime("otherAt"),
-  c.datetime("detectedAt"),
-  c.datetime("resolvedAt"),
-  c.enum("resolution", CONFLICT_RESOLUTIONS),
-]);
+export const syncConflicts = table(
+  "sync_conflicts",
+  "child",
+  [
+    c.text("tableName", { required: true }),
+    // The row's key: an id, or a fixed one such as the settings row's.
+    c.text("recordId", { required: true }),
+    c.text("field", { required: true }),
+    // Private, as a conflict over a ticket number holds both numbers.
+    c.text("keptValue"),
+    c.text("otherValue"),
+    c.text("keptBy"),
+    c.datetime("keptAt"),
+    c.text("otherBy"),
+    c.datetime("otherAt"),
+    c.datetime("detectedAt"),
+    c.datetime("resolvedAt"),
+    c.enum("resolution", CONFLICT_RESOLUTIONS),
+  ],
+  { private: true },
+);
 
 export const importBatches = table("import_batches", "user", [
   c.datetime("createdAt"),
@@ -309,6 +333,7 @@ export const aircraftTypeOverrides = table("aircraft_type_overrides", "user", [
 
 export const TABLES = {
   flights,
+  flight_private: flightPrivate,
   sightings,
   sighting_phases: sightingPhases,
   sighting_tags: sightingTags,
@@ -360,3 +385,10 @@ export type SightingValues = Values<"sightings">;
 export const PRIVATE_FIELDS: readonly string[] = Object.values(TABLES).flatMap((t) =>
   t.columns.filter((col) => "private" in col && col.private).map((col) => `${t.name}.${col.name}`),
 );
+
+/** Tables whose rows can hold private data (docs/32, "Private data"). */
+export const PRIVATE_TABLES: readonly TableName[] = (Object.keys(TABLES) as TableName[]).filter((t) => (TABLES[t] as TableDef).private);
+
+export const isPrivateTable = (t: TableName) => PRIVATE_TABLES.includes(t);
+
+export type FlightPrivate = Row<"flight_private">;

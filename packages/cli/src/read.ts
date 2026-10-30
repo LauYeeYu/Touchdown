@@ -5,6 +5,7 @@
 import {
   flightDay,
   normaliseFlightNumber,
+  privateOf,
   reconcile,
   RefIndex,
   refOverridesOf,
@@ -224,9 +225,13 @@ export function notFound(json: boolean, f: Exclude<Found<unknown>, { row: unknow
 
 // ---------- private fields ----------
 
-/** Ticket numbers and booking references are never shown (docs/34, "Private fields"): only whether one is recorded. */
-export function privateFields(f: Flight): { ticketNumber: boolean; bookingRef: boolean } {
-  return { ticketNumber: !!f.ticketNumber, bookingRef: !!f.bookingRef };
+/**
+ * Ticket numbers and booking references are never shown (docs/34, "Private fields"): only whether one is recorded.
+ * They are in the flight's private row (docs/32, "Private data").
+ */
+export function privateFields(log: OpenedLog, f: Flight): { ticketNumber: boolean; bookingRef: boolean } {
+  const p = privateOf(log.store, f.id);
+  return { ticketNumber: !!p.ticketNumber, bookingRef: !!p.bookingRef };
 }
 
 // ---------- tables ----------
