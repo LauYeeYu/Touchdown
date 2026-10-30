@@ -44,7 +44,7 @@ The Local warning (Decided that there is one; wording Proposed):
 
 Settings shows the same warning while the user is in Local mode. A note bar reminds the user to export a backup when the last one is more than 30 days old (counted from choosing Local when there has been none) and the log has changed since; it offers "Export a backup" and "Not now" (built).
 
-Built: where the site has the encryption key and Google configured (`TOKEN_KEY`, `GOOGLE_CLIENT_SECRET`), Standard is offered and preselected, with the note "Links you share keep working while you are offline."; elsewhere it shows "Not available on this site." and Private is preselected.
+Built: where the site has the encryption key and Google configured (`TOKEN_KEY`, `GOOGLE_CLIENT_SECRET`), Standard is offered and preselected; elsewhere it shows "Not available on this site." and Private is preselected.
 
 ### Changing mode
 

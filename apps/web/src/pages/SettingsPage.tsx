@@ -17,7 +17,7 @@ import { toast } from "../components/overlay.tsx";
 import { AccountSection } from "../components/AccountSettings.tsx";
 import { clause, tracksToComeText } from "../components/Shell.tsx";
 import { download } from "../lib/download.ts";
-import { connectStandard, FOLDERS_ONLY_HERE, STANDARD_NOTE, STANDARD_UNAVAILABLE, takeStandardError } from "./FirstRun.tsx";
+import { connectStandard, FOLDERS_ONLY_HERE, STANDARD_UNAVAILABLE, takeStandardError } from "./FirstRun.tsx";
 import { standard, type StandardStatus } from "../data/standard.ts";
 import { StandardTerms } from "../components/StandardTerms.tsx";
 import { useShares } from "../data/shares.ts";
@@ -111,7 +111,6 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           if (m === "standard" && current !== "standard") setTermsOpen(true);
         }}
         unavailable={std?.available || current === "standard" ? {} : { standard: STANDARD_UNAVAILABLE }}
-        notes={{ standard: STANDARD_NOTE }}
       />
       {std && (
         <StandardTerms
