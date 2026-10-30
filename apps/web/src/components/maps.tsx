@@ -11,6 +11,10 @@ import world from "world-atlas/countries-110m.json";
 import { esc, hideTip, showTip } from "./overlay.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 
+/** The least a fitted map shows, in degrees: a single spotting place is framed with its region around it. */
+const MIN_LON = 24;
+const MIN_LAT = 14;
+
 type LonLat = [number, number];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -246,7 +250,13 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
             : geoAzimuthalEqualArea().rotate([-c.at[0], -c.at[1]]).clipAngle(170);
           globe = true;
         }
-        const target = geoms.length ? fc : ({ type: "Sphere" } as const);
+        // One place, or a few close together, has no extent to fit: the map frames at least a region around them.
+        const [[w0, s0], [e0, n0]] = geoms.length ? geoBounds(fc) : [[0, 0], [0, 0]];
+        const lonSpan = (e0 - w0 + 360) % 360;
+        const small = geoms.length > 0 && lonSpan < MIN_LON && n0 - s0 < MIN_LAT;
+        const [cx, cy] = [w0 + lonSpan / 2, (s0 + n0) / 2];
+        const region = { type: "MultiPoint" as const, coordinates: [[cx - MIN_LON / 2, cy - MIN_LAT / 2], [cx + MIN_LON / 2, cy + MIN_LAT / 2]] };
+        const target = small ? region : geoms.length ? fc : ({ type: "Sphere" } as const);
         proj.fitExtent([[44, pad], [width - 44, Math.max(240, width * (globe ? 1 : 0.55))]], target as never);
         const [[, y0], [, y1]] = geoPath(proj).bounds(target as never);
         const h = Math.max(220, y1 - y0 + 2 * pad);
