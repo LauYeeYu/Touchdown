@@ -42,6 +42,8 @@ export interface ShareContent {
   /** The record is no longer in the log (deleted, or not found). */
   gone: boolean;
   tables: ShareTables;
+  /** A whole log's owner, by their account's name as they wrote it, for the page's title. The server adds it. */
+  owner?: string;
 }
 
 /** An aircraft link's anchor: one of the aircraft's flights or sightings, followed when the aircraft is merged away. */

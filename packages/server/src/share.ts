@@ -172,7 +172,7 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
   if (tooMany(request, now)) return json(429, { error: "Too many requests. Wait a minute." }, { "Retry-After": "60" });
   const m = url.pathname.match(/^\/p\/([^/]+)(?:\/(content|tracks))?\/?$/);
   const id = m?.[1] && SHARE_ID.test(m[1]) ? m[1] : null;
-  const share = id ? await s.db.first<ShareRow>("SELECT * FROM shares WHERE id = ?", [id]) : null;
+  const share = id ? await s.db.first<ShareRow & { ownerName: string }>("SELECT shares.*, accounts.name AS ownerName FROM shares JOIN accounts ON accounts.id = shares.accountId WHERE shares.id = ?", [id]) : null;
 
   if (!m?.[2]) {
     // The page itself: the share page's own build, the same for every link, which then asks for the content.
@@ -215,7 +215,9 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
     if (m[2] === "content") {
       // Counted when the content is asked for, so a chat app's preview of the page is not.
       await s.db.run("UPDATE shares SET timesOpened = timesOpened + 1, lastOpenedAt = ? WHERE id = ?", [toUtcIso(now), share.id]);
-      return new Response(text, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+      // A whole log is titled with its owner's name, added here so that the cache never keeps a name changed since.
+      const body = share.kind === "log" ? `{"owner":${JSON.stringify(share.ownerName)},${text.slice(1)}` : text;
+      return new Response(body, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
     }
 
     // Only the tracks of flights the link shows; a flight outside it is left out, as one without a track is.

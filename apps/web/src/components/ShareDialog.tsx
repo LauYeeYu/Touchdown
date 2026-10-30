@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { ShareKind } from "@touchdown/core/share";
+import { account } from "../data/account.ts";
 import { useApp } from "../data/context.tsx";
 import { linkFor, shares, TermsNeeded, useShares, type ShareLink } from "../data/shares.ts";
 import { standard } from "../data/standard.ts";
@@ -81,9 +82,20 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
   const [problem, setProblem] = useState<string | null>(null);
   const [terms, setTerms] = useState(false);
   const [termsProblem, setTermsProblem] = useState<string | null>(null);
+  // A whole log's page is titled with the account's name, so the dialog says so: left out if the name cannot be read.
+  const [owner, setOwner] = useState<string | null>(null);
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
+  useEffect(() => {
+    if (kind === "log") void account.me().then((me) => setOwner(me.name), () => {});
+  }, [kind]);
+  const titled = kind === "log" && owner && (
+    <>
+      {" "}
+      Its page is titled “<bdi>{owner}</bdi>'s log”, from your name under Account in Settings.
+    </>
+  );
 
   const make = async () => {
     setBusy(true);
@@ -125,7 +137,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
       </h2>
       {link ? (
         <>
-          <p className="share-dialog__text">Anyone with this link can open it, without signing in, until you stop sharing it. It shows your log as it is now.</p>
+          <p className="share-dialog__text">Anyone with this link can open it, without signing in, until you stop sharing it. It shows your log as it is now.{titled}</p>
           <span className="link-box share-dialog__link">
             <code>{link.url}</code>
             <button type="button" className="icon-btn link-box__copy" aria-label="Copy the link" title="Copy the link" onClick={() => copyLink(link.url)}>
@@ -137,7 +149,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
       ) : (
         <p className="share-dialog__text">
           Anyone with the link can see {THING[kind]}
-          {kind === "aircraft" ? " and your flights and sightings of it" : ""}, notes and photo links included. Ticket numbers and booking references are never shared.
+          {kind === "aircraft" ? " and your flights and sightings of it" : ""}, notes and photo links included. Ticket numbers and booking references are never shared.{titled}
         </p>
       )}
       {problem && (

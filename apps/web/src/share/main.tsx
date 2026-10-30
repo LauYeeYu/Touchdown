@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import "../styles/app.css";
 import { validateWithoutEval } from "@touchdown/core";
+import type { ShareContent } from "@touchdown/core/share";
 import { AppContext } from "../data/context.tsx";
 import { setCodeStyle } from "../lib/codes.ts";
 import { LinkScopeContext } from "../lib/link.tsx";
@@ -18,7 +19,16 @@ import { scopeOf, shareRouter } from "./router.tsx";
 // The same strict Content Security Policy as the app: no code from strings.
 validateWithoutEval();
 
-const TITLES: Record<string, string> = { flight: "A flight", sighting: "A sighting", aircraft: "An aircraft", log: "A log" };
+const TITLES: Record<string, string> = { flight: "A flight", sighting: "A sighting", aircraft: "An aircraft" };
+
+/**
+ * The tab's title. A whole log's names its owner by their account's name, whole and unchanged in any script, and
+ * isolated so that a name written right to left stays before "'s log".
+ */
+function titleOf(content: ShareContent): string {
+  if (content.kind === "log") return content.owner ? `\u2068${content.owner}\u2069's log` : "A shared log";
+  return TITLES[content.kind] ?? "Shared";
+}
 
 function SharePage() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -49,9 +59,9 @@ function Shared({ data }: { data: Extract<Loaded, { state: "ok" }>["data"] }) {
     return shareRouter(data);
   });
   useEffect(() => {
-    document.title = `${TITLES[content.kind] ?? "Shared"} · Touchdown`;
+    document.title = `${titleOf(content)} · Touchdown`;
     void data.loadTracks();
-  }, [data, content.kind]);
+  }, [data, content]);
 
   if (content.gone) {
     const what = content.kind === "flight" ? "This flight" : content.kind === "sighting" ? "This sighting" : "This aircraft";

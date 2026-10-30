@@ -237,6 +237,21 @@ describe("opening a share link", () => {
     expect((await call(t.s, t.owner, "GET", "/api/shares")).json.shares).toMatchObject([{ timesOpened: 1 }]);
   });
 
+  it("names the owner of a whole log as their account names them, and nobody on any other link", async () => {
+    const t = await site();
+    const log = await make(t, { kind: "log" });
+    const flight = await make(t, { kind: "flight", subject: t.shared.id });
+    expect((await open(t.s, `/p/${log.json.id}/content`)).json).toMatchObject({ owner: "Owner", kind: "log" });
+    const one = await open(t.s, `/p/${flight.json.id}/content`);
+    expect(one.json.owner).toBeUndefined();
+    expect(one.text).not.toContain("Owner");
+    // A new name, in any script, shows at once and as written, though the log's files have not changed.
+    expect((await call(t.s, t.owner, "POST", "/auth/name", { name: "  ليلى   O'Brien-陈 " })).status).toBe(200);
+    const read = t.drive.downloads.length;
+    expect((await open(t.s, `/p/${log.json.id}/content`)).json).toMatchObject({ owner: "ليلى O'Brien-陈", kind: "log" });
+    expect(t.drive.downloads.length).toBe(read);
+  });
+
   it("shows the log as it is now: cached until a file changes, then read again", async () => {
     const t = await site();
     const made = await make(t, { kind: "flight", subject: t.shared.id });
