@@ -463,6 +463,11 @@ main {
   min-width: 0;
 }
 
+/* Home's share icon for the whole log, at the end of the period row, under the header's last icon. */
+.share-log {
+  flex: none;
+}
+
 .period {
   position: relative;
   display: inline-block;
@@ -2066,6 +2071,12 @@ main {
 
   .view-top {
     padding-top: 24px;
+  }
+
+  /* The drawn icon lines up with the column's edge (the button's padding reaches into the gutter) and comes to 15px
+     from the year buttons, so they keep three buttons on a 390px phone. */
+  .share-log {
+    margin: 0 -11px 0 -12px;
   }
 
   .lead {

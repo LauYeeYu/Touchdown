@@ -6,6 +6,7 @@ import { flightStats, phaseIndex, sightingStats, todayIn, type Sighting } from "
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { BigCode } from "../components/BigCode.tsx";
+import { ShareLogButton } from "../components/ShareDialog.tsx";
 import { usePeriod, inPeriod } from "../lib/period.ts";
 import { sessionsOf, sortedFlights, flownAndPhotographed } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
@@ -129,6 +130,7 @@ export function Home() {
     <div className="page">
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
+        <ShareLogButton />
       </div>
       <h1 className="lead">
         {!flownPart && !spotPart ? (

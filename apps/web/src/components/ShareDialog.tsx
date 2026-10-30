@@ -1,7 +1,7 @@
 // The Share button and its dialog (docs/32-modes-and-sharing.md, "Managing links"): on a flight's, a sighting's and an
-// aircraft's page in Standard mode, and for the whole log on the Shared links page. The dialog makes the thing's link
-// (one per thing) or shows the one it has, to copy, send or stop. A link is public: anyone with the address can open
-// it, without signing in, until it is stopped.
+// aircraft's page in Standard mode, and for the whole log on Home and the Shared links page. The dialog makes the
+// thing's link (one per thing) or shows the one it has, to copy, send or stop. A link is public: anyone with the
+// address can open it, without signing in, until it is stopped.
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -48,6 +48,27 @@ export function ShareButton({ kind, subject, anchor = null }: { kind: Exclude<Sh
         {link ? "Shared" : "Share"}
       </button>
       {open && <ShareDialog kind={kind} subject={subject} anchor={anchor} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/**
+ * Home's share icon for the whole log, at the end of the period control's row (docs/32, "Managing links"): in Standard
+ * mode only, a link icon once the log is shared.
+ */
+export function ShareLogButton() {
+  const { app } = useApp();
+  const on = app.connection?.mode === "standard";
+  const list = useShares(on);
+  const [open, setOpen] = useState(false);
+  if (!on) return null;
+  const label = linkFor(list, "log", null) ? "Your whole log is shared" : "Share your whole log";
+  return (
+    <>
+      <button type="button" className="icon-btn share-log" aria-label={label} title={label} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        <Icon name={linkFor(list, "log", null) ? "link" : "share-2"} />
+      </button>
+      {open && <ShareDialog kind="log" subject={null} onClose={() => setOpen(false)} />}
     </>
   );
 }
