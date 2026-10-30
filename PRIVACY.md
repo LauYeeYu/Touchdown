@@ -70,7 +70,7 @@ In Standard mode you can share a link to a flight, a sighting, an aircraft or yo
 - **What it shows:** that page, read-only, with the notes and photo links on it. Never a ticket number or booking reference, never an entry you deleted, and nothing else from your log. A whole-log link shows every flight, sighting and aircraft.
 - **How it works:** when the link is opened, the server reads the files the link needs from your Touchdown folder with the key above, picks out what the link shows and sends only that. It keeps the result in Cloudflare's cache for up to a day, under the version of the files it came from, so the next opening is quicker. Your log itself stays in your Google Drive.
 - **What is recorded:** how many times a link was opened and when last. Not who opened it.
-- **The page:** a link's page is not indexed by search engines, tells the next site nothing about where it was opened, and has no analytics. It names nobody: it does not say whose log it is. The browser of the person opening it contacts planespotters.net for aircraft photos, as yours does.
+- **The page:** a link's page is not indexed by search engines, tells the next site nothing about where it was opened, and has no analytics. It names nobody: it does not say whose log it is. The browser of the person opening it contacts planespotters.net for aircraft photos, as yours does. It sets no cookies. While it is open, it keeps where each page was scrolled, the page's choices (such as the year shown) and the photos it found in that tab's session storage, which goes when the tab is closed.
 
 ## Other services your browser contacts
 
