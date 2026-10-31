@@ -128,7 +128,8 @@ export class RefIndex {
 
   /**
    * Operator by IATA (2 characters) or ICAO (3 letters) code, any case. IATA codes are reused over
-   * time, so the one valid on `date` wins; without a date the one still operating wins.
+   * time, so the one valid on `date` wins: one whose dates cover the day before one without dates.
+   * Without a date the one still operating wins.
    */
   operatorByCode(code: string | null | undefined, date?: string | null): Operator | null {
     if (!code) return null;
@@ -140,7 +141,10 @@ export class RefIndex {
     if (!list?.length) return this.operatorsByName.get(nameKey(raw)) ?? null;
     if (list.length === 1) return list[0]!;
     const valid = list.filter((o) => within(date, o.validFrom, o.validTo));
-    const pool = valid.length ? valid : list;
+    // An operator without dates fits every day only because its period is not recorded, and it is often the
+    // code's present holder. On a date, one whose recorded dates cover it comes first.
+    const dated = date ? valid.filter((o) => o.validFrom || o.validTo) : [];
+    const pool = dated.length ? dated : valid.length ? valid : list;
     return pool.find((o) => !o.validTo) ?? [...pool].sort((a, b) => (b.validTo ?? "").localeCompare(a.validTo ?? ""))[0]!;
   }
 
