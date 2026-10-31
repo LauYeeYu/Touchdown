@@ -35,7 +35,7 @@ This doc contains no personal data. Examples are made up. The actual values, sum
 | Duration | 02:10 | (used, not stored) | Takeoff to landing. Used to build the landing date-time and to check it against Landing Time. |
 | Distance (km) | 1300 | (checked, not stored) | The same route can have different values in the sheet. Distance is derived from airport coordinates; the sheet value is only compared (V-DISTANCE-DIFF). |
 | Route | AAA-BBB | derived | Not stored. Built from `from` and `to`. |
-| ETKT | 13-digit number + `/coupon` | `flights.ticketNumber` | Private. Both legs of a ticket share the number; the coupon (`/1`, `/2`, ...) differs. |
+| ETKT | 13-digit number + `/coupon` | `flights.ticketNumber` | Private. Both legs of a ticket share the number; the coupon (`/1`, `/2`, ...) differs. A flight number with a stop or a change of aircraft is sold as one segment, so its legs share one coupon. |
 | Manufacturer | Airbus | derived from type | |
 | Plane Family | A330 | derived from type | |
 | Type Code | A333 | `flights.typeCodeRaw` → `typeCode` | ICAO type designator. |

@@ -6,7 +6,7 @@ import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Finding, RecordRef, Severity, SuggestedFix } from "./types.ts";
 import { fnv1a } from "../ids.ts";
-import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, greatCircleKm } from "../derive.ts";
+import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, greatCircleKm, nextLegOf } from "../derive.ts";
 import { normaliseRegistration, registrationMatchForm } from "../normalise/registration.ts";
 import { liveryAround } from "../livery.ts";
 import { privateIndex, type FlightPrivateValues } from "../private.ts";
@@ -342,9 +342,11 @@ function checkCross(
       out.add("C-DUP-SIGHTING", "info", list.map((s) => S(s.id)), ["registration"], `${sightingLabel(list[0]!)} is logged ${list.length} times at the same place. One sighting per aircraft per place per day is usual. Keep both only if that is intended.`, []);
     }
   }
-  // C-DUP-TICKET: same ticket number and coupon. The number itself is private and never shown.
+  // C-DUP-TICKET: same ticket number and coupon. The number itself is private and never shown. The legs of one flight
+  // number in a row (a stop, or a change of aircraft) are one segment, so they share a coupon.
   for (const [, list] of groupBy(flights, (f) => tickets.get(f.id)?.ticketNumber?.replace(/\s+/g, "") || null)) {
-    if (list.length > 1) {
+    const segments = list.filter((f) => !list.some((g) => g !== f && nextLegOf(g, f))).length;
+    if (segments > 1) {
       out.add("C-DUP-TICKET", "warning", list.map((f) => F(f.id)), ["ticketNumber"], `${list.map(flightLabel).join(" and ")} have the same ticket number and coupon. One coupon is probably mistyped.`, []);
     }
   }

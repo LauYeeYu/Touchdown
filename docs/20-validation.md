@@ -59,7 +59,7 @@ Severity:
 | C-OPERATOR-MISMATCH | Record's operator differs from the airframe's operator for that date. | warning |
 | C-DUP-FLIGHT | Same date + flight number + `from` twice. | warning |
 | C-DUP-SIGHTING | Same date + registration + location twice. | info (may be intentional) |
-| C-DUP-TICKET | Two flights share the same ticket number and coupon (e.g. `/1` twice). | warning |
+| C-DUP-TICKET | Two flights share the same ticket number and coupon (e.g. `/1` twice), except the legs of one flight number in a row (the same number, leaving within a day from where the leg before landed: a stop or a change of aircraft, sold as one segment on one coupon). | warning |
 | C-FLIGHT-OVERLAP | Two of the user's flights overlap in time. | error |
 | C-CODE-VARIANTS | Codes that differ only by case or whitespace across records. | warning (auto-fix) |
 | C-LIVERY-NAME | Same special livery spelled differently on the same airframe (`Oneworld Livery` vs `oneworld livery`). | info |

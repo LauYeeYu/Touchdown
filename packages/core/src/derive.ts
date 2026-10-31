@@ -3,7 +3,7 @@
 import type { RefIndex } from "./ref/index.ts";
 import type { Flight, Sighting } from "./schema/tables.ts";
 import { haversineKm } from "./geo/index.ts";
-import { localDateOf, minutesBetween } from "./time/index.ts";
+import { addDays, instant, localDateOf, minutesBetween } from "./time/index.ts";
 
 /** Flight day: local date of takeoff, else of gate departure, else the scheduled date. */
 export function flightDay(f: Pick<Flight, "takeoffAt" | "departureAt" | "scheduledDate">): string | null {
@@ -13,6 +13,20 @@ export function flightDay(f: Pick<Flight, "takeoffAt" | "departureAt" | "schedul
 /** Destination for distance and maps: the diversion airport when there was one. */
 export function arrivalAirportId(f: Pick<Flight, "toAirportId" | "divertedToAirportId">): string | null {
   return f.divertedToAirportId ?? f.toAirportId ?? null;
+}
+
+/**
+ * Whether `b` is the next leg of `a`'s flight number: the same number, leaving within a day from where `a` landed. A
+ * flight with a stop, or with a change of aircraft on the way, is sold as one segment of these legs, on one coupon.
+ */
+export function nextLegOf(a: Flight, b: Flight): boolean {
+  if (!a.flightNumber || a.flightNumber !== b.flightNumber || !b.fromAirportId || arrivalAirportId(a) !== b.fromAirportId) return false;
+  const landed = instant(a.landingAt) ?? instant(a.arrivalAt);
+  const off = instant(b.takeoffAt) ?? instant(b.departureAt);
+  if (landed !== null && off !== null) return off > landed && off - landed <= 24 * 3600_000;
+  const day = flightDay(a);
+  const next = flightDay(b);
+  return !!day && (next === day || next === addDays(day, 1));
 }
 
 export function greatCircleKm(f: Flight, ref: RefIndex): number | null {

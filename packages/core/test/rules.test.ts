@@ -161,6 +161,17 @@ describe("cross-record rules", () => {
     expect(ids(run([a, { ...b, ticketNumber: "0060000000000/2" }]).findings)).not.toContain("C-DUP-TICKET");
   });
 
+  it("C-DUP-TICKET lets the legs of one flight number in a row share a coupon", () => {
+    // DL300 stops at Seattle and goes on to Tokyo: one segment, one coupon, two flights in the log.
+    const a = { ...goodFlight, ticketNumber: "0060000000000/1" };
+    const on = { ...goodFlight, fromRaw: "SEA", toRaw: "HND", boardingAt: null, takeoffAt: "2025-04-02T12:40-07:00", landingAt: "2025-04-03T15:30+09:00", seat: "12A", ticketNumber: "0060000000000/1" };
+    expect(ids(run([on, a]).findings)).not.toContain("C-DUP-TICKET");
+    const undated = { ...on, takeoffAt: null, landingAt: null, scheduledDate: "2025-04-02" };
+    expect(ids(run([a, undated]).findings)).not.toContain("C-DUP-TICKET");
+    // The same number from Seattle a week later is another flight, so its coupon is not this one.
+    expect(ids(run([a, { ...on, scheduledDate: "2025-04-09", takeoffAt: "2025-04-09T12:40-07:00", landingAt: "2025-04-10T15:30+09:00" }]).findings)).toContain("C-DUP-TICKET");
+  });
+
   it("C-FLIGHT-OVERLAP", () => {
     const b = { ...goodFlight, flightNumber: "DL302", scheduledDate: "2025-04-02", fromRaw: "BOS", toRaw: "SEA", boardingAt: null, takeoffAt: "2025-04-02T09:00-04:00", landingAt: "2025-04-02T12:05-07:00" };
     expect(ids(run([goodFlight, b]).findings)).toContain("C-FLIGHT-OVERLAP");
