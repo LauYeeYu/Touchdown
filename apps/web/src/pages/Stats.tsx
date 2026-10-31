@@ -1,14 +1,16 @@
 // Stats (docs/24-statistics.md): the period on a globe, then flights, sightings and both together, and a custom
 // view (a pivot) of any one or two dimensions by one measure. Every number says what it left out.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, pivot, sightingStats, type Dataset, type Measure, type Measured, type Sighting, type StatsContext } from "@touchdown/core";
+import { extensionPercent, routeExtensionByRoute, routeExtensions, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
+import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, pivot, sightingStats, type Dataset, type Measure, type Measured, type Settings, type Sighting, type StatsContext } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, CABIN_LABEL, countryName, distance, durShort, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, dateOnly, distance, durShort, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
+import { Link } from "../lib/link.tsx";
 import { airportWithCode, routeCodes } from "../lib/codes.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
@@ -17,6 +19,7 @@ import { Duration } from "../components/Duration.tsx";
 import { Tabs } from "../components/Tabs.tsx";
 import { Fact, LeftOut } from "../components/Facts.tsx";
 import { Ranked } from "../components/Ranked.tsx";
+import { HelpTip } from "../components/HelpTip.tsx";
 import { GlobePanel } from "../components/GlobePanel.tsx";
 import { useViewState } from "../lib/viewState.ts";
 
@@ -37,6 +40,7 @@ export function Stats() {
   const [showFlights, setShowFlights] = useViewState("showFlights", true);
   const [showSpots, setShowSpots] = useViewState("showSpots", true);
   const [airline, setAirline] = useViewState("airline", "");
+  const [extensionSort, setExtensionSort] = useViewState<ExtensionSort>("extensionSort", "extra");
   const navigate = useNavigate();
 
   const data = useMemo(() => {
@@ -67,6 +71,14 @@ export function Stats() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, year, unit, airline, sightings]);
   const recorded = globe.marks.filter((f) => f.track).length;
+
+  // The distance the period's flights flew beyond the great circle, from their recorded tracks.
+  const extension = useMemo(() => {
+    const ext = routeExtensions(store, ref, flights);
+    const views = new Map(sortedFlights(store, ref).map((v) => [v.f.id, v]));
+    return { flights: [...ext.values()].sort((a, b) => b.percent - a.percent), byRoute: routeExtensionByRoute(flights, ext, ref), views };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, ref, version, flights]);
 
   const op = (id: string) => airlineLabel(id, ref) || id;
   const ap = (id: string) => airportWithCode(id, ref) || id;
@@ -147,6 +159,40 @@ export function Stats() {
             <Ranked title="Seat position" t={fs.seatPositions} label={(k) => k[0]!.toUpperCase() + k.slice(1)} unit={["flight", "flights"]} missing="seat position" />
             <Ranked title="Cabin" t={fs.cabinClasses} label={(k) => CABIN_LABEL[k] ?? k} unit={["flight", "flights"]} missing="cabin" />
           </div>
+          {extension.flights.length > 0 && (
+            <section className="section" aria-labelledby="extension-title">
+              <div className="section__head section__head--wrap">
+                <span className="titled">
+                  <h2 className="section__title" id="extension-title">
+                    Route extension
+                  </h2>
+                  <HelpTip
+                    label="About route extension"
+                    text={`The distance each flight flew beyond the great circle between its airports. A track that has a gap or does not reach an airport counts that stretch as the great circle, so its figure is a minimum, marked "at least".${
+                      extension.flights.length < flights.length ? ` Shown for ${nf.format(extension.flights.length)} of ${plural(flights.length, "flight")} with a recorded track.` : ""
+                    }`}
+                  />
+                </span>
+                <div className="extension-sort">
+                  <span className="extension-sort__label" id="extension-sort">
+                    Sort by
+                  </span>
+                  <div className="segmented segmented--small" role="group" aria-labelledby="extension-sort">
+                    <button type="button" className="seg" aria-pressed={extensionSort === "percent"} onClick={() => setExtensionSort("percent")}>
+                      Extension
+                    </button>
+                    <button type="button" className="seg" aria-pressed={extensionSort === "extra"} onClick={() => setExtensionSort("extra")}>
+                      Extra
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="extension-grid">
+                <MostIndirect rows={byExtension(extension.flights, extensionSort)} views={extension.views} unit={unit} sort={extensionSort} onSort={setExtensionSort} />
+                {extension.byRoute.length > 0 && <ExtensionByRoute rows={byExtension(extension.byRoute, extensionSort)} label={(k) => routeCodes(k, ref)} unit={unit} sort={extensionSort} onSort={setExtensionSort} />}
+              </div>
+            </section>
+          )}
           {fs.perYear.length > 1 && (
             <section className="section">
               <div className="section__head">
@@ -239,6 +285,112 @@ export function Stats() {
       )}
 
       {tab === "pivot" && <Pivot ctx={ctx} flights={flights} sightings={sightings} label={{ op, ap, ty, fam }} />}
+    </div>
+  );
+}
+
+const pct = (e: { percent: number; minimum: boolean }) => `${e.minimum ? "at least " : ""}${extensionPercent(e.percent)}`;
+
+/** The route extension tables sort by the extra distance (the default, since a percentage ranks short flights first), or by the percentage. */
+type ExtensionSort = "percent" | "extra";
+const byExtension = <T extends { percent: number; extraKm: number }>(rows: T[], sort: ExtensionSort) => [...rows].sort((a, b) => (sort === "extra" ? b.extraKm - a.extraKm : b.percent - a.percent));
+
+/** A column heading that sorts the route extension tables by its column, largest first. */
+function SortHeading({ by, label, sort, onSort }: { by: ExtensionSort; label: string; sort: ExtensionSort; onSort: (s: ExtensionSort) => void }) {
+  const on = sort === by;
+  return (
+    <th className="num" aria-sort={on ? "descending" : "none"}>
+      <button type="button" className={`th-sort${on ? " is-on" : ""}`} onClick={() => onSort(by)} title={on ? `Sorted by ${label.toLowerCase()}, largest first` : `Sort by ${label.toLowerCase()}`}>
+        {label}
+        <Icon name={on ? "chevron-down" : "chevrons-up-down"} />
+      </button>
+    </th>
+  );
+}
+
+/** The flights furthest off the great circle, each linking to its page: the first ten, then all. */
+function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtension[]; views: Map<string, ReturnType<typeof sortedFlights>[number]>; unit: Settings["distanceUnit"]; sort: ExtensionSort; onSort: (s: ExtensionSort) => void }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? rows : rows.slice(0, 10);
+  return (
+    <div>
+      <h3 className="ranked__title">Most indirect flights</h3>
+      <table className="table table--fixed">
+        <colgroup>
+          <col />
+          <col className="col-route" />
+          <col className="col-num" />
+          <col className="col-num" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Flight</th>
+            <th>Route</th>
+            <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} />
+            <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} />
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((e) => {
+            const v = views.get(e.flightId);
+            return (
+              <tr key={e.flightId}>
+                <td>
+                  <Link to="/flights/$id" params={{ id: e.flightId }}>
+                    {v?.f.flightNumber ?? "Flight"}
+                  </Link>
+                  {v?.day && <span className="muted"> · {dateOnly(v.day, { day: "numeric", month: "short", year: "numeric" })}</span>}
+                </td>
+                <td className="extension-route">{v ? `${v.fromCode} → ${v.toCode}` : ""}</td>
+                <td className="num">{pct(e)}</td>
+                <td className="num">{distance(e.extraKm, unit)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {rows.length > 10 && (
+        <p className="ranked__foot">
+          <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
+            {all ? "Show fewer" : `Show all ${rows.length}`}
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Each route flown more than once with a track that reaches both airports: its flights taken together. */
+function ExtensionByRoute({ rows, label, unit, sort, onSort }: { rows: RouteExtensionByRoute[]; label: (key: string) => string; unit: Settings["distanceUnit"]; sort: ExtensionSort; onSort: (s: ExtensionSort) => void }) {
+  return (
+    <div>
+      <h3 className="ranked__title">By route</h3>
+      <table className="table table--fixed">
+        <colgroup>
+          <col />
+          <col className="col-count" />
+          <col className="col-wide-num" />
+          <col className="col-wide-num" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Route</th>
+            <th className="num">Flights</th>
+            <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} />
+            <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.route}>
+              <td className="extension-route">{label(r.route)}</td>
+              <td className="num">{nf.format(r.flights)}</td>
+              <td className="num">{pct(r)}</td>
+              <td className="num">{distance(r.extraKm, unit)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

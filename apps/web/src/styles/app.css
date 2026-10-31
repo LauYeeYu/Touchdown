@@ -4039,6 +4039,121 @@ a.wordmark {
   text-align: right;
 }
 
+/* A heading with its question mark beside it. */
+.titled {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A question mark beside a heading: what the heading means shows in the tooltip on hover, focus or a tap. */
+.help-tip {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-3);
+  vertical-align: middle;
+  cursor: help;
+  transition: color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.help-tip .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.help-tip:hover,
+.help-tip:focus-visible {
+  color: var(--ink);
+  background: var(--surface-mid);
+}
+
+/* Route extension on Statistics: the most indirect flights beside the routes. */
+.extension-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 40px;
+  margin-top: 16px;
+}
+
+.extension-route {
+  white-space: nowrap;
+}
+
+/* Set widths, so showing more rows or sorting another way never moves a column. */
+.table--fixed {
+  table-layout: fixed;
+}
+
+.table--fixed .col-route {
+  width: 24%;
+}
+
+.table--fixed .col-num {
+  width: 20%;
+}
+
+.table--fixed .col-count {
+  width: 14%;
+}
+
+.table--fixed .col-wide-num {
+  width: 22%;
+}
+
+/* A column heading that sorts its table: the heading's own look, a chevron on the column sorted by. */
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.th-sort .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.th-sort:hover,
+.th-sort.is-on {
+  color: var(--ink);
+}
+
+/* The section's sort switch: "Sort by" and the two choices, at the head's end. */
+.section__head--wrap {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.extension-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.extension-sort__label {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+@media (max-width: 860px) {
+  .extension-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
 .table--pivot th,
 .table--pivot td {
   white-space: nowrap;

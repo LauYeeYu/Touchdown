@@ -102,6 +102,7 @@ Saved views: the user can save a custom view (dimensions, measure, filters) unde
 | Calendar heatmap | flights per flight day (local date of takeoff, else `scheduledDate`) | takeoff or scheduledDate |
 | Time of day | departures by local hour | departure time |
 | Delays | actual − scheduled departure and arrival, when both exist | times |
+| Route extension | the distance flown beyond the great circle, along the recorded track ([23](23-tracks-and-maps.md), "Route extension"): the most indirect flights, and by route for routes with two or more such flights, sorted by the extra distance (the default) or by the percentage (a percentage puts short flights first, since climbing out and coming in add the same few miles to any flight). Built. | a recorded track |
 
 ## Combined
 
