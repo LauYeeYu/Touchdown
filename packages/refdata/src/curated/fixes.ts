@@ -103,7 +103,9 @@ export const operatorFixes: Record<string, Partial<Omit<Operator, "id" | "icao">
   JBU: { name: "JetBlue", iata: "B6", country: "US", kind: "airline", validTo: null },
   SWA: { name: "Southwest Airlines", iata: "WN", country: "US", kind: "airline", validTo: null },
   UAL: { name: "United Airlines", iata: "UA", country: "US", kind: "airline", validTo: null },
-  EDV: { name: "Endeavor Air", iata: "9E", country: "US", kind: "airline", validTo: null },
+  // Endeavor Air, formerly Pinnacle Airlines, began in 1985 (Wikidata, under its former ICAO code FLG). Without a
+  // start date, XL Airways Germany, listed with 9E in 2006-2012, would take the code on those days.
+  EDV: { name: "Endeavor Air", iata: "9E", country: "US", kind: "airline", validFrom: "1985-01-01", validTo: null },
   ENY: { name: "Envoy Air", iata: "MQ", country: "US", kind: "airline", validTo: null },
   RPA: { name: "Republic Airways", iata: "YX", country: "US", kind: "airline", validTo: null },
   SKW: { name: "SkyWest Airlines", iata: "OO", country: "US", kind: "airline", validTo: null },
@@ -136,6 +138,11 @@ export const operatorFixes: Record<string, Partial<Omit<Operator, "id" | "icao">
   SIA: { name: "Singapore Airlines", iata: "SQ", country: "SG", kind: "airline", validTo: null },
   // Scoot has flown as TGW since it absorbed Tigerair Singapore; Wikidata still gives TR to SCO.
   TGW: { name: "Scoot", iata: "TR", country: "SG", kind: "airline", validTo: null },
+  // Codes shared over time. PrivatAir's IATA code was PV (Wikipedia, CAPA), and PT is Piedmont's. Jambojet began
+  // flying on 1 April 2014: without that date, Jetstar Hong Kong, listed with JM in 2012-2015 though it never flew,
+  // would take the code in 2014.
+  PTI: { iata: "PV" },
+  JMA: { validFrom: "2014-04-01" },
   // Cargo airlines whose names do not say so
   FDX: { name: "FedEx Express", iata: "FX", country: "US", kind: "cargo", validTo: null },
   UPS: { name: "UPS Airlines", iata: "5X", country: "US", kind: "cargo", validTo: null },
