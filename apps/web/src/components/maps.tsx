@@ -85,6 +85,82 @@ export function useArrivals() {
   };
 }
 
+/** What a map shows: its projection, and the part of the projected plane its SVG shows (its viewBox), at a width. */
+interface View {
+  proj: GeoProjection;
+  vb: [number, number, number, number];
+  width: number;
+}
+
+/** A map's move to a new view when a track arrives (DESIGN.md, "Motion"). */
+const CAMERA_MS = 450;
+
+/**
+ * When a track arrives and the map's view changes for it (its framing takes the track in), the map moves and zooms
+ * from the old view to the new one instead of jumping. The new drawing is set where the old one was by the pan and
+ * zoom that best carries one onto the other, worked out from points both show, and eased into place; the SVG's height
+ * follows, so what is below slides. A view that moved by more than a pan and zoom (another projection, a turn of the
+ * globe), a change of width and reduced motion are drawn in place.
+ */
+function moveCamera(svg: SVGSVGElement, from: View | null, to: View, sample: LonLat[]) {
+  if (!from || from.width !== to.width || reducedMotion()) return;
+  const pairs: [[number, number], [number, number]][] = [];
+  for (const p of sample) {
+    const a = from.proj(p);
+    const b = to.proj(p);
+    if (a && b && Number.isFinite(a[0] + a[1] + b[0] + b[1])) pairs.push([a as [number, number], b as [number, number]]);
+  }
+  if (pairs.length < 2) return;
+  const mean = (i: 0 | 1, axis: 0 | 1) => pairs.reduce((sum, pair) => sum + pair[i][axis], 0) / pairs.length;
+  const m0 = [mean(0, 0), mean(0, 1)] as const;
+  const m1 = [mean(1, 0), mean(1, 1)] as const;
+  let num = 0;
+  let den = 0;
+  for (const [a, b] of pairs) {
+    num += (b[0] - m1[0]) * (a[0] - m0[0]) + (b[1] - m1[1]) * (a[1] - m0[1]);
+    den += (b[0] - m1[0]) ** 2 + (b[1] - m1[1]) ** 2;
+  }
+  const k = den > 0 ? num / den : 1;
+  if (!(k > 0.2 && k < 5)) return;
+  const d = [m0[0] - k * m1[0], m0[1] - k * m1[1]] as const;
+  const off = pairs.reduce((sum, [a, b]) => sum + Math.hypot(k * b[0] + d[0] - a[0], k * b[1] + d[1] - a[1]), 0) / pairs.length;
+  if (off > 12) return;
+  // On screen the old drawing sat at its point minus its viewBox's corner; the new one is drawn from its own corner.
+  const tx = d[0] - from.vb[0] + to.vb[0];
+  const ty = d[1] - from.vb[1] + to.vb[1];
+  const [h0, h1] = [from.vb[3], to.vb[3]];
+  if (Math.abs(k - 1) < 0.003 && Math.abs(tx) < 1 && Math.abs(ty) < 1 && Math.abs(h0 - h1) < 1) return;
+  const camera = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  camera.append(...svg.childNodes);
+  svg.append(camera);
+  camera.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+  // The height glides too: the viewBox reaches the taller of the two meanwhile, so nothing is scaled to fit.
+  const grows = Math.abs(h0 - h1) >= 1;
+  if (grows) {
+    svg.setAttribute("viewBox", [to.vb[0], to.vb[1], to.vb[2], Math.max(h0, h1)].join(" "));
+    svg.setAttribute("preserveAspectRatio", "xMinYMin slice");
+    svg.style.height = `${h0}px`;
+  }
+  svg.getBoundingClientRect();
+  const ease = `${CAMERA_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+  camera.style.transition = `transform ${ease}`;
+  camera.style.transform = "none";
+  if (grows) {
+    svg.style.transition = `height ${ease}`;
+    svg.style.height = `${h1}px`;
+  }
+  setTimeout(() => {
+    if (!camera.isConnected) return;
+    camera.style.transition = "";
+    if (grows) {
+      svg.setAttribute("viewBox", to.vb.join(" "));
+      svg.removeAttribute("preserveAspectRatio");
+      svg.style.height = "";
+      svg.style.transition = "";
+    }
+  }, CAMERA_MS + 50);
+}
+
 /** Starts an element's arriving or leaving fade where an earlier drawing of it had got to. */
 function fadeFrom<E extends SVGElement>(node: E, a: Arrival): E {
   node.style.animationDelay = `${-a.elapsed}ms`;
@@ -248,6 +324,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
   handlers.current = { onArcEnter, onArcLeave, onArcClick, onAirportClick };
   const dataKey = flights.map((f) => `${f.id}:${f.track?.length ?? 0}`).join(",") + "|" + spots.map((s) => `${s.code}:${s.aircraft}`).join(",");
   const arrivals = useArrivals();
+  const view = useRef<View | null>(null);
 
   useWidth(
     ref,
@@ -433,6 +510,9 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           if (d.id) clickable(t, d.id);
         });
       apply(svg);
+      const now: View = { proj, vb, width };
+      moveCamera(svg, flights.some((f) => arrival(f.id)?.elapsed === 0) ? view.current : null, now, pts);
+      view.current = now;
     },
     [dataKey, mode],
   );
@@ -498,6 +578,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
   const track = useRef({ samples, takeoff });
   track.current = { samples, takeoff };
   const arrivals = useArrivals();
+  const view = useRef<View | null>(null);
   useWidth(
     ref,
     (width) => {
@@ -520,8 +601,10 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
       for (const f of LAND.features) el(landG, "path", { class: "land", d: path(f) ?? "" });
       const gc = { type: "LineString" as const, coordinates: [from, to] };
       let gapLayer: SVGGElement | null = null;
-      // The track arriving while the page shows: it fades in as the great circle it replaces fades out.
-      const a = arrivals([{ id: "this", track: recorded, line: recorded ? line : [[from, to]] }])("this");
+      // The track arriving while the page shows (its positions, which load after the page): it fades in as the great
+      // circle it replaces fades out.
+      const here = recorded && track.current.samples.length > 1;
+      const a = arrivals([{ id: "this", track: here, line: here ? line : [[from, to]] }])("this");
       const fresh = a ? " is-arriving" : "";
       const arriving = <E extends SVGElement>(node: E) => (a ? fadeFrom(node, a) : node);
       if (recorded) {
@@ -569,6 +652,12 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
           layer: el(svg, "g", { class: "track-hover" }),
         };
       } else hover.current = null;
+      // The track arriving: the map moves and zooms to take it in, from the view it had.
+      const flat = line.flat();
+      const step = Math.max(1, Math.floor(flat.length / 60));
+      const now: View = { proj, vb: [0, 0, width, height], width };
+      moveCamera(svg, a?.elapsed === 0 ? view.current : null, now, [from, to, ...flat.filter((_, i) => i % step === 0)]);
+      view.current = now;
     },
     [from.join(), to.join(), line.map((l) => l.length).join(), gaps.length, samples.length],
   );
