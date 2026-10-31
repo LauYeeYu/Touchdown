@@ -625,6 +625,21 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       cv.style.cursor = "grab";
     };
 
+    // The browser took the gesture, to scroll the page under a vertical swipe: the globe goes back to where the drag
+    // began, without spinning on and without a click.
+    const cancel = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
+      if (drag) {
+        st.rot = drag.rot;
+        st.dirty = true;
+      }
+      drag = null;
+      pinch = null;
+      st.inertia = 0;
+      hideTip();
+      cv.style.cursor = "grab";
+    };
+
     const leave = () => {
       if (!drag) setHover(null);
     };
@@ -656,7 +671,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     cv.addEventListener("pointerdown", down);
     cv.addEventListener("pointermove", move);
     cv.addEventListener("pointerup", up);
-    cv.addEventListener("pointercancel", up);
+    cv.addEventListener("pointercancel", cancel);
     cv.addEventListener("pointerleave", leave);
     cv.addEventListener("wheel", wheel, { passive: false });
     cv.addEventListener("keydown", key);
@@ -664,7 +679,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       cv.removeEventListener("pointerdown", down);
       cv.removeEventListener("pointermove", move);
       cv.removeEventListener("pointerup", up);
-      cv.removeEventListener("pointercancel", up);
+      cv.removeEventListener("pointercancel", cancel);
       cv.removeEventListener("pointerleave", leave);
       cv.removeEventListener("wheel", wheel);
       cv.removeEventListener("keydown", key);
