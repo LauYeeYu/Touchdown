@@ -59,7 +59,7 @@ Success: the owner retires their spreadsheets and trusts the numbers, because ev
 - Voice: plain and direct wording, no mannered or decorative prose. This is the owner's stated preference for everything written for the product.
 - Spelling: UK English in all product copy and docs.
 - Punctuation: a semicolon only where nothing else will do, which is almost never. Split the sentence in two, join the parts with "and", "but" or "so", or separate the parts of a line with a middle dot (·). This holds for everything the site shows, its privacy policy and terms included.
-- Wording: avoid sentences, headings and labels that open with "What", "Who", "Where" or "How" ("What you add is saved…", "Who is it for?", "What the checks will say"). Name the thing instead ("Anything you add is saved…", "The person's name", "Checks"). Use one only when nothing else reads as plainly, such as a real question the user is asked.
+- Wording: no sentences, headings, labels or tooltips that open with a question word: "What", "Who", "Where", "When", "Why", "Which", "How", "How much" ("What you add is saved…", "Who is it for?", "What the checks will say", "How much further each flight flew than the great circle…", "Where a track has a gap…"). It reads as a generated explainer. Name the thing, or start with its subject ("Anything you add is saved…", "The person's name", "Checks", "The distance flown beyond the great circle…", "A gap in a track…"). The only exception is a real question the user is asked.
 - Type: Source Sans 3 (sans-serif) for every role, and no serif faces in the interface.
 - Ground: the warm paper colour #FAF8F1 stays as the light-theme page background (plain white is acceptable but not preferred).
 - Themes: light and dark, following the device by default.

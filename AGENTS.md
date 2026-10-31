@@ -18,7 +18,7 @@ Start at `docs/README.md`. Docs are numbered from low level (data model) to high
 
 - Plain, direct prose. No mannered or decorative writing, no filler, no marketing tone.
 - No semicolons in product copy, the words the site shows (PRODUCT.md, "Brand Commitments"). Split the sentence or join it with "and", "but" or "so".
-- Few sentences, headings or labels in product copy that open with "What", "Who", "Where" or "How" ("What you add…", "Who is it for?"). Name the thing instead (PRODUCT.md, "Brand Commitments").
+- No sentences, headings, labels or tooltips in product copy that open with a question word: What, Who, Where, When, Why, Which, How, How much ("What you add…", "Who is it for?", "How much further each flight flew…", "Where a track has a gap…"). Name the thing or start with its subject instead ("The distance flown beyond the great circle…", "A gap in a track…"). Only a real question put to the user may open with one (PRODUCT.md, "Brand Commitments").
 - UK English spelling in docs, interface copy, and comments (colour, organise, centre, licence as a noun). Code identifiers and third-party names keep their own spelling (`color` in CSS, "Authorized JavaScript origins" in Google's console).
 - Prefer tables and lists for specs.
 - Mark each design statement as Decided, Proposed, or Open when it matters.
