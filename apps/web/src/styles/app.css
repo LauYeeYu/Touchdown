@@ -867,9 +867,9 @@ main {
   stroke-dasharray: 0.1 4;
 }
 
-/* A recorded position where positions are far apart on the map. */
-.map .arc.arc--bead,
-.map .arc.arc--bead.is-active {
+/* A recorded position with a gap on both sides, which no line passes through. */
+.map .arc.arc--lone,
+.map .arc.arc--lone.is-active {
   fill: var(--flown);
   stroke: var(--paper);
   stroke-width: 1;
@@ -911,8 +911,8 @@ main {
   stroke-dasharray: 0.1 5;
 }
 
-/* A recorded position where positions are far apart on the map, so each one can be seen. */
-.map .track-bead {
+/* A recorded position with a gap on both sides, which no line passes through, so it can be seen. */
+.map .track-lone {
   fill: var(--flown);
   stroke: var(--paper);
   stroke-width: 1.5;
@@ -1006,7 +1006,7 @@ main {
   opacity: 1;
 }
 
-.map .arc.arc--bead.is-muted {
+.map .arc.arc--lone.is-muted {
   display: none;
 }
 
@@ -4648,24 +4648,7 @@ a.wordmark {
   margin-top: 12px;
 }
 
-/* A recorded track with a bead, what it does not record, and the faint great circle. */
-.swatch-line--beads {
-  position: relative;
-}
-
-.swatch-line--beads::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: -1px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--flown);
-  box-shadow: 0 0 0 1.5px var(--paper);
-  transform: translate(-50%, -50%);
-}
-
+/* What a recorded track does not record, and the faint great circle. */
 .swatch-line--unrecorded {
   border-top: 2px dotted var(--ink-3);
 }

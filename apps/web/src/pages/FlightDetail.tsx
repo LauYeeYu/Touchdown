@@ -215,8 +215,8 @@ export function FlightDetail() {
     <>
       {track ? (
         <>
-          <span className="legend__item" title={`Solid where positions were received. A bead marks each position where they are far apart. Point at one for the aircraft's state there.${trackRow?.attribution ? ` ${trackRow.attribution}` : ""}`}>
-            <span className="swatch-line swatch-line--beads" />
+          <span className="legend__item" title={`Solid where positions were received. Point at it for the aircraft's state there.${trackRow?.attribution ? ` ${trackRow.attribution}` : ""}`}>
+            <span className="swatch-line" />
             Recorded track
           </span>
           {!!mark?.gaps?.length && (
@@ -256,7 +256,7 @@ export function FlightDetail() {
     ) : (
       <div className="map-wrap">
         <div className="legend">{mapHead}</div>
-        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} recorded={!!track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={`Map of ${routeWhat}`} />
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} lone={mark?.lone} recorded={!!track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={`Map of ${routeWhat}`} />
       </div>
     );
 

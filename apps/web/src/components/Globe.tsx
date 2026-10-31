@@ -8,7 +8,7 @@ import { geoDistance, geoGraticule10, geoInterpolate, geoOrthographic, geoPath }
 import { feature } from "topojson-client";
 import type { FeatureCollection } from "geojson";
 import world from "world-atlas/countries-110m.json";
-import { routeSamplesOf, screenAngle, sparsePositions, type MapFlight, type MapSpot } from "./maps.tsx";
+import { routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
 
@@ -257,7 +257,6 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
 
       const hoverId = st.hover?.kind === "flight" ? st.hover.f.id : null;
       const lineWidth = Math.min(3, 1.4 + Math.log2(Math.max(1, zoom)) * 0.4);
-      // A flight's own page draws its beads from all its recorded positions, as on its flat map.
       const smp = data.current.samples;
       const single = smp.length > 1;
       const shown = (p: LonLat) => (geoDistance(p, centre) < Math.PI / 2 - 0.01 ? (proj(p) as [number, number] | null) : null);
@@ -281,20 +280,18 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
           ctx.stroke();
           ctx.setLineDash([]);
         }
-        // A bead at each recorded position where they are far apart, as on the flat maps (a flight's own page draws
-        // its beads from all its positions, below).
-        if (!single && f.beads?.length) {
+        // A lone position between two gaps, which no line passes through, as a dot, as on the flat maps.
+        if (f.lone?.length) {
           ctx.fillStyle = c.flown;
           ctx.strokeStyle = c.paper;
-          ctx.lineWidth = 1;
-          for (const run of f.beads) {
-            const xy = run.map(shown);
-            for (const i of sparsePositions(xy)) {
-              ctx.beginPath();
-              ctx.arc(xy[i]![0], xy[i]![1], 2.4, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.stroke();
-            }
+          ctx.lineWidth = single ? 1.5 : 1;
+          for (const at of f.lone) {
+            const xy = shown(at);
+            if (!xy) continue;
+            ctx.beginPath();
+            ctx.arc(xy[0], xy[1], single ? 3.4 : 2.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
           }
         }
         ctx.globalAlpha = 1;
@@ -302,7 +299,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       for (const f of fl) if (f.id !== hoverId) drawRoute(f, lineWidth, hoverId ? 0.22 : 0.85);
       const hovered = hoverId ? fl.find((f) => f.id === hoverId) : undefined;
       if (hovered) drawRoute(hovered, lineWidth + 1.6, 1);
-      // A gap under the pointer, over its own dots and under the beads.
+      // A gap under the pointer, over its own dots.
       if (st.hover?.kind === "gap") {
         ctx.strokeStyle = c.ink;
         ctx.lineWidth = 3;
@@ -312,18 +309,6 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         path({ type: "LineString", coordinates: [st.hover.g.from, st.hover.g.to] });
         ctx.stroke();
         ctx.setLineDash([]);
-      }
-      if (single) {
-        const xy = smp.map((p) => (geoDistance(p.at, centre) < Math.PI / 2 - 0.01 ? (proj(p.at) as [number, number] | null) : null));
-        ctx.fillStyle = c.flown;
-        ctx.strokeStyle = c.paper;
-        ctx.lineWidth = 1.5;
-        for (const i of sparsePositions(xy)) {
-          ctx.beginPath();
-          ctx.arc(xy[i]![0], xy[i]![1], 3.4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-        }
       }
 
       // Pointing at the track: at a recorded position, the aircraft from above, turned the way it was going, on a

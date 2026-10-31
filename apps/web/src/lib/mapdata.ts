@@ -139,11 +139,7 @@ export function trackRuns(full: TrackPoint[]): { runs: [number, number][][]; gap
   return { runs, gaps };
 }
 
-// Recorded positions closer than this never get a bead between them: on any map drawn here they are within a few
-// pixels of each other.
-const BEAD_KM = 30;
-
-function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], to: [number, number], points: number): Pick<MapFlight, "track" | "line" | "gaps" | "beads"> {
+function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], to: [number, number], points: number): Pick<MapFlight, "track" | "line" | "gaps" | "lone"> {
   if (!full || full.length < 2) return { track: null, line: [[from, to]], gaps: [] };
   const split = trackRuns(full);
   // Each recorded stretch gets its share of the points.
@@ -158,19 +154,7 @@ function overviewTrack(full: TrackPoint[] | undefined, from: [number, number], t
   if (km(from, first) > GAP_KM) gaps.push([from, first]);
   gaps.push(...split.gaps);
   if (km(last, to) > GAP_KM) gaps.push([last, to]);
-  // From every recorded position, not the thinned line: a straight stretch the line drops points from is still dense.
-  const beads: [number, number][][] = [];
-  let sparse: [number, number][] = [];
-  full.forEach((p, i) => {
-    const prev = full[i - 1];
-    if (prev && km(prev.at, p.at) > BEAD_KM) {
-      if (!sparse.length) sparse.push(prev.at);
-      sparse.push(p.at);
-    } else if (sparse.length) {
-      beads.push(sparse);
-      sparse = [];
-    }
-  });
-  if (sparse.length) beads.push(sparse);
-  return { track: runs.flat(), line: runs.filter((r) => r.length > 1), gaps, beads };
+  // A position with a gap on both sides has no line through it: it is drawn as a dot, or it would not show at all.
+  const lone = split.runs.filter((r) => r.length === 1).map((r) => r[0]!);
+  return { track: runs.flat(), line: runs.filter((r) => r.length > 1), gaps, lone };
 }

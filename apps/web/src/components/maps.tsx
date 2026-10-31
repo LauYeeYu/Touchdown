@@ -37,8 +37,8 @@ export interface MapFlight {
   track?: LonLat[] | null; // recorded track's points; the great circle is drawn when there is none
   line: LonLat[][]; // drawn solid: the recorded stretches, else the great circle
   gaps?: LonLat[][]; // drawn dotted: what a track does not record, joining it to its airports and across its gaps
-  /** Stretches of recorded positions each far from the next: where they are far apart on the map, they are beads. */
-  beads?: LonLat[][];
+  /** Recorded positions with a gap on both sides, which no line passes through: each is drawn as a dot. */
+  lone?: LonLat[];
 }
 
 export interface MapSpot {
@@ -283,12 +283,11 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d: path({ type: "LineString", coordinates: g }) ?? "" });
         }
       });
-      // A bead at each recorded position where they are far apart on the map, so the real positions show among the lines.
-      const shown = (p: LonLat) => (path({ type: "Point", coordinates: p }) ? (proj(p) as [number, number] | null) : null);
+      // A lone position between two gaps, which no line passes through, as a dot.
       for (const f of flights) {
-        for (const run of f.beads ?? []) {
-          const xy = run.map(shown);
-          for (const i of sparsePositions(xy)) el(arcs, "circle", { class: `arc arc--bead${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, cx: xy[i]![0], cy: xy[i]![1], r: 2.4 });
+        for (const at of f.lone ?? []) {
+          const xy = path({ type: "Point", coordinates: at }) ? (proj(at) as [number, number] | null) : null;
+          if (xy) el(arcs, "circle", { class: `arc arc--lone${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, cx: xy[0], cy: xy[1], r: 2.4 });
         }
       }
       flights.forEach((f, i) => {
@@ -406,6 +405,8 @@ interface FlightMapProps {
   line: LonLat[][];
   /** Drawn dashed: what the track does not record. */
   gaps?: LonLat[][];
+  /** Recorded positions with a gap on both sides, drawn as dots. */
+  lone?: LonLat[];
   recorded: boolean;
   label: string;
   onAirportClick?: (which: "from" | "to") => void;
@@ -422,7 +423,7 @@ interface TrackHover {
   gaps: { gap: TrackGap; screen: [number, number][] }[];
   proj: GeoProjection;
   path: ReturnType<typeof geoPath>;
-  /** Over the gaps and under the beads: a gap under the pointer. */
+  /** Over the gaps: a gap under the pointer. */
   gapLayer: SVGGElement;
   /** Over everything: the aircraft at a position under the pointer. */
   layer: SVGGElement;
@@ -439,7 +440,7 @@ export function screenAngle(samples: TrackSample[], i: number, proj: (p: LonLat)
   return s0 && s1 ? (Math.atan2(s1[1] - s0[1], s1[0] - s0[0]) * 180) / Math.PI + 90 : 0;
 }
 
-export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorded, label, onAirportClick, samples = [], takeoff = null }: FlightMapProps) {
+export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = [], recorded, label, onAirportClick, samples = [], takeoff = null }: FlightMapProps) {
   const ref = useRef<SVGSVGElement>(null);
   const clickRef = useRef(onAirportClick);
   clickRef.current = onAirportClick;
@@ -475,10 +476,11 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
         el(svg, "path", { class: "track", d: path(runs) ?? "" });
         for (const g of gaps) el(svg, "path", { class: "track track--gap", d: path({ type: "LineString", coordinates: g }) ?? "" });
         gapLayer = el(svg, "g", { class: "track-hover" });
-        // Where positions are far apart on the map, each one is a bead, so the real ones can be told from the line.
-        const { samples: pts } = track.current;
-        const xy = pts.map((s) => (geoDistance(s.at, mid) < Math.PI / 2 - 0.01 ? (proj(s.at) as [number, number] | null) : null));
-        for (const i of sparsePositions(xy)) el(svg, "circle", { class: "track-bead", cx: xy[i]![0], cy: xy[i]![1], r: 3.4 });
+        // A lone position between two gaps, which no line passes through, as a dot.
+        for (const at of lone) {
+          const xy = geoDistance(at, mid) < Math.PI / 2 - 0.01 ? (proj(at) as [number, number] | null) : null;
+          if (xy) el(svg, "circle", { class: "track-lone", cx: xy[0], cy: xy[1], r: 3.4 });
+        }
       } else el(svg, "path", { class: "gc gc--primary", d: path(gc) ?? "" });
       for (const [at, code, anchor, which] of [[from, fromCode, "end", "from"], [to, toCode, "start", "to"]] as const) {
         const xy = proj(at);
@@ -564,33 +566,6 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], recorde
     };
   }, []);
   return <svg className="map" ref={ref} role="img" aria-label={label} />;
-}
-
-/**
- * The positions on screen (null where hidden) that get a bead: those of a stretch where each position is more than
- * `px` from the next and which is more than `run` long, so its straight joins could pass for recorded line. A lone
- * short hole in a dense track reads as part of the line and gets none.
- */
-export function sparsePositions(xy: ([number, number] | null)[], px = 10, run = 24): number[] {
-  const out: number[] = [];
-  let start = -1;
-  let length = 0;
-  const end = (last: number) => {
-    if (start >= 0 && length > run) for (let k = start; k <= last; k++) out.push(k);
-    start = -1;
-    length = 0;
-  };
-  for (let i = 1; i < xy.length; i++) {
-    const a = xy[i - 1];
-    const b = xy[i];
-    const d = a && b ? Math.hypot(b[0] - a[0], b[1] - a[1]) : 0;
-    if (d > px) {
-      if (start < 0) start = i - 1;
-      length += d;
-    } else end(i - 1);
-  }
-  end(xy.length - 1);
-  return out;
 }
 
 /** The distance from a point to a segment on screen. */
