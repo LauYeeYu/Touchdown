@@ -24,11 +24,16 @@ export function Frame({ children }: { children: ReactNode }) {
   );
 }
 
-export function Message({ title, text }: { title: string; text: string }) {
+export function Message({ title, text, onRetry }: { title: string; text: string; onRetry?: () => void }) {
   return (
     <div className="share-message">
       <h1 className="share-message__title">{title}</h1>
       <p className="share-message__text">{text}</p>
+      {onRetry && (
+        <button type="button" className="btn btn--quiet btn--small share-message__retry" onClick={onRetry}>
+          Try again
+        </button>
+      )}
     </div>
   );
 }

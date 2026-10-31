@@ -2665,6 +2665,10 @@ a.shares-list__title:hover {
   color: var(--ink-2);
 }
 
+.share-message__retry {
+  margin-top: 20px;
+}
+
 .share-loading {
   margin: 14vh 0 0;
   color: var(--ink-3);

@@ -32,9 +32,23 @@ function titleOf(content: ShareContent): string {
 
 function SharePage() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  // Each try opens the link afresh, without reloading the page.
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    void loadShare().then(setLoaded, () => setLoaded({ state: "not-available" }));
-  }, []);
+    // A try that has been replaced (or, in development, run twice) does not set the page.
+    let current = true;
+    void loadShare().then(
+      (l) => current && setLoaded(l),
+      () => current && setLoaded({ state: "not-available" }),
+    );
+    return () => {
+      current = false;
+    };
+  }, [attempt]);
+  const retry = () => {
+    setLoaded(null);
+    setAttempt((n) => n + 1);
+  };
 
   if (!loaded)
     return (
@@ -45,8 +59,8 @@ function SharePage() {
       </Frame>
     );
   if (loaded.state === "not-found") return <Frame>{<Message title="This link does not open anything." text="It may have been stopped by the person who shared it, or the address may be incomplete." />}</Frame>;
-  if (loaded.state === "busy") return <Frame>{<Message title="Too many requests just now." text="Wait a minute, then reload the page." />}</Frame>;
-  if (loaded.state === "not-available") return <Frame>{<Message title="This link is not available right now." text="The log it shows cannot be reached at the moment. Try again later." />}</Frame>;
+  if (loaded.state === "busy") return <Frame>{<Message title="Too many requests just now." text="Wait a minute, then try again." onRetry={retry} />}</Frame>;
+  if (loaded.state === "not-available") return <Frame>{<Message title="This link is not available right now." text="The log it shows cannot be reached at the moment." onRetry={retry} />}</Frame>;
   return <Shared data={loaded.data} />;
 }
 
