@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attachTrack, expectedCallsign, fitTrack, nNumberIcao, numericCallsign, parseTrackFileName, readTrackFile, removeTrack, trackFileName, trackFromReadsb, trackKml, type ReadsbTrace, type TrackPointInput } from "../src/index.ts";
+import { attachTrack, expectedCallsign, fitTrack, fitTrackFile, matchTrackLegs, nNumberIcao, numericCallsign, parseTrackFileName, readTrackFile, removeTrack, trackFileName, trackFromReadsb, trackKml, type ReadsbTrace, type TrackPointInput } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 // A made-up flight from Boston to New York JFK and tracks drawn along it.
@@ -121,6 +121,60 @@ describe("checking a track against its flight", () => {
     const mid = { lat: 41.6, lon: -72.3 };
     expect(fitTrack(line(mid, { lat: 41.5, lon: -72.5 }, START + 1200, 30), f, ref)).toEqual({ problem: expect.stringMatching(/covers too little/) });
     expect(fitTrack(line(mid, JFK, START + 1200, 60), f, ref)).toMatchObject({ coverage: "partial" });
+  });
+});
+
+describe("a track file over more than the flight", () => {
+  // XY101 stops at JFK on its way from Boston to Atlanta: a file of the whole day lands at JFK, waits and takes off again.
+  const ATL = { lat: 33.6367, lon: -84.4281 };
+  const ON = START + 3600 + 3600;
+  const parked = (at: typeof BOS, start: number, minutes: number) => Array.from({ length: minutes / 5 }, (_, i) => ({ t: start + i * 300, lat: at.lat, lon: at.lon, altitudeFt: 0, groundSpeedKt: i % 2 ? 0 : 12, headingDeg: 0 }));
+  const day = [...parked(BOS, START - 1500, 20), ...line(), ...parked(JFK, START + 3630, 55), ...line(JFK, ATL, ON, 241), ...parked(ATL, ON + 7230, 15)];
+  const legs = (store: ReturnType<typeof newStore>) => ({
+    first: flight(store),
+    second: flight(store, { fromAirportId: "ap_kjfk", toAirportId: "ap_katl", takeoffAt: "2026-03-01T11:00-05:00", landingAt: "2026-03-01T13:00-05:00" }),
+  });
+
+  it("keeps only the flight's leg, its time on the ground included, and says how many the file held", () => {
+    const store = newStore();
+    const { first, second } = legs(store);
+    const there = fitTrackFile(day, first, ref);
+    if ("problem" in there) throw new Error(there.problem);
+    expect(there).toMatchObject({ coverage: "complete", legs: 2 });
+    expect(there.points[0]!.t).toBe(START - 1500);
+    expect(there.points[there.points.length - 1]!.t).toBeLessThan(ON);
+    const on = fitTrackFile(day, second, ref);
+    if ("problem" in on) throw new Error(on.problem);
+    expect(on).toMatchObject({ coverage: "complete", legs: 2 });
+    expect(on.points[0]!.t).toBeGreaterThan(START + 3600);
+    expect(on.points[on.points.length - 1]!.t).toBe(day[day.length - 1]!.t);
+    // Without the cut, the first leg would not fit and the second would be partial, its first leg drawn with it.
+    expect(fitTrack(day, first, ref)).toEqual({ problem: expect.stringMatching(/does not run from BOS to JFK/) });
+    expect(fitTrack(day, second, ref)).toMatchObject({ coverage: "partial" });
+  });
+
+  it("cuts where nothing was received while the aircraft stood, and gives each flight its leg when matching files", () => {
+    const store = newStore();
+    const { first, second } = legs(store);
+    const quiet = [...line(), ...line(JFK, ATL, ON, 241)];
+    const on = fitTrackFile(quiet, second, ref);
+    if ("problem" in on) throw new Error(on.problem);
+    expect(on).toMatchObject({ coverage: "complete", legs: 2, points: line(JFK, ATL, ON, 241) });
+    const found = matchTrackLegs(day, [first, second], ref, "XY101_BOS_ATL_20260301_abc.csv");
+    expect(found.map((m) => [m.flight.id, m.coverage])).toEqual([
+      [first.id, "complete"],
+      [second.id, "complete"],
+    ]);
+  });
+
+  it("keeps a file of one flight whole: a stop logged as one flight, a gap over the sea, a position read as on the ground", () => {
+    const store = newStore();
+    const through = flight(store, { toAirportId: "ap_katl", landingAt: "2026-03-01T13:00-05:00" });
+    expect(fitTrackFile(day, through, ref)).toMatchObject({ coverage: "complete", legs: null, points: day });
+    const f = flight(store);
+    const odd = line().map((p, i) => (i === 60 ? { ...p, altitudeFt: 0, groundSpeedKt: 0 } : p)).filter((_, i) => i < 30 || i > 50);
+    expect(fitTrackFile(odd, f, ref)).toMatchObject({ coverage: "complete", legs: null, points: odd });
+    expect(matchTrackLegs(odd, [f], ref)).toMatchObject([{ coverage: "complete", points: odd }]);
   });
 });
 

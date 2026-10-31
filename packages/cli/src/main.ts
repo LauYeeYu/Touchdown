@@ -12,7 +12,7 @@ import {
   backupZip,
   betterTrack,
   checkAll,
-  matchTrack,
+  matchTrackLegs,
   parseTrackCsv,
   phaseIndex,
   type TrackPointInput,
@@ -570,14 +570,14 @@ function importTracks(store: Store, ref: RefIndex, dirs: { path: string; provide
     for (const path of paths) {
       files++;
       const points = parseTrackCsv(readFileSync(path, "utf8"));
-      const m = matchTrack(points, flights, ref, basename(path));
-      if (!m || points.length < 2) {
-        unmatched++;
-        continue;
-      }
-      const cur = best.get(m.flight.id);
-      if (!cur || betterTrack({ coverage: m.coverage, points: points.length }, { coverage: cur.coverage, points: cur.points.length })) {
-        best.set(m.flight.id, { points, coverage: m.coverage, provider: d.provider, file: basename(path) });
+      // A file that runs over more than one flight gives each flight only its leg.
+      const found = points.length < 2 ? [] : matchTrackLegs(points, flights, ref, basename(path));
+      if (!found.length) unmatched++;
+      for (const m of found) {
+        const cur = best.get(m.flight.id);
+        if (!cur || betterTrack({ coverage: m.coverage, points: m.points.length }, { coverage: cur.coverage, points: cur.points.length })) {
+          best.set(m.flight.id, { points: m.points, coverage: m.coverage, provider: d.provider, file: basename(path) });
+        }
       }
     }
   }

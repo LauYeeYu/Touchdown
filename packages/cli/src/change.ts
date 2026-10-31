@@ -9,7 +9,7 @@ import { basename } from "node:path";
 import {
   AIRFRAME_EDIT_FIELDS,
   airframeEdit,
-  fitTrack,
+  fitTrackFile,
   FLIGHT_EDIT_FIELDS,
   flightEdit,
   INBOX_SCHEMA,
@@ -20,6 +20,7 @@ import {
   RULES,
   SIGHTING_EDIT_FIELDS,
   sightingEdit,
+  toUtcIso,
   trackChangeFor,
   type EditInput,
   type Finding,
@@ -417,10 +418,15 @@ export async function trackCommand(args: string[]) {
   }
   const read = readTrackFile(name, text);
   if ("error" in read) return fail(c.json, `${name}: ${read.error}`);
-  const fit = fitTrack(read.points, found.row, log.ref);
+  const fit = fitTrackFile(read.points, found.row, log.ref);
   if ("problem" in fit) return fail(c.json, `${name}: ${fit.problem}`);
-  const notes = read.points.length > MAX_TRACK_POINTS ? [`The file has ${read.points.length} points; the track keeps the ${MAX_TRACK_POINTS} that draw it best.`] : [];
-  return writeChanges(log, "track", [trackChangeFor(found.row.id, read, fit.coverage)], c, notes);
+  const notes: string[] = [];
+  if (fit.legs) {
+    const at = (t: number) => toUtcIso(t * 1000).slice(11, 16);
+    notes.push(`The file holds ${fit.legs} flights of the aircraft, and only this one's positions are kept, from ${at(fit.points[0]!.t)} to ${at(fit.points[fit.points.length - 1]!.t)} UTC.`);
+  }
+  if (fit.points.length > MAX_TRACK_POINTS) notes.push(`The track has ${fit.points.length} points, and keeps the ${MAX_TRACK_POINTS} that draw it best.`);
+  return writeChanges(log, "track", [trackChangeFor(found.row.id, { ...read, points: fit.points }, fit.coverage)], c, notes);
 }
 
 /** `aircraft edit` and `aircraft merge`. */

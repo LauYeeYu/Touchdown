@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Link, useReachable } from "../lib/link.tsx";
 import { extensionPercent, routeExtension } from "@touchdown/core/view";
-import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
+import { cityName, daysBetween, fitTrackFile, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
@@ -31,7 +31,7 @@ import { article, partOfDay } from "../lib/flightText.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
 
 /** A track file the user chose for the flight: what it would save, or why it cannot be used. */
-type PickedTrack = { name: string; problem: string } | { name: string; read: number; change: Extract<InboxChange, { op: "track" }>; startKm: number | null; endKm: number | null };
+type PickedTrack = { name: string; problem: string } | { name: string; read: number; change: Extract<InboxChange, { op: "track" }>; startKm: number | null; endKm: number | null; legs: number | null };
 
 /** "an Airbus", "an Embraer", "a Boeing". */
 const SOURCE_TEXT: Record<string, string> = {
@@ -139,9 +139,9 @@ export function FlightDetail() {
   const pickTrack = async (file: File) => {
     const read = readTrackFile(file.name, await file.text());
     if ("error" in read) return setPicked({ name: file.name, problem: read.error });
-    const fit = fitTrack(read.points, f, ref);
+    const fit = fitTrackFile(read.points, f, ref);
     if ("problem" in fit) return setPicked({ name: file.name, problem: fit.problem });
-    setPicked({ name: file.name, read: read.points.length, change: trackChangeFor(f.id, read, fit.coverage), startKm: fit.startKm, endKm: fit.endKm });
+    setPicked({ name: file.name, read: fit.points.length, change: trackChangeFor(f.id, { ...read, points: fit.points }, fit.coverage), startKm: fit.startKm, endKm: fit.endKm, legs: fit.legs });
   };
   const flightName = `${f.flightNumber ?? "the flight"}${day ? ` on ${dayMonthYear(day)}` : ""}`;
   const saveTrack = () => {
@@ -196,8 +196,9 @@ export function FlightDetail() {
     const last = toUtcIso(c.points[c.points.length - 1]![0] * 1000);
     const ends = c.coverage === "partial" && p.startKm !== null && p.endKm !== null ? ` (it starts ${Math.round(p.startKm)} km from ${v.fromCode} and ends ${Math.round(p.endKm)} km from ${v.toCode})` : "";
     const kept = p.read > c.points.length ? `${nf.format(p.read)} points, kept as ${nf.format(c.points.length)}` : `${nf.format(p.read)} points`;
+    const cut = p.legs ? ` The file holds ${p.legs} flights of the aircraft, and only this one's positions are kept.` : "";
     const replaces = trackRow ? ` It replaces the recorded track${trackRow.provider && TRACK_SOURCE[trackRow.provider] ? ` from ${TRACK_SOURCE[trackRow.provider]}` : ""}.` : "";
-    return `A ${c.coverage} track${ends}: ${kept}, ${distance(c.distanceKm, unit)}, recorded ${dayMonthYear(first.slice(0, 10))} ${first.slice(11, 16)} to ${last.slice(11, 16)} UTC, from ${TRACK_SOURCE[c.provider] ?? "a track file"}.${replaces}`;
+    return `A ${c.coverage} track${ends}: ${kept}, ${distance(c.distanceKm, unit)}, recorded ${dayMonthYear(first.slice(0, 10))} ${first.slice(11, 16)} to ${last.slice(11, 16)} UTC, from ${TRACK_SOURCE[c.provider] ?? "a track file"}.${cut}${replaces}`;
   }
 
   const altitude =

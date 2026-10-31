@@ -356,6 +356,22 @@ export function matchTrack(points: TrackPointInput[], flights: Flight[], ref: Re
   return { flight: best.f, coverage, startKm, endKm };
 }
 
+/**
+ * matchTrack for a file that may run over more than one flight (a stop, or the aircraft's previous flight first): the
+ * whole file when it runs from one flight's departure to its arrival, else each of its legs (trackLegs) matched on its
+ * own, so each flight gets only its leg.
+ */
+export function matchTrackLegs(points: TrackPointInput[], flights: Flight[], ref: RefIndex, fileName?: string): (TrackMatch & { points: TrackPointInput[] })[] {
+  const whole = matchTrack(points, flights, ref, fileName);
+  const legs = whole?.coverage === "complete" ? [] : trackLegs(points);
+  const found: (TrackMatch & { points: TrackPointInput[] })[] = [];
+  for (const leg of legs.length > 1 ? legs : []) {
+    const m = leg.length > 1 ? matchTrack(leg, flights, ref, fileName) : null;
+    if (m) found.push({ ...m, points: leg });
+  }
+  return found.length ? found : whole ? [{ ...whole, points }] : [];
+}
+
 export type TrackFit = { coverage: "complete" | "partial"; startKm: number | null; endKm: number | null } | { problem: string };
 
 const hhmm = (t: number) => toUtcIso(t * 1000).slice(11, 16);
@@ -402,6 +418,91 @@ export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefInde
     }
   }
   return { coverage, startKm, endKm };
+}
+
+/** Nothing received for over 30 minutes while slower than this from one position to the next: the aircraft stopped. */
+const STOP_KT = 150;
+const LEG_GAP_S = 30 * 60;
+/** On the ground, as Flightradar24 records it: altitude 0 and slower than this. */
+const GROUND_KT = 60;
+/** On the ground this long between two stretches in the air: the aircraft stopped there. */
+const STOP_S = 5 * 60;
+
+const grounded = (p: TrackPointInput) => p.altitudeFt === 0 && (p.groundSpeedKt === null || p.groundSpeedKt < GROUND_KT);
+/** In the air: above 0 ft, else (without an altitude) at flying speed. Without either, it may be. */
+const inAir = (p: TrackPointInput) => (p.altitudeFt !== null ? p.altitudeFt > 0 : p.groundSpeedKt === null || p.groundSpeedKt >= GROUND_KT);
+
+/**
+ * A track file cut into the aircraft's legs: where it was on the ground for 5 minutes or more between two stretches in
+ * the air (cut at the longest wait, mostly at the gate, where little is received), or where nothing was received for
+ * over 30 minutes while it could not have flown on. A gap over an ocean flown at speed stays inside the leg, and a
+ * stretch with nothing in the air (a return to the gate, a tow) is no flight of its own: it joins the leg before it.
+ */
+export function trackLegs(points: TrackPointInput[]): TrackPointInput[][] {
+  const cuts = new Set<number>();
+  for (let i = 1; i < points.length; i++) {
+    const gap = points[i]!.t - points[i - 1]!.t;
+    if (gap > LEG_GAP_S && haversineKm(points[i - 1]!, points[i]!) / 1.852 / (gap / 3600) < STOP_KT) cuts.add(i);
+  }
+  const gaps = [...cuts];
+  const firstAir = points.findIndex(inAir);
+  const lastAir = points.findLastIndex(inAir);
+  for (let i = 0; i < points.length; ) {
+    if (!grounded(points[i]!)) {
+      i++;
+      continue;
+    }
+    let end = i;
+    while (end + 1 < points.length && grounded(points[end + 1]!)) end++;
+    const between = firstAir >= 0 && firstAir < i && lastAir > end;
+    if (between && points[end]!.t - points[i]!.t >= STOP_S && !gaps.some((c) => c >= i && c <= end + 1)) {
+      let at = i + 1;
+      for (let j = i + 2; j <= end; j++) if (points[j]!.t - points[j - 1]!.t > points[at]!.t - points[at - 1]!.t) at = j;
+      cuts.add(at);
+    }
+    i = end + 1;
+  }
+  const at = [0, ...[...cuts].sort((a, b) => a - b), points.length];
+  const legs: TrackPointInput[][] = [];
+  let before: TrackPointInput[] = [];
+  for (const leg of at.slice(1).map((end, k) => points.slice(at[k], end))) {
+    if (leg.some(inAir)) {
+      legs.push([...before, ...leg]);
+      before = [];
+    } else if (legs.length) legs[legs.length - 1]!.push(...leg);
+    else before.push(...leg);
+  }
+  if (before.length) legs.push(before);
+  return legs;
+}
+
+export type TrackFileFit = { coverage: "complete" | "partial"; startKm: number | null; endKm: number | null; points: TrackPointInput[]; legs: number | null } | { problem: string };
+
+/**
+ * A track file the user gives for a flight, checked against it (fitTrack). A file that runs over more than the flight
+ * (Flightradar24 sometimes keeps one flight across a stop, or starts with the aircraft's previous flight) is cut into
+ * legs (trackLegs) and only the leg that fits the flight is kept: a complete one first, then the one nearest the logged
+ * times. `legs` is how many the file held then, null when it is kept whole, as it is when it runs from the departure to
+ * the arrival.
+ */
+export function fitTrackFile(points: TrackPointInput[], flight: Flight, ref: RefIndex): TrackFileFit {
+  const whole = fitTrack(points, flight, ref);
+  if (!("problem" in whole) && whole.coverage === "complete") return { ...whole, points, legs: null };
+  const legs = trackLegs(points);
+  if (legs.length > 1) {
+    const t0 = instant(flight.takeoffAt);
+    const t1 = instant(flight.landingAt);
+    const away = (l: TrackPointInput[]) => (t0 !== null && t1 !== null ? Math.abs((l[0]!.t + l[l.length - 1]!.t) * 500 - (t0 + t1) / 2) : 0);
+    let best: Extract<TrackFileFit, { points: unknown }> | null = null;
+    for (const leg of legs) {
+      if (leg.length < 2) continue;
+      const fit = fitTrack(leg, flight, ref);
+      if ("problem" in fit) continue;
+      if (!best || (fit.coverage !== best.coverage ? fit.coverage === "complete" : away(leg) < away(best.points))) best = { ...fit, points: leg, legs: legs.length };
+    }
+    if (best) return best;
+  }
+  return "problem" in whole ? whole : { ...whole, points, legs: null };
 }
 
 /** Remove a flight's recorded track and its points; the flight goes back to the great circle. */
@@ -471,8 +572,6 @@ interface Fix extends TrackPointInput {
   callsign: string | null;
 }
 
-const STOP_KT = 150;
-const LEG_GAP_S = 30 * 60;
 /** How far a leg flown under the flight's own callsign may lie outside the logged times: only another day's flight of the same number is ruled out. */
 const CALLSIGN_SLACK_MS = 12 * 3600_000;
 
