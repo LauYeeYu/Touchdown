@@ -8,7 +8,7 @@ import { geoDistance, geoGraticule10, geoInterpolate, geoOrthographic, geoPath }
 import { feature } from "topojson-client";
 import type { FeatureCollection } from "geojson";
 import world from "world-atlas/countries-110m.json";
-import { routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
+import { ARRIVE_MS, routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
 
@@ -261,6 +261,20 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       const single = smp.length > 1;
       const shown = (p: LonLat) => (geoDistance(p, centre) < Math.PI / 2 - 0.01 ? (proj(p) as [number, number] | null) : null);
       const drawRoute = (f: MapFlight, width: number, alpha: number) => {
+        // Arriving: the great circle it had fades out as the track fades in.
+        const a = arriving.current.get(f.id);
+        if (a) {
+          const t = Math.min(1, (performance.now() - a.at) / ARRIVE_MS);
+          const k = 1 - Math.pow(1 - t, 3);
+          ctx.globalAlpha = alpha * (1 - k);
+          ctx.strokeStyle = c.flown;
+          ctx.lineWidth = width;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          path({ type: "MultiLineString", coordinates: a.was });
+          ctx.stroke();
+          alpha *= k;
+        }
         ctx.globalAlpha = alpha;
         ctx.strokeStyle = c.flown;
         ctx.lineWidth = width;
@@ -412,6 +426,12 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     };
 
     const loop = () => {
+      // Draw every frame while a track is arriving, until its fade is over.
+      if (arriving.current.size) {
+        const now = performance.now();
+        for (const [id, a] of arriving.current) if (now - a.at >= ARRIVE_MS) arriving.current.delete(id);
+        st.dirty = true;
+      }
       if (st.inertia > 0) {
         st.rot = [st.rot[0] + st.velocity[0], Math.max(-89, Math.min(89, st.rot[1] + st.velocity[1]))];
         st.velocity = [st.velocity[0] * 0.92, st.velocity[1] * 0.92];
@@ -433,6 +453,21 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A track that arrives while the globe shows fades in over the great circle it replaces, as on the flat maps
+  // (maps.tsx, ARRIVE_MS). Tracks arriving is new data too: the globe draws again.
+  const seen = useRef(new Map<string, { track: boolean; line: LonLat[][] }>());
+  const arriving = useRef(new Map<string, { at: number; was: LonLat[][] }>());
+  useEffect(() => {
+    const now = performance.now();
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for (const f of flights) {
+      const before = seen.current.get(f.id);
+      if (before && !before.track && f.track && !still) arriving.current.set(f.id, { at: now, was: before.line });
+      seen.current.set(f.id, { track: !!f.track, line: f.line });
+    }
+    state.current.dirty = true;
+  }, [flights]);
 
   // New data: redraw; refit when the set of marks changes.
   const key = flights.map((f) => f.id).join(",") + "|" + spots.map((s) => s.code).join(",");

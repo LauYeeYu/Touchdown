@@ -860,6 +860,41 @@ main {
   stroke-linejoin: round;
 }
 
+/* A recorded track that arrives while the map shows (tracks load after the page) fades in, and the great circle it
+   replaces fades out (maps.tsx, ARRIVE_MS). Nothing moves: the lines change in place. */
+.map .is-arriving {
+  animation: track-arrive 400ms var(--ease) both;
+}
+
+.map .arc--leaving,
+.map .gc--leaving {
+  pointer-events: none;
+  animation: track-leave 400ms var(--ease) both;
+}
+
+@keyframes track-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes track-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map .is-arriving {
+    animation: none;
+  }
+
+  .map .arc--leaving,
+  .map .gc--leaving {
+    display: none;
+  }
+}
+
 /* The stretch of a partial track that was not recorded: the great circle in grey dots, since gold means the aircraft
    was there. */
 .map .arc--gap {

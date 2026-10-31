@@ -52,6 +52,45 @@ export interface MapSpot {
   label: string; // accessible label
 }
 
+/**
+ * A recorded track that arrives while a map is showing (tracks load after the page) fades in over 400ms while the line
+ * it replaces, the great circle, fades out (DESIGN.md, "Motion"). What is there when the map first draws does not move.
+ */
+export const ARRIVE_MS = 400;
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+export interface Arrival {
+  /** The line the flight had before its track: drawn fading out. */
+  was: LonLat[][];
+  /** Milliseconds into the fade, for a map drawn again before it ends. */
+  elapsed: number;
+}
+
+/** Called each time a map draws, with its flights: which of them have just had their track arrive. */
+export function useArrivals() {
+  const seen = useRef(new Map<string, { track: boolean; line: LonLat[][] }>());
+  const arriving = useRef(new Map<string, { at: number; was: LonLat[][] }>());
+  return (flights: { id: string; track?: unknown; line: LonLat[][] }[]): ((id: string) => Arrival | null) => {
+    const now = performance.now();
+    for (const f of flights) {
+      const before = seen.current.get(f.id);
+      if (before && !before.track && f.track && !reducedMotion()) arriving.current.set(f.id, { at: now, was: before.line });
+      seen.current.set(f.id, { track: !!f.track, line: f.line });
+    }
+    for (const [id, a] of arriving.current) if (now - a.at >= ARRIVE_MS) arriving.current.delete(id);
+    return (id) => {
+      const a = arriving.current.get(id);
+      return a ? { was: a.was, elapsed: now - a.at } : null;
+    };
+  };
+}
+
+/** Starts an element's arriving or leaving fade where an earlier drawing of it had got to. */
+function fadeFrom<E extends SVGElement>(node: E, a: Arrival): E {
+  node.style.animationDelay = `${-a.elapsed}ms`;
+  return node;
+}
+
 function el<K extends keyof SVGElementTagNameMap>(parent: Element, tag: K, attrs: Record<string, string | number>): SVGElementTagNameMap[K] {
   const e = document.createElementNS(SVG_NS, tag);
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
@@ -208,6 +247,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
   const handlers = useRef({ onArcEnter, onArcLeave, onArcClick, onAirportClick });
   handlers.current = { onArcEnter, onArcLeave, onArcClick, onAirportClick };
   const dataKey = flights.map((f) => `${f.id}:${f.track?.length ?? 0}`).join(",") + "|" + spots.map((s) => `${s.code}:${s.aircraft}`).join(",");
+  const arrivals = useArrivals();
 
   useWidth(
     ref,
@@ -276,18 +316,28 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
       const arcs = el(svg, "g", { class: "arcs" });
       const arcPaths: SVGPathElement[] = [];
       let order = 0;
+      const arrival = arrivals(flights);
       flights.forEach((f, i) => {
         const d = path(lines[i]!) ?? "";
-        arcPaths.push(el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d }));
+        const a = arrival(f.id);
+        const fresh = a ? " is-arriving" : "";
+        if (a) fadeFrom(el(arcs, "path", { class: "arc arc--leaving", d: path({ type: "MultiLineString", coordinates: a.was }) ?? "" }), a);
+        const line = el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d });
+        arcPaths.push(a ? fadeFrom(line, a) : line);
         for (const g of f.gaps ?? []) {
-          el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d: path({ type: "LineString", coordinates: g }) ?? "" });
+          const gap = el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d: path({ type: "LineString", coordinates: g }) ?? "" });
+          if (a) fadeFrom(gap, a);
         }
       });
       // A lone position between two gaps, which no line passes through, as a dot.
       for (const f of flights) {
+        const a = arrival(f.id);
         for (const at of f.lone ?? []) {
           const xy = path({ type: "Point", coordinates: at }) ? (proj(at) as [number, number] | null) : null;
-          if (xy) el(arcs, "circle", { class: `arc arc--lone${f.both ? " is-both" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, cx: xy[0], cy: xy[1], r: 2.4 });
+          if (xy) {
+            const dot = el(arcs, "circle", { class: `arc arc--lone${f.both ? " is-both" : ""}${a ? " is-arriving" : ""}`, "data-id": f.id, "data-route": f.route, "data-order": order++, cx: xy[0], cy: xy[1], r: 2.4 });
+            if (a) fadeFrom(dot, a);
+          }
         }
       }
       flights.forEach((f, i) => {
@@ -447,6 +497,7 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
   const hover = useRef<TrackHover | null>(null);
   const track = useRef({ samples, takeoff });
   track.current = { samples, takeoff };
+  const arrivals = useArrivals();
   useWidth(
     ref,
     (width) => {
@@ -469,17 +520,22 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
       for (const f of LAND.features) el(landG, "path", { class: "land", d: path(f) ?? "" });
       const gc = { type: "LineString" as const, coordinates: [from, to] };
       let gapLayer: SVGGElement | null = null;
+      // The track arriving while the page shows: it fades in as the great circle it replaces fades out.
+      const a = arrivals([{ id: "this", track: recorded, line: recorded ? line : [[from, to]] }])("this");
+      const fresh = a ? " is-arriving" : "";
+      const arriving = <E extends SVGElement>(node: E) => (a ? fadeFrom(node, a) : node);
       if (recorded) {
         el(svg, "path", { class: "gc", d: path(gc) ?? "" });
+        if (a) fadeFrom(el(svg, "path", { class: "gc gc--primary gc--leaving", d: path(gc) ?? "" }), a);
         const runs = { type: "MultiLineString" as const, coordinates: line };
-        el(svg, "path", { class: "track-halo", d: path(runs) ?? "" });
-        el(svg, "path", { class: "track", d: path(runs) ?? "" });
-        for (const g of gaps) el(svg, "path", { class: "track track--gap", d: path({ type: "LineString", coordinates: g }) ?? "" });
+        arriving(el(svg, "path", { class: `track-halo${fresh}`, d: path(runs) ?? "" }));
+        arriving(el(svg, "path", { class: `track${fresh}`, d: path(runs) ?? "" }));
+        for (const g of gaps) arriving(el(svg, "path", { class: `track track--gap${fresh}`, d: path({ type: "LineString", coordinates: g }) ?? "" }));
         gapLayer = el(svg, "g", { class: "track-hover" });
         // A lone position between two gaps, which no line passes through, as a dot.
         for (const at of lone) {
           const xy = geoDistance(at, mid) < Math.PI / 2 - 0.01 ? (proj(at) as [number, number] | null) : null;
-          if (xy) el(svg, "circle", { class: "track-lone", cx: xy[0], cy: xy[1], r: 3.4 });
+          if (xy) arriving(el(svg, "circle", { class: `track-lone${fresh}`, cx: xy[0], cy: xy[1], r: 3.4 }));
         }
       } else el(svg, "path", { class: "gc gc--primary", d: path(gc) ?? "" });
       for (const [at, code, anchor, which] of [[from, fromCode, "end", "from"], [to, toCode, "start", "to"]] as const) {
