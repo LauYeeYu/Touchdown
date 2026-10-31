@@ -175,8 +175,12 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
   const share = id ? await s.db.first<ShareRow & { ownerName: string }>("SELECT shares.*, accounts.name AS ownerName FROM shares JOIN accounts ON accounts.id = shares.accountId WHERE shares.id = ?", [id]) : null;
 
   if (!m?.[2]) {
-    // The page itself: the share page's own build, the same for every link, which then asks for the content.
-    const page = await s.assets.fetch(new Request(new URL(`${shareFiles}share.html`, url), { headers: request.headers }));
+    // The page itself: the share page's own build, the same for every link, which then asks for the content. Asked for
+    // whole, without the browser's If-None-Match: the files would answer 304 with no body, and the status here is the
+    // link's own (404 for one that does not exist), so the browser would be sent an empty page and keep it.
+    const headers = new Headers(request.headers);
+    for (const h of ["If-None-Match", "If-Modified-Since"]) headers.delete(h);
+    const page = await s.assets.fetch(new Request(new URL(`${shareFiles}share.html`, url), { headers }));
     return new Response(page.body, { status: share ? 200 : 404, headers: page.headers });
   }
   if (!share) return NOT_FOUND();

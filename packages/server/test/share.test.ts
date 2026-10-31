@@ -218,6 +218,21 @@ describe("opening a share link", () => {
     expect((await open(t.s, "/share-files/assets/share-1.js")).status).toBe(200);
   });
 
+  it("sends the whole page to a browser that has it already, so a reload never gets an empty one", async () => {
+    const t = await site();
+    const made = await make(t, { kind: "log" });
+    // The static files answer a matching If-None-Match with 304 and no body, as Cloudflare's do.
+    const PAGE = "<!doctype html><title>Shared from Touchdown</title>";
+    t.s.assets = { fetch: async (req) => (req.headers.get("If-None-Match") === '"v1"' ? new Response(null, { status: 304, headers: { ETag: '"v1"' } }) : new Response(PAGE, { headers: { "Content-Type": "text/html", ETag: '"v1"' } })) };
+    const again = (path: string) => call(t.s, { cookie: null }, "GET", path, undefined, { "CF-Connecting-IP": "203.0.113.9", "If-None-Match": '"v1"' });
+    const page = await again(`/p/${made.json.id}`);
+    expect(page.status).toBe(200);
+    expect(page.text).toBe(PAGE);
+    const missing = await again("/p/AAAAAAAAAAAAAAAAAAAAAA");
+    expect(missing.status).toBe(404);
+    expect(missing.text).toBe(PAGE);
+  });
+
   it("sends only what the link shows, never reads private/, and counts the opening", async () => {
     const t = await site();
     const made = await make(t, { kind: "flight", subject: t.shared.id });
