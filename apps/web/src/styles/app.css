@@ -1836,9 +1836,11 @@ main {
   margin-top: 16px;
 }
 
+/* As many equal columns as there are cells: boarding, takeoff, landing, time in the air, route extension. */
 .times {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
   margin-top: 28px;
@@ -2216,10 +2218,11 @@ main {
   }
 
   .times {
+    grid-auto-flow: row;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .time:nth-child(3) {
+  .time:nth-child(odd) {
     padding-left: 0;
     border-left: 0;
   }

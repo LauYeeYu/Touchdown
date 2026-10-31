@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Link, useReachable } from "../lib/link.tsx";
+import { extensionPercent, routeExtension } from "@touchdown/core/view";
 import { cityName, daysBetween, fitTrack, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
@@ -206,6 +207,8 @@ export function FlightDetail() {
           .filter((p) => p.trackId === trackRow.id && p.altitudeFt !== null)
           .sort((a, b) => a.seq - b.seq)
       : [];
+  // The distance flown beyond the great circle, once its track's positions are in this browser.
+  const extension = track ? routeExtension(store, ref, f) : null;
   const t0 = altitude[0]?.t ?? 0;
   const fromOffset = f.takeoffAt ? parseDateTime(f.takeoffAt)!.offsetMin : 0;
 
@@ -451,7 +454,7 @@ export function FlightDetail() {
       {pickedPanel}
       {routeMap}
 
-      {(f.boardingAt || f.takeoffAt || f.landingAt) && (
+      {(f.boardingAt || f.takeoffAt || f.landingAt || extension) && (
         <div className="times">
           {f.boardingAt && <TimeCell label="Boarding" dt={f.boardingAt} />}
           {f.takeoffAt && (
@@ -486,6 +489,22 @@ export function FlightDetail() {
                 <Duration min={v.min} />
               </p>
               <p className="time__date">{v.km !== null ? `${distance(v.km, unit)} great circle` : ""}</p>
+            </div>
+          )}
+          {extension && (
+            <div className="time" title={`The distance flown beyond the great circle, along the recorded track.${
+              extension.minimum
+                ? " The track has a gap or does not reach an airport, and that stretch counts as the great circle, so this is a minimum."
+                : ""
+            }`}>
+              <p className="time__label">Route extension</p>
+              <p className="time__clock">
+                {extension.minimum ? "at least " : ""}
+                {extensionPercent(extension.percent)}
+              </p>
+              <p className="time__date">
+                {distance(extension.flownKm, unit)} flown · {distance(extension.greatCircleKm, unit)} great circle
+              </p>
             </div>
           )}
         </div>
