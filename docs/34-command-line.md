@@ -25,7 +25,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 |---|---|---|
 | Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM]]`, `stats --view NAME`, `stats views` | The lead sentence's figures, the fact list and the ranked lists; with `--by`, a pivot ([24](24-statistics.md)); with `--view`, a view saved on the Custom tab; `stats views` lists them. |
 | Flights | `flights [--year Y] [--airline X] [--airport X] [--type X] [--search TEXT]` | The flight list, with the same filters. |
-| A flight | `flight REF` | Every field, the aircraft, its findings, the track's source. A private field shows only whether it is recorded. |
+| A flight | `flight REF` | Every field, the aircraft, its findings, the track's source and its route extension ([23](23-tracks-and-maps.md), "Route extension"; the flight's track is read from the storage for it). A private field shows only whether it is recorded. |
 | Spotting | `sightings [filters]`, `sessions [--year Y]` | Sightings; days out with their counts. |
 | Aircraft | `aircraft [REF]` | The list, or one aircraft's facts, registrations and timeline of flights and sightings. |
 | An airport | `airport CODE [--year Y]` | The airport page's facts and lists. |

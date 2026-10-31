@@ -2,7 +2,7 @@
 // flight's page, in the terminal or as JSON.
 
 import { arrivalAirportId, phasesOf, type Flight, type Sighting } from "@touchdown/core";
-import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, flightSearch, inPeriod, PHASE_LABEL, REASON_LABEL, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
+import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, extensionPercent, flightSearch, inPeriod, PHASE_LABEL, REASON_LABEL, routeExtension, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
 import { aircraftLabel, airportJson, duration, findingJson, findingsOf, flightJson, openFindings, sightingJson, timeLabel, trackOf } from "./shape.ts";
 import { argsOrHelp, fail, fields, findAirport, findFlight, notFound, openOrFail, periodLabel, periodOf, plain, printJson, privateFields, readOptions, section, table, type OpenedLog } from "./read.ts";
 import { bold, dim, plural, red, yellow } from "./term.ts";
@@ -120,6 +120,20 @@ export async function flightsCommand(args: string[]) {
     console.log(line);
 }
 
+/**
+ * The flight's recorded positions, for its route extension: the log is read without them, so this flight's track is
+ * read from the storage on its own. A backup holds them already. Without them the route extension is left out.
+ */
+async function withTrackPoints(log: OpenedLog, flightId: string) {
+  const t = log.store.all("tracks").find((x) => x.flightId === flightId);
+  if (!t || !log.storage || log.store.all("track_points").some((p) => p.trackId === t.id)) return;
+  try {
+    log.store.load("track_points", (await log.storage.backend.readTrack(t.id)) as never);
+  } catch {
+    // Left out, as for a flight without a track.
+  }
+}
+
 export async function flightCommand(args: string[]) {
   const a = argsOrHelp(args, {}, FLIGHT_HELP, [1, 1]);
   const json = a.flags.has("--json");
@@ -127,12 +141,14 @@ export async function flightCommand(args: string[]) {
   const found = findFlight(log.store, a.positional[0]!);
   if (!("row" in found)) return notFound(json, found);
   const f = found.row;
+  await withTrackPoints(log, f.id);
   const v = sortedFlights(log.store, log.ref, log.codes).find((x) => x.f.id === f.id)!;
   const shape = flightJson(log, v);
   const findings = findingsOf(openFindings(log), "flights", f.id);
 
   if (json) return printJson({ ok: true, from: log.from, flight: shape, findings: findings.map(findingJson) });
   const t = trackOf(log, f.id);
+  const ext = routeExtension(log.store, log.ref, f);
   const priv = privateFields(log, f);
   const arrival = f.divertedToAirportId ?? f.toAirportId;
   console.log(bold([f.flightNumber, route(v), v.day && plain(dayLong(v.day))].filter(Boolean).join(" · ")));
@@ -158,6 +174,7 @@ export async function flightCommand(args: string[]) {
     ["Livery", [f.specialLivery, f.livery].filter(Boolean).join(" · ")],
     ["Notes", f.notes],
     ["Track", t ? `${t.coverage === "partial" ? "Recorded, with gaps" : "Recorded"}${t.provider && TRACK_SOURCE[t.provider] ? `, from ${TRACK_SOURCE[t.provider]}` : ""}` : "Great circle only"],
+    ["Route extension", ext ? `${ext.minimum ? "at least " : ""}${extensionPercent(ext.percent)}: ${distance(ext.flownKm, log.unit)} flown, ${distance(ext.greatCircleKm, log.unit)} great circle` : null],
     ["Ticket number", priv.ticketNumber ? "recorded" : null],
     ["Booking reference", priv.bookingRef ? "recorded" : null],
     ["Aircraft id", f.airframeId],

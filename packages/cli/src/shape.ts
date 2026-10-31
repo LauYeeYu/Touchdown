@@ -2,7 +2,7 @@
 // uses. Private fields only say whether they are recorded (docs/34, "Private fields").
 
 import { checkAll, flightDay, phasesOf, resolveAirframes, type Finding, type Flight, type Sighting, type TableName } from "@touchdown/core";
-import { dateTimeLabel, durShort, modelLabel, typeName, viewFlight, type FlightView } from "@touchdown/core/view";
+import { dateTimeLabel, durShort, modelLabel, routeExtension, typeName, viewFlight, type FlightView } from "@touchdown/core/view";
 import { privateFields, type OpenedLog } from "./read.ts";
 
 export function airportJson(log: OpenedLog, id: string | null, raw: string | null) {
@@ -26,6 +26,12 @@ export const aircraftLabel = (log: OpenedLog, typeCode: string | null, model: st
 export function trackOf(log: OpenedLog, flightId: string): { provider: string | null; coverage: string } | null {
   const t = log.store.all("tracks").find((x) => x.flightId === flightId);
   return t ? { provider: t.provider, coverage: t.coverage ?? "complete" } : null;
+}
+
+/** The distance the flight flew beyond the great circle, from its recorded track. */
+function extensionJson(log: OpenedLog, f: Flight) {
+  const e = routeExtension(log.store, log.ref, f);
+  return e ? { percent: Math.round(e.percent * 10) / 10, extraKm: Math.round(e.extraKm), flownKm: Math.round(e.flownKm), greatCircleKm: Math.round(e.greatCircleKm), minimum: e.minimum } : null;
 }
 
 export function flightJson(log: OpenedLog, v: FlightView) {
@@ -68,6 +74,7 @@ export function flightJson(log: OpenedLog, v: FlightView) {
     specialLivery: f.specialLivery,
     notes: f.notes,
     track: trackOf(log, f.id),
+    routeExtension: extensionJson(log, f),
     private: privateFields(log, f),
   };
 }
