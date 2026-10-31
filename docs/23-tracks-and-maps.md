@@ -86,6 +86,21 @@ Decided, built. A flight's Track menu has "Download as KML" once its points are 
 
 Failures are findings, not silent drops.
 
+### Route extension
+
+Decided, built (`packages/core/src/view/extension.ts`, the same in the web app and the CLI). The distance a flight flew beyond the great circle between its airports, in the term air navigation uses (EUROCONTROL's horizontal flight efficiency is measured as route extension).
+
+| Part | Rule |
+|------|------|
+| Which flights | Those with a recorded track whose positions are in the store. |
+| Distance flown | Along the airborne positions, from the first to the last, joined to the two airports. A position is airborne at 60 kt or more over the ground, or, without a speed, above the ground: taxiing is not part of the route. |
+| Against | The great circle between the departure airport and the airport landed at (a diversion's). Not the user's distance override. |
+| Shown | The extra distance, flown − great circle, and the same as a percentage of the great circle: "+8%", "+4.9%" (one decimal below 10%), "under +0.1%". |
+| A stretch not recorded | A gap (nothing received for over 10 minutes and 100 km), or the stretch to an airport the track stops short of (over 30 km away), counts as the great circle, the shortest it could have been, so the figure is a minimum: "at least +4.9%". |
+| By route | Routes as the Routes ranking keys them (both ways as one), with two or more such flights: their extra distance together against their great circles together. |
+
+Where it shows: a flight's page (the times strip's last cell, with the distance flown and the great circle), Statistics' Flights tab (the most indirect flights, by route) and `touchdown flight` (a line, and `routeExtension` in its JSON; the flight's track is read from the storage for it).
+
 ## Maps in the app
 
 - Desktop overview maps: Equal Earth, full width, cropped to the latitudes the period covers. The central meridian is chosen so the map's edge falls in the widest band of longitudes with no flights or spots, so routes such as trans-Pacific ones are never cut.

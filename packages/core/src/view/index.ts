@@ -11,3 +11,4 @@ export * from "./airport.ts";
 export * from "./changes.ts";
 export * from "./missing.ts";
 export * from "./search.ts";
+export * from "./extension.ts";
