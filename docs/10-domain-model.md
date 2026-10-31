@@ -107,7 +107,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 |--------|------|---------|-------|
 | `id` | text | `op_dal` | Primary key. |
 | `icao` | text | `DAL` | |
-| `iata` | text | `DL` | IATA codes are reused over time; `validFrom`/`validTo` disambiguate. |
+| `iata` | text | `DL` | IATA codes are reused over time; `validFrom`/`validTo` disambiguate. On a date, an operator whose dates cover it wins over one without dates; without a date, the one still operating wins. |
 | `name` | text | `Delta Air Lines` | |
 | `callsign` | text | `DELTA` | |
 | `country` | text | `US` | ISO 3166-1 alpha-2. |
