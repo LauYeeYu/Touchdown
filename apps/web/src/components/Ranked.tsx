@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Tally } from "@touchdown/core";
 import { nf, plural } from "../lib/format.ts";
 import { LeftOut } from "./Facts.tsx";
+import { useGrow } from "../lib/motion.ts";
 
 interface Props {
   title: string;
@@ -21,13 +22,15 @@ export function Ranked({ title, t, label, unit, limit = 8, color = "var(--flown)
   const [all, setAll] = useState(false);
   const items = all ? t.items : t.items.slice(0, limit);
   const max = t.items[0]?.count ?? 1;
+  // "Show all" opens the list as a disclosure opens, so the lists below slide down instead of jumping.
+  const grow = useGrow<HTMLOListElement>(all);
   return (
     <section className="ranked">
       <h3 className="ranked__title">{title}</h3>
       {!t.items.length ? (
         <p className="section__aside">Nothing recorded.</p>
       ) : (
-        <ol className="ranked__list">
+        <ol className="ranked__list" ref={grow}>
           {items.map((x) => (
             <li key={x.key} title={`${label(x.key)}: ${plural(x.count, unit[0], unit[1])}`}>
               <span className="ranked__label">{label(x.key)}</span>

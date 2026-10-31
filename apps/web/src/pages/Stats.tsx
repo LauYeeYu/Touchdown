@@ -20,6 +20,7 @@ import { Tabs } from "../components/Tabs.tsx";
 import { Fact, LeftOut } from "../components/Facts.tsx";
 import { Ranked } from "../components/Ranked.tsx";
 import { HelpTip } from "../components/HelpTip.tsx";
+import { useGrow } from "../lib/motion.ts";
 import { GlobePanel } from "../components/GlobePanel.tsx";
 import { useViewState } from "../lib/viewState.ts";
 
@@ -312,43 +313,47 @@ function SortHeading({ by, label, sort, onSort }: { by: ExtensionSort; label: st
 function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtension[]; views: Map<string, ReturnType<typeof sortedFlights>[number]>; unit: Settings["distanceUnit"]; sort: ExtensionSort; onSort: (s: ExtensionSort) => void }) {
   const [all, setAll] = useState(false);
   const shown = all ? rows : rows.slice(0, 10);
+  // "Show all" opens the table as a disclosure opens, so what is below slides down instead of jumping.
+  const grow = useGrow<HTMLDivElement>(all);
   return (
     <div>
       <h3 className="ranked__title">Most indirect flights</h3>
-      <table className="table table--fixed">
-        <colgroup>
-          <col />
-          <col className="col-route" />
-          <col className="col-num" />
-          <col className="col-num" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Flight</th>
-            <th>Route</th>
-            <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} />
-            <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} />
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((e) => {
-            const v = views.get(e.flightId);
-            return (
-              <tr key={e.flightId}>
-                <td>
-                  <Link to="/flights/$id" params={{ id: e.flightId }}>
-                    {v?.f.flightNumber ?? "Flight"}
-                  </Link>
-                  {v?.day && <span className="muted"> · {dateOnly(v.day, { day: "numeric", month: "short", year: "numeric" })}</span>}
-                </td>
-                <td className="extension-route">{v ? `${v.fromCode} → ${v.toCode}` : ""}</td>
-                <td className="num">{pct(e)}</td>
-                <td className="num">{distance(e.extraKm, unit)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div ref={grow}>
+        <table className="table table--fixed">
+          <colgroup>
+            <col />
+            <col className="col-route" />
+            <col className="col-num" />
+            <col className="col-num" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Flight</th>
+              <th>Route</th>
+              <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} />
+              <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} />
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((e) => {
+              const v = views.get(e.flightId);
+              return (
+                <tr key={e.flightId}>
+                  <td>
+                    <Link to="/flights/$id" params={{ id: e.flightId }}>
+                      {v?.f.flightNumber ?? "Flight"}
+                    </Link>
+                    {v?.day && <span className="muted"> · {dateOnly(v.day, { day: "numeric", month: "short", year: "numeric" })}</span>}
+                  </td>
+                  <td className="extension-route">{v ? `${v.fromCode} → ${v.toCode}` : ""}</td>
+                  <td className="num">{pct(e)}</td>
+                  <td className="num">{distance(e.extraKm, unit)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {rows.length > 10 && (
         <p className="ranked__foot">
           <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
