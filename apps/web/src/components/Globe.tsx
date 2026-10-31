@@ -461,9 +461,12 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     const cv = canvas.current!;
     const st = state.current;
     const pointers = new Map<number, { x: number; y: number }>();
-    let drag: { x: number; y: number; rot: [number, number]; moved: number; t: number } | null = null;
+    let drag: { x: number; y: number; rot: [number, number]; moved: number; t: number; coasting: boolean } | null = null;
     let pinch: { dist: number; scale: number } | null = null;
     let last = { x: 0, y: 0, t: 0 };
+    // The last moments of a drag, for its speed when it ends: one move alone is too uneven to go by.
+    let trail: { x: number; y: number; t: number }[] = [];
+    let still: ReturnType<typeof setTimeout> | undefined;
 
     const local = (e: PointerEvent | WheelEvent) => {
       const r = cv.getBoundingClientRect();
@@ -565,8 +568,9 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         pinch = { dist: Math.hypot(a!.x - b!.x, a!.y - b!.y), scale: st.scale };
         drag = null;
       } else {
-        drag = { x: p.x, y: p.y, rot: [...st.rot] as [number, number], moved: 0, t: performance.now() };
+        drag = { x: p.x, y: p.y, rot: [...st.rot] as [number, number], moved: 0, t: performance.now(), coasting: false };
         last = { x: p.x, y: p.y, t: performance.now() };
+        trail = [last];
       }
       cv.style.cursor = "grabbing";
     };
@@ -583,16 +587,34 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       }
       if (drag) {
         const k = 57.2958 / st.scale;
+        const now = performance.now();
+        // Moving again after coasting: the globe follows the pointer from where it has turned to.
+        if (drag.coasting) {
+          drag = { ...drag, x: p.x, y: p.y, rot: [...st.rot] as [number, number], coasting: false };
+          st.inertia = 0;
+          trail = [];
+        }
         const dx = p.x - drag.x;
         const dy = p.y - drag.y;
         drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
         st.rot = [drag.rot[0] + dx * k, Math.max(-89, Math.min(89, drag.rot[1] - dy * k))];
-        const now = performance.now();
-        const dt = Math.max(1, now - last.t);
-        st.velocity = [((p.x - last.x) * k * 16) / dt, (-(p.y - last.y) * k * 16) / dt];
+        trail = [...trail.filter((q) => now - q.t < 80), { x: p.x, y: p.y, t: now }];
+        const from = trail[0]!;
+        const dt = Math.max(16, now - from.t);
+        st.velocity = [((p.x - from.x) * k * 16) / dt, (-(p.y - from.y) * k * 16) / dt];
         last = { x: p.x, y: p.y, t: now };
         st.dirty = true;
         if (drag.moved > 4) hideTip();
+        // A trackpad's three-finger drag goes on for a moment after the fingers lift, without moving, before it ends.
+        // A drag that stops while still fast coasts at once, as it would have on release.
+        clearTimeout(still);
+        if (e.pointerType === "mouse")
+          still = setTimeout(() => {
+            if (drag && !pinch && Math.hypot(...st.velocity) > 0.15) {
+              drag.coasting = true;
+              st.inertia = 1;
+            }
+          }, 50);
         return;
       }
       if (e.pointerType === "mouse") setHover(hitTest(p.x, p.y), e);
@@ -600,12 +622,15 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
 
     const up = (e: PointerEvent) => {
       pointers.delete(e.pointerId);
+      clearTimeout(still);
       if (pinch && pointers.size < 2) {
         pinch = null;
         drag = null;
         return;
       }
-      if (drag) {
+      if (drag?.coasting) {
+        drag = null;
+      } else if (drag) {
         const p = local(e);
         const clicked = drag.moved < 5;
         const recent = performance.now() - last.t < 60;
@@ -629,6 +654,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     // began, without spinning on and without a click.
     const cancel = (e: PointerEvent) => {
       pointers.delete(e.pointerId);
+      clearTimeout(still);
       if (drag) {
         st.rot = drag.rot;
         st.dirty = true;
@@ -683,6 +709,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       cv.removeEventListener("pointerleave", leave);
       cv.removeEventListener("wheel", wheel);
       cv.removeEventListener("keydown", key);
+      clearTimeout(still);
       hideTip();
     };
   }, []);
