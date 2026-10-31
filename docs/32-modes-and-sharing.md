@@ -212,7 +212,7 @@ Decided (changed), built (`packages/core/src/private.ts`, schema version 7): dat
 Decided, built:
 - **Not found means not found.** An id that never existed and a stopped link give the same page.
 - **No guessing.** Ids are random, and requests to `/p/` are limited to 120 a minute per IP address, in each instance of the server.
-- **A whole log names its owner, nothing else does.** Decided (changed): a whole-log link's page is titled with the owner's account name, "Alex's log", the name whole and as written, in any script (isolated, so a right-to-left name stays before "'s log"). The server adds it to the content when it is sent, not to what it caches, so a new name shows at the next opening. The share dialog says so before the link is made. A flight, sighting or aircraft link does not say whose log it is (Q-SHARE-NAME).
+- **A whole log names its owner, nothing else does.** Decided (changed): a whole-log link's pages are about the owner, by their account name, whole and as written, in any script: the title is "Alex's log", and the sentences say "So far in 2026 Alex has flown 3 flights" where the app says "you" (`src/lib/voice.tsx`). The name is isolated, so a right-to-left name keeps its place among the words. The server adds it to the content when it is sent, not to what it caches, so a new name shows at the next opening. The share dialog says so before the link is made. A flight, sighting or aircraft link does not say whose log it is (Q-SHARE-NAME).
 
 #### Requests
 
