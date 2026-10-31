@@ -59,6 +59,17 @@ describe("flight fields", () => {
     expect(parseFareClass("Business Saver").cabinClass).toBe("business");
   });
 
+  it("gives a reused airline code to the airline whose dates cover the day", () => {
+    const undated = { ...refTables.operators[0]!, id: "op_undated", icao: "XXU", iata: "XO", name: "Undated Carrier", validFrom: null, validTo: null };
+    const r = new RefIndex({ ...refTables, operators: [...refTables.operators, undated] });
+    expect(r.operatorByCode("XO", "2000-06-01")!.id).toBe("op_old");
+    expect(r.operatorByCode("xo", "2015-06-01")!.id).toBe("op_new");
+    // Between the two known periods only the airline without dates may have held it.
+    expect(r.operatorByCode("XO", "2007-06-01")!.id).toBe("op_undated");
+    // Without a date, an airline still operating.
+    expect(r.operatorByCode("XO")!.validTo).toBeNull();
+  });
+
   it("guesses seat positions from the family layout", () => {
     expect(guessSeatPosition("12A", "A320")).toBe("window");
     expect(guessSeatPosition("12C", "A320")).toBe("aisle");

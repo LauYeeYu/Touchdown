@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RefTableFile, RegistrationPrefix } from "../../core/src/ref/types.ts";
+import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
 import operatorsFile from "../data/operators.json" with { type: "json" };
@@ -167,6 +168,15 @@ describe("operators", () => {
       expect(ref.operators.filter((o) => o.icao === icao), pair).toHaveLength(1);
     }
     expect(ref.operators.find((o) => o.icao === "EJA")?.kind).toBe("business");
+  });
+
+  it("give a reused code to the airline that held it on the day", () => {
+    const index = new RefIndex(ref);
+    const on = (code: string, day?: string) => index.operatorByCode(code, day)?.icao;
+    expect([on("KA", "2012-05-01"), on("KA", "2024-05-01"), on("KA")]).toEqual(["HDA", "ANK", "ANK"]);
+    expect([on("4U", "2015-05-01"), on("MI", "2015-05-01")]).toEqual(["GWI", "SLK"]);
+    // Shared with an airline dated in between: the curated start dates and codes keep these right.
+    expect([on("9E", "2010-05-01"), on("JM", "2014-06-01"), on("PT", "2010-05-01")]).toEqual(["EDV", "JMA", "PDT"]);
   });
 
   it("have unique ids and valid codes", () => {
