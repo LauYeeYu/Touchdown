@@ -11,6 +11,7 @@ import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { useViewState } from "../lib/viewState.ts";
+import { Name, voiceOf } from "../lib/voice.tsx";
 
 type Filter = "all" | "flown" | "both" | "livery";
 
@@ -26,6 +27,7 @@ const PAGE_SIZE = 50;
 export function AircraftList() {
   const { app, version } = useApp();
   const { store, ref } = app;
+  const voice = voiceOf(app);
   // Kept for Back (lib/viewState.ts).
   const [q, setQ] = useViewState("q", "");
   const [kept, setFilter] = useViewState<Filter>("filter", "all");
@@ -77,8 +79,12 @@ export function AircraftList() {
       <h1 className="lead">
         {views.length ? (
           <>
-            {app.readOnly ? (
-              // A share link names nobody (docs/32, "The public page"), and leaves out how aircraft are matched.
+            {voice.kind === "named" ? (
+              // A shared whole log names its owner (lib/voice.tsx), and leaves out how aircraft are matched.
+              <>
+                <Name name={voice.name} />'s log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: <Name name={voice.name} /> flew on <Fig>{flown}</Fig>, and also photographed <Fig>{both}</Fig> of those.
+              </>
+            ) : voice.kind === "none" ? (
               <>
                 The log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: <Fig>{flown}</Fig> flown on, and <Fig>{both}</Fig> of those also photographed.
               </>

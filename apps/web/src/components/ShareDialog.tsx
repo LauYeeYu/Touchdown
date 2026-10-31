@@ -82,7 +82,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
   const [problem, setProblem] = useState<string | null>(null);
   const [terms, setTerms] = useState(false);
   const [termsProblem, setTermsProblem] = useState<string | null>(null);
-  // A whole log's page is titled with the account's name, so the dialog says so: left out if the name cannot be read.
+  // A whole log's pages name the account's owner, so the dialog says so: left out if the name cannot be read.
   const [owner, setOwner] = useState<string | null>(null);
   useEffect(() => {
     dialog.current?.showModal();
@@ -93,7 +93,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
   const titled = kind === "log" && owner && (
     <>
       {" "}
-      Its page is titled “<bdi>{owner}</bdi>'s log”, from your name under Account in Settings.
+      Its pages name you “<bdi>{owner}</bdi>”, as in “<bdi>{owner}</bdi> has flown 12 flights”. Change it under Account in Settings.
     </>
   );
 

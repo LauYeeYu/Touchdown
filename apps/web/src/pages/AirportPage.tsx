@@ -22,6 +22,7 @@ import { Pager, usePaging } from "../components/Pager.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
+import { Name, voiceOf } from "../lib/voice.tsx";
 
 const FLIGHT_PAGE = 20;
 const AIRCRAFT_PAGE = 30;
@@ -58,8 +59,11 @@ export function AirportPage() {
   const marks = useMemo(() => mapFlights(here, ref, unit, new Set(), store), [hereKey, version, unit]);
   const spots = useMemo(() => mapSpots(sightings, ref), [sightings, ref]);
 
-  // A share link names nobody (docs/32, "The public page"): "Left from LHR 3 times", not "You left".
+  // About "you", a shared whole log's owner by name, or nobody on a link to one record: "Left from LHR 3 times"
+  // (lib/voice.tsx).
   const shared = app.readOnly;
+  const voice = voiceOf(app);
+  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   if (!ap || (!data.everFlown && !data.everSpotted)) {
     return <NotFound what={ap ? `${shortAirport(id, ref)} is not in ${shared ? "this link" : "your log"}.` : "That airport is not in the reference data."} back={{ to: "/stats", label: "Statistics" }} />;
   }
@@ -89,7 +93,7 @@ export function AirportPage() {
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
     </>
   );
-  const opening = year === "all" ? "" : year === thisYear ? `So far in ${year}${shared ? ", " : " "}` : `In ${year}${shared ? ", " : " "}`;
+  const opening = year === "all" ? "" : year === thisYear ? `So far in ${year}${voice.kind === "none" ? ", " : " "}` : `In ${year}${voice.kind === "none" ? ", " : " "}`;
   const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
   const flownParts: { lead: string; n: number }[] = [];
   if (dep) flownParts.push({ lead: `left from ${name}`, n: dep });
@@ -126,11 +130,11 @@ export function AirportPage() {
           <>
             {flownText && (
               <>
-                {shared ? opening : `${opening ? opening + "you" : "You"} `}
+                {voice.kind === "none" ? opening : voice.kind === "named" ? <>{opening}{who} </> : `${opening ? opening + "you" : "You"} `}
                 {flownParts.map((p, i) => (
                   <Fragment key={p.lead}>
                     {i > 0 && (i === flownParts.length - 1 ? " and " : ", ")}
-                    {shared && !opening && i === 0 ? cap(p.lead) : p.lead} <Fig>{times(p.n)}</Fig>
+                    {voice.kind === "none" && !opening && i === 0 ? cap(p.lead) : p.lead} <Fig>{times(p.n)}</Fig>
                   </Fragment>
                 ))}
                 .{" "}
@@ -138,7 +142,7 @@ export function AirportPage() {
             )}
             {sightings.length > 0 && (
               <>
-                {shared ? (flownText || !opening ? "Photographed" : `${opening}photographed`) : flownText ? "You photographed" : `${opening ? opening + "you" : "You"} photographed`} <Fig>{plural(spotted.length, "aircraft", "aircraft")}</Fig> {flownText ? "there" : `at ${name}`} on{" "}
+                {voice.kind === "none" ? (flownText || !opening ? "Photographed" : `${opening}photographed`) : voice.kind === "named" ? <>{flownText ? "" : opening}{who} photographed</> : flownText ? "You photographed" : `${opening ? opening + "you" : "You"} photographed`} <Fig>{plural(spotted.length, "aircraft", "aircraft")}</Fig> {flownText ? "there" : `at ${name}`} on{" "}
                 <Fig>{plural(days.size, "day")}</Fig>.
               </>
             )}

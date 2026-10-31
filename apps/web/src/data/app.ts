@@ -159,6 +159,8 @@ export class AppData {
   connection: Connection | null = null;
   /** The share page's copy of a link's content (src/share/data.ts) is read-only: pages leave out what changes the log. */
   readonly readOnly: boolean = false;
+  /** On a whole log's share link, its owner's name, for the pages' sentences (lib/voice.tsx). The app's own log is "you". */
+  readonly sharedBy: string | null = null;
   /** Syncing, in Private and Standard mode. */
   sync: SyncHandle | null = null;
   private syncListeners = new Set<() => void>();

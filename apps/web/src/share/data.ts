@@ -34,6 +34,11 @@ export class ShareData {
   private listeners = new Set<() => void>();
   private reading: Promise<void> | null = null;
 
+  /** The owner's name, sent with a whole log only: a link to one record names nobody. */
+  get sharedBy(): string | null {
+    return this.content.kind === "log" ? (this.content.owner ?? null) : null;
+  }
+
   constructor(
     readonly id: string,
     readonly content: ShareContent,

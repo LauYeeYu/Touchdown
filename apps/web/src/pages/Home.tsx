@@ -22,6 +22,7 @@ import { Fig, Phrase, usePhrases } from "../components/Phrase.tsx";
 import { EmptyLog } from "./EmptyLog.tsx";
 import { Disclosure } from "../components/Disclosure.tsx";
 import { Fact } from "../components/Facts.tsx";
+import { Name, voiceOf } from "../lib/voice.tsx";
 
 /** Model names such as 737-800 stay on one line instead of breaking at the hyphen. */
 function Keep({ text }: { text: string }) {
@@ -78,20 +79,23 @@ export function Home() {
   const { views, fs, ss, sessions, both } = d;
   const past = year === "all" || year === thisYear;
   const firstYear = years[0] ?? thisYear;
-  // A share link names nobody (docs/32, "The public page"): its sentence counts what the log holds.
+  // About "you", a shared whole log's owner by name, or nobody on a link to one record (lib/voice.tsx).
   const shared = app.readOnly;
+  const voice = voiceOf(app);
+  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   const yourLog = shared ? "the log" : "your log";
-  const when = shared
-    ? year === "all"
-      ? `Since ${firstYear},`
-      : year === thisYear
-        ? `So far in ${year},`
-        : `In ${year},`
-    : year === "all"
-      ? `Since you started logging in ${firstYear}, you have`
-      : year === thisYear
-        ? `So far in ${year} you have`
-        : `In ${year} you`;
+  const when =
+    voice.kind === "none" ? (
+      year === "all" ? `Since ${firstYear},` : year === thisYear ? `So far in ${year},` : `In ${year},`
+    ) : voice.kind === "named" ? (
+      year === "all" ? <>Since {firstYear}, {who} has</> : year === thisYear ? <>So far in {year} {who} has</> : <>In {year} {who}</>
+    ) : year === "all" ? (
+      `Since you started logging in ${firstYear}, you have`
+    ) : year === thisYear ? (
+      `So far in ${year} you have`
+    ) : (
+      `In ${year} you`
+    );
   const flownAircraft = fs.aircraft.value;
   const spotAirports = ss.airports.value;
 
@@ -108,7 +112,7 @@ export function Home() {
 
   const flownPart = views.length ? (
     <>
-      {!shared && <>{past ? "flown " : "flew "}</>}
+      {voice.kind !== "none" && <>{past ? "flown " : "flew "}</>}
       <Phrase kind="flown" bind={bind}>
         <Fig>{plural(views.length, "flight")}</Fig>
       </Phrase>
@@ -133,10 +137,10 @@ export function Home() {
   ) : null;
   const spotPart = ss.aircraft.value ? (
     <>
-      {!shared && "spotted "}
+      {voice.kind !== "none" && "spotted "}
       <Phrase kind="spotted" bind={bind}>
         <Fig>{plural(ss.aircraft.value, "aircraft", "aircraft")}</Fig>
-        {shared && " spotted"} at {plural(spotAirports, "airport")}
+        {voice.kind === "none" && " spotted"} at {plural(spotAirports, "airport")}
       </Phrase>
     </>
   ) : null;
@@ -165,9 +169,9 @@ export function Home() {
             {both.length > 0 && (
               <>
                 {" "}
-                {shared ? "Flown on " : "You flew on "}
+                {voice.kind === "none" ? "Flown on " : voice.kind === "named" ? <>{who} flew on </> : "You flew on "}
                 <Phrase kind="both" bind={bind}>
-                  <Fig>{both.length}</Fig> of the aircraft {shared ? "photographed" : "you photographed"}
+                  <Fig>{both.length}</Fig> of the aircraft {voice.kind === "you" ? "you photographed" : "photographed"}
                 </Phrase>
                 .
               </>

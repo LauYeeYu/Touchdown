@@ -17,6 +17,7 @@ import { FindingList } from "../components/Findings.tsx";
 import { Field, TextInput } from "../components/form.tsx";
 import { toast } from "../components/overlay.tsx";
 import { NotFound } from "./NotFound.tsx";
+import { Name, voiceOf } from "../lib/voice.tsx";
 
 /** Display names of the airframe lookup sources (docs/13-reference-data.md, "Airframe facts"). */
 const PROVIDER_NAME: Record<string, string> = {
@@ -46,8 +47,11 @@ export function AircraftDetail() {
   const [mergeQ, setMergeQ] = useState("");
   const [paste, setPaste] = useState("");
 
-  // A share link names nobody (docs/32, "The public page"), and leaves out what changes the log.
+  // A share link leaves out what changes the log. Its sentence is about a whole log's owner by name, or on a link to
+  // one record about nobody (lib/voice.tsx).
   const shared = app.readOnly;
+  const voice = voiceOf(app);
+  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   if (!v) return <NotFound what={shared ? "That aircraft is not in this link." : "That aircraft is not in your log."} back={{ to: "/aircraft", label: "All aircraft" }} />;
   const a = v.airframe;
   const regs = store.all("registration_periods").filter((p) => p.airframeId === a.id);
@@ -103,9 +107,14 @@ export function AircraftDetail() {
 
   const sentence = (
     <>
-      {v.flights.length > 0 && `${shared ? "Flown on" : `You flew on ${reg || "this aircraft"}`} ${v.flights.length === 1 ? "once" : plural(v.flights.length, "time")}${flownClause}`}
-      {v.flights.length > 0 && v.sightings.length > 0 && `${flownClause.startsWith(",") ? "," : ""} and photographed ${shared ? "" : "it "}`}
-      {v.flights.length === 0 && v.sightings.length > 0 && (shared ? "Photographed " : `You photographed ${reg || "this aircraft"} `)}
+      {v.flights.length > 0 && (
+        <>
+          {voice.kind === "none" ? "Flown on" : voice.kind === "named" ? <>{who} flew on {reg || "this aircraft"}</> : `You flew on ${reg || "this aircraft"}`}
+          {` ${v.flights.length === 1 ? "once" : plural(v.flights.length, "time")}${flownClause}`}
+        </>
+      )}
+      {v.flights.length > 0 && v.sightings.length > 0 && `${flownClause.startsWith(",") ? "," : ""} and photographed ${voice.kind === "none" ? "" : "it "}`}
+      {v.flights.length === 0 && v.sightings.length > 0 && (voice.kind === "none" ? "Photographed " : voice.kind === "named" ? <>{who} photographed {reg || "this aircraft"} </> : `You photographed ${reg || "this aircraft"} `)}
       {v.sightings.length > 0 && `${v.sightings.length === 1 ? "once" : plural(v.sightings.length, "time")}${spottedClause}`}
       {first?.date && `, first on ${dateOnly(first.date, { day: "numeric", month: "long", year: "numeric" })}`}
       {first?.kind === "sighting" && first.s.airportId && ` at ${airportWithCode(first.s.airportId, ref)}`}

@@ -19,6 +19,7 @@ import { FlightCols, FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
+import { Name, voiceOf } from "../lib/voice.tsx";
 
 type Highlight = { kind: "id" | "route"; key: string } | null;
 
@@ -71,20 +72,23 @@ export function Flights() {
   const recordedShown = marks.filter((m) => m.track && shownIds.has(m.id)).length;
   const shownKm = shown.reduce((s, v) => s + (v.km ?? 0), 0);
 
-  // A share link names nobody (docs/32, "The public page").
+  // About "you", a shared whole log's owner by name, or nobody on a link to one record (lib/voice.tsx).
   const shared = app.readOnly;
+  const voice = voiceOf(app);
+  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   const first = years[0] ?? thisYear;
-  const opening = shared
-    ? year === "all"
-      ? `Since ${first},`
-      : year === thisYear
-        ? `So far in ${year},`
-        : `In ${year},`
-    : year === "all"
-      ? `Since ${first} you have taken`
-      : year === thisYear
-        ? `So far in ${year} you have taken`
-        : `In ${year} you took`;
+  const opening =
+    voice.kind === "none" ? (
+      year === "all" ? `Since ${first},` : year === thisYear ? `So far in ${year},` : `In ${year},`
+    ) : voice.kind === "named" ? (
+      year === "all" ? <>Since {first} {who} has taken</> : year === thisYear ? <>So far in {year} {who} has taken</> : <>In {year} {who} took</>
+    ) : year === "all" ? (
+      `Since ${first} you have taken`
+    ) : year === thisYear ? (
+      `So far in ${year} you have taken`
+    ) : (
+      `In ${year} you took`
+    );
   const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
   const topRoute = fs.byRoute.items[0];
   const [ra, rb] = topRoute ? routeCodes(topRoute.key, ref, " ").split(" ") : [];
@@ -153,7 +157,7 @@ export function Flights() {
             )}
             {topRoute && topRoute.count > 1 && (
               <>
-                {longest?.km && longest.route ? " " : ""}{shared ? "The route flown most was" : "The route you flew most was"}{" "}
+                {longest?.km && longest.route ? " " : ""}{voice.kind === "none" ? "The route flown most was" : voice.kind === "named" ? <>The route {who} flew most was</> : "The route you flew most was"}{" "}
                 <span className="phrase phrase--flown" {...bind(topRoute.key)}>
                   <Fig>
                     {ra} ⇄ {rb}

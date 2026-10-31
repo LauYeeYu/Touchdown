@@ -27,6 +27,7 @@ import { MenuButton } from "../components/Menu.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { TimeCell } from "../components/TimeCell.tsx";
 import { article, partOfDay } from "../lib/flightText.ts";
+import { Name, voiceOf } from "../lib/voice.tsx";
 
 /** A track file the user chose for the flight: what it would save, or why it cannot be used. */
 type PickedTrack = { name: string; problem: string } | { name: string; read: number; change: Extract<InboxChange, { op: "track" }>; startKm: number | null; endKm: number | null };
@@ -46,8 +47,11 @@ export function FlightDetail() {
   const { store, ref } = app;
   const navigate = useNavigate();
   const reachable = useReachable();
-  // A share link names nobody and leaves out what changes the log or is private (docs/32, "The public page").
+  // A share link leaves out what changes the log or is private (docs/32, "The public page"). Its sentences are about
+  // a whole log's owner by name, or on a link to one record about nobody (lib/voice.tsx).
   const shared = app.readOnly;
+  const voice = voiceOf(app);
+  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   const settings = app.settings();
   const unit = settings.distanceUnit ?? "km";
   const [showTicket, setShowTicket] = useState(false);
@@ -406,10 +410,15 @@ export function FlightDetail() {
         {livery && (f.registration || typeText) && ` in its ${livery} livery`}
         {built && `${livery && (f.registration || typeText) ? "," : ""} first flown in ${built}`}
         {landing && B && `, landing in ${cityName(B) ?? B.name} ${landing}`}.
-        {onThis.length > 1 && ` ${shared ? "Flown on it" : "You have flown on it"} ${plural(onThis.length, "time")}.`}{" "}
+        {onThis.length > 1 && (
+          <>
+            {" "}
+            {voice.kind === "none" ? "Flown on it" : voice.kind === "named" ? <>{who} has flown on it</> : "You have flown on it"} {plural(onThis.length, "time")}.
+          </>
+        )}{" "}
         {spotted[0] && (
           <span className="phrase phrase--spotted" {...phraseProps}>
-            {shared ? "Photographed" : "You photographed this aircraft"}{spotted[0].airportId ? ` at ${cityName(ref.airport(spotted[0].airportId)) ?? shortAirport(spotted[0].airportId, ref)}` : ""}
+            {voice.kind === "none" ? "Photographed" : voice.kind === "named" ? <>{who} photographed this aircraft</> : "You photographed this aircraft"}{spotted[0].airportId ? ` at ${cityName(ref.airport(spotted[0].airportId)) ?? shortAirport(spotted[0].airportId, ref)}` : ""}
             {spotted[0].seenOn ? ` on ${dateOnly(spotted[0].seenOn, { day: "numeric", month: "long", year: "numeric" })}` : ""}.
           </span>
         )}

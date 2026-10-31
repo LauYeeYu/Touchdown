@@ -18,6 +18,7 @@ import { Pager, usePaging } from "../components/Pager.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { useViewState } from "../lib/viewState.ts";
+import { isolated, Name, voiceOf } from "../lib/voice.tsx";
 
 const SESSION_PREVIEW = 12;
 const SESSIONS_PER_PAGE = 10;
@@ -58,20 +59,23 @@ export function Spotting() {
   };
   const shownSessions = sessions.map((x) => ({ ...x, shown: x.sightings.filter(matches) })).filter((x) => x.shown.length);
   const paging = usePaging(shownSessions, SESSIONS_PER_PAGE, `${year}|${needle}|${airport}`);
-  // A share link names nobody (docs/32, "The public page").
+  // About "you", a shared whole log's owner by name, or nobody on a link to one record (lib/voice.tsx).
   const shared = app.readOnly;
+  const voice = voiceOf(app);
+  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   const first = years[0] ?? thisYear;
-  const when = shared
-    ? year === "all"
-      ? `Since ${first},`
-      : year === thisYear
-        ? `So far in ${year},`
-        : `In ${year},`
-    : year === "all"
-      ? `Since ${first} you have spotted`
-      : year === thisYear
-        ? `So far in ${year} you have spotted`
-        : `In ${year} you spotted`;
+  const when =
+    voice.kind === "none" ? (
+      year === "all" ? `Since ${first},` : year === thisYear ? `So far in ${year},` : `In ${year},`
+    ) : voice.kind === "named" ? (
+      year === "all" ? <>Since {first} {who} has spotted</> : year === thisYear ? <>So far in {year} {who} has spotted</> : <>In {year} {who} spotted</>
+    ) : year === "all" ? (
+      `Since ${first} you have spotted`
+    ) : year === thisYear ? (
+      `So far in ${year} you have spotted`
+    ) : (
+      `In ${year} you spotted`
+    );
   const busiest = [...sessions].sort((a, b) => b.sightings.length - a.sightings.length)[0];
   const topAirline = ss.byAirline.items[0];
   const topType = ss.byType.items[0];
@@ -93,7 +97,7 @@ export function Spotting() {
         {sightings.length ? (
           <>
             {when} <Fig>{plural(ss.aircraft.value, "aircraft", "aircraft")}</Fig>
-            {shared && " spotted"}
+            {voice.kind === "none" && " spotted"}
             {year !== "all" && newCount > 0 && newCount !== ss.aircraft.value && <> ({nf.format(newCount)} new to {shared ? "the log" : "your log"})</>} at <Fig>{plural(ss.airports.value, "airport")}</Fig>, on {plural(sessions.length, "day out", "days out")}.
           </>
         ) : (
@@ -215,7 +219,7 @@ export function Spotting() {
                         </span>
                       ))}
                     </span>
-                    <span className="row__track" title={s.airframeId && flown.has(s.airframeId) ? (shared ? "Flown on too" : "You flew on this aircraft") : ""}>
+                    <span className="row__track" title={s.airframeId && flown.has(s.airframeId) ? (voice.kind === "none" ? "Flown on too" : voice.kind === "named" ? `${isolated(voice.name)} flew on this aircraft` : "You flew on this aircraft") : ""}>
                       {s.airframeId && flown.has(s.airframeId) && <Icon name="tickets-plane" />}
                     </span>
                   </Link>
