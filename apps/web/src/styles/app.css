@@ -2645,7 +2645,7 @@ a.shares-list__title:hover {
 
 /* ---------- the share page (docs/32, "The public page") ---------- */
 
-/* The app's own pages and frame (src/share/Shell.tsx). While a link opens, or when it does not, a message. */
+/* The app's own pages and frame (src/share/Shell.tsx). When a link does not open, a message. */
 .share-main {
   padding-bottom: 72px;
 }
@@ -2670,11 +2670,6 @@ a.shares-list__title:hover {
 
 .share-message__retry {
   margin-top: 20px;
-}
-
-.share-loading {
-  margin: 14vh 0 0;
-  color: var(--ink-3);
 }
 
 .share-notes {

@@ -1,0 +1,2 @@
+/* The app's loading screen, for the share page: its build serves only /share-files/, so the stylesheet comes with it. */
+@import "../../public/boot.css";

@@ -171,7 +171,7 @@ export type Loaded = { state: "ok"; data: ShareData } | { state: "not-found" } |
  * The link's content. A server or network error, or no answer in time, is asked again twice before the page says the
  * link is not available, and the page offers to try again from there without a reload.
  */
-export async function loadShare(): Promise<Loaded> {
+export async function loadShare(report: (at: number, text: string) => void = () => {}): Promise<Loaded> {
   const id = shareId();
   let content: ShareContent | null = null;
   for (let attempt = 0; !content; attempt++) {
@@ -188,11 +188,13 @@ export async function loadShare(): Promise<Loaded> {
     await new Promise((r) => setTimeout(r, CONTENT_RETRIES_MS[attempt]));
   }
   if (content.format !== "touchdown-share" || content.version !== 1) return { state: "not-available" };
+  report(0.65, "Loading airports, airlines and aircraft types…");
   const store = new Store({ deviceId: "share", validate: false });
   for (const [table, rows] of Object.entries(content.tables) as [TableName, Record<string, unknown>[]][]) {
     store.load(table, rows.map((r) => ({ ...SYSTEM, ...r }) as unknown as Row<TableName>));
   }
   const { loadRefTables } = await import("@touchdown/refdata");
   const ref = new RefIndex(loadRefTables(), refOverridesOf(store));
+  report(0.9, "Preparing the pages…");
   return { state: "ok", data: new ShareData(id, content, store, ref) };
 }

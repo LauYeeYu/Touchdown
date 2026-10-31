@@ -12,6 +12,7 @@ import { AppContext } from "../data/context.tsx";
 import { setCodeStyle } from "../lib/codes.ts";
 import { LinkScopeContext } from "../lib/link.tsx";
 import { setSlugData } from "../lib/slugs.ts";
+import { Boot, waitingProgress } from "../components/Boot.tsx";
 import { Frame, Message } from "./Frame.tsx";
 import { loadShare, type Loaded } from "./data.ts";
 import { scopeOf, shareRouter } from "./router.tsx";
@@ -30,14 +31,21 @@ function titleOf(content: ShareContent): string {
   return TITLES[content.kind] ?? "Shared";
 }
 
+// The app's loading screen (components/Boot.tsx): the page's own bar creeps towards 30% while the code loads, the
+// link's content and the reference data move it on, and it lands and fades out over the first page.
+const START = Math.max(0.3, waitingProgress());
+const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 300;
+
 function SharePage() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [progress, setProgress] = useState({ at: START, text: "Opening the link…" });
+  const [finished, setFinished] = useState(false);
   // Each try opens the link afresh, without reloading the page.
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     // A try that has been replaced (or, in development, run twice) does not set the page.
     let current = true;
-    void loadShare().then(
+    void loadShare((at, text) => current && setProgress({ at, text })).then(
       (l) => current && setLoaded(l),
       () => current && setLoaded({ state: "not-available" }),
     );
@@ -45,23 +53,34 @@ function SharePage() {
       current = false;
     };
   }, [attempt]);
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(() => setFinished(true), FINISH_MS);
+    return () => clearTimeout(t);
+  }, [loaded]);
   const retry = () => {
     setLoaded(null);
+    setFinished(false);
+    setProgress({ at: 0.3, text: "Opening the link…" });
     setAttempt((n) => n + 1);
   };
 
-  if (!loaded)
-    return (
-      <Frame>
-        <p className="share-loading" aria-busy="true">
-          Opening the link…
-        </p>
-      </Frame>
-    );
-  if (loaded.state === "not-found") return <Frame>{<Message title="This link does not open anything." text="It may have been stopped by the person who shared it, or the address may be incomplete." />}</Frame>;
-  if (loaded.state === "busy") return <Frame>{<Message title="Too many requests just now." text="Wait a minute, then try again." onRetry={retry} />}</Frame>;
-  if (loaded.state === "not-available") return <Frame>{<Message title="This link is not available right now." text="The log it shows cannot be reached at the moment." onRetry={retry} />}</Frame>;
-  return <Shared data={loaded.data} />;
+  // The page renders under the loading screen while the bar lands and the screen fades.
+  const page = !loaded ? null : loaded.state === "not-found" ? (
+    <Frame>{<Message title="This link does not open anything." text="It may have been stopped by the person who shared it, or the address may be incomplete." />}</Frame>
+  ) : loaded.state === "busy" ? (
+    <Frame>{<Message title="Too many requests just now." text="Wait a minute, then try again." onRetry={retry} />}</Frame>
+  ) : loaded.state === "not-available" ? (
+    <Frame>{<Message title="This link is not available right now." text="The log it shows cannot be reached at the moment." onRetry={retry} />}</Frame>
+  ) : (
+    <Shared data={loaded.data} />
+  );
+  return (
+    <>
+      {page}
+      {!finished && <Boot label="Opening the link" progress={loaded ? 1 : progress.at} text={loaded?.state === "ok" ? "Ready" : progress.text} done={!!loaded} />}
+    </>
+  );
 }
 
 function Shared({ data }: { data: Extract<Loaded, { state: "ok" }>["data"] }) {
