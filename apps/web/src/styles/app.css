@@ -4316,26 +4316,329 @@ a.wordmark {
   }
 }
 
-.table--pivot th,
-.table--pivot td {
-  white-space: nowrap;
-}
-
 .table--diff {
   margin-top: 10px;
   font-size: 0.875rem;
 }
 
-.pivot-controls {
+/* ---------- custom view (components/CustomView.tsx) ---------- */
+
+/* What to count, as a sentence: "Number of flights by airline split by family", each choice a filled pill. */
+.custom__query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-top: 28px;
+}
+
+.custom__word {
+  font-size: 1.0625rem;
+  color: var(--ink-2);
+}
+
+.custom .custom__select {
+  width: auto;
+  max-width: 100%;
+  height: 42px;
+  padding: 0 40px 0 18px;
+  border-color: transparent;
+  border-radius: 999px;
+  background-color: var(--surface-high);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.custom .custom__select:hover {
+  border-color: transparent;
+  background-color: var(--surface-highest);
+}
+
+.custom__tool {
+  margin-left: -4px;
+  color: var(--ink-2);
+}
+
+/* The filters: a chip each, then "Filter", then how many records are left. */
+.custom__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.filter-chip.is-on {
+  background: var(--selected-container);
+  border-color: transparent;
+  color: var(--on-selected-container);
+}
+
+.filter-chip__edit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  max-width: min(420px, 70vw);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.filter-chip__dim {
+  font-weight: 400;
+}
+
+.filter-chip .chip__x {
+  color: inherit;
+}
+
+.filter-add {
+  border-style: dashed;
+}
+
+.filter-add .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.custom__count {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The panel under a filter: its values to tick, each with how many records have it. */
+.filter-panel {
+  width: min(320px, calc(100vw - 32px));
+  gap: 2px;
+  padding: 10px;
+}
+
+.filter-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 2px 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.filter-panel__back {
+  width: 28px;
+  height: 28px;
+  margin-left: -6px;
+}
+
+.filter-panel__search {
+  margin-bottom: 6px;
+}
+
+.filter-panel__search .input {
+  height: 38px;
+}
+
+.filter-panel__values {
+  max-height: min(320px, 50vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.filter-panel__value {
   display: grid;
-  grid-template-columns: repeat(4, minmax(140px, 1fr)) auto;
-  gap: 12px 16px;
-  align-items: end;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.filter-panel__value:hover {
+  background: var(--state-hover);
+}
+
+.filter-panel__value input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--flown);
+}
+
+.filter-panel__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-panel__count {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.filter-panel__none {
+  margin: 8px;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.filter-panel__foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 8px 4px 2px;
+  border-top: 1px solid var(--rule);
+}
+
+.custom__saved {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 16px;
+}
+
+.custom__saved .chip[aria-current="true"] {
+  background: var(--selected-container);
+  border-color: transparent;
+  color: var(--on-selected-container);
+}
+
+.custom__saved .chip--plain {
+  padding-right: 14px;
+}
+
+/* The table: figures shaded by size in the data's ink (6% to 40%: the text stays at 7:1 or more), each one a button
+   that lists the records behind it. The row names stay in view when the table scrolls sideways. */
+.custom .table-scroll {
   margin-top: 24px;
 }
 
-.saved-views {
-  margin-top: 16px;
+.table--pivot th,
+.table--pivot td {
+  white-space: nowrap;
+}
+
+.table--pivot tbody th,
+.table--pivot thead th:first-child,
+.table--pivot tfoot th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--paper);
+}
+
+.pivot--flights {
+  --heat-ink: var(--flown);
+}
+
+.pivot--sightings {
+  --heat-ink: var(--spotted);
+}
+
+/* The figure's button fills its cell, so the outline of the one picked runs to the cell's edges. */
+.table--pivot .pivot__cell {
+  height: 1px;
+  padding: 0;
+}
+
+.pivot__cell.is-shaded {
+  background: color-mix(in srgb, var(--heat-ink) calc(6% + var(--heat, 0) * 34%), transparent);
+}
+
+.pivot__fig {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: box-shadow 140ms var(--ease);
+}
+
+.pivot__fig:hover {
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.pivot__fig.is-picked {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.pivot__total .pivot__fig {
+  font-weight: 600;
+}
+
+.table--pivot tfoot th,
+.table--pivot tfoot td {
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 0;
+}
+
+.pivot__others {
+  color: var(--ink-3);
+}
+
+.custom__notes p {
+  margin: 10px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+/* The records behind a figure, under the table. */
+.custom__records {
+  margin-top: 36px;
+  scroll-margin: 96px 0 24px;
+}
+
+.custom__records-head {
+  align-items: center;
+  gap: 12px;
+}
+
+.custom__records-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.custom__records-head .icon-btn {
+  margin-left: auto;
+}
+
+/* Phones: a filter's panel opens from the start of the filter row, across it, not from its chip. */
+@media (max-width: 600px) {
+  .custom__filters {
+    position: relative;
+  }
+
+  .custom__filters .menu-anchor {
+    position: static;
+  }
+
+  .custom__filters .filter-panel {
+    left: 0;
+    width: 100%;
+  }
 }
 
 /* ---------- import ---------- */
@@ -4972,10 +5275,6 @@ a.wordmark {
     gap: 20px;
   }
 
-  .pivot-controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .cols--aircraft,
   .row--aircraft {
     grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) 60px 72px;
@@ -5093,10 +5392,6 @@ a.wordmark {
   }
 
   .ranked-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pivot-controls {
     grid-template-columns: 1fr;
   }
 
@@ -5982,10 +6277,6 @@ a.wordmark {
   .row__type-phone {
     display: block;
   }
-}
-
-.pivot-intro {
-  margin: 24px 0 0;
 }
 
 /* ---------- tabs: stable labels and a sliding indicator ---------- */

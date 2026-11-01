@@ -48,7 +48,17 @@ Metric definitions for flights, sightings, and both together (requirements G3, P
 
 ### Custom view (pivot)
 
-Shown in the app as the "Custom view" tab, with plain controls: From (flights or sightings), Count (number of records, aircraft each once, distance, time in the air), Group by (rows) and Split by (columns, optional). Any one or two dimensions × one measure, with filters (date range, dataset, any dimension value). Shown as a table and, where it reads well, a chart. Examples the user already has:
+Shown in the app as the "Custom view" tab (`components/CustomView.tsx`). Built. Any one or two dimensions × one measure, over the period chosen at the top of Statistics, narrowed by filters:
+
+| Part | Behaviour |
+|------|-----------|
+| The question | One sentence of choices, no explaining text: "[Number of flights] by [airline] split by [family]". The first choice is what to count, the dataset and the measure together: number of flights, aircraft flown, distance flown, time in the air; number of sightings, aircraft seen. "Split by" is added with a button and removed with ×; a second button swaps rows and columns. |
+| Filters | "Filter" opens a panel: a dimension, then its values to tick, each with how many records have it among those the other filters keep (a value ticked before stays listed). A filter keeps the records with any of its values; several filters all hold. Each shows as a chip ("Airline: British Airways, Lufthansa +2") that reopens its panel, with × to remove it. Ticking applies at once. The row ends with how many records are counted ("4 of 12 flights"). Filters on a dimension the other dataset lacks go when the count switches dataset. |
+| The table | Rows by their figure, largest first, except year, month and hour, which go in time order; at most 25 rows, then "Show all". At most 14 columns, the rest added up as "Others". A Total column (when split) and a Total row: totals count each aircraft once. Each figure is shaded by its size in the dataset's ink. Values are named as elsewhere ("British Airways", "March", "09:00"). |
+| The records | Every figure, total included, is a button: it lists the flights or sightings behind it under the table, newest first, 20 a page, as the Flights and Spotting lists show them (`pivotRecords` in core). |
+| Left out | Records without a value for the chosen dimensions are left out and counted under the table ("3 flights left out: no family recorded"). |
+
+The logic is in core (`pivot`, `filterRecords`, `dimensionValues`, `pivotRecords`; value names in `pivotValueLabel`), shared with the CLI (`stats --by … --where DIM=V[,V]`, [34](34-command-line.md)). Examples the user already has:
 
 | Sheet tab | Pivot |
 |-----------|-------|
@@ -57,7 +67,7 @@ Shown in the app as the "Custom view" tab, with plain controls: From (flights or
 | Manufacturer by Airlines | rows = airline, columns = manufacturer, measure = aircraft |
 | Family by Location | rows = airport, columns = family, measure = aircraft |
 
-Saved views: the user can save a custom view (dimensions, measure, filters) under a name ("Save this view"). They are kept in the log's `saved_views` table ([10](10-domain-model.md)), so every device has them. The CLI shows one with `touchdown stats --view NAME`, and saves or removes one through the inbox (`stats views save` and `remove`, [34](34-command-line.md)).
+Saved views: the user can save a custom view (dimensions, measure, filters) under a name ("Save this view", shown only while what shows is not saved already). They are kept in the log's `saved_views` table and their filters in `saved_view_filters`, one row a value ([10](10-domain-model.md)), so every device has them. A saved view is a chip; the one matching what shows is marked; choosing one brings back its choices and filters. The CLI shows one with `touchdown stats --view NAME`, its filters applied, and saves or removes one through the inbox (`stats views save … --where …` and `remove`, [34](34-command-line.md)).
 
 ## Sightings summary (requirement P1)
 

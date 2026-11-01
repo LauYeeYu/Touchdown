@@ -4,17 +4,16 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { extensionPercent, routeExtensionByRoute, routeExtensions, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
-import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, pivot, sightingStats, type Dataset, type Measure, type Measured, type Settings, type Sighting, type StatsContext } from "@touchdown/core";
+import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, type Measured, type Settings, type Sighting, type StatsContext } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, CABIN_LABEL, countryName, dateOnly, distance, durShort, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, dateOnly, distance, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
 import { Link } from "../lib/link.tsx";
 import { airportWithCode, routeCodes } from "../lib/codes.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
-import { toast } from "../components/overlay.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { Tabs } from "../components/Tabs.tsx";
 import { Fact, LeftOut } from "../components/Facts.tsx";
@@ -22,6 +21,7 @@ import { Ranked } from "../components/Ranked.tsx";
 import { HelpTip } from "../components/HelpTip.tsx";
 import { useGrow } from "../lib/motion.ts";
 import { GlobePanel } from "../components/GlobePanel.tsx";
+import { CustomView } from "../components/CustomView.tsx";
 import { useViewState } from "../lib/viewState.ts";
 
 type Tab = "flights" | "sightings" | "both" | "pivot";
@@ -285,7 +285,7 @@ export function Stats() {
         </div>
       )}
 
-      {tab === "pivot" && <Pivot ctx={ctx} flights={flights} sightings={sightings} label={{ op, ap, ty, fam }} />}
+      {tab === "pivot" && <CustomView ctx={ctx} flights={flights} sightings={sightings} />}
     </div>
   );
 }
@@ -400,161 +400,6 @@ function ExtensionByRoute({ rows, label, unit, sort, onSort }: { rows: RouteExte
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function Pivot({ ctx, flights, sightings, label }: { ctx: StatsContext; flights: ReturnType<typeof flightStats> extends never ? never : import("@touchdown/core").Flight[]; sightings: Sighting[]; label: { op: (k: string) => string; ap: (k: string) => string; ty: (k: string) => string; fam: (k: string) => string } }) {
-  const { app } = useApp();
-  const unit = app.settings().distanceUnit ?? "km";
-  const [dataset, setDataset] = useViewState<Dataset>("custom.dataset", "sightings");
-  const dims = DIMENSIONS.filter((d) => d.datasets.includes(dataset));
-  const [rowId, setRowId] = useViewState("custom.rows", "airline");
-  const [colId, setColId] = useViewState("custom.columns", "family");
-  const [measure, setMeasure] = useViewState<Measure>("custom.measure", "aircraft");
-  const rowDim = dims.find((d) => d.id === rowId) ?? dims[0]!;
-  const colDim = colId ? (dims.find((d) => d.id === colId && d.id !== rowDim.id) ?? null) : null;
-  const records = dataset === "flights" ? flights : sightings;
-  const result = useMemo(() => pivot(dataset, records, rowDim, colDim, measure, ctx), [dataset, records, rowDim, colDim, measure, ctx]);
-  const saved = app.store.all("saved_views");
-
-  const name = (dimId: string, k: string) => {
-    if (dimId === "airline") return label.op(k);
-    if (["airport", "from", "to"].includes(dimId)) return label.ap(k);
-    if (dimId === "type") return label.ty(k);
-    if (dimId === "family") return label.fam(k);
-    if (dimId === "regCountry") return countryName(k);
-    if (dimId === "phase") return PHASE_LABEL[k] ?? k;
-    if (dimId === "cabin") return CABIN_LABEL[k] ?? k;
-    return k;
-  };
-  const fmt = (n: number) => (measure === "distance" ? distance(n, unit) : measure === "time" ? durShort(n) : nf.format(n));
-  const cols = colDim ? result.columns : [""];
-  const maxCols = 14;
-
-  const apply = (v: (typeof saved)[number]) => {
-    if (v.dataset === "flights" || v.dataset === "sightings") setDataset(v.dataset);
-    if (v.rowDimension) setRowId(v.rowDimension);
-    setColId(v.columnDimension ?? "");
-    if (v.measure) setMeasure(v.measure as Measure);
-  };
-
-  return (
-    <div role="tabpanel">
-      <p className="section__aside pivot-intro">Count flights or sightings, grouped by one thing and, if you like, split by a second.</p>
-      <div className="pivot-controls">
-        <label className="field">
-          <span className="field__label">From</span>
-          <select className="select" value={dataset} onChange={(e) => {
-            const ds = e.target.value as Dataset;
-            setDataset(ds);
-            if (ds === "flights" && measure === "aircraft") setMeasure("records");
-          }}>
-            <option value="flights">Flights</option>
-            <option value="sightings">Sightings</option>
-          </select>
-        </label>
-        <label className="field">
-          <span className="field__label">Count</span>
-          <select className="select" value={measure} onChange={(e) => setMeasure(e.target.value as Measure)}>
-            <option value="records">{dataset === "flights" ? "Number of flights" : "Number of sightings"}</option>
-            <option value="aircraft">Aircraft (each once)</option>
-            {dataset === "flights" && <option value="distance">Distance</option>}
-            {dataset === "flights" && <option value="time">Time in the air</option>}
-          </select>
-        </label>
-        <label className="field">
-          <span className="field__label">Group by</span>
-          <select className="select" value={rowDim.id} onChange={(e) => setRowId(e.target.value)}>
-            {dims.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span className="field__label">Split by</span>
-          <select className="select" value={colDim?.id ?? ""} onChange={(e) => setColId(e.target.value)}>
-            <option value="">Nothing</option>
-            {dims
-              .filter((d) => d.id !== rowDim.id)
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label}
-                </option>
-              ))}
-          </select>
-        </label>
-        {/* Saved views belong to the log: a share link only reads it. */}
-        {!app.readOnly && (
-          <button
-            type="button"
-            className="btn btn--quiet btn--small"
-            onClick={() => {
-              const n = window.prompt("Name this view", `${rowDim.label}${colDim ? ` by ${colDim.label}` : ""}`);
-              if (!n) return;
-              app.saveView({ name: n, dataset, rowDimension: rowDim.id, columnDimension: colDim?.id ?? null, measure });
-              toast("View saved.");
-            }}
-          >
-            Save this view
-          </button>
-        )}
-      </div>
-      {saved.length > 0 && (
-        <div className="chips saved-views" aria-label="Saved views">
-          {saved.map((v) => (
-            <span key={v.id} className="chip chip--removable">
-              <button type="button" className="link-btn" onClick={() => apply(v)}>
-                {v.name}
-              </button>
-              <button type="button" className="chip__x" aria-label={`Remove ${v.name}`} onClick={() => app.removeView(v.id)}>
-                <Icon name="x" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-      {result.leftOut > 0 && <p className="left-out">{plural(result.leftOut, "record")} left out (missing a value for the chosen dimensions)</p>}
-      <div className="table-scroll">
-        <table className="table table--pivot">
-          <thead>
-            <tr>
-              <th>{rowDim.label}</th>
-              {colDim && cols.slice(0, maxCols).map((c) => <th key={c} className="num">{name(colDim.id, c)}</th>)}
-              {colDim && cols.length > maxCols && <th className="num">Others</th>}
-              <th className="num">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.rows.map((r) => (
-              <tr key={r}>
-                <th scope="row">{name(rowDim.id, r)}</th>
-                {colDim &&
-                  cols.slice(0, maxCols).map((c) => {
-                    const v = result.cells.get(`${r}\u0000${c}`);
-                    return (
-                      <td key={c} className="num">
-                        {v ? fmt(v) : ""}
-                      </td>
-                    );
-                  })}
-                {colDim && cols.length > maxCols && (
-                  <td className="num">
-                    {fmt(cols.slice(maxCols).reduce((s, c) => s + (result.cells.get(`${r}\u0000${c}`) ?? 0), 0)) || ""}
-                  </td>
-                )}
-                <td className="num">
-                  <b>{fmt(result.rowTotals.get(r) ?? 0)}</b>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {measure === "aircraft" && <p className="section__aside stats-note">Row totals count each aircraft once, so they can be lower than the sum of the row.</p>}
-      {(rowDim.id === "phase" || colDim?.id === "phase") && <p className="section__aside stats-note">A sighting seen in several phases counts under each.</p>}
     </div>
   );
 }
