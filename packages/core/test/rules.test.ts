@@ -218,7 +218,17 @@ describe("cross-record rules", () => {
   });
 });
 
-describe("a flight against its track", () => {
+describe("a flight against its timetable and its track", () => {
+  const schedule = (departureScheduledAt: string) => run([{ ...goodFlight, departureScheduledAt }]).findings.filter((x) => x.ruleId === "V-SCHEDULE-DATE");
+
+  it("V-SCHEDULE-DATE: the scheduled departure falls on the flight's date", () => {
+    expect(schedule("2025-04-02T07:55-04:00")).toHaveLength(0);
+    expect(schedule("2025-04-03T07:55-04:00")[0]?.severity).toBe("warning");
+    const far = schedule("2025-04-07T07:55-04:00")[0];
+    expect(far?.severity).toBe("error");
+    expect(far?.message).toBe("DL300 on 2025-04-02: the scheduled departure is on 2025-04-07, but the flight's date, the day it was scheduled to leave, is 2025-04-02.");
+  });
+
   const BOS = { lat: 42.3656, lon: -71.0096 };
   const SEA = { lat: 47.4502, lon: -122.3088 };
   const ORD = { lat: 41.9786, lon: -87.9048 };

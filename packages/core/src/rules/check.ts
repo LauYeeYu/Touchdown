@@ -214,6 +214,14 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
       }
     }
   }
+  // The flight's date is the day it was scheduled to leave, so the timetable's departure falls on it.
+  if (f.scheduledDate && f.departureScheduledAt) {
+    const scheduledDay = localDateOf(f.departureScheduledAt);
+    const diff = scheduledDay ? daysBetween(f.scheduledDate, scheduledDay) : 0;
+    if (diff !== 0) {
+      out.add("V-SCHEDULE-DATE", Math.abs(diff) === 1 ? "warning" : "error", [r], ["scheduledDate", "departureScheduledAt"], `${label}: the scheduled departure is on ${scheduledDay}, but the flight's date, the day it was scheduled to leave, is ${f.scheduledDate}.`, [f.scheduledDate, f.departureScheduledAt]);
+    }
+  }
   // A track is checked against its flight when it is added: these find one the flight has since moved away from.
   if (track) {
     const first = instant(track.firstPointAt);
