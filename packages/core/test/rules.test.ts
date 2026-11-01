@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkAll, normaliseFlight, normaliseSighting, resolveAirframes, type FlightValues, type SightingValues } from "../src/index.ts";
+import { attachTrack, checkAll, normaliseFlight, normaliseSighting, resolveAirframes, type FlightValues, type SightingValues, type TrackPointInput } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 const TODAY = "2026-10-01";
@@ -215,5 +215,56 @@ describe("cross-record rules", () => {
     const res = resolveAirframes(store, ref);
     expect(res.overlaps).toHaveLength(1);
     expect(ids(checkAll(store, ref, { today: TODAY, overlaps: res.overlaps }))).toContain("C-REG-OVERLAP");
+  });
+});
+
+describe("a flight against its track", () => {
+  const BOS = { lat: 42.3656, lon: -71.0096 };
+  const SEA = { lat: 47.4502, lon: -122.3088 };
+  const ORD = { lat: 41.9786, lon: -87.9048 };
+  // A made-up line of positions over the clean flight's times, 12:00 to 18:05 UTC.
+  const line = (to = SEA): TrackPointInput[] =>
+    Array.from({ length: 40 }, (_, i) => ({
+      t: Date.parse("2025-04-02T12:00Z") / 1000 + i * 562,
+      lat: BOS.lat + ((to.lat - BOS.lat) * i) / 39,
+      lon: BOS.lon + ((to.lon - BOS.lon) * i) / 39,
+      altitudeFt: 35000,
+      groundSpeedKt: 450,
+      headingDeg: 280,
+    }));
+  const tracked = (points = line(), coverage: "complete" | "partial" = "complete") => {
+    const { store } = run([goodFlight]);
+    const f = store.all("flights")[0]!;
+    attachTrack(store, f.id, points, { provider: "fr24_csv", attribution: "Track data: test", coverage });
+    const found = (rule: string) => checkAll(store, ref, { today: TODAY, overlaps: resolveAirframes(store, ref).overlaps }).filter((x) => x.ruleId === rule);
+    return { store, f, found };
+  };
+
+  it("raises nothing for a track that fits its flight", () => {
+    const { store } = tracked();
+    expect(ids(checkAll(store, ref, { today: TODAY, overlaps: resolveAirframes(store, ref).overlaps }))).toEqual([]);
+  });
+
+  it("V-TRACK-TIMES: the track lies outside the flight after its date and times change", () => {
+    const { store, f, found } = tracked();
+    store.update("flights", f.id, { scheduledDate: "2025-04-02", boardingAt: "2025-04-02T09:20-04:00", takeoffAt: "2025-04-02T10:00-04:00", landingAt: "2025-04-02T13:05-07:00" });
+    expect(found("V-TRACK-TIMES")).toHaveLength(0); // two hours later: a delay
+    store.update("flights", f.id, { scheduledDate: "2025-04-07", boardingAt: "2025-04-07T07:20-04:00", takeoffAt: "2025-04-07T08:00-04:00", landingAt: "2025-04-07T11:05-07:00" });
+    expect(found("V-TRACK-TIMES")[0]?.message).toBe("DL300 on 2025-04-07: the track runs from 2025-04-02 12:00 to 18:05 UTC, outside this flight (takeoff 2025-04-07 12:00 UTC). Correct the flight's date and times, or replace the track.");
+    // Without takeoff and landing, the flight's day, give or take one.
+    store.update("flights", f.id, { boardingAt: null, takeoffAt: null, landingAt: null, scheduledDate: "2025-04-03" });
+    expect(found("V-TRACK-TIMES")).toHaveLength(0);
+    store.update("flights", f.id, { scheduledDate: "2025-04-07" });
+    expect(found("V-TRACK-TIMES")[0]?.message).toContain("the track is from 2025-04-02, but this flight is on 2025-04-07.");
+  });
+
+  it("V-TRACK-ROUTE: the track is far longer or, when complete, shorter than the route", () => {
+    const moved = tracked();
+    const jfk = normaliseFlight({ ...goodFlight, toRaw: "JFK" }, ref).toAirportId;
+    moved.store.update("flights", moved.f.id, { toAirportId: jfk, toRaw: "JFK" });
+    expect(moved.found("V-TRACK-ROUTE")[0]?.message).toMatch(/^DL300 on 2025-04-02: the track is 4,\d{3} km long, but BOS to JFK is 30\d km\. Correct the airports, or replace the track\.$/);
+    // A complete track to Chicago on a flight to Seattle: too short. A partial one may stop anywhere.
+    expect(tracked(line(ORD)).found("V-TRACK-ROUTE")[0]?.message).toMatch(/the track is 1,\d{3} km long, but BOS to SEA is 4,0\d\d km\./);
+    expect(tracked(line(ORD), "partial").found("V-TRACK-ROUTE")).toHaveLength(0);
   });
 });

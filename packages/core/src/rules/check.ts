@@ -2,7 +2,7 @@
 // lookup service and arrive in phase 4.
 
 import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
-import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
+import type { Airframe, Flight, Sighting, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Finding, RecordRef, Severity, SuggestedFix } from "./types.ts";
 import { fnv1a } from "../ids.ts";
@@ -12,6 +12,7 @@ import { liveryAround } from "../livery.ts";
 import { privateIndex, type FlightPrivateValues } from "../private.ts";
 import { isSeatFormat, parseFlightNumber } from "../normalise/flight.ts";
 import { addDays, daysBetween, formatOffset, instant, localDateOf, offsetAt, parseDateTime, todayIn, zonedDateTime } from "../time/index.ts";
+import { trackRouteProblem, trackTimeProblem } from "../tracks.ts";
 
 export const FIRST_POWERED_FLIGHT = "1903-12-17";
 
@@ -51,6 +52,8 @@ const S = (id: string): RecordRef => ({ table: "sightings", id });
 
 const FLIGHT_TIME_FIELDS = ["boardingAt", "departureAt", "takeoffAt", "landingAt", "arrivalAt"] as const;
 
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
 function flightLabel(f: Flight): string {
   return [f.flightNumber, f.scheduledDate ?? flightDay(f)].filter(Boolean).join(" on ") || "This flight";
 }
@@ -72,8 +75,9 @@ export function checkAll(store: Store, ref: RefIndex, opts: CheckOptions = {}): 
   const flights = store.all("flights");
   const sightings = store.all("sightings");
   const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
+  const tracks = new Map(store.all("tracks").map((t) => [t.flightId, t]));
 
-  for (const f of flights) checkFlight(out, f, ref, today, airframes);
+  for (const f of flights) checkFlight(out, f, ref, today, airframes, tracks.get(f.id) ?? null);
   for (const s of sightings) checkSighting(out, s, ref, today, airframes);
   checkCross(out, flights, sightings, airframes, ref, opts, privateIndex(store));
   return out.findings;
@@ -132,7 +136,7 @@ function checkFirstFlight(out: Collector, r: RecordRef, date: string | null, air
 
 // ---------- flights ----------
 
-function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, airframes: Map<string, Airframe>) {
+function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, airframes: Map<string, Airframe>, track: Track | null) {
   const r = F(f.id);
   const label = flightLabel(f);
   const day = flightDay(f);
@@ -209,6 +213,15 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
         out.add("V-DAY-ROLLOVER", "warning", [r], ["takeoffAt"], `${label}: takeoff at ${clock.slice(0, 5)} on the scheduled date. If the flight left after midnight, it took off on ${addDays(f.scheduledDate, 1)}.`, [f.takeoffAt]);
       }
     }
+  }
+  // A track is checked against its flight when it is added: these find one the flight has since moved away from.
+  if (track) {
+    const first = instant(track.firstPointAt);
+    const last = instant(track.lastPointAt);
+    const late = first !== null && last !== null ? trackTimeProblem(first / 1000, last / 1000, f) : null;
+    if (late) out.add("V-TRACK-TIMES", "error", [r], ["takeoffAt", "landingAt"], `${label}: ${lowerFirst(late)} Correct the flight's date and times, or replace the track.`, [f.scheduledDate, f.takeoffAt, f.landingAt, track.id]);
+    const away = trackRouteProblem(track, f, ref);
+    if (away) out.add("V-TRACK-ROUTE", "warning", [r], ["fromAirportId", "toAirportId"], `${label}: ${lowerFirst(away)} Correct the airports, or replace the track.`, [f.fromAirportId, arrivalAirportId(f), track.id]);
   }
   const km = flightDistanceKm(f, ref);
   const min = flightDurationMin(f);

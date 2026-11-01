@@ -49,6 +49,8 @@ export const RULES: Record<string, { title: string; severity: Severity | "varies
   "V-TIMES-ORDER": { title: "Times out of order", severity: "error" },
   "V-TIME-OFFSET": { title: "UTC offset does not match the airport", severity: "error" },
   "V-DAY-ROLLOVER": { title: "Takeoff date", severity: "varies" },
+  "V-TRACK-TIMES": { title: "Track outside the flight's times", severity: "error" },
+  "V-TRACK-ROUTE": { title: "Track does not fit the route", severity: "warning" },
   "V-DURATION-SPEED": { title: "Implausible speed", severity: "warning" },
   "V-DISTANCE-DIFF": { title: "Distance differs from great circle", severity: "info" },
   "V-BEFORE-FIRST-FLIGHT": { title: "Before the aircraft's first flight", severity: "error" },

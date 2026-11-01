@@ -376,29 +376,60 @@ export type TrackFit = { coverage: "complete" | "partial"; startKm: number | nul
 
 const hhmm = (t: number) => toUtcIso(t * 1000).slice(11, 16);
 
+/** How far a track may lie outside the flight's logged times and still be the flight: the times in a log are often the timetable's, and flights run late. */
+export const TRACK_TIME_SLACK_MS = 3 * 3600_000;
+
+/**
+ * Why a track recorded from `first` to `last` (Unix seconds) cannot be this flight by its times, or null when it can:
+ * it must overlap takeoff to landing, widened by `slackMs` on each side for a delay or a timetable time, when both
+ * are known, else start on the flight's day, give or take one. Checked when a track is added, and again by the
+ * checks (V-TRACK-TIMES) whenever the flight changes.
+ */
+export function trackTimeProblem(first: number, last: number, flight: Flight, slackMs = TRACK_TIME_SLACK_MS): string | null {
+  const t0 = instant(flight.takeoffAt);
+  const t1 = instant(flight.landingAt);
+  const day = flightDay(flight);
+  const trackDay = toUtcIso(first * 1000).slice(0, 10);
+  if (t0 !== null && t1 !== null) {
+    if (Math.min(t1 + slackMs, last * 1000) > Math.max(t0 - slackMs, first * 1000)) return null;
+    return `The track runs from ${trackDay} ${hhmm(first)} to ${hhmm(last)} UTC, outside this flight (takeoff ${toUtcIso(t0).slice(0, 16).replace("T", " ")} UTC).`;
+  }
+  if (!day || [day, addDays(day, -1), addDays(day, 1)].includes(trackDay)) return null;
+  return `The track is from ${trackDay}, but this flight is on ${day}.`;
+}
+
+/** How much longer than the route a track may be (holding, a long way round) before it is taken for another route's. */
+const ROUTE_MAX_FACTOR = 3;
+const ROUTE_MAX_EXTRA_KM = 300;
+
+/**
+ * Why a stored track's length cannot be this flight's route, or null when it can. A complete track starts and ends
+ * within NEAR_KM of the airports, so it is at least as long as the great circle less those ends. No track is longer
+ * than three times the route and 300 km. Only the length is kept with a track, so a route of a similar length passes.
+ */
+export function trackRouteProblem(track: { coverage: string | null; distanceKm: number | null }, flight: Flight, ref: RefIndex): string | null {
+  const a = ref.airport(flight.fromAirportId);
+  const b = ref.airport(arrivalAirportId(flight));
+  if (!a || !b || a.id === b.id || track.distanceKm === null) return null;
+  const code = (x: typeof a) => x.iata ?? x.icao ?? x.name;
+  const gc = haversineKm(a, b);
+  const km = track.distanceKm;
+  const tooShort = track.coverage === "complete" && km < gc - 2 * NEAR_KM;
+  if (!tooShort && km <= gc * ROUTE_MAX_FACTOR + ROUTE_MAX_EXTRA_KM) return null;
+  const n = (x: number) => Math.round(x).toLocaleString("en-GB");
+  return `The track is ${n(km)} km long, but ${code(a)} to ${code(b)} is ${n(gc)} km.`;
+}
+
 /**
  * Whether a track the user gives belongs to this flight: its times fall on the flight (between takeoff and landing
  * when both are known, else on the flight's day, give or take one) and it runs from the departure towards the
  * arrival. Complete when it starts and ends at the airports; a fragment that would draw a stub is refused.
  */
-/** How far a track may lie outside the flight's logged times and still be the flight: the times in a log are often the timetable's, and flights run late. */
-export const TRACK_TIME_SLACK_MS = 3 * 3600_000;
-
 export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefIndex, slackMs = TRACK_TIME_SLACK_MS): TrackFit {
   const first = points[0]!;
   const last = points[points.length - 1]!;
-  const t0 = instant(flight.takeoffAt);
-  const t1 = instant(flight.landingAt);
-  const day = flightDay(flight);
-  const trackDay = toUtcIso(first.t * 1000).slice(0, 10);
-  if (t0 !== null && t1 !== null) {
-    // The track must overlap the flight's times, widened by `slackMs` on each side for a delay or a timetable time.
-    if (Math.min(t1 + slackMs, last.t * 1000) <= Math.max(t0 - slackMs, first.t * 1000)) {
-      return { problem: `The track runs from ${trackDay} ${hhmm(first.t)} to ${hhmm(last.t)} UTC, outside this flight (takeoff ${toUtcIso(t0).slice(0, 16).replace("T", " ")} UTC).` };
-    }
-  } else if (day && ![day, addDays(day, -1), addDays(day, 1)].includes(trackDay)) {
-    return { problem: `The track is from ${trackDay}, but this flight is on ${day}.` };
-  }
+  const late = trackTimeProblem(first.t, last.t, flight, slackMs);
+  if (late) return { problem: late };
   const a = ref.airport(flight.fromAirportId);
   const b = ref.airport(arrivalAirportId(flight));
   if (!a || !b) return { coverage: "partial", startKm: null, endKm: null };
