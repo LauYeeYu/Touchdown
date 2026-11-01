@@ -62,6 +62,8 @@ const GAP_KM = 30;
 export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["distanceUnit"], bothAirframes: Set<string> = new Set(), store?: Store, trackPoints = OVERVIEW_TRACK_POINTS): MapFlight[] {
   const out: MapFlight[] = [];
   const tracks = store ? trackIndex(store) : new Map<string, TrackPoint[]>();
+  // Flights with a recorded track whose positions are not in this browser yet: they come after the rest of the log.
+  const recorded = new Set(store?.all("tracks").map((t) => t.flightId));
   for (const v of views) {
     const a = ref.airport(v.f.fromAirportId);
     const b = ref.airport(v.f.divertedToAirportId ?? v.f.toAirportId);
@@ -81,6 +83,7 @@ export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["d
       both: !!v.f.airframeId && bothAirframes.has(v.f.airframeId),
       tip: `<strong>${esc(v.f.flightNumber ?? "Flight")} · ${esc(v.fromCode)} → ${esc(v.toCode)}</strong><br><span class="muted">${v.day ? `${dayShort(v.day)} ${v.day.slice(0, 4)}` : "No date"}${v.km ? ` · ${distance(v.km, unit)}` : ""}</span>`,
       ...overviewTrack(tracks.get(v.f.id), [a.lon, a.lat], [b.lon, b.lat], trackPoints),
+      pending: recorded.has(v.f.id) && !tracks.has(v.f.id),
     });
   }
   return out;

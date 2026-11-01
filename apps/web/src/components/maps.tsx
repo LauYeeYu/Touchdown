@@ -10,6 +10,7 @@ import type { Feature, FeatureCollection, Geometry } from "geojson";
 import world from "world-atlas/countries-110m.json";
 import { esc, hideTip, showTip } from "./overlay.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
+import { TrackLoadingNote, useTracksLoading } from "../lib/trackLoading.tsx";
 
 /** The least a fitted map shows, in degrees: a single spotting place is framed with its region around it. */
 const MIN_LON = 24;
@@ -39,6 +40,8 @@ export interface MapFlight {
   gaps?: LonLat[][]; // drawn dotted: what a track does not record, joining it to its airports and across its gaps
   /** Recorded positions with a gap on both sides, which no line passes through: each is drawn as a dot. */
   lone?: LonLat[];
+  /** It has a recorded track whose positions are not here yet (they load after the page): the great circle stands in. */
+  pending?: boolean;
 }
 
 export interface MapSpot {
@@ -399,7 +402,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         const a = arrival(f.id);
         const fresh = a ? " is-arriving" : "";
         if (a) fadeFrom(el(arcs, "path", { class: "arc arc--leaving", d: path({ type: "MultiLineString", coordinates: a.was }) ?? "" }), a);
-        const line = el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d });
+        const line = el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.pending ? " arc--pending" : ""}${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d });
         arcPaths.push(a ? fadeFrom(line, a) : line);
         for (const g of f.gaps ?? []) {
           const gap = el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d: path({ type: "LineString", coordinates: g }) ?? "" });
@@ -523,7 +526,18 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey, mutedKey, dataKey]);
 
-  return <svg className={`map ${className}`} ref={ref} role="img" aria-label={label} />;
+  // While tracks load, the great circles waiting for theirs are drawn fainter (CSS) and the corner says so.
+  const waiting = flights.filter((f) => f.pending).length;
+  const loading = useTracksLoading(waiting);
+  useEffect(() => {
+    ref.current?.classList.toggle("is-loading-tracks", loading);
+  }, [loading]);
+  return (
+    <div className="map-box">
+      <svg className={`map ${className}`} ref={ref} role="img" aria-label={label} />
+      <TrackLoadingNote waiting={waiting} total={flights.filter((f) => f.pending || f.track).length} />
+    </div>
+  );
 }
 
 interface FlightMapProps {
@@ -538,6 +552,8 @@ interface FlightMapProps {
   /** Recorded positions with a gap on both sides, drawn as dots. */
   lone?: LonLat[];
   recorded: boolean;
+  /** It has a recorded track whose positions are not here yet: the great circle stands in until they come. */
+  pending?: boolean;
   label: string;
   onAirportClick?: (which: "from" | "to") => void;
   /** The track's recorded positions: pointing at one shows the aircraft's state there, at a gap what is missing. */
@@ -570,7 +586,7 @@ export function screenAngle(samples: TrackSample[], i: number, proj: (p: LonLat)
   return s0 && s1 ? (Math.atan2(s1[1] - s0[1], s1[0] - s0[0]) * 180) / Math.PI + 90 : 0;
 }
 
-export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = [], recorded, label, onAirportClick, samples = [], takeoff = null }: FlightMapProps) {
+export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = [], recorded, pending = false, label, onAirportClick, samples = [], takeoff = null }: FlightMapProps) {
   const ref = useRef<SVGSVGElement>(null);
   const clickRef = useRef(onAirportClick);
   clickRef.current = onAirportClick;
@@ -710,7 +726,16 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
       hideTip();
     };
   }, []);
-  return <svg className="map" ref={ref} role="img" aria-label={label} />;
+  const loading = useTracksLoading(pending ? 1 : 0);
+  useEffect(() => {
+    ref.current?.classList.toggle("is-loading-tracks", loading);
+  }, [loading]);
+  return (
+    <div className="map-box">
+      <svg className="map" ref={ref} role="img" aria-label={label} />
+      <TrackLoadingNote waiting={pending ? 1 : 0} total={1} one />
+    </div>
+  );
 }
 
 /** The distance from a point to a segment on screen. */

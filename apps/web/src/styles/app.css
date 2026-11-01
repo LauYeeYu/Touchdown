@@ -829,6 +829,67 @@ main {
   margin-bottom: 12px;
 }
 
+/* A map and what sits on it: the tracks loading note. */
+.map-box {
+  position: relative;
+}
+
+/* "Loading tracks · 29 of 41" in the map's top corner while its flights' tracks load (lib/trackLoading.tsx). It
+   fades in after a moment, so a quick read never flashes it, and out when the last one is in. */
+.track-loading {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0;
+  padding: 0 12px 0 9px;
+  border-radius: 999px;
+  background: var(--surface-high);
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms var(--ease);
+}
+
+.track-loading.is-shown {
+  opacity: 1;
+}
+
+/* On the globe, level with Expand (36px tall, 16px down) in the other top corner. */
+.globe-stage .track-loading {
+  top: 20px;
+}
+
+.track-loading .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.track-loading.is-shown .icon {
+  animation: track-loading-turn 1s linear infinite;
+}
+
+@keyframes track-loading-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-loading.is-shown .icon {
+    animation: none;
+  }
+}
+
 .map {
   display: block;
   width: 100%;
@@ -860,7 +921,7 @@ main {
   stroke-width: 1.75;
   stroke-linecap: round;
   opacity: 0.85;
-  transition: opacity 200ms var(--ease), stroke-width 200ms var(--ease), stroke 200ms var(--ease);
+  transition: opacity 200ms var(--ease), stroke-width 200ms var(--ease), stroke 200ms var(--ease), stroke-opacity 200ms var(--ease);
 }
 
 .map .arc--track {
@@ -877,6 +938,19 @@ main {
 .map .gc--leaving {
   pointer-events: none;
   animation: track-leave 400ms var(--ease) both;
+}
+
+/* While tracks load, a great circle waiting for its flight's track is fainter (lib/trackLoading.tsx), and when the
+   track arrives the great circle leaves from there. */
+.map.is-loading-tracks .arc--pending,
+.map.is-loading-tracks .gc--primary,
+.map .arc--leaving,
+.map .gc--leaving {
+  stroke-opacity: 0.45;
+}
+
+.map .gc--primary {
+  transition: stroke-opacity 200ms var(--ease);
 }
 
 @keyframes track-arrive {

@@ -260,7 +260,7 @@ export function FlightDetail() {
     ) : (
       <div className="map-wrap">
         <div className="legend">{mapHead}</div>
-        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} lone={mark?.lone} recorded={!!track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={`Map of ${routeWhat}`} />
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} lone={mark?.lone} recorded={!!track} pending={!!trackRow && !track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={`Map of ${routeWhat}`} />
       </div>
     );
 

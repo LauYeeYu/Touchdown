@@ -3,7 +3,7 @@
 // Drawn on a canvas with d3-geo (orthographic), from the same marks as the flat maps. Inside a page that
 // scrolls (`contained`), scrolling and vertical swipes move the page; a pinch or Ctrl-scroll zooms.
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useContext, useEffect, useImperativeHandle, useRef } from "react";
 import { geoDistance, geoGraticule10, geoInterpolate, geoOrthographic, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import type { FeatureCollection } from "geojson";
@@ -11,6 +11,10 @@ import world from "world-atlas/countries-110m.json";
 import { ARRIVE_MS, routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
+import { TrackLoading } from "../lib/trackLoading.tsx";
+
+/** While tracks load, a great circle waiting for its flight's track is drawn this much fainter, as on the flat maps. */
+const PENDING_ALPHA = 0.45;
 
 type LonLat = [number, number];
 
@@ -133,8 +137,9 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
   const gapsFor = useRef<{ samples: TrackSample[]; gaps: TrackGap[] }>({ samples: [], gaps: [] });
   const one = flights.length === 1 ? flights[0]! : null;
   if (gapsFor.current.samples !== samples) gapsFor.current = { samples, gaps: one && samples.length > 1 ? trackGaps(samples, one.from, one.to, one.fromCode, one.toCode) : [] };
-  const data = useRef({ flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps });
-  data.current = { flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps };
+  const loading = useContext(TrackLoading);
+  const data = useRef({ flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps, loading });
+  data.current = { flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps, loading };
 
   const fit = () => {
     const st = state.current;
@@ -263,10 +268,12 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       const drawRoute = (f: MapFlight, width: number, alpha: number) => {
         // Arriving: the great circle it had fades out as the track fades in.
         const a = arriving.current.get(f.id);
+        if (f.pending && data.current.loading) alpha *= PENDING_ALPHA;
         if (a) {
           const t = Math.min(1, (performance.now() - a.at) / ARRIVE_MS);
           const k = 1 - Math.pow(1 - t, 3);
-          ctx.globalAlpha = alpha * (1 - k);
+          // The great circle it had was waiting, so it fades from faint.
+          ctx.globalAlpha = alpha * PENDING_ALPHA * (1 - k);
           ctx.strokeStyle = c.flown;
           ctx.lineWidth = width;
           ctx.setLineDash([]);
@@ -468,6 +475,11 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     }
     state.current.dirty = true;
   }, [flights]);
+
+  // Tracks starting or stopping to load: the waiting great circles change shade.
+  useEffect(() => {
+    state.current.dirty = true;
+  }, [loading]);
 
   // New data: redraw; refit when the set of marks changes.
   const key = flights.map((f) => f.id).join(",") + "|" + spots.map((s) => s.code).join(",");

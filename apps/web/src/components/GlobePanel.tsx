@@ -8,6 +8,7 @@ import { Globe, type GlobeHandle } from "./Globe.tsx";
 import type { MapFlight, MapSpot } from "./maps.tsx";
 import { Icon } from "../lib/icons.tsx";
 import type { TrackSample } from "../lib/trackStatus.ts";
+import { TrackLoadingNote } from "../lib/trackLoading.tsx";
 
 interface Props {
   flights: MapFlight[];
@@ -78,6 +79,7 @@ export function GlobePanel({ flights, spots, label, head, note, onFlightClick, o
             <Icon name="rotate-ccw" />
           </button>
         </div>
+        <TrackLoadingNote waiting={flights.filter((f) => f.pending).length} total={flights.filter((f) => f.pending || f.track).length} one={flights.length === 1} />
         <p className="globe-hint">
           Drag to turn · {full ? "scroll or pinch" : "pinch or Ctrl-scroll"} to zoom{opens}
           {note && ` · ${note}`}

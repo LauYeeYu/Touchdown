@@ -13,6 +13,7 @@ import { backupZip, todayIn } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { momentLabel, nf, plural } from "../lib/format.ts";
 import { useSyncInfo } from "./ModeChoice.tsx";
+import { TrackLoading } from "../lib/trackLoading.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
 import { Wordmark } from "./Wordmark.tsx";
@@ -355,7 +356,10 @@ export function Shell() {
         </NoteBar>
       )}
       <main id="view" tabIndex={-1}>
-        <Outlet />
+        {/* Tracks still to come while sync runs: the maps say so (lib/trackLoading.tsx). */}
+        <TrackLoading.Provider value={sync?.state === "syncing" && notHere > 0}>
+          <Outlet />
+        </TrackLoading.Provider>
       </main>
       <footer className="site-foot">
         <div className="page">

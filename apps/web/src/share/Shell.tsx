@@ -11,6 +11,7 @@ import { Overlays } from "../components/overlay.tsx";
 import { StableLabel } from "../components/StableLabel.tsx";
 import { Wordmark } from "../components/Wordmark.tsx";
 import type { ShareData } from "./data.ts";
+import { TrackLoading } from "../lib/trackLoading.tsx";
 
 const NAV: { to: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
   { to: "/", label: "Home", icon: "house", match: (p) => p === "/" },
@@ -59,7 +60,9 @@ export function ShareShell() {
         </div>
       </header>
       <main id="view" tabIndex={-1}>
-        <Outlet />
+        <TrackLoading.Provider value={!!tracks}>
+          <Outlet />
+        </TrackLoading.Provider>
       </main>
       <SiteFoot />
       <Overlays />
