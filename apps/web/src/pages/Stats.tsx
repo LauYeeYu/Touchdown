@@ -290,17 +290,25 @@ export function Stats() {
   );
 }
 
-const pct = (e: { percent: number; minimum: boolean }) => `${e.minimum ? "at least " : ""}${extensionPercent(e.percent)}`;
+/** "+6.4%", or "at least +6.4%": on a phone "at least" goes under the figure, beside the row's second line. */
+function Pct({ e }: { e: { percent: number; minimum: boolean } }) {
+  return (
+    <span className="ext-fig">
+      {e.minimum && <span className="ext-min">at least </span>}
+      <span>{extensionPercent(e.percent)}</span>
+    </span>
+  );
+}
 
 /** The route extension tables sort by the extra distance (the default, since a percentage ranks short flights first), or by the percentage. */
 type ExtensionSort = "percent" | "extra";
 const byExtension = <T extends { percent: number; extraKm: number }>(rows: T[], sort: ExtensionSort) => [...rows].sort((a, b) => (sort === "extra" ? b.extraKm - a.extraKm : b.percent - a.percent));
 
 /** A column heading that sorts the route extension tables by its column, largest first. */
-function SortHeading({ by, label, sort, onSort }: { by: ExtensionSort; label: string; sort: ExtensionSort; onSort: (s: ExtensionSort) => void }) {
+function SortHeading({ by, label, sort, onSort, className }: { by: ExtensionSort; label: string; sort: ExtensionSort; onSort: (s: ExtensionSort) => void; className: string }) {
   const on = sort === by;
   return (
-    <th className="num" aria-sort={on ? "descending" : "none"}>
+    <th className={`num ${className}`} aria-sort={on ? "descending" : "none"}>
       <button type="button" className={`th-sort${on ? " is-on" : ""}`} onClick={() => onSort(by)} title={on ? `Sorted by ${label.toLowerCase()}, largest first` : `Sort by ${label.toLowerCase()}`}>
         {label}
         <Icon name={on ? "chevron-down" : "chevrons-up-down"} />
@@ -320,18 +328,12 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
       <h3 className="ranked__title">Most indirect flights</h3>
       <div ref={grow}>
         <table className="table table--fixed">
-          <colgroup>
-            <col />
-            <col className="col-route" />
-            <col className="col-num" />
-            <col className="col-num" />
-          </colgroup>
           <thead>
             <tr>
               <th>Flight</th>
-              <th>Route</th>
-              <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} />
-              <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} />
+              <th className="col-route">Route</th>
+              <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} className="col-ext" />
+              <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} className="col-extra" />
             </tr>
           </thead>
           <tbody>
@@ -344,9 +346,12 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
                       {v?.f.flightNumber ?? "Flight"}
                     </Link>
                     {v?.day && <span className="muted"> · {dateOnly(v.day, { day: "numeric", month: "short", year: "numeric" })}</span>}
+                    {v && <span className="extension-sub">{`${v.fromCode} → ${v.toCode}`}</span>}
                   </td>
-                  <td className="extension-route">{v ? `${v.fromCode} → ${v.toCode}` : ""}</td>
-                  <td className="num">{pct(e)}</td>
+                  <td className="col-route extension-route">{v ? `${v.fromCode} → ${v.toCode}` : ""}</td>
+                  <td className="num">
+                    <Pct e={e} />
+                  </td>
                   <td className="num">{distance(e.extraKm, unit)}</td>
                 </tr>
               );
@@ -371,26 +376,25 @@ function ExtensionByRoute({ rows, label, unit, sort, onSort }: { rows: RouteExte
     <div>
       <h3 className="ranked__title">By route</h3>
       <table className="table table--fixed">
-        <colgroup>
-          <col />
-          <col className="col-count" />
-          <col className="col-wide-num" />
-          <col className="col-wide-num" />
-        </colgroup>
         <thead>
           <tr>
             <th>Route</th>
-            <th className="num">Flights</th>
-            <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} />
-            <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} />
+            <th className="num col-count">Flights</th>
+            <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} className="col-ext" />
+            <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} className="col-extra" />
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.route}>
-              <td className="extension-route">{label(r.route)}</td>
-              <td className="num">{nf.format(r.flights)}</td>
-              <td className="num">{pct(r)}</td>
+              <td className="extension-route">
+                {label(r.route)}
+                <span className="extension-sub">{plural(r.flights, "flight")}</span>
+              </td>
+              <td className="num col-count">{nf.format(r.flights)}</td>
+              <td className="num">
+                <Pct e={r} />
+              </td>
               <td className="num">{distance(r.extraKm, unit)}</td>
             </tr>
           ))}

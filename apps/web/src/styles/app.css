@@ -4116,25 +4116,40 @@ a.wordmark {
   white-space: nowrap;
 }
 
-/* Set widths, so showing more rows or sorting another way never moves a column. */
+/* Set widths, so showing more rows or sorting another way never moves a column. Each fits its widest figure on one
+   line ("at least +100%", "12,542 mi"), and the first column takes what is left. */
 .table--fixed {
   table-layout: fixed;
 }
 
 .table--fixed .col-route {
-  width: 24%;
-}
-
-.table--fixed .col-num {
-  width: 20%;
+  width: 7em;
 }
 
 .table--fixed .col-count {
-  width: 14%;
+  width: 4.5em;
 }
 
-.table--fixed .col-wide-num {
-  width: 22%;
+.table--fixed .col-ext {
+  width: 7.5em;
+}
+
+.table--fixed .col-extra {
+  width: 6.5em;
+}
+
+.table--fixed th:last-child,
+.table--fixed td:last-child {
+  padding-right: 0;
+}
+
+.ext-fig {
+  white-space: nowrap;
+}
+
+/* The row's second line on a phone: the route under the flight, or the flights under the route. */
+.extension-sub {
+  display: none;
 }
 
 /* A column heading that sorts its table: the heading's own look, a chevron on the column sorted by. */
@@ -4181,6 +4196,42 @@ a.wordmark {
   .extension-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
+  }
+}
+
+/* Phones: three columns, each row two lines. The route (or the count of flights) moves under the first column, and
+   "at least" under its figure, so nothing wraps mid-phrase. */
+@media (max-width: 600px) {
+  .table--fixed .col-route,
+  .table--fixed .col-count {
+    display: none;
+  }
+
+  .table--fixed .col-ext {
+    width: 6em;
+  }
+
+  .table--fixed .col-extra {
+    width: 5.5em;
+  }
+
+  .extension-sub {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+  }
+
+  .ext-fig {
+    display: inline-grid;
+    justify-items: end;
+  }
+
+  .ext-fig .ext-min {
+    grid-row: 2;
+    margin-top: 1px;
+    font-size: 0.8125rem;
+    color: var(--ink-3);
   }
 }
 
