@@ -342,11 +342,61 @@ export const DIMENSIONS: Dimension[] = [
 
 export type Measure = "records" | "aircraft" | "distance" | "time";
 
+/** Dimensions whose values are times (a year, a month, an hour): rows and values go in time order, not by size. */
+const IN_TIME_ORDER = new Set(["year", "month", "hour"]);
+
+/** A custom view's filter: only the records whose value of `dimension` is one of `values`. */
+export interface PivotFilter {
+  dimension: string;
+  values: string[];
+}
+
+/** A record's values of a dimension: none when it has no value, several for a sighting seen in several phases. */
+function valuesOf(dim: Dimension, r: Flight | Sighting, ctx: StatsContext, dataset: Dataset): string[] {
+  if (dim.getAll) return dim.getAll(r, ctx, dataset);
+  const v = dim.get(r, ctx, dataset);
+  return v === null ? [] : [v];
+}
+
+/**
+ * The records every filter keeps: for each filter, one of the record's values is among the filter's (filters on two
+ * dimensions both hold). A filter on a dimension the dataset does not have, or with no values, keeps every record.
+ */
+export function filterRecords<T extends Flight | Sighting>(dataset: Dataset, records: T[], filters: PivotFilter[], ctx: StatsContext): T[] {
+  const active = filters.flatMap((f) => {
+    const dim = DIMENSIONS.find((d) => d.id === f.dimension);
+    return dim && dim.datasets.includes(dataset) && f.values.length ? [{ dim, values: new Set(f.values) }] : [];
+  });
+  if (!active.length) return records;
+  return records.filter((r) => active.every((f) => valuesOf(f.dim, r, ctx, dataset).some((v) => f.values.has(v))));
+}
+
+/** Each value a dimension has among the records, with how many records have it: most first, or in time order. */
+export function dimensionValues(dataset: Dataset, records: (Flight | Sighting)[], dim: Dimension, ctx: StatsContext): { value: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const r of records) for (const v of new Set(valuesOf(dim, r, ctx, dataset))) counts.set(v, (counts.get(v) ?? 0) + 1);
+  const list = [...counts].map(([value, count]) => ({ value, count }));
+  return IN_TIME_ORDER.has(dim.id) ? list.sort((a, b) => a.value.localeCompare(b.value)) : list.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+}
+
+/**
+ * The records behind one figure of a pivot: those with `row` as their row value and `column` as their column value.
+ * A null `row` or `column` takes every value there, as a total does: a row's total, a column's, or the whole table's.
+ */
+export function pivotRecords<T extends Flight | Sighting>(dataset: Dataset, records: T[], rowDim: Dimension, colDim: Dimension | null, row: string | null, column: string | null, ctx: StatsContext): T[] {
+  const has = (values: string[], v: string | null) => (v === null ? values.length > 0 : values.includes(v));
+  return records.filter((r) => has(valuesOf(rowDim, r, ctx, dataset), row) && (!colDim || has(valuesOf(colDim, r, ctx, dataset), column)));
+}
+
 export interface PivotResult {
   rows: string[];
   columns: string[]; // [""] when there is no column dimension
   cells: Map<string, number>; // `${row}\u0000${column}`
   rowTotals: Map<string, number>;
+  /** Each column's figure over every row: aircraft counted once in it. */
+  columnTotals: Map<string, number>;
+  /** Every record counted, taken together. */
+  total: number;
   leftOut: number;
 }
 
@@ -360,14 +410,9 @@ export function pivot(
 ): PivotResult {
   const groups = new Map<string, (Flight | Sighting)[]>();
   let leftOut = 0;
-  const valuesOf = (dim: Dimension, r: Flight | Sighting): string[] => {
-    if (dim.getAll) return dim.getAll(r, ctx, dataset);
-    const v = dim.get(r, ctx, dataset);
-    return v === null ? [] : [v];
-  };
   for (const r of records) {
-    const as = valuesOf(rowDim, r);
-    const bs = colDim ? valuesOf(colDim, r) : [""];
+    const as = valuesOf(rowDim, r, ctx, dataset);
+    const bs = colDim ? valuesOf(colDim, r, ctx, dataset) : [""];
     if (!as.length || !bs.length) {
       leftOut++;
       continue;
@@ -392,18 +437,26 @@ export function pivot(
     }
   };
   const cells = new Map<string, number>();
-  const rowLists = new Map<string, (Flight | Sighting)[]>();
-  const colSet = new Set<string>();
+  const rowLists = new Map<string, Set<Flight | Sighting>>();
+  const colLists = new Map<string, Set<Flight | Sighting>>();
+  const all = new Set<Flight | Sighting>();
+  const add = (m: Map<string, Set<Flight | Sighting>>, k: string, list: (Flight | Sighting)[]) => {
+    const set = m.get(k) ?? new Set();
+    for (const r of list) set.add(r);
+    m.set(k, set);
+  };
   for (const [k, list] of groups) {
     cells.set(k, value(list));
     const [a, b] = k.split("\u0000") as [string, string];
-    // A record under two columns (two statuses) counts once in its row's total.
-    rowLists.set(a, [...new Set([...(rowLists.get(a) ?? []), ...list])]);
-    colSet.add(b);
+    // A record under two rows or columns (two phases) counts once in each total.
+    add(rowLists, a, list);
+    add(colLists, b, list);
+    for (const r of list) all.add(r);
   }
-  const rowTotals = new Map([...rowLists].map(([k, list]) => [k, value(list)]));
-  const rows = [...rowTotals].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).map(([k]) => k);
-  return { rows, columns: [...colSet].sort(), cells, rowTotals, leftOut };
+  const rowTotals = new Map([...rowLists].map(([k, set]) => [k, value([...set])]));
+  const columnTotals = new Map([...colLists].map(([k, set]) => [k, value([...set])]));
+  const rows = IN_TIME_ORDER.has(rowDim.id) ? [...rowTotals.keys()].sort() : [...rowTotals].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).map(([k]) => k);
+  return { rows, columns: [...colLists.keys()].sort(), cells, rowTotals, columnTotals, total: value([...all]), leftOut };
 }
 
 

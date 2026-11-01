@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { combinedStats, DIMENSIONS, flightStats, normaliseFlight, normaliseSighting, pivot, resolveAirframes, sightingStats } from "../src/index.ts";
+import { combinedStats, dimensionValues, DIMENSIONS, filterRecords, flightStats, normaliseFlight, normaliseSighting, pivot, pivotRecords, resolveAirframes, sightingStats } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 function setup() {
@@ -67,6 +67,44 @@ describe("combined and pivot", () => {
     expect(p.rows).toEqual(["op_ual", "op_dal"]);
     expect(p.cells.get("op_ual\u0000B737")).toBe(1);
     expect(p.leftOut).toBe(1);
+  });
+
+  it("adds up each column and the whole, counting an aircraft once in each", () => {
+    const { store, ctx } = setup();
+    const dim = (id: string) => DIMENSIONS.find((d) => d.id === id)!;
+    const p = pivot("flights", store.all("flights"), dim("airline"), dim("family"), "aircraft", ctx);
+    // N1X flew with Delta and with United: once in the A320 column, once in the whole.
+    expect(p.columnTotals.get("A320")).toBe(2);
+    expect(p.total).toBe(3);
+    const n = pivot("flights", store.all("flights"), dim("airline"), null, "records", ctx);
+    expect(n.total).toBe(5);
+  });
+
+  it("orders years, months and hours by time, the rest by size", () => {
+    const { store, ctx } = setup();
+    const dim = (id: string) => DIMENSIONS.find((d) => d.id === id)!;
+    expect(pivot("flights", store.all("flights"), dim("month"), null, "records", ctx).rows).toEqual(["01", "02", "03"]);
+    expect(pivot("sightings", store.all("sightings"), dim("month"), null, "records", ctx).rows).toEqual(["03", "04"]);
+    expect(dimensionValues("sightings", store.all("sightings"), dim("month"), ctx)).toEqual([{ value: "03", count: 1 }, { value: "04", count: 4 }]);
+    expect(dimensionValues("sightings", store.all("sightings"), dim("airline"), ctx)).toEqual([{ value: "op_ual", count: 3 }, { value: "op_dal", count: 2 }]);
+  });
+
+  it("filters by any of a dimension's values, every filter holding, and finds the records behind a figure", () => {
+    const { store, ctx } = setup();
+    const dim = (id: string) => DIMENSIONS.find((d) => d.id === id)!;
+    const flights = store.all("flights");
+    expect(filterRecords("flights", flights, [{ dimension: "airline", values: ["op_ual"] }], ctx).map((f) => f.registration)).toEqual(["N3X", "N1X"]);
+    expect(filterRecords("flights", flights, [{ dimension: "airline", values: ["op_dal", "op_ual"] }, { dimension: "family", values: ["B737"] }], ctx).map((f) => f.registration)).toEqual(["N3X"]);
+    // A filter on another dataset's dimension, or with nothing chosen, keeps everything.
+    expect(filterRecords("flights", flights, [{ dimension: "phase", values: ["landing"] }, { dimension: "airline", values: [] }], ctx)).toHaveLength(5);
+    const cell = pivotRecords("flights", flights, dim("airline"), dim("family"), "op_dal", "A320", ctx);
+    expect(cell.map((f) => f.registration)).toEqual(["N1X", "N2X"]);
+    // A row's total: the records counted in it, not the one without a family.
+    expect(pivotRecords("flights", flights, dim("airline"), dim("family"), "op_dal", null, ctx)).toHaveLength(2);
+    expect(pivotRecords("flights", flights, dim("airline"), null, "op_dal", null, ctx)).toHaveLength(3);
+    // A column's total, and the whole table's: the records counted in them.
+    expect(pivotRecords("flights", flights, dim("airline"), dim("family"), null, "A320", ctx)).toHaveLength(3);
+    expect(pivotRecords("flights", flights, dim("airline"), dim("family"), null, null, ctx)).toHaveLength(4);
   });
 });
 
