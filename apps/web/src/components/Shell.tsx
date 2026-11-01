@@ -94,12 +94,34 @@ const THEMES = ["system", "light", "dark"] as const;
 const THEME_LABEL = { system: "Theme: follows your device", light: "Theme: light", dark: "Theme: dark" };
 const THEME_ICON: Record<(typeof THEMES)[number], IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
+const deviceDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
+/** The look applied, or being cross-faded to: a second call during the fade compares with where it is going. */
+let lookDark: boolean | null = null;
+
+/**
+ * Apply the theme, and remember it in this browser for the next first paint (index.html reads it before the app
+ * loads), wherever the setting came from: one chosen on another device arrives with the log. When the page turns
+ * from light to dark or back, the old look cross-fades into the new one instead of switching at once.
+ */
 function applyTheme(theme: (typeof THEMES)[number]) {
   const root = document.documentElement;
-  if (theme === "system") root.removeAttribute("data-theme");
-  else root.setAttribute("data-theme", theme);
-  const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#212019" : "#f2ede2");
+  try {
+    localStorage.setItem("td-theme", theme);
+  } catch {
+    /* storage unavailable: the theme still applies, from the log, once the app has loaded */
+  }
+  const dark = theme === "dark" || (theme === "system" && deviceDark());
+  const wasDark = lookDark ?? (root.hasAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : deviceDark());
+  lookDark = dark;
+  const set = () => {
+    if (theme === "system") root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme", theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#212019" : "#f2ede2");
+  };
+  const fade = dark !== wasDark && "startViewTransition" in document && document.visibilityState === "visible" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // A fade cut short by the next change (a quick second press) is skipped, and the new look still applies.
+  if (fade) document.startViewTransition(set).ready.catch(() => undefined);
+  else set();
 }
 
 export function Shell() {

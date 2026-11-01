@@ -188,6 +188,13 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Light to dark or back: the old look cross-fades into the new one (applyTheme in Shell.tsx). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 body {
   margin: 0;
   background: var(--paper);
