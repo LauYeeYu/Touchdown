@@ -31,12 +31,15 @@ import {
   type Store,
   viewProblem,
   pastedFactsFor,
+  phaseIndex,
+  viewFilters,
 } from "@touchdown/core";
-import { aircraftViews, planChanges, typeName } from "@touchdown/core/view";
+import { aircraftViews, filtersText, planChanges, typeName } from "@touchdown/core/view";
 import { freeName, inboxPlace, stamp, writeInboxFile } from "./log.ts";
 import { userPath } from "./paths.ts";
 import { EXIT, fail, findAircraft, findFlight, findSighting, notFound, openOrFail, plain, printJson, readOptions, type Found, type OpenedLog } from "./read.ts";
 import { findingJson, openFindings } from "./shape.ts";
+import { whereFilters } from "./where.ts";
 import { askHidden, bold, dim, green, plural, red, yellow } from "./term.ts";
 
 const PRIVATE = new Set(["ticketNumber", "bookingRef"]);
@@ -166,12 +169,13 @@ ${changeOptions(15)}
 ${AFTER}`;
 
 export const VIEWS_HELP = `Usage: ./touchdown stats views [--log FILE] [--json]
-       ./touchdown stats views save NAME --by DIM [--cols DIM] [--of flights | sightings] [--measure M] [options]
+       ./touchdown stats views save NAME --by DIM [--cols DIM] [--of flights | sightings] [--measure M]
+                                   [--where DIM=V[,V]]… [options]
        ./touchdown stats views remove NAME [options]
 
-The views saved on the Statistics page's Custom tab: without arguments, listed; save keeps a table as
-./touchdown stats --by shows it (the same options) under NAME; remove removes one. Show one with
-./touchdown stats --view NAME.
+The views saved on the Statistics page's Custom tab: without arguments, listed with their filters; save keeps
+a table as ./touchdown stats --by shows it (the same options, --where included) under NAME; remove removes one.
+Show one with ./touchdown stats --view NAME.
 
 ${changeOptions(15)}
 
@@ -188,19 +192,21 @@ export interface Common {
   note?: string;
   /** Options that take a value, of the command's own. */
   values: Map<string, string>;
+  /** Options that may repeat, each value in order. */
+  lists: Map<string, string[]>;
   /** Options without a value, of the command's own. */
   switches: Set<string>;
   positional: string[];
 }
 
 /** The arguments of a changing command: --set and --clear may repeat; --set F alone asks for a private value. */
-export function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean; values?: string[]; switches?: string[] } = {}): Common {
+export function parse(args: string[], help: string, opts: { sets?: boolean; note?: boolean; force?: boolean; values?: string[]; lists?: string[]; switches?: string[] } = {}): Common {
   const json = args.includes("--json");
   if (args.includes("--help") || args.includes("-h")) {
     console.log(help);
     process.exit(EXIT.ok);
   }
-  const c: Common = { json, dryRun: false, force: false, keepErrors: false, sets: [], clears: [], values: new Map(), switches: new Set(), positional: [] };
+  const c: Common = { json, dryRun: false, force: false, keepErrors: false, sets: [], clears: [], values: new Map(), lists: new Map(), switches: new Set(), positional: [] };
   const bad = (problem: string): never => {
     if (json) return fail(json, problem);
     console.error(red(problem));
@@ -220,6 +226,7 @@ export function parse(args: string[], help: string, opts: { sets?: boolean; note
     else if (a === "--log") c.log = value();
     else if (a === "--note" && opts.note) c.note = value();
     else if (opts.values?.includes(a)) c.values.set(a, value());
+    else if (opts.lists?.includes(a)) c.lists.set(a, [...(c.lists.get(a) ?? []), value()]);
     else if (opts.switches?.includes(a)) c.switches.add(a);
     else if ((a === "--set" || a === "--clear") && opts.sets) {
       const v = value();
@@ -564,20 +571,20 @@ export function savedViewNamed(store: Store, name: string) {
 
 /** `./touchdown stats views …` */
 export async function viewsCommand(args: string[]) {
-  const c = parse(args, VIEWS_HELP, { values: ["--by", "--cols", "--of", "--measure"] });
+  const c = parse(args, VIEWS_HELP, { values: ["--by", "--cols", "--of", "--measure"], lists: ["--where"] });
   const log = await openOrFail(c.json, c.log);
   const [what, name, ...more] = c.positional;
   if (!what) {
-    if (c.values.size) return fail(c.json, VIEWS_HELP);
-    const list = log.store.all("saved_views").map((v) => ({ id: v.id, name: v.name, of: v.dataset, by: v.rowDimension, cols: v.columnDimension ?? null, measure: v.measure }));
+    if (c.values.size || c.lists.size) return fail(c.json, VIEWS_HELP);
+    const list = log.store.all("saved_views").map((v) => ({ id: v.id, name: v.name, of: v.dataset, by: v.rowDimension, cols: v.columnDimension ?? null, measure: v.measure, filters: viewFilters(log.store, v.id) }));
     if (c.json) return printJson({ ok: true, from: log.from, views: list });
     if (!list.length) console.log("No views are saved. Save one with ./touchdown stats views save NAME --by DIM, or on the Statistics page.");
-    for (const v of list) console.log(`  ${bold(v.name ?? "")}  ${dim(`${v.of} by ${v.by}${v.cols ? ` and ${v.cols}` : ""}, ${v.measure}`)}`);
+    for (const v of list) console.log(`  ${bold(v.name ?? "")}  ${dim(`${v.of} by ${v.by}${v.cols ? ` and ${v.cols}` : ""}, ${v.measure}${v.filters.length ? `, only ${plain(filtersText(v.filters, log.ref, log.codes))}` : ""}`)}`);
     return;
   }
   if ((what !== "save" && what !== "remove") || !name || more.length) return fail(c.json, VIEWS_HELP);
   if (what === "remove") {
-    if (c.values.size) return fail(c.json, VIEWS_HELP);
+    if (c.values.size || c.lists.size) return fail(c.json, VIEWS_HELP);
     const v = savedViewNamed(log.store, name);
     if (!v) return fail(c.json, `No view is saved as "${name}". See ./touchdown stats views.`, EXIT.notFound);
     return writeChanges(log, "stats", [{ op: "removeView", id: v.id }], c);
@@ -592,6 +599,12 @@ export async function viewsCommand(args: string[]) {
     columnDimension: c.values.get("--cols") ?? null,
     measure: (c.values.get("--measure") ?? "records") as SavedView["measure"],
   };
+  if (view.dataset === "flights" || view.dataset === "sightings") {
+    const ctx = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store) };
+    const filters = whereFilters(log, ctx, view.dataset, c.lists.get("--where") ?? []);
+    if ("error" in filters) return fail(c.json, filters.error);
+    if (filters.length) view.filters = filters;
+  }
   const problem = viewProblem(view);
   if (problem) return fail(c.json, `${problem[0]!.toUpperCase()}${problem.slice(1)}.`);
   return writeChanges(log, "stats", [{ op: "view", ...view }], c);

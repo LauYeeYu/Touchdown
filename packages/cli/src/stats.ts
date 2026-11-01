@@ -2,8 +2,9 @@
 // figures and ranked lists for a period, or a pivot as in its Custom view. The numbers come from the core package,
 // so they are the web app's.
 
-import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, flightStats, phaseIndex, pivot, sightingStats, todayIn, type Dataset, type Measure, type Measured, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
-import { airlineLabel, airportWithCode, CABIN_LABEL, countryName, distance, durShort, flownAndPhotographed, inPeriod, nf, PHASE_LABEL, routeCodes, sortedFlights, typeName, yearsIn } from "@touchdown/core/view";
+import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightStats, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
+import { airlineLabel, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, pivotValueLabel, sortedFlights, typeName, yearsIn } from "@touchdown/core/view";
+import { whereFilters } from "./where.ts";
 import { savedViewNamed, viewsCommand } from "./change.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, periodLabel, periodOf, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
 import { bold, dim, plural } from "./term.ts";
@@ -11,10 +12,10 @@ import { bold, dim, plural } from "./term.ts";
 const DIMENSION_IDS = DIMENSIONS.map((d) => d.id);
 
 export const STATS_HELP = `Usage: ./touchdown stats [flights | spotting | both] [--year Y | all] [--top N | all] [--log FILE] [--json]
-       ./touchdown stats --by DIM [--cols DIM] [--of flights | sightings] [--measure M] [--year Y | all]
-                         [--top N] [--log FILE] [--json]
+       ./touchdown stats --by DIM [--cols DIM] [--of flights | sightings] [--measure M] [--where DIM=V[,V]]…
+                         [--year Y | all] [--top N] [--log FILE] [--json]
        ./touchdown stats --view NAME [--year Y | all] [--top N] [--log FILE] [--json]
-       ./touchdown stats views [save NAME --by DIM [--cols DIM] [--of DATA] [--measure M] | remove NAME]
+       ./touchdown stats views [save NAME --by DIM [--cols DIM] [--of DATA] [--measure M] [--where …] | remove NAME]
 
 Without --by: the Home page's sentence and facts for the period, then the Statistics page's figures and ranked
 lists: flights, spotting and both (or only the part named). With --by: a table as in the Statistics page's
@@ -27,7 +28,9 @@ Custom view, one row per value of DIM (and one column per value of --cols).
   --of DATA     flights (the default) or sightings; airport and phase are for sightings, from, to, route,
                 cabin and seatPosition for flights
   --measure M   records (the default), aircraft, distance or time (distance and time for flights)
-  --view NAME   a view saved on the Statistics page's Custom tab, or with stats views save
+  --where DIM=V only the records whose DIM is V, or one of V,W,…; repeat it for another dimension (all must hold).
+                A value as stored, as the page shows it, or a code: --where airline=BA,LH --where month=March
+  --view NAME   a view saved on the Statistics page's Custom tab, or with stats views save, with its filters
 ${readOptions(14)}
 
 stats views lists the saved views; save and remove change them as the other changing commands do: through the
@@ -41,18 +44,7 @@ interface Ctx {
 const ty = (log: OpenedLog, code: string) => `${typeName(code, log.ref)} (${code})`;
 
 /** A value of a dimension as the Statistics page names it. */
-function keyLabel(log: OpenedLog, dimId: string, k: string): string {
-  if (dimId === "airline") return airlineLabel(k, log.ref) || k;
-  if (["airport", "from", "to", "location"].includes(dimId)) return plain(airportWithCode(k, log.ref, null, log.codes)) || k;
-  if (dimId === "route") return routeCodes(k, log.ref, " ⇄ ", log.codes);
-  if (dimId === "type") return ty(log, k);
-  if (dimId === "family") return log.ref.family(k)?.name ?? k;
-  if (dimId === "regCountry") return countryName(k);
-  if (dimId === "phase") return PHASE_LABEL[k] ?? k;
-  if (dimId === "cabin") return CABIN_LABEL[k] ?? k;
-  if (dimId === "seatPosition") return k[0]!.toUpperCase() + k.slice(1);
-  return k;
-}
+const keyLabel = (log: OpenedLog, dimId: string, k: string) => plain(pivotValueLabel(dimId, k, log.ref, log.codes));
 
 const leftOut = (m: { leftOut: number }, what: string) => (m.leftOut ? `${plural(m.leftOut, "record")} left out (no ${what})` : null);
 
@@ -78,7 +70,7 @@ const factLines = (facts: [string, string, string | null][]) => {
 
 export async function statsCommand(args: string[]) {
   if (args[0] === "views") return viewsCommand(args.slice(1));
-  const a = argsOrHelp(args, { values: ["--year", "--top", "--by", "--cols", "--of", "--measure", "--view"] }, STATS_HELP, [0, 1]);
+  const a = argsOrHelp(args, { values: ["--year", "--top", "--by", "--cols", "--of", "--measure", "--view"], lists: ["--where"] }, STATS_HELP, [0, 1]);
   const json = a.flags.has("--json");
   const part = a.positional[0];
   if (part && !["flights", "spotting", "both"].includes(part)) return fail(json, `stats shows flights, spotting or both, not "${part}".`);
@@ -92,7 +84,7 @@ export async function statsCommand(args: string[]) {
   const ctx: StatsContext = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store) };
   const viewName = a.values.get("--view");
   if (viewName !== undefined) {
-    if (["--by", "--cols", "--of", "--measure"].some((o) => a.values.has(o))) return fail(json, "--view gives the rows, columns and count itself; leave out --by, --cols, --of and --measure.");
+    if (["--by", "--cols", "--of", "--measure"].some((o) => a.values.has(o)) || a.lists.has("--where")) return fail(json, "--view gives the rows, columns, count and filters itself; leave out --by, --cols, --of, --measure and --where.");
     const v = savedViewNamed(log.store, viewName);
     if (!v) return fail(json, `No view is saved as "${viewName}". See ./touchdown stats views.`, EXIT.notFound);
     const values = new Map(a.values);
@@ -100,10 +92,15 @@ export async function statsCommand(args: string[]) {
     if (v.columnDimension) values.set("--cols", v.columnDimension);
     values.set("--of", v.dataset ?? "flights");
     values.set("--measure", v.measure ?? "records");
-    return pivotTable(c, ctx, json, year, values, v.name);
+    return pivotTable(c, ctx, json, year, values, viewFilters(log.store, v.id), v.name);
   }
-  if (a.values.has("--by")) return pivotTable(c, ctx, json, year, a.values);
-  if (a.values.has("--cols") || a.values.has("--of") || a.values.has("--measure")) return fail(json, "--cols, --of and --measure go with --by.");
+  if (a.values.has("--by")) {
+    const dataset = (a.values.get("--of") ?? "flights") as Dataset;
+    const filters = dataset === "flights" || dataset === "sightings" ? whereFilters(log, ctx, dataset, a.lists.get("--where") ?? []) : [];
+    if ("error" in filters) return fail(json, filters.error);
+    return pivotTable(c, ctx, json, year, a.values, filters);
+  }
+  if (a.values.has("--cols") || a.values.has("--of") || a.values.has("--measure") || a.lists.has("--where")) return fail(json, "--cols, --of, --measure and --where go with --by.");
 
   const { store, ref } = log;
   const views = sortedFlights(store, ref, log.codes).filter((v) => inPeriod(v.day, year));
@@ -275,7 +272,7 @@ export async function statsCommand(args: string[]) {
   for (const line of out) console.log(line);
 }
 
-function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, values: Map<string, string>, viewName: string | null = null) {
+function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, values: Map<string, string>, filters: PivotFilter[], viewName: string | null = null) {
   const { log } = c;
   const dataset = (values.get("--of") ?? "flights") as Dataset;
   if (dataset !== "flights" && dataset !== "sightings") return fail(json, "--of takes flights or sightings.");
@@ -292,7 +289,8 @@ function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, valu
   const rowDim = dimOf(values.get("--by"))!;
   const colDim = dimOf(values.get("--cols"));
   if (colDim && colDim.id === rowDim.id) return fail(json, "--by and --cols need two different dimensions.");
-  const records = dataset === "flights" ? sortedFlights(log.store, log.ref, log.codes).filter((v) => inPeriod(v.day, year)).map((v) => v.f) : log.store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
+  const inYear: (Flight | Sighting)[] = dataset === "flights" ? sortedFlights(log.store, log.ref, log.codes).filter((v) => inPeriod(v.day, year)).map((v) => v.f) : log.store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
+  const records = filterRecords(dataset, inYear, filters, ctx);
   const r = pivot(dataset, records, rowDim, colDim, measure, ctx);
   const rows = c.top && values.has("--top") ? r.rows.slice(0, c.top) : r.rows;
   const cell = (row: string, col: string) => r.cells.get(`${row}\u0000${col}`) ?? 0;
@@ -308,8 +306,12 @@ function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, valu
       measure: measure === "distance" ? "distanceKm" : measure === "time" ? "minutes" : measure,
       by: rowDim.id,
       cols: colDim?.id ?? null,
+      filters: filters.map((f) => ({ dimension: f.dimension, values: f.values.map((k) => ({ key: k, label: keyLabel(log, f.dimension, k) })) })),
+      records: { counted: records.length, inPeriod: inYear.length },
       columns: colDim ? r.columns.map((k) => ({ key: k, label: keyLabel(log, colDim.id, k) })) : [],
       rows: rows.map((k) => ({ key: k, label: keyLabel(log, rowDim.id, k), total: round(r.rowTotals.get(k) ?? 0), ...(colDim && { cells: Object.fromEntries(r.columns.map((col) => [col, round(cell(k, col))])) }) })),
+      ...(colDim && { columnTotals: Object.fromEntries(r.columns.map((col) => [col, round(r.columnTotals.get(col) ?? 0)])) }),
+      total: round(r.total),
       more: r.rows.length - rows.length,
       leftOut: r.leftOut,
     });
@@ -319,6 +321,7 @@ function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, valu
   const head = [{ head: rowDim.label, flex: true }, ...cols.map((k) => ({ head: keyLabel(log, colDim!.id, k), align: "right" as const })), { head: colDim ? "Total" : measure === "records" ? (dataset === "flights" ? "Flights" : "Sightings") : measure === "aircraft" ? "Aircraft" : measure === "distance" ? "Distance" : "Time", align: "right" as const }];
   const body = rows.map((k) => [keyLabel(log, rowDim.id, k), ...cols.map((col) => (cell(k, col) ? fmt(cell(k, col)) : "")), fmt(r.rowTotals.get(k) ?? 0)]);
   console.log(bold(`${viewName !== null ? `${viewName}: ` : ""}${dataset === "flights" ? "Flights" : "Sightings"} by ${rowDim.label.toLowerCase()}${colDim ? ` and ${colDim.label.toLowerCase()}` : ""}, ${periodLabel(year)}`));
+  if (filters.length) console.log(dim(`Only ${plain(filtersText(filters, log.ref, log.codes))}: ${nf.format(records.length)} of ${plural(inYear.length, dataset === "flights" ? "flight" : "sighting")}`));
   console.log("");
   for (const line of table(head, body)) console.log(line);
   if (r.rows.length > rows.length) console.log(dim(`and ${r.rows.length - rows.length} more`));

@@ -125,6 +125,14 @@ describe("reading the log from the command line", () => {
       ["British Airways", 1],
     ]);
     expect(await run(statsCommand, "--by", "phase")).toMatchObject({ code: 2 });
+    // Filters, by code or by name, every one holding.
+    const only = (await run(statsCommand, "--by", "airline", "--year", "all", "--where", "airline=DL", "--json")).json();
+    expect(only.rows.map((r: { label: string; total: number }) => [r.label, r.total])).toEqual([["Delta Air Lines", 2]]);
+    expect(only).toMatchObject({ filters: [{ dimension: "airline", values: [{ key: "op_dal", label: "Delta Air Lines" }] }], records: { counted: 2, inPeriod: 3 }, total: 2 });
+    const both = (await run(statsCommand, "--by", "airline", "--year", "all", "--where", "airline=Delta Air Lines,BA", "--where", "airline=BA", "--json")).json();
+    expect(both).toMatchObject({ ok: false, error: "airline is given twice: give its values together, airline=A,B." });
+    expect((await run(statsCommand, "--by", "airline", "--year", "all", "--where", "airline=QF", "--json")).json()).toMatchObject({ ok: false, error: expect.stringMatching(/^No airline "QF" among the log's flights\. Some there are: Delta Air Lines, British Airways\.$/) });
+    expect((await run(statsCommand, "--where", "airline=DL", "--json")).json()).toMatchObject({ ok: false, error: "--cols, --of, --measure and --where go with --by." });
   });
 
   it("lists open findings with their ids and fixes, and the imports", async () => {

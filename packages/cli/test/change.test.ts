@@ -173,6 +173,19 @@ describe("changing the log from the command line", () => {
     expect(shown.rows.map((r: { label: string }) => r.label)).toEqual(expect.arrayContaining(["British Airways", "Delta Air Lines"]));
     expect(await run(statsCommand, "--view", "Nothing", "--json")).toMatchObject({ code: 1 });
     expect((await run(statsCommand, "views", "save", "Airlines by family", "--by", "airline", "--json")).json()).toMatchObject({ ok: false, error: expect.stringMatching(/already/) });
+    // A view with a filter: kept with it, listed with it, and shown with it.
+    const filtered = (await run(statsCommand, "views", "save", "Delta", "--by", "family", "--where", "airline=DL", "--json")).json();
+    expect(filtered).toMatchObject({ ok: true, changes: [{ title: "“Delta”" }] });
+    expect(filtered.changes[0].lines.at(-1)).toMatchObject({ label: "Only", after: "Airline: Delta Air Lines" });
+    const [second] = inbox();
+    const again = readInbox(fileOf(second!), second!, ref);
+    if ("error" in again) throw new Error(again.error);
+    applyChanges(store, ref, again.changes, () => true, { fileName: second! });
+    rmSync(join(INBOX, second!));
+    writeFileSync(LOG, backupZip(store));
+    expect((await run(statsCommand, "views", "--json")).json().views.find((v: { name: string }) => v.name === "Delta")).toMatchObject({ filters: [{ dimension: "airline", values: ["op_dal"] }] });
+    expect((await run(statsCommand, "--view", "Delta", "--year", "all", "--json")).json()).toMatchObject({ view: "Delta", records: { counted: 1, inPeriod: 2 }, filters: [{ dimension: "airline" }] });
+    expect((await run(statsCommand, "--view", "Delta", "--where", "year=2025", "--json")).json()).toMatchObject({ ok: false, error: expect.stringMatching(/leave out --by, --cols, --of, --measure and --where/) });
     expect((await run(statsCommand, "views", "remove", "Airlines by family", "--json")).json()).toMatchObject({ written: { changes: 1 }, changes: [{ action: "Remove a view" }] });
     for (const n of inbox()) rmSync(join(INBOX, n));
   });

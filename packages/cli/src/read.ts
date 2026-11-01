@@ -33,21 +33,24 @@ export const readOptions = (col: number) => `  ${"--log FILE".padEnd(col)}read a
 
 export interface Args {
   values: Map<string, string>;
+  /** Options that may repeat, each value in order. */
+  lists: Map<string, string[]>;
   flags: Set<string>;
   positional: string[];
 }
 
-/** Split arguments into options with a value (`values`), flags and the rest. An unknown option is an error. */
-export function parseArgs(args: string[], spec: { values?: string[]; flags?: string[] }): Args | { error: string } {
-  const takes = new Set(["--log", ...(spec.values ?? [])]);
+/** Split arguments into options with a value (`values`, or `lists` for those that repeat), flags and the rest. An unknown option is an error. */
+export function parseArgs(args: string[], spec: { values?: string[]; lists?: string[]; flags?: string[] }): Args | { error: string } {
+  const takes = new Set(["--log", ...(spec.values ?? []), ...(spec.lists ?? [])]);
   const flags = new Set(["--json", ...(spec.flags ?? [])]);
-  const out: Args = { values: new Map(), flags: new Set(), positional: [] };
+  const out: Args = { values: new Map(), lists: new Map(), flags: new Set(), positional: [] };
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
     if (takes.has(a)) {
       const v = args[++i];
       if (v === undefined || v.startsWith("--")) return { error: `${a} needs a value.` };
-      out.values.set(a, v);
+      if (spec.lists?.includes(a)) out.lists.set(a, [...(out.lists.get(a) ?? []), v]);
+      else out.values.set(a, v);
     } else if (flags.has(a)) out.flags.add(a);
     else if (a.startsWith("--")) return { error: `There is no option ${a}.` };
     else out.positional.push(a);
@@ -105,7 +108,7 @@ export async function openOrFail(json: boolean, file?: string): Promise<OpenedLo
 }
 
 /** The arguments, or the command's help when they do not fit. */
-export function argsOrHelp(args: string[], spec: { values?: string[]; flags?: string[] }, help: string, positional: [number, number] = [0, 0]): Args {
+export function argsOrHelp(args: string[], spec: { values?: string[]; lists?: string[]; flags?: string[] }, help: string, positional: [number, number] = [0, 0]): Args {
   const json = args.includes("--json");
   if (args.includes("--help") || args.includes("-h")) {
     console.log(help);

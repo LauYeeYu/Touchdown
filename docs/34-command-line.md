@@ -23,7 +23,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 
 | In the web app | Command | Shows |
 |---|---|---|
-| Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM]]`, `stats --view NAME`, `stats views` | The lead sentence's figures, the fact list and the ranked lists; with `--by`, a pivot ([24](24-statistics.md)); with `--view`, a view saved on the Custom tab; `stats views` lists them. |
+| Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM] [--where DIM=V[,V]]…]`, `stats --view NAME`, `stats views` | The lead sentence's figures, the fact list and the ranked lists; with `--by`, a pivot ([24](24-statistics.md)), with its column totals and total, narrowed by `--where` as the Custom tab's filters narrow it (a value as stored, as shown, or by code: `--where airline=BA,LH --where month=March`); with `--view`, a view saved on the Custom tab, its filters applied; `stats views` lists them with their filters. |
 | Flights | `flights [--year Y] [--airline X] [--airport X] [--type X] [--search TEXT]` | The flight list, with the same filters. |
 | A flight | `flight REF` | Every field, the aircraft, its findings, the track's source and its route extension ([23](23-tracks-and-maps.md), "Route extension"; the flight's track is read from the storage for it). A private field shows only whether it is recorded. |
 | Spotting | `sightings [filters]`, `sessions [--year Y]` | Sightings; days out with their counts. |
@@ -52,7 +52,7 @@ Built, all of them. Each writes one inbox file and checks it first, as `add` doe
 | Undo an import | `undo BATCH [--force]`: a record changed after the import is left as it is unless `--force`, as the web app asks before undoing it |
 | Aircraft families | `families [set TYPE FAMILY \| remove TYPE]` |
 | Settings kept in the log | `settings [codes iata\|icao\|both] [distance km\|mi\|nm] [models standard\|compact]` |
-| Save or remove a view on the Statistics page's Custom tab | `stats views save NAME --by DIM [--cols DIM] [--of DATA] [--measure M]`, `stats views remove NAME` |
+| Save or remove a view on the Statistics page's Custom tab | `stats views save NAME --by DIM [--cols DIM] [--of DATA] [--measure M] [--where DIM=V[,V]]…`, `stats views remove NAME` |
 | Download a backup, a table as CSV | `backup [--out FILE.zip]`, `export flights\|sightings\|aircraft [--out FILE.csv] [--private]`, `export missing-tracks [--out FILE.csv]` (the Flights page's list of flights without a track, [23](23-tracks-and-maps.md), "Helping each other") (these write nothing to the log, so they need no review). The backup holds everything, as the web app's does: every table, private fields and recorded tracks, read from the storage; by default it goes to `data/private/touchdown-backup-DATE.zip`. `export` prints the CSV, or writes it with `--out`; it leaves the private fields out unless `--private`, which needs `--out`. Files are written readable only by the user and replace nothing without `--force`. The code is `packages/cli/src/backup.ts`. |
 | Restore a backup over the log | Not in the CLI: it replaces everything, and the web app asks twice. (Decided, Q-CLI-RESTORE) |
 | Delete everything, remove this browser's copy | Not in the CLI, for the same reason as restoring. |
