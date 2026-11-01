@@ -1,4 +1,4 @@
-// One flight in a list (Flights, airport pages), with the column heads that go above a list of them.
+// One flight in a list (Flights, airport pages, the statistics' list of flights).
 
 import type { ReactNode } from "react";
 import { Link } from "../lib/link.tsx";
@@ -10,20 +10,6 @@ import { ArrowGlyph, Icon } from "../lib/icons.tsx";
 import { esc, hideTip, showTip } from "./overlay.tsx";
 import { Duration } from "./Duration.tsx";
 import { TypeCell } from "./TypeCell.tsx";
-
-export function FlightCols() {
-  return (
-    <div className="cols" aria-hidden="true">
-      <span>Date</span>
-      <span>Route</span>
-      <span>Flight</span>
-      <span className="col-aircraft">Aircraft</span>
-      <span className="num">Time</span>
-      <span className="num col-dist">Distance</span>
-      <span className="track-col">Track</span>
-    </div>
-  );
-}
 
 /** What the track icon means, for its tooltip and for screen readers. */
 function trackText(track: TrackInfo | null, shared: boolean): { title: string; detail: string } {

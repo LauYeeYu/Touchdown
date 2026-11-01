@@ -15,7 +15,7 @@ import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
 import { Fig, usePhrases } from "../components/Phrase.tsx";
-import { FlightCols, FlightRow } from "../components/FlightRow.tsx";
+import { FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
@@ -243,7 +243,6 @@ export function Flights() {
           {plural(shown.length, "flight")} · {distance(shownKm, unit)}
         </span>
       </div>
-      <FlightCols />
       <div ref={paging.top} className="list-top" />
       {!shown.length ? (
         <div className="empty">

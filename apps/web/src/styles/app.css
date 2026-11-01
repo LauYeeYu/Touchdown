@@ -1672,10 +1672,6 @@ main {
   text-align: right;
 }
 
-.cols .track-col {
-  text-align: center;
-}
-
 .month {
   margin-top: 28px;
 }
@@ -2187,9 +2183,7 @@ main {
   }
 
   .row__aircraft,
-  .row__num--dist,
-  .cols .col-aircraft,
-  .cols .col-dist {
+  .row__num--dist {
     display: none;
   }
 }

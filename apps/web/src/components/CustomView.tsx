@@ -14,7 +14,7 @@ import { trackInfo } from "../lib/mapdata.ts";
 import { useGrow } from "../lib/motion.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { useViewState } from "../lib/viewState.ts";
-import { FlightCols, FlightRow } from "./FlightRow.tsx";
+import { FlightRow } from "./FlightRow.tsx";
 import { Pager, usePaging } from "./Pager.tsx";
 import { TypeCell } from "./TypeCell.tsx";
 import { toast } from "./overlay.tsx";
@@ -452,7 +452,6 @@ function Records({ anchor, picked, dataset, records, title, onClose }: { anchor:
       </div>
       {dataset === "flights" ? (
         <>
-          <FlightCols />
           <div ref={flightPages.top} className="list-top" />
           <ul className="rows">
             {flightPages.slice.map((v) => (

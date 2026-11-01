@@ -17,7 +17,7 @@ import { WorldMap } from "../components/maps.tsx";
 import { GlobePanel } from "../components/GlobePanel.tsx";
 import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { Fig } from "../components/Phrase.tsx";
-import { FlightCols, FlightRow } from "../components/FlightRow.tsx";
+import { FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
@@ -229,7 +229,6 @@ export function AirportPage() {
               {plural(here.length, "flight")} · {distance(here.reduce((s, v) => s + (v.km ?? 0), 0), unit)}
             </span>
           </div>
-          <FlightCols />
           <div ref={flightPages.top} className="list-top" />
           <ul className="rows">
             {flightPages.slice.map((v) => (
