@@ -4,7 +4,7 @@
 import { checkAll, normaliseFlight, normaliseSighting, resolveAirframes, Store, type Finding, type FlightValues, type SightingValues, type TableName } from "@touchdown/core";
 import type { AppData } from "./app.ts";
 
-const COPY: TableName[] = ["flights", "sightings", "airframes", "registration_periods", "field_provenance"];
+const COPY: TableName[] = ["flights", "sightings", "airframes", "registration_periods", "field_provenance", "tracks"];
 const DRAFT_ID = "01DRAFT0000000000000000000";
 
 export function draftFindings(app: AppData, table: "flights" | "sightings", values: Partial<FlightValues> | Partial<SightingValues>, id?: string): Finding[] {
