@@ -4,7 +4,7 @@
 // Private values (ticket numbers, booking references) are shown only when the caller asks: the terminal never does.
 
 import { flightDay } from "../derive.ts";
-import { refOverridesOf, tagsOf } from "../edit.ts";
+import { refOverridesOf, tagsOf, viewFilters } from "../edit.ts";
 import { phasesOf } from "../phases.ts";
 import { withPrivate } from "../private.ts";
 import { applyChange, changeStatus, copyStore, currentFindings, type ChangeStatus, type InboxChange } from "../import/changes.ts";
@@ -12,10 +12,11 @@ import { airframeFactsEffect } from "../identity/facts.ts";
 import { registrationMatchForm } from "../normalise/registration.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { RULES, type Finding } from "../rules/types.ts";
-import { DIMENSIONS } from "../stats/index.ts";
+import { DIMENSIONS, type PivotFilter } from "../stats/index.ts";
 import type { Row, Settings, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { airportWithCode, type CodeStyle } from "./codes.ts";
+import { filtersText } from "./pivot.ts";
 import { airlineLabel, CABIN_LABEL, dateTimeLabel, FIELD_LABEL, dayMonthYear, distance, durShort, modelLabel, nf, PHASE_LABEL, REASON_LABEL, TAG_LABEL, TRACK_SOURCE, typeName } from "./format.ts";
 
 export interface PlannedLine {
@@ -244,7 +245,7 @@ const PROVIDER_LABEL: Record<string, string> = { opensky: "OpenSky", adsbdb: "ad
 const MEASURE_LABEL: Record<string, string> = { records: "Number of records", aircraft: "Aircraft (each once)", distance: "Distance", time: "Time in the air" };
 
 /** A saved Statistics view's settings as the Custom tab names them. */
-function viewLines(v: { dataset: string | null; rowDimension: string | null; columnDimension: string | null; measure: string | null }, side: "before" | "after"): PlannedLine[] {
+function viewLines(v: { dataset: string | null; rowDimension: string | null; columnDimension: string | null; measure: string | null }, filters: PivotFilter[], ref: RefIndex, side: "before" | "after"): PlannedLine[] {
   const dim = (id: string | null) => (id ? (DIMENSIONS.find((d) => d.id === id)?.label ?? id) : "Nothing");
   const count = v.measure === "records" ? (v.dataset === "flights" ? "Number of flights" : "Number of sightings") : (MEASURE_LABEL[v.measure ?? ""] ?? v.measure ?? "");
   const rows: [string, string, string][] = [
@@ -252,6 +253,7 @@ function viewLines(v: { dataset: string | null; rowDimension: string | null; col
     ["measure", "Count", count],
     ["rowDimension", "Group by", dim(v.rowDimension)],
     ["columnDimension", "Split by", dim(v.columnDimension)],
+    ...(filters.length ? [["filters", "Only", filtersText(filters, ref)] as [string, string, string]] : []),
   ];
   return rows.map(([field, label, value]) => ({ field, label, before: side === "before" ? value : "", after: side === "after" ? value : "", private: false }));
 }
@@ -353,12 +355,12 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
         }
         case "view":
           p.title = `“${c.name}”`;
-          p.lines = viewLines(c, "after");
+          p.lines = viewLines(c, c.filters ?? [], ref, "after");
           break;
         case "removeView": {
           const v = shown.peek("saved_views", c.id);
           p.title = v?.name ? `“${v.name}”` : "A saved view";
-          if (v && !(v as { deleted?: boolean }).deleted) p.lines = viewLines(v, "before");
+          if (v && !(v as { deleted?: boolean }).deleted) p.lines = viewLines(v, viewFilters(shown, c.id), ref, "before");
           break;
         }
         case "settings": {

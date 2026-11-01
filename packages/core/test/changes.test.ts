@@ -14,6 +14,7 @@ import {
   tagsOf,
   undoImport,
   type InboxChange,
+  viewFilters,
 } from "../src/index.ts";
 import { planChanges } from "../src/view/index.ts";
 import { newStore, refTables } from "./fixtures.ts";
@@ -254,6 +255,10 @@ describe("saved Statistics views in a change file", () => {
     expect(readChanges([{ op: "view", name: "Mine", dataset: "sightings", rowDimension: "airline", columnDimension: null, measure: "distance" }])).toMatchObject({ error: expect.stringMatching(/flights only/) });
     expect(readChanges([{ op: "view", name: "Mine", dataset: "flights", rowDimension: "airline", columnDimension: "airline", measure: "records" }])).toMatchObject({ error: expect.stringMatching(/two different/) });
     expect(readChanges([{ op: "view", name: "", dataset: "flights", rowDimension: "airline", columnDimension: null, measure: "records" }])).toMatchObject({ error: expect.stringMatching(/malformed name/) });
+    const base = { op: "view", name: "Mine", dataset: "flights", rowDimension: "airline", columnDimension: null, measure: "records" };
+    expect(readChanges([{ ...base, filters: [{ dimension: "phase", values: ["landing"] }] }])).toMatchObject({ error: expect.stringMatching(/phase is for sightings/) });
+    expect(readChanges([{ ...base, filters: [{ dimension: "family", values: [] }] }])).toMatchObject({ error: expect.stringMatching(/malformed values for family/) });
+    expect(readChanges([{ ...base, filters: [{ dimension: "family", values: ["A320"] }, { dimension: "family", values: ["B737"] }] }])).toMatchObject({ error: expect.stringMatching(/family is filtered twice/) });
 
     const save: InboxChange = { op: "view", name: "Airlines by family", dataset: "flights", rowDimension: "airline", columnDimension: "family", measure: "records" };
     expect(readChanges([save])).toEqual({ changes: [save] });
@@ -266,6 +271,7 @@ describe("saved Statistics views in a change file", () => {
     expect(planChanges(store, ref, [save]).changes[0]!.status).toBe("done");
 
     store.insert("saved_view_filters", { viewId: view.id, dimension: "airline", operator: "eq", value: "op_baw" });
+    expect(planChanges(store, ref, [{ op: "removeView", id: view.id }]).changes[0]!.lines.map((l) => [l.label, l.before]).at(-1)).toEqual(["Only", "Airline: British Airways"]);
     const removed = applyChanges(store, ref, [{ op: "removeView", id: view.id }], () => true, { fileName: "stats-2.json", now: NOW + 1000 });
     expect(store.all("saved_views")).toEqual([]);
     expect(store.all("saved_view_filters")).toEqual([]);
@@ -274,6 +280,19 @@ describe("saved Statistics views in a change file", () => {
     expect(store.all("saved_view_filters")).toHaveLength(1);
     undoImport(store, ref, saved.batchId, true);
     expect(store.all("saved_views")).toEqual([]);
+  });
+
+  it("keep their filters, one row a value, and say so at the review", () => {
+    const { ref, store } = aLog();
+    const save: InboxChange = { op: "view", name: "Delta and United", dataset: "flights", rowDimension: "family", columnDimension: null, measure: "records", filters: [{ dimension: "airline", values: ["op_dal", "op_ual"] }, { dimension: "month", values: ["03"] }] };
+    expect(readChanges([save])).toEqual({ changes: [save] });
+    expect(planChanges(store, ref, [save]).changes[0]!.lines.map((l) => [l.label, l.after]).at(-1)).toEqual(["Only", "Airline: Delta Air Lines, United Airlines · Month: March"]);
+    applyChanges(store, ref, [save], () => true, { fileName: "stats-3.json", now: NOW });
+    const view = store.all("saved_views")[0]!;
+    expect(store.all("saved_view_filters").map((f) => [f.dimension, f.operator, f.value])).toEqual([["airline", "in", "op_dal"], ["airline", "in", "op_ual"], ["month", "in", "03"]]);
+    expect(viewFilters(store, view.id)).toEqual(save.filters);
+    expect(planChanges(store, ref, [save]).changes[0]!.status).toBe("done");
+    expect(planChanges(store, ref, [{ ...save, filters: [{ dimension: "airline", values: ["op_dal"] }] }]).changes[0]!.status).toBe("pending");
   });
 });
 

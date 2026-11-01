@@ -9,6 +9,7 @@ import type { Store } from "./store.ts";
 import type { Finding, SuggestedFix } from "./rules/types.ts";
 import { normaliseFlight, normaliseSighting } from "./normalise/record.ts";
 import { namedOperator } from "./import/pipeline.ts";
+import type { PivotFilter } from "./stats/index.ts";
 import { identityKeyFor, normaliseMsn } from "./identity/facts.ts";
 import { resolveAirframes, type ResolveResult } from "./identity/resolve.ts";
 import { toUtcIso } from "./time/index.ts";
@@ -317,10 +318,28 @@ export interface SavedView {
   rowDimension: string;
   columnDimension: string | null;
   measure: "records" | "aircraft" | "distance" | "time";
+  /** Only the records with one of these values, for each dimension named. */
+  filters?: PivotFilter[];
 }
 
+/** Save a view: its filters are rows of saved_view_filters, one for each value (operator "in"). */
 export function saveView(store: Store, v: SavedView): Row<"saved_views"> {
-  return store.insert("saved_views", v);
+  const { filters = [], ...view } = v;
+  return store.batch(() => {
+    const row = store.insert("saved_views", view);
+    for (const f of filters) for (const value of f.values) store.insert("saved_view_filters", { viewId: row.id, dimension: f.dimension, operator: "in", value });
+    return row;
+  });
+}
+
+/** A saved view's filters, one for each dimension, its values in the order they were saved. */
+export function viewFilters(store: Store, viewId: string): PivotFilter[] {
+  const out = new Map<string, string[]>();
+  for (const f of store.all("saved_view_filters")) {
+    if (f.viewId !== viewId || !f.dimension || f.value === null || f.value === undefined || (f.operator !== "in" && f.operator !== "eq")) continue;
+    out.set(f.dimension, [...(out.get(f.dimension) ?? []), f.value]);
+  }
+  return [...out].map(([dimension, values]) => ({ dimension, values }));
 }
 
 /** Remove a saved view, with its filters. */

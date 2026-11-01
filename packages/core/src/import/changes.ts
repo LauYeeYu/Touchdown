@@ -5,7 +5,7 @@
 // same code as the web app's own changes (edit.ts), as one import batch that can be undone like any other.
 
 import { flightDay } from "../derive.ts";
-import { acceptFinding, applyFix, deleteRecord, mergeAirframes, removeView, reopenFinding, saveFlight, saveSighting, saveView, setFamily, tagsOf, updateAirframe, updateSettings, type EditOptions, type SavedView } from "../edit.ts";
+import { acceptFinding, applyFix, deleteRecord, mergeAirframes, removeView, reopenFinding, saveFlight, saveSighting, saveView, setFamily, tagsOf, updateAirframe, updateSettings, viewFilters, type EditOptions, type SavedView } from "../edit.ts";
 import { DIMENSIONS } from "../stats/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
 import { airframeFactsEffect, applyAirframeFacts, type AirframeFacts } from "../identity/facts.ts";
@@ -107,8 +107,15 @@ function factsProblem(f: Record<string, unknown> | null): string | null {
 
 const MEASURES = ["records", "aircraft", "distance", "time"] as const;
 
-/** What is wrong with a view, or null: dimensions of its dataset, two different ones, distance and time for flights. */
-export function viewProblem(v: { dataset: unknown; rowDimension: unknown; columnDimension: unknown; measure: unknown }): string | null {
+/** At most this many filters in a view, and values in one. */
+const MAX_FILTERS = 10;
+const MAX_FILTER_VALUES = 200;
+
+/**
+ * What is wrong with a view, or null: dimensions of its dataset, two different ones, distance and time for flights,
+ * and filters on dimensions of its dataset, one each, with values.
+ */
+export function viewProblem(v: { dataset: unknown; rowDimension: unknown; columnDimension: unknown; measure: unknown; filters?: unknown }): string | null {
   if (v.dataset !== "flights" && v.dataset !== "sightings") return "a view counts flights or sightings";
   const dim = (id: unknown) => DIMENSIONS.find((d) => d.id === id);
   const row = dim(v.rowDimension);
@@ -122,6 +129,19 @@ export function viewProblem(v: { dataset: unknown; rowDimension: unknown; column
   }
   if (!(MEASURES as readonly unknown[]).includes(v.measure)) return `the count is one of ${MEASURES.join(", ")}`;
   if (v.dataset === "sightings" && (v.measure === "distance" || v.measure === "time")) return "distance and time are measured for flights only";
+  if (v.filters === undefined) return null;
+  if (!Array.isArray(v.filters) || v.filters.length > MAX_FILTERS) return "malformed filters";
+  const seen = new Set<string>();
+  for (const f of v.filters as Record<string, unknown>[]) {
+    if (!f || typeof f !== "object" || Object.keys(f).some((k) => k !== "dimension" && k !== "values")) return "malformed filters";
+    const d = dim(f.dimension);
+    if (!d) return `${String(f.dimension)} is not a dimension`;
+    if (!d.datasets.includes(v.dataset)) return `${d.id} is for ${d.datasets.join(" and ")}, not ${v.dataset}`;
+    if (seen.has(d.id)) return `${d.id} is filtered twice`;
+    seen.add(d.id);
+    const values = f.values;
+    if (!Array.isArray(values) || !values.length || values.length > MAX_FILTER_VALUES || values.some((x) => typeof x !== "string" || !x || x.length > 200)) return `malformed values for ${d.id}`;
+  }
   return null;
 }
 
@@ -211,9 +231,9 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
         break;
       }
       case "view": {
-        if (keys(["name", "dataset", "rowDimension", "columnDimension", "measure"]).length) return bad("unexpected keys");
+        if (keys(["name", "dataset", "rowDimension", "columnDimension", "measure", "filters"]).length) return bad("unexpected keys");
         if (typeof c.name !== "string" || !c.name.trim() || c.name.length > 80) return bad("malformed name");
-        const problem = viewProblem({ dataset: c.dataset, rowDimension: c.rowDimension, columnDimension: c.columnDimension ?? null, measure: c.measure });
+        const problem = viewProblem({ dataset: c.dataset, rowDimension: c.rowDimension, columnDimension: c.columnDimension ?? null, measure: c.measure, filters: c.filters });
         if (problem) return bad(problem);
         break;
       }
@@ -609,10 +629,12 @@ export function changeStatus(store: Store, ref: RefIndex, c: InboxChange, findin
       const s = store.get("settings", "settings") as Record<string, unknown> | null;
       return Object.entries(c.set).every(([k, v]) => (s?.[k] ?? null) === v) ? done("The settings are so already.") : ok;
     }
-    case "view":
-      return store.all("saved_views").some((v) => v.name === c.name && v.dataset === c.dataset && v.rowDimension === c.rowDimension && (v.columnDimension ?? null) === c.columnDimension && v.measure === c.measure)
+    case "view": {
+      const sameFilters = (id: string) => JSON.stringify(viewFilters(store, id)) === JSON.stringify((c.filters ?? []).filter((f) => f.values.length));
+      return store.all("saved_views").some((v) => v.name === c.name && v.dataset === c.dataset && v.rowDimension === c.rowDimension && (v.columnDimension ?? null) === c.columnDimension && v.measure === c.measure && sameFilters(v.id))
         ? done("This view is saved already.")
         : ok;
+    }
     case "removeView":
       return store.get("saved_views", c.id) ? ok : done("It is not saved.");
     case "facts": {
@@ -688,7 +710,7 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       updateSettings(store, c.set);
       return null;
     case "view":
-      saveView(store, { name: c.name, dataset: c.dataset, rowDimension: c.rowDimension, columnDimension: c.columnDimension, measure: c.measure });
+      saveView(store, { name: c.name, dataset: c.dataset, rowDimension: c.rowDimension, columnDimension: c.columnDimension, measure: c.measure, ...(c.filters?.length && { filters: c.filters }) });
       return null;
     case "removeView":
       removeView(store, c.id);

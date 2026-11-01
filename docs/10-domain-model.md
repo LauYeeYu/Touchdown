@@ -290,7 +290,7 @@ The values of `storageBackend` and `storageAdapter` come from one registry in co
 
 **family_overrides**: `designator` (ref aircraft_types), `familyId` (ref families).
 **saved_views**: `name` (text), `dataset` (enum `flights`, `sightings`, `both`), `rowDimension`, `columnDimension`, `measure` (text, from the lists in [24](24-statistics.md)).
-**saved_view_filters**: `viewId` (ref saved_views), `dimension` (text), `operator` (enum `eq`, `in`, `between`), `value` (text).
+**saved_view_filters**: `viewId` (ref saved_views), `dimension` (text), `operator` (enum `eq`, `in`, `between`), `value` (text). One row a value, written with `in`: the rows of one dimension keep a record with any of their values, and the dimensions all hold ([24](24-statistics.md), "Custom view"). `eq` is read the same way; `between` is not used yet.
 
 **airport_overrides**, **operator_overrides**, **aircraft_type_overrides**: the same columns as the reference tables, plus system columns.
 
