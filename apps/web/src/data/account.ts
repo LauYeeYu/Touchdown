@@ -81,6 +81,15 @@ export function lastAccount(): string | null {
   }
 }
 
+/** Signed out: offline, the app no longer opens this account's log. */
+export function forgetAccount(): void {
+  try {
+    localStorage.removeItem(LAST_ACCOUNT);
+  } catch {
+    // storage unavailable: nothing was kept
+  }
+}
+
 let siteId: Promise<string> | null = null;
 const site = () => (siteId ??= call<{ siteId: string }>("GET", "/auth/site").then((s) => s.siteId));
 

@@ -70,6 +70,9 @@ export function withHeaders(res: Response, path: string): Response {
     // The page is checked with the server on every visit, so a new deployment is picked up at once. A shared page is
     // also left as it is, so Cloudflare adds no page-view counting to it.
     out.headers.set("Cache-Control", shared ? "no-cache, no-transform" : "no-cache");
+  } else if (path === "/sw.js") {
+    // The offline worker (docs/30, "Offline"): checked on every visit, so a new deployment's files are kept at once.
+    out.headers.set("Cache-Control", "no-cache");
   } else if ((path.startsWith("/assets/") || path.startsWith("/share-files/assets/")) && res.ok) {
     // Built files carry a content hash in their names.
     out.headers.set("Cache-Control", "public, max-age=31536000, immutable");

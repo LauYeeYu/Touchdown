@@ -8,7 +8,8 @@ import { db, openAccountDb } from "./data/db.ts";
 import { tabsFor } from "./data/tabs.ts";
 import { standardConnection } from "./data/connection.ts";
 import { standard } from "./data/standard.ts";
-import { Boot, BootError, waitingProgress } from "./components/Boot.tsx";
+import { forgetOffline, keepOffline } from "./data/offline.ts";
+import { Boot, BootError, OfflineWithoutAccount, waitingProgress } from "./components/Boot.tsx";
 import { nf } from "./lib/format.ts";
 import { AppContext } from "./data/context.tsx";
 import { Shell } from "./components/Shell.tsx";
@@ -136,10 +137,18 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     const me = await whoAmI();
     checked();
     if (me === "signed-out" && !import.meta.env.DEV) {
+      // The session ended (signed out elsewhere, or expired): the offline copy goes too, so the log does not open
+      // without signing in again.
+      await forgetOffline();
       location.assign(`/signin?next=${encodeURIComponent(location.pathname + location.search)}`);
       return new Promise<AppData>(() => {});
     }
-    openAccountDb(typeof me === "object" ? me.id : me === "offline" ? lastAccount() : null);
+    // Offline, the app opens the log of the account last signed in here (docs/30, "Offline"), and none without one.
+    const offlineAccount = me === "offline" ? lastAccount() : null;
+    if (me === "offline" && !offlineAccount && !import.meta.env.DEV) throw new OfflineWithoutAccount();
+    openAccountDb(typeof me === "object" ? me.id : offlineAccount);
+    // Signed in online: keep the app's files for the next time it opens offline.
+    if (typeof me === "object") keepOffline();
     // Tabs share the browser's copy (docs/12, "Tabs"): one writes it and syncs, the others follow it.
     const tabs = tabsFor(db.name);
     const writer = (await tabs.open()) === "writer";
@@ -201,7 +210,7 @@ const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches 
 
 function App() {
   const [app, setApp] = useState<AppData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ title?: string; message: string } | null>(null);
   const [progress, setProgress] = useState<Progress>({ at: START, text: "Loading the app…" });
   const [finished, setFinished] = useState(false);
   // Asked once per browser, before the app opens: where the log lives.
@@ -212,14 +221,14 @@ function App() {
         setFirstRun(!a.connection);
         setApp(a);
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => setError(e instanceof OfflineWithoutAccount ? { title: "Touchdown cannot open offline yet.", message: e.message } : { message: e.message }));
   }, []);
   useEffect(() => {
     if (!app) return;
     const t = setTimeout(() => setFinished(true), FINISH_MS);
     return () => clearTimeout(t);
   }, [app]);
-  if (error) return <BootError message={error} />;
+  if (error) return <BootError message={error.message} title={error.title} />;
   // The first page renders under the loading screen while the bar fills and the screen fades.
   return (
     <>

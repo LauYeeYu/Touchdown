@@ -39,11 +39,18 @@ export function Boot({ progress, text, done = false, label = "Opening Touchdown"
   );
 }
 
-export function BootError({ message }: { message: string }) {
+/** Opening the app offline in a browser with no account to open: the copy offline is only for one signed in here. */
+export class OfflineWithoutAccount extends Error {
+  constructor() {
+    super("Connect to the internet and sign in. After that, Touchdown opens in this browser without a connection too.");
+  }
+}
+
+export function BootError({ message, title = "Touchdown could not open its local data." }: { message: string; title?: string }) {
   return (
     <div className="boot" role="alert">
       <p className="boot__mark">Touchdown</p>
-      <h1 className="boot__error">Touchdown could not open its local data.</h1>
+      <h1 className="boot__error">{title}</h1>
       <p className="boot__text">{message}</p>
     </div>
   );

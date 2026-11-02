@@ -4,6 +4,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { AppData } from "../data/app.ts";
 import { account, AuthError, type Link, type Me, type OpenInvite, type Person } from "../data/account.ts";
+import { forgetOffline } from "../data/offline.ts";
 import { MIN_PASSWORD, passwordProblem } from "../lib/passwordKey.ts";
 import { momentLabel, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -52,8 +53,16 @@ function InvitationMessage({ link }: { link: Link }) {
   );
 }
 
-/** Sign out (docs/31, "Signing out"): the log leaves this browser once everything has reached the storage. */
+/**
+ * Sign out (docs/31, "Signing out"): the log leaves this browser once everything has reached the storage, and the app's
+ * offline copy goes, so the log no longer opens here without signing in.
+ */
 async function signOut(app: AppData) {
+  // The server ends the session, so signing out needs the network.
+  if (navigator.onLine === false) {
+    toast("No connection. Sign out once you are back online.");
+    return;
+  }
   const c = app.connection;
   let keep = true;
   if (c && c.mode !== "local") {
@@ -71,6 +80,7 @@ async function signOut(app: AppData) {
     toast(`Could not sign out: ${message(e)}`);
     return;
   }
+  await forgetOffline();
   if (!keep) await app.removeThisBrowsersCopy();
   location.assign("/signin");
 }
