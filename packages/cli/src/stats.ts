@@ -3,7 +3,7 @@
 // so they are the web app's.
 
 import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightStats, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
-import { airlineLabel, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, pivotValueLabel, sortedFlights, typeName, yearsIn } from "@touchdown/core/view";
+import { AGE_TODAY_NOTE, ageLeftOutText, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
 import { whereFilters } from "./where.ts";
 import { savedViewNamed, viewsCommand } from "./change.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, periodLabel, periodOf, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
@@ -138,6 +138,24 @@ export async function statsCommand(args: string[]) {
   if (ss.byType.items[0]) facts.push(["Most spotted type", typeName(ss.byType.items[0].key, ref), plural(ss.byType.items[0].count, "aircraft", "aircraft")]);
 
   const m = (x: Measured) => ({ value: x.value, leftOut: x.leftOut });
+  // Aircraft age (docs/24, "Aircraft age"), as on Statistics: oldest first, the first --top rows.
+  const ages = aircraftAges(views.map((v) => v.f), ctx.airframes, todayIn());
+  const flightOf = new Map(views.map((v) => [v.f.id, v.f]));
+  const firstRows = <T,>(rows: T[]) => (top ? rows.slice(0, top) : rows);
+  const whenFlown = firstRows(byAge(ages.whenFlown, "oldest"));
+  const ageNow = firstRows(byAge(ages.now, "oldest"));
+  const agesPart = {
+    averageDays: averageAge(ages.whenFlown),
+    whenFlown: whenFlown.map((r) => {
+      const f = flightOf.get(r.flightId);
+      return { flightId: r.flightId, flightNumber: f?.flightNumber ?? null, day: r.day, airframeId: r.airframeId, registration: f?.registration ?? null, typeCode: f?.typeCode ?? null, days: r.days, age: ageText(r.days) };
+    }),
+    whenFlownMore: ages.whenFlown.length - whenFlown.length,
+    // For an aircraft retired or written off, the time since its first flight is not its age in service.
+    now: ageNow.map((r) => ({ airframeId: r.airframeId, registration: r.registration, typeCode: r.typeCode, firstFlightDate: r.firstFlightDate, status: r.status, days: r.days, sinceFirstFlight: ageText(r.days) })),
+    nowMore: ages.now.length - ageNow.length,
+    leftOut: ages.leftOut,
+  };
   const flightsPart = {
     flights: fs.flights,
     distanceKm: { value: Math.round(fs.distanceKm.value), leftOut: fs.distanceKm.leftOut },
@@ -160,6 +178,7 @@ export async function statsCommand(args: string[]) {
       cabins: rankedJson(c, fs.cabinClasses, "cabin"),
     },
     perYear: fs.perYear.map((y) => ({ ...y, distanceKm: Math.round(y.distanceKm) })),
+    aircraftAge: agesPart,
   };
   const spottingPart = {
     aircraft: { ...m(ss.aircraft), withoutSerialNumber: ss.aircraft.provisional },
@@ -229,6 +248,30 @@ export async function statsCommand(args: string[]) {
       ...rankedLines(c, "Seat position", fs.seatPositions, "seatPosition", ["flight", "flights"], "seat position"),
       ...rankedLines(c, "Cabin", fs.cabinClasses, "cabin", ["flight", "flights"], "cabin"),
     );
+    if (ages.whenFlown.length) {
+      const days = ages.whenFlown.map((r) => r.days);
+      const lines = [
+        ages.whenFlown.length === 1
+          ? `Aircraft age: ${ageText(agesPart.averageDays!)} when you flew.`
+          : `Average aircraft age: ${ageText(agesPart.averageDays!)} (range: ${ageText(Math.min(...days))} to ${ageText(Math.max(...days))}).`,
+        "",
+        ...table(
+          [{ head: "When you flew", flex: true }, { head: "Aircraft" }, { head: "Age", align: "right" }],
+          agesPart.whenFlown.map((r) => [`${r.flightNumber ?? "Flight"} · ${r.day}`, [r.registration, r.typeCode && typeName(r.typeCode, ref)].filter(Boolean).join(" · "), r.age]),
+        ),
+        ...(agesPart.whenFlownMore ? [dim(`and ${agesPart.whenFlownMore} more`)] : []),
+        "",
+        ...table(
+          [{ head: "Age today", flex: true }, { head: "First flight" }, { head: "Since first flight", align: "right" }],
+          agesPart.now.map((r) => [[r.registration ?? "Aircraft", r.status && STATUS_WORD[r.status], r.typeCode && typeName(r.typeCode, ref)].filter(Boolean).join(" · "), r.firstFlightDate, r.sinceFirstFlight]),
+        ),
+        ...(agesPart.nowMore ? [dim(`and ${agesPart.nowMore} more`)] : []),
+        ...(ages.now.some((r) => outOfService(r.status)) ? [dim(`${AGE_TODAY_NOTE}.`)] : []),
+      ];
+      const left = ageLeftOutText(ages.leftOut);
+      if (left) lines.push(dim(left));
+      out.push(...section("Aircraft age", lines));
+    }
     if (fs.perYear.length > 1) out.push(...section("By year", table([{ head: "Year" }, { head: "Flights", align: "right" }, { head: "Distance", align: "right" }, { head: "Time in the air", align: "right" }], fs.perYear.map((y) => [y.year, String(y.flights), dist(y.distanceKm), durShort(y.minutes)]))));
   }
   if (!part || part === "spotting") {

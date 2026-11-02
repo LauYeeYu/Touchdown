@@ -31,6 +31,8 @@ beforeAll(() => {
   store.insert("sync_conflicts", { ...conflict, field: "bookingRef", keptValue: JSON.stringify(BOOKING), otherValue: JSON.stringify(`${BOOKING.slice(0, 5)}9`) });
   saveFlight(store, ref, { scheduledDate: "2025-04-02", flightNumber: "DL9002", airlineRaw: "DL", fromRaw: "KJFK", toRaw: "KBOS", registrationRaw: "N9001Z", typeCodeRaw: "A21N" });
   saveFlight(store, ref, { scheduledDate: "2026-01-10", flightNumber: "DL9003", airlineRaw: "DL", fromRaw: "KBOS", toRaw: "KJFK", registrationRaw: "N9001Z", typeCodeRaw: "A21N", notes: `ticket ${TICKET.slice(0, 4)}` });
+  // A made-up first flight, and a status that says the aircraft no longer flies.
+  store.update("airframes", store.all("flights").find((f) => f.registration === "N9001Z")!.airframeId!, { firstFlightDate: "2018-06-01", status: "retired" });
   saveSighting(store, ref, { seenOn: "2025-03-14", airportRaw: "EGLL", registrationRaw: "G-ZZZB", typeCodeRaw: "A320", operatorRaw: "BAW", phase: "landing" });
   saveSighting(store, ref, { seenOn: "2026-01-10", airportRaw: "KBOS", registrationRaw: "N9001Z", typeCodeRaw: "A21N", operatorRaw: "DAL", phase: "taxiing" });
   saveSighting(store, ref, { seenOn: "2026-01-10", airportRaw: "KBOS", registrationRaw: "N9002Z", typeCodeRaw: "B739", operatorRaw: "QQQ" });
@@ -119,6 +121,20 @@ describe("reading the log from the command line", () => {
     expect(s.summary.sentence).toMatch(/^Since you started logging in 2025, you have flown 3 flights, .* on 2 aircraft, and spotted 3 aircraft at 2 airports\. You flew on 1 of the aircraft you photographed\.$/);
     expect(s.flights.ranked.airlines.items[0]).toMatchObject({ label: "Delta Air Lines", count: 2 });
     expect(s.both.flownAndPhotographed).toBe(1);
+    // The aircraft's age when flown and since its first flight, oldest first; G-ZZZA has no first flight date.
+    expect(s.flights.aircraftAge).toMatchObject({
+      whenFlown: [
+        { flightNumber: "DL9003", day: "2026-01-10", registration: "N9001Z", age: "7.6 years" },
+        { flightNumber: "DL9002", day: "2025-04-02", registration: "N9001Z", age: "6.8 years" },
+      ],
+      now: [{ registration: "N9001Z", firstFlightDate: "2018-06-01", status: "retired" }],
+      leftOut: { noDate: 0, noAircraft: 0, noFirstFlight: 1, beforeFirstFlight: 0 },
+    });
+    const text = (await run(statsCommand, "flights", "--year", "all")).text;
+    expect(text).toMatch(/Average aircraft age: 7\.2 years \(range: 6\.8 years to 7\.6 years\)\./);
+    expect(text).toMatch(/N9001Z · Retired · Airbus A321neo +2018-06-01 +\d+\.\d years/);
+    expect(text).toMatch(/Because retirement dates aren't tracked, "Age today" reflects total elapsed time since first flight, not active service\./);
+    expect(text).toMatch(/Excluded: 1 missing first flight date$/m);
     const p = (await run(statsCommand, "--by", "airline", "--cols", "year", "--year", "all", "--json")).json();
     expect(p.rows.map((r: { label: string; total: number }) => [r.label, r.total])).toEqual([
       ["Delta Air Lines", 2],
