@@ -454,6 +454,19 @@ export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefInde
 /** Nothing received for over 30 minutes while slower than this from one position to the next: the aircraft stopped. */
 const STOP_KT = 150;
 const LEG_GAP_S = 30 * 60;
+/** No airliner stays in the air this long, so a silence that would make a leg last longer was a stop, at any speed. */
+const MAX_LEG_S = 20 * 3600;
+
+/**
+ * Whether the aircraft stopped between two positions with nothing received between them: over 30 minutes with too
+ * little ground covered to have flown on, or long enough that the leg begun at `legStart` (seconds) would outlast any
+ * flight. The second is a landing and a later flight whose average speed over the silence looks like flying.
+ */
+function stoppedBetween(prev: LatLon & { t: number }, p: LatLon & { t: number }, legStart: number): boolean {
+  const gap = p.t - prev.t;
+  if (gap <= LEG_GAP_S) return false;
+  return haversineKm(prev, p) / 1.852 / (gap / 3600) < STOP_KT || p.t - legStart > MAX_LEG_S;
+}
 /** On the ground, as Flightradar24 records it: altitude 0 and slower than this. */
 const GROUND_KT = 60;
 /** On the ground this long between two stretches in the air: the aircraft stopped there. */
@@ -466,14 +479,18 @@ const inAir = (p: TrackPointInput) => (p.altitudeFt !== null ? p.altitudeFt > 0 
 /**
  * A track file cut into the aircraft's legs: where it was on the ground for 5 minutes or more between two stretches in
  * the air (cut at the longest wait, mostly at the gate, where little is received), or where nothing was received for
- * over 30 minutes while it could not have flown on. A gap over an ocean flown at speed stays inside the leg, and a
- * stretch with nothing in the air (a return to the gate, a tow) is no flight of its own: it joins the leg before it.
+ * over 30 minutes while it could not have flown on (stoppedBetween). A gap over an ocean flown at speed stays inside the
+ * leg, and a stretch with nothing in the air (a return to the gate, a tow) is no flight of its own: it joins the leg
+ * before it.
  */
 export function trackLegs(points: TrackPointInput[]): TrackPointInput[][] {
   const cuts = new Set<number>();
+  let legStart = points[0]?.t ?? 0;
   for (let i = 1; i < points.length; i++) {
-    const gap = points[i]!.t - points[i - 1]!.t;
-    if (gap > LEG_GAP_S && haversineKm(points[i - 1]!, points[i]!) / 1.852 / (gap / 3600) < STOP_KT) cuts.add(i);
+    if (stoppedBetween(points[i - 1]!, points[i]!, legStart)) {
+      cuts.add(i);
+      legStart = points[i]!.t;
+    }
   }
   const gaps = [...cuts];
   const firstAir = points.findIndex(inAir);
@@ -667,8 +684,7 @@ export function trackFromReadsb(traces: ReadsbTrace[], flight: Flight, ref: RefI
   for (const p of fixes) {
     const prev = leg[leg.length - 1];
     if (prev) {
-      const gap = p.t - prev.t;
-      const stopped = gap > LEG_GAP_S && haversineKm(prev, p) / 1.852 / (gap / 3600) < STOP_KT;
+      const stopped = stoppedBetween(prev, p, leg[0]!.t);
       const landed = prev.ground && !p.ground && leg.some((x) => !x.ground);
       if (p.newLeg || stopped || landed) close();
     }

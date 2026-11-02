@@ -226,6 +226,27 @@ describe("a flight out of an aircraft's day in adsb.lol's history", () => {
     expect(trackFromReadsb([{ timestamp: START, trace: [] }], f, ref)).toEqual({ problem: "The aircraft has no positions that day." });
   });
 
+  it("cuts at a silence too long for one flight, though the ground covered over it looks like flying", () => {
+    const store = newStore();
+    const f = flight(store, { toAirportId: "ap_egll", takeoffAt: "2026-03-01T09:00-05:00", landingAt: "2026-03-01T20:30+00:00" });
+    // Heard for four hours out of Boston towards London, then nothing until the aircraft's next flight, Delhi to
+    // Istanbul, 20 hours later: about 240 kt over the silence, which alone looks like flying on.
+    const OUT = { lat: 50.5, lon: -40.0 };
+    const DEL = { lat: 28.5665, lon: 77.1031 };
+    const IST = { lat: 41.2753, lon: 28.7519 };
+    const out = line(BOS, OUT, START, 481).map((p, i) => ({ ...p, altitudeFt: i === 0 ? 0 : 35000 }));
+    const next = line(DEL, IST, START + 24 * 3600).map((p) => ({ ...p, altitudeFt: 35000 }));
+    const r = trackFromReadsb([readsb([...out, ...next])], f, ref);
+    if ("problem" in r) throw new Error(r.problem);
+    expect(r.coverage).toBe("partial");
+    expect(r.points[r.points.length - 1]!.t).toBe(out[out.length - 1]!.t);
+    // The same as a file: its leg out of Boston, not a track from Boston to Istanbul.
+    const file = fitTrackFile([...out, ...next], f, ref);
+    if ("problem" in file) throw new Error(file.problem);
+    expect(file).toMatchObject({ coverage: "partial", legs: 2 });
+    expect(file.points[file.points.length - 1]!.t).toBe(out[out.length - 1]!.t);
+  });
+
   it("allows three hours for a delay or a timetable time in the log, and says how far off the leg is", () => {
     const store = newStore();
     const f = flight(store);
