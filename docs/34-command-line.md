@@ -23,7 +23,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 
 | In the web app | Command | Shows |
 |---|---|---|
-| Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM] [--where DIM=V[,V]]…]`, `stats --view NAME`, `stats views` | The lead sentence's figures, the fact list and the ranked lists; with `--by`, a pivot ([24](24-statistics.md)), with its column totals and total, narrowed by `--where` as the Custom tab's filters narrow it (a value as stored, as shown, or by code: `--where airline=BA,LH --where month=March`); with `--view`, a view saved on the Custom tab, its filters applied; `stats views` lists them with their filters. |
+| Home, Statistics | `stats [--year Y \| all] [--by DIM [--cols DIM] [--where DIM=V[,V]]…]`, `stats --view NAME`, `stats views` | The lead sentence's figures, the fact list, the ranked lists and the aircraft's age (oldest first, the first `--top` rows); with `--by`, a pivot ([24](24-statistics.md)), with its column totals and total, narrowed by `--where` as the Custom tab's filters narrow it (a value as stored, as shown, or by code: `--where airline=BA,LH --where month=March`); with `--view`, a view saved on the Custom tab, its filters applied; `stats views` lists them with their filters. |
 | Flights | `flights [--year Y] [--airline X] [--airport X] [--type X] [--search TEXT]` | The flight list, with the same filters. |
 | A flight | `flight REF` | Every field, the aircraft, its findings, the track's source and its route extension ([23](23-tracks-and-maps.md), "Route extension"; the flight's track is read from the storage for it). A private field shows only whether it is recorded. |
 | Spotting | `sightings [filters]`, `sessions [--year Y]` | Sightings; days out with their counts. |

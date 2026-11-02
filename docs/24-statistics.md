@@ -104,7 +104,7 @@ Saved views: the user can save a custom view (dimensions, measure, filters) unde
 | Most flown airline / route / manufacturer / family / type | as in the current sheet; route is undirected | |
 | Top airports | visits = departures + arrivals | from, to |
 | Longest / shortest flight | by distance and by duration | |
-| Oldest / youngest aircraft flown | age at flight date | registration, first flight |
+| Aircraft age | the time from each aircraft's first flight to the flight's day (one row per flight) and to today (one row per aircraft), oldest or youngest first, with the average and range when flown in a sentence (`aircraftAges` in `@touchdown/core/view`). The log records no day an aircraft stopped flying, only its status: for one marked retired or written off, the "Age today" figure is the time since its first flight, not active service: the column says "Since first flight", the help tip says so, and the row carries the status (Decided). Flights without a date or an aircraft, on an aircraft without a first flight date, or dated before it are left out and counted ("Excluded: …"). Built, on Statistics and in `touchdown stats`. | registration, first flight |
 | Most flown airframe | airframe with most flights | registration |
 | Seat position split | window / middle / aisle share | seat |
 | Cabin class split | | cabinClass |
