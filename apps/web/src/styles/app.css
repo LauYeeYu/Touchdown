@@ -4275,6 +4275,87 @@ a.wordmark {
   }
 }
 
+/* Aircraft age on Statistics: the figures in a sentence, then the age when flown beside the time since first flight,
+   two tables of equal width. */
+.age-summary {
+  max-width: 44em;
+  margin: 12px 0 0;
+  color: var(--ink-2);
+}
+
+.age-summary b {
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.age-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
+  margin-top: 20px;
+}
+
+/* Set widths, as in the route extension tables: "Since first flight" on one line, "12 Jan 1989", "35.8 years". */
+.table--fixed .col-age {
+  width: 8.5em;
+}
+
+.table--fixed .col-first {
+  width: 7em;
+}
+
+.table--fixed .col-reg {
+  width: 38%;
+}
+
+.age-aircraft {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+/* The type under the registration; on a phone the first flight joins it, as its column goes. */
+.age-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.age-sub__phone {
+  display: none;
+}
+
+.age-note {
+  margin: 16px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+@media (max-width: 860px) {
+  .age-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
+@media (max-width: 600px) {
+  .table--fixed .col-first,
+  .table--fixed .col-reg {
+    display: none;
+  }
+
+  .table--fixed .col-age {
+    width: 7.75em;
+  }
+
+  .age-sub__phone {
+    display: inline;
+  }
+}
+
 /* Phones: three columns, each row two lines. The route (or the count of flights) moves under the first column, and
    "at least" under its figure, so nothing wraps mid-phrase. */
 @media (max-width: 600px) {

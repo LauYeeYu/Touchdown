@@ -3,13 +3,13 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { extensionPercent, routeExtensionByRoute, routeExtensions, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
-import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, type Measured, type Settings, type Sighting, type StatsContext } from "@touchdown/core";
+import { AGE_TODAY_NOTE, ageLeftOutText, ageText, aircraftAges, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
+import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, todayIn, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, CABIN_LABEL, countryName, dateOnly, distance, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, dateOnly, dayMonthYear, distance, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
 import { Link } from "../lib/link.tsx";
 import { airportWithCode, routeCodes } from "../lib/codes.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -43,6 +43,7 @@ export function Stats() {
   const [showSpots, setShowSpots] = useViewState("showSpots", true);
   const [airline, setAirline] = useViewState("airline", "");
   const [extensionSort, setExtensionSort] = useViewState<ExtensionSort>("extensionSort", "extra");
+  const [ageOrder, setAgeOrder] = useViewState<AgeOrder>("ageOrder", "oldest");
   const navigate = useNavigate();
 
   const data = useMemo(() => {
@@ -81,6 +82,9 @@ export function Stats() {
     return { flights: [...ext.values()].sort((a, b) => b.percent - a.percent), byRoute: routeExtensionByRoute(flights, ext, ref), views };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, flights]);
+
+  // Each aircraft's age when the period's flights were on it, and now (docs/24, "Aircraft age").
+  const ages = useMemo(() => aircraftAges(flights, ctx.airframes, todayIn()), [flights, ctx]);
 
   const op = (id: string) => airlineLabel(id, ref) || id;
   const ap = (id: string) => airportWithCode(id, ref) || id;
@@ -183,6 +187,32 @@ export function Stats() {
                 <MostIndirect rows={byExtension(extension.flights, extensionSort)} views={extension.views} unit={unit} sort={extensionSort} onSort={setExtensionSort} />
                 {extension.byRoute.length > 0 && <ExtensionByRoute rows={byExtension(extension.byRoute, extensionSort)} label={(k) => routeCodes(k, ref)} unit={unit} sort={extensionSort} onSort={setExtensionSort} />}
               </div>
+            </section>
+          )}
+          {ages.whenFlown.length > 0 && (
+            <section className="section" aria-labelledby="age-title">
+              <div className="section__head section__head--wrap">
+                <span className="titled">
+                  <h2 className="section__title" id="age-title">
+                    Aircraft age
+                  </h2>
+                  <HelpTip label="About aircraft age" text={ageHelp(ages, flights.length)} />
+                </span>
+                <div className="segmented segmented--small" role="group" aria-label="Order">
+                  <button type="button" className="seg" aria-pressed={ageOrder === "oldest"} onClick={() => setAgeOrder("oldest")}>
+                    Oldest first
+                  </button>
+                  <button type="button" className="seg" aria-pressed={ageOrder === "youngest"} onClick={() => setAgeOrder("youngest")}>
+                    Youngest first
+                  </button>
+                </div>
+              </div>
+              <AgeSummary rows={ages.whenFlown} />
+              <div className="age-grid">
+                <AgeWhenFlownTable rows={byAge(ages.whenFlown, ageOrder)} views={extension.views} reference={ref} />
+                <AgeNowTable rows={byAge(ages.now, ageOrder)} reference={ref} />
+              </div>
+              <AgeLeftOut left={ages.leftOut} />
             </section>
           )}
           {fs.perYear.length > 1 && (
@@ -391,6 +421,149 @@ function ExtensionByRoute({ rows, label, unit, sort, onSort }: { rows: RouteExte
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+type FlightViews = Map<string, ReturnType<typeof sortedFlights>[number]>;
+
+/** What the section measures, and for how many of the period's flights. */
+function ageHelp(ages: AircraftAges, flights: number): string {
+  const shown = ages.whenFlown.length < flights ? ` Shown for ${nf.format(ages.whenFlown.length)} of ${plural(flights, "flight")}.` : "";
+  return `Age is calculated from each aircraft's first flight to your flight date, and to today. ${AGE_TODAY_NOTE}.${shown}`;
+}
+
+/** The section's figures in a sentence: the average age when flown, and its range. */
+function AgeSummary({ rows }: { rows: AgeWhenFlown[] }) {
+  const days = rows.map((r) => r.days);
+  const average = averageAge(rows)!;
+  if (rows.length === 1)
+    return (
+      <p className="age-summary">
+        Aircraft age: <b>{ageText(average)}</b> when you flew.
+      </p>
+    );
+  return (
+    <p className="age-summary">
+      Average aircraft age: <b>{ageText(average)}</b> (range: <b>{ageText(Math.min(...days))}</b> to <b>{ageText(Math.max(...days))}</b>).
+    </p>
+  );
+}
+
+/** Flights the section could not measure, by reason. */
+function AgeLeftOut({ left }: { left: AircraftAges["leftOut"] }) {
+  const text = ageLeftOutText(left);
+  return text ? <p className="age-note">{text}</p> : null;
+}
+
+/** Ten rows, then "Show all", opening as a disclosure opens. */
+function useTenRows<T>(rows: T[]) {
+  const [all, setAll] = useState(false);
+  const grow = useGrow<HTMLDivElement>(all);
+  const foot =
+    rows.length > 10 ? (
+      <p className="ranked__foot">
+        <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
+          {all ? "Show fewer" : `Show all ${rows.length}`}
+        </button>
+      </p>
+    ) : null;
+  return { shown: all ? rows : rows.slice(0, 10), grow, foot };
+}
+
+/** The aircraft's age on the day of each flight. */
+function AgeWhenFlownTable({ rows, views, reference }: { rows: AgeWhenFlown[]; views: FlightViews; reference: RefIndex }) {
+  const { shown, grow, foot } = useTenRows(rows);
+  return (
+    <div>
+      <h3 className="ranked__title">When you flew</h3>
+      <div ref={grow}>
+        <table className="table table--fixed">
+          <thead>
+            <tr>
+              <th>Flight</th>
+              <th className="col-reg">Aircraft</th>
+              <th className="num col-age">Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((r) => {
+              const f = views.get(r.flightId)?.f;
+              const type = typeName(f?.typeCode, reference);
+              return (
+                <tr key={r.flightId}>
+                  <td>
+                    <Link to="/flights/$id" params={{ id: r.flightId }}>
+                      {f?.flightNumber ?? "Flight"}
+                    </Link>
+                    <span className="muted"> · {dayMonthYear(r.day)}</span>
+                    <span className="extension-sub">{[f?.registration, type].filter(Boolean).join(" · ")}</span>
+                  </td>
+                  <td className="col-reg">
+                    <Link to="/aircraft/$id" params={{ id: r.airframeId }}>
+                      {f?.registration ?? "Aircraft"}
+                    </Link>
+                    {type && <span className="age-sub">{type}</span>}
+                  </td>
+                  <td className="num">{ageText(r.days)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {foot}
+    </div>
+  );
+}
+
+/**
+ * Each aircraft's time since its first flight. For one still flying that is its age. For one retired or written off
+ * it is only the time since its first flight, so the column says that, and the row carries its status.
+ */
+function AgeNowTable({ rows, reference }: { rows: AgeNow[]; reference: RefIndex }) {
+  const { shown, grow, foot } = useTenRows(rows);
+  return (
+    <div>
+      <h3 className="ranked__title">Age today</h3>
+      <div ref={grow}>
+        <table className="table table--fixed">
+          <thead>
+            <tr>
+              <th>Aircraft</th>
+              <th className="col-first">First flight</th>
+              <th className="num col-age">Since first flight</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((r) => {
+              const status = r.status ? STATUS_WORD[r.status] : undefined;
+              const type = typeName(r.typeCode, reference);
+              return (
+                <tr key={r.airframeId}>
+                  <td>
+                    <span className="age-aircraft">
+                      <Link to="/aircraft/$id" params={{ id: r.airframeId }}>
+                        {r.registration ?? "Aircraft"}
+                      </Link>
+                      {status && <span className="pill">{status}</span>}
+                    </span>
+                    <span className="age-sub">
+                      {type}
+                      <span className="age-sub__phone">
+                        {type ? " · " : ""}first flew {dayMonthYear(r.firstFlightDate)}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="col-first">{dayMonthYear(r.firstFlightDate)}</td>
+                  <td className="num">{ageText(r.days)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {foot}
     </div>
   );
 }
