@@ -24,6 +24,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | G9 | UK English spelling everywhere: interface copy, docs, and code comments (colour, organise, centre, licence as a noun). Third-party names keep their own spelling. | Chat | Decided |
 | G10 | Light and dark themes. The default follows the device; the user can pick light or dark. | Chat | Decided |
 | G11 | A silhouette of the aircraft's type, shown with the aircraft. A person checks every silhouette against the real aircraft before it is shown. Not scheduled. | Chat | Decided. Details Open (Q-SILHOUETTE) |
+| G12 | The interface can be translated: its text is kept in message files, out of the code, so adding a language means translating those files. UK English (G9) is the source language and the only one for now. Not scheduled. | Chat | Decided. Details Open (Q-I18N) |
 
 ## Users and storage
 

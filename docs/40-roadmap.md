@@ -91,3 +91,4 @@ The order puts the riskiest part first: the data model and identity rules are te
 - Google Photos Picker to fill sighting date and time from a photo (no location available from Google).
 - Field-level merge for same-record conflicts.
 - Aircraft silhouettes (G11): a drawing for each family or type in the reference data, shown on aircraft and flight pages only once a person has checked it (Q-SILHOUETTE).
+- Translation (G12): the interface text moved out of the code into message files, UK English first, with named parameters and plural forms. Dates, numbers and units are formatted for the chosen language instead of fixed to UK English. The findings' messages, which the core package writes for the web app and the CLI, move too (Q-I18N).
