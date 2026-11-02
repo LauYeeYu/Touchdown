@@ -136,7 +136,7 @@ Never stored: passwords, Google's tokens, IP addresses, request contents. No req
 
 ## The browser's copy
 
-Built: each account has its own IndexedDB database in the browser, `touchdown-<account id>`, so people who share a browser never see each other's logs. The app asks the server who is signed in when it opens; offline, it opens the last account's copy. Signing out ([31](31-ui.md), "Signing out"): in Private mode, once every change has reached the storage, the account's database is deleted; with changes not synced yet, or in Local mode (the only copy), it stays.
+Built: each account has its own IndexedDB database in the browser, `touchdown-<account id>`, so people who share a browser never see each other's logs. The app asks the server who is signed in when it opens; offline, it opens the last account's copy ([30](30-architecture.md), "Offline"). Signing out, or a session the server no longer knows, removes the app's offline copy and forgets that account, so the log does not open offline afterwards. Signing out ([31](31-ui.md), "Signing out"): in Private mode, once every change has reached the storage, the account's database is deleted; with changes not synced yet, or in Local mode (the only copy), it stays.
 
 ## The first owner
 

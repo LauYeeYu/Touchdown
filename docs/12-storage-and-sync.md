@@ -11,7 +11,7 @@ Where each user's data lives, how it is stored, and how devices stay in sync (re
 - Google Drive is the first backend, not the platform (S7). Everything that reads or writes the user's data goes through the backend interface below, so it works on every backend: sync, the CLI's inbox, the agent check hand-off, import attachments, and anything added later. No feature relies on what only one service offers, such as Drive's file sharing or Drive for Desktop. Google's own APIs are used only where a Google product is the subject: importing a Google Sheet, exporting to Google Sheets. (Decided)
 - Three data modes ([32](32-modes-and-sharing.md)): Standard (recommended; the server keeps an encrypted key to the storage, for sync and share links), Private (the server keeps nothing) and Local (this browser only, with the manual-file adapter). (Decided)
 - CSV import/export always works, whatever the backend. (Decided)
-- The browser always keeps a full local copy (IndexedDB), so the app works offline and loads fast. (Proposed)
+- The browser always keeps a full local copy (IndexedDB), so the app works offline and loads fast. (Decided, built: the app's own files are kept by a service worker, [30](30-architecture.md), "Offline")
 
 ## Layers
 
@@ -117,6 +117,8 @@ The same for every backend, because it works on rows:
 5. **Confirm.** A device keeps the rows edited on it in a local queue until the storage shows them back: a later pull, or a push that finds them there already. This covers file backends whose storage has no compare-and-swap (Google Drive): if two devices write at nearly the same moment and one write overwrites the other, the overwritten device still has its rows queued and pushes them again. A confirmed row that an overwrite later removes is found by the next pull (the stored version is older, or was edited beside it) and handled by step 2.
 
 Sync runs on app start, a few seconds after edits, on focus, and every few minutes while the app is open. It reads only the files that changed since its position: the queue is saved with the rows it names, so no edit is saved without its queue entry. Once, the first sync after a browser has this version reads every table file again, to find an edit whose queue entry an older version lost (the browser closed before it was saved).
+
+**Offline** (Decided, built). Google Drive, directly or through Touchdown's server, is reached over the network. Without it, sync does not try: edits wait in the queue, the masthead reads "Offline" ([31](31-ui.md), "Settings"), and sync runs when the network returns. A request that reaches no server counts the same. A local folder needs no network and syncs as before. Edits made offline on two devices meet when both are back, and are merged as any edits made side by side are (step 2).
 
 **Tables first, then tracks** (Decided, built). A sync lists the storage's folders and reads every changed table file at the same time, merges the tables and saves them with their position. Then it reads the tracks, many at once; the tracks that arrive together are merged together, and each keeps its position as it is merged, saved every few tracks. So:
 
