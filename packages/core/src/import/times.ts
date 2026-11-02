@@ -39,6 +39,21 @@ function clockGap(a: string, b: string): number {
 
 const clockAt = (ms: number, tz: string) => parseDateTime(toZoned(ms, tz))!.time.slice(0, 5);
 
+/**
+ * The first moment after `afterMs` that shows `clock` at `tz`, as a date-time there, within three days; null if none.
+ * Counted from the day it is at `tz`, not where the flight left: one flown west over the date line lands on an earlier
+ * date than it took off.
+ */
+export function firstClockAfter(afterMs: number, clock: string, tz: string): string | null {
+  let day = parseDateTime(toZoned(afterMs, tz))!.date;
+  for (let i = 0; i < 3; i++) {
+    const t = zonedInstants(day, clock, tz).find((t) => t > afterMs);
+    if (t !== undefined) return toZoned(t, tz);
+    day = addDays(day, 1);
+  }
+  return null;
+}
+
 export function buildFlightTimes(x: ClockInputs): BuiltTimes {
   const issues: ImportIssue[] = [];
   const out: BuiltTimes = { boardingAt: null, takeoffAt: null, landingAt: null, issues };
@@ -93,13 +108,7 @@ export function buildFlightTimes(x: ClockInputs): BuiltTimes {
       }
     } else if (landingClock) {
       // No duration: the landing is the first time after takeoff with this clock time.
-      const t0 = takeoffMs;
-      let day = parseDateTime(out.takeoffAt!)!.date;
-      for (let i = 0; i < 3 && !out.landingAt; i++) {
-        const t = zonedInstants(day, landingClock, x.destTz).find((t) => t > t0);
-        if (t !== undefined) out.landingAt = toZoned(t, x.destTz);
-        day = addDays(day, 1);
-      }
+      out.landingAt = firstClockAfter(takeoffMs, landingClock, x.destTz);
     }
   }
   if (boardingMs !== null && takeoffMs !== null && boardingMs > takeoffMs) {

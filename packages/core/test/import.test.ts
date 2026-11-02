@@ -38,6 +38,13 @@ describe("building date-times from clock times", () => {
     expect(t.landingAt).toBe("2025-03-15T06:10-04:00");
   });
 
+  it("lands a flight west over the date line on an earlier date than it took off", () => {
+    // Tokyo at 00:30 on the 14th is 15:30 UTC on the 13th, and Honolulu at 12:40 that day is seven hours later.
+    const t = buildFlightTimes({ scheduledDate: "2025-03-14", originTz: "Asia/Tokyo", destTz: "Pacific/Honolulu", takeoff: "00:30", landing: "12:40" });
+    expect(t.takeoffAt).toBe("2025-03-14T00:30+09:00");
+    expect(t.landingAt).toBe("2025-03-13T12:40-10:00");
+  });
+
   // On 2025-10-26 the clocks in Dublin and London went back at 02:00 summer time: 01:00–01:59 happened twice.
   it("places a landing in the repeated hour on the same day", () => {
     const t = buildFlightTimes({ scheduledDate: "2025-10-26", originTz: "Europe/Dublin", destTz: "Europe/London", takeoff: "01:30", landing: "01:10" });

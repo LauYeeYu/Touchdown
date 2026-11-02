@@ -123,6 +123,7 @@ Decided:
 | Duration | Always the difference between instants. A flight that crosses a clock change has a duration that differs from the clock difference by the change. |
 | Repeated hour (clocks go back) | A clock time in that hour happens twice. Takeoff: the one that makes takeoff plus duration land at the row's landing time; otherwise the earlier. Landing without a duration: the first one after takeoff. Boarding: the latest one not after takeoff. |
 | Skipped hour (clocks go forward) | The time does not exist; it is moved forward by the change (02:30 → 03:30), as Temporal's "compatible" rule does. |
+| Date line | A landing without a duration is the first such clock time after takeoff, counted from the date at the arrival airport: a flight west over the date line lands on an earlier date than it took off (Tokyo 00:30 on the 14th to Honolulu 12:40 on the 13th). |
 | A day later | Moving a time to the next day (after-midnight corrections, the V-TIMES-ORDER fix) keeps the clock time and takes the offset in force on the new day. |
 | Diversions | Landing and actual arrival use the zone of the airport the flight landed at; scheduled arrival uses the planned destination's zone. |
 
