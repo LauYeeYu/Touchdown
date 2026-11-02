@@ -16,6 +16,7 @@ import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
 import { Fig, usePhrases } from "../components/Phrase.tsx";
 import { FlightRow } from "../components/FlightRow.tsx";
+import { Select } from "../components/Select.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
@@ -212,17 +213,7 @@ export function Flights() {
           <Icon name="search" />
           <input className="input" type="search" placeholder="Flight number, route, airport, registration or type" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
-        <label>
-          <span className="visually-hidden">Airline</span>
-          <select className="select" value={airline} onChange={(e) => setAirline(e.target.value)}>
-            <option value="">All airlines</option>
-            {airlines.map((id) => (
-              <option key={id} value={id}>
-                {airlineLabel(id, ref)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select label="Airline" value={airline} onChange={setAirline} options={[{ value: "", label: "All airlines" }, ...airlines.map((id) => ({ value: id, label: airlineLabel(id, ref) }))]} />
         <label className="check">
           <input type="checkbox" checked={recordedOnly} onChange={(e) => setRecordedOnly(e.target.checked)} />
           Recorded tracks only

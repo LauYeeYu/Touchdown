@@ -15,6 +15,7 @@ import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
 import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
+import { Select } from "../components/Select.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { useViewState } from "../lib/viewState.ts";
@@ -138,17 +139,7 @@ export function Spotting() {
           <Icon name="search" />
           <input className="input" type="search" placeholder="Registration, type, airline or livery" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
-        <label>
-          <span className="visually-hidden">Location</span>
-          <select className="select" value={airport} onChange={(e) => setAirport(e.target.value)}>
-            <option value="">All locations</option>
-            {airports.map((id) => (
-              <option key={id} value={id}>
-                {airportWithCode(id, ref)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select label="Location" value={airport} onChange={setAirport} options={[{ value: "", label: "All locations" }, ...airports.map((id) => ({ value: id, label: airportWithCode(id, ref) }))]} />
         <span className="filters__count">{plural(shownSessions.reduce((a, s) => a + s.shown.length, 0), "sighting")}</span>
       </div>
 

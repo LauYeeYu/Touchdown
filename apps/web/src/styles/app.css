@@ -1626,7 +1626,8 @@ main {
 }
 
 .input:focus,
-.select:focus {
+.select:focus,
+.select[aria-expanded="true"] {
   outline: none;
   border-color: var(--focus);
   box-shadow: 0 0 0 3px var(--focus-wash);
@@ -6125,6 +6126,118 @@ a.wordmark {
 .session-row .select {
   padding-right: 32px;
   background-position: right 12px center;
+}
+
+/* The select's button (components/Select.tsx): the chosen option, as wide as the longest one (a hidden copy of each
+   under it) unless its place sets a width, and cut with an ellipsis when it must be narrower. */
+button.select {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.select__value {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.select__value > span {
+  grid-area: 1 / 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select__ghost {
+  visibility: hidden;
+  height: 0;
+}
+
+/* Its list: a menu in the top layer, placed by the script (top, left, widths, height), scrolling when long. */
+.select-menu {
+  position: fixed;
+  inset: auto;
+  z-index: 70;
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--ink);
+  animation: select-menu-in 120ms var(--ease);
+}
+
+.select-menu:focus {
+  outline: none;
+}
+
+@keyframes select-menu-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select-menu {
+    animation: none;
+  }
+}
+
+.select-menu__option[aria-selected="true"] .menu__check {
+  opacity: 1;
+}
+
+/* Forced colours drop the state layer: the focused option keeps an outline instead. */
+@media (forced-colors: active) {
+  .select-menu__option:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+.select-menu__option[aria-disabled="true"] {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+.select-menu__option[aria-disabled="true"]:hover {
+  background: transparent;
+}
+
+.select-menu__option {
+  min-width: 0;
+}
+
+.select-menu__option .menu__check {
+  flex: none;
+}
+
+.select-menu__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* An optgroup: its name in ink-3, lined up with the options' labels after the check column. */
+.select-menu__group {
+  display: grid;
+}
+
+.select-menu__group + .select-menu__group {
+  margin-top: 6px;
+}
+
+.select-menu__heading {
+  padding: 8px 14px 4px 36px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
 }
 
 /* A label that reserves the width of its bold form (StableLabel): the current page in the navigation and the

@@ -12,6 +12,7 @@ import { Icon } from "../lib/icons.tsx";
 import { airportOptions, DateTimeField, Field, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
+import { Select } from "../components/Select.tsx";
 import { Disclosure } from "../components/Disclosure.tsx";
 import { NotFound } from "./NotFound.tsx";
 
@@ -217,14 +218,12 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
               <Segmented label="Seat position" value={d.seatPosition || null} onChange={(v) => set("seatPosition", v ?? "")} options={[{ value: "window", label: "Window" }, { value: "middle", label: "Middle" }, { value: "aisle", label: "Aisle" }]} />
             </Field>
             <Field label="Cabin">
-              <select className="select" value={d.cabinClass} onChange={(e) => set("cabinClass", e.target.value as Draft["cabinClass"])}>
-                <option value="">Not recorded</option>
-                {Object.entries(CABIN_LABEL).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+              <Select<Draft["cabinClass"]>
+                label="Cabin"
+                value={d.cabinClass}
+                onChange={(v) => set("cabinClass", v)}
+                options={[{ value: "", label: "Not recorded" }, ...Object.entries(CABIN_LABEL).map(([k, v]) => ({ value: k as Draft["cabinClass"], label: v }))]}
+              />
             </Field>
             <Field label="Fare">
               <TextInput value={d.fareBrand} onChange={(e) => set("fareBrand", e.target.value)} placeholder="Main Cabin" />
@@ -233,14 +232,12 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
               <TextInput value={d.bookingClass} onChange={(e) => set("bookingClass", e.target.value)} maxLength={1} placeholder="T" />
             </Field>
             <Field label="Reason">
-              <select className="select" value={d.reason} onChange={(e) => set("reason", e.target.value as Draft["reason"])}>
-                <option value="">Not recorded</option>
-                {Object.entries(REASON_LABEL).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+              <Select<Draft["reason"]>
+                label="Reason"
+                value={d.reason}
+                onChange={(v) => set("reason", v)}
+                options={[{ value: "", label: "Not recorded" }, ...Object.entries(REASON_LABEL).map(([k, v]) => ({ value: k as Draft["reason"], label: v }))]}
+              />
             </Field>
             <Field label="Terminal">
               <TextInput value={d.departureTerminal} onChange={(e) => set("departureTerminal", e.target.value)} />

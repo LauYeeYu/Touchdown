@@ -3,6 +3,7 @@
 
 import { COLUMN_FIELDS, FIELD_DEFS, mappingProblem, type ColumnField, type RowKind, type SheetMapping } from "@touchdown/core";
 import { Segmented } from "./form.tsx";
+import { Select } from "./Select.tsx";
 import { Icon } from "../lib/icons.tsx";
 
 export interface ColumnChoice {
@@ -43,19 +44,12 @@ export function ColumnMapping({ guess, value, onChange, onUse, onCancel }: { gue
                   <small>{FIELD_DEFS[field].private ? "values hidden (private)" : c.samples.slice(0, 3).join(" · ") || "empty"}</small>
                   {unclear && <small className="column-mapping__why">Unclear: {c.why}</small>}
                 </span>
-                <select
-                  className="select"
+                <Select<ColumnField>
                   value={field}
-                  aria-label={`Field for ${c.header || `column ${c.index + 1}`}`}
-                  onChange={(e) => onChange({ ...value, fields: value.fields.map((f, i) => (i === c.index ? (e.target.value as ColumnField) : f)) })}
-                >
-                  <option value="ignore">Not used</option>
-                  {options.map((f) => (
-                    <option key={f} value={f}>
-                      {FIELD_DEFS[f].label}
-                    </option>
-                  ))}
-                </select>
+                  label={`Field for ${c.header || `column ${c.index + 1}`}`}
+                  onChange={(v) => onChange({ ...value, fields: value.fields.map((f, i) => (i === c.index ? v : f)) })}
+                  options={[{ value: "ignore", label: "Not used" }, ...options.map((f) => ({ value: f, label: FIELD_DEFS[f].label }))]}
+                />
               </li>
             );
           })}

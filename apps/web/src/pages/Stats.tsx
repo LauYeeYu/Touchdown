@@ -22,6 +22,7 @@ import { HelpTip } from "../components/HelpTip.tsx";
 import { useGrow } from "../lib/motion.ts";
 import { GlobePanel } from "../components/GlobePanel.tsx";
 import { CustomView } from "../components/CustomView.tsx";
+import { Select } from "../components/Select.tsx";
 import { useViewState } from "../lib/viewState.ts";
 
 type Tab = "flights" | "sightings" | "both" | "pivot";
@@ -111,17 +112,7 @@ export function Stats() {
               </button>
             </div>
             {globe.airlines.length > 1 && (
-              <label>
-                <span className="visually-hidden">Airline</span>
-                <select className="select" value={globe.picked} onChange={(e) => setAirline(e.target.value)}>
-                  <option value="">All airlines</option>
-                  {globe.airlines.map((a) => (
-                    <option key={a} value={a}>
-                      {airlineLabel(a, ref)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select label="Airline" value={globe.picked} onChange={setAirline} options={[{ value: "", label: "All airlines" }, ...globe.airlines.map((a) => ({ value: a, label: airlineLabel(a, ref) }))]} />
             )}
           </>
         }

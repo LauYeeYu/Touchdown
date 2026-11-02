@@ -11,6 +11,7 @@ import { typeName, airlineLabel, PHASE_LABEL, plural, shortAirport } from "../li
 import { Icon } from "../lib/icons.tsx";
 import { airportOptions, Field, LiveryQuestion, Picker } from "../components/form.tsx";
 import { toast } from "../components/overlay.tsx";
+import { Select } from "../components/Select.tsx";
 
 type Phase = (typeof PHASES)[number];
 
@@ -132,14 +133,7 @@ export function SessionAdd() {
           <Picker label="Location" value={airport} onChange={setAirport} options={airportOptions(ref)} placeholder="Airport code or city" resolved={airport.trim() ? (ap ? shortAirport(ap.id, ref) : "Not a known airport code") : null} invalid={!!airport.trim() && !ap} />
         </Field>
         <Field label="Phase for new rows">
-          <select className="select" value={phase} onChange={(e) => setPhase(e.target.value as Phase | "")}>
-            <option value="">Not recorded</option>
-            {PHASES.map((p) => (
-              <option key={p} value={p}>
-                {PHASE_LABEL[p]}
-              </option>
-            ))}
-          </select>
+          <Select<Phase | ""> label="Phase for new rows" value={phase} onChange={setPhase} options={[{ value: "", label: "Not recorded" }, ...PHASES.map((p) => ({ value: p, label: PHASE_LABEL[p] ?? "" }))]} />
         </Field>
       </div>
       <form
@@ -195,14 +189,7 @@ export function SessionAdd() {
                 </span>
                 <input className="input" value={row.typeCodeRaw} onChange={(e) => update(row.key, { typeCodeRaw: e.target.value })} placeholder="Type" aria-label={`Type code for ${display}`} />
                 <input className="input" value={row.operatorRaw} onChange={(e) => update(row.key, { operatorRaw: e.target.value })} placeholder="Airline" aria-label={`Airline for ${display}`} />
-                <select className="select" value={row.phase} onChange={(e) => update(row.key, { phase: e.target.value as Phase | "" })} aria-label={`Phase for ${display}`}>
-                  <option value="">Phase</option>
-                  {PHASES.map((p) => (
-                    <option key={p} value={p}>
-                      {PHASE_LABEL[p]}
-                    </option>
-                  ))}
-                </select>
+                <Select<Phase | ""> label={`Phase for ${display}`} value={row.phase} onChange={(phase) => update(row.key, { phase })} options={[{ value: "", label: "Phase" }, ...PHASES.map((p) => ({ value: p, label: PHASE_LABEL[p] ?? "" }))]} />
                 <input className="input" value={row.specialLivery} onChange={(e) => update(row.key, { specialLivery: e.target.value })} placeholder="Special livery" aria-label={`Special livery for ${display}`} />
                 <button type="button" className="icon-btn" onClick={() => remove(row.key)} aria-label={`Remove ${display}`}>
                   <Icon name="x" />

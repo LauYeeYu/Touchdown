@@ -9,6 +9,7 @@ import { airlineLabel, dateOnly, plural, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
+import { Select } from "../components/Select.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
@@ -112,14 +113,16 @@ export function AircraftList() {
             </button>
           ))}
         </div>
-        <label>
-          <span className="visually-hidden">Sort</span>
-          <select className="select" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
-            <option value="last">Last seen first</option>
-            <option value="count">Most records first</option>
-            <option value="reg">By registration</option>
-          </select>
-        </label>
+        <Select<typeof sort>
+          label="Sort"
+          value={sort}
+          onChange={setSort}
+          options={[
+            { value: "last", label: "Last seen first" },
+            { value: "count", label: "Most records first" },
+            { value: "reg", label: "By registration" },
+          ]}
+        />
         <span className="filters__count">{plural(shown.length, "aircraft", "aircraft")}</span>
       </div>
       <div className="cols cols--aircraft" aria-hidden="true">

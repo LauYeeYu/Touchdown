@@ -15,6 +15,7 @@ import { useGrow } from "../lib/motion.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { useViewState } from "../lib/viewState.ts";
 import { FlightRow } from "./FlightRow.tsx";
+import { Select } from "./Select.tsx";
 import { Pager, usePaging } from "./Pager.tsx";
 import { TypeCell } from "./TypeCell.tsx";
 import { toast } from "./overlay.tsx";
@@ -144,42 +145,22 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
   return (
     <div role="tabpanel" className="custom">
       <div className="custom__query">
-        <select className="select custom__select custom__select--lead" aria-label="What to count" value={`${dataset}:${measure}`} onChange={(e) => setCount(e.target.value)}>
-          <optgroup label="Flights">
-            {COUNTS.filter((c) => c.dataset === "flights").map((c) => (
-              <option key={c.label} value={`${c.dataset}:${c.measure}`}>
-                {c.label}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Spotting">
-            {COUNTS.filter((c) => c.dataset === "sightings").map((c) => (
-              <option key={c.label} value={`${c.dataset}:${c.measure}`}>
-                {c.label}
-              </option>
-            ))}
-          </optgroup>
-        </select>
+        <Select
+          className="custom__select custom__select--lead"
+          label="What to count"
+          value={`${dataset}:${measure}`}
+          onChange={setCount}
+          options={[
+            { group: "Flights", options: COUNTS.filter((c) => c.dataset === "flights").map((c) => ({ value: `${c.dataset}:${c.measure}`, label: c.label })) },
+            { group: "Spotting", options: COUNTS.filter((c) => c.dataset === "sightings").map((c) => ({ value: `${c.dataset}:${c.measure}`, label: c.label })) },
+          ]}
+        />
         <span className="custom__word">by</span>
-        <select className="select custom__select" aria-label="Rows" value={rowDim.id} onChange={(e) => setRowId(e.target.value)}>
-          {dims.map((d) => (
-            <option key={d.id} value={d.id}>
-              {lower(d)}
-            </option>
-          ))}
-        </select>
+        <Select className="custom__select" label="Rows" value={rowDim.id} onChange={setRowId} options={dims.map((d) => ({ value: d.id, label: lower(d) }))} />
         {colDim ? (
           <>
             <span className="custom__word">split by</span>
-            <select className="select custom__select" aria-label="Columns" value={colDim.id} onChange={(e) => setColId(e.target.value)}>
-              {dims
-                .filter((d) => d.id !== rowDim.id)
-                .map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {lower(d)}
-                  </option>
-                ))}
-            </select>
+            <Select className="custom__select" label="Columns" value={colDim.id} onChange={setColId} options={dims.filter((d) => d.id !== rowDim.id).map((d) => ({ value: d.id, label: lower(d) }))} />
             <button type="button" className="icon-btn custom__tool" onClick={swap} aria-label="Swap rows and columns" title="Swap rows and columns">
               <Icon name="arrow-left-right" />
             </button>

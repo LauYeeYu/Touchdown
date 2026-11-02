@@ -14,6 +14,7 @@ import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
 import { toast } from "../components/overlay.tsx";
+import { Select } from "../components/Select.tsx";
 import { AccountSection } from "../components/AccountSettings.tsx";
 import { clause, tracksToComeText } from "../components/Shell.tsx";
 import { download } from "../lib/download.ts";
@@ -455,14 +456,7 @@ export function SettingsPage() {
           <TextInput value={designator} onChange={(e) => setDesignator(e.target.value)} placeholder="E170" />
         </Field>
         <Field label="Family">
-          <select className="select" value={family} onChange={(e) => setFamily(e.target.value)}>
-            <option value="">Choose</option>
-            {families.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+          <Select label="Family" value={family} onChange={setFamily} options={[{ value: "", label: "Choose" }, ...families.map((f) => ({ value: f.id, label: f.name }))]} />
         </Field>
         <button type="submit" className="btn btn--quiet btn--small">
           Add
