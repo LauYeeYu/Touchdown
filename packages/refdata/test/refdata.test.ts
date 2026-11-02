@@ -177,6 +177,8 @@ describe("operators", () => {
     expect([on("4U", "2015-05-01"), on("MI", "2015-05-01")]).toEqual(["GWI", "SLK"]);
     // Shared with an airline dated in between: the curated start dates and codes keep these right.
     expect([on("9E", "2010-05-01"), on("JM", "2014-06-01"), on("PT", "2010-05-01")]).toEqual(["EDV", "JMA", "PDT"]);
+    // One Blue Air for 0B, with a date or without.
+    expect([on("0B", "2015-05-01"), on("0B")]).toEqual(["BLA", "BLA"]);
   });
 
   it("have unique ids and valid codes", () => {

@@ -868,7 +868,7 @@
 ["op_bmn","BMN",null,"Bowman Aviation",null,null,"airline",null,null],
 ["op_bmp","BMP",null,"Bundled Aerial Mapping Assts","AIR BAMA","US","airline",null,null],
 ["op_bmr","BMR",null,"British Midland Regional","MIDLAND","GB","airline",null,null],
-["op_bms","BMS","0B","Blue Air",null,"RO","airline",null,null],
+["op_bms","BMS",null,"Blue Air",null,"RO","airline",null,null],
 ["op_bmt","BMT",null,"Bahamas Habitat","SYMONETTE","US","airline",null,null],
 ["op_bmv","BMV",null,"Alatau Airlines",null,null,"airline",null,null],
 ["op_bmw","BMW",null,"BMW Flight Service","BMW FLIGHT","DE","airline",null,null],

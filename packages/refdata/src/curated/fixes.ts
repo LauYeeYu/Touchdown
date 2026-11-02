@@ -143,6 +143,10 @@ export const operatorFixes: Record<string, Partial<Omit<Operator, "id" | "icao">
   // would take the code in 2014.
   PTI: { iata: "PV" },
   JMA: { validFrom: "2014-04-01" },
+  // Blue Air flew as BLA (Wikipedia, Wikidata), dated 2004-2023. A second "Blue Air" row, BMS, comes from VRS and
+  // Mictronics without dates or a callsign. With 0B on both, a 0B flight without a date, or after 2023, went to BMS,
+  // so one log could hold Blue Air twice.
+  BMS: { iata: null },
   // Cargo airlines whose names do not say so
   FDX: { name: "FedEx Express", iata: "FX", country: "US", kind: "cargo", validTo: null },
   UPS: { name: "UPS Airlines", iata: "5X", country: "US", kind: "cargo", validTo: null },
