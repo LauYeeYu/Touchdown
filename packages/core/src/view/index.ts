@@ -12,4 +12,5 @@ export * from "./changes.ts";
 export * from "./missing.ts";
 export * from "./search.ts";
 export * from "./extension.ts";
+export * from "./age.ts";
 export * from "./pivot.ts";
