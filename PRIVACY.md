@@ -1,6 +1,6 @@
 # Touchdown privacy policy
 
-Effective 30 October 2026.
+Effective 1 November 2026.
 
 This policy covers the Touchdown website run from this repository by its owner, for people the owner invites. It says what the site keeps about you, where your log is, and what Touchdown does with data from Google.
 
@@ -91,7 +91,7 @@ It sets no cookies, keeps no profile of you, and does not tie views to your acco
 
 ## Cookies
 
-Touchdown sets one cookie to keep you signed in (`td_session`), and a short-lived one while you sign in with Google (`td_google`). It sets no other cookies, and the analytics set none. Your browser also stores your log and settings for the site (IndexedDB and local storage).
+Touchdown sets one cookie to keep you signed in (`td_session`), and a short-lived one while you sign in with Google (`td_google`). It sets no other cookies, and the analytics set none. Your browser also stores your log and settings for the site (IndexedDB and local storage), and a copy of the app's own files, so that it opens without a connection. Signing out removes that copy.
 
 ## Keeping and deleting
 
