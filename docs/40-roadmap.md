@@ -90,3 +90,4 @@ The order puts the riskiest part first: the data model and identity rules are te
 - Server backends: local SQLite file, Postgres / Supabase, Cloudflare D1 (Q-SERVER-DB).
 - Google Photos Picker to fill sighting date and time from a photo (no location available from Google).
 - Field-level merge for same-record conflicts.
+- Aircraft silhouettes (G11): a drawing for each family or type in the reference data, shown on aircraft and flight pages only once a person has checked it (Q-SILHOUETTE).

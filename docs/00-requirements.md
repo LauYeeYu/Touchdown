@@ -23,6 +23,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | G8 | Every precise time is recorded as a date-time (date + time + UTC offset), never as a time alone. Avoids filing a takeoff after midnight under the previous day. | Chat | Decided |
 | G9 | UK English spelling everywhere: interface copy, docs, and code comments (colour, organise, centre, licence as a noun). Third-party names keep their own spelling. | Chat | Decided |
 | G10 | Light and dark themes. The default follows the device; the user can pick light or dark. | Chat | Decided |
+| G11 | A silhouette of the aircraft's type, shown with the aircraft. A person checks every silhouette against the real aircraft before it is shown. Not scheduled. | Chat | Decided. Details Open (Q-SILHOUETTE) |
 
 ## Users and storage
 

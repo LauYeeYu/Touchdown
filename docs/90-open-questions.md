@@ -16,6 +16,7 @@ None. Phase 1 test data is in `data/private/`.
 | Q-USER-REMOVAL | When the owner removes someone from the allowlist, what happens to their Standard-mode data on the server? | 8 | Deleted with a command for the operator; their links stop. |
 | Q-SHARE-NAME | Does a shared page say whose log it is ("Alex's flight")? | 8 | A whole log's does, in its title and sentences ("Alex's log", "Alex has flown 3 flights"), by the account's name as written. A flight, sighting or aircraft link does not: the sharer sends it themselves, so the people who get it know. |
 | Q-SHARE-PREVIEW | When a link is pasted into a chat app, does its preview show anything from the log (the route, the aircraft's photo)? | 8 | No: a plain "Shared from Touchdown", so a pasted link reveals nothing until it is opened. |
+| Q-SILHOUETTE | Aircraft silhouettes (G11): where do the drawings come from, how fine are they, and how is each check recorded? | Later | Drawn for Touchdown, or taken from a set whose licence allows use in the app and credited like the other reference data. One per family, with its own drawing for a type whose outline differs visibly (length, engines, winglets). A person checks each one against photos of the type. One not yet checked is not shown, and the check is recorded with the drawing in the reference data. |
 | Q-PHOTO-PICKER | Use the Google Photos Picker to fill a sighting's date and time from a photo? (Google does not provide the photo's location.) | Later | Not in the first version. |
 
 ## Implementation checks (not for the user)
