@@ -329,29 +329,35 @@ export async function readFolder(archive: TarReader, folder: string, hexes: Set<
 }
 
 /**
- * Where two neighbouring samples are in different folders, the folders that start between them are found one after
+ * Where two samples that saw a folder saw different ones, the folders that start between them are found one after
  * another (the first file after the end of each, closed in on by halving), until the one wanted turns up or the second
  * sample's folder is reached. The offsets looked at are kept with the samples. Returns where the folder starts, or null.
  */
 async function betweenSamples(archive: TarReader, folder: string, samples: Map<number, string>, sampleAt: (off: number) => Promise<string>): Promise<number | null> {
-  // Every sample, those that saw no folder too (inside a large file, or the heatmaps): a folder can end where they start.
-  const known = [...samples].sort((a, b) => a[0] - b[0]);
-  const changes = known.slice(1).map((b, i) => [known[i]!, b] as const).filter(([[, f1], [, f2]]) => f1 && f1 !== f2);
-  /** The first header after `from` that is not in folder `cur`, looking no further than `until` plus a window. */
+  // A sample that saw no folder fell inside a large file (a trace, or the heatmaps), which says nothing of where a
+  // folder ends: a folder can start just after it. So the pairs are of samples that saw a folder, the first from the
+  // archive's start, where the heatmaps usually are.
+  const known: [number, string][] = [[0, ""], ...[...samples].filter(([, f]) => f).sort((a, b) => a[0] - b[0])];
+  const changes = known.slice(1).map((b, i) => [known[i]!, b] as const).filter(([[, f1], [, f2]]) => f1 !== f2);
+  /** The first header after `from` that is not in folder `cur` ("" for none), looking no further than `until` plus a window. */
   const after = async (from: number, cur: string, until: number): Promise<Member | null> => {
     let lo = from;
-    let hi = until;
-    while (hi - lo > WINDOW) {
-      let mid = Math.floor((lo + hi) / 2);
-      mid -= mid % 512;
-      if ((await sampleAt(mid)) === cur) lo = mid;
-      else hi = mid;
+    // Halving needs the samples to tell `cur` from what follows it. Outside a folder they see nothing, as they do
+    // inside a large trace, so the start of the archive is walked file by file instead.
+    if (cur) {
+      let hi = until;
+      while (hi - lo > WINDOW) {
+        let mid = Math.floor((lo + hi) / 2);
+        mid -= mid % 512;
+        if ((await sampleAt(mid)) === cur) lo = mid;
+        else hi = mid;
+      }
     }
     // Walk the headers from `lo`, read a few windows at a time: the files of `cur` first, then the next folder's first one.
     let h = await firstHeaderIn(archive, lo);
     let bufAt = h?.at ?? 0;
     let buf = h ? await archive.read(bufAt, 2 * WINDOW) : new Uint8Array(0);
-    while (h && folderOf(h.name) === cur && h.at <= until + WINDOW) {
+    while (h && (folderOf(h.name) ?? "") === cur && h.at <= until + WINDOW) {
       const next = h.at + 512 + Math.ceil(h.size / 512) * 512;
       if (next >= archive.total) return null;
       if (next + 512 > bufAt + buf.length) [bufAt, buf] = [next, await archive.read(next, 2 * WINDOW)];
@@ -367,7 +373,8 @@ async function betweenSamples(archive: TarReader, folder: string, samples: Map<n
     for (let k = 0; k < 16; k++) {
       const h = await after(from, cur, o2);
       const f = h ? folderOf(h.name) : null;
-      if (!h || f === null || f === f2) break;
+      // Still in `cur` past the second sample: nothing more to find between these two.
+      if (!h || f === null || f === f2 || f === cur) break;
       samples.set(h.at, f);
       if (f === folder) return h.at;
       [from, cur] = [h.at, f];
