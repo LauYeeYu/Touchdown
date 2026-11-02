@@ -158,6 +158,17 @@ export const operatorFixes: Record<string, Partial<Omit<Operator, "id" | "icao">
   AIB: { name: "Airbus", country: "FR", kind: "manufacturer" },
 };
 
+/**
+ * IATA codes held at once by two airlines still flying, in different regions, as IATA assigns some: code → their ICAO
+ * codes. The build otherwise keeps a code shared by airlines still flying only on the best-backed one. These stay on
+ * each, and the countries of a record's airports choose between them (RefIndex.operatorByCode).
+ */
+export const sharedIataCodes: Record<string, string[]> = {
+  // Caspian Airlines (Iran) and Air Canada Rouge (Wikipedia, Wikidata, VRS). Without Rouge's, an Air Canada Rouge
+  // flight given as RV went to Caspian.
+  RV: ["CPN", "ROU"],
+};
+
 /** Wake turbulence category J (super) is not in the open sources. */
 export const wakeCategoryFixes: Record<string, WakeCategory> = {
   A388: "J",

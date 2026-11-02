@@ -107,7 +107,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 |--------|------|---------|-------|
 | `id` | text | `op_dal` | Primary key. |
 | `icao` | text | `DAL` | |
-| `iata` | text | `DL` | IATA codes are reused over time; `validFrom`/`validTo` disambiguate. On a date, an operator whose dates cover it wins over one without dates; without a date, the one still operating wins. |
+| `iata` | text | `DL` | IATA codes are reused over time; `validFrom`/`validTo` disambiguate. On a date, an operator whose dates cover it wins over one without dates; without a date, the one still operating wins. A few codes are held by two airlines at once in different regions (`sharedIataCodes` in `packages/refdata/src/curated/fixes.ts`, such as RV for Air Canada Rouge and Caspian Airlines): among the operators valid on the date, the one from a country of the record's airports wins. |
 | `name` | text | `Delta Air Lines` | |
 | `callsign` | text | `DELTA` | |
 | `country` | text | `US` | ISO 3166-1 alpha-2. |

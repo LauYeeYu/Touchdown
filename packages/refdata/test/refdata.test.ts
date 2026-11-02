@@ -181,6 +181,15 @@ describe("operators", () => {
     expect([on("0B", "2015-05-01"), on("0B")]).toEqual(["BLA", "BLA"]);
   });
 
+  it("give a code two airlines hold at once to the one from the route's countries", () => {
+    const index = new RefIndex(ref);
+    const rv = (countries?: string[]) => index.operatorByCode("RV", "2024-06-10", countries)?.icao;
+    // Montréal to Toronto is Air Canada Rouge, Tehran to Mashhad Caspian Airlines. Without a route, as before.
+    expect([rv(["CA"]), rv(["IR"]), rv(["CA", "US"]), rv()]).toEqual(["ROU", "CPN", "ROU", "CPN"]);
+    // A date before Rouge began still gives Caspian, wherever.
+    expect(index.operatorByCode("RV", "2010-05-01", ["CA"])?.icao).toBe("CPN");
+  });
+
   it("have unique ids and valid codes", () => {
     const ids = ref.operators.map((o) => o.id);
     expect(new Set(ids).size).toBe(ids.length);

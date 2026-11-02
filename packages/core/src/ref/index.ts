@@ -129,9 +129,11 @@ export class RefIndex {
   /**
    * Operator by IATA (2 characters) or ICAO (3 letters) code, any case. IATA codes are reused over
    * time, so the one valid on `date` wins: one whose dates cover the day before one without dates.
-   * Without a date the one still operating wins.
+   * Without a date the one still operating wins. A few codes are held by two airlines at once in
+   * different regions (sharedIataCodes in the reference data): among those valid on the date, one from
+   * `countries`, the countries of the record's airports, wins.
    */
-  operatorByCode(code: string | null | undefined, date?: string | null): Operator | null {
+  operatorByCode(code: string | null | undefined, date?: string | null, countries?: readonly (string | null | undefined)[]): Operator | null {
     if (!code) return null;
     const raw = code.trim();
     if (PRIVATE_OWNER_RE.test(raw)) return this.operators.get("op_private") ?? null;
@@ -140,7 +142,9 @@ export class RefIndex {
     // Not a code (or an unknown one): try the operator's name, as written in a sheet ("Hyundai").
     if (!list?.length) return this.operatorsByName.get(nameKey(raw)) ?? null;
     if (list.length === 1) return list[0]!;
-    const valid = list.filter((o) => within(date, o.validFrom, o.validTo));
+    const onDate = list.filter((o) => within(date, o.validFrom, o.validTo));
+    const local = countries?.length ? onDate.filter((o) => o.country && countries.includes(o.country)) : [];
+    const valid = local.length ? local : onDate;
     // An operator without dates fits every day only because its period is not recorded, and it is often the
     // code's present holder. On a date, one whose recorded dates cover it comes first.
     const dated = date ? valid.filter((o) => o.validFrom || o.validTo) : [];

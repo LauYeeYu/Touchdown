@@ -80,6 +80,14 @@ describe("building a change from the fields add takes", () => {
     if ("error" in alone) throw new Error(alone.error);
     expect(alone.change.set).toEqual({ arrivalScheduledAt: "2025-03-15T06:30-04:00" });
     expect(flightEdit(store, ref, flight, { operatedBy: "Nobody Air" })).toMatchObject({ error: expect.stringMatching(/operatedBy "Nobody Air" is not an airline/) });
+    // A code two airlines hold at once goes to the one from a country of the route.
+    const german = saveFlight(store, ref, { scheduledDate: "2024-06-10", flightNumber: "LH9007", airlineRaw: "LH", fromRaw: "LHR", toRaw: "FRA" }).row;
+    const shared = flightEdit(store, ref, german, { operatedBy: "XS" });
+    if ("error" in shared) throw new Error(shared.error);
+    expect(shared.change.set).toEqual({ operatingAirlineId: "op_xsg" });
+    const american = flightEdit(store, ref, store.get("flights", flight.id)!, { operatedBy: "XS" });
+    if ("error" in american) throw new Error(american.error);
+    expect(american.change.set).toEqual({ operatingAirlineId: "op_xsa" });
     expect(flightEdit(store, ref, flight, { departureScheduled: "soon" })).toMatchObject({ error: expect.stringMatching(/departureScheduled "soon" could not be read/) });
     // Cleared like any other field: the stored field it sets.
     store.update("flights", flight.id, { operatingAirlineId: "op_ual" });

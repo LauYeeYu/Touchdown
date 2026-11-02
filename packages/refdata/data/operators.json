@@ -5837,7 +5837,7 @@
 ["op_ror","ROR",null,"Roraima Airways","RORAIMA","GY","airline","1992-01-01",null],
 ["op_ros","ROS",null,"Rossair Europe",null,null,"airline",null,null],
 ["op_rot","ROT","RO","TAROM","TAROM","RO","airline","1954-01-01",null],
-["op_rou","ROU",null,"Air Canada Rouge","ROUGE","CA","airline","2013-01-01",null],
+["op_rou","ROU","RV","Air Canada Rouge","ROUGE","CA","airline","2013-01-01",null],
 ["op_rov","ROV",null,"Rover Airways International","ROVERAIR","US","airline",null,null],
 ["op_row","ROW",null,"Nor Aviation","ROTORWING","NO","airline",null,null],
 ["op_rox","ROX",null,"Roblex Aviation","ROBLEX","US","airline",null,null],

@@ -1,7 +1,7 @@
 // Operators merged from Mictronics operators.json, Wikidata and VRS standing-data airlines, by ICAO code.
 
 import type { Operator, OperatorKind } from "../../core/src/ref/types.ts";
-import { operatorFixes } from "../src/curated/fixes.ts";
+import { operatorFixes, sharedIataCodes } from "../src/curated/fixes.ts";
 import { compare, parseCsvRecords } from "./lib.ts";
 
 const ICAO_RE = /^[A-Z]{3}$/;
@@ -269,6 +269,8 @@ export function buildOperators(mictronicsJson: string, wikidataCsv: string | nul
       iataCleared++;
     }
   }
+  // Codes IATA gives two airlines in different regions stay on each.
+  for (const [code, icaos] of Object.entries(sharedIataCodes)) for (const o of rows) if (o.icao && icaos.includes(o.icao)) o.iata = code;
 
   notes.push(`operators: ${rows.length} rows; ${rows.filter((o) => o.iata).length} with an IATA code; ${rows.filter((o) => o.validTo).length} with an end date`);
   notes.push(`operators: ${staleWikidata} Wikidata entries ignored because they describe an earlier holder of the code`);

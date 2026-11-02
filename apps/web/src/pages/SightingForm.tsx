@@ -46,7 +46,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
   const known = useMemo(() => (d.registrationRaw.trim() ? knownFor(store, d.registrationRaw, d.seenOn, existing?.id) : null), [store, d.registrationRaw, d.seenOn, existing?.id]);
   const airport = ref.airportByCode(d.airportRaw);
   const operatorRaw = d.operatorRaw || (!existing ? (known?.operatorRaw ?? "") : "");
-  const operator = ref.operatorByCode(operatorRaw, d.seenOn);
+  const operator = ref.operatorByCode(operatorRaw, d.seenOn, [airport?.country]);
 
   const values: Partial<SightingValues> = useMemo(() => {
     const n = (v: string) => v.trim() || null;

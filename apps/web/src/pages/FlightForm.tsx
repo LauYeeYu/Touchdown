@@ -104,7 +104,7 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
 
   const from = existing && d.fromRaw === (existing.fromRaw ?? "") && existing.fromAirportId ? ref.airport(existing.fromAirportId) : ref.airportByCode(d.fromRaw);
   const to = existing && d.toRaw === (existing.toRaw ?? "") && existing.toAirportId ? ref.airport(existing.toAirportId) : ref.airportByCode(d.toRaw);
-  const airline = existing && airlineRaw === (existing.airlineRaw ?? "") && existing.airlineId ? ref.operator(existing.airlineId) : ref.operatorByCode(airlineRaw, d.scheduledDate);
+  const airline = existing && airlineRaw === (existing.airlineRaw ?? "") && existing.airlineId ? ref.operator(existing.airlineId) : ref.operatorByCode(airlineRaw, d.scheduledDate, [from?.country, to?.country]);
 
   const values: Partial<FlightValues> = useMemo(() => {
     const at = (k: TimeKey, tz: string | undefined) => (d.times[k].date && d.times[k].time && tz ? zonedDateTime(d.times[k].date, d.times[k].time, tz) : null);

@@ -35,15 +35,17 @@ export function normaliseFlight(v: Partial<FlightValues>, ref: RefIndex): Partia
   const airlineRaw = clean(v.airlineRaw);
   const fromRaw = clean(v.fromRaw);
   const toRaw = clean(v.toRaw);
+  const fromAirportId = v.fromAirportId ?? ref.airportByCode(fromRaw)?.id ?? null;
+  const toAirportId = v.toAirportId ?? ref.airportByCode(toRaw)?.id ?? null;
   return {
     ...v,
     flightNumber: normaliseFlightNumber(v.flightNumber),
     airlineRaw,
-    airlineId: v.airlineId ?? ref.operatorByCode(airlineRaw, date)?.id ?? null,
+    airlineId: v.airlineId ?? ref.operatorByCode(airlineRaw, date, [ref.airport(fromAirportId)?.country, ref.airport(toAirportId)?.country])?.id ?? null,
     fromRaw,
-    fromAirportId: v.fromAirportId ?? ref.airportByCode(fromRaw)?.id ?? null,
+    fromAirportId,
     toRaw,
-    toAirportId: v.toAirportId ?? ref.airportByCode(toRaw)?.id ?? null,
+    toAirportId,
     seat: normaliseSeat(v.seat),
     specialLivery: clean(v.specialLivery),
     livery: clean(v.livery),
@@ -55,12 +57,13 @@ export function normaliseFlight(v: Partial<FlightValues>, ref: RefIndex): Partia
 export function normaliseSighting(v: Partial<SightingValues>, ref: RefIndex): Partial<SightingValues> {
   const operatorRaw = clean(v.operatorRaw);
   const airportRaw = clean(v.airportRaw);
+  const airportId = v.airportId ?? ref.airportByCode(airportRaw)?.id ?? null;
   return {
     ...v,
     operatorRaw,
-    operatorId: v.operatorId ?? ref.operatorByCode(operatorRaw, v.seenOn)?.id ?? null,
+    operatorId: v.operatorId ?? ref.operatorByCode(operatorRaw, v.seenOn, [ref.airport(airportId)?.country])?.id ?? null,
     airportRaw,
-    airportId: v.airportId ?? ref.airportByCode(airportRaw)?.id ?? null,
+    airportId,
     specialLivery: clean(v.specialLivery),
     livery: clean(v.livery),
     notes: clean(v.notes),

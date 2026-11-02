@@ -428,7 +428,8 @@ export function flightEdit(store: Store, ref: RefIndex, f: Flight, input: EditIn
   for (const [k, text] of given) {
     if (MAPPED.has(k) || k === "departureScheduled" || k === "arrivalScheduled") continue;
     if (k === "operatedBy") {
-      const op = ref.operatorByCode(text, f.scheduledDate ?? flightDay(f));
+      const where = [("fromAirportId" in set ? set.fromAirportId : f.fromAirportId) as string | null, ("toAirportId" in set ? set.toAirportId : f.toAirportId) as string | null];
+      const op = ref.operatorByCode(text, f.scheduledDate ?? flightDay(f), where.map((id) => ref.airport(id)?.country));
       if (!op) return { error: `operatedBy "${text}" is not an airline code or name that is known.` };
       set.operatingAirlineId = op.id;
     } else if (k === "seatPosition" || k === "cabin" || k === "reason") {

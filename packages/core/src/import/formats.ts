@@ -54,7 +54,8 @@ function parseFr24Row(raw: Record<string, string | null>, sourceRow: number, ref
   // Resolve by ICAO first (unique), then IATA; keep the code as written.
   const fromAirport = ref.airportByCode(from.second) ?? ref.airportByCode(from.first);
   const toAirport = ref.airportByCode(to.second) ?? ref.airportByCode(to.first);
-  const op = ref.operatorByCode(airline.second, scheduledDate) ?? ref.operatorByCode(airline.first, scheduledDate);
+  const countries = [fromAirport?.country, toAirport?.country];
+  const op = ref.operatorByCode(airline.second, scheduledDate, countries) ?? ref.operatorByCode(airline.first, scheduledDate, countries);
   let values: Partial<FlightValues> = normaliseFlight(
     {
       scheduledDate,

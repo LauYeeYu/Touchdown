@@ -22,6 +22,9 @@ export const refTables: RefTables = {
     { id: "op_baw", icao: "BAW", iata: "BA", name: "British Airways", callsign: "SPEEDBIRD", country: "GB", kind: "airline", validFrom: null, validTo: null },
     { id: "op_old", icao: "XXO", iata: "XO", name: "Old Carrier", callsign: null, country: "GB", kind: "airline", validFrom: "1990-01-01", validTo: "2005-12-31" },
     { id: "op_new", icao: "XXN", iata: "XO", name: "New Carrier", callsign: null, country: "FR", kind: "airline", validFrom: "2010-01-01", validTo: null },
+    // Made up: one code held at once by two airlines in different countries.
+    { id: "op_xsa", icao: "XSA", iata: "XS", name: "Shared Air America", callsign: null, country: "US", kind: "airline", validFrom: "2000-01-01", validTo: null },
+    { id: "op_xsg", icao: "XSG", iata: "XS", name: "Shared Air Germany", callsign: null, country: "DE", kind: "airline", validFrom: "2005-01-01", validTo: null },
     { id: "op_private", icao: null, iata: null, name: "Private owner", callsign: null, country: null, kind: "private", validFrom: null, validTo: null },
   ],
   aircraftTypes: [
