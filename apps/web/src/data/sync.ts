@@ -16,8 +16,10 @@ export interface SyncInfo {
   /**
    * "permission": sync waits for the user's click, to use the folder again or to sign in to Google again (a
    * token lasts an hour). "update": a newer version of the app has changed the log; sync waits for a reload.
+   * "offline": the storage is reached over the network, and the network cannot be reached. Edits wait in this
+   * browser and are sent when it returns.
    */
-  state: "permission" | "syncing" | "synced" | "failed" | "update";
+  state: "permission" | "syncing" | "synced" | "failed" | "update" | "offline";
   mode: SyncedConnection["mode"];
   adapter: StorageKind;
   /** Where the log syncs to, as the user knows it. */
@@ -97,6 +99,9 @@ function storageFor(c: SyncedConnection): Storage {
   };
 }
 
+/** Sync cannot go on by itself: it waits for the user, a reload or the network. */
+const waitsForSomething = (state: SyncInfo["state"]) => state === "permission" || state === "failed" || state === "update" || state === "offline";
+
 /** Whether a saved position covers every table: the first download had its tables in. */
 export function hasTables(state: SyncState | null): boolean {
   return !!state && FILE_TABLES.every((t) => state.cursor[tablePath(t)] !== undefined);
@@ -148,6 +153,12 @@ function tell(listeners: Set<() => void>) {
   }
 }
 
+/** Google Drive, directly or through Touchdown's server, is reached over the network. A local folder is not. */
+const overNetwork = (c: SyncedConnection) => c.mode === "standard" || c.adapter === "gdrive";
+
+/** A request that reached no server: no network, or none that answers. Browsers word it differently. */
+const unreachable = (e: unknown) => e instanceof TypeError && /fetch|network|load failed/i.test(e.message);
+
 /** A promise and its resolve, for a moment awaited from several places. */
 function moment() {
   let resolve!: () => void;
@@ -196,7 +207,7 @@ export class SyncController implements SyncHandle {
   private set(patch: Partial<SyncInfo>) {
     this.info = { ...this.info, ...patch };
     // The first download stops waiting for the tables when sync cannot go on by itself.
-    if (this.info.tables || this.info.state === "permission" || this.info.state === "failed" || this.info.state === "update") this.tablesIn.resolve();
+    if (this.info.tables || waitsForSomething(this.info.state)) this.tablesIn.resolve();
     tell(this.listeners);
   }
 
@@ -204,6 +215,11 @@ export class SyncController implements SyncHandle {
   async start(): Promise<void> {
     this.set({ tables: hasTables(await savedSyncState()) });
     this.listen();
+    // Opened offline: sync starts when the network returns ("online", in listen).
+    if (this.offline()) {
+      this.set({ state: "offline" });
+      return;
+    }
     // In Standard the first sync asks the server for access itself, so its reason shows when there is none.
     try {
       if (this.connection.mode !== "standard" && !(await this.storage.ready(false))) {
@@ -225,13 +241,16 @@ export class SyncController implements SyncHandle {
     });
     const onShow = () => document.visibilityState === "visible" && void this.run();
     const onOnline = () => void this.run();
+    const onOffline = () => this.offline() && this.set({ state: "offline", waiting: this.engine?.waiting ?? 0, tracks: null });
     document.addEventListener("visibilitychange", onShow);
     window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     const every = setInterval(() => void this.run(), EVERY_MS);
     this.cleanups.push(
       unsubscribe,
       () => document.removeEventListener("visibilitychange", onShow),
       () => window.removeEventListener("online", onOnline),
+      () => window.removeEventListener("offline", onOffline),
       () => clearInterval(every),
     );
   }
@@ -247,10 +266,16 @@ export class SyncController implements SyncHandle {
     await this.run();
   }
 
+  /** The storage needs the network, and the browser says there is none. */
+  private offline(): boolean {
+    return overNetwork(this.connection) && navigator.onLine === false;
+  }
+
   private failed(e: unknown) {
     // In Standard the server says why its key does not work; in Private the bar's own words say it.
     const waiting = this.engine?.waiting ?? 0;
-    if (e instanceof SignInNeeded) this.set({ state: "permission", error: this.connection.mode === "standard" ? e.message : null, waiting, tracks: null });
+    if (overNetwork(this.connection) && (this.offline() || unreachable(e))) this.set({ state: "offline", error: null, waiting, tracks: null });
+    else if (e instanceof SignInNeeded) this.set({ state: "permission", error: this.connection.mode === "standard" ? e.message : null, waiting, tracks: null });
     else if (e instanceof SchemaTooNewError) this.set({ state: "update", error: null, waiting, tracks: null });
     else this.set({ state: "failed", error: (e as Error).message, waiting, tracks: null });
   }
@@ -295,10 +320,25 @@ export class SyncController implements SyncHandle {
   /** Sync now. `full` reads every table file again. Before the storage has opened (it failed, or waited for the user), it tries that again. */
   async run(full = false): Promise<void> {
     if (this.stopped) return;
-    // Without a token, wait for the user to sign in; edits stay queued meanwhile.
-    if (this.info.state === "permission" && !(await this.storage.ready(false))) {
-      this.set({ waiting: this.engine?.waiting ?? 0 });
+    // Nothing to try without the network: edits stay queued, and "online" runs this again.
+    if (this.offline()) {
+      this.set({ state: "offline", waiting: this.engine?.waiting ?? 0, tracks: null });
       return;
+    }
+    // Without a token, wait for the user to sign in; edits stay queued meanwhile. Asking Touchdown's server for one
+    // can fail like any request (no network), and says so as a sync would.
+    if (this.info.state === "permission") {
+      let ready = false;
+      try {
+        ready = await this.storage.ready(false);
+      } catch (e) {
+        this.failed(e);
+        return;
+      }
+      if (!ready) {
+        this.set({ waiting: this.engine?.waiting ?? 0 });
+        return;
+      }
     }
     if (!this.engine) return this.begin();
     this.set({ state: "syncing" });
@@ -326,7 +366,8 @@ export class SyncController implements SyncHandle {
 
   inbox(): StorageInbox | null {
     const b = this.backend;
-    if (!b || this.stopped || this.info.state === "permission") return null;
+    // Without access, or without the network, the inbox cannot be read: the page shows nothing waiting until it can.
+    if (!b || this.stopped || this.info.state === "permission" || this.info.state === "offline") return null;
     return inboxOf(b);
   }
 
@@ -390,7 +431,7 @@ export class TabSync implements SyncHandle {
     if (!info || this.stopped) return;
     this.info = info;
     if (info.state === "synced") this.isSynced.resolve();
-    if (info.tables || info.state === "permission" || info.state === "failed" || info.state === "update") this.tablesIn.resolve();
+    if (info.tables || waitsForSomething(info.state)) this.tablesIn.resolve();
     tell(this.listeners);
   }
 
@@ -426,7 +467,7 @@ export class TabSync implements SyncHandle {
   }
 
   inbox(): StorageInbox | null {
-    if (this.stopped || this.info.state === "permission") return null;
+    if (this.stopped || this.info.state === "permission" || this.info.state === "offline") return null;
     this.backend ??= new JsonTablesBackend(this.storage.files, "tab");
     return inboxOf(this.backend);
   }

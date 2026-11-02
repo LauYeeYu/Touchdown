@@ -53,6 +53,14 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, 
         : { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
     case "failed":
       return { text: "Not synced", title: `Could not sync with ${sync.place}: ${clause(sync.error)}.${last}`, icon: drive ? "cloud-alert" : "folder-x", bad: true };
+    case "offline":
+      // Not a fault: edits are kept here, and sync carries on by itself when the network returns.
+      return {
+        text: "Offline",
+        title: `No connection to ${sync.place}. ${sync.waiting > 0 ? `${plural(sync.waiting, "change is", "changes are")} saved in this browser and` : "Changes are saved in this browser and"} sent when the connection returns.${last}`,
+        icon: "wifi-off",
+        bad: false,
+      };
     case "update":
       return { text: "Reload to update", title: `A newer version of Touchdown has changed your log in ${sync.place}. Reload to update the app.${last}`, icon: "rotate-cw", bad: true };
     case "syncing":
@@ -255,6 +263,11 @@ export function Shell() {
           }
         >
           Your log could not be read from {sync.place}: {clause(sync.error)}. Touchdown tries again when the connection returns, and every few minutes.
+        </NoteBar>
+      )}
+      {sync && !sync.tables && sync.state === "offline" && (
+        <NoteBar icon="wifi-off" actions={null}>
+          Your log has not been read from {sync.place} yet, and there is no connection. It is read when the connection returns.
         </NoteBar>
       )}
       {sync?.state === "permission" && (

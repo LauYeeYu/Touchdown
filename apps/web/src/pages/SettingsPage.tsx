@@ -209,6 +209,14 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               </span>
             </p>
           )}
+          {sync.state === "offline" && (
+            <p className="status-line">
+              <Icon name="wifi-off" />
+              <span>
+                No connection to {sync.place}. {sync.waiting > 0 ? `${plural(sync.waiting, "change is", "changes are")} kept in this browser and sent` : "Your changes are kept in this browser and sent"} when the connection returns.
+              </span>
+            </p>
+          )}
           {sync.state === "update" && (
             <p className="status-line status-line--error">
               <Icon name="rotate-cw" />

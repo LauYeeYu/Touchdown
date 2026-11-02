@@ -17,7 +17,7 @@ export function EmptyLog() {
         <div className="view-top" />
         <h1 className="lead">Your log has not been read from {sync.place} yet.</h1>
         <p className="status-line">
-          <Icon name={sync.state === "syncing" ? "refresh-cw" : sync.adapter === "gdrive" ? "cloud-off" : "folder"} />
+          <Icon name={sync.state === "syncing" ? "refresh-cw" : sync.state === "offline" ? "wifi-off" : sync.adapter === "gdrive" ? "cloud-off" : "folder"} />
           <span>{sync.state === "syncing" ? "It is being read now, and shows here once it is in." : "It shows here once it is read. Until then, anything you add is kept in this browser and merged with it."}</span>
         </p>
       </div>
