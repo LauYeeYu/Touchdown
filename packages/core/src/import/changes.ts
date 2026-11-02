@@ -16,9 +16,9 @@ import { RULES, type Finding } from "../rules/types.ts";
 import { AIRFRAME_STATUSES, CABIN_CLASSES, FLIGHT_REASONS, PHASES, SEAT_POSITIONS, TABLES, TRACK_PROVIDERS, type Flight, type Row, type Settings, type Sighting, type TableName } from "../schema/tables.ts";
 import { isValidDate, isValidDateTime } from "../schema/validate.ts";
 import { Store, type Change } from "../store.ts";
-import { parseDateTime, toUtcIso, zonedDateTime } from "../time/index.ts";
+import { instant, parseClock, parseDateTime, toUtcIso, zonedDateTime, zonedInstants } from "../time/index.ts";
 import { phaseOf, readMapped, type ColumnField } from "./mapping.ts";
-import { buildFlightTimes } from "./times.ts";
+import { buildFlightTimes, firstClockAfter } from "./times.ts";
 import { phasesOf, setPhases } from "../phases.ts";
 import { withPrivate } from "../private.ts";
 import { undoImport } from "./pipeline.ts";
@@ -389,6 +389,20 @@ export function flightEdit(store: Store, ref: RefIndex, f: Flight, input: EditIn
         if (k === "class" && (v[s] ?? null) === null) continue;
         set[s] = (v[s] ?? null) as string | null;
       }
+    // A landing given without a takeoff is the first such clock time at the arrival airport after the flight's takeoff,
+    // else after its timetable departure, else from the start of its date (said in a note: it may be a day early).
+    const landingClock = input.landing?.trim() ?? "";
+    if (landingClock && !input.takeoff && !set.landingAt && parseClock(landingClock)) {
+      const from = ref.airport(("fromAirportId" in set ? set.fromAirportId : f.fromAirportId) as string | null);
+      const to = ref.airport(("toAirportId" in set ? set.toAirportId : f.toAirportId) as string | null);
+      const date = (set.scheduledDate as string | undefined) ?? f.scheduledDate ?? flightDay(f);
+      const kept = !("scheduledDate" in set) ? (instant(f.takeoffAt) ?? instant(f.departureScheduledAt)) : null;
+      const start = kept ?? (date && from?.tz ? (zonedInstants(date, "00:00", from.tz)[0] ?? null) : null);
+      if (start !== null && to?.tz) {
+        set.landingAt = firstClockAfter(start, landingClock, to.tz);
+        if (set.landingAt && kept === null) notes.push(`The flight has no takeoff or scheduled departure, so the landing at ${landingClock} is the first after the start of ${date} at ${from!.iata ?? from!.icao}.`);
+      }
+    }
     for (const k of ["boarding", "takeoff", "landing", "duration"]) if (input[k] && !set[FLIGHT_STORED[k as keyof typeof FLIGHT_STORED][0]!]) return { error: `${k} "${input[k]}" could not be read as a time on ${context.date ?? "the flight's date"}.` };
   }
   // The timetable's departure and arrival: clock times on the flight's date at its airports (the new ones where they

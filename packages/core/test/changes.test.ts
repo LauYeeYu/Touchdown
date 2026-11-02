@@ -88,6 +88,27 @@ describe("building a change from the fields add takes", () => {
     expect(cleared.change.clear).toEqual(["operatingAirlineId"]);
   });
 
+  it("reads a landing given without a takeoff after the flight's takeoff, its timetable departure or the start of its date", () => {
+    const { ref, store, flight } = aLog();
+    // After the takeoff kept in the log, 11:00 UTC: 14:05 in New York, on daylight time.
+    const kept = flightEdit(store, ref, flight, { landing: "14:05" });
+    if ("error" in kept) throw new Error(kept.error);
+    expect(kept.change.set).toEqual({ landingAt: "2025-03-14T14:05-04:00" });
+    expect(kept.notes).toEqual([]);
+    // No takeoff: after the timetable departure, here 21:30 in London, so the next morning in New York.
+    const timetabled = saveFlight(store, ref, { scheduledDate: "2025-03-14", flightNumber: "BA9003", airlineRaw: "BA", fromRaw: "LHR", toRaw: "JFK", departureScheduledAt: "2025-03-14T21:30+00:00" }).row;
+    const late = flightEdit(store, ref, timetabled, { landing: "00:20" });
+    if ("error" in late) throw new Error(late.error);
+    expect(late.change.set).toEqual({ landingAt: "2025-03-15T00:20-04:00" });
+    // Neither: from the start of the flight's date where it left, said in a note.
+    const bare = saveFlight(store, ref, { scheduledDate: "2025-03-14", flightNumber: "BA9005", airlineRaw: "BA", fromRaw: "LHR", toRaw: "JFK" }).row;
+    const day = flightEdit(store, ref, bare, { landing: "13:39" });
+    if ("error" in day) throw new Error(day.error);
+    expect(day.change.set).toEqual({ landingAt: "2025-03-14T13:39-04:00" });
+    expect(day.notes).toEqual([expect.stringMatching(/no takeoff or scheduled departure, so the landing at 13:39 is the first after the start of 2025-03-14 at LHR/)]);
+    expect(flightEdit(store, ref, bare, { landing: "half past one" })).toMatchObject({ error: expect.stringMatching(/landing "half past one" could not be read/) });
+  });
+
   it("changes a sighting's phase, time, tags and airline, and an aircraft's facts", () => {
     const { ref, store, sighting } = aLog();
     const r = sightingEdit(store, ref, sighting, { phase: "Taking off", time: "09:15", tags: "night, backlit", airline: "" });
