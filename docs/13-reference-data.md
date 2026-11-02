@@ -90,6 +90,21 @@ How an aircraft in the log gets its serial number (MSN), line number, first flig
 
 An exact first flight date for most aircraft therefore comes from the user at a browser, through the paste flow (Q-FIRST-FLIGHT).
 
+### airfleets.net pages
+
+The addresses below are for giving the user the right page to open in their own browser. The user reads it and pastes it into the paste flow. No program fetches them.
+
+| Page | Address | Shows |
+|------|---------|-------|
+| Aircraft | `https://www.airfleets.net/ficheapp/plane-<family>-<msn>.htm`, for example `plane-b737ng-12345.htm` | One aircraft's facts, its first flight date and age among them |
+| Search | `https://www.airfleets.net/recherche/?key=<registration>` | The aircraft that have carried a registration. The aircraft page's "Look it up" link opens this. |
+| Production list | `https://www.airfleets.net/listing/<family>-<page>.htm`, for example `b737-1.htm` | 50 aircraft a page in serial order from the first one built, with MSN, LN, Type, Airline, First flight, Registration and Status |
+| Airline fleet | `https://www.airfleets.net/flottecie/<Airline name>-active-<family>.htm`, spaces written `%20` | MSN, LN, Type, Registration, Delivery date and Remark. The delivery date is the airline's, not the factory's, so it is not a first flight. |
+
+**Family names.** The aircraft page and the production list name families differently: the 737NG's aircraft pages use `b737ng`, while the Boeing 737 production list, covering every generation from the 737-100, uses `b737`. The names for other families are not recorded yet (Open). Add each here when a page shows it, and do not guess one.
+
+**Dates.** airfleets writes dates day first, `dd/mm/yyyy`: `09/04/2012` is 9 April 2012, not 4 September. A month alone is `mm/yyyy` ("Parked since 03/2021"). The paste flow reads slashed dates day first unless the second number is over 12 (`parsePageDate` in `packages/core/src/identity/paste.ts`). When the day and the month are both 12 or under, the age shown on the aircraft page confirms the reading: the two readings give different ages.
+
 ### Checks before anything is stored
 
 A source answers for a registration, and registrations are reused. An answer is used only if it fits every record of the airframe; otherwise it is reported and nothing is stored.
