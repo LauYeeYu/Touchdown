@@ -146,7 +146,7 @@ function Drive() {
   return (
     <Frame title="Google Drive for the command line">
       <p>
-        The Touchdown command line on this computer asks for an hour's access to your Touchdown folder in Google Drive{account ? ` (${account})` : ""}, to read your log and add to its inbox.
+        The Touchdown command line on this computer asks for an hour's access to your Touchdown directory in Google Drive{account ? ` (${account})` : ""}, to read your log and add to its inbox.
       </p>
       <p>The access goes from this browser straight to the command line on this computer. It is not sent to Touchdown's server. When the hour is over, the command line opens this page again.</p>
       {error && <Problem text={error} />}

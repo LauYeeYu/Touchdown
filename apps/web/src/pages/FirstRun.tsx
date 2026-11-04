@@ -77,7 +77,7 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
     try {
       picked = await chooseStorage(storage);
     } catch (e) {
-      setError(`${storage === "gdrive" ? "Google Drive could not be connected" : "The folder could not be opened"}: ${(e as Error).message}`);
+      setError(`${storage === "gdrive" ? "Google Drive could not be connected" : "The directory could not be opened"}: ${(e as Error).message}`);
       setBusy(null);
       return;
     }

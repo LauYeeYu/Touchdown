@@ -30,7 +30,7 @@ export const standard = {
 export const STANDARD_ERRORS: Record<string, string> = {
   terms: "Accept the terms first.",
   cancelled: "Google Drive was not connected.",
-  "no-drive": "Google Drive was not connected: tick the box for Google Drive on Google's screen, so Touchdown can use its folder.",
+  "no-drive": "Google Drive was not connected: tick the box for Google Drive on Google's screen, so Touchdown can use its directory.",
   "no-key": "Google did not give Touchdown a lasting key. Try again.",
   expired: "Connecting took too long, or began in another browser. Try again.",
   failed: "Connecting Google Drive did not work. Try again.",

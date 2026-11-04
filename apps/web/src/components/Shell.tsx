@@ -50,7 +50,7 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, 
       if (sync.mode === "standard") return { text: "Reconnect Google Drive", title: `${sync.error ?? `Touchdown cannot reach ${sync.place}.`}${last}`, icon: "cloud-off", bad: true };
       return drive
         ? { text: "Sign in to sync", title: `Sign in to Google again to sync with ${sync.place}.${last}`, icon: "cloud-off", bad: true }
-        : { text: "Folder needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
+        : { text: "Directory needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
     case "failed":
       return { text: "Not synced", title: `Could not sync with ${sync.place}: ${clause(sync.error)}.${last}`, icon: drive ? "cloud-alert" : "folder-x", bad: true };
     case "offline":

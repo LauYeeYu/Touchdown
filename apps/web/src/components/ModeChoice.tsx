@@ -25,16 +25,16 @@ const MODES: Option<Mode>[] = [
 
 const STORAGES: Option<StorageKind>[] = [
   { value: "gdrive", icon: "cloud", name: "Google Drive", line: "Works on any device." },
-  { value: "localfs", icon: "folder", name: "A folder on this computer", line: "Put it in Dropbox, OneDrive or iCloud Drive to sync other computers." },
+  { value: "localfs", icon: "folder", name: "A directory on this computer", line: "Put it in Dropbox, OneDrive or iCloud Drive to sync other computers." },
 ];
 
 /** What each storage asks of the user, shown under the choice. */
 export const STORAGE_NOTE: Record<StorageKind, string> = {
-  gdrive: "Touchdown makes a Touchdown folder in your Google Drive and can only open the files it creates. Each sign-in lasts an hour, then sync waits until you sign in again.",
-  localfs: "Touchdown makes a Touchdown folder inside the folder you choose.",
+  gdrive: "Touchdown makes a Touchdown directory in your Google Drive and can only open the files it creates. Each sign-in lasts an hour, then sync waits until you sign in again.",
+  localfs: "Touchdown makes a Touchdown directory inside the directory you choose.",
 };
 
-export const STORAGE_BUTTON: Record<StorageKind, string> = { gdrive: "Connect Google Drive", localfs: "Choose a folder" };
+export const STORAGE_BUTTON: Record<StorageKind, string> = { gdrive: "Connect Google Drive", localfs: "Choose a directory" };
 
 /** A choice of cards; `unavailable` says why an option cannot be chosen here. */
 function Choice<T extends string>({ label, name, options, value, onChange, unavailable = {} }: { label: string; name: string; options: Option<T>[]; value: T; onChange: (v: T) => void; unavailable?: Partial<Record<T, string>> }) {

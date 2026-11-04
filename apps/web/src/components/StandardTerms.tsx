@@ -56,7 +56,7 @@ export function StandardTerms({
         <p>Read these terms before you go on. Standard mode starts only once you accept them.</p>
         <p>In Standard mode, Touchdown's server keeps a key to your Google Drive, so the links you share keep working while you are offline, your devices sync without asking you to sign in to Google every hour, and a new device picks up your log once you sign in to Touchdown.</p>
         <p>
-          <b>Files the server can open.</b> With the key, the server can open the files Touchdown created in your Google Drive (the Touchdown folder), not your other files. That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
+          <b>Files the server can open.</b> With the key, the server can open the files Touchdown created in your Google Drive (the Touchdown directory), not your other files. That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
         </p>
         <p>
           <b>Use of the key.</b> To give your own browser short-lived access for its sync, and to read the parts of your log a link you made shows, when someone opens that link. The server does not read, copy, analyse or keep your log for anything else.
