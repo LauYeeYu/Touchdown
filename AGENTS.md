@@ -14,6 +14,8 @@ The plan in `docs/` is approved. Phase 1 (core on real data) and phase 2 (web ap
 
 Start at `docs/README.md`. Docs are numbered from low level (data model) to high level (architecture, roadmap). Requirements have ids (G1, I3, ...) defined in `docs/00-requirements.md`; open questions have ids (Q-...) in `docs/90-open-questions.md`. Refer to them by id.
 
+When a feature is added or changed, check whether Getting started (`/guide`, `apps/web/src/pages/Guide.tsx`, docs/31) should mention it: a new user, such as an invited friend, learns the site from it. If it should, update the step's text and its diagram.
+
 ## Writing rules
 
 - Plain, direct prose. No mannered or decorative writing, no filler, no marketing tone.
