@@ -303,6 +303,23 @@ export function resolveConflict(store: Store, ref: RefIndex, id: string, use: "k
   });
 }
 
+/** When a flight was first written to a myFR24 file: an `external_ids` row, system `fr24`, this key. */
+export const FR24_EXPORTED_KEY = "exportedAt";
+
+/**
+ * Record that these flights were written to a myFR24 file (docs/21, "Exports"), so a later file of only the flights
+ * not in myFR24 leaves them out. A flight keeps the time of its first file.
+ */
+export function markMyFr24Export(store: Store, flightIds: string[], now = Date.now()): number {
+  const at = toUtcIso(now);
+  const marked = new Set(store.all("external_ids").filter((e) => e.ownerTable === "flights" && e.system === "fr24" && e.key === FR24_EXPORTED_KEY).map((e) => e.ownerId));
+  const todo = flightIds.filter((id) => !marked.has(id) && store.get("flights", id));
+  store.batch(() => {
+    for (const id of todo) store.insert("external_ids", { ownerTable: "flights", ownerId: id, system: "fr24", key: FR24_EXPORTED_KEY, value: at });
+  });
+  return todo.length;
+}
+
 /** Count a type in another family in the statistics, or (`familyId` null) in its own again. */
 export function setFamily(store: Store, designator: string, familyId: string | null) {
   store.batch(() => {
