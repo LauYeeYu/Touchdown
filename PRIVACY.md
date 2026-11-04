@@ -1,6 +1,6 @@
 # Touchdown privacy policy
 
-Effective 1 November 2026.
+Effective 4 November 2026.
 
 This policy covers the Touchdown website run from this repository by its owner, for people the owner invites. It says what the site keeps about you, where your log is, and what Touchdown does with data from Google.
 
@@ -42,13 +42,14 @@ The owner can see the list of members: names, email addresses, how each signs in
 
 ## Data from Google
 
-Touchdown uses Google in three ways, each only if you choose it:
+Touchdown uses Google in four ways, each only if you choose it:
 
 1. **Google Drive, to sync your log (Private mode).** Touchdown asks for the `drive.file` permission, which lets it see and change only the files it creates in your Drive (a Touchdown folder) or files you pick. It cannot see your other files. The access Google gives lasts an hour and stays in your browser. It is not sent to Touchdown's server. If you give it to Touchdown's command-line tools on your computer, your browser passes it to them directly, and they keep it on your computer until the hour is over.
 2. **Signing in with Google.** Touchdown asks for your Google account id and verified email address (the `openid` and `email` permissions). The server stores them to recognise your account. It does not keep any Google tokens for this.
 3. **Google Drive in Standard mode.** Touchdown asks Google for lasting access to the files it creates in your Drive (`drive.file`, with offline access), and keeps that key on the server, encrypted. It is used for your sync and for the links you share, as described below.
+4. **Exporting to Google Sheets.** When you ask for it in Settings, your browser puts your flights, sightings and aircraft in a new Google Sheet in your Drive, with the same `drive.file` permission: in Standard mode with the access the server gives your browser, in Private mode with your browser's own sign-in, and otherwise with an hour's access from Google's sign-in for that one export, which stays in your browser. The tables go from your browser to Google. Touchdown's server does not receive them.
 
-Touchdown's use and transfer of information received from Google APIs adheres to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements. Data from Google is used only to sync your own log, to show the links you share to the people you send them to, and to sign you in. It is not used for advertising, not sold, not shared with anyone, and not used to train AI models. No person reads it, except where you ask for help with your own data or the law requires it.
+Touchdown's use and transfer of information received from Google APIs adheres to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements. Data from Google is used only to sync your own log, to show the links you share to the people you send them to, to put the Google Sheets you ask for in your Drive, and to sign you in. It is not used for advertising, not sold, not shared with anyone, and not used to train AI models. No person reads it, except where you ask for help with your own data or the law requires it.
 
 You can remove Touchdown's access at any time in your Google account, under Security → Your connections to third-party apps.
 
@@ -75,7 +76,7 @@ In Standard mode you can share a link to a flight, a sighting, an aircraft or yo
 ## Other services your browser contacts
 
 - **planespotters.net**, for reference photos of aircraft: your browser sends the registration of the aircraft whose page you open.
-- **Google**, as above: when Google Drive is selected as your storage (the page then loads Google's sign-in), when you use Google Drive, and when you sign in with Google.
+- **Google**, as above: when Google Drive is selected as your storage (the page then loads Google's sign-in), when you use Google Drive, when you export to Google Sheets, and when you sign in with Google.
 - **Cloudflare Web Analytics**, on every page except a share link's page, as described under Analytics.
 
 ## Analytics

@@ -3,13 +3,13 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { backupZip, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
+import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
 import { myFr24Csv, myFr24Flights } from "@touchdown/core/view";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
-import { loadGoogle } from "../data/google.ts";
+import { loadGoogle, SignInCancelled } from "../data/google.ts";
 import { momentLabel, nf, plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
@@ -23,6 +23,7 @@ import { connectStandard, FOLDERS_ONLY_HERE, STANDARD_UNAVAILABLE, takeStandardE
 import { standard, type StandardStatus } from "../data/standard.ts";
 import { StandardTerms } from "../components/StandardTerms.tsx";
 import { useShares } from "../data/shares.ts";
+import { saveAsGoogleSheet, type MadeSheet } from "../data/sheets.ts";
 
 const LEAVE_STANDARD = "Leaving Standard revokes Touchdown's key to your Google Drive and deletes it from the server. Your log in Google Drive is left as it is. Continue?";
 
@@ -285,6 +286,7 @@ export function SettingsPage() {
   const s = app.settings();
   const [includePrivate, setIncludePrivate] = useState(false);
   const [onlyNewFr24, setOnlyNewFr24] = useState(true);
+  const [sheet, setSheet] = useState<{ busy: boolean; made: MadeSheet | null }>({ busy: false, made: null });
   const [designator, setDesignator] = useState("");
   const [family, setFamily] = useState("");
   const [sources, setSources] = useState<string[]>([]);
@@ -323,6 +325,25 @@ export function SettingsPage() {
   };
 
   const fr24Flights = myFr24Flights(store, onlyNewFr24);
+
+  /** The tables as one Google Sheet in the user's Google Drive (docs/21, "Exports"). */
+  const toGoogleSheets = async () => {
+    setSheet({ busy: true, made: null });
+    try {
+      const tabs: [string, "flights" | "sightings" | "airframes"][] = [
+        ["Flights", "flights"],
+        ["Sightings", "sightings"],
+        ["Aircraft", "airframes"],
+      ];
+      const workbook = writeXlsx(tabs.map(([name, t]) => ({ name, rows: tableRows(store, t, includePrivate) as XlsxCell[][] })));
+      const made = await saveAsGoogleSheet(app.connection, `Touchdown ${todayIn()}`, workbook);
+      setSheet({ busy: false, made });
+      toast(`${made.name} is in your Google Drive.`);
+    } catch (e) {
+      setSheet({ busy: false, made: null });
+      if (!(e instanceof SignInCancelled)) toast(`The Google Sheet could not be made: ${(e as Error).message}`);
+    }
+  };
 
   return (
     <div className="page page--form">
@@ -413,6 +434,19 @@ export function SettingsPage() {
           Include private fields (ticket number, booking reference)
         </label>
       </div>
+      <div className="button-row">
+        <button type="button" className="btn btn--quiet btn--small" disabled={sheet.busy} onClick={() => void toGoogleSheets()}>
+          <Icon name={sheet.busy ? "loader-circle" : "table"} />
+          {sheet.busy ? "Making the Google Sheet…" : "Flights, sightings and aircraft to Google Sheets"}
+        </button>
+        {sheet.made && (
+          <a className="link-btn" href={sheet.made.url} target="_blank" rel="noopener">
+            Open {sheet.made.name}
+            <Icon name="external-link" />
+          </a>
+        )}
+      </div>
+      <p className="form-sub">The Google Sheet goes to your Google Drive, a tab for each table. Private fields go in only when ticked above.</p>
       <div className="button-row">
         <button
           type="button"
