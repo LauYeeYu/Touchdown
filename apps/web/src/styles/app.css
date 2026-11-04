@@ -3203,37 +3203,692 @@ a.wordmark {
   margin-top: 24px;
 }
 
-/* Getting started (pages/Guide.tsx): reading text at a comfortable measure, lists set in from the margin. */
-.guide p,
-.guide li {
-  max-width: 68ch;
+/* Getting started (pages/Guide.tsx): each step's text beside its diagram (5:7, 48px apart, as the layout's splits
+   are), the steps divided by hairlines. On a phone the diagram follows its text. */
+.guide__intro {
+  max-width: 40em;
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.guide-step {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 48px;
+  align-items: start;
+  margin-top: 40px;
+  padding-top: 40px;
+  border-top: 1px solid var(--rule);
+}
+
+.guide-step__title {
+  margin: 0 0 12px;
+  font-size: 1.375rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.guide-step__text p {
+  margin: 0 0 10px;
   line-height: 1.55;
 }
 
-.guide p {
-  margin: 0 0 10px;
+.guide-step__text > :last-child {
+  margin-bottom: 0;
 }
 
-.guide ul,
-.guide ol {
-  margin: 8px 0 0;
-  padding-left: 1.4em;
+.guide__steps,
+.guide__points {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.3em;
+  line-height: 1.55;
 }
 
-.guide li + li {
-  margin-top: 8px;
-}
-
-.guide li::marker {
+.guide__steps li::marker {
   color: var(--ink-3);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
-.guide a .icon {
+.guide__points li::marker {
+  color: var(--ink-3);
+}
+
+.guide-step__text a .icon {
   width: 14px;
   height: 14px;
   margin-left: 3px;
   vertical-align: -2px;
+}
+
+@media (max-width: 720px) {
+  .guide-step {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    margin-top: 32px;
+    padding-top: 32px;
+  }
+
+  .guide-step__title {
+    font-size: 1.25rem;
+  }
+}
+
+/* A step's diagram: a tonal panel of boxes (an icon, a name, a line under it) joined by arrows. Its own width decides
+   whether a row of boxes runs across or down. */
+.gfig {
+  container-type: inline-size;
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--surface-low);
+  color: var(--ink-2);
+  font-size: 0.875rem;
+}
+
+.gnode {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 14px 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-high);
+}
+
+.gnode > .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-2);
+}
+
+.gnode--strong {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.gnode--strong > .icon {
+  color: var(--ink);
+}
+
+.gnode__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.gnode__label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.gnode__sub {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+/* The step a box stands for, numbered as in the text beside it. */
+.gnode__n {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink-2);
+  color: var(--paper);
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.garrow {
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--ink-3);
+}
+
+.garrow .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.garrow__label {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.gflow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gflow__part {
+  display: contents;
+}
+
+/* A flow of several steps: boxes of equal width with the icon over the words, in a column when the panel is narrow. */
+.gflow--wide {
+  align-items: stretch;
+}
+
+.gflow--wide > .gnode {
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+}
+
+.gflow--wide > .garrow {
+  align-self: center;
+}
+
+@container (max-width: 540px) {
+  .gflow--wide {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .gflow--wide > .gnode {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px 10px 12px;
+  }
+
+  .gflow--wide > .garrow {
+    flex-direction: row;
+    gap: 8px;
+    align-self: flex-start;
+    margin-left: 22px;
+  }
+
+  .gflow--wide > .garrow .icon {
+    transform: rotate(90deg);
+  }
+}
+
+@container (max-width: 400px) {
+  .gflow:not(.gflow--wide) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .gflow:not(.gflow--wide) .garrow {
+    margin-left: 22px;
+  }
+
+  .gflow:not(.gflow--wide) .garrow .icon {
+    transform: rotate(90deg);
+  }
+}
+
+/* Modes side by side: a row a question, a column a mode, the selected mode's column in the selection container. A
+   "No" is muted. Below 460px of panel the modes are listed one under another. */
+.gcmp {
+  width: calc(100% + 16px);
+  margin: -8px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.gcmp th,
+.gcmp td {
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.gcmp tbody th {
+  width: 34%;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.gcmp tbody tr + tr > * {
+  border-top: 1px solid var(--rule);
+}
+
+.gcmp thead th {
+  padding-top: 12px;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.gcmp thead th .gpill {
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.gcmp .is-current {
+  background: var(--selected-container);
+}
+
+.gcmp thead .is-current {
+  border-radius: 14px 14px 0 0;
+  color: var(--on-selected-container);
+}
+
+.gcmp tbody tr:last-child .is-current {
+  border-radius: 0 0 14px 14px;
+}
+
+.gcmp tbody tr + tr > .is-current {
+  border-top-color: color-mix(in srgb, var(--on-selected-container) 12%, transparent);
+}
+
+.gcmp td,
+.gcmp-list dd {
+  color: var(--ink);
+}
+
+.gcmp__no {
+  color: var(--ink-3);
+}
+
+/* On the selection container, muted text is its own ink faded, which keeps 4.5:1 in both themes. */
+.gcmp .is-current,
+.gcmp-list__mode.is-current dd {
+  color: var(--on-selected-container);
+}
+
+.is-current .gcmp__no {
+  color: color-mix(in srgb, var(--on-selected-container) 70%, transparent);
+}
+
+.gcmp-list {
+  display: none;
+}
+
+@container (max-width: 460px) {
+  .gcmp {
+    display: none;
+  }
+
+  .gcmp-list {
+    display: grid;
+    gap: 6px;
+    margin: -8px;
+  }
+
+  .gcmp-list__mode {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
+
+  .gcmp-list__mode.is-current {
+    background: var(--selected-container);
+  }
+
+  .gcmp-list__name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9375rem;
+    font-weight: 650;
+    color: var(--ink);
+  }
+
+  .gcmp-list__mode > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .gcmp-list dt {
+    color: var(--ink-2);
+  }
+
+  .gcmp-list dd {
+    margin: 0;
+  }
+}
+
+.gpill {
+  padding: 1px 8px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--rule-hover);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* A note under a diagram: short lines with a small icon. */
+.gnote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.gnote > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gnote .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* A spreadsheet's columns as Import's column step reads them: the header over a sample, the field it holds. */
+.gcols {
+  display: grid;
+  gap: 4px;
+  margin: -6px -10px;
+}
+
+.gcols__row {
+  display: grid;
+  grid-template-columns: minmax(0, 9em) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.gcols__row.is-unclear {
+  background: var(--surface-high);
+}
+
+.gcols__head {
+  display: grid;
+  line-height: 1.3;
+}
+
+.gcols__head b {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.gcols__head span {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.gcols__field {
+  justify-self: start;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--field);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  color: var(--ink);
+}
+
+.gcols__ask {
+  color: var(--ink-2);
+}
+
+/* The Add menu as the + button opens it. */
+.gadd {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.gadd__button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--state-press);
+  color: var(--ink);
+}
+
+.gadd__button .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.gadd__menu {
+  display: grid;
+  width: min(100%, 340px);
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--surface-mid);
+  box-shadow: var(--shadow-2);
+}
+
+.gadd__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 10px;
+}
+
+.gadd__item > .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-2);
+}
+
+/* A route as the flight map draws it: the great circle dashed in rule-strong, the recorded track in gold. */
+.gtrack {
+  display: grid;
+  gap: 16px;
+}
+
+.gtrack__map {
+  position: relative;
+}
+
+.gtrack__map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.gtrack__gc {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.gtrack__halo {
+  fill: none;
+  stroke: var(--surface-low);
+  stroke-width: 7;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.gtrack__line {
+  fill: none;
+  stroke: var(--flown);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.gtrack__ap {
+  fill: var(--ink);
+  stroke: var(--surface-low);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.gtrack__code {
+  position: absolute;
+  top: calc(110 / 150 * 100% + 14px);
+  transform: translateX(-50%);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.glegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.glegend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.glegend__track,
+.glegend__gc {
+  display: inline-block;
+  width: 18px;
+}
+
+.glegend__track {
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--flown);
+}
+
+.glegend__gc {
+  border-top: 1.5px dashed var(--rule-strong);
+}
+
+/* A finding as Issues shows it: an error on the alert wash, its suggested fix under the message. */
+.gfinding {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--alert-wash);
+  font-size: 0.9375rem;
+}
+
+.gfinding > .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--alert);
+}
+
+.gfinding__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gfinding__rule {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.gfinding__text {
+  color: var(--ink);
+}
+
+.gfinding__fix {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--rule-hover);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.gfinding__fix .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.gshare {
+  display: grid;
+  gap: 16px;
+}
+
+
+/* Settings › Data and what it makes: the four files on a bracket. */
+.gfan {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gfan__outs {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding-left: 16px;
+  border-left: 1.5px solid var(--rule-strong);
+}
+
+.gfan__out {
+  position: relative;
+  display: flex;
+}
+
+.gfan__out::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -16px;
+  width: 12px;
+  border-top: 1.5px solid var(--rule-strong);
+}
+
+.gfan__out > .gnode {
+  flex: 1;
+}
+
+@container (max-width: 460px) {
+  .gfan {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .gfan > .garrow .icon {
+    transform: rotate(90deg);
+  }
+
+  .gfan > .garrow {
+    margin-left: 22px;
+  }
+
+  .gfan__outs {
+    align-self: stretch;
+    margin-left: 30px;
+  }
 }
 
 .form-section {
