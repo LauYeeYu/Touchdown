@@ -3203,6 +3203,39 @@ a.wordmark {
   margin-top: 24px;
 }
 
+/* Getting started (pages/Guide.tsx): reading text at a comfortable measure, lists set in from the margin. */
+.guide p,
+.guide li {
+  max-width: 68ch;
+  line-height: 1.55;
+}
+
+.guide p {
+  margin: 0 0 10px;
+}
+
+.guide ul,
+.guide ol {
+  margin: 8px 0 0;
+  padding-left: 1.4em;
+}
+
+.guide li + li {
+  margin-top: 8px;
+}
+
+.guide li::marker {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.guide a .icon {
+  width: 14px;
+  height: 14px;
+  margin-left: 3px;
+  vertical-align: -2px;
+}
+
 .form-section {
   margin: 36px 0 6px;
   font-size: 1.125rem;

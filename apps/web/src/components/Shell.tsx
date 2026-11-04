@@ -241,6 +241,7 @@ export function Shell() {
                 // Share links are a Standard-mode feature (docs/32).
                 ...(app.connection?.mode === "standard" ? [{ label: "Shared links", icon: <Icon name="link" />, onSelect: () => navigate({ to: "/shares" }) }] : []),
                 { label: "Settings", icon: <Icon name="settings" />, onSelect: () => navigate({ to: "/settings" }) },
+                { label: "Getting started", icon: <Icon name="circle-help" />, onSelect: () => navigate({ to: "/guide" }) },
               ]}
             >
               <Icon name="ellipsis" />

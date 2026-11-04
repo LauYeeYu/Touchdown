@@ -51,6 +51,12 @@ export function EmptyLog() {
         </Link>
       </div>
       <p className="status-line">
+        <Icon name="circle-help" />
+        <span>
+          <Link to="/guide">Getting started</Link> goes through the modes, bringing in your myFR24 flights, tracks and sharing.
+        </span>
+      </p>
+      <p className="status-line">
         <Icon name="hard-drive" />
         <span>{c && c.mode !== "local" ? `Anything you add is saved in this browser and synced through ${c.name}.` : "Your data stays in this browser. Export a backup from Settings at any time."}</span>
       </p>

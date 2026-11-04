@@ -349,6 +349,9 @@ export function SettingsPage() {
     <div className="page page--form">
       <div className="view-top" />
       <h1 className="form-title">Settings</h1>
+      <p className="form-sub">
+        <Link to="/guide">Getting started</Link> explains the modes and the first steps.
+      </p>
 
       <AccountSection app={app} />
 
