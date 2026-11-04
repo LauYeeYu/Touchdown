@@ -1,10 +1,10 @@
 // Stats (docs/24-statistics.md): the period on a globe, then flights, sightings and both together, and a custom
 // view (a pivot) of any one or two dimensions by one measure. Every number says what it left out.
 
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { AGE_TODAY_NOTE, ageLeftOutText, ageText, aircraftAges, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
-import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, todayIn, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext } from "@touchdown/core";
+import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
@@ -24,6 +24,7 @@ import { GlobePanel } from "../components/GlobePanel.tsx";
 import { CustomView } from "../components/CustomView.tsx";
 import { Select } from "../components/Select.tsx";
 import { useViewState } from "../lib/viewState.ts";
+import { TrackLoading, TrackLoadingNote } from "../lib/trackLoading.tsx";
 
 type Tab = "flights" | "sightings" | "both" | "pivot";
 
@@ -45,6 +46,7 @@ export function Stats() {
   const [extensionSort, setExtensionSort] = useViewState<ExtensionSort>("extensionSort", "extra");
   const [ageOrder, setAgeOrder] = useViewState<AgeOrder>("ageOrder", "oldest");
   const navigate = useNavigate();
+  const tracksLoading = useContext(TrackLoading);
 
   const data = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
@@ -75,13 +77,17 @@ export function Stats() {
   }, [store, ref, version, year, unit, airline, sightings]);
   const recorded = globe.marks.filter((f) => f.track).length;
 
-  // The distance the period's flights flew beyond the great circle, from their recorded tracks.
+  // The distance the period's flights flew beyond the great circle, from their recorded tracks. While some of their
+  // tracks are still loading (a share link's requests, or sync on a new device), the section keeps its place and
+  // size and fills in once, when they are all in, instead of growing and reordering as each arrives.
   const extension = useMemo(() => {
-    const ext = routeExtensions(store, ref, flights);
     const views = new Map(sortedFlights(store, ref).map((v) => [v.f.id, v]));
-    return { flights: [...ext.values()].sort((a, b) => b.percent - a.percent), byRoute: routeExtensionByRoute(flights, ext, ref), views };
+    const wait = tracksLoading ? trackWait(store, flights, views) : null;
+    if (wait) return { flights: [], byRoute: [], views, wait };
+    const ext = routeExtensions(store, ref, flights);
+    return { flights: [...ext.values()].sort((a, b) => b.percent - a.percent), byRoute: routeExtensionByRoute(flights, ext, ref), views, wait };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store, ref, version, flights]);
+  }, [store, ref, version, flights, tracksLoading]);
 
   // Each aircraft's age when the period's flights were on it, and now (docs/24, "Aircraft age").
   const ages = useMemo(() => aircraftAges(flights, ctx.airframes, todayIn()), [flights, ctx]);
@@ -155,7 +161,7 @@ export function Stats() {
             <Ranked title="Seat position" t={fs.seatPositions} label={(k) => k[0]!.toUpperCase() + k.slice(1)} unit={["flight", "flights"]} missing="seat position" />
             <Ranked title="Cabin" t={fs.cabinClasses} label={(k) => CABIN_LABEL[k] ?? k} unit={["flight", "flights"]} missing="cabin" />
           </div>
-          {extension.flights.length > 0 && (
+          {(extension.flights.length > 0 || extension.wait) && (
             <section className="section" aria-labelledby="extension-title">
               <div className="section__head section__head--wrap">
                 <span className="titled">
@@ -165,7 +171,7 @@ export function Stats() {
                   <HelpTip
                     label="About route extension"
                     text={`The distance each flight flew beyond the great circle between its airports. A track that has a gap or does not reach an airport counts that stretch as the great circle, so its figure is a minimum, marked "at least".${
-                      extension.flights.length < flights.length ? ` Shown for ${nf.format(extension.flights.length)} of ${plural(flights.length, "flight")} with a recorded track.` : ""
+                      !extension.wait && extension.flights.length < flights.length ? ` Shown for ${nf.format(extension.flights.length)} of ${plural(flights.length, "flight")} with a recorded track.` : ""
                     }`}
                   />
                 </span>
@@ -183,10 +189,14 @@ export function Stats() {
                   </div>
                 </div>
               </div>
-              <div className="extension-grid">
-                <MostIndirect rows={byExtension(extension.flights, extensionSort)} views={extension.views} unit={unit} sort={extensionSort} onSort={setExtensionSort} />
-                {extension.byRoute.length > 0 && <ExtensionByRoute rows={byExtension(extension.byRoute, extensionSort)} label={(k) => routeCodes(k, ref)} unit={unit} sort={extensionSort} onSort={setExtensionSort} />}
-              </div>
+              {extension.wait ? (
+                <ExtensionWaiting wait={extension.wait} />
+              ) : (
+                <div className="extension-grid">
+                  <MostIndirect rows={byExtension(extension.flights, extensionSort)} views={extension.views} unit={unit} sort={extensionSort} onSort={setExtensionSort} />
+                  {extension.byRoute.length > 0 && <ExtensionByRoute rows={byExtension(extension.byRoute, extensionSort)} label={(k) => routeCodes(k, ref)} unit={unit} sort={extensionSort} onSort={setExtensionSort} />}
+                </div>
+              )}
             </section>
           )}
           {ages.whenFlown.length > 0 && (
@@ -426,6 +436,101 @@ function ExtensionByRoute({ rows, label, unit, sort, onSort }: { rows: RouteExte
 }
 
 type FlightViews = Map<string, ReturnType<typeof sortedFlights>[number]>;
+
+/** The period's flights with a recorded track while some of those tracks are still loading, and the rows to keep room for. */
+interface TrackWait {
+  /** Flights with a recorded track, and how many of those are in. */
+  total: number;
+  done: number;
+  /** Rows the two tables will have at most: up to ten flights, and up to ten routes flown more than once. */
+  flightRows: number;
+  routeRows: number;
+}
+
+/** Null when none of the period's recorded tracks is still to come. */
+function trackWait(store: Store, flights: Flight[], views: FlightViews): TrackWait | null {
+  const inPeriod = new Set(flights.map((f) => f.id));
+  const flightOf = new Map(store.all("tracks").filter((t) => inPeriod.has(t.flightId)).map((t) => [t.id, t.flightId]));
+  if (!flightOf.size) return null;
+  const here = new Set<string>();
+  for (const p of store.all("track_points")) {
+    const f = flightOf.get(p.trackId);
+    if (f) here.add(f);
+  }
+  const recorded = new Set(flightOf.values());
+  if (here.size >= recorded.size) return null;
+  const perRoute = new Map<string, number>();
+  for (const id of recorded) {
+    const route = views.get(id)?.route;
+    if (route) perRoute.set(route, (perRoute.get(route) ?? 0) + 1);
+  }
+  const routes = [...perRoute.values()].filter((n) => n > 1).length;
+  return { total: recorded.size, done: here.size, flightRows: Math.min(10, recorded.size), routeRows: Math.min(10, routes) };
+}
+
+/** Bars in place of a row's figures, as many rows as the tables will have, with the loading note over them. */
+function ExtensionWaiting({ wait }: { wait: TrackWait }) {
+  const bar = (w: string) => <span className="skeleton-bar" style={{ width: w }} />;
+  return (
+    <div className="extension-grid extension-wait" aria-busy="true">
+      <TrackLoadingNote waiting={wait.total - wait.done} total={wait.total} />
+      <div aria-hidden="true">
+        <h3 className="ranked__title">Most indirect flights</h3>
+        <table className="table table--fixed">
+          <thead>
+            <tr>
+              <th>Flight</th>
+              <th className="col-route">Route</th>
+              <th className="num col-ext">Extension</th>
+              <th className="num col-extra">Extra</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: wait.flightRows }, (_, i) => (
+              <tr key={i}>
+                <td>
+                  {bar("70%")}
+                  <span className="extension-sub">{bar("40%")}</span>
+                </td>
+                <td className="col-route">{bar("75%")}</td>
+                <td className="num">{bar("60%")}</td>
+                <td className="num">{bar("60%")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {wait.routeRows > 0 && (
+        <div aria-hidden="true">
+          <h3 className="ranked__title">By route</h3>
+          <table className="table table--fixed">
+            <thead>
+              <tr>
+                <th>Route</th>
+                <th className="num col-count">Flights</th>
+                <th className="num col-ext">Extension</th>
+                <th className="num col-extra">Extra</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: wait.routeRows }, (_, i) => (
+                <tr key={i}>
+                  <td className="extension-route">
+                    {bar("75%")}
+                    <span className="extension-sub">{bar("35%")}</span>
+                  </td>
+                  <td className="num col-count">{bar("40%")}</td>
+                  <td className="num">{bar("60%")}</td>
+                  <td className="num">{bar("60%")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** What the section measures, and for how many of the period's flights. */
 function ageHelp(ages: AircraftAges, flights: number): string {

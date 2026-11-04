@@ -4251,6 +4251,33 @@ a.wordmark {
   color: var(--ink);
 }
 
+/* Route extension while its tracks load: the tables' rows as bars, the loading note over their middle. */
+.extension-wait {
+  position: relative;
+}
+
+.extension-wait .track-loading {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.skeleton-bar {
+  display: inline-block;
+  height: 0.75em;
+  border-radius: 4px;
+  vertical-align: middle;
+  background: linear-gradient(100deg, var(--paper-3) 30%, var(--shimmer) 50%, var(--paper-3) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar {
+    animation: none;
+  }
+}
+
 /* The section's sort switch: "Sort by" and the two choices, at the head's end. */
 .section__head--wrap {
   flex-wrap: wrap;
