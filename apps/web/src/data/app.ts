@@ -25,6 +25,7 @@ import {
   saveSighting,
   saveSightings,
   setFamily,
+  markMyFr24Export,
   saveView,
   removeView,
   type SavedView,
@@ -833,6 +834,11 @@ export class AppData {
 
   setFamily(designator: string, familyId: string | null) {
     setFamily(this.store, designator, familyId);
+  }
+
+  /** Record that these flights went into a myFR24 file (docs/21, "Exports"). */
+  markMyFr24Export(flightIds: string[]): number {
+    return markMyFr24Export(this.store, flightIds);
   }
 
   saveView(v: SavedView) {

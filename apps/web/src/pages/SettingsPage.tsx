@@ -4,6 +4,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, todayIn, toUtcIso, type Settings } from "@touchdown/core";
+import { myFr24Csv, myFr24Flights } from "@touchdown/core/view";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
@@ -283,6 +284,7 @@ export function SettingsPage() {
   const { store, ref } = app;
   const s = app.settings();
   const [includePrivate, setIncludePrivate] = useState(false);
+  const [onlyNewFr24, setOnlyNewFr24] = useState(true);
   const [designator, setDesignator] = useState("");
   const [family, setFamily] = useState("");
   const [sources, setSources] = useState<string[]>([]);
@@ -319,6 +321,8 @@ export function SettingsPage() {
     await app.replaceAll(back.tables);
     location.reload();
   };
+
+  const fr24Flights = myFr24Flights(store, onlyNewFr24);
 
   return (
     <div className="page page--form">
@@ -409,6 +413,26 @@ export function SettingsPage() {
           Include private fields (ticket number, booking reference)
         </label>
       </div>
+      <div className="button-row">
+        <button
+          type="button"
+          className="btn btn--quiet btn--small"
+          disabled={!fr24Flights.length}
+          onClick={() => {
+            download(`flightdiary-touchdown-${todayIn()}.csv`, myFr24Csv(store, ref, fr24Flights), "text/csv");
+            app.markMyFr24Export(fr24Flights.map((f) => f.id));
+            toast(`${plural(fr24Flights.length, "flight")} in the file. Import it on my.flightradar24.com, under Settings › Import.`);
+          }}
+        >
+          <Icon name="download" />
+          {fr24Flights.length ? `${plural(fr24Flights.length, "flight")} for myFR24 (CSV)` : "No flights to add to myFR24"}
+        </button>
+        <label className="check">
+          <input type="checkbox" checked={onlyNewFr24} onChange={(e) => setOnlyNewFr24(e.target.checked)} />
+          Only flights not in myFR24 yet
+        </label>
+      </div>
+      <p className="form-sub">A file in the columns of my.flightradar24.com's own export, for its import. Flights imported from myFR24 and flights in an earlier file count as in it already.</p>
       <div className="button-row">
         <button
           type="button"
