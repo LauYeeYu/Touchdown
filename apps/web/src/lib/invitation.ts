@@ -1,5 +1,6 @@
-// The message an owner sends with an invitation link (docs/33, "Invitations"): the link, and a short start with the
-// command line and an agent, so the person invited can begin on their own.
+// The message an owner sends with an invitation link (docs/33, "Invitations"): what Touchdown is, the link and when it
+// ends, and where to read about adding records from a computer. The command line's steps are in the README, so the
+// message stays short for someone who only uses the site.
 
 import { SOURCE_REPOSITORY } from "../config.ts";
 
@@ -11,11 +12,6 @@ export function invitationMessage(link: string, until: string): string {
     `Join here: ${link}`,
     `The link works once, until ${until}. There you choose how you sign in (a password or your Google account), then where your log is kept.`,
     "",
-    "To add records from your computer, by typing or with an agent such as Claude Code or Codex:",
-    `1. With Node.js 22 or later: git clone ${SOURCE_REPOSITORY} && cd Touchdown && npm install`,
-    "2. ./touchdown login, and allow it in your browser.",
-    "3. ./touchdown storage drive (or ./touchdown storage folder PATH if your log syncs through a folder).",
-    '4. Type sightings with ./touchdown spot, or ask your agent: "Read ./touchdown add --help, then add these to my Touchdown log with ./touchdown add."',
-    "Anything you add waits in Touchdown until you review and import it. On Windows, type npm run touchdown -- instead of ./touchdown.",
+    `To add records from your computer, with the command line or an agent such as Claude Code or Codex, see ${SOURCE_REPOSITORY}#readme.`,
   ].join("\n");
 }
