@@ -34,6 +34,7 @@ export * from "./import/changes.ts";
 export * from "./import/review.ts";
 export * from "./jsontables.ts";
 export * from "./backup.ts";
+export * from "./xlsx.ts";
 export * from "./edit.ts";
 export * from "./tracks.ts";
 export * from "./agent/check.ts";

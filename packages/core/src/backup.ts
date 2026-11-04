@@ -79,19 +79,24 @@ export function csvCell(v: unknown): string {
 }
 
 /**
- * One table as CSV. Private fields only when asked for: a flight's come from its private row (docs/32, "Private
- * data"). Tombstones are left out.
+ * One table as rows of values, its column names first. Private fields only when asked for: a flight's come from its
+ * private row (docs/32, "Private data"). Tombstones are left out.
  */
-export function tableCsv(store: Store, table: TableName, includePrivate = false): string {
+export function tableRows(store: Store, table: TableName, includePrivate = false): unknown[][] {
   const cols = allColumns(TABLES[table])
     .map((c) => c.name)
     .filter((c) => includePrivate || !PRIVATE_FIELDS.includes(`${table}.${c}`))
     .filter((c) => c !== "deleted" && c !== "basedOn" && c !== "versionVector");
-  const lines = [cols.join(",")];
+  const rows: unknown[][] = [cols];
   const priv = table === "flights" && includePrivate ? privateIndex(store) : null;
   for (const r of store.all(table)) {
     const row = priv ? { ...r, ...priv.get(r.id) } : r;
-    lines.push(cols.map((c) => csvCell((row as Record<string, unknown>)[c])).join(","));
+    rows.push(cols.map((c) => (row as Record<string, unknown>)[c]));
   }
-  return lines.join("\r\n") + "\r\n";
+  return rows;
+}
+
+/** One table as CSV (tableRows). */
+export function tableCsv(store: Store, table: TableName, includePrivate = false): string {
+  return tableRows(store, table, includePrivate).map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }
