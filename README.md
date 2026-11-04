@@ -41,7 +41,7 @@ npm run dev -w @touchdown/web     # http://127.0.0.1:5173
 | `./touchdown flights`, `stats`, `issues`, … | Your log as the web app shows it: also `flight REF`, `sightings`, `sessions`, `aircraft`, `airport CODE`, `imports`. `--json` for agents. |
 | `./touchdown edit REF --set seat=14A`, `delete`, `undo`, … | Change your log: also `aircraft edit` and `merge`, `issues accept`, `reopen` and `fix`, `families`, `settings`. Each change waits in the inbox until you review and import it, on the Import page or with `./touchdown review`. |
 | `./touchdown check FILE` | Have the agent check a spreadsheet, or a request saved from the Import page. |
-| `./touchdown backup`, `export flights` | Download a backup of your log, or a table as CSV, as Settings does. |
+| `./touchdown backup`, `export flights`, `export myfr24` | Download a backup of your log, a table as CSV, or a file of your flights for my.flightradar24.com's import, as Settings does. |
 | `./touchdown import FILES… --out FILE.zip` | Read files and write a backup from them alone, to restore in Settings (with `--airframes`, serial numbers and first flights). |
 | `./touchdown airframes` | Look up serial numbers and first flight dates for your aircraft; they wait in the inbox for review. With `BACKUP.zip`, fill a backup file instead. |
 | `./touchdown agent [claude \| codex \| none]` | Choose the agent, its rules, and whether notes are sent. |

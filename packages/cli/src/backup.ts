@@ -6,7 +6,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { backupZip, RefIndex, tableCsv, todayIn, type TableName } from "@touchdown/core";
-import { missingTracksCsv } from "@touchdown/core/view";
+import { missingTracksCsv, myFr24Csv, myFr24Flights } from "@touchdown/core/view";
 import { loadRefTables } from "@touchdown/refdata";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, printJson } from "./read.ts";
@@ -32,6 +32,7 @@ const TABLE_OF: Record<string, TableName> = { flights: "flights", sightings: "si
 
 export const EXPORT_HELP = `Usage: ./touchdown export flights|sightings|aircraft [--out FILE.csv [--private] [--force]] [--log FILE]
        ./touchdown export missing-tracks [--out FILE.csv [--force]] [--log FILE]
+       ./touchdown export myfr24 [--new] [--out FILE.csv [--force]] [--log FILE]
 
 Writes a table of your log as CSV, as Settings, Data does in the web app: one row per record, every stored
 field as a column. Without --out it is printed, for a pipe or a spreadsheet.
@@ -40,7 +41,13 @@ missing-tracks is the short list the Flights page downloads: the flights without
 date, flight number, route, registration, type and UTC times, nothing private. Send it to someone who can find
 the tracks (a Flightradar24 subscriber, say); the files they send back go in with ./touchdown track or Add track.
 
+myfr24 is a file for my.flightradar24.com's import (Settings › Import there), in the columns of its own export.
+With --new it holds only the flights not in myFR24 yet: not imported from its export, and not in a file the web
+app made before. The web app marks the flights in each file it makes; the command line writes nothing to the log,
+so a file made here is not remembered.
+
   --out FILE.csv   write it to a file
+  --new            myfr24 only: leave out the flights already in myFR24
   --private        include ticket numbers and booking references (flights); only with --out, and the file
                    is written readable only by you
   --force          replace FILE.csv if it exists
@@ -103,17 +110,20 @@ export async function backupCommand(args: string[]) {
 
 /** `./touchdown export TABLE …` */
 export async function exportCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--out"], flags: ["--private", "--force"] }, EXPORT_HELP, [1, 1]);
+  const a = argsOrHelp(args, { values: ["--out"], flags: ["--private", "--force", "--new"] }, EXPORT_HELP, [1, 1]);
   const json = a.flags.has("--json");
   if (json) return fail(json, "export prints CSV; it has no --json.");
   const missing = a.positional[0] === "missing-tracks";
+  const fr24 = a.positional[0] === "myfr24";
   const table = Object.hasOwn(TABLE_OF, a.positional[0]!) ? TABLE_OF[a.positional[0]!] : undefined;
-  if (!table && !missing) return fail(false, `Choose flights, sightings, aircraft or missing-tracks.\n\n${EXPORT_HELP}`);
+  if (!table && !missing && !fr24) return fail(false, `Choose flights, sightings, aircraft, missing-tracks or myfr24.\n\n${EXPORT_HELP}`);
   const priv = a.flags.has("--private");
-  if (missing && priv) return fail(false, "missing-tracks holds nothing private; it takes no --private.");
+  if ((missing || fr24) && priv) return fail(false, `${a.positional[0]} holds nothing private; it takes no --private.`);
+  if (!fr24 && a.flags.has("--new")) return fail(false, "--new is for myfr24 only.");
   if (priv && !a.values.has("--out")) return fail(false, "--private writes ticket numbers and booking references, so only to a file: give --out FILE.csv as well.");
   const log = await openOrFail(false, a.values.get("--log"));
-  const csv = missing ? missingTracksCsv(log.store, log.ref) : tableCsv(log.store, table!, priv);
+  const flights = fr24 ? myFr24Flights(log.store, a.flags.has("--new")) : [];
+  const csv = missing ? missingTracksCsv(log.store, log.ref) : fr24 ? myFr24Csv(log.store, log.ref, flights) : tableCsv(log.store, table!, priv);
   if (!a.values.has("--out")) {
     process.stdout.write(csv);
     process.exit(EXIT.ok);
@@ -121,7 +131,9 @@ export async function exportCommand(args: string[]) {
   const out = userPath(a.values.get("--out")!);
   const problem = writeTo(out, csv, a.flags.has("--force"));
   if (problem) return fail(false, problem);
-  const rows = missing ? csv.trimEnd().split("\r\n").length - 1 : log.store.count(table!);
-  console.log(`${green("Wrote")} ${plural(rows, missing ? "flight" : "row")} ${missing ? "without a track" : `of ${a.positional[0]}`} from ${log.from} to ${shownPath(out)}${priv ? ", private fields included" : ""}.`);
+  const rows = missing ? csv.trimEnd().split("\r\n").length - 1 : fr24 ? flights.length : log.store.count(table!);
+  const what = missing ? "without a track" : fr24 ? `for myFR24${a.flags.has("--new") ? " not in it yet" : ""}` : `of ${a.positional[0]}`;
+  console.log(`${green("Wrote")} ${plural(rows, missing || fr24 ? "flight" : "row")} ${what} from ${log.from} to ${shownPath(out)}${priv ? ", private fields included" : ""}.`);
+  if (fr24) console.log(dim("Import it on my.flightradar24.com, under Settings › Import."));
   process.exit(EXIT.ok);
 }
