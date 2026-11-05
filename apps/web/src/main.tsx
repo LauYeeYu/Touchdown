@@ -10,7 +10,6 @@ import { standardConnection } from "./data/connection.ts";
 import { standard } from "./data/standard.ts";
 import { forgetOffline, keepOffline } from "./data/offline.ts";
 import { Boot, BootError, OfflineWithoutAccount, waitingProgress } from "./components/Boot.tsx";
-import { nf } from "./lib/format.ts";
 import { AppContext } from "./data/context.tsx";
 import { Shell } from "./components/Shell.tsx";
 import { Home } from "./pages/Home.tsx";
@@ -35,6 +34,8 @@ import { NotFound } from "./pages/NotFound.tsx";
 import { airportParams, slugParams, setSlugData } from "./lib/slugs.ts";
 import { setCodeStyle } from "./lib/codes.ts";
 import { toUtcIso, validateWithoutEval } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
+import { startLanguage } from "./lib/i18n.tsx";
 
 // The hosted site's security policy forbids eval (docs/30).
 validateWithoutEval();
@@ -120,22 +121,22 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     let records = 0;
     const text = () =>
       pending.size === 2
-        ? "Reading your log and the reference data…"
+        ? t("shell.opening.both")
         : pending.has("log")
-          ? "Reading your log…"
+          ? t("shell.opening.log")
           : pending.has("reference")
-            ? "Loading airports, airlines and aircraft types…"
-            : `Preparing ${nf.format(records)} records…`;
+            ? t("shell.opening.reference")
+            : t("shell.opening.preparing", { count: records });
     report({ at, text: text() });
     // A step with no measure of its own (asking the server, the first sync of a log from Google Drive) moves the bar
     // slowly towards `to`, so it never stands still. Returns the function that stops it.
-    const creep = (to: number, t: string) => {
-      report({ at, text: t });
-      const timer = setInterval(() => report({ at: (at += (to - at) * 0.06), text: t }), 300);
+    const creep = (to: number, text: string) => {
+      report({ at, text });
+      const timer = setInterval(() => report({ at: (at += (to - at) * 0.06), text }), 300);
       return () => clearInterval(timer);
     };
     // Whose log to open (docs/33): each account has its own copy in the browser.
-    const checked = creep(START + 0.04, "Checking your account…");
+    const checked = creep(START + 0.04, t("shell.opening.account"));
     const me = await whoAmI();
     checked();
     if (me === "signed-out" && !import.meta.env.DEV) {
@@ -162,18 +163,18 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     });
     if (import.meta.env.DEV && writer) {
       const m = await import("./data/localBackup.ts");
-      const step = (t: string) => report({ at: (at = Math.min(PREPARED, at + 0.04)), text: t });
-      const hard = (t: string) => step(`Hard refresh. ${t}`);
+      const step = (text: string) => report({ at: (at = Math.min(PREPARED, at + 0.04)), text });
+      const hard = (text: string) => step(t("shell.opening.hardRefresh", { step: text }));
       if ((await m.loadLocalBackupOnce(opened, step)) || (await m.loadLocalBackupOnHardReload(opened, hard))) {
         // The browser now holds the backup: read it in, carrying the same bar on rather than reloading.
-        opened = await AppData.open(tabs, (s, n) => s === "log" && n !== undefined && step(`Preparing ${nf.format(n)} records…`));
+        opened = await AppData.open(tabs, (s, n) => s === "log" && n !== undefined && step(t("shell.opening.preparing", { count: n })));
       }
     }
     const where = () => (opened.connection?.mode !== "local" && opened.connection?.adapter === "localfs" ? opened.connection.name : "Google Drive");
     // Standard (docs/32): back from connecting Google Drive, or a browser that has not chosen yet, or one syncing the
     // same Google Drive in Private, follows the account's Standard connection by itself.
     let stopCreep = () => {};
-    if (typeof me === "object") await followStandard(opened, writer, () => (stopCreep = creep(PREPARED - 0.02, "Reading your log from Google Drive…")));
+    if (typeof me === "object") await followStandard(opened, writer, () => (stopCreep = creep(PREPARED - 0.02, t("shell.opening.from", { place: "Google Drive" }))));
     stopCreep();
     // A browser that held a log before the data modes existed keeps it here: Local (docs/32).
     if (writer && !opened.connection && (opened.store.count("flights") || opened.store.count("sightings"))) await opened.connect({ mode: "local", since: toUtcIso(Date.now()) });
@@ -182,14 +183,14 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     // come after, in the background.
     const syncing = opened.startSync();
     if (await opened.tablesMissing()) {
-      const stop = creep(PREPARED - 0.02, `Reading your log from ${where()}…`);
+      const stop = creep(PREPARED - 0.02, t("shell.opening.from", { place: where() }));
       await syncing;
       stop();
     }
     if (writer) void opened.takeOutbox();
     // Development only: the open log, for trying things in the console.
     if (import.meta.env.DEV) Object.assign(window, { touchdown: opened });
-    report({ at: PREPARED, text: "Showing your log…" });
+    report({ at: PREPARED, text: t("shell.opening.showing") });
     setSlugData(opened);
     // Airport codes follow the setting on every page (lib/codes.ts).
     setCodeStyle(opened.settings().codeDisplay);
@@ -213,7 +214,7 @@ const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches 
 function App() {
   const [app, setApp] = useState<AppData | null>(null);
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
-  const [progress, setProgress] = useState<Progress>({ at: START, text: "Loading the app…" });
+  const [progress, setProgress] = useState<Progress>(() => ({ at: START, text: t("shell.opening.app") }));
   const [finished, setFinished] = useState(false);
   // Asked once per browser, before the app opens: where the log lives.
   const [firstRun, setFirstRun] = useState(false);
@@ -223,7 +224,7 @@ function App() {
         setFirstRun(!a.connection);
         setApp(a);
       })
-      .catch((e: Error) => setError(e instanceof OfflineWithoutAccount ? { title: "Touchdown cannot open offline yet.", message: e.message } : { message: e.message }));
+      .catch((e: Error) => setError(e instanceof OfflineWithoutAccount ? { title: t("shell.opening.offline"), message: e.message } : { message: e.message }));
   }, []);
   useEffect(() => {
     if (!app) return;
@@ -239,10 +240,10 @@ function App() {
           {firstRun ? <FirstRun app={app} onDone={() => setFirstRun(false)} /> : <RouterProvider router={router} />}
         </AppContext.Provider>
       )}
-      {!finished && <Boot progress={app ? 1 : progress.at} text={app ? "Ready" : progress.text} done={!!app} />}
+      {!finished && <Boot progress={app ? 1 : progress.at} text={app ? t("shell.opening.ready") : progress.text} done={!!app} />}
     </>
   );
 }
 
 // The command line's pages stand on their own: they do not open the log (pages/CliPage.tsx).
-createRoot(document.getElementById("root")!).render(<StrictMode>{location.pathname.startsWith("/cli/") ? <CliPage /> : <App />}</StrictMode>);
+void startLanguage().then(() => createRoot(document.getElementById("root")!).render(<StrictMode>{location.pathname.startsWith("/cli/") ? <CliPage /> : <App />}</StrictMode>));

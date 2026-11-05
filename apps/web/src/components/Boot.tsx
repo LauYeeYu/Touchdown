@@ -4,6 +4,7 @@
 // finishes, says which step is running, lands it and fades out over the first page.
 
 import type { CSSProperties } from "react";
+import { t } from "@touchdown/i18n";
 
 /** How far the page's own bar got before the app's code ran: 0 to 1. */
 export function waitingProgress(): number {
@@ -14,7 +15,7 @@ export function waitingProgress(): number {
 // A Boeing 747 from the side, nose to the right, gear down; the main wheels are at 48.6% across, on the bottom edge.
 const PLANE = "M1.2 7.2 3.8 6.5 2.6.6h2.8L12.4 6.6H28.6C30.6 6.6 31.6 5 33.8 5H42.2C45 5 47.4 7 47.7 9.2C47.9 10.3 46.9 10.9 45.4 11.05 44.8 11.1 44.4 11.1 44 11.1H31L29.4 11.5H20.6L19 11.1H12.6C9.6 11.1 5.6 9.2 1.2 7.6ZM1.6 7.1 8.6 7.2 9.6 7.9 2.4 8.1ZM18.8 9.35 30.6 10.55 25 11.35 17.6 9.85ZM25.6 11.6H30.2A1 1 0 0 1 30.2 13.6H25.6A1 1 0 0 1 25.6 11.6ZM27.4 10.8H29.4V11.8H27.4ZM19.4 10.9H23A.9.9 0 0 1 23 12.7H19.4A.9.9 0 0 1 19.4 10.9ZM20.6 10.3H22.4V11.1H20.6ZM23 11.2H23.7V14.2H23ZM42.2 11H42.85V14.3H42.2Z";
 
-export function Boot({ progress, text, done = false, label = "Opening Touchdown" }: { progress: number; text: string; done?: boolean; label?: string }) {
+export function Boot({ progress, text, done = false, label = t("ui.boot.label") }: { progress: number; text: string; done?: boolean; label?: string }) {
   const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
   return (
     <div className={`boot${done ? " boot--done" : ""}`} aria-busy={!done}>
@@ -42,11 +43,11 @@ export function Boot({ progress, text, done = false, label = "Opening Touchdown"
 /** Opening the app offline in a browser with no account to open: the copy offline is only for one signed in here. */
 export class OfflineWithoutAccount extends Error {
   constructor() {
-    super("Connect to the internet and sign in. After that, Touchdown opens in this browser without a connection too.");
+    super(t("ui.boot.offlineWithoutAccount"));
   }
 }
 
-export function BootError({ message, title = "Touchdown could not open its local data." }: { message: string; title?: string }) {
+export function BootError({ message, title = t("ui.boot.error") }: { message: string; title?: string }) {
   return (
     <div className="boot" role="alert">
       <p className="boot__mark">Touchdown</p>

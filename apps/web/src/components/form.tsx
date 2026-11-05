@@ -3,7 +3,9 @@
 
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { cityName, type Airport, type Operator, type RefIndex, type WornLivery } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { dayMonthYear } from "../lib/format.ts";
+import { tx } from "../lib/i18n.tsx";
 
 export function Field({ label, hint, children, wide }: { label: string; hint?: ReactNode; children: ReactNode; wide?: boolean }) {
   return (
@@ -162,7 +164,7 @@ export function operatorOptions(ref: RefIndex, prefer: "iata" | "icao") {
     searchOperators(ref, q).map((o) => ({
       value: (prefer === "icao" ? (o.icao ?? o.iata) : (o.iata ?? o.icao)) ?? o.name,
       label: o.name,
-      detail: [o.iata, o.icao, o.country, o.validTo ? `until ${o.validTo.slice(0, 4)}` : null].filter(Boolean).join(" · "),
+      detail: [o.iata, o.icao, o.country, o.validTo ? t("ui.form.until", { year: o.validTo.slice(0, 4) }) : null].filter(Boolean).join(" · "),
     }));
 }
 
@@ -180,8 +182,8 @@ export function DateTimeField({ label, date, time, onDate, onTime, hint, disable
     <div className="field">
       <span className="field__label">{label}</span>
       <span className="datetime">
-        <input className="input" type="date" value={date} onChange={(e) => onDate(e.target.value)} aria-label={`${label} date`} disabled={disabled} />
-        <input className="input" type="time" value={time} onChange={(e) => onTime(e.target.value)} aria-label={`${label} time, local`} disabled={disabled} />
+        <input className="input" type="date" value={date} onChange={(e) => onDate(e.target.value)} aria-label={t("ui.form.date", { label })} disabled={disabled} />
+        <input className="input" type="time" value={time} onChange={(e) => onTime(e.target.value)} aria-label={t("ui.form.time", { label })} disabled={disabled} />
       </span>
       {hint && <span className="field__hint">{hint}</span>}
     </div>
@@ -204,9 +206,9 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
 export function LiveryQuestion({ worn, onUse }: { worn: WornLivery; onUse: () => void }) {
   return (
     <>
-      Recorded in <b>{worn.name}</b> on {dayMonthYear(worn.on)}. Still in it?{" "}
-      <button type="button" className="link-btn" onClick={onUse} aria-label={`Add special livery ${worn.name}`}>
-        Yes, add it
+      {tx("ui.livery.question", { name: worn.name, date: dayMonthYear(worn.on) }, { b: (text) => <b>{text}</b> })}{" "}
+      <button type="button" className="link-btn" onClick={onUse} aria-label={t("ui.livery.useLabel", { name: worn.name })}>
+        {t("ui.livery.use")}
       </button>
     </>
   );

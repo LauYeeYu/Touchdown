@@ -10,20 +10,22 @@ import { recordsText, sessionPhrase, useInboxWatcher, useWaitingSessions } from 
 import { LAST_BACKUP, LAST_CHANGE, metaNumber } from "../data/connection.ts";
 import type { SyncInfo } from "../data/sync.ts";
 import { backupZip, todayIn } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { download } from "../lib/download.ts";
-import { momentLabel, nf, plural } from "../lib/format.ts";
+import { dayMonthYear, momentLabel, momentShort, nf } from "../lib/format.ts";
+import { tx } from "../lib/i18n.tsx";
 import { useSyncInfo } from "./ModeChoice.tsx";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
 import { Wordmark } from "./Wordmark.tsx";
 
-const NAV: { to: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
-  { to: "/", label: "Home", icon: "house", match: (p) => p === "/" },
-  { to: "/flights", label: "Flights", icon: "tickets-plane", match: (p) => p.startsWith("/flights") },
-  { to: "/spotting", label: "Spotting", icon: "camera", match: (p) => p.startsWith("/spotting") },
-  { to: "/aircraft", label: "Aircraft", icon: "plane", match: (p) => p.startsWith("/aircraft") },
-  { to: "/stats", label: "Statistics", icon: "chart-column", match: (p) => p.startsWith("/stats") },
+const NAV: { to: string; label: () => string; icon: IconName; match: (p: string) => boolean }[] = [
+  { to: "/", label: () => t("shell.nav.home"), icon: "house", match: (p) => p === "/" },
+  { to: "/flights", label: () => t("shell.nav.flights"), icon: "tickets-plane", match: (p) => p.startsWith("/flights") },
+  { to: "/spotting", label: () => t("shell.nav.spotting"), icon: "camera", match: (p) => p.startsWith("/spotting") },
+  { to: "/aircraft", label: () => t("shell.nav.aircraft"), icon: "plane", match: (p) => p.startsWith("/aircraft") },
+  { to: "/stats", label: () => t("shell.nav.stats"), icon: "chart-column", match: (p) => p.startsWith("/stats") },
 ];
 
 /** Local mode: remind the user to export a backup when the last one is older than this and the log changed since. */
@@ -33,47 +35,47 @@ const BACKUP_DUE_DAYS = 30;
 export const clause = (message: string | null) => (message ?? "").replace(/\.+$/, "");
 
 /** Recorded tracks the browser's copy does not have yet, as a sentence; "" when there are none. */
-export const tracksToComeText = (n: number, place: string) =>
-  n > 0 ? `${plural(n, "recorded track is", "recorded tracks are")} not in this browser yet. ${n === 1 ? "It is" : "They are"} read from ${place} at the next sync, and until then ${n === 1 ? "its flight shows" : "their flights show"} the great circle.` : "";
+export const tracksToComeText = (n: number, place: string) => (n > 0 ? t("shell.tracksToCome", { count: n, place }) : "");
 
 /** The masthead's save and sync state: its words, its tooltip, its icon. */
 function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, notHere: number): { text: string; title: string; icon: IconName; bad: boolean } {
-  if (saving === "error") return { text: "Could not save in this browser", title: "Could not save in this browser", icon: "hard-drive", bad: true };
-  if (!sync) return { text: saving === "saving" ? "Saving…" : "Saved in this browser", title: "Your log is kept in this browser only (Local).", icon: "hard-drive", bad: false };
+  if (saving === "error") return { text: t("shell.sync.notSaved"), title: t("shell.sync.notSaved"), icon: "hard-drive", bad: true };
+  if (!sync) return { text: saving === "saving" ? t("shell.sync.saving") : t("shell.sync.savedHere"), title: t("shell.sync.localTitle"), icon: "hard-drive", bad: false };
+  const place = sync.place;
   // The tooltip says when the copy is not whole yet: the tables not read, or tracks still to come.
-  const toCome = !sync.tables ? ` Your log has not been read from ${sync.place} yet.` : notHere > 0 && !sync.tracks ? ` ${tracksToComeText(notHere, sync.place)}` : "";
-  const last = `${sync.lastAt ? ` Last synced ${momentLabel(sync.lastAt)}.` : ""}${toCome}`;
+  const toCome = !sync.tables ? ` ${t("shell.sync.notRead", { place })}` : notHere > 0 && !sync.tracks ? ` ${tracksToComeText(notHere, place)}` : "";
+  const last = `${sync.lastAt ? ` ${t("shell.sync.lastSynced", { moment: momentLabel(sync.lastAt) })}` : ""}${toCome}`;
   // Each state has its own icon: below 1180px wide the icon is all the header shows.
   const drive = sync.adapter === "gdrive";
   switch (sync.state) {
     case "permission":
-      if (sync.mode === "standard") return { text: "Reconnect Google Drive", title: `${sync.error ?? `Touchdown cannot reach ${sync.place}.`}${last}`, icon: "cloud-off", bad: true };
+      if (sync.mode === "standard") return { text: t("shell.sync.reconnect"), title: `${sync.error ?? t("shell.sync.cannotReach", { place })}${last}`, icon: "cloud-off", bad: true };
       return drive
-        ? { text: "Sign in to sync", title: `Sign in to Google again to sync with ${sync.place}.${last}`, icon: "cloud-off", bad: true }
-        : { text: "Directory needs permission", title: `Touchdown needs your permission to use ${sync.place} again.${last}`, icon: "folder", bad: true };
+        ? { text: t("shell.sync.signIn"), title: `${t("shell.sync.signInTitle", { place })}${last}`, icon: "cloud-off", bad: true }
+        : { text: t("shell.sync.permission"), title: `${t("shell.sync.permissionTitle", { place })}${last}`, icon: "folder", bad: true };
     case "failed":
-      return { text: "Not synced", title: `Could not sync with ${sync.place}: ${clause(sync.error)}.${last}`, icon: drive ? "cloud-alert" : "folder-x", bad: true };
+      return { text: t("shell.sync.failed"), title: `${t("shell.sync.failedTitle", { place, error: clause(sync.error) })}${last}`, icon: drive ? "cloud-alert" : "folder-x", bad: true };
     case "offline":
       // Not a fault: edits are kept here, and sync carries on by itself when the network returns.
       return {
-        text: "Offline",
-        title: `No connection to ${sync.place}. ${sync.waiting > 0 ? `${plural(sync.waiting, "change is", "changes are")} saved in this browser and` : "Changes are saved in this browser and"} sent when the connection returns.${last}`,
+        text: t("shell.sync.offline"),
+        title: `${t("shell.sync.offlineTitle", { place, waiting: sync.waiting })}${last}`,
         icon: "wifi-off",
         bad: false,
       };
     case "update":
-      return { text: "Reload to update", title: `A newer version of Touchdown has changed your log in ${sync.place}. Reload to update the app.${last}`, icon: "rotate-cw", bad: true };
+      return { text: t("shell.sync.update"), title: `${t("shell.sync.updateTitle", { place })}${last}`, icon: "rotate-cw", bad: true };
     case "syncing":
       // Tracks come after the rest of the log: the flights without theirs yet show great circles meanwhile.
       if (sync.tracks) {
-        const of = `${nf.format(sync.tracks.done)} of ${nf.format(sync.tracks.total)}`;
-        return { text: `Tracks ${of}`, title: `Reading recorded tracks from ${sync.place}: ${of}. Until a flight's track is here, its map shows the great circle.${last}`, icon: "refresh-cw", bad: false };
+        const of = { done: nf.format(sync.tracks.done), total: nf.format(sync.tracks.total) };
+        return { text: t("shell.sync.tracks", of), title: `${t("shell.sync.tracksTitle", { place, ...of })}${last}`, icon: "refresh-cw", bad: false };
       }
-      return { text: "Syncing…", title: `Syncing with ${sync.place}.${last}`, icon: "refresh-cw", bad: false };
+      return { text: t("shell.sync.syncing"), title: `${t("shell.sync.syncingTitle", { place })}${last}`, icon: "refresh-cw", bad: false };
     default:
       return sync.waiting > 0 || saving === "saving"
-        ? { text: "Saved, not synced yet", title: `Saved in this browser and sent to ${sync.place} in a moment.${last}`, icon: drive ? "cloud-upload" : "folder-up", bad: false }
-        : { text: "Synced", title: `Synced with ${sync.place}.${last}`, icon: drive ? "cloud-check" : "folder-check", bad: false };
+        ? { text: t("shell.sync.waiting"), title: `${t("shell.sync.waitingTitle", { place })}${last}`, icon: drive ? "cloud-upload" : "folder-up", bad: false }
+        : { text: t("shell.sync.synced"), title: `${t("shell.sync.syncedTitle", { place })}${last}`, icon: drive ? "cloud-check" : "folder-check", bad: false };
   }
 }
 
@@ -100,7 +102,6 @@ function useBackupDue(local: boolean, since: string | null, version: number): { 
 }
 
 const THEMES = ["system", "light", "dark"] as const;
-const THEME_LABEL = { system: "Theme: follows your device", light: "Theme: light", dark: "Theme: dark" };
 const THEME_ICON: Record<(typeof THEMES)[number], IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
 const deviceDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -188,24 +189,24 @@ export function Shell() {
   const cycleTheme = () => {
     const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!;
     app.updateSettings({ theme: next });
-    toast(THEME_LABEL[next]);
+    toast(t("shell.theme.label", { theme: next }));
   };
 
   return (
     <>
       <a className="skip" href="#view">
-        Skip to content
+        {t("shell.skip")}
       </a>
       <header className="masthead">
         <div className="page masthead__bar">
           <Link className="wordmark" to="/">
             <Wordmark />
           </Link>
-          <nav className="nav" aria-label="Main">
+          <nav className="nav" aria-label={t("shell.nav.label")}>
             {NAV.map((n) => (
               <Link key={n.to} className="nav__link" to={n.to} aria-current={n.match(path) ? "page" : undefined}>
                 <Icon name={n.icon} />
-                <StableLabel text={n.label} />
+                <StableLabel text={n.label()} />
               </Link>
             ))}
           </nav>
@@ -214,34 +215,34 @@ export function Shell() {
               <Icon name={state.icon} />
               <span className="sync__text">{state.text}</span>
             </Link>
-            <Link className="icon-btn issues-btn" to="/issues" aria-label={openIssues ? `Issues: ${openIssues} entries to review` : "Issues"} title={openIssues ? `${openIssues} entries to review` : "No open issues"}>
+            <Link className="icon-btn issues-btn" to="/issues" aria-label={t("shell.issues.label", { count: openIssues })} title={t("shell.issues.title", { count: openIssues })}>
               <Icon name="list-checks" />
               {openIssues > 0 && <span className="badge">{openIssues > 99 ? "99+" : openIssues}</span>}
             </Link>
-            <button type="button" className="icon-btn theme-btn" onClick={cycleTheme} aria-label={`${THEME_LABEL[theme]}. Change theme`} title={THEME_LABEL[theme]}>
+            <button type="button" className="icon-btn theme-btn" onClick={cycleTheme} aria-label={t("shell.theme.button", { theme })} title={t("shell.theme.label", { theme })}>
               <Icon name={THEME_ICON[theme]} />
             </button>
             <MenuButton
               className="icon-btn"
-              label="Add"
+              label={t("common.add")}
               items={[
-                { label: "Flight", icon: <Icon name="tickets-plane" />, onSelect: () => navigate({ to: "/flights/new" }) },
-                { label: "Sighting", icon: <Icon name="camera" />, onSelect: () => navigate({ to: "/spotting/new" }) },
-                { label: "Spotting session", icon: <Icon name="notebook-pen" />, onSelect: () => navigate({ to: "/spotting/session" }) },
+                { label: t("shell.add.flight"), icon: <Icon name="tickets-plane" />, onSelect: () => navigate({ to: "/flights/new" }) },
+                { label: t("shell.add.sighting"), icon: <Icon name="camera" />, onSelect: () => navigate({ to: "/spotting/new" }) },
+                { label: t("shell.add.session"), icon: <Icon name="notebook-pen" />, onSelect: () => navigate({ to: "/spotting/session" }) },
               ]}
             >
               <Icon name="plus" />
             </MenuButton>
             <MenuButton
               className="icon-btn"
-              label="More"
+              label={t("common.more")}
               items={[
-                { label: "Import", icon: <Icon name="upload" />, onSelect: () => navigate({ to: "/import" }) },
-                { label: "Issues", icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/issues" }) },
+                { label: t("shell.more.import"), icon: <Icon name="upload" />, onSelect: () => navigate({ to: "/import" }) },
+                { label: t("shell.more.issues"), icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/issues" }) },
                 // Share links are a Standard-mode feature (docs/32).
-                ...(app.connection?.mode === "standard" ? [{ label: "Shared links", icon: <Icon name="link" />, onSelect: () => navigate({ to: "/shares" }) }] : []),
-                { label: "Settings", icon: <Icon name="settings" />, onSelect: () => navigate({ to: "/settings" }) },
-                { label: "Guide", icon: <Icon name="circle-help" />, onSelect: () => navigate({ to: "/guide" }) },
+                ...(app.connection?.mode === "standard" ? [{ label: t("shell.more.shares"), icon: <Icon name="link" />, onSelect: () => navigate({ to: "/shares" }) }] : []),
+                { label: t("shell.more.settings"), icon: <Icon name="settings" />, onSelect: () => navigate({ to: "/settings" }) },
+                { label: t("shell.more.guide"), icon: <Icon name="circle-help" />, onSelect: () => navigate({ to: "/guide" }) },
               ]}
             >
               <Icon name="ellipsis" />
@@ -251,7 +252,7 @@ export function Shell() {
       </header>
       {sync && !sync.tables && sync.state === "syncing" && (
         <NoteBar icon="refresh-cw" actions={null}>
-          Reading your log from {sync.place}. It shows here once it is read.
+          {t("shell.note.reading", { place: sync.place })}
         </NoteBar>
       )}
       {sync && !sync.tables && sync.state === "failed" && (
@@ -259,16 +260,16 @@ export function Shell() {
           icon={sync.adapter === "gdrive" ? "cloud-alert" : "folder-x"}
           actions={
             <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.run()}>
-              Try again
+              {t("shell.note.tryAgain")}
             </button>
           }
         >
-          Your log could not be read from {sync.place}: {clause(sync.error)}. Touchdown tries again when the connection returns, and every few minutes.
+          {t("shell.note.readFailed", { place: sync.place, error: clause(sync.error) })}
         </NoteBar>
       )}
       {sync && !sync.tables && sync.state === "offline" && (
         <NoteBar icon="wifi-off" actions={null}>
-          Your log has not been read from {sync.place} yet, and there is no connection. It is read when the connection returns.
+          {t("shell.note.readOffline", { place: sync.place })}
         </NoteBar>
       )}
       {sync?.state === "permission" && (
@@ -276,14 +277,14 @@ export function Shell() {
           icon={sync.adapter === "gdrive" ? "cloud-off" : "folder"}
           actions={
             <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.allow()}>
-              {sync.mode === "standard" ? "Connect again" : sync.adapter === "gdrive" ? "Sign in" : "Allow"}
+              {sync.mode === "standard" ? t("shell.note.connectAgain") : sync.adapter === "gdrive" ? t("shell.note.signIn") : t("shell.note.allow")}
             </button>
           }
         >
-          {!sync.tables && `Your log has not been read from ${sync.place} yet. `}
-          {sync.mode === "standard" ? (sync.error ?? `Touchdown cannot reach ${sync.place}.`) : sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`}
-          {sync.tables && " Until then, changes are kept in this browser."}
-          {sync.tables && notHere > 0 && ` ${plural(notHere, "recorded track is", "recorded tracks are")} not in this browser yet.`}
+          {!sync.tables && `${t("shell.sync.notRead", { place: sync.place })} `}
+          {sync.mode === "standard" ? (sync.error ?? t("shell.sync.cannotReach", { place: sync.place })) : sync.adapter === "gdrive" ? t("shell.sync.signInTitle", { place: sync.place }) : t("shell.sync.permissionTitle", { place: sync.place })}
+          {sync.tables && ` ${t("shell.note.untilThen")}`}
+          {sync.tables && notHere > 0 && ` ${t("shell.note.tracksNotHere", { count: notHere })}`}
           {sync.mode !== "standard" && sync.error && ` ${sync.error}`}
         </NoteBar>
       )}
@@ -292,11 +293,11 @@ export function Shell() {
           icon="rotate-cw"
           actions={
             <button type="button" className="btn btn--quiet btn--small" onClick={() => location.reload()}>
-              Reload
+              {t("shell.note.reload")}
             </button>
           }
         >
-          A newer version of Touchdown has changed your log in {sync.place}. Reload to update the app. Until then, changes are kept in this browser.
+          {t("shell.note.update", { place: sync.place })}
         </NoteBar>
       )}
       {backupDue && !backupLater && (
@@ -313,15 +314,15 @@ export function Shell() {
                   setBackupLater(true);
                 }}
               >
-                Export a backup
+                {t("shell.note.exportBackup")}
               </button>
               <button type="button" className="btn btn--ghost btn--small" onClick={() => setBackupLater(true)}>
-                Not now
+                {t("shell.note.notNow")}
               </button>
             </>
           }
         >
-          Your log is kept only in this browser{backupDue.last ? `, and your last backup is from ${new Date(backupDue.last).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ", and you have not exported a backup yet"}.
+          {backupDue.last ? t("shell.note.backupLast", { date: dayMonthYear(todayIn(undefined, backupDue.last)) }) : t("shell.note.backupNever")}
         </NoteBar>
       )}
       {shown.length > 0 && path !== "/import" && (
@@ -330,20 +331,24 @@ export function Shell() {
           actions={
             <>
               <Link to="/import" search={{ inbox: shown[0]!.name }} className="btn btn--quiet btn--small">
-                Review and import
+                {t("shell.note.review")}
               </Link>
               <button type="button" className="btn btn--ghost btn--small" onClick={() => setLater((s) => new Set([...s, ...shown.map((w) => `${w.name}@${w.modified}`)]))}>
-                Not now
+                {t("shell.note.notNow")}
               </button>
             </>
           }
         >
-          {recordsText(
-            shown.reduce((n, w) => n + w.flights, 0),
-            shown.reduce((n, w) => n + w.sightings, 0),
-            shown.reduce((n, w) => n + w.changing, 0),
-          )}{" "}
-          from {shown.length === 1 ? sessionPhrase(shown[0]!.name) : `${shown.length} files in the inbox`} {shownCount === 1 ? "is" : "are"} waiting. Nothing reaches your log until you import {shownCount === 1 ? "it" : "them"}.
+          {t("shell.note.inbox", {
+            records: recordsText(
+              shown.reduce((n, w) => n + w.flights, 0),
+              shown.reduce((n, w) => n + w.sightings, 0),
+              shown.reduce((n, w) => n + w.changing, 0),
+            ),
+            files: shown.length,
+            source: shown.length === 1 ? sessionPhrase(shown[0]!.name) : "",
+            count: shownCount,
+          })}
         </NoteBar>
       )}
       {import.meta.env.DEV && newerBackup && (
@@ -358,15 +363,15 @@ export function Shell() {
                   if (import.meta.env.DEV) void import("../data/localBackup.ts").then((m) => m.loadLocalBackup(app));
                 }}
               >
-                Load it
+                {t("shell.note.loadIt")}
               </button>
               <button type="button" className="btn btn--ghost btn--small" onClick={() => setNewerBackup(null)}>
-                Not now
+                {t("shell.note.notNow")}
               </button>
             </>
           }
         >
-          Your local backup was rebuilt {new Date(newerBackup).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}. Loading it replaces the copy in this browser.
+          {t("shell.note.newerBackup", { when: momentShort(new Date(newerBackup).getTime()) })}
         </NoteBar>
       )}
       <main id="view" tabIndex={-1}>
@@ -377,16 +382,22 @@ export function Shell() {
       </main>
       <footer className="site-foot">
         <div className="page">
-          <p>{sync ? `Your log syncs through ${sync.place}, and this browser holds a copy.` : "Your log is stored in this browser. Export a backup from Settings."}</p>
+          <p>{sync ? t("shell.foot.synced", { place: sync.place }) : t("shell.foot.local")}</p>
           <p>
-            Airports: OurAirports (public domain) and airportsdata (MIT). Airlines: Wikidata (CC0) and the Mictronics aircraft database (ODC-By). Aircraft facts: the OpenSky Network aircraft database and adsbdb (data from PlaneBase). Map: Natural Earth (public domain) via world-atlas. Aircraft photos from{" "}
-            <a href="https://www.planespotters.net/" rel="noopener" target="_blank">
-              planespotters.net
-            </a>
-            , credited on each photo. Icons: Lucide (ISC). Typeface: Source Sans 3 (SIL Open Font License).
+            {tx(
+              "shell.foot.credits",
+              {},
+              {
+                link: (text) => (
+                  <a href="https://www.planespotters.net/" rel="noopener" target="_blank">
+                    {text}
+                  </a>
+                ),
+              },
+            )}
           </p>
           <p>
-            <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a>
+            <a href="/privacy">{t("shell.foot.privacy")}</a> · <a href="/terms">{t("shell.foot.terms")}</a>
           </p>
         </div>
       </footer>

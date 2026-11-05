@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { toUtcIso } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
@@ -14,8 +15,8 @@ import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, 
 import { StandardTerms } from "../components/StandardTerms.tsx";
 import { Wordmark } from "../components/Wordmark.tsx";
 
-export const STANDARD_UNAVAILABLE = "Not available on this site.";
-export const FOLDERS_ONLY_HERE = "Needs Chrome or Edge on a computer.";
+export const standardUnavailable = () => t("shell.firstRun.standardUnavailable");
+export const foldersOnlyHere = () => t("shell.firstRun.foldersOnlyHere");
 
 /** A `storage-error` from the way back from Google, taken off the address once read. */
 export function takeStandardError(): string | null {
@@ -72,12 +73,12 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
       onDone();
       return;
     }
-    if (storage === "gdrive") setBusy("Waiting for Google…");
+    if (storage === "gdrive") setBusy(t("shell.firstRun.waitingForGoogle"));
     let picked;
     try {
       picked = await chooseStorage(storage);
     } catch (e) {
-      setError(`${storage === "gdrive" ? "Google Drive could not be connected" : "The directory could not be opened"}: ${(e as Error).message}`);
+      setError(t("shell.firstRun.connectFailed", { storage, error: (e as Error).message }));
       setBusy(null);
       return;
     }
@@ -86,11 +87,11 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
       return;
     }
     const { connection } = picked;
-    setBusy(picked.holdsLog ? `Reading your log from ${connection.name}…` : `Setting up ${connection.name}…`);
+    setBusy(picked.holdsLog ? t("shell.firstRun.reading", { name: connection.name }) : t("shell.firstRun.settingUp", { name: connection.name }));
     await app.connect(connection);
     const info = app.getSyncInfo();
     if (info?.state === "failed") {
-      setError(`Touchdown could not use ${connection.name}: ${info.error}`);
+      setError(t("shell.firstRun.couldNotUse", { name: connection.name, error: info.error ?? "" }));
       setBusy(null);
       return;
     }
@@ -108,8 +109,8 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
       </header>
       <main id="view" className="page page--form first-run">
         <div className="view-top" />
-        <h1 className="lead">Sync mode</h1>
-        <p className="form-sub">You can change it later in Settings.</p>
+        <h1 className="lead">{t("shell.firstRun.title")}</h1>
+        <p className="form-sub">{t("shell.firstRun.later")}</p>
         <ModeChoice
           value={mode}
           onChange={(m) => {
@@ -117,7 +118,7 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
             setError(null);
             if (m === "standard") setTermsOpen(true);
           }}
-          unavailable={std?.available ? {} : { standard: STANDARD_UNAVAILABLE }}
+          unavailable={std?.available ? {} : { standard: standardUnavailable() }}
         />
         {std && (
           <StandardTerms
@@ -125,7 +126,7 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
             busy={!!busy}
             problem={termsOpen ? error : null}
             onAccept={() => {
-              setBusy("Going to Google…");
+              setBusy(t("shell.firstRun.goingToGoogle"));
               void connectStandard(std, "/").then((p) => {
                 if (p) {
                   setError(p);
@@ -142,8 +143,8 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
         )}
         {mode === "private" && (
           <>
-            <h2 className="form-section">Storage</h2>
-            <StorageChoice value={storage} onChange={setStorage} unavailable={canUseFolders() ? {} : { localfs: FOLDERS_ONLY_HERE }} />
+            <h2 className="form-section">{t("shell.firstRun.storage")}</h2>
+            <StorageChoice value={storage} onChange={setStorage} unavailable={canUseFolders() ? {} : { localfs: foldersOnlyHere() }} />
             <p className="form-sub">{STORAGE_NOTE[storage]}</p>
           </>
         )}
@@ -161,7 +162,7 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
             disabled={!!busy || (mode === "local" && !understood)}
             onClick={() => (mode === "standard" ? setTermsOpen(true) : void go())}
           >
-            {busy ?? (mode === "private" ? STORAGE_BUTTON[storage] : "Continue")}
+            {busy ?? (mode === "private" ? STORAGE_BUTTON[storage] : t("shell.firstRun.continue"))}
           </button>
         </div>
       </main>

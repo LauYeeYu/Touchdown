@@ -1,9 +1,11 @@
 // First run: nothing logged yet. Offer the import first, since most users arrive with an existing log.
 
+import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { useSyncInfo } from "../components/ModeChoice.tsx";
 import { useApp } from "../data/context.tsx";
 import { Icon } from "../lib/icons.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 export function EmptyLog() {
   const { app } = useApp();
@@ -15,10 +17,10 @@ export function EmptyLog() {
     return (
       <div className="page">
         <div className="view-top" />
-        <h1 className="lead">Your log has not been read from {sync.place} yet.</h1>
+        <h1 className="lead">{t("shell.emptyLog.notRead", { place: sync.place })}</h1>
         <p className="status-line">
           <Icon name={sync.state === "syncing" ? "refresh-cw" : sync.state === "offline" ? "wifi-off" : sync.adapter === "gdrive" ? "cloud-off" : "folder"} />
-          <span>{sync.state === "syncing" ? "It is being read now, and shows here once it is in." : "It shows here once it is read. Until then, anything you add is kept in this browser and merged with it."}</span>
+          <span>{sync.state === "syncing" ? t("shell.emptyLog.reading") : t("shell.emptyLog.readLater")}</span>
         </p>
       </div>
     );
@@ -26,39 +28,37 @@ export function EmptyLog() {
   return (
     <div className="page">
       <div className="view-top" />
-      <h1 className="lead">Your log is empty. Bring in your existing log, or start with one flight.</h1>
+      <h1 className="lead">{t("shell.emptyLog.title")}</h1>
       <div className="start">
         <Link className="start__item start__item--main" to="/import">
           <Icon name="upload" />
           <span>
-            <b>Import your log</b>
-            <span>A my.flightradar24.com CSV export, or your flight and spotting spreadsheets as CSV or Excel files. Everything is checked before it is saved.</span>
+            <b>{t("shell.emptyLog.import.title")}</b>
+            <span>{t("shell.emptyLog.import.text")}</span>
           </span>
         </Link>
         <Link className="start__item" to="/flights/new">
           <Icon name="tickets-plane" />
           <span>
-            <b>Add a flight</b>
-            <span>Flight number and date first. The rest is optional.</span>
+            <b>{t("shell.emptyLog.flight.title")}</b>
+            <span>{t("shell.emptyLog.flight.text")}</span>
           </span>
         </Link>
         <Link className="start__item" to="/spotting/session">
           <Icon name="notebook-pen" />
           <span>
-            <b>Log a spotting session</b>
-            <span>Set the day and the airport once, then type registrations one after another.</span>
+            <b>{t("shell.emptyLog.session.title")}</b>
+            <span>{t("shell.emptyLog.session.text")}</span>
           </span>
         </Link>
       </div>
       <p className="status-line">
         <Icon name="circle-help" />
-        <span>
-          <Link to="/guide">Getting started</Link> goes through the modes, bringing in your myFR24 flights, tracks and sharing.
-        </span>
+        <span>{tx("shell.emptyLog.guide", {}, { link: (text) => <Link to="/guide">{text}</Link> })}</span>
       </p>
       <p className="status-line">
         <Icon name="hard-drive" />
-        <span>{c && c.mode !== "local" ? `Anything you add is saved in this browser and synced through ${c.name}.` : "Your data stays in this browser. Export a backup from Settings at any time."}</span>
+        <span>{c && c.mode !== "local" ? t("shell.emptyLog.synced", { name: c.name }) : t("shell.emptyLog.local")}</span>
       </p>
     </div>
   );

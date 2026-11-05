@@ -2,6 +2,9 @@
 // the column lines up; under an hour it is just "49m".
 
 import { nf } from "../lib/format.ts";
+import { tx } from "../lib/i18n.tsx";
+
+const unit = (text: React.ReactNode) => <span className="dur__u">{text}</span>;
 
 export function Duration({ min, pad = true }: { min: number; pad?: boolean }) {
   const total = Math.round(min);
@@ -9,14 +12,7 @@ export function Duration({ min, pad = true }: { min: number; pad?: boolean }) {
   const m = total % 60;
   return (
     <span className="dur">
-      {h > 0 && (
-        <>
-          {nf.format(h)}
-          <span className="dur__u">h</span>{" "}
-        </>
-      )}
-      {h > 0 && pad ? String(m).padStart(2, "0") : m}
-      <span className="dur__u">m</span>
+      {h > 0 ? tx("ui.duration.hoursMinutes", { h: nf.format(h), m: pad ? String(m).padStart(2, "0") : m }, { unit }) : tx("ui.duration.minutes", { m }, { unit })}
     </span>
   );
 }

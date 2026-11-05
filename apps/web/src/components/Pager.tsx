@@ -3,6 +3,7 @@
 // (lib/viewState.ts).
 
 import { useRef } from "react";
+import { t } from "@touchdown/i18n";
 import { nf } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { useViewState } from "../lib/viewState.ts";
@@ -37,17 +38,20 @@ function pageList(page: number, pages: number): (number | "gap")[] {
   return out;
 }
 
-export function Pager({ paging, noun }: { paging: ReturnType<typeof usePaging<unknown>>; noun: [string, string] }) {
+/** The lists a pager counts, each with its own words in `ui.pager.*`. */
+export type PagerKind = "flights" | "sightings" | "aircraft" | "daysOut";
+
+export function Pager({ paging, kind }: { paging: ReturnType<typeof usePaging<unknown>>; kind: PagerKind }) {
   const { page, pages, start, total, size, go } = paging;
   if (total <= size) return null;
   const end = Math.min(total, start + size);
   return (
-    <nav className="pager" aria-label={`Pages of ${noun[1]}`}>
+    <nav className="pager" aria-label={t("ui.pager.label", { kind })}>
       <span className="pager__count">
-        {nf.format(start + 1)}–{nf.format(end)} of {nf.format(total)} {total === 1 ? noun[0] : noun[1]}
+        {t("ui.pager.count", { from: nf.format(start + 1), to: nf.format(end), total: nf.format(total), count: total, kind })}
       </span>
       <span className="pager__pages">
-        <button type="button" className="icon-btn" onClick={() => go(page - 1)} disabled={page === 1} aria-label="Previous page">
+        <button type="button" className="icon-btn" onClick={() => go(page - 1)} disabled={page === 1} aria-label={t("ui.pager.previous")}>
           <Icon name="arrow-left" />
         </button>
         {pageList(page, pages).map((p, i) =>
@@ -56,12 +60,12 @@ export function Pager({ paging, noun }: { paging: ReturnType<typeof usePaging<un
               …
             </span>
           ) : (
-            <button key={p} type="button" className="pager__num" aria-current={p === page ? "page" : undefined} onClick={() => go(p)} aria-label={`Page ${p}`}>
+            <button key={p} type="button" className="pager__num" aria-current={p === page ? "page" : undefined} onClick={() => go(p)} aria-label={t("ui.pager.page", { page: p })}>
               {p}
             </button>
           ),
         )}
-        <button type="button" className="icon-btn" onClick={() => go(page + 1)} disabled={page === pages} aria-label="Next page">
+        <button type="button" className="icon-btn" onClick={() => go(page + 1)} disabled={page === pages} aria-label={t("ui.pager.next")}>
           <Icon name="arrow-right" />
         </button>
       </span>

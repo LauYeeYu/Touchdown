@@ -2,6 +2,8 @@
 // no images; the user's own photos stay in Google Photos (requirement P3).
 
 import { useEffect, useState } from "react";
+import { t } from "@touchdown/i18n";
+import { tx } from "../lib/i18n.tsx";
 
 interface PhotoInfo {
   src: string;
@@ -59,7 +61,7 @@ export function Photo({ reg, alt }: { reg: string | null | undefined; alt: strin
   return (
     <div className={`photo${done ? "" : " is-loading"}${loaded ? " is-ready" : ""}`}>
       {info && <img src={info.src} alt={alt} decoding="async" referrerPolicy="no-referrer" className={loaded ? "is-loaded" : ""} onLoad={() => setLoaded(true)} />}
-      <span className="photo__fallback">{reg ?? "No registration"}</span>
+      <span className="photo__fallback">{reg ?? t("ui.photo.noRegistration")}</span>
     </div>
   );
 }
@@ -67,15 +69,21 @@ export function Photo({ reg, alt }: { reg: string | null | undefined; alt: strin
 export function Credit({ reg, short = false }: { reg: string | null | undefined; short?: boolean }) {
   const { info, done } = usePhoto(reg);
   if (!reg) return null;
-  if (!done) return <p className="credit">Looking for a reference photo…</p>;
-  if (!info) return <p className="credit">No reference photo found for this registration.</p>;
+  if (!done) return <p className="credit">{t("ui.photo.looking")}</p>;
+  if (!info) return <p className="credit">{t("ui.photo.none")}</p>;
   return (
     <p className="credit">
-      {short ? "©" : "Photo ©"}{" "}
-      <a href={info.link} target="_blank" rel="noopener">
-        {info.photographer}
-      </a>{" "}
-      · planespotters.net
+      {tx(
+        "ui.photo.credit",
+        { short: short ? "yes" : "no", photographer: info.photographer },
+        {
+          link: (text) => (
+            <a href={info.link} target="_blank" rel="noopener">
+              {text}
+            </a>
+          ),
+        },
+      )}
     </p>
   );
 }
