@@ -4,10 +4,11 @@
 
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
+import { list, t } from "@touchdown/i18n";
 import { flightDay, PRIVATE_FIELDS, RULES, type Finding, type RecordRef, type Row, type TableName } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import type { AppData } from "../data/app.ts";
-import { dayMonthYear, FIELD_LABEL, momentLabel, plural } from "../lib/format.ts";
+import { dayMonthYear, FIELD_LABEL, momentLabel } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FindingItem } from "../components/Findings.tsx";
 import { Tabs } from "../components/Tabs.tsx";
@@ -24,8 +25,7 @@ function RecordLink({ r, app }: { r: RecordRef; app: AppData }) {
     const d = flightDay(f);
     return (
       <Link to="/flights/$id" params={{ id: r.id }}>
-        {f.flightNumber ?? "Flight"}
-        {d ? `, ${dayMonthYear(d)}` : ""}
+        {d ? t("issues.record.dated", { name: f.flightNumber ?? t("issues.record.flight"), date: dayMonthYear(d) }) : (f.flightNumber ?? t("issues.record.flight"))}
       </Link>
     );
   }
@@ -34,8 +34,7 @@ function RecordLink({ r, app }: { r: RecordRef; app: AppData }) {
     if (!s) return null;
     return (
       <Link to="/spotting/$id/edit" params={{ id: r.id }}>
-        {s.registration ?? "Sighting"}
-        {s.seenOn ? `, ${dayMonthYear(s.seenOn)}` : ""}
+        {s.seenOn ? t("issues.record.dated", { name: s.registration ?? t("issues.record.sighting"), date: dayMonthYear(s.seenOn) }) : (s.registration ?? t("issues.record.sighting"))}
       </Link>
     );
   }
@@ -54,33 +53,32 @@ function findingDate(f: Finding, app: AppData): string {
 }
 
 function sentence(conflicts: number, errors: number, warnings: number): string {
-  const c = conflicts ? `${plural(conflicts, "field was", "fields were")} changed on two devices` : "";
-  const e = errors ? `${plural(errors, "entry", "entries")} ${errors === 1 ? "looks" : "look"} wrong` : "";
-  const w = warnings ? `${plural(warnings, "entry", "entries")} ${warnings === 1 ? "is" : "are"} worth a look` : "";
-  const parts = [c, e, w].filter(Boolean);
-  const text = parts.length > 2 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts.join(" and ");
-  return text.charAt(0).toUpperCase() + text.slice(1) + ".";
+  const c = conflicts ? t("issues.lead.conflicts", { count: conflicts }) : "";
+  const e = errors ? t("issues.lead.errors", { count: errors }) : "";
+  const w = warnings ? t("issues.lead.warnings", { count: warnings }) : "";
+  const text = list([c, e, w].filter(Boolean));
+  return t("issues.lead.summary", { clauses: text.charAt(0).toUpperCase() + text.slice(1) });
 }
 
 const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
 
 /** A value from a sync conflict (JSON text), as the page shows it. */
 function conflictValue(field: string, json: string | null): string {
-  if (PRIVATE.has(field)) return "(private)";
+  if (PRIVATE.has(field)) return t("issues.value.private");
   const v = json === null ? null : (JSON.parse(json) as unknown);
   if (v === null || v === "") return "—";
-  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "boolean") return v ? t("issues.value.yes") : t("issues.value.no");
   return String(v);
 }
 
 /** Where a change was made: this browser, the command line, or another device. */
-function deviceName(by: string | null, app: AppData): string {
-  if (by === app.store.deviceId) return "this device";
-  if (by?.startsWith("cli_")) return "the command line";
-  return "another device";
+function deviceOf(by: string | null, app: AppData): "this" | "cli" | "other" {
+  if (by === app.store.deviceId) return "this";
+  if (by?.startsWith("cli_")) return "cli";
+  return "other";
 }
 
-const madeOn = (by: string | null, at: string | null, app: AppData) => `${deviceName(by, app)}${at ? `, ${momentLabel(Date.parse(at))}` : ""}`;
+const madeOn = (by: string | null, at: string | null, app: AppData) => t("issues.device.made", { device: deviceOf(by, app), dated: at ? "yes" : "no", moment: at ? momentLabel(Date.parse(at)) : "" });
 
 /** The record a sync conflict is about. */
 function ConflictRecord({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
@@ -90,22 +88,25 @@ function ConflictRecord({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) 
     const v = aircraftViews(app.store).find((x) => x.airframe.id === c.recordId);
     return v ? (
       <Link to="/aircraft/$id" params={{ id: c.recordId }}>
-        {v.registration ?? "Aircraft"}
+        {v.registration ?? t("issues.record.aircraft")}
       </Link>
     ) : null;
   }
-  if (table === "settings") return <Link to="/settings">Settings</Link>;
-  if (table === "saved_views") return <>Saved view “{app.store.get("saved_views", c.recordId)?.name ?? ""}”</>;
-  if (table === "operator_overrides") return <>Your operator “{app.store.get("operator_overrides", c.recordId)?.name ?? ""}”</>;
-  if (table === "family_overrides") return <>Family of {app.store.get("family_overrides", c.recordId)?.designator ?? "a type"}</>;
-  if (table === "issue_acks") return <>An accepted warning</>;
+  if (table === "settings") return <Link to="/settings">{t("issues.record.settings")}</Link>;
+  if (table === "saved_views") return <>{t("issues.record.savedView", { name: app.store.get("saved_views", c.recordId)?.name ?? "" })}</>;
+  if (table === "operator_overrides") return <>{t("issues.record.operator", { name: app.store.get("operator_overrides", c.recordId)?.name ?? "" })}</>;
+  if (table === "family_overrides") {
+    const designator = app.store.get("family_overrides", c.recordId)?.designator;
+    return <>{t("issues.record.family", { known: designator ? "yes" : "no", designator: designator ?? "" })}</>;
+  }
+  if (table === "issue_acks") return <>{t("issues.record.ack")}</>;
   return <>{table.replace(/_/g, " ")}</>;
 }
 
 function ConflictItem({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
   const row = app.store.peek(c.tableName as TableName, c.recordId) as Record<string, unknown> | null;
   const deleted = c.field === "deleted";
-  const label = deleted ? "Deleted and changed" : (FIELD_LABEL[c.field] ?? c.field);
+  const label = deleted ? t("issues.conflict.deletedLabel") : (FIELD_LABEL[c.field] ?? c.field);
   const now = JSON.stringify(row?.[c.field] ?? null);
   return (
     <li className="finding finding--warning">
@@ -116,17 +117,15 @@ function ConflictItem({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
           <ConflictRecord c={c} app={app} />
         </p>
         {deleted ? (
-          <p className="finding__text">
-            Deleted on {madeOn(c.otherBy, c.otherAt, app)}, and changed on {madeOn(c.keptBy, c.keptAt, app)}, before either saw the other. The entry was kept with the changes.
-          </p>
+          <p className="finding__text">{t("issues.conflict.deleted", { deletedOn: madeOn(c.otherBy, c.otherAt, app), changedOn: madeOn(c.keptBy, c.keptAt, app) })}</p>
         ) : (
           <dl className="conflict">
-            <dt>In your log</dt>
+            <dt>{t("issues.conflict.inLog")}</dt>
             <dd>
               {conflictValue(c.field, now)}
-              <span className="conflict__when"> · {now === c.keptValue ? madeOn(c.keptBy, c.keptAt, app) : "changed since"}</span>
+              <span className="conflict__when"> · {now === c.keptValue ? madeOn(c.keptBy, c.keptAt, app) : t("issues.conflict.changedSince")}</span>
             </dd>
-            <dt>The other change</dt>
+            <dt>{t("issues.conflict.other")}</dt>
             <dd>
               {conflictValue(c.field, c.otherValue)}
               <span className="conflict__when"> · {madeOn(c.otherBy, c.otherAt, app)}</span>
@@ -134,11 +133,11 @@ function ConflictItem({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
           </dl>
         )}
         <div className="finding__actions">
-          <button type="button" className="btn btn--small btn--quiet" aria-label={deleted ? undefined : `Keep the ${label.toLowerCase()} in your log`} onClick={() => app.resolveConflict(c.id, "kept")}>
-            {deleted ? "Keep the entry" : "Keep it"}
+          <button type="button" className="btn btn--small btn--quiet" aria-label={deleted ? undefined : t("issues.conflict.keepLabel", { field: label.toLowerCase() })} onClick={() => app.resolveConflict(c.id, "kept")}>
+            {deleted ? t("issues.conflict.keepEntry") : t("issues.conflict.keep")}
           </button>
-          <button type="button" className="btn btn--small btn--ghost" aria-label={deleted ? undefined : `Use the other ${label.toLowerCase()}`} onClick={() => app.resolveConflict(c.id, "other")}>
-            {deleted ? "Delete it" : "Use the other"}
+          <button type="button" className="btn btn--small btn--ghost" aria-label={deleted ? undefined : t("issues.conflict.useOtherLabel", { field: label.toLowerCase() })} onClick={() => app.resolveConflict(c.id, "other")}>
+            {deleted ? t("issues.conflict.deleteIt") : t("issues.conflict.useOther")}
           </button>
         </div>
       </div>
@@ -171,17 +170,17 @@ export function Issues() {
       <div className="view-top" />
       <h1 className="lead">
         {conflicts.length + count("error") + count("warning") === 0
-          ? "Nothing to review. Every check passed or was accepted."
+          ? t("issues.lead.none")
           : sentence(conflicts.length, count("error"), count("warning"))}
       </h1>
-      <p className="form-sub">Checks never block saving. Fix a mistake, or mark a warning as right. It comes back only if the values change.</p>
+      <p className="form-sub">{t("issues.lead.sub")}</p>
       <Tabs
-        label="Issues"
+        label={t("issues.title")}
         value={tab}
         onChange={setTab}
         items={[
-          ["open", `Open (${open.length + conflicts.length})`],
-          ["accepted", `Accepted (${accepted.length})`],
+          ["open", t("issues.tabs.open", { count: open.length + conflicts.length })],
+          ["accepted", t("issues.tabs.accepted", { count: accepted.length })],
         ]}
       />
       {tab === "open" && (
@@ -189,10 +188,10 @@ export function Issues() {
           {conflicts.length > 0 && (
             <section className="section issue-group issue-group--conflicts">
               <div className="section__head">
-                <h2 className="section__title">Changed on two devices</h2>
-                <span className="section__aside">{plural(conflicts.length, "field")}</span>
+                <h2 className="section__title">{t("issues.conflicts.title")}</h2>
+                <span className="section__aside">{t("common.count.fields", { count: conflicts.length })}</span>
               </div>
-              <p className="form-sub">Each was changed on two devices before either saw the other's change. Your log has the later one. Choose which to keep.</p>
+              <p className="form-sub">{t("issues.conflicts.sub")}</p>
               <ul className="findings">
                 {conflicts.map((c) => (
                   <ConflictItem key={c.id} c={c} app={app} />
@@ -200,26 +199,26 @@ export function Issues() {
               </ul>
             </section>
           )}
-          <div className="chips" role="group" aria-label="Severity">
+          <div className="chips" role="group" aria-label={t("issues.severity.label")}>
             {(
               [
-                ["error", "Errors"],
-                ["warning", "Warnings"],
-                ["info", "Notes"],
+                ["error", t("issues.severity.error", { count: count("error") })],
+                ["warning", t("issues.severity.warning", { count: count("warning") })],
+                ["info", t("issues.severity.info", { count: count("info") })],
               ] as [Sev, string][]
             ).map(([s, l]) => (
               <button key={s} type="button" className="chip" aria-pressed={sev.has(s)} onClick={() => toggle(s)}>
-                {l} ({count(s)})
+                {l}
               </button>
             ))}
           </div>
-          {!ordered.length && <p className="section__aside">Nothing here.</p>}
+          {!ordered.length && <p className="section__aside">{t("issues.empty")}</p>}
           {ordered.map(([rule, list]) => (
             <section className="section issue-group" key={rule}>
               <div className="section__head">
                 <h2 className="section__title">{RULES[rule]?.title ?? rule}</h2>
                 <span className="section__aside">
-                  {plural(list.length, "finding")} · {rule}
+                  {t("common.count.findings", { count: list.length })} · {rule}
                 </span>
               </div>
               <ul className="findings">
@@ -236,14 +235,14 @@ export function Issues() {
                   </FindingItem>
                 ))}
               </ul>
-              {list.length > 50 && <p className="section__aside">And {list.length - 50} more of this kind.</p>}
+              {list.length > 50 && <p className="section__aside">{t("issues.more", { count: list.length - 50 })}</p>}
             </section>
           ))}
         </>
       )}
       {tab === "accepted" && (
         <ul className="findings">
-          {!accepted.length && <p className="section__aside">No accepted warnings.</p>}
+          {!accepted.length && <p className="section__aside">{t("issues.accepted.none")}</p>}
           {accepted.map(({ finding, ackId }) => (
             <li key={ackId} className={`finding finding--${finding.severity}`}>
               <Icon name="circle-check" />
@@ -252,7 +251,7 @@ export function Issues() {
                 <p className="finding__text">{finding.message}</p>
                 <div className="finding__actions">
                   <button type="button" className="btn btn--small btn--ghost" onClick={() => app.reopenFinding(ackId)}>
-                    Reopen
+                    {t("issues.accepted.reopen")}
                   </button>
                 </div>
               </div>

@@ -4,10 +4,10 @@
 
 import { useMemo, useState } from "react";
 import type { ChangeStatus, InboxChange } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { planChanges, takeByDefault, type PlannedChange, type PlannedLine } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { codeStyle } from "../lib/codes.ts";
-import { plural } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FindingList } from "./Findings.tsx";
 
@@ -18,7 +18,7 @@ function Line({ p, l }: { p: PlannedChange; l: PlannedLine }) {
   if (AS_EDIT.has(p.change.op) || (l.before && l.after)) {
     return (
       <li className="suggestion__change">
-        <span className="suggestion__field">{l.label}</span> <span className="suggestion__old">{l.before || "empty"}</span> <Icon name="arrow-right" className="icon suggestion__arrow" /> <b>{l.after || "empty"}</b>
+        <span className="suggestion__field">{l.label}</span> <span className="suggestion__old">{l.before || t("import.empty")}</span> <Icon name="arrow-right" className="icon suggestion__arrow" /> <b>{l.after || t("import.empty")}</b>
       </li>
     );
   }
@@ -66,16 +66,15 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
 
   return (
     <div className="page page--wide">
-      <nav className="crumbs" aria-label="Back">
+      <nav className="crumbs" aria-label={t("common.back")}>
         <button type="button" className="link-btn" onClick={onBack}>
-          <Icon name="arrow-left" /> Choose another file
+          <Icon name="arrow-left" /> {t("import.chooseAnother")}
         </button>
       </nav>
-      <h1 className="form-title">Review {label.charAt(0).toLowerCase() + label.slice(1)}</h1>
+      <h1 className="form-title">{t("import.review.title", { name: label.charAt(0).toLowerCase() + label.slice(1) })}</h1>
       <p className="lead lead--flight">
-        {plural(plan.changes.length, "change")} to records in your log{madeBy ? `, made with ${madeBy}` : ""}
-        {plan.open < plan.changes.length ? `: ${plan.open} still to make, ${nothing} with nothing left to do` : ""}.
-        {changedSince > 0 && ` ${plural(changedSince, "record was", "records were")} changed after the change was made: ${changedSince === 1 ? "it is" : "they are"} left as ${changedSince === 1 ? "it is" : "they are"} unless you tick ${changedSince === 1 ? "it" : "them"}.`}
+        {t("import.changes.lead", { count: plan.changes.length, made: madeBy ? "yes" : "no", command: madeBy ?? "", partial: plan.open < plan.changes.length ? "yes" : "no", open: plan.open, nothing })}
+        {changedSince > 0 && ` ${t("import.changes.changedSince", { count: changedSince })}`}
       </p>
       <ul className="changes">
         {plan.changes.map((p) => {
@@ -92,7 +91,7 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
                   <Icon name={p.status === "changed" ? "triangle-alert" : "info"} />
                   <span>
                     {p.note}
-                    {p.status === "changed" && " Tick it to make the change anyway. Later edits to the record are kept where the change does not touch them."}
+                    {p.status === "changed" && ` ${t("import.changes.tickAnyway")}`}
                   </span>
                 </p>
               )}
@@ -110,25 +109,25 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
       {plan.findings.length > 0 && (
         <section className="section">
           <div className="section__head">
-            <h2 className="section__title">Checks</h2>
-            <span className="section__aside">{plural(plan.findings.length, "finding")} these changes bring</span>
+            <h2 className="section__title">{t("import.changes.checks")}</h2>
+            <span className="section__aside">{t("import.changes.findings", { count: plan.findings.length })}</span>
           </div>
           <FindingList findings={plan.findings} showRule readOnly />
         </section>
       )}
       <div className="commit-bar">
         <p>
-          {plural(taken.length, "change")} will be made{taken.length < plan.open ? `, ${plan.open - taken.length} left out` : ""}. Nothing changes until you import, and the import can be undone in the history.
+          {t("import.changes.commit", { count: taken.length, left: taken.length < plan.open ? plan.open - taken.length : 0 })}
         </p>
         <div className="commit-bar__actions">
           {fromInbox && (
             <button type="button" className="btn btn--ghost" onClick={onDiscard}>
-              Discard this file
+              {t("import.discardFile")}
             </button>
           )}
           <button type="button" className="btn btn--primary" onClick={commit} disabled={!taken.length}>
             <Icon name="check" />
-            Import {plural(taken.length, "change")}
+            {t("import.changes.import", { count: taken.length })}
           </button>
         </div>
       </div>

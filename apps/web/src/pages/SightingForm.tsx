@@ -4,6 +4,7 @@
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { flightDay, looksLikeOperatorName, PHASES, todayIn, type SightingValues } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { draftFindings } from "../data/draft.ts";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
@@ -15,6 +16,7 @@ import { linkFor, useShares } from "../data/shares.ts";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
 import { NotFound } from "./NotFound.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 type Phase = (typeof PHASES)[number];
 
@@ -67,25 +69,26 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
   const deferred = useDeferredValue(values);
   const findings = useMemo(() => draftFindings(app, "sightings", deferred, existing?.id).filter((f) => f.ruleId !== "V-INCOMPLETE" && f.ruleId !== "C-LIVERY-MISSING"), [app, deferred, existing?.id]);
 
-  if (edit && !existing) return <NotFound what="That sighting is not in your log." back={{ to: "/spotting", label: "Spotting" }} />;
+  if (edit && !existing) return <NotFound what={t("spotting.sighting.notFound")} back={{ to: "/spotting", label: t("spotting.title") }} />;
 
   const save = (another: boolean) => {
     app.saveSighting(values, existing?.id, d.tags, d.phases);
     if (d.seenOn && d.airportRaw) rememberSpot(d.seenOn, d.airportRaw);
     if (another) {
-      toast(`${values.registrationRaw ?? "Sighting"} saved. Next one.`);
+      toast(t("spotting.sighting.savedNext", { typed: values.registrationRaw ? "yes" : "no", registration: values.registrationRaw ?? "" }));
       setD((x) => ({ ...init(), seenOn: x.seenOn, airportRaw: x.airportRaw, registrationRaw: "" }));
       regInput.current?.focus();
     } else {
-      toast(existing ? "Sighting saved." : "Sighting added.");
+      toast(existing ? t("spotting.sighting.saved") : t("spotting.sighting.added"));
       navigate({ to: "/spotting" });
     }
   };
   const remove = () => {
-    const shared = existing && linkFor(shareList, "sighting", existing.id) ? " Its share link stays and says it is no longer shared." : "";
-    if (!existing || !window.confirm(`Delete this sighting of ${existing.registration ?? "this aircraft"}?${shared}`)) return;
+    if (!existing) return;
+    const shared = linkFor(shareList, "sighting", existing.id) ? "yes" : "no";
+    if (!window.confirm(t("spotting.sighting.deleteConfirm", { typed: existing.registration ? "yes" : "no", registration: existing.registration ?? "", shared }))) return;
     app.deleteRecord("sightings", existing.id);
-    toast("Sighting deleted.");
+    toast(t("spotting.sighting.deleted"));
     navigate({ to: "/spotting" });
   };
   const toggleTag = (t: string) => set("tags", d.tags.includes(t) ? d.tags.filter((x) => x !== t) : [...d.tags, t]);
@@ -94,15 +97,13 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
 
   return (
     <div className="page page--form">
-      <nav className="crumbs" aria-label="Back">
+      <nav className="crumbs" aria-label={t("common.back")}>
         <Link to="/spotting">
-          <Icon name="arrow-left" /> Spotting
+          <Icon name="arrow-left" /> {t("spotting.title")}
         </Link>
       </nav>
-      <h1 className="form-title">{existing ? "Edit sighting" : "Add a sighting"}</h1>
-      <p className="form-sub">
-        One sighting is one aircraft at one place on one day. For many aircraft, <Link to="/spotting/session">log a session</Link>.
-      </p>
+      <h1 className="form-title">{existing ? t("spotting.sighting.titleEdit") : t("spotting.sighting.titleAdd")}</h1>
+      <p className="form-sub">{tx("spotting.sighting.lead", {}, { link: (text) => <Link to="/spotting/session">{text}</Link> })}</p>
       <form
         className="form"
         onSubmit={(e) => {
@@ -111,14 +112,14 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
         }}
       >
         <div className="form-grid">
-          <Field label="Registration">
+          <Field label={t("spotting.field.registration")}>
             <TextInput ref={regInput} value={d.registrationRaw} onChange={(e) => set("registrationRaw", e.target.value)} placeholder="N123AB" autoFocus={!existing} />
           </Field>
-          <Field label="Date">
+          <Field label={t("spotting.field.date")}>
             <input className="input" type="date" value={d.seenOn} onChange={(e) => set("seenOn", e.target.value)} />
           </Field>
-          <Field label="Location">
-            <Picker label="Location" value={d.airportRaw} onChange={(v) => set("airportRaw", v)} options={airportOptions(ref)} placeholder="Airport code or city" resolved={d.airportRaw.trim() ? (airport ? shortAirport(airport.id, ref) : "Not a known airport code") : null} invalid={!!d.airportRaw.trim() && !airport} />
+          <Field label={t("spotting.field.location")}>
+            <Picker label={t("spotting.field.location")} value={d.airportRaw} onChange={(v) => set("airportRaw", v)} options={airportOptions(ref)} placeholder={t("spotting.field.locationPlaceholder")} resolved={d.airportRaw.trim() ? (airport ? shortAirport(airport.id, ref) : t("spotting.field.unknownAirport")) : null} invalid={!!d.airportRaw.trim() && !airport} />
           </Field>
         </div>
 
@@ -126,17 +127,16 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
           <div className="known">
             <Icon name="info" />
             <p>
-              <b>{known.typeCode ? typeName(known.typeCode, ref) : "Type not recorded"}</b>
-              {known.operatorId && ` · ${airlineLabel(known.operatorId, ref)}`}.{" "}
-              {others.length > 0 && `Seen ${others.length === 1 ? "once" : `${others.length} times`} before, last on ${others[0]!.seenOn ? dayMonthYear(others[0]!.seenOn) : "an unknown date"}. `}
-              {known.flights.length > 0 && `You flew on it on ${known.flights.map((f) => (flightDay(f) ? dayMonthYear(flightDay(f)!) : "an unknown date")).join(", ")}. `}
+              {tx("spotting.sighting.known.aircraft", { type: known.typeCode ? typeName(known.typeCode, ref) : t("spotting.sighting.known.noType"), withAirline: known.operatorId ? "yes" : "no", airline: known.operatorId ? airlineLabel(known.operatorId, ref) : "" }, { b: (text) => <b>{text}</b> })}{" "}
+              {others.length > 0 && `${t("spotting.sighting.known.seen", { count: others.length, date: others[0]!.seenOn ? dayMonthYear(others[0]!.seenOn) : t("spotting.sighting.known.unknownDate") })} `}
+              {known.flights.length > 0 && `${t("spotting.sighting.known.flown", { dates: known.flights.map((f) => (flightDay(f) ? dayMonthYear(flightDay(f)!) : t("spotting.sighting.known.unknownDate"))).join(", ") })} `}
               {known.specialLivery && !d.specialLivery.trim() && <LiveryQuestion worn={known.specialLivery} onUse={() => set("specialLivery", known.specialLivery!.name)} />}
             </p>
           </div>
         )}
 
-        <Field label="Phase" hint="Every phase it was seen in">
-          <div className="chips" role="group" aria-label="Phase">
+        <Field label={t("spotting.field.phase")} hint={t("spotting.sighting.phaseHint")}>
+          <div className="chips" role="group" aria-label={t("spotting.field.phase")}>
             {PHASES.filter((p) => p !== "other" || d.phases.includes(p)).map((p) => (
               <button key={p} type="button" className="chip" aria-pressed={d.phases.includes(p)} onClick={() => togglePhase(p)}>
                 {PHASE_LABEL[p]}
@@ -146,23 +146,23 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
         </Field>
 
         <div className="form-grid">
-          <Field label="Type code" hint={known?.typeCode && !d.typeCodeRaw ? `${known.typeCode} from earlier records` : d.typeCodeRaw ? typeName(d.typeCodeRaw.toUpperCase(), ref) : undefined}>
+          <Field label={t("spotting.sighting.typeCode")} hint={known?.typeCode && !d.typeCodeRaw ? t("spotting.sighting.typeFromEarlier", { type: known.typeCode }) : d.typeCodeRaw ? typeName(d.typeCodeRaw.toUpperCase(), ref) : undefined}>
             <TextInput value={d.typeCodeRaw} onChange={(e) => set("typeCodeRaw", e.target.value)} placeholder={known?.typeCode ?? "B738"} />
           </Field>
-          <Field label="Model">
+          <Field label={t("spotting.sighting.model")}>
             <TextInput value={d.modelRaw} onChange={(e) => set("modelRaw", e.target.value)} placeholder={known?.model ?? "737-8H4"} />
           </Field>
-          <Field label="Airline">
-            <Picker label="Airline" value={d.operatorRaw} onChange={(v) => set("operatorRaw", v)} options={operatorOptions(ref, "icao")} placeholder={known?.operatorRaw ?? "Code or name"} resolved={operatorRaw ? (operator ? operator.name : looksLikeOperatorName(operatorRaw) ? "Not an airline: saved as an operator" : "Not a known airline code") : null} invalid={!!operatorRaw && !operator && !looksLikeOperatorName(operatorRaw)} />
+          <Field label={t("spotting.field.airline")}>
+            <Picker label={t("spotting.field.airline")} value={d.operatorRaw} onChange={(v) => set("operatorRaw", v)} options={operatorOptions(ref, "icao")} placeholder={known?.operatorRaw ?? t("spotting.sighting.airlinePlaceholder")} resolved={operatorRaw ? (operator ? operator.name : looksLikeOperatorName(operatorRaw) ? t("spotting.sighting.notAirline") : t("spotting.sighting.unknownAirline")) : null} invalid={!!operatorRaw && !operator && !looksLikeOperatorName(operatorRaw)} />
           </Field>
-          <Field label="Special livery" hint="Only real special liveries and stickers">
+          <Field label={t("spotting.field.specialLivery")} hint={t("spotting.sighting.liveryHint")}>
             <TextInput value={d.specialLivery} onChange={(e) => set("specialLivery", e.target.value)} />
           </Field>
-          <Field label="Regular livery variant">
+          <Field label={t("spotting.sighting.livery")}>
             <TextInput value={d.livery} onChange={(e) => set("livery", e.target.value)} />
           </Field>
-          <Field label="Photo notes">
-            <div className="chips" role="group" aria-label="Photo notes">
+          <Field label={t("spotting.sighting.photoNotes")}>
+            <div className="chips" role="group" aria-label={t("spotting.sighting.photoNotes")}>
               {Object.entries(TAG_LABEL).map(([k, v]) => (
                 <button key={k} type="button" className="chip" aria-pressed={d.tags.includes(k)} onClick={() => toggleTag(k)}>
                   {v}
@@ -170,14 +170,14 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
               ))}
             </div>
           </Field>
-          <Field label="Notes" wide>
+          <Field label={t("spotting.sighting.notes")} wide>
             <textarea className="input textarea" rows={2} value={d.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>
         </div>
 
         {findings.length > 0 && (
           <div className="form-checks" aria-live="polite">
-            <h2 className="form-section">Checks</h2>
+            <h2 className="form-section">{t("spotting.sighting.checks")}</h2>
             <FindingList findings={findings.map((f) => ({ ...f, fixes: [] }))} />
           </div>
         )}
@@ -187,11 +187,11 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
             <>
               <button type="button" className="btn btn--primary" onClick={() => save(false)}>
                 <Icon name="check" />
-                Save sighting
+                {t("spotting.sighting.save")}
               </button>
               <button type="button" className="btn btn--quiet" onClick={remove}>
                 <Icon name="trash" />
-                Delete
+                {t("common.delete")}
               </button>
               <ShareButton kind="sighting" subject={existing.id} />
             </>
@@ -199,10 +199,10 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
             <>
               <button type="submit" className="btn btn--primary">
                 <Icon name="check" />
-                Save and add another
+                {t("spotting.sighting.saveAnother")}
               </button>
               <button type="button" className="btn btn--quiet" onClick={() => save(false)}>
-                Save and close
+                {t("spotting.sighting.saveClose")}
               </button>
             </>
           )}

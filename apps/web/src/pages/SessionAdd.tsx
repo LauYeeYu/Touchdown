@@ -5,13 +5,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { looksLikeOperatorName, normaliseRegistration, PHASES, todayIn } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
-import { typeName, airlineLabel, PHASE_LABEL, plural, shortAirport } from "../lib/format.ts";
+import { typeName, airlineLabel, PHASE_LABEL, shortAirport } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { airportOptions, Field, LiveryQuestion, Picker } from "../components/form.tsx";
 import { toast } from "../components/overlay.tsx";
 import { Select } from "../components/Select.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 type Phase = (typeof PHASES)[number];
 
@@ -77,15 +79,15 @@ export function SessionAdd() {
       rows.map((r) => {
         const n = normaliseRegistration(r.registrationRaw, ref);
         const notes: string[] = [];
-        if (n && !n.knownFormat) notes.push("Unknown registration format");
-        if (r.typeCodeRaw && !ref.type(r.typeCodeRaw)) notes.push(`${r.typeCodeRaw.toUpperCase()} is not a type code`);
-        if (r.operatorRaw && !ref.operatorByCode(r.operatorRaw, date)) notes.push(looksLikeOperatorName(r.operatorRaw) ? `${r.operatorRaw.trim()} is added as an operator` : `${r.operatorRaw} is not an airline code`);
+        if (n && !n.knownFormat) notes.push(t("spotting.session.note.unknownFormat"));
+        if (r.typeCodeRaw && !ref.type(r.typeCodeRaw)) notes.push(t("spotting.session.note.notType", { code: r.typeCodeRaw.toUpperCase() }));
+        if (r.operatorRaw && !ref.operatorByCode(r.operatorRaw, date)) notes.push(looksLikeOperatorName(r.operatorRaw) ? t("spotting.session.note.newOperator", { name: r.operatorRaw.trim() }) : t("spotting.session.note.notAirline", { code: r.operatorRaw }));
         const k = knownFor(store, r.registrationRaw, date);
-        if (k?.typeCode && r.typeCodeRaw && k.typeCode !== r.typeCodeRaw.toUpperCase()) notes.push(`Recorded before as ${k.typeCode}`);
+        if (k?.typeCode && r.typeCodeRaw && k.typeCode !== r.typeCodeRaw.toUpperCase()) notes.push(t("spotting.session.note.recordedAs", { type: k.typeCode }));
         const dup = rows.filter((o) => normaliseRegistration(o.registrationRaw, ref)?.match === n?.match).length > 1;
-        if (dup) notes.push("Twice in this session");
+        if (dup) notes.push(t("spotting.session.note.twice"));
         const seenToday = k?.sightings.some((s) => s.seenOn === date && (s.airportRaw ?? "").toUpperCase() === airport.toUpperCase());
-        if (seenToday) notes.push("Already logged here today");
+        if (seenToday) notes.push(t("spotting.session.note.seenToday"));
         return { row: r, display: n?.display ?? r.registrationRaw, known: k, notes, fresh: !k };
       }),
     [rows, ref, store, date, airport],
@@ -110,7 +112,7 @@ export function SessionAdd() {
     );
     if (date && airport) rememberSpot(date, airport);
     setRows([]);
-    toast(`${plural(n, "sighting")} saved.`);
+    toast(t("spotting.session.saved", { count: n }));
     navigate({ to: "/spotting" });
   };
 
@@ -118,22 +120,22 @@ export function SessionAdd() {
 
   return (
     <div className="page page--form">
-      <nav className="crumbs" aria-label="Back">
+      <nav className="crumbs" aria-label={t("common.back")}>
         <Link to="/spotting">
-          <Icon name="arrow-left" /> Spotting
+          <Icon name="arrow-left" /> {t("spotting.title")}
         </Link>
       </nav>
-      <h1 className="form-title">Log a spotting session</h1>
-      <p className="form-sub">Set the day and the place once, then type a registration and press Enter. Pasting a list works too.</p>
+      <h1 className="form-title">{t("spotting.session.title")}</h1>
+      <p className="form-sub">{t("spotting.session.lead")}</p>
       <div className="form-grid">
-        <Field label="Date">
+        <Field label={t("spotting.field.date")}>
           <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label="Location">
-          <Picker label="Location" value={airport} onChange={setAirport} options={airportOptions(ref)} placeholder="Airport code or city" resolved={airport.trim() ? (ap ? shortAirport(ap.id, ref) : "Not a known airport code") : null} invalid={!!airport.trim() && !ap} />
+        <Field label={t("spotting.field.location")}>
+          <Picker label={t("spotting.field.location")} value={airport} onChange={setAirport} options={airportOptions(ref)} placeholder={t("spotting.field.locationPlaceholder")} resolved={airport.trim() ? (ap ? shortAirport(ap.id, ref) : t("spotting.field.unknownAirport")) : null} invalid={!!airport.trim() && !ap} />
         </Field>
-        <Field label="Phase for new rows">
-          <Select<Phase | ""> label="Phase for new rows" value={phase} onChange={setPhase} options={[{ value: "", label: "Not recorded" }, ...PHASES.map((p) => ({ value: p, label: PHASE_LABEL[p] ?? "" }))]} />
+        <Field label={t("spotting.session.phaseForNew")}>
+          <Select<Phase | ""> label={t("spotting.session.phaseForNew")} value={phase} onChange={setPhase} options={[{ value: "", label: t("spotting.session.notRecorded") }, ...PHASES.map((p) => ({ value: p, label: PHASE_LABEL[p] ?? "" }))]} />
         </Field>
       </div>
       <form
@@ -156,8 +158,8 @@ export function SessionAdd() {
               add(t);
             }
           }}
-          placeholder="Registration, then Enter"
-          aria-label="Registration"
+          placeholder={t("spotting.session.entryPlaceholder")}
+          aria-label={t("spotting.field.registration")}
           autoComplete="off"
           spellCheck={false}
           autoCapitalize="characters"
@@ -165,18 +167,18 @@ export function SessionAdd() {
         />
         <button type="submit" className="btn btn--quiet">
           <Icon name="plus" />
-          Add
+          {t("common.add")}
         </button>
       </form>
 
       {rows.length > 0 && (
         <>
           <p className="session-count">
-            {plural(rows.length, "aircraft", "aircraft")}
+            {t("common.count.aircraft", { count: rows.length })}
             {fresh > 0 && (
               <>
                 {" "}
-                · <span className="tag-new">{fresh} new</span> to your log
+                · {tx("spotting.session.fresh", { count: fresh }, { new: (text) => <span className="tag-new">{text}</span> })}
               </>
             )}
           </p>
@@ -185,13 +187,13 @@ export function SessionAdd() {
               <li key={row.key} className="session-row">
                 <span className="session-row__reg">
                   <b>{display}</b>
-                  <small>{known ? `${typeName(known.typeCode, ref)}${known.operatorId ? ` · ${airlineLabel(known.operatorId, ref)}` : ""} · seen ${plural(known.sightings.length, "time")}` : "New to your log"}</small>
+                  <small>{known ? `${typeName(known.typeCode, ref)}${known.operatorId ? ` · ${airlineLabel(known.operatorId, ref)}` : ""} · ${t("spotting.session.seen", { count: known.sightings.length })}` : t("spotting.session.newToLog")}</small>
                 </span>
-                <input className="input" value={row.typeCodeRaw} onChange={(e) => update(row.key, { typeCodeRaw: e.target.value })} placeholder="Type" aria-label={`Type code for ${display}`} />
-                <input className="input" value={row.operatorRaw} onChange={(e) => update(row.key, { operatorRaw: e.target.value })} placeholder="Airline" aria-label={`Airline for ${display}`} />
-                <Select<Phase | ""> label={`Phase for ${display}`} value={row.phase} onChange={(phase) => update(row.key, { phase })} options={[{ value: "", label: "Phase" }, ...PHASES.map((p) => ({ value: p, label: PHASE_LABEL[p] ?? "" }))]} />
-                <input className="input" value={row.specialLivery} onChange={(e) => update(row.key, { specialLivery: e.target.value })} placeholder="Special livery" aria-label={`Special livery for ${display}`} />
-                <button type="button" className="icon-btn" onClick={() => remove(row.key)} aria-label={`Remove ${display}`}>
+                <input className="input" value={row.typeCodeRaw} onChange={(e) => update(row.key, { typeCodeRaw: e.target.value })} placeholder={t("spotting.session.type")} aria-label={t("spotting.session.typeFor", { registration: display })} />
+                <input className="input" value={row.operatorRaw} onChange={(e) => update(row.key, { operatorRaw: e.target.value })} placeholder={t("spotting.field.airline")} aria-label={t("spotting.session.airlineFor", { registration: display })} />
+                <Select<Phase | ""> label={t("spotting.session.phaseFor", { registration: display })} value={row.phase} onChange={(phase) => update(row.key, { phase })} options={[{ value: "", label: t("spotting.field.phase") }, ...PHASES.map((p) => ({ value: p, label: PHASE_LABEL[p] ?? "" }))]} />
+                <input className="input" value={row.specialLivery} onChange={(e) => update(row.key, { specialLivery: e.target.value })} placeholder={t("spotting.field.specialLivery")} aria-label={t("spotting.session.liveryFor", { registration: display })} />
+                <button type="button" className="icon-btn" onClick={() => remove(row.key)} aria-label={t("spotting.session.remove", { registration: display })}>
                   <Icon name="x" />
                 </button>
                 {known?.specialLivery && !row.specialLivery.trim() && (
@@ -211,16 +213,16 @@ export function SessionAdd() {
           <div className="form-actions">
             <button type="button" className="btn btn--primary" onClick={save}>
               <Icon name="check" />
-              Save {plural(rows.length, "sighting")}
+              {t("spotting.session.save", { count: rows.length })}
             </button>
             <button
               type="button"
               className="btn btn--quiet"
               onClick={() => {
-                if (window.confirm("Discard this session's rows?")) setRows([]);
+                if (window.confirm(t("spotting.session.discardConfirm"))) setRows([]);
               }}
             >
-              Discard
+              {t("spotting.session.discard")}
             </button>
           </div>
         </>

@@ -4,12 +4,13 @@ import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
 import { phaseIndex, sightingStats, type Sighting } from "@touchdown/core";
+import { list, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sessionsOf } from "../lib/views.ts";
 import { mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, dateOnly, dayLong, nf, PHASE_LABEL, plural, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
+import { airlineLabel, dateOnly, dayLong, PHASE_LABEL, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -20,6 +21,7 @@ import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { isolated, Name, voiceOf } from "../lib/voice.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 const SESSION_PREVIEW = 12;
 const SESSIONS_PER_PAGE = 10;
@@ -63,20 +65,8 @@ export function Spotting() {
   // About "you", a shared whole log's owner by name, or nobody on a link to one record (lib/voice.tsx).
   const shared = app.readOnly;
   const voice = voiceOf(app);
-  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   const first = years[0] ?? thisYear;
-  const when =
-    voice.kind === "none" ? (
-      year === "all" ? `Since ${first},` : year === thisYear ? `So far in ${year},` : `In ${year},`
-    ) : voice.kind === "named" ? (
-      year === "all" ? <>Since {first} {who} has spotted</> : year === thisYear ? <>So far in {year} {who} has spotted</> : <>In {year} {who} spotted</>
-    ) : year === "all" ? (
-      `Since ${first} you have spotted`
-    ) : year === thisYear ? (
-      `So far in ${year} you have spotted`
-    ) : (
-      `In ${year} you spotted`
-    );
+  const period = year === "all" ? "all" : year === thisYear ? "current" : "other";
   const busiest = [...sessions].sort((a, b) => b.sightings.length - a.sightings.length)[0];
   const topAirline = ss.byAirline.items[0];
   const topType = ss.byType.items[0];
@@ -89,33 +79,42 @@ export function Spotting() {
           <span className="view-top__actions hide-phone">
             <Link className="btn btn--quiet" to="/spotting/session">
               <Icon name="notebook-pen" />
-              Log a session
+              {t("spotting.logSession")}
             </Link>
           </span>
         )}
       </div>
       <h1 className="lead">
-        {sightings.length ? (
-          <>
-            {when} <Fig>{plural(ss.aircraft.value, "aircraft", "aircraft")}</Fig>
-            {voice.kind === "none" && " spotted"}
-            {year !== "all" && newCount > 0 && newCount !== ss.aircraft.value && <> ({nf.format(newCount)} new to {shared ? "the log" : "your log"})</>} at <Fig>{plural(ss.airports.value, "airport")}</Fig>, on {plural(sessions.length, "day out", "days out")}.
-          </>
-        ) : (
-          `No sightings logged in ${year === "all" ? (shared ? "the log" : "your log") : year}.`
-        )}
+        {sightings.length
+          ? tx(
+              "spotting.lead",
+              {
+                period,
+                voice: voice.kind,
+                name: voice.kind === "named" ? <Name name={voice.name} /> : "",
+                first,
+                year,
+                aircraft: ss.aircraft.value,
+                fresh: year !== "all" && newCount > 0 && newCount !== ss.aircraft.value ? "yes" : "no",
+                newCount,
+                airports: ss.airports.value,
+                days: sessions.length,
+              },
+              { fig: (text) => <Fig>{text}</Fig> },
+            )
+          : t("spotting.empty", { period: year === "all" ? "all" : "year", voice: voice.kind, year })}
       </h1>
       {sightings.length > 0 && (
         <dl className="facts">
           {topAirline && (
-            <Fact label={ss.byAirline.top.length > 1 ? "Most spotted airlines" : "Most spotted airline"} value={ss.byAirline.top.map((id) => airlineLabel(id, ref)).join(" and ")} detail={plural(topAirline.count, "aircraft", "aircraft")} />
+            <Fact label={t("spotting.facts.topAirline", { count: ss.byAirline.top.length })} value={list(ss.byAirline.top.map((id) => airlineLabel(id, ref)))} detail={t("common.count.aircraft", { count: topAirline.count })} />
           )}
           {topType && (
-            <Fact label="Most spotted type" value={typeName(topType.key, ref)} detail={plural(topType.count, "aircraft", "aircraft")} />
+            <Fact label={t("spotting.facts.topType")} value={typeName(topType.key, ref)} detail={t("common.count.aircraft", { count: topType.count })} />
           )}
-          <Fact label="Special liveries" value={plural(ss.specialLiveryAircraft.value, "aircraft", "aircraft")} detail={plural(ss.specialLiveries.value, "livery", "liveries")} />
+          <Fact label={t("spotting.facts.specialLiveries")} value={t("common.count.aircraft", { count: ss.specialLiveryAircraft.value })} detail={t("common.count.liveries", { count: ss.specialLiveries.value })} />
           {busiest && (
-            <Fact label="Busiest day" value={plural(busiest.sightings.length, "sighting")} detail={<>{busiest.date ? dateOnly(busiest.date, { day: "numeric", month: "short", year: "numeric" }) : ""}
+            <Fact label={t("spotting.facts.busiestDay")} value={t("common.count.sightings", { count: busiest.sightings.length })} detail={<>{busiest.date ? dateOnly(busiest.date, { day: "numeric", month: "short", year: "numeric" }) : ""}
                   {busiest.airportId ? ` · ${textCode(ref.airport(busiest.airportId))}` : ""}</>} />
           )}
         </dl>
@@ -126,26 +125,26 @@ export function Spotting() {
           <div className="legend" aria-hidden="true">
             <span className="legend__item">
               <span className="swatch-dot" />
-              Spotting locations, sized by aircraft seen
+              {t("spotting.map.legend")}
             </span>
           </div>
-          <WorldMap flights={[]} spots={mapSpots(sightings, ref)} mode="fit" onAirportClick={(id) => navigate({ to: "/airports/$id", params: { id } })} label={`Map of ${plural(ss.airports.value, "spotting location")}`} />
+          <WorldMap flights={[]} spots={mapSpots(sightings, ref)} mode="fit" onAirportClick={(id) => navigate({ to: "/airports/$id", params: { id } })} label={t("spotting.map.label", { count: ss.airports.value })} />
         </div>
       )}
 
       <div className="filters" role="search">
         <label className="search">
-          <span className="visually-hidden">Search sightings</span>
+          <span className="visually-hidden">{t("spotting.search.label")}</span>
           <Icon name="search" />
-          <input className="input" type="search" placeholder="Registration, type, airline or livery" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+          <input className="input" type="search" placeholder={t("spotting.search.placeholder")} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
-        <Select label="Location" value={airport} onChange={setAirport} options={[{ value: "", label: "All locations" }, ...airports.map((id) => ({ value: id, label: airportWithCode(id, ref) }))]} />
-        <span className="filters__count">{plural(shownSessions.reduce((a, s) => a + s.shown.length, 0), "sighting")}</span>
+        <Select label={t("spotting.field.location")} value={airport} onChange={setAirport} options={[{ value: "", label: t("spotting.filters.allLocations") }, ...airports.map((id) => ({ value: id, label: airportWithCode(id, ref) }))]} />
+        <span className="filters__count">{t("common.count.sightings", { count: shownSessions.reduce((a, s) => a + s.shown.length, 0) })}</span>
       </div>
 
       {!shownSessions.length && sightings.length > 0 && (
         <div className="empty">
-          <p>No sightings match these filters.</p>
+          <p>{t("spotting.filters.noMatch")}</p>
           <button
             type="button"
             className="btn btn--quiet"
@@ -154,7 +153,7 @@ export function Spotting() {
               setAirport("");
             }}
           >
-            Clear filters
+            {t("spotting.filters.clear")}
           </button>
         </div>
       )}
@@ -166,14 +165,14 @@ export function Spotting() {
           <section className="month session" key={sess.key}>
             <div className="month__head">
               <h2 className="month__title">
-                {sess.date ? dayLong(sess.date) : "No date"} · {airportWithCode(sess.airportId, ref) || sess.sightings[0]?.airportRaw || "Unknown place"}
+                {sess.date ? dayLong(sess.date) : t("spotting.day.noDate")} · {airportWithCode(sess.airportId, ref) || sess.sightings[0]?.airportRaw || t("spotting.day.unknownPlace")}
               </h2>
               <span className="month__sum">
-                {plural(sess.aircraft, "aircraft", "aircraft")}
+                {t("common.count.aircraft", { count: sess.aircraft })}
                 {sess.newAircraft > 0 && (
                   <>
                     {" "}
-                    · <span className="tag-new">{sess.newAircraft} new</span>
+                    · <span className="tag-new">{t("spotting.day.new", { count: sess.newAircraft })}</span>
                   </>
                 )}
               </span>
@@ -185,15 +184,15 @@ export function Spotting() {
                   <Link className="row row--sighting" {...(s.airframeId ? { to: "/aircraft/$id", params: { id: s.airframeId } } : { to: "/spotting/$id/edit", params: { id: s.id } })}>
                     <span className="row__route-wrap">
                       <span className="row__route">
-                        {s.registration ?? s.registrationRaw ?? "No registration"}
+                        {s.registration ?? s.registrationRaw ?? t("spotting.row.noRegistration")}
                         {review.has(s.id) && (
-                          <span className="review" title="This sighting has a check to look at">
+                          <span className="review" title={t("spotting.row.reviewTitle")}>
                             <Icon name="info" />
-                            Review
+                            {t("spotting.row.review")}
                           </span>
                         )}
                       </span>
-                      <span className="row__cities">{airlineLabel(s.operatorId, ref) || s.operatorRaw || "Unknown operator"}</span>
+                      <span className="row__cities">{airlineLabel(s.operatorId, ref) || s.operatorRaw || t("spotting.row.unknownOperator")}</span>
                     </span>
                     <TypeCell code={s.typeCode} />
                     {/* Every phase it was seen in, all equal, one per line in the fixed order of phases. */}
@@ -210,7 +209,7 @@ export function Spotting() {
                         </span>
                       ))}
                     </span>
-                    <span className="row__track" title={s.airframeId && flown.has(s.airframeId) ? (voice.kind === "none" ? "Flown on too" : voice.kind === "named" ? `${isolated(voice.name)} flew on this aircraft` : "You flew on this aircraft") : ""}>
+                    <span className="row__track" title={s.airframeId && flown.has(s.airframeId) ? t("spotting.row.flown", { voice: voice.kind, name: voice.kind === "named" ? isolated(voice.name) : "" }) : ""}>
                       {s.airframeId && flown.has(s.airframeId) && <Icon name="tickets-plane" />}
                     </span>
                   </Link>
@@ -219,13 +218,13 @@ export function Spotting() {
             </ul>
             {!open && (
               <button type="button" className="btn btn--quiet btn--small show-all" onClick={() => setExpanded((e) => [...e, sess.key])}>
-                Show all {plural(sess.shown.length, "sighting")}
+                {t("spotting.day.showAll", { count: sess.shown.length })}
               </button>
             )}
           </section>
         );
       })}
-      <Pager paging={paging} noun={["day out", "days out"]} />
+      <Pager paging={paging} kind="daysOut" />
     </div>
   );
 }

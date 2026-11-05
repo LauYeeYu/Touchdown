@@ -2,6 +2,7 @@
 // and the field it was read as, which the user can change. Unclear columns are marked.
 
 import { COLUMN_FIELDS, FIELD_DEFS, mappingProblem, type ColumnField, type RowKind, type SheetMapping } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { Segmented } from "./form.tsx";
 import { Select } from "./Select.tsx";
 import { Icon } from "../lib/icons.tsx";
@@ -11,9 +12,9 @@ export interface ColumnChoice {
   fields: ColumnField[];
 }
 
-const KIND_OPTIONS: { value: RowKind; label: string }[] = [
-  { value: "sightings", label: "Aircraft you saw" },
-  { value: "flights", label: "Flights you took" },
+const kindOptions = (): { value: RowKind; label: string }[] => [
+  { value: "sightings", label: t("import.columns.kind.sightings") },
+  { value: "flights", label: t("import.columns.kind.flights") },
 ];
 
 export function ColumnMapping({ guess, value, onChange, onUse, onCancel }: { guess: SheetMapping; value: ColumnChoice; onChange: (v: ColumnChoice) => void; onUse: () => void; onCancel: () => void }) {
@@ -25,10 +26,10 @@ export function ColumnMapping({ guess, value, onChange, onUse, onCancel }: { gue
     onChange({ kind, fields: value.fields.map((f) => (f !== "ignore" && !FIELD_DEFS[f].kinds.includes(kind) ? "ignore" : f)) });
   };
   return (
-    <section className="column-mapping" aria-label="Columns">
+    <section className="column-mapping" aria-label={t("import.columns.label")}>
       <div className="column-mapping__kind">
-        <span>The rows are</span>
-        <Segmented value={value.kind} options={KIND_OPTIONS} onChange={setKind} label="The rows are" />
+        <span>{t("import.columns.kind.label")}</span>
+        <Segmented value={value.kind} options={kindOptions()} onChange={setKind} label={t("import.columns.kind.label")} />
       </div>
       <ul className="column-mapping__list">
         {guess.columns
@@ -40,15 +41,15 @@ export function ColumnMapping({ guess, value, onChange, onUse, onCancel }: { gue
             return (
               <li key={c.index} className={`column-mapping__row${unclear ? " is-unclear" : ""}`}>
                 <span className="column-mapping__name">
-                  <b>{c.header || `Column ${c.index + 1}`}</b>
-                  <small>{FIELD_DEFS[field].private ? "values hidden (private)" : c.samples.slice(0, 3).join(" · ") || "empty"}</small>
-                  {unclear && <small className="column-mapping__why">Unclear: {c.why}</small>}
+                  <b>{c.header || t("import.columns.unnamed", { n: c.index + 1 })}</b>
+                  <small>{FIELD_DEFS[field].private ? t("import.columns.hidden") : c.samples.slice(0, 3).join(" · ") || t("import.empty")}</small>
+                  {unclear && <small className="column-mapping__why">{t("import.columns.unclear", { why: c.why })}</small>}
                 </span>
                 <Select<ColumnField>
                   value={field}
-                  label={`Field for ${c.header || `column ${c.index + 1}`}`}
+                  label={t("import.columns.fieldFor", { named: c.header ? "yes" : "no", header: c.header, n: c.index + 1 })}
                   onChange={(v) => onChange({ ...value, fields: value.fields.map((f, i) => (i === c.index ? v : f)) })}
-                  options={[{ value: "ignore", label: "Not used" }, ...options.map((f) => ({ value: f, label: FIELD_DEFS[f].label }))]}
+                  options={[{ value: "ignore", label: t("import.columns.notUsed") }, ...options.map((f) => ({ value: f, label: FIELD_DEFS[f].label }))]}
                 />
               </li>
             );
@@ -62,13 +63,13 @@ export function ColumnMapping({ guess, value, onChange, onUse, onCancel }: { gue
       )}
       <div className="column-mapping__actions">
         <button type="button" className="btn btn--primary" disabled={!!problem} onClick={onUse}>
-          Read the rows
+          {t("import.columns.read")}
         </button>
         <button type="button" className="btn btn--ghost" onClick={onCancel}>
-          Choose another file
+          {t("import.chooseAnother")}
         </button>
       </div>
-      <p className="form-sub">"Other text" goes to the notes, and the agent check can sort it into fields. These columns are remembered in this browser for files laid out the same way.</p>
+      <p className="form-sub">{t("import.columns.note")}</p>
     </section>
   );
 }

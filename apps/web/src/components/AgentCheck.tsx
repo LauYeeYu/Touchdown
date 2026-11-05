@@ -3,41 +3,63 @@
 // suggestion is used, and the import is still reviewed and committed as one batch.
 
 import { useRef, useState } from "react";
-import { readCheckResult, type AgentField, type AgentRecordResult, type AgentSuggestion, type CheckRequest, type CheckResultFile, type RefIndex } from "@touchdown/core";
+import { readCheckResult, type AgentField, type AgentRecordResult, type CheckRequest, type CheckResultFile, type RefIndex } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { SOURCE_REPOSITORY } from "../config.ts";
 import { Icon } from "../lib/icons.tsx";
-import { plural } from "../lib/format.ts";
 import { download } from "../lib/download.ts";
 import { toast } from "./overlay.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 export type Choice = "used" | "dismissed";
 export const choiceKey = (recordId: string, field: string) => `${recordId}|${field}`;
 
 const CHECKER_NAME = { claude: "Claude Code", codex: "Codex" } as const;
 
+/** The fields' names, read from the messages each time one is asked for. */
 export const AGENT_FIELD_LABEL: Record<AgentField, string> = {
-  typeCode: "Type code",
-  model: "Model",
-  registration: "Registration",
-  operator: "Operator",
-  airline: "Airline",
-  airport: "Airport",
-  from: "From",
-  to: "To",
-  date: "Date",
-  flightNumber: "Flight number",
-  livery: "Livery",
-  specialLivery: "Special livery",
-  phase: "Phase",
-  notes: "Notes",
-};
-
-const BASIS: Record<AgentSuggestion["basis"], string> = {
-  reference_data: "from the reference data",
-  consistency: "from your other rows",
-  model_knowledge: "from the agent's own knowledge",
-  lookup_data: "from a lookup",
-  typed: "from the text you typed",
+  get typeCode() {
+    return t("import.agent.field.typeCode");
+  },
+  get model() {
+    return t("import.agent.field.model");
+  },
+  get registration() {
+    return t("import.agent.field.registration");
+  },
+  get operator() {
+    return t("import.agent.field.operator");
+  },
+  get airline() {
+    return t("import.agent.field.airline");
+  },
+  get airport() {
+    return t("import.agent.field.airport");
+  },
+  get from() {
+    return t("import.agent.field.from");
+  },
+  get to() {
+    return t("import.agent.field.to");
+  },
+  get date() {
+    return t("import.agent.field.date");
+  },
+  get flightNumber() {
+    return t("import.agent.field.flightNumber");
+  },
+  get livery() {
+    return t("import.agent.field.livery");
+  },
+  get specialLivery() {
+    return t("import.agent.field.specialLivery");
+  },
+  get phase() {
+    return t("import.agent.field.phase");
+  },
+  get notes() {
+    return t("import.agent.field.notes");
+  },
 };
 
 interface PanelProps {
@@ -67,10 +89,10 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
       if ("error" in r) setError(r.error);
       else {
         onResult(r.result);
-        if (r.dropped) toast(`${plural(r.dropped, "suggestion")} did not pass Touchdown's checks and ${r.dropped === 1 ? "was" : "were"} left out.`);
+        if (r.dropped) toast(t("import.agent.dropped", { count: r.dropped }));
       }
     } catch {
-      setError(`${file.name} is not a check result.`);
+      setError(t("import.agent.notResult", { name: file.name }));
     }
   };
 
@@ -93,44 +115,46 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
     return (
       <section className="agent-panel" aria-labelledby="agent-title">
         <h2 className="agent-panel__title" id="agent-title">
-          Agent check
+          {t("import.agent.title")}
         </h2>
         <p className="agent-panel__lead">
-          {CHECKER_NAME[result.checker]} checked {plural(result.checked, "row")}
-          {result.model ? ` (${result.model})` : ""}:{" "}
-          {counts.suggestions ? (
-            <>
-              {plural(counts.suggestions, "suggestion")} on {plural(counts.rows, "row")}.
-              {counts.used + counts.dismissed > 0 && ` ${counts.used} used, ${counts.dismissed} dismissed.`}
-            </>
-          ) : (
-            "nothing to change."
-          )}
+          {t("import.agent.result", {
+            checker: CHECKER_NAME[result.checker],
+            checked: result.checked,
+            withModel: result.model ? "yes" : "no",
+            model: result.model ?? "",
+            found: counts.suggestions ? "yes" : "no",
+            suggestions: counts.suggestions,
+            rows: counts.rows,
+            chosen: counts.used + counts.dismissed > 0 ? "yes" : "no",
+            used: counts.used,
+            dismissed: counts.dismissed,
+          })}
         </p>
         {(result.rejected.length > 0 || failed > 0) && (
           <p className="agent-panel__note">
-            {result.rejected.length > 0 && `${plural(result.rejected.length, "answer")} did not pass Touchdown's checks and ${result.rejected.length === 1 ? "is" : "are"} not shown. `}
-            {failed > 0 && `${plural(failed, "row")} got no answer. Run the check again to cover them.`}
+            {result.rejected.length > 0 && `${t("import.agent.rejected", { count: result.rejected.length })} `}
+            {failed > 0 && t("import.agent.failed", { count: failed })}
           </p>
         )}
         <div className="button-row">
           {counts.highPending > 0 && (
             <button type="button" className="btn btn--quiet btn--small" onClick={onUseHigh}>
               <Icon name="check" />
-              Use the {plural(counts.highPending, "high-confidence suggestion")}
+              {t("import.agent.useHigh", { count: counts.highPending })}
             </button>
           )}
           {counts.suggestions > 0 && (
             <button type="button" className="btn btn--ghost btn--small" onClick={onShow}>
-              Show those rows
+              {t("import.agent.showRows")}
             </button>
           )}
           <button type="button" className="btn btn--ghost btn--small" onClick={() => fileInput.current?.click()}>
             <Icon name="upload" />
-            Load another result
+            {t("import.agent.loadAnother")}
           </button>
           <button type="button" className="btn btn--ghost btn--small" onClick={() => onResult(null)}>
-            Remove the check
+            {t("import.agent.remove")}
           </button>
         </div>
         {loader}
@@ -142,19 +166,32 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
   return (
     <section className="agent-panel" aria-labelledby="agent-title">
       <h2 className="agent-panel__title" id="agent-title">
-        Check with an agent
+        {t("import.agent.start.title")}
       </h2>
-      <p className="agent-panel__lead">The Touchdown command runs Claude Code or Codex on your computer. It looks for values that are well-formed but wrong, such as a type that does not fit the model or a livery spelled two ways, and suggests corrections. Nothing changes until you use one.</p>
+      <p className="agent-panel__lead">{t("import.agent.start.lead")}</p>
       <p className="agent-panel__note">
-        The command runs in the Touchdown directory: a copy of Touchdown's code on your computer. To set it up once, with Node.js 22 or later, run <code>git clone {SOURCE_REPOSITORY}</code>, then <code>cd Touchdown</code> and <code>npm install</code>. Sign in to Claude Code or Codex, and choose it with <code>./touchdown agent</code>. On Windows, type <code>npm run touchdown --</code> instead of <code>./touchdown</code>.{" "}
-        <a href={`${SOURCE_REPOSITORY}#set-up`} target="_blank" rel="noreferrer">
-          Setting up, in the README
-        </a>
-        .
+        {tx(
+          "import.agent.start.setup",
+          {
+            clone: <code>git clone {SOURCE_REPOSITORY}</code>,
+            cd: <code>cd Touchdown</code>,
+            install: <code>npm install</code>,
+            agent: <code>./touchdown agent</code>,
+            npmRun: <code>npm run touchdown --</code>,
+            launcher: <code>./touchdown</code>,
+          },
+          {
+            link: (text) => (
+              <a href={`${SOURCE_REPOSITORY}#set-up`} target="_blank" rel="noreferrer">
+                {text}
+              </a>
+            ),
+          },
+        )}
       </p>
       <ol className="agent-steps">
         <li>
-          <span className="agent-steps__text">Save the request.</span>
+          <span className="agent-steps__text">{t("import.agent.start.saveStep")}</span>
           <button
             type="button"
             className="btn btn--quiet btn--small"
@@ -164,35 +201,33 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
             }}
           >
             <Icon name="download" />
-            {saved ? "Save it again" : "Save the request"}
+            {saved ? t("import.agent.start.saveAgain") : t("import.agent.start.save")}
           </button>
         </li>
         <li>
-          <span className="agent-steps__text">In a terminal, in the Touchdown directory, run:</span>
+          <span className="agent-steps__text">{t("import.agent.start.runStep")}</span>
           <span className="agent-command">
             <code>{command}</code>
             <button
               type="button"
               className="icon-btn agent-command__copy"
-              aria-label="Copy the command"
-              title="Copy the command"
-              onClick={() => void navigator.clipboard?.writeText(command).then(() => toast("Command copied."), () => toast("Could not copy. Select the command instead."))}
+              aria-label={t("import.agent.start.copy")}
+              title={t("import.agent.start.copy")}
+              onClick={() => void navigator.clipboard?.writeText(command).then(() => toast(t("import.agent.start.copied")), () => toast(t("import.agent.start.copyFailed")))}
             >
               <Icon name="copy" />
             </button>
           </span>
         </li>
         <li>
-          <span className="agent-steps__text">Load the result it writes next to the request ({name}.result.json).</span>
+          <span className="agent-steps__text">{t("import.agent.start.loadStep", { file: `${name}.result.json` })}</span>
           <button type="button" className="btn btn--quiet btn--small" onClick={() => fileInput.current?.click()}>
             <Icon name="upload" />
-            Load the result
+            {t("import.agent.start.load")}
           </button>
         </li>
       </ol>
-      <p className="agent-panel__note">
-        Sent to the agent: dates, airports, flight numbers, registrations, types, models, operators, liveries and phases. Notes are sent only after <code>./touchdown agent notes on</code>. Never ticket numbers, booking references, seats or photo links. The agent and its rules are set with <code>./touchdown agent</code>.
-      </p>
+      <p className="agent-panel__note">{tx("import.agent.start.sent", { notesOn: <code>./touchdown agent notes on</code>, agent: <code>./touchdown agent</code> })}</p>
       {loader}
       {error && <p className="agent-panel__error" role="alert">{error}</p>}
     </section>
@@ -202,17 +237,17 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
 /** The agent's suggestions for one row, each with Use and Dismiss, and its note when it doubts the row without one. */
 export function AgentSuggestions({ record, choices, onChoose }: { record: AgentRecordResult; choices: Map<string, Choice>; onChoose: (field: AgentField, c: Choice | null) => void }) {
   return (
-    <ul className="suggestions" aria-label="Agent suggestions">
+    <ul className="suggestions" aria-label={t("import.agent.suggestions")}>
       {record.suggestions.map((s) => {
         const c = choices.get(choiceKey(record.recordId, s.field)) ?? null;
         return (
           <li key={s.field} className={`suggestion${c ? ` is-${c}` : ""}`}>
             <div className="suggestion__main">
               <p className="suggestion__change">
-                <span className="suggestion__field">{AGENT_FIELD_LABEL[s.field]}</span> <span className="suggestion__old">{s.current || "empty"}</span> <Icon name="arrow-right" className="icon suggestion__arrow" /> <b>{s.suggested || "clear it"}</b>
+                <span className="suggestion__field">{AGENT_FIELD_LABEL[s.field]}</span> <span className="suggestion__old">{s.current || t("import.empty")}</span> <Icon name="arrow-right" className="icon suggestion__arrow" /> <b>{s.suggested || t("import.agent.clear")}</b>
               </p>
               <p className="suggestion__reason">
-                {s.reason} <span className="suggestion__meta">{s.confidence[0]!.toUpperCase() + s.confidence.slice(1)} confidence, {BASIS[s.basis]}.</span>
+                {s.reason} <span className="suggestion__meta">{t("import.agent.meta", { confidence: s.confidence, basis: s.basis })}</span>
               </p>
             </div>
             <div className="suggestion__actions">
@@ -220,26 +255,26 @@ export function AgentSuggestions({ record, choices, onChoose }: { record: AgentR
                 <>
                   <span className="suggestion__state">
                     <Icon name="check" />
-                    Used
+                    {t("import.agent.used")}
                   </span>
                   <button type="button" className="btn btn--ghost btn--small" onClick={() => onChoose(s.field, null)}>
-                    Undo
+                    {t("common.undo")}
                   </button>
                 </>
               ) : c === "dismissed" ? (
                 <>
-                  <span className="suggestion__state">Dismissed</span>
+                  <span className="suggestion__state">{t("import.agent.dismissed")}</span>
                   <button type="button" className="btn btn--ghost btn--small" onClick={() => onChoose(s.field, null)}>
-                    Undo
+                    {t("common.undo")}
                   </button>
                 </>
               ) : (
                 <>
                   <button type="button" className="btn btn--quiet btn--small" onClick={() => onChoose(s.field, "used")}>
-                    Use
+                    {t("import.agent.use")}
                   </button>
                   <button type="button" className="btn btn--ghost btn--small" onClick={() => onChoose(s.field, "dismissed")}>
-                    Dismiss
+                    {t("import.agent.dismiss")}
                   </button>
                 </>
               )}
@@ -251,7 +286,7 @@ export function AgentSuggestions({ record, choices, onChoose }: { record: AgentR
         <li className="suggestion suggestion--note">
           <div className="suggestion__main">
             <p className="suggestion__reason">
-              <span className="suggestion__field">Agent</span> {record.note}
+              <span className="suggestion__field">{t("import.agent.agent")}</span> {record.note}
             </p>
           </div>
         </li>

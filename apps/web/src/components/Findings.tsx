@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { RULES, type Finding } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "./overlay.tsx";
@@ -25,7 +26,7 @@ export function FindingItem({ f, showRule = false, readOnly = false, children }:
                 type="button"
                 className="btn btn--quiet btn--small"
                 onClick={() => {
-                  toast(app.applyFix(fix) ?? "Fixed. The raw value you typed is kept.");
+                  toast(app.applyFix(fix) ?? t("issues.finding.fixed"));
                 }}
               >
                 <Icon name="check" />
@@ -38,10 +39,10 @@ export function FindingItem({ f, showRule = false, readOnly = false, children }:
                 className="btn btn--quiet btn--small"
                 onClick={() => {
                   app.acceptFinding(f);
-                  toast("Accepted. It comes back if these values change.");
+                  toast(t("issues.finding.accepted"));
                 }}
               >
-                This is right
+                {t("issues.finding.right")}
               </button>
             )}
           </div>

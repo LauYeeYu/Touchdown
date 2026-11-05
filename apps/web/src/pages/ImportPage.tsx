@@ -34,18 +34,19 @@ import {
   type SheetData,
   type SheetMapping,
 } from "@touchdown/core";
+import { list, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { ColumnMapping, type ColumnChoice } from "../components/ColumnMapping.tsx";
 import { savedMapping, saveMapping } from "../data/mappings.ts";
 import { discardSession, madeBy, markImported, recordsText, sessionLabel, useWaitingSessions, type WaitingSession } from "../data/inbox.ts";
 import type { AppData } from "../data/app.ts";
-import { dayMonthYear, FIELD_LABEL, plural } from "../lib/format.ts";
+import { dayMonthYear, FIELD_LABEL, momentShort } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "../components/overlay.tsx";
 import { AgentCheckPanel, AgentSuggestions, choiceKey, type Choice } from "../components/AgentCheck.tsx";
 import { ChangeReview } from "../components/ChangeReview.tsx";
+import { tx } from "../lib/i18n.tsx";
 
-const FORMAT_LABEL = { fr24_csv: "my.flightradar24.com export", sheet: "spreadsheet", touchdown_inbox: "file from the inbox" } as const;
 const PRIVATE = new Set(PRIVATE_FIELDS.map((f) => f.split(".")[1]!));
 
 type Prepared = PreparedImport;
@@ -56,10 +57,10 @@ const prepare = (app: AppData, source: ParsedSource): Prepared => prepareImport(
 function label(c: Candidate): { title: string; sub: string } {
   if (c.table === "flights") {
     const v = c.values;
-    return { title: [v.flightNumber, v.scheduledDate && dayMonthYear(v.scheduledDate)].filter(Boolean).join(" · ") || "Flight", sub: [v.fromRaw, v.toRaw].filter(Boolean).join(" → ") + (v.registration ? ` · ${v.registration}` : "") + (v.typeCode ? ` · ${v.typeCode}` : "") };
+    return { title: [v.flightNumber, v.scheduledDate && dayMonthYear(v.scheduledDate)].filter(Boolean).join(" · ") || t("import.fallback.flight"), sub: [v.fromRaw, v.toRaw].filter(Boolean).join(" → ") + (v.registration ? ` · ${v.registration}` : "") + (v.typeCode ? ` · ${v.typeCode}` : "") };
   }
   const v = c.values;
-  return { title: [v.registration, v.seenOn && dayMonthYear(v.seenOn)].filter(Boolean).join(" · ") || "Sighting", sub: [v.airportRaw, v.operatorRaw, v.typeCode].filter(Boolean).join(" · ") };
+  return { title: [v.registration, v.seenOn && dayMonthYear(v.seenOn)].filter(Boolean).join(" · ") || t("import.fallback.sighting"), sub: [v.airportRaw, v.operatorRaw, v.typeCode].filter(Boolean).join(" · ") };
 }
 
 /** An inbox file (`touchdown spot`, `touchdown add`); a check request or result gets a pointer to where it belongs. */
@@ -68,20 +69,20 @@ function readJsonFile(buf: Uint8Array, name: string, app: AppData): { source: Pa
   try {
     json = JSON.parse(new TextDecoder("utf-8").decode(buf));
   } catch {
-    return { error: `${name} is not valid JSON.` };
+    return { error: t("import.file.notJson", { name }) };
   }
   const schema = (json as { schema?: unknown } | null)?.schema;
-  if (schema === "touchdown-check-result") return { error: `${name} is an agent check result. Choose the file it was made for first, then load the result under "Check with an agent".` };
-  if (schema === "touchdown-check-request") return { error: `${name} is a check request. Run \`npm run touchdown -- check\` on it, then load the result it writes.` };
+  if (schema === "touchdown-check-result") return { error: t("import.file.checkResult", { name }) };
+  if (schema === "touchdown-check-request") return { error: t("import.file.checkRequest", { name, command: "npm run touchdown -- check" }) };
   const r = readInbox(json, name, app.ref);
-  return "error" in r ? { error: `${name}: ${r.error}.` } : r;
+  return "error" in r ? { error: t("import.file.inboxError", { name, error: r.error }) } : r;
 }
 
 /** "2 flights not in your log yet", "3 changes to make", or both. */
 const waitingText = (w: WaitingSession) =>
-  [w.flights + w.sightings ? `${recordsText(w.flights, w.sightings)} not in your log yet` : null, w.changing ? `${plural(w.changing, "change")} to make` : null].filter(Boolean).join(" and ");
+  list([w.flights + w.sightings ? t("import.waiting.records", { records: recordsText(w.flights, w.sightings) }) : null, w.changing ? t("import.waiting.changes", { count: w.changing }) : null].filter((x): x is string => !!x));
 
-const show = (field: string, v: unknown) => (PRIVATE.has(field) ? "(private)" : v === null || v === undefined ? "—" : String(v));
+const show = (field: string, v: unknown) => (PRIVATE.has(field) ? t("import.private") : v === null || v === undefined ? "—" : String(v));
 
 export function ImportPage() {
   const { app, version } = useApp();
@@ -99,7 +100,8 @@ export function ImportPage() {
   const [changeFile, setChangeFile] = useState<{ name: string; changes: InboxChange[]; inbox: string | null } | null>(null);
   const [changesMade, setChangesMade] = useState<{ applied: number; messages: string[] } | null>(null);
   // A spreadsheet's columns: what was worked out, what the user chose, and whether the column step is showing.
-  const [columns, setColumns] = useState<{ sheet: SheetData; guess: SheetMapping; choice: ColumnChoice; fileName: string; bytes: Uint8Array; how: string } | null>(null);
+  // `how`: the columns as the user set them now, as set before for this layout, or as worked out.
+  const [columns, setColumns] = useState<{ sheet: SheetData; guess: SheetMapping; choice: ColumnChoice; fileName: string; bytes: Uint8Array; how: "set" | "saved" | "guessed" } | null>(null);
   const [choosingColumns, setChoosingColumns] = useState(false);
   const waiting = useWaitingSessions();
   const search = useSearch({ from: "/import" });
@@ -144,7 +146,7 @@ export function ImportPage() {
     if (!columns) return;
     saveMapping(headerSignature(columns.sheet.header), columns.choice);
     setChoosingColumns(false);
-    setColumns({ ...columns, how: "as you set them" });
+    setColumns({ ...columns, how: "set" });
     await open(readMapped(columns.sheet, columns.choice, columns.fileName, app.ref), columns.bytes);
   };
 
@@ -196,7 +198,7 @@ export function ImportPage() {
         let sheets: SheetData[];
         if (file.name.toLowerCase().endsWith(".xlsx")) sheets = readXlsx(buf);
         else if (isZip) {
-          setError("This looks like a zip file. To load a Touchdown backup, use Restore in Settings.");
+          setError(t("import.file.zip"));
           return;
         } else sheets = [readCsv(new TextDecoder("utf-8").decode(buf), file.name)];
         const fr24 = sheets.find((s) => isFr24Export(s.header));
@@ -206,13 +208,13 @@ export function ImportPage() {
           const guesses = sheets.filter((s) => s.rows.length).map((sheet) => ({ sheet, guess: guessMapping(sheet, app.ref) }));
           const pick = guesses.find((x) => !mappingProblem(fieldsOf(x.guess))) ?? guesses[0];
           if (!pick) {
-            setError(`${file.name} has no rows to read.`);
+            setError(t("import.file.noRows", { name: file.name }));
             return;
           }
           const saved = savedMapping(headerSignature(pick.sheet.header));
           const fit = saved && saved.fields.length === pick.sheet.header.length ? saved : null;
           const choice = fit ?? fieldsOf(pick.guess);
-          const ctx = { sheet: pick.sheet, guess: pick.guess, choice, fileName: file.name, bytes: buf, how: fit ? "as you set them before" : "worked out from the headers and values" };
+          const ctx = { sheet: pick.sheet, guess: pick.guess, choice, fileName: file.name, bytes: buf, how: fit ? ("saved" as const) : ("guessed" as const) };
           setColumns(ctx);
           // Unclear columns, or not enough to read rows: the user looks first.
           if (!fit && (unsureColumns(pick.guess).length || mappingProblem(choice))) {
@@ -225,7 +227,7 @@ export function ImportPage() {
       if (!source) return;
       await open(source, buf);
     } catch (e) {
-      setError(`Could not read ${file.name}: ${(e as Error).message}`);
+      setError(t("import.file.unreadable", { name: file.name, error: (e as Error).message }));
     } finally {
       setBusy(false);
     }
@@ -256,18 +258,18 @@ export function ImportPage() {
     setChoices(new Map());
     if (origin) void markImported(app, origin, r.batchId);
     setOrigin(null);
-    toast(`Imported: ${plural(r.created, "new record")}, ${plural(r.updated, "record")} filled in${r.merged ? `, ${plural(r.merged, "repeat")} merged` : ""}.`);
+    toast(t("import.done.toast", { created: r.created, updated: r.updated, merged: r.merged }));
   };
 
   /** The file from the inbox under review is not wanted: it is deleted, and nothing goes into the log. */
   const discardReviewed = (name: string) => {
     const w = waiting.find((x) => x.name === name);
-    const what = w ? recordsText(w.flights, w.sightings, w.changing) : plural(base?.source.rowsRead ?? 0, "record");
-    if (!window.confirm(`Discard this file? The ${what} in it ${(w?.waiting ?? base?.source.rowsRead) === 1 ? "does" : "do"} not reach your log, and the file is deleted from the inbox.`)) return;
+    const what = w ? recordsText(w.flights, w.sightings, w.changing) : t("common.count.records", { count: base?.source.rowsRead ?? 0 });
+    if (!window.confirm(t("import.discard.confirmReview", { what, count: w?.waiting ?? base?.source.rowsRead ?? 0 }))) return;
     setBase(null);
     setOrigin(null);
     setChangeFile(null);
-    void discardSession(app, name).then(() => toast("Discarded: the file is deleted from the inbox."));
+    void discardSession(app, name).then(() => toast(t("import.discard.done")));
   };
 
   if (changeFile) {
@@ -285,7 +287,7 @@ export function ImportPage() {
           if (inbox) void markImported(app, inbox, batchId);
           setChangeFile(null);
           setChangesMade({ applied, messages });
-          toast(`Imported: ${plural(applied, "change")} made.`);
+          toast(t("import.changes.done", { count: applied }));
         }}
       />
     );
@@ -296,7 +298,7 @@ export function ImportPage() {
   if (choosingColumns && columns) {
     return (
       <div className="page page--form">
-        <nav className="crumbs" aria-label="Back">
+        <nav className="crumbs" aria-label={t("common.back")}>
           <button
             type="button"
             className="link-btn"
@@ -305,11 +307,11 @@ export function ImportPage() {
               if (!base) setColumns(null);
             }}
           >
-            <Icon name="arrow-left" /> {base ? "Back to the rows" : "Choose another file"}
+            <Icon name="arrow-left" /> {base ? t("import.columns.backToRows") : t("import.chooseAnother")}
           </button>
         </nav>
-        <h1 className="form-title">Columns of {columns.fileName}</h1>
-        <p className="form-sub">Touchdown worked out the meaning of each column. Look at the ones marked unclear, change anything that is wrong, then read the rows.</p>
+        <h1 className="form-title">{t("import.columns.title", { name: columns.fileName })}</h1>
+        <p className="form-sub">{t("import.columns.lead")}</p>
         <ColumnMapping
           guess={columns.guess}
           value={columns.choice}
@@ -360,7 +362,7 @@ export function ImportPage() {
 
     return (
       <div className="page page--wide">
-        <nav className="crumbs" aria-label="Back">
+        <nav className="crumbs" aria-label={t("common.back")}>
           <button
             type="button"
             className="link-btn"
@@ -369,27 +371,27 @@ export function ImportPage() {
               setOrigin(null);
             }}
           >
-            <Icon name="arrow-left" /> Choose another file
+            <Icon name="arrow-left" /> {t("import.chooseAnother")}
           </button>
         </nav>
-        <h1 className="form-title">Review {source.fileName}</h1>
+        <h1 className="form-title">{t("import.review.title", { name: source.fileName })}</h1>
         <p className="lead lead--flight">
-          A {FORMAT_LABEL[source.format]} with {plural(source.rowsRead, "row")}: {plural(counts.new, "new record")}, {plural(counts.update, "record")} that {counts.update === 1 ? "fills" : "fill"} gaps, {plural(counts.conflict, "record")} that {counts.conflict === 1 ? "disagrees" : "disagree"} with your log, and {counts.identical} already there.
-          {counts.duplicate > 0 && ` ${plural(counts.duplicate, "row repeats", "rows repeat")} an aircraft already seen at the same place that day. ${counts.duplicate === 1 ? "It is" : "They are"} merged into the first row.`}
+          {t("import.review.lead", { format: source.format, rows: source.rowsRead, fresh: counts.new, update: counts.update, conflict: counts.conflict, identical: counts.identical })}
+          {counts.duplicate > 0 && ` ${t("import.review.duplicates", { count: counts.duplicate })}`}
         </p>
         {source.format === "sheet" && columns && (
           <p className="form-sub">
-            Columns {columns.how}: {plural(columns.choice.fields.filter((f) => f !== "ignore").length, "column")} used, {columns.choice.fields.filter((f) => f === "ignore").length} not.{" "}
+            {t("import.columns.summary", { how: columns.how, used: columns.choice.fields.filter((f) => f !== "ignore").length, unused: columns.choice.fields.filter((f) => f === "ignore").length })}{" "}
             <button type="button" className="link-btn" onClick={() => setChoosingColumns(true)}>
-              Change the columns
+              {t("import.columns.change")}
             </button>
           </p>
         )}
         {source.format === "touchdown_inbox" ? (
           <p className="form-sub">
             {source.fileName.startsWith("add-")
-              ? "Checked against your log by ./touchdown add. Values marked as coming from a lookup or an agent are saved with their source."
-              : `Filled and checked in a spotting session (${source.agentChecker ? `with ${source.agentChecker === "codex" ? "Codex" : "Claude Code"}` : "without an agent"}). Values from a lookup or the agent are saved with their source.`}
+              ? t("import.review.fromAdd", { command: "./touchdown add" })
+              : t("import.review.fromSession", { agent: source.agentChecker ? "yes" : "none", checker: source.agentChecker === "codex" ? "Codex" : "Claude Code" })}
           </p>
         ) : (
         <AgentCheckPanel
@@ -421,16 +423,16 @@ export function ImportPage() {
           onShow={() => setFilter("agent")}
         />
         )}
-        <div className="chips" role="radiogroup" aria-label="Show rows">
+        <div className="chips" role="radiogroup" aria-label={t("import.review.show")}>
           {(
             [
-              ["attention", `Need a look (${matches.filter((_, i) => needs(i)).length})`],
-              ["all", `All (${matches.length})`],
-              ["new", `New (${counts.new})`],
-              ["update", `Updates (${counts.update + counts.conflict})`],
-              ["identical", `Already there (${counts.identical})`],
-              ...(counts.duplicate ? ([["duplicate", `Repeats (${counts.duplicate})`]] as [typeof filter, string][]) : []),
-              ...(agent?.records.length ? ([["agent", `Agent (${agent.records.length})`]] as [typeof filter, string][]) : []),
+              ["attention", t("import.review.filter.attention", { count: matches.filter((_, i) => needs(i)).length })],
+              ["all", t("import.review.filter.all", { count: matches.length })],
+              ["new", t("import.review.filter.new", { count: counts.new })],
+              ["update", t("import.review.filter.update", { count: counts.update + counts.conflict })],
+              ["identical", t("import.review.filter.identical", { count: counts.identical })],
+              ...(counts.duplicate ? ([["duplicate", t("import.review.filter.duplicate", { count: counts.duplicate })]] as [typeof filter, string][]) : []),
+              ...(agent?.records.length ? ([["agent", t("import.review.filter.agent", { count: agent.records.length })]] as [typeof filter, string][]) : []),
             ] as [typeof filter, string][]
           ).map(([k, l]) => (
             <button key={k} type="button" role="radio" aria-checked={filter === k} className="chip" onClick={() => setFilter(k)}>
@@ -449,52 +451,56 @@ export function ImportPage() {
             return (
               <li key={i} className={`review-row review-row--${m.kind}${d.skip ? " is-skipped" : ""}`}>
                 <div className="review-row__head">
-                  <span className={`status status--${m.kind}`}>{m.kind === "new" ? "New" : m.kind === "update" ? "Fills gaps" : m.kind === "conflict" ? "Disagrees" : m.kind === "duplicate" ? "Repeat" : "Already there"}</span>
+                  <span className={`status status--${m.kind}`}>{m.kind === "new" ? t("import.review.status.new") : m.kind === "update" ? t("import.review.status.update") : m.kind === "conflict" ? t("import.review.status.conflict") : m.kind === "duplicate" ? t("import.review.status.duplicate") : t("import.review.status.identical")}</span>
                   <span className="review-row__title">
                     <b>{l.title}</b>
                     <small>
-                      Row {m.candidate.sourceRow}
+                      {t("import.review.row", { row: m.candidate.sourceRow })}
                       {l.sub && ` · ${l.sub}`}
                     </small>
                   </span>
                   {m.kind !== "identical" && (
                     <label className="check">
                       <input type="checkbox" checked={!d.skip} onChange={(e) => setDecision(i, { skip: !e.target.checked })} />
-                      Import
+                      {t("import.review.importRow")}
                     </label>
                   )}
                 </div>
                 {m.kind === "duplicate" && m.duplicateOf !== null && (
                   <p className="review-row__fills">
-                    Same aircraft, place and day as row {matches[m.duplicateOf]!.candidate.sourceRow}: merged into that sighting, its phase added to that sighting's.{" "}
+                    {t("import.review.duplicateOf", { row: matches[m.duplicateOf]!.candidate.sourceRow })}{" "}
                     <label className="check">
                       <input type="checkbox" checked={!!d.keepSeparate} onChange={(e) => setDecision(i, { keepSeparate: e.target.checked })} />
-                      Keep as a separate sighting
+                      {t("import.review.keepSeparate")}
                     </label>
                   </p>
                 )}
                 {m.corrections.length > 0 && (
                   <p className="review-row__fills">
-                    Takes the file's {m.corrections.map((x) => FIELD_LABEL[x.field]?.toLowerCase() ?? x.field).join(" and ")}: {m.corrections.map((x) => `${show(x.field, x.existing)} → ${show(x.field, x.incoming)}`).join(", ")}. {m.corrections[0]!.reason}{" "}
+                    {t("import.review.corrections", {
+                      fields: list(m.corrections.map((x) => FIELD_LABEL[x.field]?.toLowerCase() ?? x.field)),
+                      changes: m.corrections.map((x) => `${show(x.field, x.existing)} → ${show(x.field, x.incoming)}`).join(", "),
+                      reason: m.corrections[0]!.reason,
+                    })}{" "}
                     <label className="check">
                       <input
                         type="checkbox"
                         checked={!!d.rejectCorrections?.length}
                         onChange={(e) => setDecision(i, { rejectCorrections: e.target.checked ? m.corrections.map((x) => x.field) : [] })}
                       />
-                      Keep the log's times
+                      {t("import.review.keepTimes")}
                     </label>
                   </p>
                 )}
-                {m.kind === "update" && m.fills.length > 0 && <p className="review-row__fills">Adds {m.fills.filter((x) => !x.endsWith("Raw")).map((x) => FIELD_LABEL[x] ?? x).join(", ")}.</p>}
+                {m.kind === "update" && m.fills.length > 0 && <p className="review-row__fills">{t("import.review.fills", { fields: m.fills.filter((x) => !x.endsWith("Raw")).map((x) => FIELD_LABEL[x] ?? x).join(", ") })}</p>}
                 {m.conflicts.length > 0 && (
                   <table className="table table--diff">
                     <thead>
                       <tr>
-                        <th>Field</th>
-                        <th>In your log</th>
-                        <th>In the file</th>
-                        <th>Use the file's</th>
+                        <th>{t("import.review.diff.field")}</th>
+                        <th>{t("import.review.diff.log")}</th>
+                        <th>{t("import.review.diff.file")}</th>
+                        <th>{t("import.review.diff.use")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -504,13 +510,13 @@ export function ImportPage() {
                           <td>{show(c.field, c.existing)}</td>
                           <td>
                             {show(c.field, c.incoming)}
-                            {fromAgent.has(c.field) && <span className="diff-note"> · from the agent</span>}
+                            {fromAgent.has(c.field) && <span className="diff-note"> · {t("import.review.diff.fromAgent")}</span>}
                           </td>
                           <td>
                             <input
                               type="checkbox"
-                              aria-label={`Use the file's ${FIELD_LABEL[c.field] ?? c.field}`}
-                              title={fromAgent.has(c.field) ? "Set by the agent suggestion you used" : undefined}
+                              aria-label={t("import.review.diff.useLabel", { field: FIELD_LABEL[c.field] ?? c.field })}
+                              title={fromAgent.has(c.field) ? t("import.review.diff.agentSet") : undefined}
                               disabled={fromAgent.has(c.field)}
                               checked={fromAgent.has(c.field) || !!d.takeIncoming?.includes(c.field)}
                               onChange={(e) => {
@@ -548,21 +554,20 @@ export function ImportPage() {
             );
           })}
         </ul>
-        {shown.length > 400 && <p className="section__aside">Showing the first 400 rows of this list.</p>}
+        {shown.length > 400 && <p className="section__aside">{t("import.review.limit", { count: 400 })}</p>}
         <div className="commit-bar">
           <p>
-            {plural(toImport, "row")} will be imported{skipped ? `, ${skipped} skipped` : ""}
-            {agentCounts.used ? `, with ${plural(agentCounts.used, "agent suggestion")}` : ""}. Checks are saved with the records and can be fixed later under Issues. You can undo the whole import.
+            {t("import.review.commit", { count: toImport, skipped, agent: agentCounts.used })}
           </p>
           <div className="commit-bar__actions">
             {origin && (
               <button type="button" className="btn btn--ghost" onClick={() => discardReviewed(origin)}>
-                Discard this file
+                {t("import.discardFile")}
               </button>
             )}
             <button type="button" className="btn btn--primary" onClick={commit} disabled={!toImport}>
               <Icon name="check" />
-              Import {plural(toImport, "row")}
+              {t("import.review.import", { count: toImport })}
             </button>
           </div>
         </div>
@@ -573,34 +578,32 @@ export function ImportPage() {
   return (
     <div className="page page--form">
       <div className="view-top" />
-      <h1 className="form-title">Import</h1>
-      <p className="form-sub">Nothing is saved until you have reviewed the rows. Every import can be undone.</p>
+      <h1 className="form-title">{t("import.title")}</h1>
+      <p className="form-sub">{t("import.lead")}</p>
       {waiting.length > 0 && (
         <section className="section section--waiting">
           <div className="section__head">
-            <h2 className="section__title">Waiting to be imported</h2>
+            <h2 className="section__title">{t("import.waiting.title")}</h2>
           </div>
           <ul className="rows">
             {waiting.map((w) => (
               <li key={w.name} className="history-row">
                 <span>
                   <b>{sessionLabel(w.name)}</b>
-                  <small>
-                    {waitingText(w)}, from {madeBy(w.name)}
-                  </small>
+                  <small>{t("import.waiting.from", { what: waitingText(w), command: madeBy(w.name) })}</small>
                 </span>
                 <span className="history-row__actions">
                   <button type="button" className="btn btn--primary btn--small" onClick={() => openSession(w)}>
-                    Review
+                    {t("import.waiting.review")}
                   </button>
                   <button
                     type="button"
                     className="btn btn--ghost btn--small"
                     onClick={() => {
-                      if (window.confirm(`Discard this file? The ${recordsText(w.flights, w.sightings, w.changing)} in it ${w.waiting === 1 ? "does" : "do"} not reach your log, and the file is deleted.`)) void discardSession(app, w.name);
+                      if (window.confirm(t("import.discard.confirm", { what: recordsText(w.flights, w.sightings, w.changing), count: w.waiting }))) void discardSession(app, w.name);
                     }}
                   >
-                    Discard
+                    {t("import.waiting.discard")}
                   </button>
                 </span>
               </li>
@@ -611,8 +614,8 @@ export function ImportPage() {
       <label className={`dropzone${busy ? " is-busy" : ""}`}>
         <Icon name="upload" />
         <span>
-          <b>{busy ? "Reading…" : "Choose a file"}</b>
-          <span>A my.flightradar24.com CSV export, your flight log or spotting spreadsheet as CSV or Excel (.xlsx), or a file the command line saved for the inbox (.json). Import the FR24 export first, then the flight log: matching flights are merged.</span>
+          <b>{busy ? t("import.drop.reading") : t("import.drop.choose")}</b>
+          <span>{t("import.drop.text")}</span>
         </span>
         <input
           type="file"
@@ -635,9 +638,7 @@ export function ImportPage() {
         <div className="import-done">
           <p className="status-line status-line--good">
             <Icon name="circle-check" />
-            <span>
-              Made {plural(changesMade.applied, "change")} to your log. {changesMade.messages.join(" ")} Undo {changesMade.applied === 1 ? "it" : "them"} in the history below. <Link to="/issues">Review the issues</Link>.
-            </span>
+            <span>{tx("import.changes.made", { count: changesMade.applied, messages: changesMade.messages.join(" ") }, { link: (text) => <Link to="/issues">{text}</Link> })}</span>
           </p>
         </div>
       )}
@@ -645,17 +646,14 @@ export function ImportPage() {
         <div className="import-done">
           <p className="status-line status-line--good">
             <Icon name="circle-check" />
-            <span>
-              Imported {plural(result.created, "new record")} and filled in {plural(result.updated, "record")}
-              . {result.skipped ? `${result.skipped} ${result.skipped === 1 ? "was" : "were"} skipped or already there. ` : ""}<Link to="/issues">Review the issues</Link>.
-            </span>
+            <span>{tx("import.done.result", { created: result.created, updated: result.updated, skipped: result.skipped }, { link: (text) => <Link to="/issues">{text}</Link> })}</span>
           </p>
         </div>
       )}
       {batches.length > 0 && (
         <section className="section">
           <div className="section__head">
-            <h2 className="section__title">Import history</h2>
+            <h2 className="section__title">{t("import.history.title")}</h2>
           </div>
           <ul className="rows">
             {batches.map((b) => (
@@ -663,8 +661,8 @@ export function ImportPage() {
                 <span>
                   <b>{b.fileName}</b>
                   <small>
-                    {b.createdAt ? new Date(b.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : ""} · {b.mappingPreset === "touchdown_changes" ? `${plural(b.rowsAccepted ?? 0, "change")} made` : `${plural(b.rowsAccepted ?? 0, "row")} imported`}
-                    {b.status === "undone" ? " · undone" : ""}
+                    {b.createdAt ? momentShort(new Date(b.createdAt).getTime()) : ""} · {b.mappingPreset === "touchdown_changes" ? t("import.history.changes", { count: b.rowsAccepted ?? 0 }) : t("import.history.rows", { count: b.rowsAccepted ?? 0 })}
+                    {b.status === "undone" ? ` · ${t("import.history.undone")}` : ""}
                   </small>
                 </span>
                 {b.status === "committed" && (
@@ -672,14 +670,14 @@ export function ImportPage() {
                     type="button"
                     className="btn btn--quiet btn--small"
                     onClick={() => {
-                      if (!window.confirm(b.mappingPreset === "touchdown_changes" ? `Undo the changes from ${b.fileName}? Everything they changed gets its earlier values back.` : `Undo the import of ${b.fileName}? Records it created are removed and records it changed get their old values back.`)) return;
+                      if (!window.confirm(b.mappingPreset === "touchdown_changes" ? t("import.history.undoChanges", { name: b.fileName ?? "" }) : t("import.history.undoImport", { name: b.fileName ?? "" }))) return;
                       const r = app.undoImport(b.id);
-                      if (r.editedSince.length && window.confirm(`${plural(r.editedSince.length, "record")} were edited after the import and were left alone. Undo those too, losing the edits?`)) app.undoImport(b.id, true);
-                      toast(`Undone: ${plural(r.removed, "record")} removed, ${plural(r.restored, "record")} restored.`);
+                      if (r.editedSince.length && window.confirm(t("import.history.editedSince", { count: r.editedSince.length }))) app.undoImport(b.id, true);
+                      toast(t("import.history.undoneToast", { removed: r.removed, restored: r.restored }));
                     }}
                   >
                     <Icon name="undo" />
-                    Undo
+                    {t("common.undo")}
                   </button>
                 )}
               </li>
