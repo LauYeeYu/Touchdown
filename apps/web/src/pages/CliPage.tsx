@@ -6,6 +6,7 @@
 // Both only ever send to 127.0.0.1, at the port the command line is listening on.
 
 import { useEffect, useState } from "react";
+import { t } from "@touchdown/i18n";
 import { call, whoAmI, type Me } from "../data/account.ts";
 import { loadGoogle, requestDriveToken, SignInCancelled } from "../data/google.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -88,35 +89,33 @@ function Login() {
     }
   };
 
-  if (!valid) return <Frame title="Sign in the command line"><Problem text="This page needs the address the command line opened. Run ./touchdown login again." /></Frame>;
-  if (me === null) return <Frame title="Sign in the command line"><p className="form-sub">Checking your sign-in…</p></Frame>;
-  if (me === "offline") return <Frame title="Sign in the command line"><Problem text="Touchdown's server cannot be reached. Check the connection and reload." /></Frame>;
+  if (!valid) return <Frame title={t("settings.cli.login.title")}><Problem text={t("settings.cli.login.badAddress")} /></Frame>;
+  if (me === null) return <Frame title={t("settings.cli.login.title")}><p className="form-sub">{t("settings.cli.login.checking")}</p></Frame>;
+  if (me === "offline") return <Frame title={t("settings.cli.login.title")}><Problem text={t("settings.cli.login.offline")} /></Frame>;
   if (me === "signed-out") {
     return (
-      <Frame title="Sign in the command line">
-        <p className="form-sub">Sign in to Touchdown first. This page comes back afterwards.</p>
+      <Frame title={t("settings.cli.login.title")}>
+        <p className="form-sub">{t("settings.cli.login.signInFirst")}</p>
         <div className="button-row">
           <a className="btn btn--primary" href={`/signin?next=${encodeURIComponent(location.pathname + location.search)}`}>
-            Sign in
+            {t("settings.cli.login.signIn")}
           </a>
         </div>
       </Frame>
     );
   }
   return (
-    <Frame title="Sign in the command line">
-      <p>
-        The Touchdown command line on this computer{system ? ` (${system})` : ""} asks to use your account, {me.name} ({me.email}).
-      </p>
-      <p>With it, the command line reads your log and adds to its inbox from this computer, and in Standard mode it reaches your Google Drive through Touchdown's server. It cannot change your account or invite people.</p>
-      <p>It stays signed in until you sign it out: in Settings, under Signed in on, or with ./touchdown logout. Allow it only if you started ./touchdown login yourself.</p>
+    <Frame title={t("settings.cli.login.title")}>
+      <p>{t("settings.cli.login.asks", { named: system ? "yes" : "no", system, name: me.name, email: me.email })}</p>
+      <p>{t("settings.cli.login.what")}</p>
+      <p>{t("settings.cli.login.stays")}</p>
       {error && <Problem text={error} />}
       <div className="button-row">
         <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void allow()}>
-          {busy ? "Signing in…" : "Allow"}
+          {busy ? t("settings.cli.login.signingIn") : t("settings.cli.login.allow")}
         </button>
         <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => goBack({ error: "cancelled" })}>
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </Frame>
@@ -142,20 +141,18 @@ function Drive() {
     }
   };
 
-  if (!wellFormed) return <Frame title="Google Drive for the command line"><Problem text="This page needs the address the command line opened. Run the command again." /></Frame>;
+  if (!wellFormed) return <Frame title={t("settings.cli.drive.title")}><Problem text={t("settings.cli.drive.badAddress")} /></Frame>;
   return (
-    <Frame title="Google Drive for the command line">
-      <p>
-        The Touchdown command line on this computer asks for an hour's access to your Touchdown directory in Google Drive{account ? ` (${account})` : ""}, to read your log and add to its inbox.
-      </p>
-      <p>The access goes from this browser straight to the command line on this computer. It is not sent to Touchdown's server. When the hour is over, the command line opens this page again.</p>
+    <Frame title={t("settings.cli.drive.title")}>
+      <p>{t("settings.cli.drive.asks", { named: account ? "yes" : "no", account: account ?? "" })}</p>
+      <p>{t("settings.cli.drive.how")}</p>
       {error && <Problem text={error} />}
       <div className="button-row">
         <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void give()}>
-          {busy ? "Waiting for Google…" : "Give access"}
+          {busy ? t("settings.cli.drive.waiting") : t("settings.cli.drive.give")}
         </button>
         <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => goBack({ error: "cancelled" })}>
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </Frame>
@@ -165,5 +162,5 @@ function Drive() {
 export function CliPage() {
   if (location.pathname.startsWith("/cli/login")) return <Login />;
   if (location.pathname.startsWith("/cli/drive")) return <Drive />;
-  return <Frame title="Not found"><p className="form-sub">There is no such page.</p></Frame>;
+  return <Frame title={t("settings.cli.notFound.title")}><p className="form-sub">{t("settings.cli.notFound.text")}</p></Frame>;
 }

@@ -6,31 +6,30 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { ShareKind } from "@touchdown/core/share";
+import { t } from "@touchdown/i18n";
 import { account } from "../data/account.ts";
 import { useApp } from "../data/context.tsx";
 import { linkFor, shares, TermsNeeded, useShares, type ShareLink } from "../data/shares.ts";
 import { standard } from "../data/standard.ts";
-import { momentLabel, plural } from "../lib/format.ts";
+import { momentLabel } from "../lib/format.ts";
+import { tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "./overlay.tsx";
 import { StandardTerms, TERMS_VERSION } from "./StandardTerms.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-/** What a link shows, for the dialog's words: "this flight", "your whole log". */
-const THING: Record<ShareKind, string> = { flight: "this flight", sighting: "this sighting", aircraft: "this aircraft", log: "your whole log" };
-
 /** How often a link was opened: "Opened 3 times, last 29 Oct 2026, 14:05 UTC+1", "Not opened yet". */
 export function openedText(l: ShareLink): string {
-  if (!l.timesOpened) return "Not opened yet";
-  return `Opened ${plural(l.timesOpened, "time")}${l.lastOpenedAt ? `, last ${momentLabel(Date.parse(l.lastOpenedAt))}` : ""}`;
+  if (!l.timesOpened) return t("sharing.opened.never");
+  return l.lastOpenedAt ? t("sharing.opened.last", { count: l.timesOpened, last: momentLabel(Date.parse(l.lastOpenedAt)) }) : t("sharing.opened.times", { count: l.timesOpened });
 }
 
 /** Copy a link's address, saying so. */
 export function copyLink(url: string) {
   void navigator.clipboard?.writeText(url).then(
-    () => toast("Link copied."),
-    () => toast("Could not copy. Select the link instead."),
+    () => toast(t("sharing.copy.done")),
+    () => toast(t("sharing.copy.failed")),
   );
 }
 
@@ -46,7 +45,7 @@ export function ShareButton({ kind, subject, anchor = null }: { kind: Exclude<Sh
     <>
       <button type="button" className="btn btn--quiet btn--small" onClick={() => setOpen(true)} aria-haspopup="dialog">
         <Icon name={link ? "link" : "share-2"} />
-        {link ? "Shared" : "Share"}
+        {link ? t("sharing.button.shared") : t("sharing.button.share")}
       </button>
       {open && <ShareDialog kind={kind} subject={subject} anchor={anchor} onClose={() => setOpen(false)} />}
     </>
@@ -63,7 +62,7 @@ export function ShareLogButton() {
   const list = useShares(on);
   const [open, setOpen] = useState(false);
   if (!on) return null;
-  const label = linkFor(list, "log", null) ? "Your whole log is shared" : "Share your whole log";
+  const label = linkFor(list, "log", null) ? t("sharing.log.shared") : t("sharing.log.share");
   return (
     <>
       <button type="button" className="icon-btn share-log" aria-label={label} title={label} aria-haspopup="dialog" onClick={() => setOpen(true)}>
@@ -93,7 +92,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
   const titled = kind === "log" && owner && (
     <>
       {" "}
-      Its pages name you “<bdi>{owner}</bdi>”, as in “<bdi>{owner}</bdi> has flown 12 flights”. Change it under Account in Settings.
+      {tx("sharing.dialog.owner", { owner: <bdi>{owner}</bdi> })}
     </>
   );
 
@@ -109,11 +108,11 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
     setBusy(false);
   };
   const stop = async (l: ShareLink) => {
-    if (!window.confirm(`Stop sharing ${THING[kind]}? The link stops working at once, for everyone who has it.`)) return;
+    if (!window.confirm(t("sharing.stop.confirm", { kind }))) return;
     setBusy(true);
     try {
       await shares.stop(l.id);
-      toast("The link was stopped.");
+      toast(t("sharing.stop.done"));
       onClose();
     } catch (e) {
       setProblem(message(e));
@@ -121,7 +120,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
     }
   };
   const send = (l: ShareLink) => void navigator.share?.({ url: l.url }).catch(() => {});
-  const title = kind === "log" ? "Share your whole log" : `Share ${THING[kind]}`;
+  const title = t("sharing.dialog.title", { kind });
 
   return (
     <dialog
@@ -137,10 +136,10 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
       </h2>
       {link ? (
         <>
-          <p className="share-dialog__text">Anyone with this link can open it, without signing in, until you stop sharing it. It shows your log as it is now.{titled}</p>
+          <p className="share-dialog__text">{t("sharing.dialog.shared")}{titled}</p>
           <span className="link-box share-dialog__link">
             <code>{link.url}</code>
-            <button type="button" className="icon-btn link-box__copy" aria-label="Copy the link" title="Copy the link" onClick={() => copyLink(link.url)}>
+            <button type="button" className="icon-btn link-box__copy" aria-label={t("sharing.copy.label")} title={t("sharing.copy.label")} onClick={() => copyLink(link.url)}>
               <Icon name="copy" />
             </button>
           </span>
@@ -148,8 +147,8 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
         </>
       ) : (
         <p className="share-dialog__text">
-          Anyone with the link can see {THING[kind]}
-          {kind === "aircraft" ? " and your flights and sightings of it" : ""}, notes and photo links included. Ticket numbers and booking references are never shared.{titled}
+          {t("sharing.dialog.new", { kind })}
+          {titled}
         </p>
       )}
       {problem && (
@@ -163,37 +162,37 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
           <>
             <button type="button" className="btn btn--primary btn--small" onClick={() => copyLink(link.url)}>
               <Icon name="copy" />
-              Copy link
+              {t("sharing.copy.button")}
             </button>
             {"share" in navigator && (
               <button type="button" className="btn btn--quiet btn--small" onClick={() => send(link)}>
                 <Icon name="share-2" />
-                Send…
+                {t("sharing.send")}
               </button>
             )}
             <button type="button" className="btn btn--quiet btn--small btn--danger" disabled={busy} onClick={() => void stop(link)}>
-              Stop sharing
+              {t("sharing.stop.button")}
             </button>
           </>
         ) : (
           <button type="button" className="btn btn--primary btn--small" disabled={busy || !list} onClick={() => void make()}>
             <Icon name="link" />
-            {busy ? "Making the link…" : "Create link"}
+            {busy ? t("sharing.making") : t("sharing.create")}
           </button>
         )}
         <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
-          {link ? "Done" : "Cancel"}
+          {link ? t("common.done") : t("common.cancel")}
         </button>
       </div>
       <Link className="share-dialog__all" to="/shares" onClick={onClose}>
-        All shared links
+        {t("sharing.all")}
       </Link>
       <StandardTerms
         open={terms}
         busy={busy}
         problem={termsProblem}
-        acceptLabel="Accept"
-        busyLabel="Making the link…"
+        acceptLabel={t("sharing.terms.accept")}
+        busyLabel={t("sharing.making")}
         onAccept={() => {
           setBusy(true);
           setTermsProblem(null);

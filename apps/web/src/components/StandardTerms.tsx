@@ -3,9 +3,13 @@
 // accepts or says not now. Version 2 adds share links: a user who accepted version 1 accepts it before their first
 // link (the Share dialog opens it).
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { t } from "@touchdown/i18n";
+import { tx } from "../lib/i18n.tsx";
 
 export const TERMS_VERSION = 2;
+
+const b = (text: ReactNode) => <b>{text}</b>;
 
 export function StandardTerms({
   open,
@@ -13,8 +17,8 @@ export function StandardTerms({
   problem,
   onAccept,
   onDecline,
-  acceptLabel = "Accept and connect Google Drive",
-  busyLabel = "Going to Google…",
+  acceptLabel = t("account.terms.accept"),
+  busyLabel = t("account.terms.going"),
 }: {
   open: boolean;
   busy: boolean;
@@ -51,28 +55,25 @@ export function StandardTerms({
     >
       <div className="terms-dialog__body" ref={body} tabIndex={-1}>
         <h2 id="terms-title" className="terms-dialog__title">
-          Standard mode: Touchdown's access to your Google Drive
+          {t("account.terms.title")}
         </h2>
-        <p>Read these terms before you go on. Standard mode starts only once you accept them.</p>
-        <p>In Standard mode, Touchdown's server keeps a key to your Google Drive, so the links you share keep working while you are offline, your devices sync without asking you to sign in to Google every hour, and a new device picks up your log once you sign in to Touchdown.</p>
+        <p>{t("account.terms.intro")}</p>
+        <p>{t("account.terms.key")}</p>
+        <p>{tx("account.terms.files", {}, { b })}</p>
+        <p>{tx("account.terms.use", {}, { b })}</p>
         <p>
-          <b>Files the server can open.</b> With the key, the server can open the files Touchdown created in your Google Drive (the Touchdown directory), not your other files. That is your whole log, including ticket numbers and booking references if you entered them. The person who runs this site could technically use the key.
+          {tx("account.terms.protection", {}, {
+            b,
+            link: (text) => (
+              <a href="/privacy" target="_blank" rel="noopener">
+                {text}
+              </a>
+            ),
+          })}
         </p>
-        <p>
-          <b>Use of the key.</b> To give your own browser short-lived access for its sync, and to read the parts of your log a link you made shows, when someone opens that link. The server does not read, copy, analyse or keep your log for anything else.
-        </p>
-        <p>
-          <b>Protection of the key.</b> The key is encrypted, and the encryption key is kept apart from the database. Both are with Cloudflare, which hosts this site. Nothing is passed on to anyone unless the law requires it. The <a href="/privacy" target="_blank" rel="noopener">privacy policy</a> has the details.
-        </p>
-        <p>
-          <b>People who see your links.</b> Anyone who has one of your links can open it, without signing in, until you stop sharing it. They see only that link's page, with the notes and photo links on it. Ticket numbers and booking references are kept apart in your Google Drive and never go into a link.
-        </p>
-        <p>
-          <b>Stopping.</b> Stop a link on the Shared links page at any time. Switch to Private or Local in Settings, and every link stops at once, the key is revoked with Google and deleted from the server. You can also remove Touchdown's access in your Google account.
-        </p>
-        <p>
-          <b>Changes.</b> If these terms change, you will be asked again before anything new applies.
-        </p>
+        <p>{tx("account.terms.viewers", {}, { b })}</p>
+        <p>{tx("account.terms.stopping", {}, { b })}</p>
+        <p>{tx("account.terms.changes", {}, { b })}</p>
       </div>
       <div className="terms-dialog__foot">
         {problem && (
@@ -85,7 +86,7 @@ export function StandardTerms({
             {busy ? busyLabel : acceptLabel}
           </button>
           <button type="button" className="btn btn--ghost" disabled={busy} onClick={onDecline}>
-            Not now
+            {t("account.terms.notNow")}
           </button>
         </div>
       </div>

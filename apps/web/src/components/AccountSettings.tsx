@@ -2,19 +2,21 @@
 // where it is signed in, signing out; and for the owner, invitations, reset links and removing someone.
 
 import { useEffect, useState, type FormEvent } from "react";
+import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { account, AuthError, type Link, type Me, type OpenInvite, type Person } from "../data/account.ts";
 import { forgetOffline } from "../data/offline.ts";
 import { MIN_PASSWORD, passwordProblem } from "../lib/passwordKey.ts";
-import { momentLabel, plural } from "../lib/format.ts";
+import { momentDay, momentLabel } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, TextInput } from "./form.tsx";
 import { toast } from "./overlay.tsx";
 import { invitationMessage } from "../lib/invitation.ts";
+import { tx } from "../lib/i18n.tsx";
 
-const when = (iso: string | null) => (iso ? momentLabel(Date.parse(iso)) : "never");
+const when = (iso: string | null) => (iso ? momentLabel(Date.parse(iso)) : t("account.never"));
 /** A day on this device's calendar: "3 Oct 2026". */
-const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const day = (iso: string) => momentDay(new Date(iso).getTime());
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 function LinkBox({ link, note }: { link: Link; note: string }) {
@@ -25,9 +27,9 @@ function LinkBox({ link, note }: { link: Link; note: string }) {
         <button
           type="button"
           className="icon-btn link-box__copy"
-          aria-label="Copy the link"
-          title="Copy the link"
-          onClick={() => void navigator.clipboard?.writeText(link.link).then(() => toast("Link copied."), () => toast("Could not copy. Select the link instead."))}
+          aria-label={t("account.copyLink")}
+          title={t("account.copyLink")}
+          onClick={() => void navigator.clipboard?.writeText(link.link).then(() => toast(t("account.linkCopied")), () => toast(t("account.linkCopyFailed")))}
         >
           <Icon name="copy" />
         </button>
@@ -41,12 +43,12 @@ function InvitationMessage({ link }: { link: Link }) {
   const text = invitationMessage(link.link, when(link.expiresAt));
   return (
     <div className="invite-message">
-      <small>A message to send with it, with how to start with the command line:</small>
-      <textarea className="input textarea invite-message__text" readOnly rows={15} value={text} onFocus={(e) => e.currentTarget.select()} aria-label="Invitation message" />
+      <small>{t("account.invitation.messageIntro")}</small>
+      <textarea className="input textarea invite-message__text" readOnly rows={15} value={text} onFocus={(e) => e.currentTarget.select()} aria-label={t("account.invitation.messageLabel")} />
       <div className="button-row">
-        <button type="button" className="btn btn--quiet btn--small" onClick={() => void navigator.clipboard?.writeText(text).then(() => toast("Message copied."), () => toast("Could not copy. Select the message instead."))}>
+        <button type="button" className="btn btn--quiet btn--small" onClick={() => void navigator.clipboard?.writeText(text).then(() => toast(t("account.invitation.messageCopied")), () => toast(t("account.invitation.messageCopyFailed")))}>
           <Icon name="copy" />
-          Copy message
+          {t("account.invitation.copyMessage")}
         </button>
       </div>
     </div>
@@ -60,7 +62,7 @@ function InvitationMessage({ link }: { link: Link }) {
 async function signOut(app: AppData) {
   // The server ends the session, so signing out needs the network.
   if (navigator.onLine === false) {
-    toast("No connection. Sign out once you are back online.");
+    toast(t("account.signOut.offline"));
     return;
   }
   const c = app.connection;
@@ -69,15 +71,15 @@ async function signOut(app: AppData) {
     await app.sync?.run();
     const waiting = app.getSyncInfo()?.waiting ?? 0;
     if (waiting > 0) {
-      if (!window.confirm(`${plural(waiting, "change has", "changes have")} not reached ${c.name} yet. Sign out anyway? They stay in this browser until you sign in here again.`)) return;
+      if (!window.confirm(t("account.signOut.waiting", { count: waiting, place: c.name }))) return;
     } else keep = false;
-  } else if (!window.confirm("Your log is kept only in this browser, so it stays here after you sign out. Sign out?")) {
+  } else if (!window.confirm(t("account.signOut.localOnly"))) {
     return;
   }
   try {
     await account.signOut();
   } catch (e) {
-    toast(`Could not sign out: ${message(e)}`);
+    toast(t("account.signOut.failed", { problem: message(e) }));
     return;
   }
   await forgetOffline();
@@ -97,7 +99,7 @@ function PasswordForm({ me, onDone }: { me: Me; onDone: () => void }) {
     setBusy(true);
     try {
       await account.changePassword(me.email, me.password ? String(f.get("current") ?? "") : null, next);
-      toast("Password changed. Other devices are signed out.");
+      toast(t("account.password.changed"));
       onDone();
     } catch (err) {
       setProblem(message(err));
@@ -108,20 +110,20 @@ function PasswordForm({ me, onDone }: { me: Me; onDone: () => void }) {
     <form className="account-form" onSubmit={(e) => void submit(e)}>
       <input type="email" name="username" autoComplete="username" value={me.email} readOnly hidden />
       {me.password && (
-        <Field label="Current password">
+        <Field label={t("account.password.current")}>
           <TextInput name="current" type="password" autoComplete="current-password" required />
         </Field>
       )}
-      <Field label="New password" hint={`At least ${MIN_PASSWORD} characters.`}>
+      <Field label={t("account.password.new")} hint={t("account.password.minLength", { count: MIN_PASSWORD })}>
         <TextInput name="password" type="password" autoComplete="new-password" minLength={MIN_PASSWORD} required />
       </Field>
-      <Field label="New password again">
+      <Field label={t("account.password.repeat")}>
         <TextInput name="repeat" type="password" autoComplete="new-password" minLength={MIN_PASSWORD} required />
       </Field>
       {problem && <p className="status-line status-line--error" role="alert"><Icon name="circle-x" /><span>{problem}</span></p>}
       <div className="button-row">
-        <button type="submit" className="btn btn--primary btn--small" disabled={busy}>{busy ? "Saving…" : me.password ? "Change the password" : "Set a password"}</button>
-        <button type="button" className="btn btn--ghost btn--small" onClick={onDone}>Cancel</button>
+        <button type="submit" className="btn btn--primary btn--small" disabled={busy}>{busy ? t("account.saving") : me.password ? t("account.password.change") : t("account.password.set")}</button>
+        <button type="button" className="btn btn--ghost btn--small" onClick={onDone}>{t("common.cancel")}</button>
       </div>
     </form>
   );
@@ -136,7 +138,7 @@ function EmailForm({ me, onDone }: { me: Me; onDone: () => void }) {
     setBusy(true);
     try {
       await account.changeEmail(me.email, String(f.get("email") ?? "").trim(), String(f.get("current") ?? ""));
-      toast("Email address changed. Other devices are signed out.");
+      toast(t("account.email.changed"));
       onDone();
     } catch (err) {
       setProblem(message(err));
@@ -145,16 +147,16 @@ function EmailForm({ me, onDone }: { me: Me; onDone: () => void }) {
   };
   return (
     <form className="account-form" onSubmit={(e) => void submit(e)}>
-      <Field label="New email address">
+      <Field label={t("account.email.new")}>
         <TextInput name="email" type="email" autoComplete="email" required />
       </Field>
-      <Field label="Current password" hint="Needed because the password is tied to the address.">
+      <Field label={t("account.password.current")} hint={t("account.email.currentHint")}>
         <TextInput name="current" type="password" autoComplete="current-password" required />
       </Field>
       {problem && <p className="status-line status-line--error" role="alert"><Icon name="circle-x" /><span>{problem}</span></p>}
       <div className="button-row">
-        <button type="submit" className="btn btn--primary btn--small" disabled={busy}>{busy ? "Saving…" : "Change the address"}</button>
-        <button type="button" className="btn btn--ghost btn--small" onClick={onDone}>Cancel</button>
+        <button type="submit" className="btn btn--primary btn--small" disabled={busy}>{busy ? t("account.saving") : t("account.email.change")}</button>
+        <button type="button" className="btn btn--ghost btn--small" onClick={onDone}>{t("common.cancel")}</button>
       </div>
     </form>
   );
@@ -169,7 +171,7 @@ export function AccountSection({ app }: { app: AppData }) {
     void account.google().then(setGoogleOn, () => setGoogleOn(false));
     // Back from connecting Google with an account that belongs to someone else here.
     const params = new URLSearchParams(location.search);
-    if (params.get("error") === "google-taken") toast("That Google account is connected to another account here.");
+    if (params.get("error") === "google-taken") toast(t("account.google.taken"));
   }, []);
   const load = () =>
     void account
@@ -187,33 +189,28 @@ export function AccountSection({ app }: { app: AppData }) {
     // Only in development: the hosted site opens the app only for a signed-in account.
     return (
       <>
-        <h2 className="form-section">Account</h2>
-        <p className="form-sub">
-          Not signed in (development). <a href="/signin?next=%2Fsettings">Sign in</a>
-        </p>
+        <h2 className="form-section">{t("account.title")}</h2>
+        <p className="form-sub">{tx("account.devSignedOut", {}, { link: (text) => <a href="/signin?next=%2Fsettings">{text}</a> })}</p>
       </>
     );
   }
   return (
     <>
-      <h2 className="form-section">Account</h2>
+      <h2 className="form-section">{t("account.title")}</h2>
       {/* Material's account lists: each item the thing and its value under it, in two cards side by side (one above the
           other on phones): the account's details and the ways to sign in to it. */}
       <div className="account-grid">
         <section aria-labelledby="account-profile">
           <h3 className="account-group" id="account-profile">
-            Profile
+            {t("account.profile.title")}
           </h3>
           <ul className="account-card">
             <li className="account-item">
               <span className="account-item__text">
-                Name
-                <small>
-                  {me.name}
-                  {me.role === "owner" ? " · owner of this site" : ""}
-                </small>
+                {t("account.profile.name")}
+                <small>{t("account.profile.nameRole", { name: me.name, role: me.role })}</small>
               </span>
-              <button type="button" className="btn btn--quiet btn--small" onClick={() => { setName(me.name); setEditing(editing === "name" ? null : "name"); }}>Change</button>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => { setName(me.name); setEditing(editing === "name" ? null : "name"); }}>{t("account.change")}</button>
             </li>
             {editing === "name" && (
               <li className="account-card__form">
@@ -224,51 +221,51 @@ export function AccountSection({ app }: { app: AppData }) {
                     void account.rename(name).then(done, (err: unknown) => toast(message(err)));
                   }}
                 >
-                  <Field label="Name" wide>
+                  <Field label={t("account.profile.name")} wide>
                     <TextInput value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required autoComplete="name" />
                   </Field>
-                  <button type="submit" className="btn btn--quiet btn--small">Save</button>
+                  <button type="submit" className="btn btn--quiet btn--small">{t("common.save")}</button>
                 </form>
               </li>
             )}
             <li className="account-item">
               <span className="account-item__text">
-                Email address
+                {t("account.email.title")}
                 <small>{me.email}</small>
               </span>
-              {me.password && <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "email" ? null : "email")}>Change</button>}
+              {me.password && <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "email" ? null : "email")}>{t("account.change")}</button>}
             </li>
             {editing === "email" && <li className="account-card__form"><EmailForm me={me} onDone={done} /></li>}
           </ul>
         </section>
         <section aria-labelledby="account-signin">
           <h3 className="account-group" id="account-signin">
-            Sign-in methods
+            {t("account.signIn.title")}
           </h3>
           <ul className="account-card">
             <li className="account-item">
               <span className="account-item__text">
-                Password
-                <small>{!me.password ? "Not set" : me.passwordChangedAt ? `Last changed ${day(me.passwordChangedAt)}` : "Set"}</small>
+                {t("account.password.title")}
+                <small>{!me.password ? t("account.password.notSet") : me.passwordChangedAt ? t("account.password.lastChanged", { day: day(me.passwordChangedAt) }) : t("account.password.isSet")}</small>
               </span>
-              <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "password" ? null : "password")}>{me.password ? "Change" : "Set one"}</button>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => setEditing(editing === "password" ? null : "password")}>{me.password ? t("account.change") : t("account.password.setOne")}</button>
             </li>
             {editing === "password" && <li className="account-card__form"><PasswordForm me={me} onDone={done} /></li>}
             {(me.google || googleOn) && (
               <li className="account-item">
                 <span className="account-item__text">
                   Google
-                  <small>{me.google ?? "Not connected"}</small>
+                  <small>{me.google ?? t("account.google.notConnected")}</small>
                 </span>
                 {me.google ? (
                   me.password && (
                     <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.disconnectGoogle().then(load, (e: unknown) => toast(message(e)))}>
-                      Remove
+                      {t("common.remove")}
                     </button>
                   )
                 ) : (
                   <a className="btn btn--quiet btn--small" href="/auth/google/start?link=1">
-                    Connect
+                    {t("account.google.connect")}
                   </a>
                 )}
               </li>
@@ -277,14 +274,13 @@ export function AccountSection({ app }: { app: AppData }) {
         </section>
       </div>
 
-      <h3 className="form-subsection">Signed in on</h3>
+      <h3 className="form-subsection">{t("account.sessions.title")}</h3>
       <ul className="rows overrides">
         {me.sessions.map((s) => (
           <li key={s.id} className="history-row">
             <span>
-              {s.device}
-              {s.current ? " (this browser)" : ""}
-              <small>Last used {when(s.lastUsedAt)}</small>
+              {t("account.sessions.device", { device: s.device, current: s.current ? "yes" : "no" })}
+              <small>{t("account.sessions.lastUsed", { when: when(s.lastUsedAt) })}</small>
             </span>
             {!s.current && (
               <span className="history-row__actions">
@@ -294,14 +290,14 @@ export function AccountSection({ app }: { app: AppData }) {
                   onClick={() =>
                     void account.endSession(s.id).then(
                       () => {
-                        toast(`${s.device} is signed out.`);
+                        toast(t("account.sessions.ended", { device: s.device }));
                         load();
                       },
                       (err: unknown) => toast(message(err)),
                     )
                   }
                 >
-                  Sign out
+                  {t("account.signOut.button")}
                 </button>
               </span>
             )}
@@ -310,7 +306,7 @@ export function AccountSection({ app }: { app: AppData }) {
       </ul>
       <div className="button-row">
         <button type="button" className="btn btn--quiet btn--small" onClick={() => void signOut(app)}>
-          Sign out
+          {t("account.signOut.button")}
         </button>
         {me.sessions.length > 1 && (
           <button
@@ -319,14 +315,14 @@ export function AccountSection({ app }: { app: AppData }) {
             onClick={() =>
               void account.signOutOthers().then(
                 (r) => {
-                  toast(`${plural(r.ended, "other device was", "other devices were")} signed out.`);
+                  toast(t("account.signOut.others.done", { count: r.ended }));
                   load();
                 },
                 (err: unknown) => toast(message(err)),
               )
             }
           >
-            Sign out everywhere else
+            {t("account.signOut.others.button")}
           </button>
         )}
       </div>
@@ -357,8 +353,8 @@ function PeopleSection({ me }: { me: Me }) {
 
   return (
     <>
-      <h2 className="form-section">People</h2>
-      <p className="form-sub">Only people you invite can use this site. An invitation is a link you send yourself. It works once, for 7 days.</p>
+      <h2 className="form-section">{t("account.people.title")}</h2>
+      <p className="form-sub">{t("account.people.intro")}</p>
       <form
         className="inline-form"
         onSubmit={(e) => {
@@ -366,32 +362,32 @@ function PeopleSection({ me }: { me: Me }) {
           void invite();
         }}
       >
-        <Field label="The person's name (only you see this)" wide>
-          <TextInput value={note} onChange={(e) => setNote(e.target.value)} maxLength={80} placeholder="Sam" />
+        <Field label={t("account.people.noteLabel")} wide>
+          <TextInput value={note} onChange={(e) => setNote(e.target.value)} maxLength={80} placeholder={t("account.people.notePlaceholder")} />
         </Field>
         <button type="submit" className="btn btn--quiet btn--small">
-          Make an invitation link
+          {t("account.people.invite")}
         </button>
       </form>
       {made && (
         <>
-          <LinkBox link={made.link} note={`${made.for ? `For ${made.for}. ` : ""}Works once, until ${when(made.link.expiresAt)}.`} />
+          <LinkBox link={made.link} note={t("account.people.inviteNote", { named: made.for ? "yes" : "no", name: made.for, until: when(made.link.expiresAt) })} />
           <InvitationMessage link={made.link} />
         </>
       )}
 
       {data.invites.length > 0 && (
         <>
-          <h3 className="form-subsection">Open invitations</h3>
+          <h3 className="form-subsection">{t("account.invites.title")}</h3>
           <ul className="rows overrides">
             {data.invites.map((i) => (
               <li key={i.id} className="history-row">
                 <span>
-                  {i.note || "Invitation"}
-                  <small>Made {when(i.createdAt)} · works until {when(i.expiresAt)}</small>
+                  {i.note || t("account.invites.untitled")}
+                  <small>{t("account.invites.dates", { made: when(i.createdAt), until: when(i.expiresAt) })}</small>
                 </span>
                 <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.withdraw(i.id).then(load, (e: unknown) => toast(message(e)))}>
-                  Withdraw
+                  {t("account.invites.withdraw")}
                 </button>
               </li>
             ))}
@@ -399,41 +395,38 @@ function PeopleSection({ me }: { me: Me }) {
         </>
       )}
 
-      <h3 className="form-subsection">Members</h3>
+      <h3 className="form-subsection">{t("account.members.title")}</h3>
       <ul className="rows overrides">
         {data.people.map((p) => (
           <li key={p.id} className="history-row">
             <span>
-              {p.name}
-              {p.role === "owner" ? " (owner)" : ""}
-              <small>
-                {p.email} · {[p.password && "password", p.google && "Google"].filter(Boolean).join(" and ") || "no sign-in method"} · last signed in {when(p.lastSeenAt)}
-              </small>
+              {t("account.members.name", { name: p.name, role: p.role })}
+              <small>{t("account.members.details", { email: p.email, methods: p.password && p.google ? "both" : p.password ? "password" : p.google ? "google" : "none", when: when(p.lastSeenAt) })}</small>
             </span>
             {p.id !== me.id && (
               <div className="button-row button-row--tight">
                 <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.resetLink(p.id).then((link) => setReset({ link, name: p.name }), (e: unknown) => toast(message(e)))}>
-                  Reset link
+                  {t("account.members.resetLink")}
                 </button>
                 <button
                   type="button"
                   className="btn btn--quiet btn--small btn--danger"
                   onClick={() => {
-                    if (!window.confirm(`Remove ${p.name}? Their account and sign-ins end at once. Their log stays in their own storage.`)) return;
+                    if (!window.confirm(t("account.members.removeConfirm", { name: p.name }))) return;
                     void account.remove(p.id).then(() => {
-                      toast(`${p.name} was removed.`);
+                      toast(t("account.members.removed", { name: p.name }));
                       load();
                     }, (e: unknown) => toast(message(e)));
                   }}
                 >
-                  Remove
+                  {t("common.remove")}
                 </button>
               </div>
             )}
           </li>
         ))}
       </ul>
-      {reset && <LinkBox link={reset.link} note={`For ${reset.name} to set a new password. Works once, until ${when(reset.link.expiresAt)}. Setting it signs them out everywhere.`} />}
+      {reset && <LinkBox link={reset.link} note={t("account.members.resetNote", { name: reset.name, until: when(reset.link.expiresAt) })} />}
     </>
   );
 }

@@ -5,12 +5,14 @@ import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
 import { myFr24Csv, myFr24Flights } from "@touchdown/core/view";
+import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle, SignInCancelled } from "../data/google.ts";
-import { momentLabel, nf, plural } from "../lib/format.ts";
+import { momentLabel } from "../lib/format.ts";
+import { tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
@@ -19,13 +21,11 @@ import { Select } from "../components/Select.tsx";
 import { AccountSection } from "../components/AccountSettings.tsx";
 import { clause, tracksToComeText } from "../components/Shell.tsx";
 import { download } from "../lib/download.ts";
-import { connectStandard, FOLDERS_ONLY_HERE, STANDARD_UNAVAILABLE, takeStandardError } from "./FirstRun.tsx";
+import { connectStandard, foldersOnlyHere, standardUnavailable, takeStandardError } from "./FirstRun.tsx";
 import { standard, type StandardStatus } from "../data/standard.ts";
 import { StandardTerms } from "../components/StandardTerms.tsx";
 import { useShares } from "../data/shares.ts";
 import { saveAsGoogleSheet, type MadeSheet } from "../data/sheets.ts";
-
-const LEAVE_STANDARD = "Leaving Standard revokes Touchdown's key to your Google Drive and deletes it from the server. Your log in Google Drive is left as it is. Continue?";
 
 /** Where the log lives (docs/32): the mode, changing it, and how sync is going in Private and Standard mode. */
 function WhereTheLogLives({ app }: { app: AppData }) {
@@ -59,12 +59,12 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   /** Leaving Standard: the key is revoked and deleted first (docs/32, "Changing mode"). */
   const leaveStandard = async (): Promise<boolean> => {
     if (current !== "standard") return true;
-    if (!window.confirm(LEAVE_STANDARD)) return false;
+    if (!window.confirm(t("settings.leaveStandard.confirm"))) return false;
     try {
       await standard.disconnect();
       return true;
     } catch (e) {
-      toast(`Could not leave Standard: ${(e as Error).message}`);
+      toast(t("settings.leaveStandard.failed", { problem: (e as Error).message }));
       return false;
     }
   };
@@ -75,19 +75,19 @@ function WhereTheLogLives({ app }: { app: AppData }) {
     try {
       picked = await chooseStorage(storage);
     } catch (e) {
-      toast(`${storage === "gdrive" ? "Google Drive could not be connected" : "The directory could not be opened"}: ${(e as Error).message}`);
+      toast(t("settings.connect.failed", { storage, problem: (e as Error).message }));
       return;
     }
     if (!picked) return;
     const { connection } = picked;
     const hasLog = app.store.count("flights") + app.store.count("sightings") > 0;
-    if (hasLog && picked.holdsLog && !window.confirm(`${connection.name} already holds a Touchdown log. Your log in this browser and that one will be merged. If both changed the same entry, the later change is kept and the other is listed on the Issues page. Continue?`)) return;
+    if (hasLog && picked.holdsLog && !window.confirm(t("settings.connect.merge", { place: connection.name }))) return;
     setBusy(true);
     await app.connect(connection);
     setBusy(false);
     setMoving(false);
     const info = app.getSyncInfo();
-    toast(info?.state === "failed" ? `Could not sync with ${connection.name}.` : `Your log now syncs through ${connection.name}.${place && place !== connection.name ? ` The copy in ${place} is left as it is.` : ""}`);
+    toast(info?.state === "failed" ? t("settings.connect.syncFailed", { place: connection.name }) : t("settings.connect.done", { left: place && place !== connection.name ? "yes" : "no", place: connection.name, old: place ?? "" }));
   };
 
   const toLocal = async () => {
@@ -95,7 +95,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
     const was = place;
     await app.connect({ mode: "local", since: toUtcIso(Date.now()) });
     setUnderstood(false);
-    toast(was ? `Your log is now kept in this browser only. The copy in ${was} is left as it is.` : "Your log is kept in this browser only.");
+    toast(t("settings.local.done", { left: was ? "yes" : "no", place: was ?? "" }));
   };
 
   const cancel = () => {
@@ -105,7 +105,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
 
   return (
     <>
-      <h2 className="form-section">Sync mode</h2>
+      <h2 className="form-section">{t("settings.syncMode")}</h2>
       <ModeChoice
         value={chosen}
         onChange={(m) => {
@@ -113,7 +113,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           // Choosing Standard opens its terms; nothing changes until they are accepted.
           if (m === "standard" && current !== "standard") setTermsOpen(true);
         }}
-        unavailable={std?.available || current === "standard" ? {} : { standard: STANDARD_UNAVAILABLE }}
+        unavailable={std?.available || current === "standard" ? {} : { standard: standardUnavailable() }}
       />
       {std && (
         <StandardTerms
@@ -139,15 +139,15 @@ function WhereTheLogLives({ app }: { app: AppData }) {
       {chosen === current && current === "standard" && <SharedLinksLine />}
       {choosing && (
         <>
-          <h3 className="form-subsection">Storage</h3>
-          <StorageChoice value={storage} onChange={setStorage} unavailable={canUseFolders() ? {} : { localfs: FOLDERS_ONLY_HERE }} />
+          <h3 className="form-subsection">{t("settings.storage.title")}</h3>
+          <StorageChoice value={storage} onChange={setStorage} unavailable={canUseFolders() ? {} : { localfs: foldersOnlyHere() }} />
           <p className="form-sub">{STORAGE_NOTE[storage]}</p>
           <div className="button-row">
             <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void toPrivate()}>
-              {busy ? "Syncing…" : STORAGE_BUTTON[storage]}
+              {busy ? t("settings.syncing") : STORAGE_BUTTON[storage]}
             </button>
             <button type="button" className="btn btn--ghost" onClick={cancel}>
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </>
@@ -157,10 +157,10 @@ function WhereTheLogLives({ app }: { app: AppData }) {
           <LocalWarning understood={understood} onChange={setUnderstood} />
           <div className="button-row">
             <button type="button" className="btn btn--primary" disabled={!understood} onClick={() => void toLocal().then(() => setChosen("local"))}>
-              Keep the log in this browser only
+              {t("settings.local.keep")}
             </button>
             <button type="button" className="btn btn--ghost" onClick={cancel}>
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </>
@@ -172,10 +172,17 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line">
               <Icon name={sync.adapter === "gdrive" ? "cloud" : "folder"} />
               <span>
-                {sync.mode === "standard" ? `Touchdown cannot reach ${sync.place} for you.` : sync.adapter === "gdrive" ? `Sign in to Google again to sync with ${sync.place}.` : `Touchdown needs your permission to use ${sync.place} again.`}{" "}
-                <button type="button" className="link-btn" onClick={() => void app.sync?.allow()}>
-                  {sync.mode === "standard" ? "Connect Google Drive again" : sync.adapter === "gdrive" ? "Sign in" : "Allow"}
-                </button>
+                {tx(
+                  "settings.sync.permission",
+                  { how: sync.mode === "standard" ? "standard" : sync.adapter === "gdrive" ? "gdrive" : "folder", place: sync.place },
+                  {
+                    allow: (text) => (
+                      <button type="button" className="link-btn" onClick={() => void app.sync?.allow()}>
+                        {text}
+                      </button>
+                    ),
+                  },
+                )}
               </span>
             </p>
           )}
@@ -189,8 +196,8 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line">
               <Icon name="refresh-cw" />
               <span>
-                {sync.tables ? `Syncing with ${sync.place}…` : `Reading your log from ${sync.place}…`}
-                {sync.tracks && ` Reading recorded tracks: ${nf.format(sync.tracks.done)} of ${nf.format(sync.tracks.total)}.`}
+                {t("settings.sync.syncing", { reading: sync.tables ? "no" : "yes", place: sync.place })}
+                {sync.tracks && ` ${t("settings.sync.tracks", { done: sync.tracks.done, total: sync.tracks.total })}`}
               </span>
             </p>
           )}
@@ -198,31 +205,27 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line status-line--good">
               <Icon name="circle-check" />
               <span>
-                Synced with {sync.place}
-                {sync.lastAt ? `, ${momentLabel(sync.lastAt)}` : ""}.{sync.waiting > 0 && ` ${plural(sync.waiting, "change")} not synced yet.`}
+                {t("settings.sync.synced", { dated: sync.lastAt ? "yes" : "no", place: sync.place, at: sync.lastAt ? momentLabel(sync.lastAt) : "" })}
+                {sync.waiting > 0 && ` ${t("settings.sync.waiting", { count: sync.waiting })}`}
               </span>
             </p>
           )}
           {sync.state === "failed" && (
             <p className="status-line status-line--error">
               <Icon name="circle-x" />
-              <span>
-                Could not sync with {sync.place}: {clause(sync.error)}. Your changes are kept in this browser and sent once it works.
-              </span>
+              <span>{t("settings.sync.failed", { place: sync.place, problem: clause(sync.error) })}</span>
             </p>
           )}
           {sync.state === "offline" && (
             <p className="status-line">
               <Icon name="wifi-off" />
-              <span>
-                No connection to {sync.place}. {sync.waiting > 0 ? `${plural(sync.waiting, "change is", "changes are")} kept in this browser and sent` : "Your changes are kept in this browser and sent"} when the connection returns.
-              </span>
+              <span>{t("settings.sync.offline", { place: sync.place, count: sync.waiting })}</span>
             </p>
           )}
           {sync.state === "update" && (
             <p className="status-line status-line--error">
               <Icon name="rotate-cw" />
-              <span>A newer version of Touchdown has changed your log in {sync.place}. Reload the page to update the app. Your changes are kept in this browser and sent after the reload.</span>
+              <span>{t("settings.sync.update", { place: sync.place })}</span>
             </p>
           )}
           {sync.tables && !sync.tracks && notHere > 0 && (
@@ -235,7 +238,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
             <p className="status-line status-line--error">
               <Icon name="circle-alert" />
               <span>
-                Left alone because they could not be read:
+                {t("settings.sync.problems.title")}
                 {sync.problems.slice(0, 3).map((p) => (
                   <Fragment key={p}>
                     <br />
@@ -245,32 +248,30 @@ function WhereTheLogLives({ app }: { app: AppData }) {
                 {sync.problems.length > 3 && (
                   <>
                     <br />
-                    and {sync.problems.length - 3} more
+                    {t("settings.sync.problems.more", { count: sync.problems.length - 3 })}
                   </>
                 )}
                 <br />
-                Restore them from a backup in {sync.place}, or fix them there.
+                {t("settings.sync.problems.restore", { place: sync.place })}
               </span>
             </p>
           )}
           {conflicts > 0 && (
             <p className="status-line">
               <Icon name="merge" />
-              <span>
-                {plural(conflicts, "field was", "fields were")} changed on two devices before either saw the other's change. <Link to="/issues">Choose which to keep</Link>.
-              </span>
+              <span>{tx("settings.sync.conflicts", { count: conflicts }, { link: (text) => <Link to="/issues">{text}</Link> })}</span>
             </p>
           )}
           <div className="button-row">
             {sync.state !== "permission" && (
               <button type="button" className="btn btn--quiet btn--small" disabled={sync.state === "syncing"} onClick={() => void app.sync?.run()}>
                 <Icon name="refresh-cw" />
-                Sync now
+                {t("settings.sync.now")}
               </button>
             )}
             {sync.mode === "private" && (
               <button type="button" className="btn btn--quiet btn--small" onClick={() => setMoving(true)}>
-                Change storage
+                {t("settings.storage.change")}
               </button>
             )}
           </div>
@@ -314,12 +315,12 @@ export function SettingsPage() {
   const restore = async (file: File) => {
     const back = readBackup(new Uint8Array(await file.arrayBuffer()));
     if (back.problems.length) {
-      window.alert(`This backup cannot be restored:\n\n${back.problems.slice(0, 8).join("\n")}`);
+      window.alert(t("settings.restore.problems", { problems: back.problems.slice(0, 8).join("\n") }));
       return;
     }
     const n = (back.tables.get("flights")?.length ?? 0) + (back.tables.get("sightings")?.length ?? 0);
-    const merged = app.connection && app.connection.mode !== "local" ? " Your directory's log is then merged in at the next sync. If both changed the same entry, the later change is kept." : "";
-    if (!window.confirm(`Replace everything in this browser with the backup (${plural(n, "flight or sighting", "flights and sightings")})?${merged} Export a backup of the current data first if you might need it.`)) return;
+    const synced = app.connection && app.connection.mode !== "local" ? "yes" : "no";
+    if (!window.confirm(t("settings.restore.confirm", { count: n, synced }))) return;
     await app.replaceAll(back.tables);
     location.reload();
   };
@@ -338,48 +339,46 @@ export function SettingsPage() {
       const workbook = writeXlsx(tabs.map(([name, t]) => ({ name, rows: tableRows(store, t, includePrivate) as XlsxCell[][] })));
       const made = await saveAsGoogleSheet(app.connection, `Touchdown ${todayIn()}`, workbook);
       setSheet({ busy: false, made });
-      toast(`${made.name} is in your Google Drive.`);
+      toast(t("settings.sheets.made", { name: made.name }));
     } catch (e) {
       setSheet({ busy: false, made: null });
-      if (!(e instanceof SignInCancelled)) toast(`The Google Sheet could not be made: ${(e as Error).message}`);
+      if (!(e instanceof SignInCancelled)) toast(t("settings.sheets.failed", { problem: (e as Error).message }));
     }
   };
 
   return (
     <div className="page page--form">
       <div className="view-top" />
-      <h1 className="form-title">Settings</h1>
-      <p className="form-sub">
-        <Link to="/guide">Getting started</Link> explains the modes and the first steps.
-      </p>
+      <h1 className="form-title">{t("settings.title")}</h1>
+      <p className="form-sub">{tx("settings.guide", {}, { link: (text) => <Link to="/guide">{text}</Link> })}</p>
 
       <AccountSection app={app} />
 
-      <h2 className="form-section">Display</h2>
+      <h2 className="form-section">{t("settings.display.title")}</h2>
       <div className="form-grid form-grid--choices">
-        <Field label="Theme">
-          <Segmented label="Theme" value={s.theme ?? "system"} onChange={(v) => set({ theme: v ?? "system" })} options={[{ value: "system", label: "Follow the device" }, { value: "light", label: "Light" }, { value: "dark", label: "Dark" }]} />
+        <Field label={t("settings.display.theme")}>
+          <Segmented label={t("settings.display.theme")} value={s.theme ?? "system"} onChange={(v) => set({ theme: v ?? "system" })} options={[{ value: "system", label: t("settings.display.theme.system") }, { value: "light", label: t("settings.display.theme.light") }, { value: "dark", label: t("settings.display.theme.dark") }]} />
         </Field>
-        <Field label="Distance">
-          <Segmented label="Distance" value={s.distanceUnit ?? "km"} onChange={(v) => set({ distanceUnit: v ?? "km" })} options={[{ value: "km", label: "Kilometres" }, { value: "mi", label: "Miles" }, { value: "nm", label: "Nautical miles" }]} />
+        <Field label={t("settings.display.distance")}>
+          <Segmented label={t("settings.display.distance")} value={s.distanceUnit ?? "km"} onChange={(v) => set({ distanceUnit: v ?? "km" })} options={[{ value: "km", label: t("settings.display.distance.km") }, { value: "mi", label: t("settings.display.distance.mi") }, { value: "nm", label: t("settings.display.distance.nm") }]} />
         </Field>
-        <Field label="Airport and airline codes">
-          <Segmented label="Codes" value={s.codeDisplay ?? "iata"} onChange={(v) => set({ codeDisplay: v ?? "iata" })} options={[{ value: "iata", label: "IATA (LHR)" }, { value: "icao", label: "ICAO (EGLL)" }, { value: "both", label: "Both" }]} />
+        <Field label={t("settings.display.codes")}>
+          <Segmented label={t("settings.display.codes.label")} value={s.codeDisplay ?? "iata"} onChange={(v) => set({ codeDisplay: v ?? "iata" })} options={[{ value: "iata", label: "IATA (LHR)" }, { value: "icao", label: "ICAO (EGLL)" }, { value: "both", label: t("settings.display.codes.both") }]} />
         </Field>
-        <Field label="Model names">
-          <Segmented label="Model names" value={s.modelNaming ?? "standard"} onChange={(v) => set({ modelNaming: v ?? "standard" })} options={[{ value: "standard", label: "Boeing 777-322(ER)" }, { value: "compact", label: "B777-322ER" }]} />
+        <Field label={t("settings.display.models")}>
+          <Segmented label={t("settings.display.models")} value={s.modelNaming ?? "standard"} onChange={(v) => set({ modelNaming: v ?? "standard" })} options={[{ value: "standard", label: "Boeing 777-322(ER)" }, { value: "compact", label: "B777-322ER" }]} />
         </Field>
       </div>
 
       <WhereTheLogLives app={app} />
 
-      <h2 className="form-section">Data</h2>
+      <h2 className="form-section">{t("settings.data.title")}</h2>
       <p className="status-line">
         <Icon name="hard-drive" />
         <span>
-          This browser holds {app.connection && app.connection.mode !== "local" ? "a copy of " : ""}your log ({plural(store.count("flights"), "flight")}, {plural(store.count("sightings"), "sighting")}, {plural(store.count("airframes"), "aircraft", "aircraft")}).
-          {kept === true && " The browser keeps it until you delete it."}
-          {kept === false && " The browser may clear it if the disk runs low."}
+          {t("settings.data.holds", { copy: app.connection && app.connection.mode !== "local" ? "yes" : "no", flights: t("common.count.flights", { count: store.count("flights") }), sightings: t("common.count.sightings", { count: store.count("sightings") }), aircraft: t("common.count.aircraft", { count: store.count("airframes") }) })}
+          {kept === true && ` ${t("settings.data.kept")}`}
+          {kept === false && ` ${t("settings.data.mayClear")}`}
         </span>
       </p>
       <div className="button-row">
@@ -392,11 +391,11 @@ export function SettingsPage() {
           }}
         >
           <Icon name="download" />
-          Export a backup (.zip)
+          {t("settings.data.export")}
         </button>
         <label className="btn btn--quiet">
           <Icon name="upload" />
-          Restore from a backup
+          {t("settings.data.restore")}
           <input
             type="file"
             accept=".zip,application/zip"
@@ -415,41 +414,41 @@ export function SettingsPage() {
             type="button"
             className="btn btn--quiet btn--small"
             onClick={async () => {
-              if (!window.confirm("Replace everything in this browser with the local backup from data/private?")) return;
-              if (import.meta.env.DEV && !(await (await import("../data/localBackup.ts")).loadLocalBackup(app))) toast("No local backup at data/private/touchdown-backup.zip.");
+              if (!window.confirm(t("settings.dev.loadConfirm"))) return;
+              if (import.meta.env.DEV && !(await (await import("../data/localBackup.ts")).loadLocalBackup(app))) toast(t("settings.dev.noBackup"));
             }}
           >
             <Icon name="hard-drive" />
-            Load the local backup (development)
+            {t("settings.dev.load")}
           </button>
         </div>
       )}
-      <p className="form-sub">A backup contains every table, including private fields.</p>
+      <p className="form-sub">{t("settings.data.backupNote")}</p>
       <div className="button-row">
-        {(["flights", "sightings", "airframes"] as const).map((t) => (
-          <button key={t} type="button" className="btn btn--quiet btn--small" onClick={() => download(`touchdown-${t}-${todayIn()}.csv`, tableCsv(store, t, includePrivate), "text/csv")}>
+        {(["flights", "sightings", "airframes"] as const).map((table) => (
+          <button key={table} type="button" className="btn btn--quiet btn--small" onClick={() => download(`touchdown-${table}-${todayIn()}.csv`, tableCsv(store, table, includePrivate), "text/csv")}>
             <Icon name="file" />
-            {t === "airframes" ? "Aircraft" : t[0]!.toUpperCase() + t.slice(1)} as CSV
+            {t("settings.data.csv", { table })}
           </button>
         ))}
         <label className="check">
           <input type="checkbox" checked={includePrivate} onChange={(e) => setIncludePrivate(e.target.checked)} />
-          Include private fields (ticket number, booking reference)
+          {t("settings.data.includePrivate")}
         </label>
       </div>
       <div className="button-row">
         <button type="button" className="btn btn--quiet btn--small" disabled={sheet.busy} onClick={() => void toGoogleSheets()}>
           <Icon name={sheet.busy ? "loader-circle" : "table"} />
-          {sheet.busy ? "Making the Google Sheet…" : "Flights, sightings and aircraft to Google Sheets"}
+          {sheet.busy ? t("settings.sheets.making") : t("settings.sheets.button")}
         </button>
         {sheet.made && (
           <a className="link-btn" href={sheet.made.url} target="_blank" rel="noopener">
-            Open {sheet.made.name}
+            {t("settings.sheets.open", { name: sheet.made.name })}
             <Icon name="external-link" />
           </a>
         )}
       </div>
-      <p className="form-sub">The Google Sheet goes to your Google Drive, a tab for each table. Private fields go in only when ticked above.</p>
+      <p className="form-sub">{t("settings.sheets.note")}</p>
       <div className="button-row">
         <button
           type="button"
@@ -458,51 +457,52 @@ export function SettingsPage() {
           onClick={() => {
             download(`flightdiary-touchdown-${todayIn()}.csv`, myFr24Csv(store, ref, fr24Flights), "text/csv");
             app.markMyFr24Export(fr24Flights.map((f) => f.id));
-            toast(`${plural(fr24Flights.length, "flight")} in the file. Import it on my.flightradar24.com, under Settings › Import.`);
+            toast(t("settings.myfr24.done", { count: fr24Flights.length }));
           }}
         >
           <Icon name="download" />
-          {fr24Flights.length ? `${plural(fr24Flights.length, "flight")} for myFR24 (CSV)` : "No flights to add to myFR24"}
+          {t("settings.myfr24.button", { count: fr24Flights.length })}
         </button>
         <label className="check">
           <input type="checkbox" checked={onlyNewFr24} onChange={(e) => setOnlyNewFr24(e.target.checked)} />
-          Only flights not in myFR24 yet
+          {t("settings.myfr24.onlyNew")}
         </label>
       </div>
-      <p className="form-sub">A file in the columns of my.flightradar24.com's own export, for its import. Flights imported from myFR24 and flights in an earlier file count as in it already.</p>
+      <p className="form-sub">{t("settings.myfr24.note")}</p>
       <div className="button-row">
         <button
           type="button"
           className="btn btn--danger btn--small"
           onClick={async () => {
-            const place = app.connection && app.connection.mode !== "local" ? ` The log in ${app.connection.name} is left as it is.` : " This cannot be undone here.";
-            if (!window.confirm(`Delete every flight, sighting and setting in this browser, and forget where the log lives?${place}`)) return;
-            if (window.prompt('Type "delete" to confirm.') !== "delete") return;
+            const place = app.connection && app.connection.mode !== "local" ? app.connection.name : null;
+            if (!window.confirm(t("settings.delete.confirm", { synced: place !== null ? "yes" : "no", place: place ?? "" }))) return;
+            const word = t("settings.delete.word");
+            if (window.prompt(t("settings.delete.type", { word })) !== word) return;
             await app.deleteEverything();
             location.reload();
           }}
         >
           <Icon name="trash" />
-          Delete all data in this browser
+          {t("settings.delete.button")}
         </button>
       </div>
 
-      <h2 className="form-section">Aircraft families</h2>
-      <p className="form-sub">Families group type codes in the statistics. Change a type's family here, for example to count the E170 and E175 together.</p>
+      <h2 className="form-section">{t("settings.families.title")}</h2>
+      <p className="form-sub">{t("settings.families.intro")}</p>
       {overrides.length > 0 && (
         <ul className="rows overrides">
           {overrides.map((o) => (
             <li key={o.id} className="history-row">
               <span>
                 <b>{o.designator}</b>
-                <small>in {ref.family(o.familyId)?.name ?? o.familyId}</small>
+                <small>{t("settings.families.in", { family: ref.family(o.familyId)?.name ?? o.familyId ?? "" })}</small>
               </span>
               <button
                 type="button"
                 className="btn btn--quiet btn--small"
                 onClick={() => app.setFamily(o.designator!, null)}
               >
-                Remove
+                {t("common.remove")}
               </button>
             </li>
           ))}
@@ -514,32 +514,32 @@ export function SettingsPage() {
           e.preventDefault();
           const d = designator.trim().toUpperCase();
           if (!ref.type(d) || !family) {
-            toast(ref.type(d) ? "Choose a family." : `${d} is not a type code.`);
+            toast(ref.type(d) ? t("settings.families.choose") : t("settings.families.notType", { code: d }));
             return;
           }
           app.setFamily(d, family);
           setDesignator("");
         }}
       >
-        <Field label="Type code">
+        <Field label={t("settings.families.typeCode")}>
           <TextInput value={designator} onChange={(e) => setDesignator(e.target.value)} placeholder="E170" />
         </Field>
-        <Field label="Family">
-          <Select label="Family" value={family} onChange={setFamily} options={[{ value: "", label: "Choose" }, ...families.map((f) => ({ value: f.id, label: f.name }))]} />
+        <Field label={t("settings.families.family")}>
+          <Select label={t("settings.families.family")} value={family} onChange={setFamily} options={[{ value: "", label: t("settings.families.none") }, ...families.map((f) => ({ value: f.id, label: f.name }))]} />
         </Field>
         <button type="submit" className="btn btn--quiet btn--small">
-          Add
+          {t("common.add")}
         </button>
       </form>
 
 
-      <h2 className="form-section">Reference data</h2>
-      <p className="form-sub">Airports, airlines and aircraft types{refVersion ? `, built ${refVersion}` : ""}. Sources:</p>
+      <h2 className="form-section">{t("settings.reference.title")}</h2>
+      <p className="form-sub">{t("settings.reference.intro", { built: refVersion ? "yes" : "no", version: refVersion })}</p>
       <ul className="sources">
         {sources.map((x) => (
           <li key={x}>{x}</li>
         ))}
-        <li>Map: Natural Earth (public domain) via world-atlas. Icons: Lucide (ISC). Typeface: Source Sans 3 (SIL Open Font License). Reference photos: planespotters.net, credited on each photo.</li>
+        <li>{t("settings.reference.credits")}</li>
       </ul>
     </div>
   );
@@ -551,10 +551,7 @@ function SharedLinksLine() {
   return (
     <p className="status-line">
       <Icon name="link" />
-      <span>
-        {list ? (list.links.length ? `${plural(list.links.length, "shared link")}.` : "No shared links.") : "Shared links."}{" "}
-        <Link to="/shares">Manage links</Link>
-      </span>
+      <span>{list ? tx("settings.shares.line", { count: list.links.length }, { link: (text) => <Link to="/shares">{text}</Link> }) : tx("settings.shares.lineLoading", {}, { link: (text) => <Link to="/shares">{text}</Link> })}</span>
     </p>
   );
 }

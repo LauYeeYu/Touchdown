@@ -5,10 +5,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { recordTitle } from "@touchdown/core/view";
+import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { linkFor, loadShares, shares, useShares, type ShareLink } from "../data/shares.ts";
 import { codeStyle } from "../lib/codes.ts";
-import { dateOnly, plural, typeName } from "../lib/format.ts";
+import { dateOnly, typeName } from "../lib/format.ts";
+import { tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { MenuButton } from "../components/Menu.tsx";
 import { copyLink, openedText, ShareDialog } from "../components/ShareDialog.tsx";
@@ -28,15 +30,15 @@ function named(app: AppData, l: ShareLink): Named {
   const { store, ref } = app;
   switch (l.kind) {
     case "log":
-      return { title: "Your whole log", to: { to: "/" } };
+      return { title: t("sharing.links.log"), to: { to: "/" } };
     case "flight":
       return store.get("flights", l.subject)
-        ? { title: `Flight ${recordTitle(store, ref, "flights", l.subject!, codeStyle())}`, to: { to: "/flights/$id", params: { id: l.subject! } } }
-        : { title: "A flight no longer in your log", to: null };
+        ? { title: t("sharing.links.flight", { title: recordTitle(store, ref, "flights", l.subject!, codeStyle()) }), to: { to: "/flights/$id", params: { id: l.subject! } } }
+        : { title: t("sharing.links.flightGone"), to: null };
     case "sighting":
       return store.get("sightings", l.subject)
-        ? { title: `Sighting of ${recordTitle(store, ref, "sightings", l.subject!, codeStyle())}`, to: { to: "/spotting/$id/edit", params: { id: l.subject! } } }
-        : { title: "A sighting no longer in your log", to: null };
+        ? { title: t("sharing.links.sighting", { title: recordTitle(store, ref, "sightings", l.subject!, codeStyle()) }), to: { to: "/spotting/$id/edit", params: { id: l.subject! } } }
+        : { title: t("sharing.links.sightingGone"), to: null };
     case "aircraft": {
       // An aircraft merged into another since: the link shows the one its anchor record belongs to now.
       let a = store.get("airframes", l.subject);
@@ -44,9 +46,9 @@ function named(app: AppData, l: ShareLink): Named {
         const [table, id] = l.anchor.split("/") as ["flights" | "sightings", string];
         a = store.get("airframes", store.get(table, id)?.airframeId);
       }
-      if (!a) return { title: "An aircraft no longer in your log", to: null };
+      if (!a) return { title: t("sharing.links.aircraftGone"), to: null };
       const reg = [...store.all("flights"), ...store.all("sightings")].find((r) => r.airframeId === a.id && r.registration)?.registration;
-      return { title: ["Aircraft", reg, a.typeCode && typeName(a.typeCode, ref)].filter(Boolean).join(" · "), to: { to: "/aircraft/$id", params: { id: a.id } } };
+      return { title: [t("sharing.links.aircraft"), reg, a.typeCode && typeName(a.typeCode, ref)].filter(Boolean).join(" · "), to: { to: "/aircraft/$id", params: { id: a.id } } };
     }
   }
 }
@@ -65,12 +67,12 @@ export function SharedLinks() {
     return (
       <div className="page page--form">
         <div className="view-top" />
-        <h1 className="form-title">Shared links</h1>
-        <p className="form-sub">Share links need Standard mode, where Touchdown's server keeps a key to your Google Drive so a link works while you are offline.</p>
+        <h1 className="form-title">{t("sharing.title")}</h1>
+        <p className="form-sub">{t("sharing.needStandard")}</p>
         <div className="button-row">
           <Link className="btn btn--quiet" to="/settings">
             <Icon name="settings" />
-            Change in Settings
+            {t("sharing.changeInSettings")}
           </Link>
         </div>
       </div>
@@ -80,18 +82,18 @@ export function SharedLinks() {
   const links = list?.links ?? [];
   const logLink = linkFor(list, "log", null);
   const stop = async (l: ShareLink, title: string) => {
-    if (!window.confirm(`Stop sharing ${title === "Your whole log" ? "your whole log" : title}? The link stops working at once, for everyone who has it.`)) return;
+    if (!window.confirm(l.kind === "log" ? t("sharing.stop.confirm", { kind: "log" }) : t("sharing.stop.confirmNamed", { title }))) return;
     try {
       await shares.stop(l.id);
-      toast("The link was stopped.");
+      toast(t("sharing.stop.done"));
     } catch (e) {
       toast(message(e));
     }
   };
   const stopAll = async () => {
-    if (!window.confirm(`Stop all ${plural(links.length, "link")}? They stop working at once, for everyone who has them.`)) return;
+    if (!window.confirm(t("sharing.stopAll.confirm", { count: links.length }))) return;
     try {
-      toast(`${plural(await shares.stopAll(), "link was", "links were")} stopped.`);
+      toast(t("sharing.stopAll.done", { count: await shares.stopAll() }));
     } catch (e) {
       toast(message(e));
     }
@@ -100,32 +102,31 @@ export function SharedLinks() {
   return (
     <div className="page page--form">
       <div className="view-top" />
-      <h1 className="form-title">Shared links</h1>
+      <h1 className="form-title">{t("sharing.title")}</h1>
       <p className="form-sub">
-        {links.length ? `You have ${plural(links.length, "shared link")}. ` : ""}Anyone with a link can open it, without signing in. A link shows your log as it is now and works until you stop it. Ticket numbers and booking references are never shared.
+        {links.length ? `${t("sharing.count", { count: links.length })} ` : ""}
+        {t("sharing.intro")}
       </p>
       {list?.storage === "broken" && (
         <p className="status-line status-line--error" role="alert">
           <Icon name="cloud-off" />
-          <span>
-            Your links are not available right now: the key to your Google Drive no longer works. <Link to="/settings">Connect Google Drive again in Settings</Link>.
-          </span>
+          <span>{tx("sharing.broken", {}, { link: (text) => <Link to="/settings">{text}</Link> })}</span>
         </p>
       )}
       {!logLink && (
         <div className="button-row">
           <button type="button" className="btn btn--quiet" onClick={() => setSharingLog(true)}>
             <Icon name="share-2" />
-            Share your whole log
+            {t("sharing.log.share")}
           </button>
         </div>
       )}
       {sharingLog && <ShareDialog kind="log" subject={null} onClose={() => setSharingLog(false)} />}
 
       {!list ? (
-        <p className="form-sub">Reading your links…</p>
+        <p className="form-sub">{t("sharing.reading")}</p>
       ) : links.length === 0 ? (
-        <p className="shares-empty">No shared links. Share a flight, a sighting or an aircraft from its page, or your whole log from here.</p>
+        <p className="shares-empty">{t("sharing.empty")}</p>
       ) : (
         <ul className="account-card shares-list">
           {links.map((l) => {
@@ -141,21 +142,21 @@ export function SharedLinks() {
                     <span className="shares-list__title">{n.title}</span>
                   )}
                   <small>
-                    Made {dateOnly(l.createdAt.slice(0, 10), { day: "numeric", month: "short", year: "numeric" })} · {openedText(l)}
-                    {!n.to && " · the link says it is no longer shared"}
+                    {t("sharing.links.made", { date: dateOnly(l.createdAt.slice(0, 10), { day: "numeric", month: "short", year: "numeric" }) })} · {openedText(l)}
+                    {!n.to && ` · ${t("sharing.links.gone")}`}
                   </small>
                 </span>
                 <span className="shares-list__actions">
                   <button type="button" className="btn btn--quiet btn--small" onClick={() => copyLink(l.url)}>
                     <Icon name="copy" />
-                    Copy link
+                    {t("sharing.copy.button")}
                   </button>
                   <MenuButton
                     className="icon-btn"
-                    label={`More for ${n.title}`}
+                    label={t("sharing.links.more", { title: n.title })}
                     items={[
-                      { label: "Open the link", icon: <Icon name="external-link" />, onSelect: () => window.open(l.url, "_blank", "noopener") },
-                      { label: "Stop sharing", icon: <Icon name="x" />, onSelect: () => void stop(l, n.title) },
+                      { label: t("sharing.links.open"), icon: <Icon name="external-link" />, onSelect: () => window.open(l.url, "_blank", "noopener") },
+                      { label: t("sharing.stop.button"), icon: <Icon name="x" />, onSelect: () => void stop(l, n.title) },
                     ]}
                   >
                     <Icon name="ellipsis" />
@@ -169,7 +170,7 @@ export function SharedLinks() {
       {links.length > 1 && (
         <div className="button-row">
           <button type="button" className="btn btn--danger btn--small" onClick={() => void stopAll()}>
-            Stop all links
+            {t("sharing.stopAll.button")}
           </button>
         </div>
       )}

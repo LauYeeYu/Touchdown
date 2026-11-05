@@ -2,6 +2,7 @@
 // Settings; for Private, its storage; and the warning that comes with Local.
 
 import { useSyncExternalStore } from "react";
+import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import type { StorageKind } from "../data/connection.ts";
 import type { SyncInfo } from "../data/sync.ts";
@@ -17,24 +18,35 @@ interface Option<T> {
   line: string;
 }
 
-const MODES: Option<Mode>[] = [
-  { value: "standard", icon: "share-2", name: "Standard", tag: "Recommended", line: "Sync and share links." },
-  { value: "private", icon: "lock", name: "Private", line: "Sync without sharing." },
-  { value: "local", icon: "hard-drive", name: "Local", line: "No sync. Saved in this browser only." },
+const modes = (): Option<Mode>[] => [
+  { value: "standard", icon: "share-2", name: t("settings.mode.standard.name"), tag: t("settings.mode.standard.tag"), line: t("settings.mode.standard.line") },
+  { value: "private", icon: "lock", name: t("settings.mode.private.name"), line: t("settings.mode.private.line") },
+  { value: "local", icon: "hard-drive", name: t("settings.mode.local.name"), line: t("settings.mode.local.line") },
 ];
 
-const STORAGES: Option<StorageKind>[] = [
-  { value: "gdrive", icon: "cloud", name: "Google Drive", line: "Works on any device." },
-  { value: "localfs", icon: "folder", name: "A directory on this computer", line: "Put it in Dropbox, OneDrive or iCloud Drive to sync other computers." },
+const storages = (): Option<StorageKind>[] => [
+  { value: "gdrive", icon: "cloud", name: "Google Drive", line: t("settings.storage.gdrive.line") },
+  { value: "localfs", icon: "folder", name: t("settings.storage.localfs.name"), line: t("settings.storage.localfs.line") },
 ];
 
-/** What each storage asks of the user, shown under the choice. */
+/** What each storage asks of the user, shown under the choice. Read from the messages each time. */
 export const STORAGE_NOTE: Record<StorageKind, string> = {
-  gdrive: "Touchdown makes a Touchdown directory in your Google Drive and can only open the files it creates. Each sign-in lasts an hour, then sync waits until you sign in again.",
-  localfs: "Touchdown makes a Touchdown directory inside the directory you choose.",
+  get gdrive() {
+    return t("settings.storage.gdrive.note");
+  },
+  get localfs() {
+    return t("settings.storage.localfs.note");
+  },
 };
 
-export const STORAGE_BUTTON: Record<StorageKind, string> = { gdrive: "Connect Google Drive", localfs: "Choose a directory" };
+export const STORAGE_BUTTON: Record<StorageKind, string> = {
+  get gdrive() {
+    return t("settings.storage.gdrive.button");
+  },
+  get localfs() {
+    return t("settings.storage.localfs.button");
+  },
+};
 
 /** A choice of cards; `unavailable` says why an option cannot be chosen here. */
 function Choice<T extends string>({ label, name, options, value, onChange, unavailable = {} }: { label: string; name: string; options: Option<T>[]; value: T; onChange: (v: T) => void; unavailable?: Partial<Record<T, string>> }) {
@@ -66,12 +78,12 @@ function Choice<T extends string>({ label, name, options, value, onChange, unava
 }
 
 export function ModeChoice(props: { value: Mode; onChange: (m: Mode) => void; unavailable?: Partial<Record<Mode, string>> }) {
-  return <Choice label="Sync mode" name="data-mode" options={MODES} {...props} />;
+  return <Choice label={t("settings.syncMode")} name="data-mode" options={modes()} {...props} />;
 }
 
 /** Where Private mode syncs. */
 export function StorageChoice(props: { value: StorageKind; onChange: (k: StorageKind) => void; unavailable?: Partial<Record<StorageKind, string>> }) {
-  return <Choice label="Storage" name="storage" options={STORAGES} {...props} />;
+  return <Choice label={t("settings.storage.title")} name="storage" options={storages()} {...props} />;
 }
 
 /** Shown before the user chooses Local, and in Settings while it is chosen. */
@@ -80,12 +92,12 @@ export function LocalWarning({ understood, onChange }: { understood?: boolean; o
     <div className="local-warning">
       <p className="status-line">
         <Icon name="triangle-alert" />
-        <span>Your log is kept only in this browser. Clearing the browser's data, using a private window or losing the device deletes it. Export a backup from Settings now and then.</span>
+        <span>{t("settings.local.warning")}</span>
       </p>
       {onChange && (
         <label className="check check--block">
           <input type="checkbox" checked={!!understood} onChange={(e) => onChange(e.target.checked)} />
-          I understand this browser holds the only copy.
+          {t("settings.local.understood")}
         </label>
       )}
     </div>
