@@ -60,7 +60,7 @@
   "sessions.lastUsed": "Last used {when}",
   "sessions.ended": "{device} is signed out.",
   "people.title": "People",
-  "people.intro": "Only people you invite can use this site. An invitation is a link you send yourself. It works once, for 7 days.",
+  "people.intro": "Access is invite-only. Create a 7-day single-use link here.",
   "people.noteLabel": "The person's name (only you see this)",
   "people.notePlaceholder": "Sam",
   "people.invite": "Make an invitation link",
