@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightStats, todayIn } from "@touchdown/core";
 import { flightSearch, flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
@@ -10,7 +11,7 @@ import { routeCodes } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights, type FlightView } from "../lib/views.ts";
 import { mapFlights, trackIndex, trackInfo } from "../lib/mapdata.ts";
-import { airlineLabel, distance, durLong, MONTHS_LONG, plural } from "../lib/format.ts";
+import { airlineLabel, dateOnly, distance, durLong, monthNames } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -21,6 +22,7 @@ import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 type Highlight = { kind: "id" | "route"; key: string } | null;
 
@@ -78,18 +80,9 @@ export function Flights() {
   const voice = voiceOf(app);
   const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   const first = years[0] ?? thisYear;
-  const opening =
-    voice.kind === "none" ? (
-      year === "all" ? `Since ${first},` : year === thisYear ? `So far in ${year},` : `In ${year},`
-    ) : voice.kind === "named" ? (
-      year === "all" ? <>Since {first} {who} has taken</> : year === thisYear ? <>So far in {year} {who} has taken</> : <>In {year} {who} took</>
-    ) : year === "all" ? (
-      `Since ${first} you have taken`
-    ) : year === thisYear ? (
-      `So far in ${year} you have taken`
-    ) : (
-      `In ${year} you took`
-    );
+  const period = year === "all" ? "all" : year === thisYear ? "current" : "past";
+  const extent = fs.distanceKm.value > 0 ? (fs.minutes.value > 0 ? "both" : "distance") : fs.minutes.value > 0 ? "time" : "none";
+  const fig = (text: React.ReactNode) => <Fig>{text}</Fig>;
   const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
   const topRoute = fs.byRoute.items[0];
   const [ra, rb] = topRoute ? routeCodes(topRoute.key, ref, " ").split(" ") : [];
@@ -124,53 +117,52 @@ export function Flights() {
         {!shared && (
           <Link className="btn btn--quiet hide-phone" to="/flights/new">
             <Icon name="plus" />
-            Add flight
+            {t("flights.add")}
           </Link>
         )}
       </div>
       <h1 className="lead">
         {views.length ? (
           <>
-            {opening} <Fig>{plural(views.length, "flight")}</Fig>
-            {fs.distanceKm.value > 0 && (
-              <>
-                : <Fig>{distance(fs.distanceKm.value, unit)}</Fig>
-              </>
-            )}
-            {fs.minutes.value > 0 && (
-              <>
-                {" "}
-                and <Fig>{durLong(fs.minutes.value)}</Fig> in the air
-              </>
-            )}
-            .{" "}
-            {longest?.km && longest.route && (
-              <>
-                The longest was{" "}
-                <span className="phrase phrase--flown" {...bind(longest.route)}>
-                  <Fig>
-                    {longest.fromCode} → {longest.toCode}
-                  </Fig>
-                  , {distance(longest.km, unit)}
-                </span>
-                .
-              </>
-            )}
+            {tx(
+              "flights.lead.flights",
+              { voice: voice.kind, period, first, year, name: who, count: views.length, extent, distance: distance(fs.distanceKm.value, unit), time: durLong(fs.minutes.value) },
+              { fig },
+            )}{" "}
+            {longest?.km &&
+              longest.route &&
+              tx(
+                "flights.lead.longest",
+                { from: longest.fromCode, to: longest.toCode, distance: distance(longest.km, unit) },
+                {
+                  fig,
+                  phrase: (text) => (
+                    <span className="phrase phrase--flown" {...bind(longest.route!)}>
+                      {text}
+                    </span>
+                  ),
+                },
+              )}
             {topRoute && topRoute.count > 1 && (
               <>
-                {longest?.km && longest.route ? " " : ""}{voice.kind === "none" ? "The route flown most was" : voice.kind === "named" ? <>The route {who} flew most was</> : "The route you flew most was"}{" "}
-                <span className="phrase phrase--flown" {...bind(topRoute.key)}>
-                  <Fig>
-                    {ra} ⇄ {rb}
-                  </Fig>
-                  , {plural(topRoute.count, "time")}
-                </span>
-                .
+                {longest?.km && longest.route ? " " : ""}
+                {tx(
+                  "flights.lead.topRoute",
+                  { voice: voice.kind, name: who, a: ra ?? "", b: rb ?? "", count: topRoute.count },
+                  {
+                    fig,
+                    phrase: (text) => (
+                      <span className="phrase phrase--flown" {...bind(topRoute.key)}>
+                        {text}
+                      </span>
+                    ),
+                  },
+                )}
               </>
             )}
           </>
         ) : (
-          `No flights logged in ${year === "all" ? (shared ? "the log" : "your log") : year}.`
+          t("flights.lead.empty", { scope: year !== "all" ? "year" : shared ? "shared" : "own", year })
         )}
       </h1>
       <div className="map-wrap">
@@ -178,21 +170,21 @@ export function Flights() {
           <span className="legend__item">
             <span className="swatch-line" />
             {recordedShown === shown.length && shown.length
-              ? `Recorded tracks for all ${plural(shown.length, "flight")}`
+              ? t("flights.legend.allRecorded", { count: shown.length })
               : recordedShown
-                ? `Recorded track on ${recordedShown} of ${plural(shown.length, "flight")}, great circle on the rest`
-                : "Great circles: no recorded tracks for these flights"}
+                ? t("flights.legend.someRecorded", { recorded: recordedShown, count: shown.length })
+                : t("flights.legend.noneRecorded")}
           </span>
           {hasGaps && (
             <span className="legend__item">
               <span className="swatch-line swatch-line--unrecorded" />
-              Not recorded
+              {t("flights.legend.notRecorded")}
             </span>
           )}
-          <span className="legend__item">Point at a row or an underlined route to find it</span>
+          <span className="legend__item">{t("flights.legend.hint")}</span>
           <Link className="legend__action" to="/stats">
             <Icon name="globe" />
-            Explore on a globe
+            {t("flights.legend.globe")}
           </Link>
         </div>
         <WorldMap
@@ -204,43 +196,43 @@ export function Flights() {
           onArcLeave={() => setHover(null)}
           onArcClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
           onAirportClick={(id) => navigate({ to: "/airports/$id", params: { id } })}
-          label={`Map of ${plural(views.length, "flight")}${muted ? `, ${shown.length} of them matching the search and filters` : ""}`}
+          label={t("flights.map.label", { filtered: muted ? "yes" : "no", count: views.length, shown: shown.length })}
         />
       </div>
       <div className="filters" role="search">
         <label className="search">
-          <span className="visually-hidden">Search flights</span>
+          <span className="visually-hidden">{t("flights.filters.search")}</span>
           <Icon name="search" />
-          <input className="input" type="search" placeholder="Flight number, route, airport, registration or type" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+          <input className="input" type="search" placeholder={t("flights.filters.placeholder")} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
-        <Select label="Airline" value={airline} onChange={setAirline} options={[{ value: "", label: "All airlines" }, ...airlines.map((id) => ({ value: id, label: airlineLabel(id, ref) }))]} />
+        <Select label={t("flights.filters.airline")} value={airline} onChange={setAirline} options={[{ value: "", label: t("flights.filters.allAirlines") }, ...airlines.map((id) => ({ value: id, label: airlineLabel(id, ref) }))]} />
         <label className="check">
           <input type="checkbox" checked={recordedOnly} onChange={(e) => setRecordedOnly(e.target.checked)} />
-          Recorded tracks only
+          {t("flights.filters.recordedOnly")}
         </label>
         {/* For the owner, to send to someone who can find the tracks: not on a share link. */}
         {withoutTrack > 0 && !shared && (
           <button
             type="button"
             className="btn btn--quiet btn--small"
-            title="A short list of every flight without a recorded track, in every year: date, flight number, route, registration, type and UTC times, nothing private. Send it to someone who can find the tracks. Add the files they send back on each flight's page."
+            title={t("flights.missingTracks.title")}
             onClick={() => download(`flights-without-track-${todayIn()}.csv`, missingTracksCsv(store, ref), "text/csv")}
           >
             <Icon name="download" />
-            {withoutTrack} without a track (CSV)
+            {t("flights.missingTracks.button", { count: withoutTrack })}
           </button>
         )}
         <span className="filters__count">
-          {plural(shown.length, "flight")} · {distance(shownKm, unit)}
+          {t("common.count.flights", { count: shown.length })} · {distance(shownKm, unit)}
         </span>
       </div>
       <div ref={paging.top} className="list-top" />
       {!shown.length ? (
         <div className="empty">
-          <p>{views.length ? "No flights match these filters." : "No flights in this period."}</p>
+          <p>{views.length ? t("flights.empty.filtered") : t("flights.empty.period")}</p>
           {views.length > 0 && (
             <button type="button" className="btn btn--quiet" onClick={clear}>
-              Clear filters
+              {t("flights.empty.clear")}
             </button>
           )}
         </div>
@@ -248,11 +240,11 @@ export function Flights() {
         [...groups].map(([ym, list]) => {
           const month = monthTotals.get(ym)!;
           return (
-            <section className="month" key={ym} aria-label={ym === "undated" ? "No date" : `${MONTHS_LONG[Number(ym.slice(5)) - 1]} ${ym.slice(0, 4)}`}>
+            <section className="month" key={ym} aria-label={ym === "undated" ? t("flights.noDate") : dateOnly(`${ym}-01`, { month: "long", year: "numeric" })}>
               <div className="month__head">
-                <h2 className="month__title">{ym === "undated" ? "No date" : `${MONTHS_LONG[Number(ym.slice(5)) - 1]}${year === "all" || ym.slice(0, 4) !== year ? " " + ym.slice(0, 4) : ""}`}</h2>
+                <h2 className="month__title">{ym === "undated" ? t("flights.noDate") : year === "all" || ym.slice(0, 4) !== year ? dateOnly(`${ym}-01`, { month: "long", year: "numeric" }) : monthNames()[Number(ym.slice(5)) - 1]}</h2>
                 <span className="month__sum">
-                  {plural(month.count, "flight")} · {distance(month.km, unit)}
+                  {t("common.count.flights", { count: month.count })} · {distance(month.km, unit)}
                 </span>
               </div>
               <ul className="rows">
@@ -271,7 +263,7 @@ export function Flights() {
           );
         })
       )}
-      <Pager paging={paging} noun={["flight", "flights"]} />
+      <Pager paging={paging} kind="flights" />
     </div>
   );
 }

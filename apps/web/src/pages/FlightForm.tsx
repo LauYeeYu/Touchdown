@@ -3,6 +3,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { t } from "@touchdown/i18n";
 import { cityName, looksLikeOperatorName, parseDateTime, parseFlightNumber, todayIn, withPrivate, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { textCode } from "../lib/codes.ts";
@@ -145,123 +146,123 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
   const deferred = useDeferredValue(values);
   const findings = useMemo(() => draftFindings(app, "flights", deferred, existing?.id).filter((f) => f.ruleId !== "V-INCOMPLETE"), [app, deferred, existing?.id]);
 
-  if (edit && !existing) return <NotFound what="That flight is not in your log." back={{ to: "/flights", label: "All flights" }} />;
+  if (edit && !existing) return <NotFound what={t("flights.notFound.log")} back={{ to: "/flights", label: t("flights.allFlights") }} />;
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     const row = app.saveFlight(values, existing?.id);
-    toast(existing ? "Flight saved." : "Flight added.");
+    toast(existing ? t("flightForm.saved") : t("flightForm.added"));
     navigate({ to: "/flights/$id", params: { id: row.id } });
   };
 
-  const tzHint = (tz: string | undefined, code: string) => (tz ? `Local time at ${code}` : "Choose the airport first, so the time is stored with its UTC offset");
-  const known = (raw: string, name: string | undefined, kind: string) => (!raw.trim() ? null : name ? name : `Not a known ${kind} code`);
+  const tzHint = (tz: string | undefined, code: string) => (tz ? t("flightForm.hint.localTime", { code }) : t("flightForm.hint.chooseAirport"));
+  const known = (raw: string, name: string | undefined, kind: "airport" | "airline") => (!raw.trim() ? null : name ? name : t("flightForm.unknownCode", { kind }));
 
   return (
     <div className="page page--form">
-      <nav className="crumbs" aria-label="Back">
+      <nav className="crumbs" aria-label={t("common.back")}>
         <Link to={existing ? "/flights/$id" : "/flights"} params={existing ? { id: existing.id } : undefined}>
-          <Icon name="arrow-left" /> {existing ? "Back to the flight" : "All flights"}
+          <Icon name="arrow-left" /> {existing ? t("flightForm.backToFlight") : t("flights.allFlights")}
         </Link>
       </nav>
-      <h1 className="form-title">{existing ? "Edit flight" : "Add a flight"}</h1>
-      <p className="form-sub">Every field is optional. Checks run as you type and never stop you saving.</p>
+      <h1 className="form-title">{existing ? t("flightForm.title.edit") : t("flightForm.title.add")}</h1>
+      <p className="form-sub">{t("flightForm.intro")}</p>
       <form className="form" onSubmit={save}>
         <div className="form-grid">
-          <Field label="Flight number">
+          <Field label={t("flightForm.field.flightNumber")}>
             <TextInput value={d.flightNumber} onChange={(e) => set("flightNumber", e.target.value)} placeholder="DL123" autoFocus={!existing} />
           </Field>
-          <Field label="Scheduled date" hint="The date on the ticket">
+          <Field label={t("flightForm.field.scheduledDate")} hint={t("flightForm.hint.scheduledDate")}>
             <input className="input" type="date" value={d.scheduledDate} onChange={(e) => set("scheduledDate", e.target.value)} />
           </Field>
-          <Field label="From">
-            <Picker label="From" value={d.fromRaw} onChange={(v) => set("fromRaw", v)} options={airportOptions(ref)} placeholder="Code, city or name" resolved={known(d.fromRaw, from ? `${cityName(from) ?? ""} ${from.name}`.trim() : undefined, "airport")} invalid={!!d.fromRaw.trim() && !from} />
+          <Field label={t("flightForm.field.from")}>
+            <Picker label={t("flightForm.field.from")} value={d.fromRaw} onChange={(v) => set("fromRaw", v)} options={airportOptions(ref)} placeholder={t("flightForm.placeholder.airport")} resolved={known(d.fromRaw, from ? `${cityName(from) ?? ""} ${from.name}`.trim() : undefined, "airport")} invalid={!!d.fromRaw.trim() && !from} />
           </Field>
-          <Field label="To">
-            <Picker label="To" value={d.toRaw} onChange={(v) => set("toRaw", v)} options={airportOptions(ref)} placeholder="Code, city or name" resolved={known(d.toRaw, to ? `${cityName(to) ?? ""} ${to.name}`.trim() : undefined, "airport")} invalid={!!d.toRaw.trim() && !to} />
+          <Field label={t("flightForm.field.to")}>
+            <Picker label={t("flightForm.field.to")} value={d.toRaw} onChange={(v) => set("toRaw", v)} options={airportOptions(ref)} placeholder={t("flightForm.placeholder.airport")} resolved={known(d.toRaw, to ? `${cityName(to) ?? ""} ${to.name}`.trim() : undefined, "airport")} invalid={!!d.toRaw.trim() && !to} />
           </Field>
-          <Field label="Airline">
-            <Picker label="Airline" value={d.airlineRaw} onChange={(v) => set("airlineRaw", v)} options={operatorOptions(ref, settings.codeDisplay === "icao" ? "icao" : "iata")} placeholder={designator ? `${designator} (from the flight number)` : "Code or name"} resolved={airlineRaw && !airline && looksLikeOperatorName(airlineRaw) ? "Not an airline: saved as an operator" : known(airlineRaw, airline?.name, "airline")} invalid={!!airlineRaw && !airline && !looksLikeOperatorName(airlineRaw)} />
+          <Field label={t("flightForm.field.airline")}>
+            <Picker label={t("flightForm.field.airline")} value={d.airlineRaw} onChange={(v) => set("airlineRaw", v)} options={operatorOptions(ref, settings.codeDisplay === "icao" ? "icao" : "iata")} placeholder={designator ? t("flightForm.placeholder.designator", { designator }) : t("flightForm.placeholder.airline")} resolved={airlineRaw && !airline && looksLikeOperatorName(airlineRaw) ? t("flightForm.operator") : known(airlineRaw, airline?.name, "airline")} invalid={!!airlineRaw && !airline && !looksLikeOperatorName(airlineRaw)} />
           </Field>
-          <Field label="Registration">
+          <Field label={t("flightForm.field.registration")}>
             <TextInput value={d.registrationRaw} onChange={(e) => set("registrationRaw", e.target.value)} placeholder="N123AB" />
           </Field>
-          <Field label="Type code" hint={d.typeCodeRaw ? typeName(d.typeCodeRaw.toUpperCase(), ref) : "ICAO designator, e.g. A21N"}>
+          <Field label={t("flightForm.field.typeCode")} hint={d.typeCodeRaw ? typeName(d.typeCodeRaw.toUpperCase(), ref) : t("flightForm.hint.typeCode")}>
             <TextInput value={d.typeCodeRaw} onChange={(e) => set("typeCodeRaw", e.target.value)} placeholder="A21N" />
           </Field>
-          <Field label="Model" hint="Either style: 777-322(ER) or B777-322ER">
+          <Field label={t("flightForm.field.model")} hint={t("flightForm.hint.model")}>
             <TextInput value={d.modelRaw} onChange={(e) => set("modelRaw", e.target.value)} placeholder="A321-271NX" />
           </Field>
         </div>
 
-        <h2 className="form-section">Times</h2>
-        <p className="form-sub">Takeoff and landing, in local time at each airport. A takeoff after midnight goes on the next day.</p>
+        <h2 className="form-section">{t("flightForm.section.times")}</h2>
+        <p className="form-sub">{t("flightForm.section.timesIntro")}</p>
         <div className="form-grid">
-          <DateTimeField label="Boarding" {...dt(d, "boarding", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
-          <DateTimeField label="Takeoff" {...dt(d, "takeoff", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
-          <DateTimeField label="Landing" {...dt(d, "landing", setTime)} hint={tzHint(to?.tz, textCode(to, d.toRaw))} />
+          <DateTimeField label={t("flightForm.field.boarding")} {...dt(d, "boarding", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
+          <DateTimeField label={t("flightForm.field.takeoff")} {...dt(d, "takeoff", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
+          <DateTimeField label={t("flightForm.field.landing")} {...dt(d, "landing", setTime)} hint={tzHint(to?.tz, textCode(to, d.toRaw))} />
         </div>
 
         {findings.length > 0 && (
           <div className="form-checks" aria-live="polite">
-            <h2 className="form-section">Checks</h2>
+            <h2 className="form-section">{t("flightForm.section.checks")}</h2>
             <FindingList findings={findings.map((f) => ({ ...f, fixes: [] }))} />
           </div>
         )}
 
-        <Disclosure className="disclosure--form" summary="More: seat, class, gate, livery, notes, ticket" defaultOpen={edit}>
+        <Disclosure className="disclosure--form" summary={t("flightForm.more")} defaultOpen={edit}>
           <div className="form-grid">
-            <Field label="Seat">
+            <Field label={t("flightForm.field.seat")}>
               <TextInput value={d.seat} onChange={(e) => set("seat", e.target.value)} placeholder="14A" />
             </Field>
-            <Field label="Seat position">
-              <Segmented label="Seat position" value={d.seatPosition || null} onChange={(v) => set("seatPosition", v ?? "")} options={[{ value: "window", label: "Window" }, { value: "middle", label: "Middle" }, { value: "aisle", label: "Aisle" }]} />
+            <Field label={t("flightForm.field.seatPosition")}>
+              <Segmented label={t("flightForm.field.seatPosition")} value={d.seatPosition || null} onChange={(v) => set("seatPosition", v ?? "")} options={[{ value: "window", label: t("flightForm.seatPosition.window") }, { value: "middle", label: t("flightForm.seatPosition.middle") }, { value: "aisle", label: t("flightForm.seatPosition.aisle") }]} />
             </Field>
-            <Field label="Cabin">
+            <Field label={t("flightForm.field.cabin")}>
               <Select<Draft["cabinClass"]>
-                label="Cabin"
+                label={t("flightForm.field.cabin")}
                 value={d.cabinClass}
                 onChange={(v) => set("cabinClass", v)}
-                options={[{ value: "", label: "Not recorded" }, ...Object.entries(CABIN_LABEL).map(([k, v]) => ({ value: k as Draft["cabinClass"], label: v }))]}
+                options={[{ value: "", label: t("flightForm.notRecorded") }, ...Object.entries(CABIN_LABEL).map(([k, v]) => ({ value: k as Draft["cabinClass"], label: v }))]}
               />
             </Field>
-            <Field label="Fare">
+            <Field label={t("flightForm.field.fare")}>
               <TextInput value={d.fareBrand} onChange={(e) => set("fareBrand", e.target.value)} placeholder="Main Cabin" />
             </Field>
-            <Field label="Booking class">
+            <Field label={t("flightForm.field.bookingClass")}>
               <TextInput value={d.bookingClass} onChange={(e) => set("bookingClass", e.target.value)} maxLength={1} placeholder="T" />
             </Field>
-            <Field label="Reason">
+            <Field label={t("flightForm.field.reason")}>
               <Select<Draft["reason"]>
-                label="Reason"
+                label={t("flightForm.field.reason")}
                 value={d.reason}
                 onChange={(v) => set("reason", v)}
-                options={[{ value: "", label: "Not recorded" }, ...Object.entries(REASON_LABEL).map(([k, v]) => ({ value: k as Draft["reason"], label: v }))]}
+                options={[{ value: "", label: t("flightForm.notRecorded") }, ...Object.entries(REASON_LABEL).map(([k, v]) => ({ value: k as Draft["reason"], label: v }))]}
               />
             </Field>
-            <Field label="Terminal">
+            <Field label={t("flightForm.field.terminal")}>
               <TextInput value={d.departureTerminal} onChange={(e) => set("departureTerminal", e.target.value)} />
             </Field>
-            <Field label="Gate">
+            <Field label={t("flightForm.field.gate")}>
               <TextInput value={d.departureGate} onChange={(e) => set("departureGate", e.target.value)} />
             </Field>
-            <Field label="Special livery" hint="Only real special liveries and stickers">
+            <Field label={t("flightForm.field.specialLivery")} hint={t("flightForm.hint.specialLivery")}>
               <TextInput value={d.specialLivery} onChange={(e) => set("specialLivery", e.target.value)} />
             </Field>
-            <Field label="Regular livery variant">
+            <Field label={t("flightForm.field.livery")}>
               <TextInput value={d.livery} onChange={(e) => set("livery", e.target.value)} />
             </Field>
-            <Field label="Notes" wide>
+            <Field label={t("flightForm.field.notes")} wide>
               <textarea className="input textarea" rows={3} value={d.notes} onChange={(e) => set("notes", e.target.value)} />
             </Field>
           </div>
-          <h2 className="form-section">Private</h2>
-          <p className="form-sub">Kept in your data only. Never sent to a lookup or an agent check, and left out of exports unless you include them.</p>
+          <h2 className="form-section">{t("flightForm.section.private")}</h2>
+          <p className="form-sub">{t("flightForm.section.privateIntro")}</p>
           <div className="form-grid">
-            <Field label="Ticket number">
-              <TextInput value={d.ticketNumber} onChange={(e) => set("ticketNumber", e.target.value)} placeholder="13 digits and coupon, e.g. /1" />
+            <Field label={t("flightForm.field.ticketNumber")}>
+              <TextInput value={d.ticketNumber} onChange={(e) => set("ticketNumber", e.target.value)} placeholder={t("flightForm.placeholder.ticketNumber")} />
             </Field>
-            <Field label="Booking reference">
+            <Field label={t("flightForm.field.bookingRef")}>
               <TextInput value={d.bookingRef} onChange={(e) => set("bookingRef", e.target.value)} />
             </Field>
           </div>
@@ -270,10 +271,10 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
         <div className="form-actions">
           <button type="submit" className="btn btn--primary">
             <Icon name="check" />
-            {existing ? "Save flight" : "Add flight"}
+            {existing ? t("flightForm.submit.save") : t("flightForm.submit.add")}
           </button>
           <Link className="btn btn--quiet" to={existing ? "/flights/$id" : "/flights"} params={existing ? { id: existing.id } : undefined}>
-            Cancel
+            {t("common.cancel")}
           </Link>
         </div>
       </form>

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { t } from "@touchdown/i18n";
 import { Link, useReachable } from "../lib/link.tsx";
 import { extensionPercent, routeExtension } from "@touchdown/core/view";
 import { cityName, daysBetween, fitTrackFile, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
@@ -11,7 +12,7 @@ import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, trackIndex } from "../lib/mapdata.ts";
 import { trackSamples } from "../lib/trackStatus.ts";
-import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, nf, offsetLabel, plural, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
@@ -29,18 +30,10 @@ import { NotFound } from "./NotFound.tsx";
 import { TimeCell } from "../components/TimeCell.tsx";
 import { article, partOfDay } from "../lib/flightText.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 /** A track file the user chose for the flight: what it would save, or why it cannot be used. */
 type PickedTrack = { name: string; problem: string } | { name: string; read: number; change: Extract<InboxChange, { op: "track" }>; startKm: number | null; endKm: number | null; legs: number | null };
-
-/** "an Airbus", "an Embraer", "a Boeing". */
-const SOURCE_TEXT: Record<string, string> = {
-  fr24_csv: "Imported from a my.flightradar24.com CSV.",
-  sheet: "Imported from a spreadsheet.",
-  csv: "Imported from a CSV file.",
-  manual: "Entered by hand.",
-  api: "Filled from a flight lookup.",
-};
 
 export function FlightDetail() {
   const { id } = useParams({ from: "/flights/$id" });
@@ -63,7 +56,7 @@ export function FlightDetail() {
 
   const all = sortedFlights(store, ref);
   const idx = all.findIndex((v) => v.f.id === id);
-  if (idx < 0) return <NotFound what={shared ? "That flight is not in this link." : "That flight is not in your log."} back={{ to: "/flights", label: "All flights" }} />;
+  if (idx < 0) return <NotFound what={shared ? t("flights.notFound.link") : t("flights.notFound.log")} back={{ to: "/flights", label: t("flights.allFlights") }} />;
   const v = all[idx]!;
   const f: Flight = v.f;
   // Kept in the flight's private row (docs/32, "Private data").
@@ -95,14 +88,8 @@ export function FlightDetail() {
   const landDays = f.takeoffAt && f.landingAt ? daysBetween(localDay(f.takeoffAt)!, localDay(f.landingAt)!) : 0;
   const slipped = f.takeoffAt && f.scheduledDate ? daysBetween(f.scheduledDate, localDay(f.takeoffAt)!) : 0;
   const tPart = f.takeoffAt ? partOfDay(f.takeoffAt) : null;
-  const kind = !tPart
-    ? "A flight"
-    : landDays >= 1 && (tPart === "evening" || tPart === "night")
-      ? "An overnight flight"
-      : (v.min ?? 0) >= 600
-        ? "A long-haul flight"
-        : `A${tPart === "afternoon" || tPart === "evening" ? "n" : ""} ${tPart} flight`;
-  const landing = !f.landingAt ? null : landDays === 0 ? "the same day" : landDays === 1 ? `the next ${partOfDay(f.landingAt)}` : `${landDays} days later by the local calendar`;
+  const kind = !tPart ? "plain" : landDays >= 1 && (tPart === "evening" || tPart === "night") ? "overnight" : (v.min ?? 0) >= 600 ? "longHaul" : tPart;
+  const landing = !f.landingAt ? "none" : landDays === 0 ? "sameDay" : landDays === 1 ? "nextDay" : "later";
   const guessed = !f.seatPosition ? guessSeatPosition(f.seat, ref.familyIdOf(f.typeCode)) : null;
 
   const scrollToAircraft = () => {
@@ -126,11 +113,13 @@ export function FlightDetail() {
     },
   };
 
+  // The flight in a sentence: its number, else "the flight", and its date when known.
+  const subject = { numbered: f.flightNumber ? "yes" : "no", flight: f.flightNumber ?? "", dated: day ? "yes" : "no", date: day ? dayMonthYear(day) : "" };
   const remove = () => {
-    const shared = linkFor(shareList, "flight", f.id) ? " Its share link stays and says it is no longer shared." : "";
-    if (!window.confirm(`Delete ${f.flightNumber ?? "this flight"}${day ? ` on ${dayMonthYear(day)}` : ""}? It can be restored from the history later.${shared}`)) return;
+    const linked = linkFor(shareList, "flight", f.id) ? "yes" : "no";
+    if (!window.confirm(t("flights.detail.delete.confirm", { ...subject, linked }))) return;
     app.deleteRecord("flights", f.id);
-    toast("Flight deleted.");
+    toast(t("flights.detail.delete.done"));
     navigate({ to: "/flights" });
   };
 
@@ -143,17 +132,16 @@ export function FlightDetail() {
     if ("problem" in fit) return setPicked({ name: file.name, problem: fit.problem });
     setPicked({ name: file.name, read: fit.points.length, change: trackChangeFor(f.id, { ...read, points: fit.points }, fit.coverage), startKm: fit.startKm, endKm: fit.endKm, legs: fit.legs });
   };
-  const flightName = `${f.flightNumber ?? "the flight"}${day ? ` on ${dayMonthYear(day)}` : ""}`;
   const saveTrack = () => {
     if (!picked || "problem" in picked) return;
     app.applyChanges([picked.change], () => true, picked.name);
     setPicked(null);
-    toast(trackRow ? "Track replaced. The Import page's history can undo it." : "Track saved. The Import page's history can undo it.");
+    toast(trackRow ? t("flights.detail.track.replacedToast") : t("flights.detail.track.savedToast"));
   };
   const dropTrack = () => {
-    if (!window.confirm(`Remove the recorded track of ${flightName}? The map goes back to the great circle. The Import page's history can undo it.`)) return;
-    app.applyChanges([{ op: "removeTrack", flightId: f.id }], () => true, `Track removed from ${flightName}`);
-    toast("Track removed.");
+    if (!window.confirm(t("flights.detail.track.removeConfirm", subject))) return;
+    app.applyChanges([{ op: "removeTrack", flightId: f.id }], () => true, t("flights.detail.track.removedBatch", subject));
+    toast(t("flights.detail.track.removedToast"));
   };
   const chooseTrack = () => trackInput.current?.click();
   // The recorded track as KML: it opens in Google Earth in 3D and plays back there, and it reads back in here.
@@ -163,7 +151,7 @@ export function FlightDetail() {
       .all("track_points")
       .filter((p) => p.trackId === trackRow.id)
       .map((p) => ({ t: p.t, lat: p.lat, lon: p.lon, altitudeFt: p.altitudeFt, groundSpeedKt: p.groundSpeedKt, headingDeg: p.headingDeg }));
-    const title = [f.flightNumber ?? "Flight", `${v.fromCode} → ${v.toCode}`, v.day ? dayMonthYear(v.day) : null].filter(Boolean).join(" · ");
+    const title = [f.flightNumber ?? t("flights.flight"), `${v.fromCode} → ${v.toCode}`, v.day ? dayMonthYear(v.day) : null].filter(Boolean).join(" · ");
     const name = trackFileName(f.flightNumber, A.iata ?? A.icao ?? v.fromCode, B.iata ?? B.icao ?? v.toCode, v.day, "kml");
     download(name, trackKml(points, { title, source: trackRow.attribution }), "application/vnd.google-earth.kml+xml");
   };
@@ -172,19 +160,19 @@ export function FlightDetail() {
       <Icon name={"problem" in picked ? "circle-x" : "route"} />
       <div className="finding__body">
         <span className="finding__rule">{picked.name}</span>
-        <p className="finding__text">{"problem" in picked ? `This file cannot be used. ${picked.problem}` : trackSummary(picked)}</p>
+        <p className="finding__text">{"problem" in picked ? t("flights.detail.track.unusable", { problem: picked.problem }) : trackSummary(picked)}</p>
         <div className="finding__actions">
           {!("problem" in picked) && (
             <button type="button" className="btn btn--primary btn--small" onClick={saveTrack}>
               <Icon name="check" />
-              {trackRow ? "Replace the track" : "Save the track"}
+              {trackRow ? t("flights.detail.track.replace") : t("flights.detail.track.save")}
             </button>
           )}
           <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack}>
-            Choose another file
+            {t("flights.detail.track.another")}
           </button>
           <button type="button" className="btn btn--quiet btn--small" onClick={() => setPicked(null)}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -194,11 +182,28 @@ export function FlightDetail() {
     const c = p.change;
     const first = toUtcIso(c.points[0]![0] * 1000);
     const last = toUtcIso(c.points[c.points.length - 1]![0] * 1000);
-    const ends = c.coverage === "partial" && p.startKm !== null && p.endKm !== null ? ` (it starts ${Math.round(p.startKm)} km from ${v.fromCode} and ends ${Math.round(p.endKm)} km from ${v.toCode})` : "";
-    const kept = p.read > c.points.length ? `${nf.format(p.read)} points, kept as ${nf.format(c.points.length)}` : `${nf.format(p.read)} points`;
-    const cut = p.legs ? ` The file holds ${p.legs} flights of the aircraft, and only this one's positions are kept.` : "";
-    const replaces = trackRow ? ` It replaces the recorded track${trackRow.provider && TRACK_SOURCE[trackRow.provider] ? ` from ${TRACK_SOURCE[trackRow.provider]}` : ""}.` : "";
-    return `A ${c.coverage} track${ends}: ${kept}, ${distance(c.distanceKm, unit)}, recorded ${dayMonthYear(first.slice(0, 10))} ${first.slice(11, 16)} to ${last.slice(11, 16)} UTC, from ${TRACK_SOURCE[c.provider] ?? "a track file"}.${cut}${replaces}`;
+    const ends = c.coverage === "partial" && p.startKm !== null && p.endKm !== null;
+    const source = TRACK_SOURCE[c.provider];
+    const summary = t("flights.detail.track.summary", {
+      coverage: ends ? "partialEnds" : c.coverage,
+      startKm: ends ? Math.round(p.startKm!) : "",
+      endKm: ends ? Math.round(p.endKm!) : "",
+      from: v.fromCode,
+      to: v.toCode,
+      thinned: p.read > c.points.length ? "yes" : "no",
+      read: p.read,
+      kept: c.points.length,
+      distance: distance(c.distanceKm, unit),
+      date: dayMonthYear(first.slice(0, 10)),
+      start: first.slice(11, 16),
+      end: last.slice(11, 16),
+      known: source ? "yes" : "no",
+      source: source ?? "",
+    });
+    const cut = p.legs ? t("flights.detail.track.legs", { legs: p.legs }) : null;
+    const old = trackRow?.provider ? TRACK_SOURCE[trackRow.provider] : undefined;
+    const replaces = trackRow ? t("flights.detail.track.replaces", { known: old ? "yes" : "no", source: old ?? "" }) : null;
+    return [summary, cut, replaces].filter(Boolean).join(" ");
   }
 
   const altitude =
@@ -219,31 +224,34 @@ export function FlightDetail() {
     <>
       {track ? (
         <>
-          <span className="legend__item" title={`Solid where positions were received. Point at it for the aircraft's state there.${trackRow?.attribution ? ` ${trackRow.attribution}` : ""}`}>
+          <span className="legend__item" title={[t("flights.detail.legend.recordedTitle"), trackRow?.attribution].filter(Boolean).join(" ")}>
             <span className="swatch-line" />
-            Recorded track
+            {t("flights.detail.recordedTrack")}
           </span>
           {!!mark?.gaps?.length && (
-            <span className="legend__item" title="No position was received here: the line is the great circle between the positions either side.">
+            <span className="legend__item" title={t("flights.detail.legend.gapTitle")}>
               <span className="swatch-line swatch-line--unrecorded" />
-              Not recorded
+              {t("flights.legend.notRecorded")}
             </span>
           )}
           <span className="legend__item">
             <span className="swatch-line swatch-line--faint" />
-            Great circle
+            {t("flights.detail.legend.greatCircle")}
           </span>
         </>
       ) : (
-        <span className="legend__item" title={trackRow && !shared ? "The recorded track is read from your storage at the next sync." : undefined}>
+        <span className="legend__item" title={trackRow && !shared ? t("flights.detail.legend.syncTitle") : undefined}>
           <span className="swatch-line" />
-          {trackRow ? (shared ? "Great circle · the recorded track is loading" : "Great circle · the recorded track is not in this browser yet") : "Great circle · no recorded track for this flight"}
+          {trackRow ? (shared ? t("flights.detail.legend.loading") : t("flights.detail.legend.notHere")) : t("flights.detail.legend.none")}
         </span>
       )}
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
     </>
   );
-  const routeWhat = A && B ? `${f.flightNumber ?? "the flight"} from ${shortAirport(A.id, ref)} to ${shortAirport(B.id, ref)}` : "";
+  // The airports as the route's heading reads them out, or nothing for an unknown one.
+  const heroFrom = shortAirport(f.fromAirportId, ref) || f.fromRaw || "";
+  const heroTo = shortAirport(f.toAirportId, ref) || f.toRaw || "";
+  const routeWhat = { numbered: subject.numbered, flight: subject.flight, from: A ? shortAirport(A.id, ref) : "", to: B ? shortAirport(B.id, ref) : "" };
   const routeMap =
     !A || !B ? null : mapStyle.style === "globe" ? (
       <GlobePanel
@@ -254,31 +262,31 @@ export function FlightDetail() {
         samples={samples}
         takeoff={takeoff}
         head={mapHead}
-        label={`Globe showing ${routeWhat}`}
+        label={t("flights.detail.map.globe", routeWhat)}
         onAirportClick={reachable("/airports/$id", undefined) ? (airport) => navigate({ to: "/airports/$id", params: { id: airport } }) : undefined}
       />
     ) : (
       <div className="map-wrap">
         <div className="legend">{mapHead}</div>
-        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} lone={mark?.lone} recorded={!!track} pending={!!trackRow && !track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={`Map of ${routeWhat}`} />
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} lone={mark?.lone} recorded={!!track} pending={!!trackRow && !track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={t("flights.detail.map.flat", routeWhat)} />
       </div>
     );
 
   return (
     <div className="page">
-      <nav className="crumbs" aria-label="Flight navigation">
+      <nav className="crumbs" aria-label={t("flights.detail.nav")}>
         <Link to="/flights">
-          <Icon name="arrow-left" /> All flights
+          <Icon name="arrow-left" /> {t("flights.allFlights")}
         </Link>
         <span className="crumbs__pager">
           {prev && (
-            <Link to="/flights/$id" params={{ id: prev.f.id }} title="Previous flight">
+            <Link to="/flights/$id" params={{ id: prev.f.id }} title={t("flights.detail.previous")}>
               <Icon name="arrow-left" />
               {prev.f.flightNumber ?? `${prev.fromCode} → ${prev.toCode}`}
             </Link>
           )}
           {next && (
-            <Link to="/flights/$id" params={{ id: next.f.id }} title="Next flight">
+            <Link to="/flights/$id" params={{ id: next.f.id }} title={t("flights.detail.next")}>
               {next.f.flightNumber ?? `${next.fromCode} → ${next.toCode}`}
               <Icon name="arrow-right" />
             </Link>
@@ -288,7 +296,7 @@ export function FlightDetail() {
 
       <div className="route-hero">
         <div className="route-hero__end">
-          <h1 className="route-hero__code" aria-label={`${f.flightNumber ?? "Flight"} from ${shortAirport(f.fromAirportId, ref) || f.fromRaw || "an unknown airport"}`}>
+          <h1 className="route-hero__code" aria-label={t("flights.detail.hero.from", { flight: f.flightNumber ?? t("flights.flight"), known: heroFrom ? "yes" : "no", airport: heroFrom })}>
             {primaryCode(A, f.fromRaw)}
           </h1>
           <p className="route-hero__place">
@@ -297,7 +305,7 @@ export function FlightDetail() {
                 {cityName(A) ?? A.name}
               </Link>
             ) : (
-              <span className="route-hero__city">{f.fromRaw ?? "Unknown airport"}</span>
+              <span className="route-hero__city">{f.fromRaw ?? t("flights.detail.hero.unknown")}</span>
             )}
             {A && <span className="route-hero__name">{A.name}</span>}
             {secondaryCode(A) && <span className="route-hero__icao"> · {secondaryCode(A)}</span>}
@@ -318,7 +326,7 @@ export function FlightDetail() {
           </div>
         </div>
         <div className="route-hero__end route-hero__end--to">
-          <p className="route-hero__code" aria-label={`to ${shortAirport(f.toAirportId, ref) || f.toRaw || "an unknown airport"}`}>
+          <p className="route-hero__code" aria-label={t("flights.detail.hero.to", { known: heroTo ? "yes" : "no", airport: heroTo })}>
             {primaryCode(B, f.toRaw)}
           </p>
           <p className="route-hero__place">
@@ -327,7 +335,7 @@ export function FlightDetail() {
                 {cityName(B) ?? B.name}
               </Link>
             ) : (
-              <span className="route-hero__city">{f.toRaw ?? "Unknown airport"}</span>
+              <span className="route-hero__city">{f.toRaw ?? t("flights.detail.hero.unknown")}</span>
             )}
             {B && <span className="route-hero__name">{B.name}</span>}
             {secondaryCode(B) && <span className="route-hero__icao"> · {secondaryCode(B)}</span>}
@@ -336,7 +344,7 @@ export function FlightDetail() {
       </div>
       <div className="flight-date-row">
         <p className="flight-date">
-          <b>{day ? dayLong(day) : "Date not recorded"}</b>
+          <b>{day ? dayLong(day) : t("flights.detail.noDate")}</b>
           {f.flightNumber && ` · ${f.flightNumber}`}
           {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
         </p>
@@ -345,7 +353,7 @@ export function FlightDetail() {
             <div className="actions">
               <button type="button" className="btn btn--quiet btn--small" onClick={downloadTrack}>
                 <Icon name="download" />
-                Track as KML
+                {t("flights.detail.track.kml")}
               </button>
             </div>
           )
@@ -353,31 +361,31 @@ export function FlightDetail() {
           <div className="actions">
             <Link className="btn btn--quiet btn--small" to="/flights/$id/edit" params={{ id: f.id }}>
               <Icon name="pencil" />
-              Edit
+              {t("common.edit")}
             </Link>
             <ShareButton kind="flight" subject={f.id} />
             {trackRow ? (
               <MenuButton
                 className="btn btn--quiet btn--small"
-                label="Recorded track"
+                label={t("flights.detail.recordedTrack")}
                 items={[
-                  ...(samples.length > 1 ? [{ label: "Download as KML", icon: <Icon name="download" />, onSelect: downloadTrack }] : []),
-                  { label: "Replace with a track file", icon: <Icon name="upload" />, onSelect: chooseTrack },
-                  { label: "Remove the track", icon: <Icon name="trash" />, onSelect: dropTrack },
+                  ...(samples.length > 1 ? [{ label: t("flights.detail.track.menu.download"), icon: <Icon name="download" />, onSelect: downloadTrack }] : []),
+                  { label: t("flights.detail.track.menu.replace"), icon: <Icon name="upload" />, onSelect: chooseTrack },
+                  { label: t("flights.detail.track.menu.remove"), icon: <Icon name="trash" />, onSelect: dropTrack },
                 ]}
               >
                 <Icon name="route" />
-                Track
+                {t("flights.detail.track.menu.button")}
               </MenuButton>
             ) : (
-              <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack} title="Add the recorded track from a Flightradar24 CSV or KML file, or a KML or GPX file">
+              <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack} title={t("flights.detail.track.add.title")}>
                 <Icon name="route" />
-                Add track
+                {t("flights.detail.track.add.label")}
               </button>
             )}
             <button type="button" className="btn btn--quiet btn--small" onClick={remove}>
               <Icon name="trash" />
-              Delete
+              {t("common.delete")}
             </button>
             <input
               ref={trackInput}
@@ -397,33 +405,49 @@ export function FlightDetail() {
       </div>
 
       <p className="lead lead--flight">
-        {kind}
-        {v.min !== null && `, ${durLong(v.min)} in the air`}
-        {f.registration ? (
-          <>
-            {" "}
-            on{" "}
-            <span className="phrase phrase--flown" {...phraseProps}>
-              {f.registration}
-            </span>
-            {typeText && `, ${article(typeText)} ${typeText}`}
-          </>
-        ) : (
-          typeText && ` on ${article(typeText)} ${typeText}`
+        {tx(
+          "flights.detail.lead",
+          {
+            kind,
+            airborne: v.min !== null ? "yes" : "no",
+            duration: v.min !== null ? durLong(v.min) : "",
+            aircraft: f.registration ? (typeText ? "both" : "reg") : typeText ? "type" : "none",
+            reg: f.registration ?? "",
+            article: typeText ? article(typeText) : "a",
+            type: typeText,
+            livery: livery && (f.registration || typeText) ? "yes" : "no",
+            liveryName: livery ?? "",
+            built: built ? "yes" : "no",
+            year: built ?? "",
+            landing: B ? landing : "none",
+            city: B ? (cityName(B) ?? B.name) : "",
+            landingPart: f.landingAt ? partOfDay(f.landingAt) : "",
+            days: landDays,
+          },
+          {
+            phrase: (text) => (
+              <span className="phrase phrase--flown" {...phraseProps}>
+                {text}
+              </span>
+            ),
+          },
         )}
-        {livery && (f.registration || typeText) && ` in its ${livery} livery`}
-        {built && `${livery && (f.registration || typeText) ? "," : ""} first flown in ${built}`}
-        {landing && B && `, landing in ${cityName(B) ?? B.name} ${landing}`}.
         {onThis.length > 1 && (
           <>
             {" "}
-            {voice.kind === "none" ? "Flown on it" : voice.kind === "named" ? <>{who} has flown on it</> : "You have flown on it"} {plural(onThis.length, "time")}.
+            {tx("flights.detail.flownOn", { voice: voice.kind, name: who, count: onThis.length })}
           </>
         )}{" "}
         {spotted[0] && (
           <span className="phrase phrase--spotted" {...phraseProps}>
-            {voice.kind === "none" ? "Photographed" : voice.kind === "named" ? <>{who} photographed this aircraft</> : "You photographed this aircraft"}{spotted[0].airportId ? ` at ${cityName(ref.airport(spotted[0].airportId)) ?? shortAirport(spotted[0].airportId, ref)}` : ""}
-            {spotted[0].seenOn ? ` on ${dateOnly(spotted[0].seenOn, { day: "numeric", month: "long", year: "numeric" })}` : ""}.
+            {tx("flights.detail.photographed", {
+              voice: voice.kind,
+              name: who,
+              place: spotted[0].airportId ? "yes" : "no",
+              city: spotted[0].airportId ? (cityName(ref.airport(spotted[0].airportId)) ?? shortAirport(spotted[0].airportId, ref)) : "",
+              dated: spotted[0].seenOn ? "yes" : "no",
+              date: spotted[0].seenOn ? dateOnly(spotted[0].seenOn, { day: "numeric", month: "long", year: "numeric" }) : "",
+            })}
           </span>
         )}
       </p>
@@ -432,7 +456,7 @@ export function FlightDetail() {
         <LiveryBand
           names={[livery]}
           reg={f.registration}
-          alt={`${f.registration ?? "The aircraft"}, ${typeText}`}
+          alt={t("flights.detail.livery.alt", { registered: f.registration ? "yes" : "no", reg: f.registration ?? "", type: typeText })}
           linked={!!(airframe && f.registration)}
           about={
             <>
@@ -447,8 +471,8 @@ export function FlightDetail() {
             </>
           }
           facts={[
-            { label: "Flown in it", value: flownIn(onThis.filter((o) => sameLivery(o.f.specialLivery, f.specialLivery)).length, onThis.length) },
-            ...(spottedInLivery.length ? [{ label: "Photographed in it", value: photographedIn(spottedInLivery.map((s) => s.seenOn)) }] : []),
+            { label: t("flights.detail.livery.flownIn"), value: flownIn(onThis.filter((o) => sameLivery(o.f.specialLivery, f.specialLivery)).length, onThis.length) },
+            ...(spottedInLivery.length ? [{ label: t("flights.detail.livery.photographedIn"), value: photographedIn(spottedInLivery.map((s) => s.seenOn)) }] : []),
           ]}
         />
       )}
@@ -457,55 +481,43 @@ export function FlightDetail() {
 
       {(f.boardingAt || f.takeoffAt || f.landingAt || extension) && (
         <div className="times">
-          {f.boardingAt && <TimeCell label="Boarding" dt={f.boardingAt} />}
+          {f.boardingAt && <TimeCell label={t("flights.detail.time.boarding")} dt={f.boardingAt} />}
           {f.takeoffAt && (
             <TimeCell
-              label={`Takeoff · ${v.fromCode}`}
+              label={t("flights.detail.time.takeoff", { code: v.fromCode })}
               dt={f.takeoffAt}
               extra={
                 slipped > 0 &&
                 f.scheduledDate && (
-                  <p className="time__date">
-                    Scheduled {dateOnly(f.scheduledDate)}
-                    <span className="plus-day">took off after midnight</span>
-                  </p>
+                  <p className="time__date">{tx("flights.detail.time.scheduled", { date: dateOnly(f.scheduledDate) }, { late: (text) => <span className="plus-day">{text}</span> })}</p>
                 )
               }
             />
           )}
           {f.landingAt && (
             <div className="time">
-              <p className="time__label">Landing · {v.toCode}</p>
+              <p className="time__label">{t("flights.detail.time.landing", { code: v.toCode })}</p>
               <p className="time__clock">{clock(f.landingAt)}</p>
               <p className="time__date">
                 {dayShort(localDay(f.landingAt)!)} · {offsetLabel(f.landingAt)}
-                {landDays > 0 && <span className="plus-day">+{plural(landDays, "day")}</span>}
+                {landDays > 0 && <span className="plus-day">{t("flights.detail.time.plusDays", { count: landDays })}</span>}
               </p>
             </div>
           )}
           {v.min !== null && (
             <div className="time">
-              <p className="time__label">In the air</p>
+              <p className="time__label">{t("flights.detail.time.inAir")}</p>
               <p className="time__clock">
                 <Duration min={v.min} />
               </p>
-              <p className="time__date">{v.km !== null ? `${distance(v.km, unit)} great circle` : ""}</p>
+              <p className="time__date">{v.km !== null ? t("flights.detail.time.greatCircle", { distance: distance(v.km, unit) }) : ""}</p>
             </div>
           )}
           {extension && (
-            <div className="time" title={`The distance flown beyond the great circle, along the recorded track.${
-              extension.minimum
-                ? " The track has a gap or does not reach an airport, and that stretch counts as the great circle, so this is a minimum."
-                : ""
-            }`}>
-              <p className="time__label">Route extension</p>
-              <p className="time__clock">
-                {extension.minimum ? "at least " : ""}
-                {extensionPercent(extension.percent)}
-              </p>
-              <p className="time__date">
-                {distance(extension.flownKm, unit)} flown · {distance(extension.greatCircleKm, unit)} great circle
-              </p>
+            <div className="time" title={t("flights.detail.extension.title", { minimum: extension.minimum ? "yes" : "no" })}>
+              <p className="time__label">{t("flights.detail.extension.label")}</p>
+              <p className="time__clock">{t("flights.detail.extension.value", { minimum: extension.minimum ? "yes" : "no", percent: extensionPercent(extension.percent) })}</p>
+              <p className="time__date">{t("flights.detail.extension.detail", { flown: distance(extension.flownKm, unit), greatCircle: distance(extension.greatCircleKm, unit) })}</p>
             </div>
           )}
         </div>
@@ -515,17 +527,17 @@ export function FlightDetail() {
         <section className="section" aria-labelledby="alt-title">
           <div className="section__head">
             <h2 className="section__title" id="alt-title">
-              Altitude
+              {t("flights.detail.altitude.title")}
             </h2>
             <span className="section__aside" title={trackRow?.attribution ?? undefined}>
-              {plural(altitude.length, "point")}
+              {t("common.count.points", { count: altitude.length })}
             </span>
           </div>
           <div className="chart">
             <AltitudeChart
               points={altitude.map((p) => {
                 const local = new Date((p.t + fromOffset * 60) * 1000).toISOString().slice(11, 16);
-                return { min: (p.t - t0) / 60, alt: p.altitudeFt ?? 0, gs: p.groundSpeedKt, clock: `${local} at ${v.fromCode}` };
+                return { min: (p.t - t0) / 60, alt: p.altitudeFt ?? 0, gs: p.groundSpeedKt, clock: t("flights.detail.altitude.clock", { time: local, code: v.fromCode }) };
               })}
             />
           </div>
@@ -535,7 +547,7 @@ export function FlightDetail() {
       <section className="section detail-grid">
         <div id="aircraft">
           <div className="section__head">
-            <h2 className="section__title">The aircraft</h2>
+            <h2 className="section__title">{t("flights.detail.aircraft.title")}</h2>
           </div>
           {/* The whole card opens the aircraft's page, as on Home; the flights listed in it keep their own links. */}
           <article className={`card aircraft-card${airframe ? " stretch" : ""}`} id="aircraft-card">
@@ -543,10 +555,10 @@ export function FlightDetail() {
             <div className="card__body">
               {airframe ? (
                 <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
-                  {f.registration ?? "No registration recorded"}
+                  {f.registration ?? t("flights.detail.aircraft.noReg")}
                 </Link>
               ) : (
-                <span className="card__reg">{f.registration ?? "No registration recorded"}</span>
+                <span className="card__reg">{f.registration ?? t("flights.detail.aircraft.noReg")}</span>
               )}
               <span className="card__type">
                 {typeText}
@@ -559,10 +571,10 @@ export function FlightDetail() {
                     {/* One item beside the dot, so the date follows the link with no gap before its comma. */}
                     <span>
                       {o.f.id === f.id ? (
-                        "This flight"
+                        t("flights.detail.aircraft.thisFlight")
                       ) : (
                         <Link to="/flights/$id" params={{ id: o.f.id }}>
-                          {o.f.flightNumber ?? "Flight"} {o.fromCode} → {o.toCode}
+                          {o.f.flightNumber ?? t("flights.flight")} {o.fromCode} → {o.toCode}
                         </Link>
                       )}
                       {o.day && `, ${dayMonthYear(o.day)}`}
@@ -572,7 +584,7 @@ export function FlightDetail() {
                 {spotted.map((s) => (
                   <li key={s.id}>
                     <span className="dot dot--spotted" />
-                    Spotted{s.airportId ? ` at ${airportWithCode(s.airportId, ref)}` : ""}
+                    {t("flights.detail.aircraft.spotted", { place: s.airportId ? "yes" : "no", airport: s.airportId ? airportWithCode(s.airportId, ref) : "" })}
                     {s.seenOn && `, ${dayMonthYear(s.seenOn)}`}
                   </li>
                 ))}
@@ -581,10 +593,13 @@ export function FlightDetail() {
                 <p className="identity">
                   <Icon name="info" />
                   <span>
-                    {age !== null && built ? `First flown in ${built}, about ${plural(age, "year")} old on this flight. ` : ""}
-                    {airframe.provisional
-                      ? "Serial number not known yet, so this aircraft is matched by registration and date until one is."
-                      : `Serial number ${airframe.msn}.`}
+                    {t("flights.detail.aircraft.identity", {
+                      aged: age !== null && built ? "yes" : "no",
+                      built: built ?? "",
+                      age: age ?? 0,
+                      serial: airframe.provisional ? "unknown" : "known",
+                      msn: airframe.msn ?? "",
+                    })}
                   </span>
                 </p>
               )}
@@ -594,83 +609,83 @@ export function FlightDetail() {
         </div>
         <div>
           <div className="section__head">
-            <h2 className="section__title">Seat and ticket</h2>
+            <h2 className="section__title">{t("flights.detail.seat.title")}</h2>
           </div>
           <dl className="dl">
             <div>
-              <dt>Seat</dt>
+              <dt>{t("flights.detail.seat.seat")}</dt>
               <dd>
                 {f.seat ?? "—"}
-                {f.seatPosition && <span className="muted"> · {f.seatPosition}</span>}
-                {guessed && <span className="muted"> · {guessed} (guess from the usual layout)</span>}
+                {f.seatPosition && <span className="muted"> · {t("flights.detail.seat.position", { position: f.seatPosition })}</span>}
+                {guessed && <span className="muted"> · {t("flights.detail.seat.guess", { position: guessed })}</span>}
               </dd>
             </div>
             <div>
-              <dt>Cabin</dt>
+              <dt>{t("flights.detail.seat.cabin")}</dt>
               <dd>{f.cabinClass ? CABIN_LABEL[f.cabinClass] : "—"}</dd>
             </div>
             <div>
-              <dt>Fare</dt>
+              <dt>{t("flights.detail.seat.fare")}</dt>
               <dd>
                 {f.fareBrand ?? (f.bookingClass ? "" : "—")}
-                {f.bookingClass && <span className="muted">{f.fareBrand ? " · " : ""}class {f.bookingClass}</span>}
+                {f.bookingClass && <span className="muted">{f.fareBrand ? " · " : ""}{t("flights.detail.seat.bookingClass", { code: f.bookingClass })}</span>}
               </dd>
             </div>
             {f.reason && (
               <div>
-                <dt>Reason</dt>
+                <dt>{t("flights.detail.seat.reason")}</dt>
                 <dd>{REASON_LABEL[f.reason]}</dd>
               </div>
             )}
             <div>
-              <dt>Flight</dt>
+              <dt>{t("flights.detail.seat.flight")}</dt>
               <dd>
                 {f.flightNumber ?? "—"}
                 {f.flightNumber && ref.operator(f.airlineId)?.icao && <span className="muted"> · {ref.operator(f.airlineId)!.icao}{f.flightNumber.replace(/^[A-Z0-9]{2}/, "")}</span>}
               </dd>
             </div>
             <div>
-              <dt>Airports</dt>
+              <dt>{t("flights.detail.seat.airports")}</dt>
               <dd>
                 {[A?.iata, A?.icao].filter(Boolean).join(" / ") || f.fromRaw} → {[B?.iata, B?.icao].filter(Boolean).join(" / ") || f.toRaw}
               </dd>
             </div>
             {(f.departureGate || f.departureTerminal) && (
               <div>
-                <dt>Gate</dt>
+                <dt>{t("flights.detail.seat.gate")}</dt>
                 <dd>
-                  {f.departureTerminal && `Terminal ${f.departureTerminal} · `}
+                  {f.departureTerminal && `${t("flights.detail.seat.terminal", { terminal: f.departureTerminal })} · `}
                   {f.departureGate}
                 </dd>
               </div>
             )}
             {(f.specialLivery || f.livery) && (
               <div>
-                <dt>Livery</dt>
+                <dt>{t("flights.detail.seat.livery")}</dt>
                 <dd>
                   {livery ?? f.livery}
-                  {livery && <span className="muted"> · special livery</span>}
+                  {livery && <span className="muted"> · {t("flights.detail.seat.special")}</span>}
                 </dd>
               </div>
             )}
             {!shared && (
               <div>
-                <dt>Ticket number</dt>
+                <dt>{t("flights.detail.seat.ticket")}</dt>
                 <dd>
                   {!ticketNumber ? (
-                    <span className="muted">Not recorded</span>
+                    <span className="muted">{t("flights.detail.seat.notRecorded")}</span>
                   ) : showTicket ? (
                     <>
                       {ticketNumber}{" "}
                       <button type="button" className="link-btn" onClick={() => setShowTicket(false)}>
-                        Hide
+                        {t("flights.detail.seat.hide")}
                       </button>
                     </>
                   ) : (
                     <>
-                      <span className="muted">Hidden · private field</span>{" "}
+                      <span className="muted">{t("flights.detail.seat.hidden")}</span>{" "}
                       <button type="button" className="link-btn" onClick={() => setShowTicket(true)}>
-                        Show
+                        {t("flights.detail.seat.show")}
                       </button>
                     </>
                   )}
@@ -680,32 +695,32 @@ export function FlightDetail() {
           </dl>
           {f.notes && (
             <>
-              <h3 className="subhead">Notes</h3>
+              <h3 className="subhead">{t("flights.detail.notes")}</h3>
               <p className="notes">{f.notes}</p>
             </>
           )}
-          <h3 className="subhead">Source and checks</h3>
+          <h3 className="subhead">{t("flights.detail.source.title")}</h3>
           <p className="status-line">
             <Icon name="info" />
-            <span>{SOURCE_TEXT[f.sourceKind ?? "manual"]} Times are takeoff and landing, stored with their date and UTC offset.</span>
+            <span>{t("flights.detail.source.text", { source: f.sourceKind ?? "manual" })}</span>
           </p>
           {findings.length ? (
             <FindingList findings={findings} />
           ) : (
             <p className="status-line status-line--good">
               <Icon name="circle-check" />
-              <span>All checks passed.</span>
+              <span>{t("flights.detail.checksPassed")}</span>
             </p>
           )}
         </div>
       </section>
 
-      <nav className="pager-foot" aria-label="Previous and next flight">
+      <nav className="pager-foot" aria-label={t("flights.detail.pager")}>
         {prev ? (
           <Link className="prev" to="/flights/$id" params={{ id: prev.f.id }}>
-            <small>Previous flight</small>
+            <small>{t("flights.detail.previous")}</small>
             <span>
-              {prev.f.flightNumber ?? "Flight"} · {prev.fromCode} → {prev.toCode}
+              {prev.f.flightNumber ?? t("flights.flight")} · {prev.fromCode} → {prev.toCode}
             </span>
           </Link>
         ) : (
@@ -713,9 +728,9 @@ export function FlightDetail() {
         )}
         {next && (
           <Link className="next" to="/flights/$id" params={{ id: next.f.id }}>
-            <small>Next flight</small>
+            <small>{t("flights.detail.next")}</small>
             <span>
-              {next.f.flightNumber ?? "Flight"} · {next.fromCode} → {next.toCode}
+              {next.f.flightNumber ?? t("flights.flight")} · {next.fromCode} → {next.toCode}
             </span>
           </Link>
         )}

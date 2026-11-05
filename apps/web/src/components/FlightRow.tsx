@@ -1,6 +1,7 @@
 // One flight in a list (Flights, airport pages, the statistics' list of flights).
 
 import type { ReactNode } from "react";
+import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { useApp } from "../data/context.tsx";
 import type { FlightView } from "../lib/views.ts";
@@ -13,14 +14,15 @@ import { TypeCell } from "./TypeCell.tsx";
 
 /** What the track icon means, for its tooltip and for screen readers. */
 function trackText(track: TrackInfo | null, shared: boolean): { title: string; detail: string } {
-  const from = track?.provider && TRACK_SOURCE[track.provider] ? ` from ${TRACK_SOURCE[track.provider]}` : "";
-  if (!track) return { title: "Great circle only", detail: "No recorded track for this flight. The map draws the shortest path between the two airports, not the route flown." };
+  const source = track?.provider && TRACK_SOURCE[track.provider] ? TRACK_SOURCE[track.provider]! : "";
+  const known = source ? "yes" : "no";
+  if (!track) return { title: t("flights.row.track.none.title"), detail: t("flights.row.track.none.detail") };
   if (!track.here)
     return shared
-      ? { title: "Recorded track, loading", detail: `The path the aircraft flew${from}. Until it is in, the map draws the great circle.` }
-      : { title: "Recorded track, not in this browser yet", detail: `The path the aircraft flew${from}. It is read from your storage at the next sync. Until then the map draws the great circle.` };
-  if (track.coverage === "partial") return { title: "Recorded track, with gaps", detail: `Part of the path the aircraft flew${from}. The missing stretches are drawn as great circles.` };
-  return { title: "Recorded track", detail: `The path the aircraft flew${from}, drawn on the map in place of the great circle.` };
+      ? { title: t("flights.row.track.loading.title"), detail: t("flights.row.track.loading.detail", { known, source }) }
+      : { title: t("flights.row.track.notHere.title"), detail: t("flights.row.track.notHere.detail", { known, source }) };
+  if (track.coverage === "partial") return { title: t("flights.row.track.partial.title"), detail: t("flights.row.track.partial.detail", { known, source }) };
+  return { title: t("flights.row.track.recorded.title"), detail: t("flights.row.track.recorded.detail", { known, source }) };
 }
 
 interface Props {
@@ -37,8 +39,8 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
   const { app } = useApp();
   const { ref } = app;
   const unit = app.settings().distanceUnit ?? "km";
-  const t = trackText(track, app.readOnly);
-  const tip = (e: React.PointerEvent) => showTip(`<strong>${esc(t.title)}</strong><br><span class="muted">${esc(t.detail)}</span>`, e.clientX, e.clientY);
+  const words = trackText(track, app.readOnly);
+  const tip = (e: React.PointerEvent) => showTip(`<strong>${esc(words.title)}</strong><br><span class="muted">${esc(words.detail)}</span>`, e.clientX, e.clientY);
   return (
     <li>
       <Link
@@ -56,7 +58,7 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
               <b>{dateOnly(v.day)}</b> {dateOnly(v.day, { weekday: "short" })}
             </>
           ) : (
-            <b>No date</b>
+            <b>{t("flights.noDate")}</b>
           )}
         </span>
         <span className="row__route-wrap">
@@ -66,14 +68,14 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
             {v.toCode}
             {badge}
             {review && (
-              <span className="review" title="This flight has a check to look at">
+              <span className="review" title={t("flights.row.review.title")}>
                 <Icon name="info" />
-                Review
+                {t("flights.row.review.label")}
               </span>
             )}
           </span>
           <span className="row__cities">
-            {cityOf(v.f.fromAirportId, ref) || v.f.fromRaw} to {cityOf(v.f.toAirportId, ref) || v.f.toRaw}
+            {t("flights.row.cities", { from: cityOf(v.f.fromAirportId, ref) || (v.f.fromRaw ?? ""), to: cityOf(v.f.toAirportId, ref) || (v.f.toRaw ?? "") })}
           </span>
         </span>
         <span className="row__cell row__flight">
@@ -85,9 +87,7 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
         <span className="row__num row__num--dist tabular">{v.km !== null ? distance(v.km, unit) : "—"}</span>
         <span className="row__track" onPointerEnter={tip} onPointerMove={tip} onPointerLeave={hideTip}>
           <Icon name={track ? "route" : "great-circle"} />
-          <span className="visually-hidden">
-            {t.title}. {t.detail}
-          </span>
+          <span className="visually-hidden">{t("flights.row.track.spoken", { title: words.title, detail: words.detail })}</span>
         </span>
       </Link>
     </li>
