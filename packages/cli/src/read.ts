@@ -18,6 +18,7 @@ import {
   type Store,
 } from "@touchdown/core";
 import { yearsIn, type CodeStyle } from "@touchdown/core/view";
+import { t } from "@touchdown/i18n/cli";
 import { loadRefTables } from "@touchdown/refdata";
 import { loadLog } from "./log.ts";
 import { userPath } from "./paths.ts";
@@ -27,9 +28,23 @@ import { bold, dim, fit, red, width } from "./term.ts";
 /** Exit statuses of the reading commands. */
 export const EXIT = { ok: 0, notFound: 1, problem: 2 } as const;
 
+/** "Usage: ./touchdown …": a command's synopsis, as typed. */
+export const usage = (synopsis: string) => t("cliRead.help.usage", { synopsis });
+
+/** Options as a command's help lists them: each one padded to `col`, then what it does, its further lines under the first. */
+export function optionLines(col: number, options: [string, string][]): string {
+  return options.map(([option, text]) => `  ${option.padEnd(col)}${text.replace(/\n/g, `\n${" ".repeat(col + 2)}`)}`).join("\n");
+}
+
 /** The options every reading command takes, lined up at `col` with the command's own. */
-export const readOptions = (col: number) => `  ${"--log FILE".padEnd(col)}read a backup instead of the log in your storage
-  ${"--json".padEnd(col)}print JSON, for agents and scripts`;
+export const readOptions = (col: number) =>
+  optionLines(col, [
+    ["--log FILE", t("cliRead.option.log")],
+    ["--json", t("cliRead.option.json")],
+  ]);
+
+/** "Read from your log in Google Drive (address).", after each command's output. */
+export const readFrom = (log: { from: string }) => t("cliRead.readFrom", { from: log.from });
 
 export interface Args {
   values: Map<string, string>;
@@ -48,11 +63,11 @@ export function parseArgs(args: string[], spec: { values?: string[]; lists?: str
     const a = args[i]!;
     if (takes.has(a)) {
       const v = args[++i];
-      if (v === undefined || v.startsWith("--")) return { error: `${a} needs a value.` };
+      if (v === undefined || v.startsWith("--")) return { error: t("cliRead.args.needsValue", { option: a }) };
       if (spec.lists?.includes(a)) out.lists.set(a, [...(out.lists.get(a) ?? []), v]);
       else out.values.set(a, v);
     } else if (flags.has(a)) out.flags.add(a);
-    else if (a.startsWith("--")) return { error: `There is no option ${a}.` };
+    else if (a.startsWith("--")) return { error: t("cliRead.args.unknown", { option: a }) };
     else out.positional.push(a);
   }
   return out;
@@ -89,7 +104,7 @@ export async function openLog(file?: string): Promise<OpenedLog> {
   const ref = new RefIndex(loadRefTables());
   const storage = file ? null : await chosenStorage();
   const log = await loadLog(ref, { file: file ? userPath(file) : undefined, storage });
-  if (!log.store) throw new Error("There is no log to read. Choose your storage with ./touchdown storage, or give a backup with --log FILE.");
+  if (!log.store) throw new Error(t("cliRead.log.none"));
   const store = log.store;
   ref.setUserOverrides(refOverridesOf(store));
   // Shown as the web app shows it: what two devices made side by side settled, in this copy only (core reconcile.ts).
@@ -115,7 +130,7 @@ export function argsOrHelp(args: string[], spec: { values?: string[]; lists?: st
     process.exit(EXIT.ok);
   }
   const a = parseArgs(args, spec);
-  const problem = "error" in a ? a.error : a.positional.length < positional[0] ? "An argument is missing." : a.positional.length > positional[1] ? `Too many arguments: ${a.positional.join(" ")}.` : null;
+  const problem = "error" in a ? a.error : a.positional.length < positional[0] ? t("cliRead.args.missing") : a.positional.length > positional[1] ? t("cliRead.args.tooMany", { args: a.positional.join(" ") }) : null;
   if (problem) {
     if (json) return fail(json, problem);
     console.error(red(problem));
@@ -130,14 +145,12 @@ export function periodOf(store: Store, given: string | undefined, fallback: "all
   const years = yearsIn(store);
   if (given !== undefined) {
     if (given === "all" || /^\d{4}$/.test(given)) return given;
-    return { error: `--year takes a year (2025) or "all".` };
+    return { error: t("cliRead.year.invalid") };
   }
   if (fallback === "all") return "all";
   const thisYear = todayIn().slice(0, 4);
   return years.includes(thisYear) ? thisYear : (years[years.length - 1] ?? "all");
 }
-
-export const periodLabel = (year: string) => (year === "all" ? "all years" : year);
 
 // ---------- records named by REF ----------
 
@@ -145,16 +158,26 @@ export type Found<T> = { row: T } | { error: string; candidates: { id: string; l
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function pick<T extends { id: string }>(rows: T[], what: string, label: (r: T) => string): Found<T> {
+/** The one row, or what is wrong: `none` when no row fits, `several` (with the count) when more than one does. */
+function pick<T extends { id: string }>(rows: T[], none: () => string, several: (count: number) => string, label: (r: T) => string): Found<T> {
   if (rows.length === 1) return { row: rows[0]! };
-  if (!rows.length) return { error: `No ${what}.`, candidates: [] };
-  return { error: `${rows.length} records fit ${what}; name one by its id.`, candidates: rows.map((r) => ({ id: r.id, label: label(r) })) };
+  if (!rows.length) return { error: none(), candidates: [] };
+  return { error: several(rows.length), candidates: rows.map((r) => ({ id: r.id, label: label(r) })) };
 }
 
-export const flightRefLabel = (f: Flight) => [f.flightNumber, flightDay(f) ?? f.scheduledDate].filter(Boolean).join(" on ") || f.id;
+export function flightRefLabel(f: Flight): string {
+  const number = f.flightNumber;
+  const day = flightDay(f) ?? f.scheduledDate;
+  return number && day ? t("cliRead.ref.flight", { number, day }) : number || day || f.id;
+}
 export function sightingRefLabel(s: Sighting, ref: RefIndex): string {
-  const at = ref.airport(s.airportId)?.icao ?? s.airportRaw;
-  return [s.registration ?? "Sighting", at && `at ${at}`, s.seenOn && `on ${s.seenOn}`].filter(Boolean).join(" ");
+  const airport = ref.airport(s.airportId)?.icao ?? s.airportRaw;
+  const registration = s.registration ?? t("cliRead.ref.sighting");
+  const day = s.seenOn;
+  if (airport && day) return t("cliRead.ref.sightingAtOn", { registration, airport, day });
+  if (airport) return t("cliRead.ref.sightingAt", { registration, airport });
+  if (day) return t("cliRead.ref.sightingOn", { registration, day });
+  return registration;
 }
 
 /** A flight by its id, or `XY123@2025-04-02` (flight number and day). */
@@ -162,11 +185,12 @@ export function findFlight(store: Store, text: string): Found<Flight> {
   const byId = store.get("flights", text);
   if (byId) return { row: byId };
   const [number, day] = text.split("@");
-  if (!number || !day || !DATE_RE.test(day)) return { error: `"${text}" is not a flight's id or XY123@YYYY-MM-DD.`, candidates: [] };
+  if (!number || !day || !DATE_RE.test(day)) return { error: t("cliRead.find.flight.notRef", { text }), candidates: [] };
   const n = normaliseFlightNumber(number);
   return pick(
     store.all("flights").filter((f) => f.flightNumber === n && (flightDay(f) === day || f.scheduledDate === day)),
-    `flight ${n} on ${day}`,
+    () => t("cliRead.find.flight.none", { number: `${n}`, day }),
+    (count) => t("cliRead.find.flight.several", { count, number: `${n}`, day }),
     flightRefLabel,
   );
 }
@@ -177,13 +201,14 @@ export function findSighting(store: Store, ref: RefIndex, text: string): Found<S
   if (byId) return { row: byId };
   const parts = text.split("@");
   const day = parts[parts.length - 1]!;
-  if (parts.length < 2 || parts.length > 3 || !DATE_RE.test(day)) return { error: `"${text}" is not a sighting's id or REG@AIRPORT@YYYY-MM-DD.`, candidates: [] };
+  if (parts.length < 2 || parts.length > 3 || !DATE_RE.test(day)) return { error: t("cliRead.find.sighting.notRef", { text }), candidates: [] };
   const reg = registrationMatchForm(parts[0]!);
   const place = parts.length === 3 ? parts[1]! : null;
   const airport = place ? ref.airportByCode(place) : null;
   return pick(
     store.all("sightings").filter((s) => s.seenOn === day && registrationMatchForm(s.registration ?? s.registrationRaw ?? "") === reg && (!place || (airport ? s.airportId === airport.id : (s.airportRaw ?? "").toUpperCase() === place.toUpperCase()))),
-    `a sighting of ${parts[0]} ${place ? `at ${place} ` : ""}on ${day}`,
+    () => (place ? t("cliRead.find.sighting.noneAt", { registration: parts[0]!, airport: place, day }) : t("cliRead.find.sighting.none", { registration: parts[0]!, day })),
+    (count) => (place ? t("cliRead.find.sighting.severalAt", { count, registration: parts[0]!, airport: place, day }) : t("cliRead.find.sighting.several", { count, registration: parts[0]!, day })),
     (s) => sightingRefLabel(s, ref),
   );
 }
@@ -193,7 +218,7 @@ export function findAircraft(store: Store, text: string): Found<{ id: string }> 
   const byId = store.get("airframes", text);
   if (byId) return { row: byId };
   const [regText, day] = text.split("@");
-  if (!regText || (day !== undefined && !DATE_RE.test(day))) return { error: `"${text}" is not an aircraft's id, registration or REG@YYYY-MM-DD.`, candidates: [] };
+  if (!regText || (day !== undefined && !DATE_RE.test(day))) return { error: t("cliRead.find.aircraft.notRef", { text }), candidates: [] };
   const reg = registrationMatchForm(regText);
   const ids = new Set<string>();
   for (const p of store.all("registration_periods")) {
@@ -208,7 +233,15 @@ export function findAircraft(store: Store, text: string): Found<{ id: string }> 
   ];
   for (const [r, d, id] of dated) if (id && r && registrationMatchForm(r) === reg && (!day || d === day) && store.get("airframes", id)) ids.add(id);
   const rows = [...ids].map((id) => store.get("airframes", id)!);
-  return pick(rows, `aircraft ${regText}${day ? ` on ${day}` : ""}`, (a) => `${a.typeCode ?? "unknown type"}${a.msn ? `, serial ${a.msn}` : ""}`);
+  return pick(
+    rows,
+    () => (day ? t("cliRead.find.aircraft.noneOn", { registration: regText, day }) : t("cliRead.find.aircraft.none", { registration: regText })),
+    (count) => (day ? t("cliRead.find.aircraft.severalOn", { count, registration: regText, day }) : t("cliRead.find.aircraft.several", { count, registration: regText })),
+    (a) => {
+      const type = a.typeCode ?? t("cliRead.find.aircraft.unknownType");
+      return a.msn ? t("cliRead.find.aircraft.serial", { type, msn: a.msn }) : type;
+    },
+  );
 }
 
 /** An airport by IATA or ICAO code, or its id. */

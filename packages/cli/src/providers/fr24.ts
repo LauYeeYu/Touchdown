@@ -7,6 +7,7 @@
 // and not always the first flight (for a brand-new aircraft it can be months later, likely delivery). So it
 // is never stored, and only rejects an answer when a record is more than a year before it.
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalMaker, modelFromSource, registrationMatchForm, type AirframeFacts, type Evidence, type RefIndex } from "@touchdown/core";
@@ -104,7 +105,7 @@ export function fr24Evidence(registration: string, page: Fr24Page, ref: RefIndex
     operator: airlineCode,
     operatorName: airline,
     asOf: page.fetchedAt.slice(0, 10),
-    note: operator && airline && operator !== airline ? `operated by ${operator}${codes[1] ? ` (${codes[1]})` : ""}` : null,
+    note: operator && airline && operator !== airline ? (codes[1] ? t("cliWrite.providers.fr24.operatedByCode", { operator, code: codes[1] }) : t("cliWrite.providers.fr24.operatedBy", { operator })) : null,
     facts,
     url,
   };
@@ -130,15 +131,15 @@ export function fr24Pages(opts: Fr24Options) {
       const c = JSON.parse(readFileSync(p, "utf8")) as Fr24Page;
       if (opts.offline || (!opts.refresh && Date.now() - Date.parse(c.fetchedAt) < opts.maxAgeDays * 86_400_000)) return c;
     }
-    if (opts.offline) return { blocked: "offline" };
+    if (opts.offline) return { blocked: t("cliWrite.providers.fr24.offline") };
     if (!tab) tab = await ChromeTab.open(opts.port);
-    if (!tab) return { blocked: `no Chrome on port ${opts.port}; start Chrome with --remote-debugging-port=${opts.port} and sign in to Flightradar24` };
+    if (!tab) return { blocked: t("cliWrite.providers.fr24.noChrome", { port: opts.port }) };
     const wait = last + opts.delayMs - Date.now();
     if (wait > 0) await sleep(wait);
     await tab.goto(url);
     last = Date.now();
     const page = JSON.parse(await tab.evaluate<string>(READ_DETAILS)) as Omit<Fr24Page, "fetchedAt">;
-    if (/just a moment|attention required|captcha/i.test(page.title)) return { blocked: "Flightradar24 showed a bot check; pass it in that Chrome window, then run again" };
+    if (/just a moment|attention required|captcha/i.test(page.title)) return { blocked: t("cliWrite.providers.fr24.botCheck") };
     const out: Fr24Page = { ...page, fetchedAt: new Date().toISOString() };
     mkdirSync(join(opts.cacheDir, "fr24"), { recursive: true });
     writeFileSync(p, JSON.stringify(out));

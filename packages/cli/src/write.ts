@@ -5,6 +5,7 @@
 // of the log: rows the storage has not shown back yet are kept, with their values, in data/private/cli-sync.json and
 // sent again by the next run.
 
+import { t } from "@touchdown/i18n/cli";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { reconcile, RefIndex, refOverridesOf, SCHEMA_VERSION, settleOlder, Store, type TableName } from "@touchdown/core";
@@ -78,13 +79,13 @@ export interface WritableLog {
  */
 export async function openForWriting(say: (line: string) => void = () => {}, storage?: OpenedStorage | null): Promise<WritableLog> {
   const s = storage === undefined ? await chosenStorage() : storage;
-  if (!s) throw new Error("No storage chosen. review writes to your log where the web app syncs it: choose it with ./touchdown storage drive (or folder PATH). In Local mode, review the files on the web app's Import page.");
-  if (s.schemaVersion < SCHEMA_VERSION) throw new Error(`Your log uses schema version ${s.schemaVersion}, older than this copy of Touchdown (${SCHEMA_VERSION}). Open the web app once, which brings the log up to date, then review again.`);
+  if (!s) throw new Error(t("cliWrite.write.noStorage"));
+  if (s.schemaVersion < SCHEMA_VERSION) throw new Error(t("cliWrite.write.olderSchema", { version: s.schemaVersion, known: SCHEMA_VERSION }));
   const store = new Store({ deviceId: cliDeviceId() });
   const engine = new SyncEngine(store, s.backend, new FileSyncState(keyOf(s), store));
   await engine.start();
   const before = engine.waiting;
-  say(`Reading your log from ${s.name}…`);
+  say(t("cli.readingLog", { place: s.name }));
   // Values an older version left in a row are moved once the log is read, before anything is sent, as in the web app.
   const report = await engine.sync({ full: true, settle: () => settleOlder(store) });
   const ref = new RefIndex(loadRefTables());

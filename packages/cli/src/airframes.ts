@@ -3,6 +3,7 @@
 // and store what fits. Runs on the user's machine: on a backup file, or on a copy of the log, whose answers then
 // go to the inbox as changes for review (docs/34).
 
+import { has, t, tDynamic } from "@touchdown/i18n/cli";
 import { applyAirframeFacts, copyStore, factsMismatch, recordDatesOf, refOverridesOf, registrationMatchForm, resolveAirframes, type AirframeFacts, type FactsOutcome, type InboxChange, type RefIndex, type Store } from "@touchdown/core";
 
 export type ProviderResult =
@@ -46,7 +47,7 @@ export interface LookupReport {
   stored: { airframeId: string; facts: AirframeFacts }[];
 }
 
-const label = (field: string) => ({ msn: "serial", lineNumber: "line", firstFlightDate: "first flight", deliveryDate: "delivered", status: "status", manufacturer: "maker", icaoHex: "transponder address" })[field] ?? field;
+const label = (field: string) => (has(`cliWrite.airframes.field.${field}`) ? tDynamic(`cliWrite.airframes.field.${field}`) : field);
 
 /** The registrations the user recorded for an airframe, latest first. */
 function registrationsOf(store: Store, airframeId: string): string[] {
@@ -67,10 +68,10 @@ export async function lookupAirframes(store: Store, ref: RefIndex, opts: LookupO
     .map((a) => ({ id: a.id, regs: registrationsOf(store, a.id) }))
     .filter((t) => t.regs.length && (!only || t.regs.some((r) => only.has(registrationMatchForm(r)))))
     .slice(0, opts.limit ?? Infinity);
-  opts.log(`Looking up ${targets.length} aircraft (sources: ${opts.providers.map((p) => p.name).join(", ")}).`);
+  opts.log(t("cliWrite.airframes.lookingUp", { count: targets.length, sources: opts.providers.map((p) => p.name).join(", ") }));
 
-  for (const t of targets) {
-    let id = t.id;
+  for (const target of targets) {
+    let id = target.id;
     report.looked++;
     let found = false;
     const done = () => {
@@ -80,20 +81,23 @@ export async function lookupAirframes(store: Store, ref: RefIndex, opts: LookupO
     const maker = store.get("airframes", id)?.manufacturer ?? null;
     const order = [...opts.providers].sort((x, y) => rank(y, maker) - rank(x, maker));
     const lines: string[] = [];
+    // Whether a source gave something that was used (or failed), rather than only answers not used.
+    let used = false;
     for (const p of order) {
       if (done()) break;
       if (report.blocked.has(p.id)) continue;
       const cur = store.get("airframes", id)!;
       if (!opts.all && p.gives.every((f) => cur[f])) continue;
-      for (const reg of t.regs) {
+      for (const reg of target.regs) {
         const res = await p.lookup(reg);
         if (res.kind === "blocked") {
           report.blocked.set(p.id, res.reason);
-          lines.push(`${p.name}: ${res.reason}; not used for the rest of this run`);
+          lines.push(t("cliWrite.airframes.blocked", { source: p.name, reason: res.reason }));
           break;
         }
         if (res.kind === "error") {
           lines.push(`${p.name}: ${res.reason}`);
+          used = true;
           break;
         }
         if (res.kind === "none") continue;
@@ -104,7 +108,7 @@ export async function lookupAirframes(store: Store, ref: RefIndex, opts: LookupO
         if (!fit) {
           const why = factsMismatch(store, ref, a, res.candidates[0]!)!;
           report.rejected.push({ registration: reg, provider: p.name, reason: why });
-          lines.push(`${p.name}: not used: ${why}`);
+          lines.push(t("cliWrite.airframes.notUsed", { source: p.name, why }));
           continue;
         }
         const out: FactsOutcome = applyAirframeFacts(store, ref, id, fit, { overwriteImported: opts.overwriteImported });
@@ -112,22 +116,25 @@ export async function lookupAirframes(store: Store, ref: RefIndex, opts: LookupO
         if (out.mergedInto) {
           report.merged++;
           id = out.mergedInto;
-          lines.push(`${p.name}: same serial number as another aircraft in your log; merged`);
+          lines.push(t("cliWrite.airframes.merged", { source: p.name }));
+          used = true;
         }
         if (out.applied.length) {
           lines.push(`${p.name}: ${out.applied.map((x) => `${label(x.field)} ${x.to}`).join(", ")}`);
+          used = true;
         }
         for (const d of out.differs) {
           report.differs.push({ registration: reg, provider: p.name, ...d });
-          lines.push(`${p.name}: ${label(d.field)} ${d.lookup} differs from your ${d.yours} (yours kept)`);
+          lines.push(t("cliWrite.airframes.differs", { source: p.name, field: label(d.field), lookup: String(d.lookup), yours: String(d.yours) }));
+          used = true;
         }
         break;
       }
     }
     const a = store.get("airframes", id);
-    if (a && (a.msn || a.firstFlightDate) && (a.factsProvider && lines.some((l) => !l.includes("not used")))) report.filled++;
-    if (!found && !lines.length) report.notFound.push(t.regs[0]!);
-    opts.log(`  ${t.regs.join(" / ").padEnd(16)} ${lines.length ? lines.join("; ") : found ? "nothing new" : "not found"}`);
+    if (a && (a.msn || a.firstFlightDate) && (a.factsProvider && used)) report.filled++;
+    if (!found && !lines.length) report.notFound.push(target.regs[0]!);
+    opts.log(`  ${target.regs.join(" / ").padEnd(16)} ${lines.length ? lines.join("; ") : found ? t("cliWrite.airframes.nothingNew") : t("cliWrite.airframes.notFound")}`);
   }
   for (const p of opts.providers) await p.close?.();
   resolveAirframes(store, ref);

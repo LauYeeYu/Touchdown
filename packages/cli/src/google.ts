@@ -5,6 +5,7 @@
 //   127.0.0.1, never through the site. It lasts about an hour and is kept in data/private/ until then, never printed;
 //   after that the command line opens the page again.
 
+import { t } from "@touchdown/i18n/cli";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { SignInNeeded, type DriveAuth } from "@touchdown/storage";
@@ -43,8 +44,8 @@ export class StandardDriveAuth implements DriveAuth {
       throw e;
     }
     const body = (await res.json().catch(() => ({}))) as { accessToken?: string; expiresAt?: string; account?: string; error?: string };
-    if (res.status === 404 || res.status === 409) throw new SignInNeeded(`${body.error ?? "Standard mode is not connected."} Then choose the storage again: ./touchdown storage drive`);
-    if (!res.ok || !body.accessToken) throw new Error(body.error ?? `The site did not give access to Google Drive (${res.status}).`);
+    if (res.status === 404 || res.status === 409) throw new SignInNeeded(t("cliWrite.drive.chooseAgain", { problem: body.error ?? t("cliWrite.drive.notConnected") }));
+    if (!res.ok || !body.accessToken) throw new Error(body.error ?? t("cliWrite.drive.refused", { status: res.status }));
     this.access = { account: body.account ?? "", accessToken: body.accessToken, expiresAt: Date.parse(body.expiresAt ?? "") || Date.now() + 50 * 60_000 };
     return body.accessToken;
   }
@@ -82,7 +83,7 @@ export class BrowserDriveAuth implements DriveAuth {
     const saved = savedAccess(this.file);
     if (usable(saved, this.account)) return saved.accessToken;
     const a = await (this.opts.handOver ?? handOver)(this.account, this.opts.say);
-    if (this.account && a.account !== this.account) throw new SignInNeeded(`Google Drive access came for ${a.account}, but the log is in the Google Drive of ${this.account}. Run the command again and choose ${this.account}.`);
+    if (this.account && a.account !== this.account) throw new SignInNeeded(t("cliWrite.drive.otherAccount", { given: a.account, account: this.account }));
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(this.file, JSON.stringify(a) + "\n", { mode: 0o600 });
     return a.accessToken;
@@ -102,14 +103,14 @@ export class BrowserDriveAuth implements DriveAuth {
 /** Opens /cli/drive in the browser and waits for the access it posts back. */
 async function handOver(account: string | null, say: (line: string) => void = (l) => console.error(l)): Promise<Access> {
   const s = savedSession();
-  if (!s) throw new SignInNeeded("The command line is not signed in to Touchdown. Sign in with ./touchdown login.");
-  say(account ? `The command line needs an hour's access to Google Drive (${account}).` : "The command line needs an hour's access to Google Drive.");
+  if (!s) throw new SignInNeeded(t("cli.notSignedIn"));
+  say(account ? t("cliWrite.drive.needAccessFor", { account }) : t("cliWrite.drive.needAccess"));
   const f = await viaBrowser(s.site, "/cli/drive", account ? { account } : {}, say);
-  if (f.get("error")) throw new SignInNeeded("Google Drive access was not given: cancelled in the browser.");
+  if (f.get("error")) throw new SignInNeeded(t("cliWrite.drive.cancelled"));
   const accessToken = f.get("access_token");
   const expiresAt = Number(f.get("expires_at"));
   const given = f.get("account");
-  if (!accessToken || !given || !Number.isFinite(expiresAt)) throw new Error("The browser's answer could not be read. Run the command again.");
+  if (!accessToken || !given || !Number.isFinite(expiresAt)) throw new Error(t("cliWrite.drive.unreadable"));
   return { account: given, accessToken, expiresAt };
 }
 

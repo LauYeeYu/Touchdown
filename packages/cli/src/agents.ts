@@ -3,6 +3,7 @@
 // still be empty afterwards. The batch goes in on stdin; a structured answer comes back. Touchdown builds the
 // command itself and refuses to run an agent whose version lacks a flag the lockdown needs.
 
+import { t } from "@touchdown/i18n/cli";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -59,15 +60,15 @@ const hasFlag = (help: string, flag: string) => new RegExp(`(^|[\\s,])${flag.rep
 export function findAgent(checker: Checker): Agent | { error: string } {
   const command = checker;
   const ver = spawnSync(command, ["--version"], { encoding: "utf8", timeout: 20_000 });
-  if (ver.error) return { error: `${NAME[checker]} was not found (no \`${command}\` command). Install it and sign in first.` };
+  if (ver.error) return { error: t("cliWrite.agents.notFound", { agent: NAME[checker], command }) };
   const version = (ver.stdout.match(/\d+\.\d+\.\d+/) ?? [ver.stdout.trim()])[0] ?? "unknown";
   const help = spawnSync(command, checker === "claude" ? ["--help"] : ["exec", "--help"], { encoding: "utf8", timeout: 20_000 }).stdout ?? "";
   const missing = REQUIRED[checker].filter((f) => !hasFlag(help, f));
-  if (missing.length) return { error: `${NAME[checker]} ${version} has no ${missing.join(", ")}, which the lockdown needs, so Touchdown will not run it. Update ${NAME[checker]}.` };
+  if (missing.length) return { error: t("cliWrite.agents.tooOld", { agent: NAME[checker], version, flags: missing.join(", ") }) };
   let disable: string[] = [];
   if (checker === "codex") {
     const list = spawnSync(command, ["features", "list"], { encoding: "utf8", timeout: 20_000 });
-    if (list.status !== 0) return { error: `Could not list Codex's features, so Touchdown cannot turn off the ones that act. Codex said: ${(list.stderr || "").trim().slice(0, 200)}` };
+    if (list.status !== 0) return { error: t("cliWrite.agents.codexFeatures", { said: (list.stderr || "").trim().slice(0, 200) }) };
     disable = list.stdout
       .split("\n")
       .map((l) => l.trim().split(/\s{2,}/))
@@ -143,19 +144,19 @@ export function runAgent(agent: Agent, prompt: string, payload: string, schema: 
       clearTimeout(timer);
       try {
         const left = readdirSync(work);
-        if (left.length) throw new Error(`the agent left files in its folder (${left.slice(0, 3).join(", ")}), so its answer is not used`);
-        if (signal === "SIGKILL") throw new Error(`no answer within ${Math.round(opts.timeoutMs / 1000)} s`);
+        if (left.length) throw new Error(t("cliWrite.agents.leftFiles", { files: left.slice(0, 3).join(", ") }));
+        if (signal === "SIGKILL") throw new Error(t("cliWrite.agents.timeout", { seconds: Math.round(opts.timeoutMs / 1000) }));
         if (agent.checker === "claude") {
           const d = JSON.parse(out) as { is_error?: boolean; structured_output?: unknown; result?: string; total_cost_usd?: number; modelUsage?: Record<string, unknown> };
-          if (d.is_error || d.structured_output === undefined || d.structured_output === null) throw new Error(`no structured answer${d.result ? `: ${d.result.slice(0, 160)}` : ""}`);
+          if (d.is_error || d.structured_output === undefined || d.structured_output === null) throw new Error(d.result ? t("cliWrite.agents.noStructuredSaid", { said: d.result.slice(0, 160) }) : t("cliWrite.agents.noStructured"));
           resolve({ answer: d.structured_output, model: Object.keys(d.modelUsage ?? {})[0] ?? null, costUsd: d.total_cost_usd ?? null });
         } else {
-          if (code !== 0) throw new Error(`Codex stopped with code ${code}: ${err.trim().split("\n").slice(-2).join(" ").slice(0, 200)}`);
+          if (code !== 0) throw new Error(t("cliWrite.agents.codexStopped", { code: String(code), said: err.trim().split("\n").slice(-2).join(" ").slice(0, 200) }));
           const model = err.match(/^model:\s*(\S+)/m)?.[1] ?? null;
           resolve({ answer: JSON.parse(readFileSync(files.answer, "utf8")), model, costUsd: null });
         }
       } catch (e) {
-        reject(e instanceof SyntaxError ? new Error("the answer was not valid JSON") : e);
+        reject(e instanceof SyntaxError ? new Error(t("cliWrite.agents.notJson")) : e);
       } finally {
         cleanUp();
       }

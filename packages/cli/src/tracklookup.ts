@@ -5,6 +5,7 @@
 // goes to the inbox as track changes, for review; what is not is reported with the reason and remembered, so the
 // next run does not ask again (--refresh does).
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
@@ -24,30 +25,14 @@ import {
   type ReadsbTrace,
   type Store,
 } from "@touchdown/core";
-import { AFTER, changeOptions, parse, writeChanges } from "./change.ts";
+import { changeOptions, changesAfter, parse, writeChanges } from "./change.ts";
 import { privatePath } from "./paths.ts";
 import { ADSBLOL_FIRST_DAY, adsbLolTraces } from "./providers/adsblol.ts";
 import { openSkyIndex, type OpenSkyRow } from "./providers/opensky.ts";
 import { fail, findFlight, notFound, openOrFail } from "./read.ts";
 import { dim } from "./term.ts";
 
-export const TRACKS_HELP = `Usage: ./touchdown tracks [--only REF,…] [--limit N] [--refresh] [options]
-
-Fills gaps: finds recorded tracks for the flights in your log that have none, in adsb.lol's history (open data,
-from 16 February 2023; thin until March 2023, good over the US and Europe, gaps over oceans, little over China).
-Flightradar24's tracks are better: add those with ./touchdown track or Add track on the flight's page. Each
-day's archive is 1.5 to 3.5 GB; only the aircraft's part of it is read, usually 10 to 60 MB a flight, and the
-trace found is kept in data/private/cache/adsblol. Each track is checked against its flight as a file is: its
-times, its route, enough of it to draw. The tracks found go to the inbox as changes; the flights without one are
-listed with the reason and not asked about again unless --refresh. To ask someone else for the rest, send them
-the list from ./touchdown export missing-tracks.
-
-  --only REF,…   only these flights (XY123@YYYY-MM-DD or ids)
-  --limit N      look up at most N flights
-  --refresh      ask again about flights that had no track before
-${changeOptions(15)}
-
-${AFTER}`;
+export const tracksHelp = () => t("cli.help.tracks", { options: changeOptions(15), after: changesAfter() });
 
 const MISSES = privatePath("cache/adsblol/flights.json");
 
@@ -64,7 +49,7 @@ function readMisses(): Record<string, Miss> {
   }
 }
 
-const nameOf = (f: Flight) => `${f.flightNumber ?? "A flight"}${flightDay(f) ? `@${flightDay(f)}` : ""}`;
+const nameOf = (f: Flight) => `${f.flightNumber ?? t("cliWrite.tracks.aFlight")}${flightDay(f) ? `@${flightDay(f)}` : ""}`;
 
 /** The aircraft's hex code on the flight's day: the log's, the US N-number's, else OpenSky's for the registration. */
 function hexFor(store: Store, f: Flight, openSky: Map<string, OpenSkyRow[]> | null): string | null {
@@ -104,10 +89,10 @@ function daysFor(f: Flight, tz: string | null): string[] {
 }
 
 export async function tracksCommand(args: string[]) {
-  const c = parse(args, TRACKS_HELP, { values: ["--only", "--limit"], switches: ["--refresh"] });
-  if (c.positional.length) return fail(c.json, `tracks takes no ${c.positional[0]}; give flights with --only.`);
+  const c = parse(args, tracksHelp(), { values: ["--only", "--limit"], switches: ["--refresh"] });
+  if (c.positional.length) return fail(c.json, t("cliWrite.tracks.noPositional", { given: c.positional[0]! }));
   const limit = c.values.has("--limit") ? Number(c.values.get("--limit")) : Infinity;
-  if (!(limit > 0)) return fail(c.json, "--limit needs a number of flights.");
+  if (!(limit > 0)) return fail(c.json, t("cliWrite.tracks.limit"));
   const log = await openOrFail(c.json, c.log);
   const say = (line: string) => {
     if (!c.json) console.error(dim(line));
@@ -131,7 +116,7 @@ export async function tracksCommand(args: string[]) {
   const notes: string[] = [];
   const remember = (f: Flight, reason: string) => {
     misses[f.id] = { checkedAt: toUtcIso(Date.now()), reason };
-    notes.push(`${nameOf(f)}: ${reason}`);
+    notes.push(t("cliWrite.tracks.note", { flight: nameOf(f), text: reason }));
   };
 
   // Which flights to look up, and which aircraft on which days.
@@ -142,23 +127,23 @@ export async function tracksCommand(args: string[]) {
     const day = flightDay(f);
     const before = misses[f.id];
     if (before && !c.switches.has("--refresh")) {
-      notes.push(`${nameOf(f)}: no track on ${before.checkedAt.slice(0, 10)} (${before.reason}); --refresh asks again.`);
+      notes.push(t("cliWrite.tracks.askedBefore", { flight: nameOf(f), date: before.checkedAt.slice(0, 10), reason: before.reason }));
       continue;
     }
     if (!day) {
-      remember(f, "the flight has no date.");
+      remember(f, t("cliWrite.tracks.why.noDate"));
       continue;
     }
     if (day < ADSBLOL_FIRST_DAY) {
-      remember(f, "before adsb.lol's history, which starts on 16 Feb 2023.");
+      remember(f, t("cliWrite.tracks.why.tooEarly"));
       continue;
     }
     if (day > yesterday) {
-      notes.push(`${nameOf(f)}: adsb.lol publishes a day the morning after; try again tomorrow.`);
+      notes.push(t("cliWrite.tracks.tooRecent", { flight: nameOf(f) }));
       continue;
     }
     if (!f.registration) {
-      remember(f, "no registration, so the aircraft cannot be found.");
+      remember(f, t("cliWrite.tracks.why.noRegistration"));
       continue;
     }
     if (openSky === undefined && !nNumberIcao(f.registration)) {
@@ -167,7 +152,7 @@ export async function tracksCommand(args: string[]) {
     }
     const hex = hexFor(log.store, f, openSky ?? null);
     if (!hex) {
-      remember(f, `no hex code is known for ${f.registration}.`);
+      remember(f, t("cliWrite.tracks.why.noHex", { registration: f.registration }));
       continue;
     }
     plans.push({ f, hex, days: daysFor(f, log.ref.airport(f.fromAirportId)?.tz ?? null) });
@@ -190,18 +175,18 @@ export async function tracksCommand(args: string[]) {
       failed.set(day, (e as Error).message);
     }
   }
-  if (plans.length) say(`  Read ${(bytes / 2 ** 20).toFixed(1)} MB from adsb.lol for ${plans.length} flights.`);
+  if (plans.length) say(`  ${t("cliWrite.tracks.read", { mb: (bytes / 2 ** 20).toFixed(1), flights: plans.length })}`);
 
   const changes: InboxChange[] = [];
   for (const { f, hex, days } of plans) {
     const trouble = days.map((d) => failed.get(d)).find(Boolean);
     if (trouble) {
-      notes.push(`${nameOf(f)}: ${trouble} Nothing remembered; try again later.`);
+      notes.push(t("cliWrite.tracks.failed", { flight: nameOf(f), error: trouble }));
       continue;
     }
     const found = days.map((d) => traces.get(`${d}|${hex}`)).filter((t): t is ReadsbTrace => !!t);
     if (!found.length) {
-      remember(f, days.every((d) => noDay.has(d)) ? `adsb.lol has no release for ${days.join(", ")}.` : `the aircraft (${hex}) has no trace in adsb.lol's history that day.`);
+      remember(f, days.every((d) => noDay.has(d)) ? t("cliWrite.tracks.why.noRelease", { days: days.join(", ") }) : t("cliWrite.tracks.why.noTrace", { hex }));
       continue;
     }
     const leg = trackFromReadsb(found, f, log.ref);
@@ -213,8 +198,18 @@ export async function tracksCommand(args: string[]) {
     if (leg.offsetMin !== null) {
       // The leg is the flight (its route, and often its callsign) but lies outside the log's times: a delay, or a wrong time in the log.
       const hhmm = (p: { t: number }) => toUtcIso(p.t * 1000).slice(11, 16);
-      const by = Math.abs(leg.offsetMin) >= 120 ? `${(Math.abs(leg.offsetMin) / 60).toFixed(1)} h` : `${Math.abs(leg.offsetMin)} min`;
-      notes.push(`${nameOf(f)}: the track found${leg.callsign ? `, flown as ${leg.callsign},` : ""} runs ${hhmm(leg.points[0]!)} to ${hhmm(leg.points[leg.points.length - 1]!)} UTC, ${by} ${leg.offsetMin > 0 ? "after" : "before"} the takeoff time in your log; check the flight's times.`);
+      const by = Math.abs(leg.offsetMin) >= 120 ? t("cliWrite.tracks.offset.hours", { h: (Math.abs(leg.offsetMin) / 60).toFixed(1) }) : t("cliWrite.tracks.offset.minutes", { min: Math.abs(leg.offsetMin) });
+      notes.push(
+        t("cliWrite.tracks.offTimes", {
+          flight: nameOf(f),
+          callsign: leg.callsign ?? "",
+          hasCallsign: leg.callsign ? "yes" : "no",
+          from: hhmm(leg.points[0]!),
+          to: hhmm(leg.points[leg.points.length - 1]!),
+          by,
+          when: leg.offsetMin > 0 ? "after" : "before",
+        }),
+      );
     }
     changes.push(trackChangeFor(f.id, { points: leg.points, provider: "adsblol", attribution: ADSBLOL_ATTRIBUTION }, leg.coverage));
   }

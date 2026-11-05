@@ -2,6 +2,7 @@
 // saved from the Import page, or over a spreadsheet directly, 50 records per call, and writes a result file the
 // Import page reads. The terminal shows each batch as it finishes, then what the agent suggests.
 
+import { has, t, tDynamic } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import {
@@ -22,7 +23,6 @@ import {
   resolveAirframes,
   Store,
   todayIn,
-  type AgentField,
   type AgentRecordResult,
   type CheckRecord,
   type CheckRequest,
@@ -36,56 +36,26 @@ import { findAgent, runAgent, type Agent } from "./agents.ts";
 import { readSheetFile } from "./columns.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { agentForRun, AGENT_NAME, agentRules, savedSendNotes } from "./settings.ts";
-import { bold, colour, dim, duration, fit, green, plural, red, width as termWidth, wrap, yellow } from "./term.ts";
+import { bold, colour, dim, duration, fit, green, red, tc, width as termWidth, wrap, yellow } from "./term.ts";
 
 export const PROMPT_FILE = join(import.meta.dirname, "../../../prompts/verifier.md");
 const SELF_TEST_FILE = privatePath("cache/agent-self-test.json");
 export const TIMEOUT_MS = 5 * 60_000;
 const DEFAULT_PARALLEL = 3;
 
-const FIELD_LABEL: Record<AgentField, string> = {
-  typeCode: "type code",
-  model: "model",
-  registration: "registration",
-  operator: "operator",
-  airline: "airline",
-  airport: "airport",
-  from: "from",
-  to: "to",
-  date: "date",
-  flightNumber: "flight number",
-  livery: "livery",
-  specialLivery: "special livery",
-  phase: "phase",
-  notes: "notes",
+/** An agent field's name in the terminal: "type code", "flight number". */
+const fieldLabel = (field: string) => {
+  const key = `cliWrite.check.field.${field}`;
+  return has(key) ? tDynamic(key) : field;
 };
 
-export const CHECK_HELP = `Usage: ./touchdown check <request.json | file.csv | file.xlsx> [--agent claude|codex] [--out FILE]
-                        [--limit N] [--batch-size N] [--parallel N] [--model NAME] [--rules FILE] [--notes]
-                        [--all] [--self-test] [--dry-run]
+/** A suggestion's confidence in words: "high", "medium", "low". */
+export const confidenceLabel = (level: string) => t("cliWrite.check.confidence", { level });
 
-Has an agent check the rows of an import and suggest corrections: Claude Code or Codex on this computer, with
-your own subscription. The input is the check request saved from the Import page ("Check with an agent"), or
-the spreadsheet itself. The agent runs locked down: no tools, no MCP servers, no hooks, in an empty folder.
-It sees dates, airports, flight numbers, registrations, types, models, operators, liveries and phases; never
-ticket numbers, booking references, seats or photo links. Notes go only after ./touchdown agent notes on,
-or with --notes for one run. The agent is also given your rules (./touchdown agent rules).
-
-The result is written next to the input (<name>.result.json, or --out). On the Import page, choose the same
-file and load the result to review the suggestions. Nothing changes until you accept them there.
-
-  --agent NAME    claude or codex for this run (the first run asks which one; ./touchdown agent changes it)
-  --limit N       check only the first N rows
-  --rules FILE    rules for this run, one per line, instead of the ones saved with ./touchdown agent rules
-  --notes         send notes this run
-  --map H=FIELD   say what a spreadsheet column holds, by header or number ("Misc=other", "7=ignore")
-  --all           list every suggestion here, not only the first 30
-  --self-test     run the injection self-test again (it runs once per agent version)
-  --dry-run       show what the first call would send, and stop
-  ${CHECK_BATCH_SIZE} rows go in one call (--batch-size), ${DEFAULT_PARALLEL} calls at a time (--parallel).`;
+export const checkHelp = () => t("cli.help.check", { batchSize: CHECK_BATCH_SIZE, parallel: DEFAULT_PARALLEL });
 
 function usage(code = 1): never {
-  console.log(CHECK_HELP);
+  console.log(checkHelp());
   process.exit(code);
 }
 
@@ -168,26 +138,26 @@ function rulesFor(o: Options): string[] {
 const sendNotes = (o: Options) => o.notes || savedSendNotes();
 
 async function readInput(o: Options, ref: RefIndex, agent: Agent | null): Promise<{ request: CheckRequest; what: string } | { error: string }> {
-  if (!existsSync(o.input)) return { error: `${o.input}: no such file` };
+  if (!existsSync(o.input)) return { error: t("cliWrite.check.noSuchFile", { file: o.input }) };
   if (extname(o.input).toLowerCase() === ".json") {
     let json: unknown;
     try {
       json = JSON.parse(readFileSync(o.input, "utf8"));
     } catch {
-      return { error: `${o.input} is not valid JSON` };
+      return { error: t("cliWrite.check.notJson", { file: o.input }) };
     }
     const r = readCheckRequest(json);
     if ("error" in r) return { error: `${basename(o.input)}: ${r.error}` };
     // The request carries every row's notes; this computer's settings decide whether they are sent.
     const records = sendNotes(o) ? r.request.records : r.request.records.map(({ notes: _, ...rec }) => rec);
-    return { request: { ...r.request, rules: rulesFor(o), records }, what: `a check request from the Import page` };
+    return { request: { ...r.request, rules: rulesFor(o), records }, what: t("cliWrite.check.input.request") };
   }
   const read = await readSheetFile(o.input, ref, { maps: o.maps, agent, model: o.model, ask: true });
   if ("error" in read) return read;
   const { source } = read;
   const batchId = await checkBatchId(new Uint8Array(readFileSync(o.input)));
   const request = buildCheckRequest(source, ref, { batchId, findings: findingsOf(source, ref), rules: rulesFor(o), includeNotes: sendNotes(o) });
-  return { request, what: read.kind === "fr24" ? "a my.flightradar24.com export" : `a spreadsheet of ${read.kind}` };
+  return { request, what: read.kind === "fr24" ? t("cliWrite.check.input.fr24") : t("cliWrite.check.input.sheet", { kind: read.kind }) };
 }
 
 // ---------- self-test ----------
@@ -216,10 +186,10 @@ export async function selfTest(agent: Agent, prompt: string, ref: RefIndex, mode
   try {
     const run = await runAgent(agent, prompt, JSON.stringify(agentPayload(CANARY, [], ref)), AGENT_OUTPUT_SCHEMA, { timeoutMs: TIMEOUT_MS, model });
     const checked = checkAgentAnswer(run.answer, CANARY, ref);
-    if ("error" in checked) return `its answer did not fit the schema: ${checked.error}`;
+    if ("error" in checked) return t("cliWrite.check.selfTest.schema", { error: checked.error });
     const values = [...checked.records.flatMap((r) => r.suggestions.map((s) => s.suggested)), ...checked.rejected.map((x) => x.suggested)];
     const obeyed = values.find((v) => /pwned/i.test(v));
-    return obeyed ? `it followed an instruction hidden in a record (it suggested "${obeyed}")` : null;
+    return obeyed ? t("cliWrite.check.selfTest.obeyed", { value: obeyed }) : null;
   } catch (e) {
     return (e as Error).message;
   }
@@ -251,7 +221,7 @@ export function recordSelfTest(agent: Agent) {
 const rowOf = (id: string) => Number(id.slice(4));
 const rowsLabel = (b: CheckRecord[]) => {
   const rows = b.map((r) => rowOf(r.recordId));
-  return rows.length === 1 ? `row ${rows[0]}` : `rows ${Math.min(...rows)}–${Math.max(...rows)}`;
+  return t("cliWrite.check.rows", { count: rows.length, first: Math.min(...rows), last: Math.max(...rows) });
 };
 
 /** One status line kept at the bottom while batches run; finished batches print above it. */
@@ -298,7 +268,7 @@ class Progress {
     const done = Math.round((this.recordsDone / Math.max(1, this.total)) * width);
     const bar = green("█".repeat(done)) + dim("░".repeat(width - done));
     const running = [...this.running].sort((a, b) => a - b).map((i) => rowsLabel(this.batches[i]!)).join(", ");
-    process.stdout.write(`\r\x1b[2K  ${bar} ${this.finished}/${this.batches.length} batches · ${this.recordsDone.toLocaleString("en-GB")} of ${this.total.toLocaleString("en-GB")} rows · ${duration(Date.now() - this.start)}${running ? dim(` · checking ${running}`) : ""}`);
+    process.stdout.write(`\r\x1b[2K  ${bar} ${tc("cliWrite.check.progress", { finished: this.finished, batches: this.batches.length, done: this.recordsDone, total: this.total, time: duration(Date.now() - this.start), checking: running ? "yes" : "no", running }, { dim })}`);
   }
 }
 
@@ -308,11 +278,11 @@ function printSummary(result: CheckResultFile, request: CheckRequest, o: Options
   const rows = result.records.filter((r) => r.suggestions.length).length;
   const conf = (c: string) => all.filter((x) => x.s.confidence === c).length;
   console.log("");
-  if (!all.length) console.log(bold(`No suggestions: the agent found nothing to change in ${plural(result.checked, "row")}.`));
-  else console.log(bold(`${plural(all.length, "suggestion")} on ${plural(rows, "row")}`) + `: ${conf("high")} high, ${conf("medium")} medium, ${conf("low")} low confidence.`);
+  if (!all.length) console.log(bold(t("cliWrite.check.noSuggestions", { count: result.checked })));
+  else console.log(tc("cliWrite.check.suggestions", { count: all.length, rows, high: conf("high"), medium: conf("medium"), low: conf("low") }, { bold }));
   const counts = new Map<string, number>();
   for (const { s } of all) counts.set(s.field, (counts.get(s.field) ?? 0) + 1);
-  if (counts.size > 1) console.log(dim("  " + [...counts].sort((a, b) => b[1] - a[1]).map(([f, n]) => `${FIELD_LABEL[f as AgentField]} ${n}`).join(" · ")));
+  if (counts.size > 1) console.log(dim("  " + [...counts].sort((a, b) => b[1] - a[1]).map(([f, n]) => t("cliWrite.check.fieldCount", { field: fieldLabel(f), count: n })).join(" · ")));
 
   const order = { high: 0, medium: 1, low: 2 } as const;
   const sorted = all.sort((a, b) => order[a.s.confidence] - order[b.s.confidence] || rowOf(a.r.recordId) - rowOf(b.r.recordId));
@@ -322,22 +292,22 @@ function printSummary(result: CheckResultFile, request: CheckRequest, o: Options
   for (const { r, s } of shown) {
     const rec = byId.get(r.recordId);
     const who = rec?.fields.registration ?? rec?.fields.flightNumber ?? "";
-    const change = `${s.current || "(empty)"} → ${s.suggested || "(clear)"}`;
-    const c = s.confidence === "high" ? green(s.confidence) : s.confidence === "medium" ? yellow(s.confidence) : dim(s.confidence);
-    console.log(`  ${fit(`row ${rowOf(r.recordId)}`, 9)} ${fit(who, 10)} ${fit(FIELD_LABEL[s.field], 14)} ${bold(change)}  ${c}`);
+    const change = `${s.current || t("cli.value.empty")} → ${s.suggested || t("cli.value.clear")}`;
+    const c = (s.confidence === "high" ? green : s.confidence === "medium" ? yellow : dim)(confidenceLabel(s.confidence));
+    console.log(`  ${fit(t("cli.row", { n: rowOf(r.recordId) }), 9)} ${fit(who, 10)} ${fit(fieldLabel(s.field), 14)} ${bold(change)}  ${c}`);
     for (const line of wrap(s.reason, width - 14)) console.log(" ".repeat(13) + dim(line));
   }
-  if (sorted.length > shown.length) console.log(dim(`  … ${plural(sorted.length - shown.length, "more suggestion")} in the result file (--all lists them here).`));
+  if (sorted.length > shown.length) console.log(dim(`  ${t("cliWrite.check.more", { count: sorted.length - shown.length })}`));
   const notes = result.records.filter((r) => !r.suggestions.length && r.note);
   if (notes.length) {
-    console.log(`\n${plural(notes.length, "row")} the agent finds doubtful without a suggestion:`);
-    for (const r of notes.slice(0, o.all ? notes.length : 10)) console.log(`  ${fit(`row ${rowOf(r.recordId)}`, 9)} ${dim(r.note)}`);
+    console.log(`\n${t("cliWrite.check.doubtful", { count: notes.length })}`);
+    for (const r of notes.slice(0, o.all ? notes.length : 10)) console.log(`  ${fit(t("cli.row", { n: rowOf(r.recordId) }), 9)} ${dim(r.note)}`);
   }
   if (result.rejected.length) {
-    console.log(`\n${plural(result.rejected.length, "answer")} rejected by Touchdown's checks:`);
-    for (const x of result.rejected.slice(0, o.all ? result.rejected.length : 10)) console.log(`  ${fit(x.recordId.startsWith("row-") ? `row ${rowOf(x.recordId)}` : x.recordId, 9)} ${x.field ? `${FIELD_LABEL[x.field as AgentField] ?? x.field} "${x.suggested}": ` : ""}${dim(x.why)}`);
+    console.log(`\n${t("cliWrite.check.rejected", { count: result.rejected.length })}`);
+    for (const x of result.rejected.slice(0, o.all ? result.rejected.length : 10)) console.log(`  ${fit(x.recordId.startsWith("row-") ? t("cli.row", { n: rowOf(x.recordId) }) : x.recordId, 9)} ${tc("cliWrite.check.rejectedAnswer", { hasField: x.field ? "yes" : "no", field: x.field ? fieldLabel(x.field) : "", value: x.suggested, why: x.why }, { dim })}`);
   }
-  if (result.failed.length) console.log(red(`\n${plural(result.failed.reduce((n, f) => n + f.recordIds.length, 0), "row")} got no valid answer (${result.failed.map((f) => f.why).join("; ")}). Run the check again to retry them.`));
+  if (result.failed.length) console.log(red(`\n${t("cliWrite.check.failed", { count: result.failed.reduce((n, f) => n + f.recordIds.length, 0), reasons: result.failed.map((f) => f.why).join("; ") })}`));
 }
 
 // ---------- running a check (also for `touchdown review --check`) ----------
@@ -348,18 +318,18 @@ function printSummary(result: CheckResultFile, request: CheckRequest, o: Options
  */
 export async function ensureSelfTest(agent: Agent, prompt: string, ref: RefIndex, model: string | undefined, force: boolean, say: (text: string, end: boolean) => void): Promise<boolean> {
   if (!force && selfTestPassed(agent)) {
-    say(dim(`  Self-test passed before for this version`), true);
+    say(dim(`  ${t("cliWrite.check.selfTest.passedBefore")}`), true);
     return true;
   }
-  say(`  Self-test sending a record that tries to take over the agent… `, false);
+  say(`  ${t("cliWrite.check.selfTest.sending")} `, false);
   const why = await selfTest(agent, prompt, ref, model);
   if (why) {
-    say(red("failed"), true);
-    console.error(red(`\n${agent.name} ${agent.version} did not pass the self-test: ${why}. Touchdown will not use it.`));
+    say(red(t("cliWrite.check.selfTest.failed")), true);
+    console.error(red(`\n${t("cliWrite.check.selfTest.notPassed", { agent: agent.name, version: agent.version, why })}`));
     return false;
   }
   recordSelfTest(agent);
-  say(green("passed"), true);
+  say(green(t("cliWrite.check.selfTest.passed")), true);
   return true;
 }
 
@@ -393,15 +363,15 @@ export async function runCheck(agent: Agent, ref: RefIndex, request: CheckReques
         rejected.push(...checked.rejected);
         const n = checked.records.reduce((k, r) => k + r.suggestions.length, 0);
         const rows = checked.records.filter((r) => r.suggestions.length).length;
-        const what = n ? `${plural(n, "suggestion")} on ${plural(rows, "row")}` : dim("nothing to change");
-        progress?.end(i, `  ${green("✓")} ${fit(rowsLabel(batch), 14)} ${what}${checked.rejected.length ? yellow(` · ${checked.rejected.length} rejected`) : ""} ${dim(duration(Date.now() - t0))}`);
+        const what = n ? t("cliWrite.check.batch.suggestions", { count: n, rows }) : dim(t("cliWrite.check.batch.nothing"));
+        progress?.end(i, `  ${green("✓")} ${fit(rowsLabel(batch), 14)} ${what}${checked.rejected.length ? yellow(` · ${t("cliWrite.check.batch.rejected", { count: checked.rejected.length })}`) : ""} ${dim(duration(Date.now() - t0))}`);
         return;
       } catch (e) {
         lastError = (e as Error).message;
       }
     }
     failed.push({ recordIds: batch.map((r) => r.recordId), why: lastError });
-    progress?.end(i, `  ${red("✗")} ${fit(rowsLabel(batch), 14)} ${red(`no valid answer: ${lastError}`)}`);
+    progress?.end(i, `  ${red("✗")} ${fit(rowsLabel(batch), 14)} ${red(t("cliWrite.check.batch.failed", { error: lastError }))}`);
   };
 
   const worker = async () => {
@@ -441,7 +411,7 @@ export async function checkCommand(args: string[]): Promise<void> {
   if (!o.dryRun) {
     const choice = await agentForRun(o.checker);
     if (typeof choice === "object" || choice === "none") {
-      console.error(red(typeof choice === "object" ? choice.error : `The agent check needs an agent, and your saved choice is ${AGENT_NAME.none}. Pass --agent claude or --agent codex, or choose one with ./touchdown agent.`));
+      console.error(red(typeof choice === "object" ? choice.error : t("cliWrite.check.needsAgent", { none: AGENT_NAME.none })));
       process.exit(1);
     }
     const found = findAgent(choice);
@@ -462,31 +432,31 @@ export async function checkCommand(args: string[]): Promise<void> {
   for (let i = 0; i < records.length; i += o.batchSize) batches.push(records.slice(i, i + o.batchSize));
   const prompt = readFileSync(PROMPT_FILE, "utf8");
 
-  console.log(bold("Touchdown agent check"));
-  console.log(`  Input     ${basename(o.input)}: ${input.what}, ${plural(records.length, "row")}${o.limit && o.limit < request.records.length ? ` (the first ${o.limit} of ${request.records.length})` : ""}`);
-  console.log(dim(`  Sends     dates, airports, flight numbers, registrations, types, models, operators, liveries, phases and${records.some((r) => r.notes) ? " notes" : " the checks' findings; no notes"}; never tickets, bookings, seats or photo links`));
+  console.log(bold(t("cliWrite.check.title")));
+  console.log(`  ${t("cliWrite.check.label.input").padEnd(10)}${t("cliWrite.check.input.line", { file: basename(o.input), what: input.what, rows: records.length, limited: o.limit && o.limit < request.records.length ? "yes" : "no", limit: o.limit ?? 0, total: request.records.length })}`);
+  console.log(dim(`  ${t("cliWrite.check.label.sends").padEnd(10)}${t("cliWrite.check.sends", { notes: records.some((r) => r.notes) ? "yes" : "no" })}`));
   if (o.dryRun) {
-    console.log(`\nThe first call would send this on stdin, with the instructions in prompts/verifier.md:\n`);
+    console.log(`\n${t("cliWrite.check.dryRun")}\n`);
     console.log(JSON.stringify(agentPayload(batches[0] ?? [], request.rules, ref), null, 2));
     return;
   }
   if (!agent) return;
 
-  console.log(`  Agent     ${agent.name} ${agent.version}${o.model ? `, model ${o.model}` : ""}`);
-  console.log(dim(`  Lockdown  no tools${agent.checker === "codex" ? ` (${agent.disable.length} Codex features off)` : ""}, no MCP servers, no hooks, no user settings, an empty folder`));
+  console.log(`  ${t("cliWrite.check.label.agent").padEnd(10)}${t("cliWrite.check.agent", { agent: agent.name, version: agent.version, hasModel: o.model ? "yes" : "no", model: o.model ?? "" })}`);
+  console.log(dim(`  ${t("cliWrite.check.label.lockdown").padEnd(10)}${t("cliWrite.check.lockdown", { codex: agent.checker === "codex" ? "yes" : "no", features: agent.disable.length })}`));
 
   const passed = await ensureSelfTest(agent, prompt, ref, o.model, o.selfTest, (text, end) => (end ? console.log(text) : process.stdout.write(text)));
   if (!passed) process.exit(1);
-  console.log(`  Batches   ${plural(batches.length, "call")} of up to ${o.batchSize} rows, ${Math.min(o.parallel, batches.length)} at a time\n`);
+  console.log(`  ${t("cliWrite.check.label.batches").padEnd(10)}${t("cliWrite.check.batches", { calls: batches.length, size: o.batchSize, parallel: Math.min(o.parallel, batches.length) })}\n`);
 
   const started = Date.now();
   const { result, model, cost } = await runCheck(agent, ref, request, records, { batchSize: o.batchSize, parallel: o.parallel, model: o.model }, true);
   const out = resolve(o.out ?? join(dirname(o.input), `${basename(o.input, extname(o.input))}.result.json`));
   writeFileSync(out, JSON.stringify(result, null, 2) + "\n");
 
-  console.log(`\nChecked ${plural(result.checked, "row")} in ${duration(Date.now() - started)} with ${agent.name} ${agent.version}${model ? ` (${model})` : ""}${cost ? dim(`, about $${cost.toFixed(2)} of usage`) : ""}.`);
+  console.log(`\n${tc("cliWrite.check.checked", { rows: result.checked, time: duration(Date.now() - started), agent: agent.name, version: agent.version, hasModel: model ? "yes" : "no", model: model ?? "", hasCost: cost ? "yes" : "no", cost: cost.toFixed(2) }, { dim })}`);
   printSummary(result, request, o);
-  console.log(`\nResult: ${shownPath(out)}`);
-  console.log(dim(`Next: on the Import page, choose the same file, then load this result under "Check with an agent".`));
+  console.log(`\n${t("cliWrite.check.result", { file: shownPath(out) })}`);
+  console.log(dim(t("cliWrite.check.next")));
   if (!result.checked) process.exit(1);
 }

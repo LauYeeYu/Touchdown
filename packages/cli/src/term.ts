@@ -1,5 +1,7 @@
-// Terminal output shared by the commands: colours (off when not a terminal or with NO_COLOR), counts, durations,
-// fixed-width cells and word wrapping.
+// Terminal output shared by the commands: colours (off when not a terminal or with NO_COLOR), coloured messages,
+// lists, durations, fixed-width cells and word wrapping.
+
+import { locale, rich, t, type MessageKey, type Params, type Tags } from "@touchdown/i18n/cli";
 
 export const colour = !!process.stdout.isTTY && !process.env.NO_COLOR;
 const paint = (code: string) => (s: string) => (colour ? `\x1b[${code}m${s}\x1b[0m` : s);
@@ -9,11 +11,21 @@ export const green = paint("32");
 export const red = paint("31");
 export const yellow = paint("33");
 
-export const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString("en-GB")} ${n === 1 ? one : many}`;
+/**
+ * A message with its tags painted in the terminal's colours: `tc("cliWrite.backup.wrote", { … }, { green })` for
+ * "<green>Wrote</green> a backup …". The colours stay in code; the message marks the words they cover.
+ */
+export function tc<K extends MessageKey>(key: K, params: Params<K>, tags: { [N in keyof Tags<K, string>]: (s: string) => string }): string {
+  const render = Object.fromEntries(Object.entries(tags).map(([name, colourOf]) => [name, (parts: string[]) => (colourOf as (s: string) => string)(parts.join(""))]));
+  return (rich as unknown as (key: string, params: unknown, tags: unknown) => string[])(key, params, render).join("");
+}
+
+/** Items side by side, in the language's way: "1 flight, 2 sightings". */
+export const units = (items: string[]) => new Intl.ListFormat(locale(), { style: "short", type: "unit" }).format(items);
 
 export const duration = (ms: number) => {
   const s = Math.round(ms / 1000);
-  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+  return s < 60 ? t("cli.duration.seconds", { s }) : t("cli.duration.minutes", { m: Math.floor(s / 60), s: String(s % 60).padStart(2, "0") });
 };
 
 /** Pad or cut to n characters. */
@@ -40,7 +52,7 @@ export const width = () => Math.max(60, Math.min(120, process.stdout.columns ?? 
  */
 export function askHidden(question: string): Promise<string> {
   const stdin = process.stdin;
-  if (!stdin.isTTY) return Promise.reject(new Error("A private value can be typed only at a terminal. Give it in the JSON instead."));
+  if (!stdin.isTTY) return Promise.reject(new Error(t("cli.privateNeedsTerminal")));
   return new Promise((resolve) => {
     let value = "";
     const finish = (code?: number) => {

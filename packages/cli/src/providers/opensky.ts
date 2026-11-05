@@ -2,6 +2,7 @@
 // one CSV download, read locally. Gives the serial number for most airliners, the line number and first
 // flight for a few. Licence: OpenSky terms (non-profit research and education), accepted for this app (Q-LICENSES).
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { modelFromSource, registrationMatchForm, type AirframeFacts, type Evidence, type RefIndex } from "@touchdown/core";
@@ -127,7 +128,7 @@ export function openSkyFacts(r: Row, ref: RefIndex): AirframeFacts {
 
 async function ensureFile(log: (l: string) => void): Promise<string | null> {
   if (existsSync(OPENSKY_FILE)) return OPENSKY_FILE;
-  log(`Downloading the OpenSky aircraft database (about 110 MB, once) to ${shownPath(OPENSKY_FILE)}…`);
+  log(t("cliWrite.providers.opensky.downloading", { path: shownPath(OPENSKY_FILE) }));
   const res = await fetch(OPENSKY_URL, { headers: { "User-Agent": USER_AGENT } }).catch(() => null);
   if (!res?.ok) return null;
   mkdirSync(dirname(OPENSKY_FILE), { recursive: true });
@@ -161,7 +162,7 @@ export function openSkyIndex(log: (l: string) => void): () => Promise<Map<string
     if (index) return index;
     const path = await ensureFile(log);
     if (!path) {
-      failed = "could not download the OpenSky aircraft database";
+      failed = t("cliWrite.providers.opensky.notDownloaded");
       return { error: failed };
     }
     index = new Map();

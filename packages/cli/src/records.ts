@@ -3,52 +3,54 @@
 
 import { arrivalAirportId, phasesOf, type Flight, type Sighting } from "@touchdown/core";
 import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, extensionPercent, flightSearch, inPeriod, PHASE_LABEL, REASON_LABEL, routeExtension, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
+import { t } from "@touchdown/i18n/cli";
 import { aircraftLabel, airportJson, duration, findingJson, findingsOf, flightJson, openFindings, sightingJson, timeLabel, trackOf } from "./shape.ts";
-import { argsOrHelp, fail, fields, findAirport, findFlight, notFound, openOrFail, periodLabel, periodOf, plain, printJson, privateFields, readOptions, section, table, type OpenedLog } from "./read.ts";
-import { bold, dim, plural, red, yellow } from "./term.ts";
+import { argsOrHelp, fail, fields, findAirport, findFlight, notFound, openOrFail, optionLines, periodOf, plain, printJson, privateFields, readFrom, readOptions, section, table, usage, type OpenedLog } from "./read.ts";
+import { bold, dim, red, yellow, tc } from "./term.ts";
 
-export const FLIGHTS_HELP = `Usage: ./touchdown flights [--year Y | all] [--airline X] [--airport X] [--type X] [--search TEXT] [--recorded]
-                         [--log FILE] [--json]
+export const flightsHelp = () => `${usage(`./touchdown flights [--year Y | all] [--airline X] [--airport X] [--type X] [--search TEXT] [--recorded]
+                         [--log FILE] [--json]`)}
 
-Your flights, newest first, as the Flights page lists them.
+${t("cliRead.flights.help")}
 
-  --year Y        one year (2025), or all (the default)
-  --airline X     flown with this airline: its IATA or ICAO code, or its name
-  --airport X     from or to this airport: its IATA or ICAO code
-  --type X        on this type: its ICAO type code (A21N)
-  --search TEXT   as the Flights page's search: flight number, airports, cities, registration, airline, type,
-                  or a route: "SHA-PEK" either way, "SHA > PEK" one way
-  --recorded      only flights with a recorded track
+${optionLines(16, [
+  ["--year Y", t("cliRead.option.yearAll")],
+  ["--airline X", t("cliRead.flights.option.airline")],
+  ["--airport X", t("cliRead.flights.option.airport")],
+  ["--type X", t("cliRead.flights.option.type")],
+  ["--search TEXT", t("cliRead.flights.option.search")],
+  ["--recorded", t("cliRead.flights.option.recorded")],
+])}
 ${readOptions(16)}`;
 
-export const FLIGHT_HELP = `Usage: ./touchdown flight REF [--log FILE] [--json]
+export const flightHelp = () => `${usage("./touchdown flight REF [--log FILE] [--json]")}
 
-One flight, as its page in the web app shows it: every field, the aircraft, the track and the open findings.
-Ticket numbers and booking references are never shown, only whether one is recorded.
+${t("cliRead.flight.help")}
 
-  REF          the flight's id, or its flight number and day: XY123@2025-04-02
+${optionLines(13, [["REF", t("cliRead.flight.option.ref")]])}
 ${readOptions(13)}
 
-Exit status: 0 shown, 1 no such flight (or several: their ids are listed), 2 the log could not be read.`;
+${t("cliRead.flight.exit")}`;
 
-export const SIGHTINGS_HELP = `Usage: ./touchdown sightings [--year Y | all] [--airport X] [--airline X] [--type X] [--search TEXT]
-                           [--log FILE] [--json]
+export const sightingsHelp = () => `${usage(`./touchdown sightings [--year Y | all] [--airport X] [--airline X] [--type X] [--search TEXT]
+                           [--log FILE] [--json]`)}
 
-The aircraft you photographed, newest first.
+${t("cliRead.sightings.help")}
 
-  --year Y        one year (2025), or all (the default)
-  --airport X     at this airport: its IATA or ICAO code
-  --airline X     of this airline: its IATA or ICAO code, or its name
-  --type X        of this type: its ICAO type code (B738)
-  --search TEXT   registration, type, airline or airport
+${optionLines(16, [
+  ["--year Y", t("cliRead.option.yearAll")],
+  ["--airport X", t("cliRead.sightings.option.airport")],
+  ["--airline X", t("cliRead.sightings.option.airline")],
+  ["--type X", t("cliRead.sightings.option.type")],
+  ["--search TEXT", t("cliRead.sightings.option.search")],
+])}
 ${readOptions(16)}`;
 
-export const SESSIONS_HELP = `Usage: ./touchdown sessions [--year Y | all] [--log FILE] [--json]
+export const sessionsHelp = () => `${usage("./touchdown sessions [--year Y | all] [--log FILE] [--json]")}
 
-Your days out spotting, newest first: the day, the airport, how many sightings and aircraft, and how many of
-those aircraft were new to your log.
+${t("cliRead.sessions.help")}
 
-  --year Y        one year (2025), or all (the default)
+${optionLines(16, [["--year Y", t("cliRead.option.yearAll")]])}
 ${readOptions(16)}`;
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, "");
@@ -57,27 +59,27 @@ const squash = (s: string) => s.toLowerCase().replace(/\s+/g, "");
 function airlineOf(log: OpenedLog, json: boolean, text: string | undefined): string | null {
   if (!text) return null;
   const op = log.ref.operatorByCode(text);
-  return op ? op.id : fail(json, `${text} is not an airline in your log or in the reference data.`);
+  return op ? op.id : fail(json, t("cliRead.find.airline.none", { text }));
 }
 
 function airportOf(log: OpenedLog, json: boolean, text: string | undefined): string | null {
   if (!text) return null;
   const a = findAirport(log.ref, text);
-  return a ? a.id : fail(json, `${text} is not an airport code.`);
+  return a ? a.id : fail(json, t("cliRead.find.airport.notCode", { text }));
 }
 
 const route = (v: FlightView) => `${v.fromCode} → ${v.toCode}`;
 
 /** "A11", "A11 (terminal 3)", "terminal 3". */
-const gate = (g: string | null, terminal: string | null) => (g ? (terminal ? `${g} (terminal ${terminal})` : g) : terminal ? `terminal ${terminal}` : null);
+const gate = (g: string | null, terminal: string | null) => (g ? (terminal ? t("cliRead.flight.gateTerminal", { gate: g, terminal }) : g) : terminal ? t("cliRead.flight.terminal", { terminal }) : null);
 
 const trackWord = (log: OpenedLog, f: Flight) => {
-  const t = trackOf(log, f.id);
-  return !t ? "" : t.coverage === "partial" ? "partial" : "recorded";
+  const track = trackOf(log, f.id);
+  return !track ? "" : track.coverage === "partial" ? t("cliRead.flights.track.partial") : t("cliRead.flights.track.recorded");
 };
 
 export async function flightsCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--year", "--airline", "--airport", "--type", "--search"], flags: ["--recorded"] }, FLIGHTS_HELP);
+  const a = argsOrHelp(args, { values: ["--year", "--airline", "--airport", "--type", "--search"], flags: ["--recorded"] }, flightsHelp());
   const json = a.flags.has("--json");
   const log = await openOrFail(json, a.values.get("--log"));
   const year = periodOf(log.store, a.values.get("--year"), "all");
@@ -100,7 +102,8 @@ export async function flightsCommand(args: string[]) {
   const km = shown.reduce((n, v) => n + (v.km ?? 0), 0);
 
   if (json) return printJson({ ok: true, from: log.from, year, count: shown.length, distanceKm: Math.round(km), flights: shown.map((v) => flightJson(log, v)) });
-  console.log(`${bold(plural(shown.length, "flight"))} in ${periodLabel(year)}${km ? `, ${plain(distance(km, log.unit))}` : ""}. ${dim(`Read from ${log.from}.`)}`);
+  const summary = km ? tc("cliRead.flights.summaryDistance", { count: shown.length, year, distance: plain(distance(km, log.unit)) }, { b: bold }) : tc("cliRead.flights.summary", { count: shown.length, year }, { b: bold });
+  console.log(`${summary} ${dim(readFrom(log))}`);
   if (!shown.length) return;
   console.log("");
   const rows = shown.map((v) => [
@@ -114,7 +117,7 @@ export async function flightsCommand(args: string[]) {
     trackWord(log, v.f),
   ]);
   for (const line of table(
-    [{ head: "Date" }, { head: "Route" }, { head: "Flight" }, { head: "Airline" }, { head: "Aircraft", flex: true }, { head: "Time", align: "right" }, { head: "Distance", align: "right" }, { head: "Track" }],
+    [{ head: t("cliRead.column.date") }, { head: t("cliRead.column.route") }, { head: t("cliRead.column.flight") }, { head: t("cliRead.column.airline") }, { head: t("cliRead.column.aircraft"), flex: true }, { head: t("cliRead.column.time"), align: "right" }, { head: t("cliRead.column.distance"), align: "right" }, { head: t("cliRead.column.track") }],
     rows,
   ))
     console.log(line);
@@ -135,7 +138,7 @@ async function withTrackPoints(log: OpenedLog, flightId: string) {
 }
 
 export async function flightCommand(args: string[]) {
-  const a = argsOrHelp(args, {}, FLIGHT_HELP, [1, 1]);
+  const a = argsOrHelp(args, {}, flightHelp(), [1, 1]);
   const json = a.flags.has("--json");
   const log = await openOrFail(json, a.values.get("--log"));
   const found = findFlight(log.store, a.positional[0]!);
@@ -147,41 +150,53 @@ export async function flightCommand(args: string[]) {
   const findings = findingsOf(openFindings(log), "flights", f.id);
 
   if (json) return printJson({ ok: true, from: log.from, flight: shape, findings: findings.map(findingJson) });
-  const t = trackOf(log, f.id);
+  const track = trackOf(log, f.id);
   const ext = routeExtension(log.store, log.ref, f);
   const priv = privateFields(log, f);
   const arrival = f.divertedToAirportId ?? f.toAirportId;
   console.log(bold([f.flightNumber, route(v), v.day && plain(dayLong(v.day))].filter(Boolean).join(" · ")));
   for (const line of fields([
-    ["Airline", airlineLabel(f.airlineId, log.ref) || f.airlineRaw],
-    ["Operated by", f.operatingAirlineId ? airlineLabel(f.operatingAirlineId, log.ref) : null],
-    ["From", airportWithCode(f.fromAirportId, log.ref, f.fromRaw, log.codes)],
-    ["To", airportWithCode(f.toAirportId, log.ref, f.toRaw, log.codes)],
-    ["Diverted to", f.divertedToAirportId ? airportWithCode(arrival, log.ref, null, log.codes) : null],
-    ["Boarding", timeLabel(f.boardingAt)],
-    ["Departure", timeLabel(f.departureAt)],
-    ["Takeoff", timeLabel(f.takeoffAt)],
-    ["Landing", timeLabel(f.landingAt)],
-    ["Arrival", timeLabel(f.arrivalAt)],
-    ["Duration", duration(v.min)],
-    ["Distance", v.km === null ? null : distance(v.km, log.unit)],
-    ["Aircraft", [aircraftLabel(log, f.typeCode, f.model), f.registration].filter(Boolean).join(" · ")],
-    ["Seat", [f.seat, f.seatPosition].filter(Boolean).join(", ")],
-    ["Class", [f.cabinClass && (CABIN_LABEL[f.cabinClass] ?? f.cabinClass), f.bookingClass, f.fareBrand].filter(Boolean).join(" · ")],
-    ["Departure gate", gate(f.departureGate, f.departureTerminal)],
-    ["Arrival gate", gate(f.arrivalGate, f.arrivalTerminal)],
-    ["Reason", f.reason && (REASON_LABEL[f.reason] ?? f.reason)],
-    ["Livery", [f.specialLivery, f.livery].filter(Boolean).join(" · ")],
-    ["Notes", f.notes],
-    ["Track", t ? `${t.coverage === "partial" ? "Recorded, with gaps" : "Recorded"}${t.provider && TRACK_SOURCE[t.provider] ? `, from ${TRACK_SOURCE[t.provider]}` : ""}` : "Great circle only"],
-    ["Route extension", ext ? `${ext.minimum ? "at least " : ""}${extensionPercent(ext.percent)}: ${distance(ext.flownKm, log.unit)} flown, ${distance(ext.greatCircleKm, log.unit)} great circle` : null],
-    ["Ticket number", priv.ticketNumber ? "recorded" : null],
-    ["Booking reference", priv.bookingRef ? "recorded" : null],
-    ["Aircraft id", f.airframeId],
-    ["Id", f.id],
+    [t("cliRead.flight.field.airline"), airlineLabel(f.airlineId, log.ref) || f.airlineRaw],
+    [t("cliRead.flight.field.operatedBy"), f.operatingAirlineId ? airlineLabel(f.operatingAirlineId, log.ref) : null],
+    [t("cliRead.flight.field.from"), airportWithCode(f.fromAirportId, log.ref, f.fromRaw, log.codes)],
+    [t("cliRead.flight.field.to"), airportWithCode(f.toAirportId, log.ref, f.toRaw, log.codes)],
+    [t("cliRead.flight.field.divertedTo"), f.divertedToAirportId ? airportWithCode(arrival, log.ref, null, log.codes) : null],
+    [t("cliRead.flight.field.boarding"), timeLabel(f.boardingAt)],
+    [t("cliRead.flight.field.departure"), timeLabel(f.departureAt)],
+    [t("cliRead.flight.field.takeoff"), timeLabel(f.takeoffAt)],
+    [t("cliRead.flight.field.landing"), timeLabel(f.landingAt)],
+    [t("cliRead.flight.field.arrival"), timeLabel(f.arrivalAt)],
+    [t("cliRead.flight.field.duration"), duration(v.min)],
+    [t("cliRead.flight.field.distance"), v.km === null ? null : distance(v.km, log.unit)],
+    [t("cliRead.flight.field.aircraft"), [aircraftLabel(log, f.typeCode, f.model), f.registration].filter(Boolean).join(" · ")],
+    [t("cliRead.flight.field.seat"), [f.seat, f.seatPosition].filter(Boolean).join(", ")],
+    [t("cliRead.flight.field.class"), [f.cabinClass && (CABIN_LABEL[f.cabinClass] ?? f.cabinClass), f.bookingClass, f.fareBrand].filter(Boolean).join(" · ")],
+    [t("cliRead.flight.field.departureGate"), gate(f.departureGate, f.departureTerminal)],
+    [t("cliRead.flight.field.arrivalGate"), gate(f.arrivalGate, f.arrivalTerminal)],
+    [t("cliRead.flight.field.reason"), f.reason && (REASON_LABEL[f.reason] ?? f.reason)],
+    [t("cliRead.flight.field.livery"), [f.specialLivery, f.livery].filter(Boolean).join(" · ")],
+    [t("cliRead.flight.field.notes"), f.notes],
+    [t("cliRead.flight.field.track"), trackText(track)],
+    [
+      t("cliRead.flight.field.routeExtension"),
+      ext ? t(ext.minimum ? "cliRead.flight.extensionMinimum" : "cliRead.flight.extension", { percent: extensionPercent(ext.percent), flown: distance(ext.flownKm, log.unit), greatCircle: distance(ext.greatCircleKm, log.unit) }) : null,
+    ],
+    [t("cliRead.flight.field.ticketNumber"), priv.ticketNumber ? t("cliRead.flight.private.recorded") : null],
+    [t("cliRead.flight.field.bookingRef"), priv.bookingRef ? t("cliRead.flight.private.recorded") : null],
+    [t("cliRead.flight.field.aircraftId"), f.airframeId],
+    [t("cliRead.flight.field.id"), f.id],
   ]))
     console.log(`  ${line}`);
-  if (findings.length) for (const line of section("Findings", findings.map((x) => `${x.severity === "error" ? red("!") : yellow("?")} ${x.message}`))) console.log(line);
+  if (findings.length) for (const line of section(t("cliRead.findings"), findings.map((x) => `${x.severity === "error" ? red("!") : yellow("?")} ${x.message}`))) console.log(line);
+}
+
+/** "Recorded, with gaps, from adsb.lol", or "Great circle only" without a track. */
+function trackText(track: ReturnType<typeof trackOf>): string {
+  if (!track) return t("cliRead.flight.track.none");
+  const source = track.provider ? TRACK_SOURCE[track.provider] : undefined;
+  const partial = track.coverage === "partial";
+  if (source) return partial ? t("cliRead.flight.track.partialFrom", { source }) : t("cliRead.flight.track.recordedFrom", { source });
+  return partial ? t("cliRead.flight.track.partial") : t("cliRead.flight.track.recorded");
 }
 
 function sightingMatches(log: OpenedLog, s: Sighting, needle: string): boolean {
@@ -191,7 +206,7 @@ function sightingMatches(log: OpenedLog, s: Sighting, needle: string): boolean {
 }
 
 export async function sightingsCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--year", "--airport", "--airline", "--type", "--search"] }, SIGHTINGS_HELP);
+  const a = argsOrHelp(args, { values: ["--year", "--airport", "--airline", "--type", "--search"] }, sightingsHelp());
   const json = a.flags.has("--json");
   const log = await openOrFail(json, a.values.get("--log"));
   const year = periodOf(log.store, a.values.get("--year"), "all");
@@ -212,7 +227,7 @@ export async function sightingsCommand(args: string[]) {
   const airports = new Set(shown.map((s) => s.airportId ?? s.airportRaw).filter(Boolean)).size;
 
   if (json) return printJson({ ok: true, from: log.from, year, count: shown.length, aircraft, airports, sightings: shown.map((s) => sightingJson(log, s)) });
-  console.log(`${bold(plural(shown.length, "sighting"))} of ${plural(aircraft, "aircraft", "aircraft")} at ${plural(airports, "airport")} in ${periodLabel(year)}. ${dim(`Read from ${log.from}.`)}`);
+  console.log(`${tc("cliRead.sightings.summary", { count: shown.length, aircraft, airports, year }, { b: bold })} ${dim(readFrom(log))}`);
   if (!shown.length) return;
   console.log("");
   const rows = shown.map((s) => [
@@ -225,11 +240,11 @@ export async function sightingsCommand(args: string[]) {
       .map((p) => PHASE_LABEL[p] ?? p)
       .join(", "),
   ]);
-  for (const line of table([{ head: "Date" }, { head: "Airport" }, { head: "Registration" }, { head: "Aircraft", flex: true }, { head: "Airline" }, { head: "Phase" }], rows)) console.log(line);
+  for (const line of table([{ head: t("cliRead.column.date") }, { head: t("cliRead.column.airport") }, { head: t("cliRead.column.registration") }, { head: t("cliRead.column.aircraft"), flex: true }, { head: t("cliRead.column.airline") }, { head: t("cliRead.column.phase") }], rows)) console.log(line);
 }
 
 export async function sessionsCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--year"] }, SESSIONS_HELP);
+  const a = argsOrHelp(args, { values: ["--year"] }, sessionsHelp());
   const json = a.flags.has("--json");
   const log = await openOrFail(json, a.values.get("--log"));
   const year = periodOf(log.store, a.values.get("--year"), "all");
@@ -244,9 +259,9 @@ export async function sessionsCommand(args: string[]) {
       count: sessions.length,
       sessions: sessions.map((s) => ({ date: s.date, airport: airportJson(log, s.airportId, s.sightings[0]?.airportRaw ?? null), sightings: s.sightings.length, aircraft: s.aircraft, newAircraft: s.newAircraft, sightingIds: s.sightings.map((x) => x.id) })),
     });
-  console.log(`${bold(plural(sessions.length, "day out", "days out"))} in ${periodLabel(year)}. ${dim(`Read from ${log.from}.`)}`);
+  console.log(`${tc("cliRead.sessions.summary", { count: sessions.length, year }, { b: bold })} ${dim(readFrom(log))}`);
   if (!sessions.length) return;
   console.log("");
   const rows = sessions.map((s) => [s.date ?? "", airportWithCode(s.airportId, log.ref, s.sightings[0]?.airportRaw ?? null, log.codes), String(s.sightings.length), String(s.aircraft), s.newAircraft ? String(s.newAircraft) : ""]);
-  for (const line of table([{ head: "Date" }, { head: "Airport", flex: true }, { head: "Sightings", align: "right" }, { head: "Aircraft", align: "right" }, { head: "New", align: "right" }], rows)) console.log(line);
+  for (const line of table([{ head: t("cliRead.column.date") }, { head: t("cliRead.column.airport"), flex: true }, { head: t("cliRead.column.sightings"), align: "right" }, { head: t("cliRead.column.aircraft"), align: "right" }, { head: t("cliRead.column.new"), align: "right" }], rows)) console.log(line);
 }

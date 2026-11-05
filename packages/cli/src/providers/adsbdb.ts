@@ -2,6 +2,7 @@
 // for a registration (docs/13-reference-data.md, "Live lookups"). Free and without a key; aircraft data
 // credited to PlaneBase. Light use only: one request at a time, a pause between requests, answers cached.
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalMaker, modelFromSource, registrationMatchForm, type Evidence, type RefIndex } from "@touchdown/core";
@@ -73,9 +74,9 @@ export function adsbdb(ref: RefIndex, opts: AdsbdbOptions) {
       if (wait > 0) await sleep(wait);
       last = Date.now();
       const res = await fetch(API + encodeURIComponent(registration), { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(15_000) }).catch((e: Error) => e);
-      if (res instanceof Error) return { error: `adsbdb did not answer (${res.message})` };
+      if (res instanceof Error) return { error: t("cliWrite.providers.adsbdb.noAnswer", { problem: res.message }) };
       if (res.status === 429) {
-        stopped = "adsbdb asked to slow down; not used for the rest of this session";
+        stopped = t("cliWrite.providers.adsbdb.slowDown");
         return { error: stopped };
       }
       let aircraft: AdsbdbAircraft | null = null;
@@ -83,7 +84,7 @@ export function adsbdb(ref: RefIndex, opts: AdsbdbOptions) {
       if (res.ok) {
         const body = (await res.json().catch(() => null)) as { response?: { aircraft?: AdsbdbAircraft } } | null;
         aircraft = body?.response?.aircraft ?? null;
-      } else if (res.status !== 404 && res.status !== 400) return { error: `adsbdb answered ${res.status}` };
+      } else if (res.status !== 404 && res.status !== 400) return { error: t("cliWrite.providers.adsbdb.status", { status: res.status }) };
       const fetchedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
       mkdirSync(join(opts.cacheDir, "adsbdb"), { recursive: true });
       writeFileSync(p, JSON.stringify({ fetchedAt, aircraft } satisfies Cached));

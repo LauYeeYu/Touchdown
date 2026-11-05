@@ -3,13 +3,14 @@
 // headers), where the log is (the storage the web app syncs with), and this computer's device id. The agent runs on this computer, so these
 // are kept here, not in the log: each computer can use its own agent (docs/22).
 
+import { t } from "@touchdown/i18n/cli";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { DEFAULT_AGENT_RULES, ulid, type Checker, type ColumnField, type RowKind } from "@touchdown/core";
 import { privatePath } from "./paths.ts";
-import { bold, dim } from "./term.ts";
+import { bold, dim, tc } from "./term.ts";
 
 export type AgentChoice = Checker | "none";
 
@@ -21,7 +22,14 @@ export type StorageChoice = { kind: "gdrive"; account: string; via: "standard" |
 
 const FILE = privatePath("touchdown-cli.json");
 
-export const AGENT_NAME: Record<AgentChoice, string> = { claude: "Claude Code", codex: "Codex", none: "no agent" };
+/** The agents by name; "no agent" is read from the messages when it is used. */
+export const AGENT_NAME: Record<AgentChoice, string> = {
+  claude: "Claude Code",
+  codex: "Codex",
+  get none() {
+    return t("cliWrite.agent.noAgent");
+  },
+};
 
 interface CliSettings {
   agent?: AgentChoice;
@@ -126,29 +134,28 @@ export async function chooseAgent(): Promise<AgentChoice | null> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) return null;
   const found: Record<Checker, string | null> = { claude: installedVersion("claude"), codex: installedVersion("codex") };
   const options: { choice: AgentChoice; label: string }[] = [
-    { choice: "none", label: `No agent ${dim("(lookups only; nothing is sent anywhere)")}` },
-    { choice: "claude", label: found.claude ? `Claude Code ${found.claude}` : `Claude Code ${dim("(not installed)")}` },
-    { choice: "codex", label: found.codex ? `Codex ${found.codex}` : `Codex ${dim("(not installed)")}` },
+    { choice: "none", label: tc("cliWrite.agent.choice.none", {}, { dim }) },
+    { choice: "claude", label: found.claude ? `Claude Code ${found.claude}` : tc("cliWrite.agent.choice.notInstalled", { agent: "Claude Code" }, { dim }) },
+    { choice: "codex", label: found.codex ? `Codex ${found.codex}` : tc("cliWrite.agent.choice.notInstalled", { agent: "Codex" }, { dim }) },
   ];
-  console.log(`\n${bold("Should an agent check your records?")} Claude Code or Codex would run on this computer with your own`);
-  console.log(dim("subscription, locked down: no tools, no files, no web. It checks values and sorts free text into fields."));
-  console.log(dim("You can change this later with ./touchdown agent, or for one run with --agent."));
+  console.log(`\n${tc("cliWrite.agent.choice.question", {}, { bold, dim })}`);
+  console.log(dim(t("cliWrite.agent.choice.later")));
   options.forEach((o, i) => console.log(`  ${i + 1}  ${o.label}`));
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
     for (;;) {
-      const a = (await rl.question(`Choose 1–3 [1, no agent]: `)).trim();
+      const a = (await rl.question(t("cliWrite.agent.choice.ask"))).trim();
       const pick = options[(a ? Number(a) : 1) - 1];
       if (!pick) {
-        console.log(dim("  Type 1, 2 or 3."));
+        console.log(dim(`  ${t("cliWrite.agent.choice.type")}`));
         continue;
       }
       if (pick.choice !== "none" && !found[pick.choice]) {
-        console.log(dim(`  ${AGENT_NAME[pick.choice]} is not installed. Install it and sign in, or choose another.`));
+        console.log(dim(`  ${t("cliWrite.agent.choice.notInstalledYet", { agent: AGENT_NAME[pick.choice] })}`));
         continue;
       }
       saveAgent(pick.choice);
-      console.log(dim(`  Saved: ${AGENT_NAME[pick.choice]}.\n`));
+      console.log(dim(`  ${t("cliWrite.agent.saved", { agent: AGENT_NAME[pick.choice] })}\n`));
       return pick.choice;
     }
   } finally {
@@ -162,5 +169,5 @@ export async function agentForRun(flag: AgentChoice | undefined): Promise<AgentC
   const saved = savedAgent();
   if (saved) return saved;
   const asked = await chooseAgent();
-  return asked ?? { error: "No agent chosen yet. Choose one with ./touchdown agent (claude, codex or none), or pass --agent." };
+  return asked ?? { error: t("cliWrite.agent.notChosen") };
 }

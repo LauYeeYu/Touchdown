@@ -2,31 +2,31 @@
 // registrations and every time the user flew on it or photographed it.
 
 import { flightDay, phasesOf } from "@touchdown/core";
-import { aircraftViews, airlineLabel, airportWithCode, PHASE_LABEL, textCode, type AircraftView } from "@touchdown/core/view";
+import { aircraftViews, airlineLabel, airportWithCode, PHASE_LABEL, STATUS_WORD, textCode, type AircraftView } from "@touchdown/core/view";
+import { t } from "@touchdown/i18n/cli";
 import { aircraftLabel, airportJson, findingJson, openFindings } from "./shape.ts";
-import { argsOrHelp, fail, fields, findAircraft, notFound, openOrFail, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
-import { bold, dim, plural, red, yellow } from "./term.ts";
-import { aircraftChangeCommand, AIRCRAFT_CHANGE_HELP } from "./change.ts";
+import { argsOrHelp, fail, fields, findAircraft, notFound, openOrFail, optionLines, plain, printJson, readFrom, readOptions, section, table, usage, type OpenedLog } from "./read.ts";
+import { bold, dim, red, yellow, tc } from "./term.ts";
+import { aircraftChangeCommand, aircraftChangeHelp } from "./change.ts";
 
-export const AIRCRAFT_HELP = `Usage: ./touchdown aircraft [--flown | --both | --provisional | --no-first-flight] [--search TEXT]
+export const aircraftHelp = () => `${usage(`./touchdown aircraft [--flown | --both | --provisional | --no-first-flight] [--search TEXT]
                           [--sort last | count | reg] [--log FILE] [--json]
-       ./touchdown aircraft REF [--log FILE] [--json]
+       ./touchdown aircraft REF [--log FILE] [--json]`)}
 
-Without REF, the aircraft in your log, as the Aircraft page lists them (last seen first). With REF, one
-aircraft: what it is, its registrations and its timeline of flights and sightings.
+${t("cliRead.aircraft.help")}
 
-  REF                the aircraft's id, or a registration (G-ABCD), on a date when it was reused (G-ABCD@2019-05-01)
-  --flown            only aircraft you flew on
-  --both             only aircraft you flew on and photographed
-  --provisional      only aircraft matched by registration until a serial number is known
-  --no-first-flight  only aircraft without a first flight date
-  --search TEXT      registration, type, airline or serial number
-  --sort ORDER       last (the default), count (most records first) or reg
+${optionLines(19, [
+  ["REF", t("cliRead.aircraft.option.ref")],
+  ["--flown", t("cliRead.aircraft.option.flown")],
+  ["--both", t("cliRead.aircraft.option.both")],
+  ["--provisional", t("cliRead.aircraft.option.provisional")],
+  ["--no-first-flight", t("cliRead.aircraft.option.noFirstFlight")],
+  ["--search TEXT", t("cliRead.aircraft.option.search")],
+  ["--sort ORDER", t("cliRead.aircraft.option.sort")],
+])}
 ${readOptions(19)}
 
-${AIRCRAFT_CHANGE_HELP}`;
-
-const STATUS_LABEL: Record<string, string> = { stored: "Stored", retired: "Retired", written_off: "Written off" };
+${aircraftChangeHelp()}`;
 
 const squash = (s: string) => s.toLowerCase().replace(/[\s-]+/g, "");
 
@@ -50,13 +50,13 @@ function listJson(log: OpenedLog, v: AircraftView) {
 
 export async function aircraftCommand(args: string[]) {
   if (args[0] === "edit" || args[0] === "merge") return aircraftChangeCommand(args);
-  const a = argsOrHelp(args, { values: ["--search", "--sort"], flags: ["--flown", "--both", "--provisional", "--no-first-flight"] }, AIRCRAFT_HELP, [0, 1]);
+  const a = argsOrHelp(args, { values: ["--search", "--sort"], flags: ["--flown", "--both", "--provisional", "--no-first-flight"] }, aircraftHelp(), [0, 1]);
   const json = a.flags.has("--json");
   const log = await openOrFail(json, a.values.get("--log"));
   if (a.positional.length) return oneAircraft(log, json, a.positional[0]!);
 
   const sort = a.values.get("--sort") ?? "last";
-  if (!["last", "count", "reg"].includes(sort)) return fail(json, "--sort takes last, count or reg.");
+  if (!["last", "count", "reg"].includes(sort)) return fail(json, t("cliRead.aircraft.sortInvalid"));
   const needle = squash(a.values.get("--search") ?? "");
   const views = aircraftViews(log.store).filter((v) => v.flights.length || v.sightings.length);
   const shown = views
@@ -76,7 +76,8 @@ export async function aircraftCommand(args: string[]) {
   const both = views.filter((v) => v.flights.length && v.sightings.length).length;
 
   if (json) return printJson({ ok: true, from: log.from, total: views.length, flown, both, count: shown.length, aircraft: shown.map((v) => listJson(log, v)) });
-  console.log(`Your log holds ${bold(plural(views.length, "aircraft", "aircraft"))}: you flew on ${flown}, and ${both} of those you also photographed.${shown.length !== views.length ? ` ${shown.length} shown.` : ""} ${dim(`Read from ${log.from}.`)}`);
+  const summary = [tc("cliRead.aircraft.summary", { count: views.length, flown, both }, { b: bold }), shown.length !== views.length ? t("cliRead.aircraft.shown", { count: shown.length }) : null].filter(Boolean).join(" ");
+  console.log(`${summary} ${dim(readFrom(log))}`);
   if (!shown.length) return;
   console.log("");
   const rows = shown.map((v) => [
@@ -88,7 +89,19 @@ export async function aircraftCommand(args: string[]) {
     v.sightings.length ? String(v.sightings.length) : "",
     v.last ?? "",
   ]);
-  for (const line of table([{ head: "Registration" }, { head: "Aircraft", flex: true }, { head: "Airline" }, { head: "Serial" }, { head: "Flown", align: "right" }, { head: "Seen", align: "right" }, { head: "Last" }], rows)) console.log(line);
+  for (const line of table(
+    [
+      { head: t("cliRead.column.registration") },
+      { head: t("cliRead.column.aircraft"), flex: true },
+      { head: t("cliRead.column.airline") },
+      { head: t("cliRead.column.serial") },
+      { head: t("cliRead.column.flown"), align: "right" },
+      { head: t("cliRead.column.seen"), align: "right" },
+      { head: t("cliRead.column.last") },
+    ],
+    rows,
+  ))
+    console.log(line);
 }
 
 function oneAircraft(log: OpenedLog, json: boolean, text: string) {
@@ -129,23 +142,41 @@ function oneAircraft(log: OpenedLog, json: boolean, text: string) {
 
   console.log(bold([v.registration, aircraftLabel(log, a.typeCode, a.model)].filter(Boolean).join(" · ") || a.id));
   for (const line of fields([
-    ["Type", [aircraftLabel(log, a.typeCode, a.model), a.typeCode].filter(Boolean).join(" · ")],
-    ["Serial number", a.msn ? `${a.msn}${a.lineNumber ? ` · line ${a.lineNumber}` : ""}` : "not known yet"],
-    ["First flight", a.firstFlightDate ?? "not known"],
-    ["Delivered", a.deliveryDate],
-    ["Status", a.status && a.status !== "unknown" && a.status !== "active" ? (STATUS_LABEL[a.status] ?? a.status) : null],
-    ["Registrations", regs.map((p) => `${p.registration}${p.validFrom || p.validTo ? ` (${p.validFrom ?? "…"} to ${p.validTo ?? "now"})` : ""}`).join(", ") || "-"],
-    ["Special liveries", liveries.join(", ")],
-    ["Identity", a.provisional ? "matched by registration and date until the serial number is known" : "confirmed by serial number"],
-    ["Id", a.id],
+    [t("cliRead.aircraft.field.type"), [aircraftLabel(log, a.typeCode, a.model), a.typeCode].filter(Boolean).join(" · ")],
+    [t("cliRead.aircraft.field.serial"), a.msn ? (a.lineNumber ? t("cliRead.aircraft.serialLine", { msn: a.msn, line: a.lineNumber }) : a.msn) : t("cliRead.aircraft.serialUnknown")],
+    [t("cliRead.aircraft.field.firstFlight"), a.firstFlightDate ?? t("cliRead.aircraft.firstFlightUnknown")],
+    [t("cliRead.aircraft.field.delivered"), a.deliveryDate],
+    [t("cliRead.aircraft.field.status"), a.status && a.status !== "unknown" && a.status !== "active" ? (STATUS_WORD[a.status] ?? a.status) : null],
+    [
+      t("cliRead.aircraft.field.registrations"),
+      regs.map((p) => (p.validFrom || p.validTo ? t("cliRead.aircraft.registrationPeriod", { registration: `${p.registration}`, from: p.validFrom ?? "…", to: p.validTo ?? t("cliRead.aircraft.registrationNow") }) : `${p.registration}`)).join(", ") || "-",
+    ],
+    [t("cliRead.aircraft.field.liveries"), liveries.join(", ")],
+    [t("cliRead.aircraft.field.identity"), a.provisional ? t("cliRead.aircraft.identity.provisional") : t("cliRead.aircraft.identity.confirmed")],
+    [t("cliRead.aircraft.field.id"), a.id],
   ]))
     console.log(`  ${line}`);
   const reg = v.registration ?? "";
   const lines = events.map((e) => {
-    const date = (e.date ?? "no date").padEnd(10);
-    if (e.kind === "flight") return `${date}  Flew ${[e.f.flightNumber, `${textCode(log.ref.airport(e.f.fromAirportId), e.f.fromRaw, log.codes)} → ${textCode(log.ref.airport(e.f.toAirportId), e.f.toRaw, log.codes)}`].filter(Boolean).join(" ")}${e.f.registration && e.f.registration !== reg ? ` as ${e.f.registration}` : ""}`;
-    return plain(`${date}  Spotted at ${airportWithCode(e.s.airportId, log.ref, e.s.airportRaw, log.codes) || "an unknown place"}${phasesOf(log.store, e.s.id).length ? `, ${phasesOf(log.store, e.s.id).map((p) => (PHASE_LABEL[p] ?? p).toLowerCase()).join(", ")}` : ""}${e.s.specialLivery ? ` (${e.s.specialLivery})` : ""}`);
+    const date = (e.date ?? t("cliRead.aircraft.timeline.noDate")).padEnd(10);
+    if (e.kind === "flight") {
+      const flight = [e.f.flightNumber, `${textCode(log.ref.airport(e.f.fromAirportId), e.f.fromRaw, log.codes)} → ${textCode(log.ref.airport(e.f.toAirportId), e.f.toRaw, log.codes)}`].filter(Boolean).join(" ");
+      return `${date}  ${e.f.registration && e.f.registration !== reg ? t("cliRead.aircraft.timeline.flewAs", { flight, registration: e.f.registration }) : t("cliRead.aircraft.timeline.flew", { flight })}`;
+    }
+    const place = airportWithCode(e.s.airportId, log.ref, e.s.airportRaw, log.codes) || t("cliRead.aircraft.timeline.unknownPlace");
+    const phases = phasesOf(log.store, e.s.id)
+      .map((p) => (PHASE_LABEL[p] ?? p).toLowerCase())
+      .join(", ");
+    const livery = e.s.specialLivery;
+    const spotted = phases
+      ? livery
+        ? t("cliRead.aircraft.timeline.spottedPhasesLivery", { place, phases, livery })
+        : t("cliRead.aircraft.timeline.spottedPhases", { place, phases })
+      : livery
+        ? t("cliRead.aircraft.timeline.spottedLivery", { place, livery })
+        : t("cliRead.aircraft.timeline.spotted", { place });
+    return plain(`${date}  ${spotted}`);
   });
-  for (const line of section(`Timeline: ${plural(events.length, "record")}`, lines)) console.log(line);
-  if (findings.length) for (const line of section("Findings", findings.map((x) => `${x.severity === "error" ? red("!") : yellow("?")} ${x.message}`))) console.log(line);
+  for (const line of section(t("cliRead.aircraft.timeline.title", { count: events.length }), lines)) console.log(line);
+  if (findings.length) for (const line of section(t("cliRead.findings"), findings.map((x) => `${x.severity === "error" ? red("!") : yellow("?")} ${x.message}`))) console.log(line);
 }

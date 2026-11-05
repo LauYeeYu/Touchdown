@@ -4,6 +4,7 @@
 // reaches the log without that review. Ticket numbers and booking references are never printed (docs/34,
 // "Private fields"); typed, they are asked for at a prompt that does not show them.
 
+import { t } from "@touchdown/i18n/cli";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import {
@@ -40,146 +41,34 @@ import { userPath } from "./paths.ts";
 import { EXIT, fail, findAircraft, findFlight, findSighting, notFound, openOrFail, plain, printJson, readOptions, type Found, type OpenedLog } from "./read.ts";
 import { findingJson, openFindings } from "./shape.ts";
 import { whereFilters } from "./where.ts";
-import { askHidden, bold, dim, green, plural, red, yellow } from "./term.ts";
+import { askHidden, bold, dim, green, red, tc, yellow } from "./term.ts";
 
 const PRIVATE = new Set(["ticketNumber", "bookingRef"]);
 
-export const changeOptions = (col: number) => `  ${"--dry-run".padEnd(col)}check only, write nothing
-  ${"--keep-errors".padEnd(col)}write even when the changes bring errors; the review shows them again
+export const changeOptions = (col: number) => `  ${"--dry-run".padEnd(col)}${t("cli.help.changeOptions.dryRun")}
+  ${"--keep-errors".padEnd(col)}${t("cli.help.changeOptions.keepErrors")}
 ${readOptions(col)}`;
 
-export const AFTER = `The changes go to the inbox as one file (the storage chosen with ./touchdown storage, else
-data/private/inbox/), are read back, and wait there until you review and import them on the web app's Import
-page, or with ./touchdown review. Importing them is one import: undo it to put everything back.
+/** What happens to the changes, the end of each changing command's help. */
+export const changesAfter = () => t("cli.help.changesAfter");
 
-Exit status: 0 written, or nothing to change; 1 no such record, or the changes bring errors and nothing was
-written; 2 a wrong option, or the log or the storage could not be read.`;
+export const editHelp = () => t("cli.help.edit", { options: changeOptions(15), after: changesAfter(), flightFields: FLIGHT_EDIT_FIELDS.join(", "), sightingFields: SIGHTING_EDIT_FIELDS.join(", ") });
 
-export const EDIT_HELP = `Usage: ./touchdown edit REF [--set FIELD=VALUE]… [--set FIELD]… [--clear FIELD]… [options]
-       ./touchdown edit - [options]          (a JSON list of edits on standard input)
+export const trackHelp = () => t("cli.help.track", { options: changeOptions(15), after: changesAfter() });
 
-Changes a flight or a sighting. Values are read as ./touchdown add reads them: codes resolved, clock times at
-the airport they happen at, on the record's date.
+export const deleteHelp = () => t("cli.help.delete", { options: changeOptions(15), after: changesAfter() });
 
-  REF            a flight: its id, or XY123@2025-04-02; a sighting: its id, G-ABCD@EGLL@2025-03-15 or
-                 G-ABCD@2025-03-15
-  --set F=V      set a field
-  --set F        for ticketNumber and bookingRef: type the value at a prompt that does not show it (never give
-                 a private value on the command line, where the shell's history keeps it)
-  --clear F      empty a field
-${changeOptions(15)}
+export const aircraftChangeHelp = () => t("cli.help.aircraftChange", { options: changeOptions(17), after: changesAfter(), fields: AIRFRAME_EDIT_FIELDS.join(", ") });
 
-Flight fields:   ${FLIGHT_EDIT_FIELDS.join(", ")}
-                 (operatedBy: the airline that flew it, when another than the one that sold it, by its code;
-                 departureScheduled, arrivalScheduled: the timetable's times, HH:MM at each airport)
-Sighting fields: ${SIGHTING_EDIT_FIELDS.join(", ")}
-                 (tags: comma-separated, such as night,backlit; phase: every phase it was seen in,
-                 comma-separated, such as landing,taxiing; time: HH:MM at the airport)
+export const issuesChangeHelp = () => t("cli.help.issuesChange", { options: changeOptions(15), after: changesAfter() });
 
-The JSON list: [{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]. Private values may
-be given in "set" there; they are never printed.
+export const undoHelp = () => t("cli.help.undo", { options: changeOptions(15), after: changesAfter() });
 
-${AFTER}`;
+export const familiesHelp = () => t("cli.help.families", { options: changeOptions(15), after: changesAfter() });
 
-export const TRACK_HELP = `Usage: ./touchdown track REF FILE [options]
-       ./touchdown track REF --remove [options]
+export const settingsHelp = () => t("cli.help.settings", { options: changeOptions(15), after: changesAfter() });
 
-Gives a flight its recorded track, or replaces the one it has, from a file: a Flightradar24 CSV or KML download, or
-any KML or GPX file whose points have times. The track is checked against the flight first: its times must fall on
-the flight and it must run from the departure towards the arrival. --remove takes the track away; the maps go back
-to the great circle.
-
-  REF            a flight: XY123@YYYY-MM-DD, or its id
-  FILE           the track file (.csv, .kml or .gpx)
-  --remove       remove the flight's recorded track
-${changeOptions(15)}
-
-${AFTER}`;
-
-export const DELETE_HELP = `Usage: ./touchdown delete REF… [options]
-
-Deletes flights or sightings, once you import the change: a deleted flight takes its ticket number and booking
-reference with it, and undoing the import brings everything back.
-
-  REF            as for ./touchdown edit
-${changeOptions(15)}
-
-${AFTER}`;
-
-export const AIRCRAFT_CHANGE_HELP = `Usage: ./touchdown aircraft edit REF [--set FIELD=VALUE]… [--clear FIELD]… [--paste FILE | -] [options]
-       ./touchdown aircraft merge INTO FROM [options]
-
-edit changes what is known about an aircraft: a serial number makes it confirmed. merge moves every flight and
-sighting of FROM to INTO and removes FROM: two entries for one physical aircraft, for example after a
-registration change.
-
-  REF, INTO, FROM  the aircraft's id, or a registration (G-ABCD), on a date when it was reused (G-ABCD@2019-05-01)
-  --paste FILE     text copied off the aircraft's page on airfleets.net, aviation.flights, planespotters.net or
-                   Flightradar24 (select all, copy), from a file or standard input (-): the serial number, line
-                   number, first flight and delivery dates are read from it, as on the aircraft page
-${changeOptions(17)}
-
-Fields: ${AIRFRAME_EDIT_FIELDS.join(", ")} (dates YYYY-MM-DD; status: active, stored, retired, written_off)
-
-${AFTER}`;
-
-export const ISSUES_CHANGE_HELP = `Usage: ./touchdown issues accept ID [--note TEXT] [options]
-       ./touchdown issues reopen ID [options]
-       ./touchdown issues fix ID [N] [options]
-
-accept marks a warning as right: it comes back only if its values change. reopen takes that back (ID from
-./touchdown issues --accepted). fix applies the finding's suggested fix N (1 when there is one).
-
-  ID             the finding's id, from ./touchdown issues
-${changeOptions(15)}
-
-${AFTER}`;
-
-export const UNDO_HELP = `Usage: ./touchdown undo BATCH [--force] [options]
-
-Undoes an import: records it created are removed, and records it changed get their earlier values back. A record
-changed after the import (in the web app, or by a later import) is left as it is, unless --force.
-
-  BATCH          the import's id, from ./touchdown imports
-  --force        undo the records changed since too, losing those changes
-${changeOptions(15)}
-
-${AFTER}`;
-
-export const FAMILIES_HELP = `Usage: ./touchdown families [--log FILE] [--json]
-       ./touchdown families set TYPE FAMILY [options]
-       ./touchdown families remove TYPE [options]
-
-Families group type codes in the statistics. Without arguments, the types you counted in another family; set
-counts TYPE (an ICAO type code, such as E75L) in FAMILY (a family's id or name, such as E170); remove counts it
-in its own family again.
-
-${changeOptions(15)}
-
-${AFTER}`;
-
-export const SETTINGS_HELP = `Usage: ./touchdown settings [--log FILE] [--json]
-       ./touchdown settings [codes iata|icao|both] [distance km|mi|nm] [models standard|compact] [options]
-
-The settings your log keeps for every device: the airport codes shown, the distance unit and how models are
-named. Without values, shows them.
-
-${changeOptions(15)}
-
-${AFTER}`;
-
-export const VIEWS_HELP = `Usage: ./touchdown stats views [--log FILE] [--json]
-       ./touchdown stats views save NAME --by DIM [--cols DIM] [--of flights | sightings] [--measure M]
-                                   [--where DIM=V[,V]]… [options]
-       ./touchdown stats views remove NAME [options]
-
-The views saved on the Statistics page's Custom tab: without arguments, listed with their filters; save keeps
-a table as ./touchdown stats --by shows it (the same options, --where included) under NAME; remove removes one.
-Show one with ./touchdown stats --view NAME.
-
-${changeOptions(15)}
-
-${AFTER}`;
+export const viewsHelp = () => t("cli.help.views", { options: changeOptions(15), after: changesAfter() });
 
 export interface Common {
   json: boolean;
@@ -217,7 +106,7 @@ export function parse(args: string[], help: string, opts: { sets?: boolean; note
     const a = args[i]!;
     const value = () => {
       const v = args[++i];
-      return v === undefined || (v.startsWith("--") && v !== "-") ? bad(`${a} needs a value.`) : v;
+      return v === undefined || (v.startsWith("--") && v !== "-") ? bad(t("cli.args.needsValue", { option: a })) : v;
     };
     if (a === "--json") continue;
     else if (a === "--dry-run") c.dryRun = true;
@@ -234,10 +123,10 @@ export function parse(args: string[], help: string, opts: { sets?: boolean; note
       else {
         const eq = v.indexOf("=");
         const field = eq < 0 ? v : v.slice(0, eq);
-        if (PRIVATE.has(field) && eq >= 0) bad(`Never give a ${field === "ticketNumber" ? "ticket number" : "booking reference"} on the command line, where the shell's history keeps it. Use --set ${field} alone and type it at the prompt, or give it in JSON on standard input.`);
+        if (PRIVATE.has(field) && eq >= 0) bad(t("cliWrite.change.privateOnCommandLine", { field }));
         c.sets.push([field, eq < 0 ? null : v.slice(eq + 1)]);
       }
-    } else if (a.startsWith("--")) bad(`There is no option ${a}.`);
+    } else if (a.startsWith("--")) bad(t("cli.args.noOption", { option: a }));
     else c.positional.push(a);
   }
   return c;
@@ -250,11 +139,11 @@ async function inputOf(c: Common): Promise<EditInput> {
     if (value !== null) input[field] = value;
     else if (PRIVATE.has(field)) {
       try {
-        input[field] = (await askHidden(`${field === "ticketNumber" ? "Ticket number" : "Booking reference"} (not shown): `)) || null;
+        input[field] = (await askHidden(`${t("cliWrite.change.askPrivate", { field })} `)) || null;
       } catch (e) {
         return fail(c.json, (e as Error).message);
       }
-    } else return fail(c.json, `--set ${field} needs a value: --set ${field}=VALUE.`);
+    } else return fail(c.json, t("cliWrite.change.setNeedsValue", { field }));
   }
   for (const field of c.clears) input[field] = null;
   return input;
@@ -272,7 +161,7 @@ function findRecord(log: OpenedLog, text: string): Found<{ table: "flights" | "s
   const s = findSighting(log.store, log.ref, text);
   if ("row" in s) return { row: { table: "sightings", id: s.row.id } };
   if (s.candidates.length) return s;
-  return { error: `No flight or sighting is ${text}. A flight is named XY123@YYYY-MM-DD, a sighting G-ABCD@EGLL@YYYY-MM-DD, or either by its id.`, candidates: [] };
+  return { error: t("cliWrite.change.noRecord", { ref: text }), candidates: [] };
 }
 
 const severityMark = (f: Finding) => (f.severity === "error" ? red("!") : f.severity === "warning" ? yellow("?") : dim("i"));
@@ -314,7 +203,7 @@ export async function writeChanges(log: OpenedLog, command: string, changes: Inb
       sharedInbox: place.shared,
     });
   } else {
-    console.log(`Checked against ${log.from}.`);
+    console.log(t("cli.checkedAgainst", { from: log.from }));
     for (const p of plan.changes) {
       const mark = p.status === "pending" ? green("✓") : dim("–");
       console.log(`${mark} ${bold(p.action)}  ${plain(p.title)}${p.status === "pending" ? "" : dim(`  ${p.note ?? p.status}`)}`);
@@ -324,15 +213,15 @@ export async function writeChanges(log: OpenedLog, command: string, changes: Inb
     }
     for (const n of notes) console.log(yellow(`  ${n}`));
     if (plan.findings.length) {
-      console.log(`\n${bold("Findings these changes bring")}`);
+      console.log(`\n${bold(t("cliWrite.change.findingsTitle"))}`);
       for (const f of plan.findings) console.log(`  ${severityMark(f)} ${f.message} ${dim(f.ruleId)}`);
     }
     if (written) {
-      console.log(`\n${green("Written")} ${plural(written.changes, "change")} to ${written.place}: ${written.file}. Read back and checked.`);
-      console.log(`${yellow("Not in your log yet:")} ${place.shared ? "run ./touchdown review, or open Touchdown on any device and use “Review and import” at the top." : "start the web app (npm run dev -w @touchdown/web) and use “Review and import” at the top."}`);
-    } else if (notWritten === "errors") console.log(`\n${red("Nothing written:")} the changes bring ${plural(errors.length, "error")}. Fix them, or write the changes anyway with --keep-errors.`);
-    else if (notWritten === "dry-run") console.log(dim("\nDry run: nothing written."));
-    else console.log("\nNothing written: there is nothing to change.");
+      console.log(`\n${tc("cliWrite.change.written", { count: written.changes, place: written.place, file: written.file }, { green })}`);
+      console.log(tc("cliWrite.change.notInLogYet", { shared: place.shared ? "yes" : "no" }, { yellow }));
+    } else if (notWritten === "errors") console.log(`\n${tc("cliWrite.change.notWrittenErrors", { count: errors.length }, { red })}`);
+    else if (notWritten === "dry-run") console.log(dim(`\n${t("cli.dryRun")}`));
+    else console.log(`\n${t("cliWrite.change.nothingToChange")}`);
   }
   process.exit(notWritten === "errors" ? EXIT.notFound : EXIT.ok);
 }
@@ -353,32 +242,32 @@ function editOf(log: OpenedLog, json: boolean, ref: string, input: EditInput): {
 }
 
 export async function editCommand(args: string[]) {
-  const c = parse(args, EDIT_HELP, { sets: true });
-  if (c.positional.length !== 1) return fail(c.json, c.positional.length ? "Give one REF, or - for a JSON list of edits." : "Which record? Give its REF, or - for a JSON list of edits.");
+  const c = parse(args, editHelp(), { sets: true });
+  if (c.positional.length !== 1) return fail(c.json, c.positional.length ? t("cliWrite.change.edit.oneRef") : t("cliWrite.change.edit.whichRecord"));
   const log = await openOrFail(c.json, c.log);
   const changes: InboxChange[] = [];
   const notes: string[] = [];
   if (c.positional[0] === "-" || c.positional[0]!.endsWith(".json")) {
-    if (c.sets.length || c.clears.length) return fail(c.json, "Give the edits in the JSON, or with --set and --clear, not both.");
+    if (c.sets.length || c.clears.length) return fail(c.json, t("cliWrite.change.edit.notBoth"));
     let list: unknown;
     try {
       list = JSON.parse(c.positional[0] === "-" ? await readStdin() : readFileSync(userPath(c.positional[0]!), "utf8"));
     } catch (e) {
-      return fail(c.json, `The edits are not JSON: ${(e as Error).message}`);
+      return fail(c.json, t("cliWrite.change.edit.notJson", { error: (e as Error).message }));
     }
-    if (!Array.isArray(list) || !list.length) return fail(c.json, 'Give a JSON list of edits: [{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" } }].');
+    if (!Array.isArray(list) || !list.length) return fail(c.json, t("cliWrite.change.edit.giveList"));
     for (const [i, item] of list.entries()) {
       const e = item as { ref?: unknown; set?: unknown; clear?: unknown };
-      const where = `edit ${i + 1}`;
-      if (!e || typeof e !== "object" || typeof e.ref !== "string") return fail(c.json, `${where}: give "ref", the record's REF.`);
+      const where = t("cliWrite.change.edit.where", { n: i + 1 });
+      if (!e || typeof e !== "object" || typeof e.ref !== "string") return fail(c.json, t("cliWrite.change.edit.giveRef", { where }));
       const extra = Object.keys(e).filter((k) => !["ref", "set", "clear"].includes(k));
-      if (extra.length) return fail(c.json, `${where}: unexpected keys ${extra.join(", ")}.`);
+      if (extra.length) return fail(c.json, t("cliWrite.change.edit.unexpectedKeys", { where, keys: extra.join(", ") }));
       const input: EditInput = {};
       for (const [k, v] of Object.entries((e.set ?? {}) as Record<string, unknown>)) {
-        if (!(typeof v === "string" || typeof v === "number" || v === null)) return fail(c.json, `${where}: ${k} must be text or a number.`);
+        if (!(typeof v === "string" || typeof v === "number" || v === null)) return fail(c.json, t("cliWrite.change.edit.textOrNumber", { where, field: k }));
         input[k] = v === null ? null : String(v);
       }
-      if (e.clear !== undefined && (!Array.isArray(e.clear) || e.clear.some((k) => typeof k !== "string"))) return fail(c.json, `${where}: "clear" is a list of field names.`);
+      if (e.clear !== undefined && (!Array.isArray(e.clear) || e.clear.some((k) => typeof k !== "string"))) return fail(c.json, t("cliWrite.change.edit.clearList", { where }));
       for (const k of (e.clear ?? []) as string[]) input[k] = null;
       const built = editOf(log, c.json, e.ref, input);
       changes.push(built.change);
@@ -386,7 +275,7 @@ export async function editCommand(args: string[]) {
     }
   } else {
     const input = await inputOf(c);
-    if (!Object.keys(input).length) return fail(c.json, "Nothing to change: give --set FIELD=VALUE or --clear FIELD.");
+    if (!Object.keys(input).length) return fail(c.json, t("cliWrite.change.edit.nothing"));
     const built = editOf(log, c.json, c.positional[0]!, input);
     changes.push(built.change);
     notes.push(...built.notes);
@@ -395,8 +284,8 @@ export async function editCommand(args: string[]) {
 }
 
 export async function deleteCommand(args: string[]) {
-  const c = parse(args, DELETE_HELP);
-  if (!c.positional.length) return fail(c.json, "Which records? Give their REFs.");
+  const c = parse(args, deleteHelp());
+  if (!c.positional.length) return fail(c.json, t("cliWrite.change.delete.which"));
   const log = await openOrFail(c.json, c.log);
   const changes: InboxChange[] = c.positional.map((text) => {
     const found = findRecord(log, text);
@@ -409,9 +298,9 @@ export async function deleteCommand(args: string[]) {
 
 /** `track`: a flight's recorded track from a file, or --remove. */
 export async function trackCommand(args: string[]) {
-  const c = parse(args, TRACK_HELP, { switches: ["--remove"] });
+  const c = parse(args, trackHelp(), { switches: ["--remove"] });
   const remove = c.switches.has("--remove");
-  if (c.positional.length !== (remove ? 1 : 2)) return fail(c.json, remove ? "Give the flight: ./touchdown track REF --remove." : "Give the flight and the track file: ./touchdown track REF FILE.");
+  if (c.positional.length !== (remove ? 1 : 2)) return fail(c.json, remove ? t("cliWrite.change.track.giveFlight") : t("cliWrite.change.track.giveFlightAndFile"));
   const log = await openOrFail(c.json, c.log);
   const found = findFlight(log.store, c.positional[0]!);
   if (!("row" in found)) return notFound(c.json, found);
@@ -421,7 +310,7 @@ export async function trackCommand(args: string[]) {
   try {
     text = readFileSync(userPath(c.positional[1]!), "utf8");
   } catch {
-    return fail(c.json, `Cannot read ${c.positional[1]}.`);
+    return fail(c.json, t("cliWrite.change.track.cannotRead", { file: c.positional[1]! }));
   }
   const read = readTrackFile(name, text);
   if ("error" in read) return fail(c.json, `${name}: ${read.error}`);
@@ -430,29 +319,29 @@ export async function trackCommand(args: string[]) {
   const notes: string[] = [];
   if (fit.legs) {
     const at = (t: number) => toUtcIso(t * 1000).slice(11, 16);
-    notes.push(`The file holds ${fit.legs} flights of the aircraft, and only this one's positions are kept, from ${at(fit.points[0]!.t)} to ${at(fit.points[fit.points.length - 1]!.t)} UTC.`);
+    notes.push(t("cliWrite.change.track.legs", { legs: fit.legs, from: at(fit.points[0]!.t), to: at(fit.points[fit.points.length - 1]!.t) }));
   }
-  if (fit.points.length > MAX_TRACK_POINTS) notes.push(`The track has ${fit.points.length} points, and keeps the ${MAX_TRACK_POINTS} that draw it best.`);
+  if (fit.points.length > MAX_TRACK_POINTS) notes.push(t("cliWrite.change.track.thinned", { points: fit.points.length, max: MAX_TRACK_POINTS }));
   return writeChanges(log, "track", [trackChangeFor(found.row.id, { ...read, points: fit.points }, fit.coverage)], c, notes);
 }
 
 /** `aircraft edit` and `aircraft merge`. */
 export async function aircraftChangeCommand(args: string[]) {
   const [what, ...rest] = args;
-  const c = parse(rest, AIRCRAFT_CHANGE_HELP, { sets: what === "edit", values: what === "edit" ? ["--paste"] : [] });
+  const c = parse(rest, aircraftChangeHelp(), { sets: what === "edit", values: what === "edit" ? ["--paste"] : [] });
   const log = await openOrFail(c.json, c.log);
   const aircraft = (text: string) => {
     const found = findAircraft(log.store, text);
     return "row" in found ? log.store.get("airframes", found.row.id)! : notFound(c.json, found);
   };
   if (what === "merge") {
-    if (c.positional.length !== 2) return fail(c.json, "Give the aircraft to keep (INTO) and the one to merge into it (FROM).");
+    if (c.positional.length !== 2) return fail(c.json, t("cliWrite.change.aircraft.giveTwo"));
     const into = aircraft(c.positional[0]!);
     const from = aircraft(c.positional[1]!);
-    if (into.id === from.id) return fail(c.json, "Those are the same aircraft.");
+    if (into.id === from.id) return fail(c.json, t("cliWrite.change.aircraft.same"));
     return writeChanges(log, "aircraft", [{ op: "merge", into: into.id, from: from.id }], c);
   }
-  if (c.positional.length !== 1) return fail(c.json, "Which aircraft? Give its REF.");
+  if (c.positional.length !== 1) return fail(c.json, t("cliWrite.change.aircraft.which"));
   const a = aircraft(c.positional[0]!);
   const input: EditInput = {};
   const notes: string[] = [];
@@ -462,20 +351,20 @@ export async function aircraftChangeCommand(args: string[]) {
     try {
       text = pasteFrom === "-" ? await readStdin() : readFileSync(userPath(pasteFrom), "utf8");
     } catch (e) {
-      return fail(c.json, `${pasteFrom} could not be read: ${(e as Error).message}`);
+      return fail(c.json, t("cliWrite.change.aircraft.pasteUnreadable", { file: pasteFrom, error: (e as Error).message }));
     }
     const reg = aircraftViews(log.store).find((v) => v.airframe.id === a.id)?.registration ?? c.positional[0]!.split("@")[0]!;
     const { pasted, patch, problem } = pastedFactsFor(log.store, log.ref, a, reg, text);
-    if (!pasted.msn && !pasted.lineNumber && !pasted.firstFlightDate && !pasted.deliveryDate) return fail(c.json, `No serial number, line number or dates found in the text${pasted.firstFlightMonth ? ` (the first flight is given only as a month, ${pasted.firstFlightMonth}; a date needs the day)` : ""}.`, EXIT.notFound);
+    if (!pasted.msn && !pasted.lineNumber && !pasted.firstFlightDate && !pasted.deliveryDate) return fail(c.json, t("cliWrite.change.aircraft.nothingPasted", { hasMonth: pasted.firstFlightMonth ? "yes" : "no", month: pasted.firstFlightMonth ?? "" }), EXIT.notFound);
     const named: Record<string, string> = { msn: "msn", lineNumber: "lineNumber", firstFlightDate: "firstFlight", deliveryDate: "delivered", manufacturer: "manufacturer" };
     for (const [field, value] of Object.entries(patch)) if (value) input[named[field]!] = value;
-    if (pasted.site) notes.push(`Read from text copied off ${pasted.site}.`);
-    if (pasted.firstFlightMonth && !pasted.firstFlightDate) notes.push(`The page gives only the month of the first flight (${pasted.firstFlightMonth}); a date needs the day.`);
-    if (problem) notes.push(`This may be another aircraft: ${problem}.`);
+    if (pasted.site) notes.push(t("cliWrite.change.aircraft.readFrom", { site: pasted.site }));
+    if (pasted.firstFlightMonth && !pasted.firstFlightDate) notes.push(t("cliWrite.change.aircraft.monthOnly", { month: pasted.firstFlightMonth }));
+    if (problem) notes.push(t("cliWrite.change.aircraft.maybeAnother", { problem }));
   }
   // What --set and --clear give wins over the pasted text.
   Object.assign(input, await inputOf(c));
-  if (!Object.keys(input).length) return fail(c.json, pasteFrom !== undefined ? "Nothing new: the aircraft has these values already." : "Nothing to change: give --set FIELD=VALUE, --clear FIELD or --paste FILE.");
+  if (!Object.keys(input).length) return fail(c.json, pasteFrom !== undefined ? t("cliWrite.change.aircraft.nothingNew") : t("cliWrite.change.aircraft.nothing"));
   const built = airframeEdit(a, input);
   if ("error" in built) return fail(c.json, built.error);
   return writeChanges(log, "aircraft", isEmptyChange(built.change) ? [] : [built.change], c, notes);
@@ -484,55 +373,55 @@ export async function aircraftChangeCommand(args: string[]) {
 /** `issues accept`, `reopen` and `fix`. */
 export async function issuesChangeCommand(args: string[]) {
   const [what, ...rest] = args;
-  const c = parse(rest, ISSUES_CHANGE_HELP, { note: what === "accept" });
+  const c = parse(rest, issuesChangeHelp(), { note: what === "accept" });
   const id = c.positional[0];
-  if (!id || c.positional.length > (what === "fix" ? 2 : 1)) return fail(c.json, "Give the finding's id, from ./touchdown issues.");
+  if (!id || c.positional.length > (what === "fix" ? 2 : 1)) return fail(c.json, t("cliWrite.change.issues.giveId"));
   const log = await openOrFail(c.json, c.log);
   if (what === "reopen") {
     const acks = log.store.all("issue_acks").filter((a) => a.id === id || a.fingerprint === id);
-    if (acks.length !== 1) return fail(c.json, acks.length ? `${acks.length} accepted findings fit ${id}; give the id from ./touchdown issues --accepted.` : `No accepted finding is ${id}. See ./touchdown issues --accepted.`, EXIT.notFound);
+    if (acks.length !== 1) return fail(c.json, acks.length ? t("cliWrite.change.issues.severalAccepted", { count: acks.length, id }) : t("cliWrite.change.issues.noAccepted", { id }), EXIT.notFound);
     return writeChanges(log, "issues", [{ op: "reopen", ackId: acks[0]!.id }], c);
   }
   const [rule, fp] = id.includes(":") ? id.split(":") : [null, id];
   const found = openFindings(log).filter((f) => f.fingerprint === fp && (!rule || f.ruleId === rule));
-  if (found.length !== 1) return fail(c.json, found.length ? `${found.length} findings have the id ${id}; give it as RULE:${id}.` : `No open finding is ${id}. See ./touchdown issues (--severity all for notes).`, EXIT.notFound);
+  if (found.length !== 1) return fail(c.json, found.length ? t("cliWrite.change.issues.severalOpen", { count: found.length, id }) : t("cliWrite.change.issues.noOpen", { id }), EXIT.notFound);
   const f = found[0]!;
   if (what === "accept") {
-    if (f.severity === "error") return fail(c.json, `${RULES[f.ruleId]?.title ?? f.ruleId} is an error, which cannot be marked as right: fix the record instead.`);
+    if (f.severity === "error") return fail(c.json, t("cliWrite.change.issues.errorCannotBeAccepted", { rule: RULES[f.ruleId]?.title ?? f.ruleId }));
     return writeChanges(log, "issues", [{ op: "accept", ruleId: f.ruleId, fingerprint: f.fingerprint, note: c.note?.trim() || null }], c);
   }
   const n = c.positional[1] === undefined ? 1 : Number(c.positional[1]);
-  if (!f.fixes.length) return fail(c.json, "That finding has no suggested fix.", EXIT.notFound);
-  if (!Number.isInteger(n) || n < 1 || n > f.fixes.length) return fail(c.json, `Choose a fix from 1 to ${f.fixes.length}.`);
+  if (!f.fixes.length) return fail(c.json, t("cliWrite.change.issues.noFix"), EXIT.notFound);
+  if (!Number.isInteger(n) || n < 1 || n > f.fixes.length) return fail(c.json, t("cliWrite.change.issues.chooseFix", { count: f.fixes.length }));
   return writeChanges(log, "issues", [{ op: "fix", ruleId: f.ruleId, fingerprint: f.fingerprint, fix: n - 1 }], c);
 }
 
 export async function undoCommand(args: string[]) {
-  const c = parse(args, UNDO_HELP, { force: true });
-  if (c.positional.length !== 1) return fail(c.json, "Give the import's id, from ./touchdown imports.");
+  const c = parse(args, undoHelp(), { force: true });
+  if (c.positional.length !== 1) return fail(c.json, t("cliWrite.change.undo.giveId"));
   const log = await openOrFail(c.json, c.log);
   const batch = log.store.get("import_batches", c.positional[0]!);
-  if (!batch) return fail(c.json, `No import is ${c.positional[0]}. See ./touchdown imports.`, EXIT.notFound);
+  if (!batch) return fail(c.json, t("cliWrite.change.undo.noImport", { id: c.positional[0]! }), EXIT.notFound);
   return writeChanges(log, "undo", [{ op: "undo", batchId: batch.id, ...(c.force && { force: true }) }], c);
 }
 
 export async function familiesCommand(args: string[]) {
-  const c = parse(args, FAMILIES_HELP);
+  const c = parse(args, familiesHelp());
   const log = await openOrFail(c.json, c.log);
   const [what, type, family] = c.positional;
   if (!what) {
     const list = log.store.all("family_overrides").map((o) => ({ type: o.designator, typeName: typeName(o.designator, log.ref), family: o.familyId, familyName: log.ref.family(o.familyId)?.name ?? o.familyId }));
     if (c.json) return printJson({ ok: true, from: log.from, families: list });
-    console.log(list.length ? `${bold(plural(list.length, "type"))} counted in another family than its own:` : "Every type is counted in its own family.");
-    for (const x of list) console.log(`  ${x.type}  ${x.typeName}  in ${x.familyName}`);
+    console.log(list.length ? tc("cliWrite.change.families.list", { count: list.length }, { bold }) : t("cliWrite.change.families.none"));
+    for (const x of list) console.log(`  ${x.type}  ${x.typeName}  ${t("cliWrite.change.families.in", { family: String(x.familyName) })}`);
     return;
   }
   const designator = type?.toUpperCase();
-  if ((what !== "set" && what !== "remove") || !designator || (what === "set" ? !family : family !== undefined)) return fail(c.json, FAMILIES_HELP);
-  if (!log.ref.type(designator)) return fail(c.json, `${type} is not an ICAO type code.`);
+  if ((what !== "set" && what !== "remove") || !designator || (what === "set" ? !family : family !== undefined)) return fail(c.json, familiesHelp());
+  if (!log.ref.type(designator)) return fail(c.json, t("cliWrite.change.families.notType", { type: type! }));
   if (what === "remove") return writeChanges(log, "families", [{ op: "family", designator, familyId: null }], c);
   const fam = log.ref.family(family) ?? log.ref.family(family!.toUpperCase()) ?? [...log.ref.families.values()].find((x) => x.name.toLowerCase() === family!.toLowerCase());
-  if (!fam) return fail(c.json, `${family} is not a family. Families: ${[...log.ref.families.values()].map((x) => x.id).join(", ")}.`);
+  if (!fam) return fail(c.json, t("cliWrite.change.families.notFamily", { family: family!, families: [...log.ref.families.values()].map((x) => x.id).join(", ") }));
   return writeChanges(log, "families", [{ op: "family", designator, familyId: fam.id }], c);
 }
 
@@ -543,7 +432,7 @@ const SETTINGS: Record<string, [keyof LogSettings, readonly string[]]> = {
 };
 
 export async function settingsCommand(args: string[]) {
-  const c = parse(args, SETTINGS_HELP);
+  const c = parse(args, settingsHelp());
   const log = await openOrFail(c.json, c.log);
   if (!c.positional.length) {
     const now = { codes: log.codes, distance: log.unit, models: log.models };
@@ -551,13 +440,13 @@ export async function settingsCommand(args: string[]) {
     for (const [k, v] of Object.entries(now)) console.log(`${dim(k.padEnd(8))}  ${v}`);
     return;
   }
-  if (c.positional.length % 2) return fail(c.json, SETTINGS_HELP);
+  if (c.positional.length % 2) return fail(c.json, settingsHelp());
   const set: LogSettings = {};
   for (let i = 0; i < c.positional.length; i += 2) {
     const [name, value] = [c.positional[i]!, c.positional[i + 1]!.toLowerCase()];
     const s = SETTINGS[name];
-    if (!s) return fail(c.json, `There is no setting ${name}. Settings: ${Object.keys(SETTINGS).join(", ")}.`);
-    if (!s[1].includes(value)) return fail(c.json, `${name} is one of ${s[1].join(", ")}.`);
+    if (!s) return fail(c.json, t("cliWrite.change.settings.noSetting", { name, settings: Object.keys(SETTINGS).join(", ") }));
+    if (!s[1].includes(value)) return fail(c.json, t("cliWrite.change.settings.oneOf", { name, values: s[1].join(", ") }));
     (set as Record<string, string>)[s[0]] = value;
   }
   return writeChanges(log, "settings", [{ op: "settings", set }], c);
@@ -571,27 +460,27 @@ export function savedViewNamed(store: Store, name: string) {
 
 /** `./touchdown stats views …` */
 export async function viewsCommand(args: string[]) {
-  const c = parse(args, VIEWS_HELP, { values: ["--by", "--cols", "--of", "--measure"], lists: ["--where"] });
+  const c = parse(args, viewsHelp(), { values: ["--by", "--cols", "--of", "--measure"], lists: ["--where"] });
   const log = await openOrFail(c.json, c.log);
   const [what, name, ...more] = c.positional;
   if (!what) {
-    if (c.values.size || c.lists.size) return fail(c.json, VIEWS_HELP);
+    if (c.values.size || c.lists.size) return fail(c.json, viewsHelp());
     const list = log.store.all("saved_views").map((v) => ({ id: v.id, name: v.name, of: v.dataset, by: v.rowDimension, cols: v.columnDimension ?? null, measure: v.measure, filters: viewFilters(log.store, v.id) }));
     if (c.json) return printJson({ ok: true, from: log.from, views: list });
-    if (!list.length) console.log("No views are saved. Save one with ./touchdown stats views save NAME --by DIM, or on the Statistics page.");
-    for (const v of list) console.log(`  ${bold(v.name ?? "")}  ${dim(`${v.of} by ${v.by}${v.cols ? ` and ${v.cols}` : ""}, ${v.measure}${v.filters.length ? `, only ${plain(filtersText(v.filters, log.ref, log.codes))}` : ""}`)}`);
+    if (!list.length) console.log(t("cliWrite.change.views.none"));
+    for (const v of list) console.log(`  ${bold(v.name ?? "")}  ${dim(t("cliWrite.change.views.line", { of: String(v.of), by: String(v.by), hasCols: v.cols ? "yes" : "no", cols: v.cols ?? "", measure: String(v.measure), hasFilters: v.filters.length ? "yes" : "no", filters: v.filters.length ? plain(filtersText(v.filters, log.ref, log.codes)) : "" }))}`);
     return;
   }
-  if ((what !== "save" && what !== "remove") || !name || more.length) return fail(c.json, VIEWS_HELP);
+  if ((what !== "save" && what !== "remove") || !name || more.length) return fail(c.json, viewsHelp());
   if (what === "remove") {
-    if (c.values.size || c.lists.size) return fail(c.json, VIEWS_HELP);
+    if (c.values.size || c.lists.size) return fail(c.json, viewsHelp());
     const v = savedViewNamed(log.store, name);
-    if (!v) return fail(c.json, `No view is saved as "${name}". See ./touchdown stats views.`, EXIT.notFound);
+    if (!v) return fail(c.json, t("cliWrite.change.views.notSaved", { name }), EXIT.notFound);
     return writeChanges(log, "stats", [{ op: "removeView", id: v.id }], c);
   }
-  if (!c.values.has("--by")) return fail(c.json, `A view needs its rows: --by DIM.\n\n${VIEWS_HELP}`);
-  if (name.length > 80) return fail(c.json, "A view's name is at most 80 characters.");
-  if (savedViewNamed(log.store, name)) return fail(c.json, `A view is saved as "${name}" already. Remove it first, or choose another name.`);
+  if (!c.values.has("--by")) return fail(c.json, `${t("cliWrite.change.views.needsBy")}\n\n${viewsHelp()}`);
+  if (name.length > 80) return fail(c.json, t("cliWrite.change.views.nameTooLong"));
+  if (savedViewNamed(log.store, name)) return fail(c.json, t("cliWrite.change.views.exists", { name }));
   const view: SavedView = {
     name,
     dataset: (c.values.get("--of") ?? "flights") as SavedView["dataset"],

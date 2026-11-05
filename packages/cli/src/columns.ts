@@ -24,10 +24,11 @@ import {
   type SheetData,
   type SheetMapping,
 } from "@touchdown/core";
+import { t } from "@touchdown/i18n/cli";
 import { runAgent, type Agent } from "./agents.ts";
 import { savedMapping, saveMapping } from "./settings.ts";
 import { readSheets } from "./sheets.ts";
-import { bold, dim, fit, yellow } from "./term.ts";
+import { bold, dim, fit, tc, yellow } from "./term.ts";
 
 const MAPPER_PROMPT = join(import.meta.dirname, "../../../prompts/mapper.md");
 
@@ -109,7 +110,7 @@ async function askAgent(agent: Agent, model: string | undefined, sheet: SheetDat
       out.set(a.index, { field, reason: String(a.reason ?? "").slice(0, 160) });
     }
   } catch (e) {
-    say(yellow(`  The agent could not help with the columns: ${(e as Error).message}.`));
+    say(yellow(`  ${t("cliRead.columns.agentFailed", { error: (e as Error).message })}`));
   }
   return out;
 }
@@ -120,8 +121,8 @@ function printColumns(m: SheetMapping, fields: ColumnField[], fromAgent: Set<num
     const f = fields[c.index]!;
     const sample = c.samples.slice(0, 3).join(", ");
     const tone = c.confidence === "unsure" && f === "ignore" ? yellow : (s: string) => s;
-    const note = fromAgent.has(c.index) ? dim(" (the agent's reading)") : "";
-    say(`  ${dim(String(c.index + 1).padStart(2))}  ${fit(c.header || "(no header)", 22)} ${tone(fit(label(f), 26))} ${dim(fit(sample, 40))}${note}`);
+    const note = fromAgent.has(c.index) ? dim(` ${t("cliRead.columns.agentReading")}`) : "";
+    say(`  ${dim(String(c.index + 1).padStart(2))}  ${fit(c.header || t("cliRead.columns.noHeader"), 22)} ${tone(fit(label(f), 26))} ${dim(fit(sample, 40))}${note}`);
   }
 }
 
@@ -132,19 +133,19 @@ export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions)
   try {
     sheets = readSheets(path);
   } catch (e) {
-    return { error: `${basename(path)} could not be read: ${(e as Error).message}` };
+    return { error: t("cliRead.columns.unreadable", { file: basename(path), error: (e as Error).message }) };
   }
   for (const sheet of sheets) {
     if (isFr24Export(sheet.header)) return { source: parseSource(sheet, basename(path), ref)!, kind: "fr24", sheetName: sheet.name, sheet, mapping: null };
   }
   // The first sheet (tab) whose columns hold enough to read rows.
   const pick = sheets.map((sheet) => ({ sheet, m: guessMapping(sheet, ref) })).find((x) => !mappingProblem(fieldsOf(x.m)));
-  if (!pick) return { error: `${basename(path)}: no sheet has a column Touchdown can read as the registration (sightings) or the date and flight number (flights). Name the columns, or use the Import page to choose them.` };
+  if (!pick) return { error: t("cliRead.columns.noSheet", { file: basename(path) }) };
   const { sheet, m } = pick;
   const signature = headerSignature(sheet.header);
   const saved = savedMapping(signature);
   if (saved) {
-    say(dim(`  Columns as you confirmed them for this layout before (${saved.kind}).`));
+    say(dim(`  ${t("cliRead.columns.saved", { kind: saved.kind })}`));
     return { source: readMapped(sheet, saved, basename(path), ref), kind: saved.kind, sheetName: sheet.name, sheet, mapping: saved };
   }
 
@@ -152,12 +153,12 @@ export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions)
   for (const spec of o.maps) {
     const [k, v] = spec.split("=").map((x) => x.trim());
     const col = /^\d+$/.test(k ?? "") ? Number(k) - 1 : sheet.header.findIndex((h) => h.trim().toLowerCase() === (k ?? "").toLowerCase());
-    if (col < 0 || col >= fields.length || !(COLUMN_FIELDS as readonly string[]).includes(v ?? "")) return { error: `--map ${spec}: give a column (its header or number) and one of: ${choices(m.kind).join(", ")}.` };
+    if (col < 0 || col >= fields.length || !(COLUMN_FIELDS as readonly string[]).includes(v ?? "")) return { error: t("cliRead.columns.badMap", { spec, fields: choices(m.kind).join(", ") }) };
     fields[col] = v as ColumnField;
     m.columns[col]!.confidence = "sure";
   }
 
-  say(`\n${bold(`Columns of ${basename(path)}${sheets.length > 1 ? ` (tab "${sheet.name}")` : ""}`)}: read as ${m.kind}`);
+  say(`\n${sheets.length > 1 ? tc("cliRead.columns.titleTab", { file: basename(path), tab: sheet.name, kind: m.kind }, { b: bold }) : tc("cliRead.columns.title", { file: basename(path), kind: m.kind }, { b: bold })}`);
   const unsure = unsureColumns(m);
   const proposals = unsure.length && o.agent ? await askAgent(o.agent, o.model, sheet, m, ref, say) : new Map<number, { field: ColumnField; reason: string }>();
   for (const [i, p] of proposals) fields[i] = p.field;
@@ -166,31 +167,31 @@ export async function readSheetFile(path: string, ref: RefIndex, o: ReadOptions)
   if (o.ask && process.stdin.isTTY) {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
-      if (unsure.length) console.log(`\n${bold("Unclear columns.")} ${dim(`Press Enter to accept, or type a field: ${choices(m.kind).join(", ")}.`)}`);
+      if (unsure.length) console.log(`\n${tc("cliRead.columns.unclear", { fields: choices(m.kind).join(", ") }, { b: bold, dim })}`);
       for (const c of unsure) {
         const p = proposals.get(c.index);
         const now = fields[c.index]!;
-        const hint = p ? `the agent says ${label(p.field).toLowerCase()}: ${p.reason}` : c.why;
+        const hint = p ? t("cliRead.columns.agentSays", { field: label(p.field).toLowerCase(), reason: p.reason }) : c.why;
         for (;;) {
-          const a = (await rl.question(`  ${dim(String(c.index + 1).padStart(2))}  ${c.header || "(no header)"} ${dim(`(${hint})`)} [${now}]: `)).trim();
+          const a = (await rl.question(`  ${dim(String(c.index + 1).padStart(2))}  ${c.header || t("cliRead.columns.noHeader")} ${dim(`(${hint})`)} [${now}]: `)).trim();
           if (!a) break;
           if ((choices(m.kind) as string[]).includes(a)) {
             fields[c.index] = a as ColumnField;
             break;
           }
-          console.log(dim(`      Type one of: ${choices(m.kind).join(", ")}.`));
+          console.log(dim(`      ${t("cliRead.columns.typeOne", { fields: choices(m.kind).join(", ") })}`));
         }
       }
       const problem = mappingProblem({ kind: m.kind, fields });
       if (problem) return { error: problem };
-      const ok = (await rl.question(`Read the rows with these columns, and remember them for files laid out like this? [Y/n] `)).trim();
-      if (/^no?$/i.test(ok)) return { error: "Stopped. Run again with --map \"Header=field\" to set a column, or choose the columns on the Import page." };
+      const ok = (await rl.question(`${t("cliRead.columns.confirm")} [Y/n] `)).trim();
+      if (/^no?$/i.test(ok)) return { error: t("cliRead.columns.stopped") };
       saveMapping(signature, { kind: m.kind, fields });
     } finally {
       rl.close();
     }
   } else if (unsure.some((c) => fields[c.index] === "ignore")) {
-    say(dim(`  Unclear columns are not used. Set one with --map "Header=field".`));
+    say(dim(`  ${t("cliRead.columns.unclearUnused")}`));
   }
   const problem = mappingProblem({ kind: m.kind, fields });
   if (problem) return { error: problem };

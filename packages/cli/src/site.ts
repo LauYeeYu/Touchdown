@@ -4,6 +4,7 @@
 // it, with its PKCE verifier, for a session of its own. The session lasts until it is signed out. Its token is kept in
 // data/private/ and never printed.
 
+import { t } from "@touchdown/i18n/cli";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -50,10 +51,10 @@ export function siteAddress(typed: string): string {
   try {
     url = new URL(/^[a-z]+:\/\//i.test(typed) ? typed : `https://${typed}`);
   } catch {
-    throw new Error(`${typed} is not a web address.`);
+    throw new Error(t("cliWrite.site.notAddress", { typed }));
   }
   const local = url.hostname === "127.0.0.1" || url.hostname === "localhost";
-  if (url.protocol !== "https:" && !(local && url.protocol === "http:")) throw new Error("The site's address must start with https://.");
+  if (url.protocol !== "https:" && !(local && url.protocol === "http:")) throw new Error(t("cliWrite.site.httpsOnly"));
   return url.origin;
 }
 
@@ -93,11 +94,11 @@ export function loopback(state: string): Promise<{ port: number; answer: Promise
       req.on("end", () => {
         const fields = req.method === "POST" ? new URLSearchParams(Buffer.concat(chunks).toString("utf8")) : new URL(req.url ?? "/", "http://127.0.0.1").searchParams;
         if (fields.get("state") !== state) {
-          res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" }).end(PAGE("Not for this command", "This answer does not belong to the command that is waiting. Run the command again."));
+          res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" }).end(PAGE(t("cliWrite.site.page.wrongState.title"), t("cliWrite.site.page.wrongState.text")));
           return;
         }
         const ok = !fields.get("error");
-        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(ok ? PAGE("Done", "You can close this tab and go back to the terminal.") : PAGE("Cancelled", "Nothing was given to the command line. You can close this tab."));
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(ok ? PAGE(t("cliWrite.site.page.done.title"), t("cliWrite.site.page.done.text")) : PAGE(t("cliWrite.site.page.cancelled.title"), t("cliWrite.site.page.cancelled.text")));
         clearTimeout(timer);
         server.close();
         settle(fields);
@@ -105,7 +106,7 @@ export function loopback(state: string): Promise<{ port: number; answer: Promise
     });
     const timer = setTimeout(() => {
       server.close();
-      fail(new Error("No answer from the browser within 5 minutes. Run the command again."));
+      fail(new Error(t("cliWrite.site.noAnswer")));
     }, WAIT_MS);
     server.on("error", failed);
     server.listen(0, "127.0.0.1", () => {
@@ -120,7 +121,7 @@ export async function viaBrowser(site: string, path: string, query: Record<strin
   const state = base64url(randomBytes(16));
   const { port, answer } = await loopback(state);
   const url = `${site}${path}?${new URLSearchParams({ ...query, port: String(port), state })}`;
-  say("Opening Touchdown in your browser. If it does not open, go to:");
+  say(t("cliWrite.site.opening"));
   say(url);
   openBrowser(url);
   return answer;
@@ -133,10 +134,10 @@ export async function login(site: string, say: (line: string) => void, doFetch: 
   const verifier = base64url(randomBytes(32));
   const challenge = base64url(createHash("sha256").update(verifier).digest());
   const fields = await viaBrowser(site, "/cli/login", { challenge, system: SYSTEM }, say);
-  if (fields.get("error")) throw new Error("Not signed in: cancelled in the browser.");
+  if (fields.get("error")) throw new Error(t("cliWrite.site.cancelled"));
   const res = await doFetch(`${site}/auth/cli/token`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: fields.get("code"), verifier }) });
   const body = (await res.json().catch(() => ({}))) as { token?: string; name?: string; email?: string; error?: string };
-  if (!res.ok || !body.token) throw new Error(body.error ?? `The site did not sign the command line in (${res.status}).`);
+  if (!res.ok || !body.token) throw new Error(body.error ?? t("cliWrite.site.refused", { status: res.status }));
   const s: SavedSession = { site, token: body.token, name: body.name ?? "", email: body.email ?? "", savedAt: new Date().toISOString() };
   saveSession(s);
   return s;
@@ -145,9 +146,9 @@ export async function login(site: string, say: (line: string) => void, doFetch: 
 /** A request to the site with the command line's session. */
 export async function siteFetch(path: string, init: RequestInit = {}, doFetch: typeof fetch = (i, x) => fetch(i, x)): Promise<Response> {
   const s = savedSession();
-  if (!s) throw new NotSignedIn("The command line is not signed in to Touchdown. Sign in with ./touchdown login.");
+  if (!s) throw new NotSignedIn(t("cli.notSignedIn"));
   const res = await doFetch(`${s.site}${path}`, { ...init, headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${s.token}`, Accept: "application/json" } });
-  if (res.status === 401) throw new NotSignedIn("The command line is no longer signed in to Touchdown (signed out in Settings?). Sign in again with ./touchdown login.");
+  if (res.status === 401) throw new NotSignedIn(t("cli.signedOut"));
   return res;
 }
 
@@ -159,21 +160,12 @@ export async function logout(doFetch?: typeof fetch): Promise<boolean> {
   return true;
 }
 
-export const LOGIN_HELP = `Usage: ./touchdown login [SITE]
-       ./touchdown logout
-
-Signs the command line in to Touchdown, as a browser is signed in: a page opens in your browser, where you
-allow it. Without SITE it signs in to ${DEFAULT_SITE}; SITE chooses another, such as the dev
-server (http://127.0.0.1:5173). The sign-in lasts until you sign it
-out, with ./touchdown logout or in the web app under Settings, Signed in on. It is kept in
-data/private/touchdown-session.json.
-
-With it, ./touchdown storage drive reaches the log in your Google Drive the way the web app does.`;
+export const loginHelp = () => t("cli.help.login", { site: DEFAULT_SITE });
 
 /** `./touchdown login [SITE]` */
 export async function loginCommand(args: string[], say: (line: string) => void): Promise<void> {
   if (args.includes("--help") || args.includes("-h") || args.length > 1) {
-    console.log(LOGIN_HELP);
+    console.log(loginHelp());
     process.exit(args.length > 1 ? 1 : 0);
   }
   const current = savedSession();
@@ -181,17 +173,17 @@ export async function loginCommand(args: string[], say: (line: string) => void):
   if (current?.site === site) {
     const me = await siteFetch("/auth/me").catch(() => null);
     if (me?.ok) {
-      console.log(`Signed in to ${site} as ${current.name} (${current.email}) already. ./touchdown logout signs out.`);
+      console.log(t("cliWrite.site.already", { site, name: current.name, email: current.email }));
       return;
     }
   }
   const s = await login(site, say);
-  console.log(`Signed in to ${site} as ${s.name} (${s.email}). The command line stays signed in until ./touchdown logout, or until you sign it out in Settings.`);
+  console.log(t("cliWrite.site.signedIn", { site, name: s.name, email: s.email }));
 }
 
 /** `./touchdown logout` */
 export async function logoutCommand(): Promise<void> {
   const { forgetDriveAccess } = await import("./google.ts");
   forgetDriveAccess();
-  console.log((await logout()) ? "Signed out: the command line's session has ended." : "The command line was not signed in.");
+  console.log((await logout()) ? t("cliWrite.site.signedOut") : t("cliWrite.site.wasNotSignedIn"));
 }

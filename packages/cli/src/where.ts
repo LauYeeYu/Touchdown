@@ -2,8 +2,15 @@
 // Statistics page's Filter makes one. A value can be given as stored, as the page shows it, or by its code.
 
 import { DIMENSIONS, dimensionValues, type Dataset, type PivotFilter, type StatsContext } from "@touchdown/core";
-import { MONTHS, MONTHS_LONG, pivotValueLabel } from "@touchdown/core/view";
+import { monthNames, pivotValueLabel } from "@touchdown/core/view";
+import { list, t } from "@touchdown/i18n/cli";
 import { plain, type OpenedLog } from "./read.ts";
+
+/** A dimension named by --by, --cols or --where that does not exist, with the ones that do. */
+export const noDimension = (id: string) => t("cliRead.dimension.none", { id, ids: DIMENSIONS.map((d) => d.id).join(", ") });
+
+/** A dimension of the other dataset only. */
+export const wrongDataset = (id: string, datasets: readonly string[], dataset: string) => t("cliRead.dimension.wrongData", { id, datasets: list(datasets), dataset });
 
 /** The value among `known` that `raw` names: the stored value, the name shown, or a code (BA, LHR, JFK-BOS, March, 9). */
 function matchValue(log: OpenedLog, dimId: string, raw: string, known: string[]): string | null {
@@ -28,8 +35,9 @@ function matchValue(log: OpenedLog, dimId: string, raw: string, known: string[])
       return found([...codes].sort().join("-"));
     }
     case "month": {
-      const i = MONTHS_LONG.findIndex((m) => m.toLowerCase() === t);
-      const j = MONTHS.findIndex((m) => m.toLowerCase() === t);
+      // A month's name or its first three letters, in the interface's language: "march", "mar".
+      const i = monthNames().findIndex((m) => m.toLowerCase() === t);
+      const j = monthNames().findIndex((m) => t.length >= 3 && m.toLowerCase().startsWith(t));
       const n = i >= 0 ? i + 1 : j >= 0 ? j + 1 : Number(t);
       return Number.isInteger(n) && n >= 1 && n <= 12 ? found(String(n).padStart(2, "0")) : null;
     }
@@ -48,23 +56,24 @@ export function whereFilters(log: OpenedLog, ctx: StatsContext, dataset: Dataset
   const records = dataset === "flights" ? log.store.all("flights") : log.store.all("sightings");
   for (const item of items) {
     const eq = item.indexOf("=");
-    if (eq < 1) return { error: `--where takes DIM=VALUE, or several values of one dimension: DIM=A,B (not "${item}").` };
+    if (eq < 1) return { error: t("cliRead.where.invalid", { item }) };
     const id = item.slice(0, eq).trim();
     const dim = DIMENSIONS.find((d) => d.id === id);
-    if (!dim) return { error: `There is no dimension "${id}". Choose from: ${DIMENSIONS.map((d) => d.id).join(", ")}.` };
-    if (!dim.datasets.includes(dataset)) return { error: `${id} is for ${dim.datasets.join(" and ")}, not ${dataset}.` };
-    if (out.some((f) => f.dimension === id)) return { error: `${id} is given twice: give its values together, ${id}=A,B.` };
+    if (!dim) return { error: noDimension(id) };
+    if (!dim.datasets.includes(dataset)) return { error: wrongDataset(id, dim.datasets, dataset) };
+    if (out.some((f) => f.dimension === id)) return { error: t("cliRead.where.twice", { id }) };
     const known = dimensionValues(dataset, records, dim, ctx).map((v) => v.value);
     const values: string[] = [];
     for (const raw of item.slice(eq + 1).split(",").map((s) => s.trim()).filter(Boolean)) {
       const key = matchValue(log, id, raw, known);
       if (!key) {
         const some = known.slice(0, 6).map((k) => plain(pivotValueLabel(id, k, log.ref, log.codes)));
-        return { error: `No ${dim.label.toLowerCase()} "${raw}" among the log's ${dataset}.${some.length ? ` Some there are: ${some.join(", ")}.` : ""}` };
+        const params = { dimension: dim.label.toLowerCase(), value: raw, dataset };
+        return { error: some.length ? t("cliRead.where.noValueSome", { ...params, some: some.join(", ") }) : t("cliRead.where.noValue", params) };
       }
       if (!values.includes(key)) values.push(key);
     }
-    if (!values.length) return { error: `--where ${id}= needs a value.` };
+    if (!values.length) return { error: t("cliRead.where.needsValue", { id }) };
     out.push({ dimension: id, values });
   }
   return out;

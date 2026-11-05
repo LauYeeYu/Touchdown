@@ -4,6 +4,7 @@
 // `touchdown review`, which read it exactly as they would read the file itself. Nothing reaches the log without that
 // review. With --out the command builds a backup instead (main.ts).
 
+import { t } from "@touchdown/i18n/cli";
 import { basename } from "node:path";
 import {
   checkAll,
@@ -27,7 +28,7 @@ import { userPath } from "./paths.ts";
 import { EXIT, fail, printJson } from "./read.ts";
 import { label, questions, rowTitle, shownValue } from "./review.ts";
 import { chosenStorage } from "./storage.ts";
-import { bold, dim, green, plural, red, yellow } from "./term.ts";
+import { bold, dim, green, red, tc, units, yellow } from "./term.ts";
 
 /** Options that belong to building a backup (--out), not to the inbox. */
 const BACKUP_OPTIONS = ["--today", "--all-findings", "--apply-fixes", "--tracks", "--tracks-adsblol", "--airframes"];
@@ -70,14 +71,14 @@ function options(args: string[]): Options | { error: string } {
     else if (a === "--keep-errors") o.keepErrors = true;
     else if (a === "--map" || a === "--log") {
       const v = args[++i];
-      if (v === undefined || v.startsWith("--")) return { error: `${a} needs a value.` };
+      if (v === undefined || v.startsWith("--")) return { error: t("cli.args.needsValue", { option: a }) };
       if (a === "--map") o.maps.push(v);
       else o.log = userPath(v);
-    } else if (BACKUP_OPTIONS.includes(a)) return { error: `${a} is for building a backup: give --out FILE.zip as well.` };
-    else if (a.startsWith("--")) return { error: `There is no option ${a}.` };
+    } else if (BACKUP_OPTIONS.includes(a)) return { error: t("cliWrite.import.backupOption", { option: a }) };
+    else if (a.startsWith("--")) return { error: t("cli.args.noOption", { option: a }) };
     else o.files.push(userPath(a));
   }
-  return o.files.length ? o : { error: "Give the files to import." };
+  return o.files.length ? o : { error: t("cliWrite.import.noFiles") };
 }
 
 /** The sheet as the inbox keeps it: for a mapped layout, only the columns used. */
@@ -116,7 +117,7 @@ export async function importCommand(args: string[], ref: RefIndex, help: string)
   // Findings the log has already are not the files' to report.
   const before = copyStore(store);
   const known = new Set(checkAll(before, ref, { overlaps: resolveAirframes(before, ref).overlaps }).map((f) => f.fingerprint));
-  for (const p of log.problems) say(dim(`Could not read ${p}.`));
+  for (const p of log.problems) say(dim(t("cliWrite.import.couldNotRead", { problem: p })));
 
   const reports: (FileReport | { file: string; error: string })[] = [];
   let status: number = EXIT.ok;
@@ -197,18 +198,16 @@ export async function importCommand(args: string[], ref: RefIndex, help: string)
 
 function printReport(r: FileReport, from: string, place: string, shared: boolean) {
   const c = r.counts;
-  const verb = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
   const parts = [
-    c.new ? `${c.new} new` : null,
-    c.update ? verb(c.update, "fills in a record of your log", "fill in records of your log") : null,
-    c.conflict ? verb(c.conflict, "differs from your log", "differ from your log") : null,
-    c.duplicate ? verb(c.duplicate, "repeats an earlier row (same aircraft, place and day; merged)", "repeat an earlier row (same aircraft, place and day; merged)") : null,
-    c.waiting ? verb(c.waiting, "is waiting in the inbox already", "are waiting in the inbox already") : null,
-    c.identical ? verb(c.identical, "is in your log already", "are in your log already") : null,
-  ].filter(Boolean);
-  const what = r.format === "fr24_csv" ? "my.flightradar24.com export" : `spreadsheet of ${r.kind}`;
-  console.log(`\n${bold(r.file)}${r.sheet ? ` (tab "${r.sheet}")` : ""}: ${what}, ${plural(r.rows, "row")}, checked against ${from}`);
-  console.log(`  ${parts.join(", ") || "nothing"}`);
+    c.new ? t("cliWrite.import.counts.new", { n: c.new }) : null,
+    c.update ? t("cliWrite.import.counts.update", { n: c.update }) : null,
+    c.conflict ? t("cliWrite.import.counts.conflict", { n: c.conflict }) : null,
+    c.duplicate ? t("cliWrite.import.counts.duplicate", { n: c.duplicate }) : null,
+    c.waiting ? t("cliWrite.import.counts.waiting", { n: c.waiting }) : null,
+    c.identical ? t("cliWrite.import.counts.identical", { n: c.identical }) : null,
+  ].filter((x): x is string => !!x);
+  console.log(`\n${tc("cliWrite.import.file", { file: r.file, tabbed: r.sheet ? "yes" : "no", sheet: r.sheet ?? "", format: r.format, kind: r.kind, rows: r.rows, from }, { bold })}`);
+  console.log(`  ${units(parts) || t("cliWrite.import.counts.nothing")}`);
 
   // Each row with something to say, with what it is.
   const rows = new Map<number, { title: string; mark: string; lines: string[] }>();
@@ -221,22 +220,22 @@ function printReport(r: FileReport, from: string, place: string, shared: boolean
   }
   for (const d of r.differs) {
     const e = entry(d.row, d.title);
-    for (const f of d.fields) e.lines.push(`${f.label}: ${f.yours} in your log, ${f.file} in the file`);
+    for (const f of d.fields) e.lines.push(t("cliWrite.import.differs", { label: f.label, yours: f.yours, file: f.file }));
     e.mark ||= yellow("≠");
   }
   const sorted = [...rows].sort(([a], [b]) => a - b);
   for (const [row, e] of sorted.slice(0, SHOWN)) {
-    console.log(`  ${e.mark} ${dim(`row ${row}`)}  ${e.title}`);
+    console.log(`  ${e.mark} ${dim(t("cli.row", { n: row }))}  ${e.title}`);
     for (const l of e.lines) console.log(`      ${l}`);
   }
-  if (sorted.length > SHOWN) console.log(dim(`  and ${plural(sorted.length - SHOWN, "more row")} (--json lists them all)`));
-  if (r.differs.length) console.log(dim("  Where the file differs, your log's value stays unless you take the file's in the review."));
+  if (sorted.length > SHOWN) console.log(dim(`  ${t("cliWrite.import.more", { count: sorted.length - SHOWN })}`));
+  if (r.differs.length) console.log(dim(`  ${t("cliWrite.import.yoursStays")}`));
 
   const errors = r.problems.filter((p) => p.severity === "error").length;
   if (r.written) {
-    console.log(`${green("Written")} to ${place}: ${r.written}. Read back and checked.`);
-    console.log(`${yellow("Not in your log yet:")} ${shared ? "run ./touchdown review, or open Touchdown on any device and use “Review and import” at the top." : "start the web app (npm run dev -w @touchdown/web) and use “Review and import” at the top."}`);
-  } else if (r.notWritten === "errors") console.log(red(`Not written: ${plural(errors, "error")}. Correct the file, or give --keep-errors to review them on the Import page.`));
-  else if (r.notWritten === "nothing new") console.log(dim("Nothing to write: every row is in your log or waiting in the inbox already."));
-  else if (r.notWritten === "dry-run") console.log(dim("Checked only (--dry-run): nothing written."));
+    console.log(tc("cliWrite.import.written", { place, file: r.written }, { green }));
+    console.log(tc("cli.notInLogYet", { shared: shared ? "yes" : "no" }, { yellow }));
+  } else if (r.notWritten === "errors") console.log(red(t("cliWrite.import.notWritten", { count: errors })));
+  else if (r.notWritten === "nothing new") console.log(dim(t("cliWrite.import.nothingNew")));
+  else if (r.notWritten === "dry-run") console.log(dim(t("cliWrite.import.dryRun")));
 }

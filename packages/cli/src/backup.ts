@@ -3,6 +3,7 @@
 // track points included, as the web app's does; an export leaves the private fields out unless --private, which
 // writes only to a file, never to the terminal.
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { backupZip, RefIndex, tableCsv, todayIn, type TableName } from "@touchdown/core";
@@ -11,49 +12,13 @@ import { loadRefTables } from "@touchdown/refdata";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, printJson } from "./read.ts";
 import { chosenStorage, readLog } from "./storage.ts";
-import { dim, green, plural } from "./term.ts";
+import { dim, green, tc } from "./term.ts";
 
-export const BACKUP_HELP = `Usage: ./touchdown backup [--out FILE.zip] [--force] [--json]
-
-Downloads a backup of your log from the storage chosen with ./touchdown storage, as Settings, Data, "Export a
-backup" does in the web app: every table, private fields and recorded tracks included. Restore it in the web app
-(Settings, Data); the command line does not restore.
-
-  --out FILE.zip   where to write it (default data/private/touchdown-backup-DATE.zip, or -2, -3, … when taken)
-  --force          replace FILE.zip if it exists
-  --json           print what was written as JSON
-
-The file holds your ticket numbers and booking references: keep it in data/private/ or somewhere only you can
-read. It is written readable only by you.
-
-Exit status: 0 written; 2 the storage could not be read, or the file exists.`;
+export const backupHelp = () => t("cli.help.backup");
 
 const TABLE_OF: Record<string, TableName> = { flights: "flights", sightings: "sightings", aircraft: "airframes", airframes: "airframes" };
 
-export const EXPORT_HELP = `Usage: ./touchdown export flights|sightings|aircraft [--out FILE.csv [--private] [--force]] [--log FILE]
-       ./touchdown export missing-tracks [--out FILE.csv [--force]] [--log FILE]
-       ./touchdown export myfr24 [--new] [--out FILE.csv [--force]] [--log FILE]
-
-Writes a table of your log as CSV, as Settings, Data does in the web app: one row per record, every stored
-field as a column. Without --out it is printed, for a pipe or a spreadsheet.
-
-missing-tracks is the short list the Flights page downloads: the flights without a recorded track, with their
-date, flight number, route, registration, type and UTC times, nothing private. Send it to someone who can find
-the tracks (a Flightradar24 subscriber, say); the files they send back go in with ./touchdown track or Add track.
-
-myfr24 is a file for my.flightradar24.com's import (Settings › Import there), in the columns of its own export.
-With --new it holds only the flights not in myFR24 yet: not imported from its export, and not in a file the web
-app made before. The web app marks the flights in each file it makes; the command line writes nothing to the log,
-so a file made here is not remembered.
-
-  --out FILE.csv   write it to a file
-  --new            myfr24 only: leave out the flights already in myFR24
-  --private        include ticket numbers and booking references (flights); only with --out, and the file
-                   is written readable only by you
-  --force          replace FILE.csv if it exists
-  --log FILE       read a backup instead of the log in your storage
-
-Exit status: 0 written; 2 a wrong option, a log that cannot be read, or the file exists.`;
+export const exportHelp = () => t("cli.help.export");
 
 /** A file in data/private/ not taken yet: NAME.zip, else NAME-2.zip, … */
 function freePath(name: string): string {
@@ -65,7 +30,7 @@ function freePath(name: string): string {
 
 /** Write `data` to `out`, refusing to replace a file unless `force`. Readable only by the user. */
 function writeTo(out: string, data: string | Uint8Array, force: boolean): string | null {
-  if (existsSync(out) && !force) return `${shownPath(out)} exists. Give another name, or --force to replace it.`;
+  if (existsSync(out) && !force) return t("cliWrite.backup.exists", { file: shownPath(out) });
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, data, { mode: 0o600 });
   return null;
@@ -73,11 +38,11 @@ function writeTo(out: string, data: string | Uint8Array, force: boolean): string
 
 /** `./touchdown backup …` */
 export async function backupCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--out"], flags: ["--force"] }, BACKUP_HELP);
+  const a = argsOrHelp(args, { values: ["--out"], flags: ["--force"] }, backupHelp());
   const json = a.flags.has("--json");
-  if (a.values.has("--log")) return fail(json, "backup reads your log from the storage; a backup file is one already.");
+  if (a.values.has("--log")) return fail(json, t("cliWrite.backup.notFromBackup"));
   const out = a.values.has("--out") ? userPath(a.values.get("--out")!) : freePath(`touchdown-backup-${todayIn()}`);
-  if (!out.endsWith(".zip")) return fail(json, "A backup is a .zip file: give --out FILE.zip.");
+  if (!out.endsWith(".zip")) return fail(json, t("cliWrite.backup.zipOnly"));
 
   let storage;
   try {
@@ -85,8 +50,8 @@ export async function backupCommand(args: string[]) {
   } catch (e) {
     return fail(json, (e as Error).message);
   }
-  if (!storage) return fail(json, "No storage chosen. backup reads your log where the web app syncs it: choose it with ./touchdown storage drive (or folder PATH). In Local mode, export a backup in the web app's Settings.");
-  if (!json) console.error(dim(`Reading your log from ${storage.name}…`));
+  if (!storage) return fail(json, t("cliWrite.backup.noStorage"));
+  if (!json) console.error(dim(t("cli.readingLog", { place: storage.name })));
   let read;
   try {
     read = await readLog(storage, new RefIndex(loadRefTables()), { tracks: true });
@@ -101,26 +66,26 @@ export async function backupCommand(args: string[]) {
   const counts = { flights: store.count("flights"), sightings: store.count("sightings"), aircraft: store.count("airframes"), tracks };
   if (json) printJson({ ok: true, file: shownPath(out), from: storage.name, counts, problems });
   else {
-    console.log(`${green("Wrote")} a backup of your log in ${storage.name} to ${shownPath(out)}: ${plural(counts.flights, "flight")}, ${plural(counts.sightings, "sighting")}, ${plural(counts.aircraft, "aircraft", "aircraft")} and ${plural(tracks, "recorded track")}.`);
-    for (const p of problems) console.log(dim(`Could not read ${p}; it is not in the backup.`));
-    console.log(dim("It holds your private fields. Restore it in the web app under Settings, Data."));
+    console.log(tc("cliWrite.backup.wrote", { place: storage.name, file: shownPath(out), flights: counts.flights, sightings: counts.sightings, aircraft: counts.aircraft, tracks }, { green }));
+    for (const p of problems) console.log(dim(t("cliWrite.backup.unreadable", { file: p })));
+    console.log(dim(t("cliWrite.backup.holdsPrivate")));
   }
   process.exit(EXIT.ok);
 }
 
 /** `./touchdown export TABLE …` */
 export async function exportCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--out"], flags: ["--private", "--force", "--new"] }, EXPORT_HELP, [1, 1]);
+  const a = argsOrHelp(args, { values: ["--out"], flags: ["--private", "--force", "--new"] }, exportHelp(), [1, 1]);
   const json = a.flags.has("--json");
-  if (json) return fail(json, "export prints CSV; it has no --json.");
+  if (json) return fail(json, t("cliWrite.export.noJson"));
   const missing = a.positional[0] === "missing-tracks";
   const fr24 = a.positional[0] === "myfr24";
   const table = Object.hasOwn(TABLE_OF, a.positional[0]!) ? TABLE_OF[a.positional[0]!] : undefined;
-  if (!table && !missing && !fr24) return fail(false, `Choose flights, sightings, aircraft, missing-tracks or myfr24.\n\n${EXPORT_HELP}`);
+  if (!table && !missing && !fr24) return fail(false, `${t("cliWrite.export.choose")}\n\n${exportHelp()}`);
   const priv = a.flags.has("--private");
-  if ((missing || fr24) && priv) return fail(false, `${a.positional[0]} holds nothing private; it takes no --private.`);
-  if (!fr24 && a.flags.has("--new")) return fail(false, "--new is for myfr24 only.");
-  if (priv && !a.values.has("--out")) return fail(false, "--private writes ticket numbers and booking references, so only to a file: give --out FILE.csv as well.");
+  if ((missing || fr24) && priv) return fail(false, t("cliWrite.export.nothingPrivate", { what: a.positional[0]! }));
+  if (!fr24 && a.flags.has("--new")) return fail(false, t("cliWrite.export.newMyfr24Only"));
+  if (priv && !a.values.has("--out")) return fail(false, t("cliWrite.export.privateNeedsOut"));
   const log = await openOrFail(false, a.values.get("--log"));
   const flights = fr24 ? myFr24Flights(log.store, a.flags.has("--new")) : [];
   const csv = missing ? missingTracksCsv(log.store, log.ref) : fr24 ? myFr24Csv(log.store, log.ref, flights) : tableCsv(log.store, table!, priv);
@@ -132,8 +97,8 @@ export async function exportCommand(args: string[]) {
   const problem = writeTo(out, csv, a.flags.has("--force"));
   if (problem) return fail(false, problem);
   const rows = missing ? csv.trimEnd().split("\r\n").length - 1 : fr24 ? flights.length : log.store.count(table!);
-  const what = missing ? "without a track" : fr24 ? `for myFR24${a.flags.has("--new") ? " not in it yet" : ""}` : `of ${a.positional[0]}`;
-  console.log(`${green("Wrote")} ${plural(rows, missing || fr24 ? "flight" : "row")} ${what} from ${log.from} to ${shownPath(out)}${priv ? ", private fields included" : ""}.`);
-  if (fr24) console.log(dim("Import it on my.flightradar24.com, under Settings › Import."));
+  const kind = missing ? "missing" : fr24 ? (a.flags.has("--new") ? "myfr24New" : "myfr24") : "table";
+  console.log(tc("cliWrite.export.wrote", { kind, rows, table: a.positional[0]!, from: log.from, file: shownPath(out), priv: priv ? "yes" : "no" }, { green }));
+  if (fr24) console.log(dim(t("cliWrite.export.importThere")));
   process.exit(EXIT.ok);
 }

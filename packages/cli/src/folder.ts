@@ -1,6 +1,7 @@
 // A folder on this computer as a file adapter (docs/12, "File adapters"), for a log the web app syncs through a
 // folder. The folder may sit inside Dropbox, OneDrive or iCloud Drive; the CLI reads and writes it like any other.
 
+import { t } from "@touchdown/i18n/cli";
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -19,7 +20,7 @@ export class NodeFolder implements FileAdapter {
   private full(path: string): string {
     const full = resolve(this.root, path);
     const rel = relative(this.root, full);
-    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error(`Not a path in the Touchdown folder: ${path}`);
+    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error(t("cliWrite.folder.outside", { path }));
     return full;
   }
 

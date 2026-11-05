@@ -5,6 +5,7 @@
 // that folder is read through. What is found is kept in data/private/cache/adsblol: the aircraft's trace, a few
 // hundred kilobytes, and the day's map of folders. Open data (ODbL): credited wherever a track is shown.
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
@@ -123,7 +124,7 @@ class DayArchive {
       return body;
     }
     await res?.arrayBuffer().catch(() => null);
-    if (attempt >= 3) throw new Error(`adsb.lol's archive for ${this.tag} could not be read (${res ? `HTTP ${res.status}` : "no answer"}).`);
+    if (attempt >= 3) throw new Error(res ? t("cliWrite.providers.adsblol.unreadable", { tag: this.tag, status: res.status }) : t("cliWrite.providers.adsblol.noAnswer", { tag: this.tag }));
     // The download addresses GitHub hands out expire: get fresh ones, and wait a little on a busy server.
     if (res && (res.status === 401 || res.status === 403 || res.status === 410)) {
       const parts = await this.reopen();
@@ -144,7 +145,7 @@ async function probe(url: string): Promise<{ url: string; size: number } | null>
   await res.arrayBuffer().catch(() => null);
   if (res.status === 404) return null;
   const total = Number(res.headers.get("content-range")?.split("/")[1]);
-  if (res.status !== 206 || !Number.isFinite(total)) throw new Error(`adsb.lol's archive could not be reached (HTTP ${res.status}).`);
+  if (res.status !== 206 || !Number.isFinite(total)) throw new Error(t("cliWrite.providers.adsblol.unreachable", { status: res.status }));
   return { url: res.url, size: total };
 }
 
@@ -237,7 +238,7 @@ export async function adsbLolTraces(day: string, hexes: string[], log: (line: st
   for (const hex of wanted) byFolder.set(hex.slice(-2), [...(byFolder.get(hex.slice(-2)) ?? []), hex]);
   try {
     for (const [folder, inFolder] of byFolder) {
-      log(`  ${day}: looking for folder ${folder} in ${archive.tag} (${(archive.total / 2 ** 30).toFixed(1)} GB)`);
+      log(`  ${t("cliWrite.providers.adsblol.looking", { day, folder, tag: archive.tag, size: (archive.total / 2 ** 30).toFixed(1) })}`);
       const found = await readFolder(archive, folder, new Set(inFolder), sampleAt, samples);
       for (const hex of inFolder) {
         const body = found.get(hex) ?? null;

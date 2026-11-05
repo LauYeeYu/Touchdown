@@ -3,38 +3,36 @@
 // so they are the web app's.
 
 import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightStats, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
-import { AGE_TODAY_NOTE, ageLeftOutText, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
-import { whereFilters } from "./where.ts";
+import { ageLeftOutText, ageTodayNote, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
+import { list, t, tDynamic } from "@touchdown/i18n/cli";
+import { noDimension, whereFilters, wrongDataset } from "./where.ts";
 import { savedViewNamed, viewsCommand } from "./change.ts";
-import { argsOrHelp, EXIT, fail, openOrFail, periodLabel, periodOf, plain, printJson, readOptions, section, table, type OpenedLog } from "./read.ts";
-import { bold, dim, plural } from "./term.ts";
+import { argsOrHelp, EXIT, fail, openOrFail, optionLines, periodOf, plain, printJson, readFrom, readOptions, section, table, usage, type OpenedLog } from "./read.ts";
+import { bold, dim } from "./term.ts";
 
 const DIMENSION_IDS = DIMENSIONS.map((d) => d.id);
 
-export const STATS_HELP = `Usage: ./touchdown stats [flights | spotting | both] [--year Y | all] [--top N | all] [--log FILE] [--json]
+export const statsHelp = () => `${usage(`./touchdown stats [flights | spotting | both] [--year Y | all] [--top N | all] [--log FILE] [--json]
        ./touchdown stats --by DIM [--cols DIM] [--of flights | sightings] [--measure M] [--where DIM=V[,V]]…
                          [--year Y | all] [--top N] [--log FILE] [--json]
        ./touchdown stats --view NAME [--year Y | all] [--top N] [--log FILE] [--json]
-       ./touchdown stats views [save NAME --by DIM [--cols DIM] [--of DATA] [--measure M] [--where …] | remove NAME]
+       ./touchdown stats views [save NAME --by DIM [--cols DIM] [--of DATA] [--measure M] [--where …] | remove NAME]`)}
 
-Without --by: the Home page's sentence and facts for the period, then the Statistics page's figures and ranked
-lists: flights, spotting and both (or only the part named). With --by: a table as in the Statistics page's
-Custom view, one row per value of DIM (and one column per value of --cols).
+${t("cliRead.stats.help")}
 
-  --year Y      one year (2025), or all; without it, this year when it has records, else the latest year
-  --top N       rows per ranked list (8, as on the page), or all
-  --by DIM      the rows: ${DIMENSION_IDS.join(", ")}
-  --cols DIM    the columns, from the same list
-  --of DATA     flights (the default) or sightings; airport and phase are for sightings, from, to, route,
-                cabin and seatPosition for flights
-  --measure M   records (the default), aircraft, distance or time (distance and time for flights)
-  --where DIM=V only the records whose DIM is V, or one of V,W,…; repeat it for another dimension (all must hold).
-                A value as stored, as the page shows it, or a code: --where airline=BA,LH --where month=March
-  --view NAME   a view saved on the Statistics page's Custom tab, or with stats views save, with its filters
+${optionLines(14, [
+  ["--year Y", t("cliRead.option.yearDefault")],
+  ["--top N", t("cliRead.stats.option.top")],
+  ["--by DIM", t("cliRead.stats.option.by", { dimensions: DIMENSION_IDS.join(", ") })],
+  ["--cols DIM", t("cliRead.stats.option.cols")],
+  ["--of DATA", t("cliRead.stats.option.of")],
+  ["--measure M", t("cliRead.stats.option.measure")],
+  ["--where DIM=V", t("cliRead.stats.option.where")],
+  ["--view NAME", t("cliRead.stats.option.view")],
+])}
 ${readOptions(14)}
 
-stats views lists the saved views; save and remove change them as the other changing commands do: through the
-inbox, for review (./touchdown help views).`;
+${t("cliRead.stats.help.views")}`;
 
 interface Ctx {
   log: OpenedLog;
@@ -46,19 +44,24 @@ const ty = (log: OpenedLog, code: string) => `${typeName(code, log.ref)} (${code
 /** A value of a dimension as the Statistics page names it. */
 const keyLabel = (log: OpenedLog, dimId: string, k: string) => plain(pivotValueLabel(dimId, k, log.ref, log.codes));
 
-const leftOut = (m: { leftOut: number }, what: string) => (m.leftOut ? `${plural(m.leftOut, "record")} left out (no ${what})` : null);
+/** The records a figure leaves out, by what they lack: "2 records left out (no airports)". */
+type Lacking = "airports" | "airport" | "times" | "registration" | "airline" | "type" | "seatPosition" | "cabin" | "location" | "phase";
+const leftOut = (m: { leftOut: number }, lacking: Lacking) => (m.leftOut ? tDynamic(`cliRead.stats.leftOut.${lacking}`, { count: m.leftOut }) : null);
+
+/** "and 12 more", under a list cut to --top. */
+const more = (count: number) => t("cliRead.stats.more", { count });
 
 function rankedJson(c: Ctx, t: Tally, dimId: string) {
   const items = c.top ? t.items.slice(0, c.top) : t.items;
   return { items: items.map((x) => ({ key: x.key, label: keyLabel(c.log, dimId, x.key), count: x.count })), more: t.items.length - items.length, leftOut: t.leftOut };
 }
 
-function rankedLines(c: Ctx, title: string, t: Tally, dimId: string, unit: [string, string], missing: string): string[] {
-  const r = rankedJson(c, t, dimId);
-  if (!r.items.length && !t.leftOut) return [];
-  const lines = table([{ head: title, flex: true }, { head: "", align: "right" }], r.items.map((x) => [x.label, plural(x.count, unit[0], unit[1])])).slice(1);
-  if (r.more) lines.push(dim(`and ${r.more} more`));
-  const lo = leftOut(t, missing);
+function rankedLines(c: Ctx, title: string, tally: Tally, dimId: string, unit: (count: number) => string, missing: Lacking): string[] {
+  const r = rankedJson(c, tally, dimId);
+  if (!r.items.length && !tally.leftOut) return [];
+  const lines = table([{ head: title, flex: true }, { head: "", align: "right" }], r.items.map((x) => [x.label, unit(x.count)])).slice(1);
+  if (r.more) lines.push(dim(more(r.more)));
+  const lo = leftOut(tally, missing);
   if (lo) lines.push(dim(lo));
   return ["", bold(title), ...lines.map((l) => `  ${l}`)];
 }
@@ -68,15 +71,21 @@ const factLines = (facts: [string, string, string | null][]) => {
   return facts.map(([label, value, detail]) => `${dim(label.padEnd(w))}  ${bold(plain(value))}${detail ? dim(`  ${plain(detail)}`) : ""}`);
 };
 
+/** "3 without a serial number", or "all confirmed". */
+const serialText = (provisional: number) => (provisional ? t("cliRead.stats.withoutSerial", { count: provisional }) : t("cliRead.stats.allConfirmed"));
+
+const flightCount = (count: number) => t("common.count.flights", { count });
+const aircraftCount = (count: number) => t("common.count.aircraft", { count });
+
 export async function statsCommand(args: string[]) {
   if (args[0] === "views") return viewsCommand(args.slice(1));
-  const a = argsOrHelp(args, { values: ["--year", "--top", "--by", "--cols", "--of", "--measure", "--view"], lists: ["--where"] }, STATS_HELP, [0, 1]);
+  const a = argsOrHelp(args, { values: ["--year", "--top", "--by", "--cols", "--of", "--measure", "--view"], lists: ["--where"] }, statsHelp(), [0, 1]);
   const json = a.flags.has("--json");
   const part = a.positional[0];
-  if (part && !["flights", "spotting", "both"].includes(part)) return fail(json, `stats shows flights, spotting or both, not "${part}".`);
+  if (part && !["flights", "spotting", "both"].includes(part)) return fail(json, t("cliRead.stats.partInvalid", { part }));
   const topText = a.values.get("--top");
   const top = topText === undefined ? 8 : topText === "all" ? 0 : Number(topText);
-  if (!Number.isInteger(top) || top < 0) return fail(json, "--top takes a number or all.");
+  if (!Number.isInteger(top) || top < 0) return fail(json, t("cliRead.stats.topInvalid"));
   const log = await openOrFail(json, a.values.get("--log"));
   const year = periodOf(log.store, a.values.get("--year"), "default");
   if (typeof year !== "string") return fail(json, year.error);
@@ -84,9 +93,9 @@ export async function statsCommand(args: string[]) {
   const ctx: StatsContext = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store) };
   const viewName = a.values.get("--view");
   if (viewName !== undefined) {
-    if (["--by", "--cols", "--of", "--measure"].some((o) => a.values.has(o)) || a.lists.has("--where")) return fail(json, "--view gives the rows, columns, count and filters itself; leave out --by, --cols, --of, --measure and --where.");
+    if (["--by", "--cols", "--of", "--measure"].some((o) => a.values.has(o)) || a.lists.has("--where")) return fail(json, t("cliRead.stats.viewAlone"));
     const v = savedViewNamed(log.store, viewName);
-    if (!v) return fail(json, `No view is saved as "${viewName}". See ./touchdown stats views.`, EXIT.notFound);
+    if (!v) return fail(json, t("cliRead.stats.noView", { name: viewName }), EXIT.notFound);
     const values = new Map(a.values);
     values.set("--by", v.rowDimension ?? "");
     if (v.columnDimension) values.set("--cols", v.columnDimension);
@@ -100,7 +109,7 @@ export async function statsCommand(args: string[]) {
     if ("error" in filters) return fail(json, filters.error);
     return pivotTable(c, ctx, json, year, a.values, filters);
   }
-  if (a.values.has("--cols") || a.values.has("--of") || a.values.has("--measure") || a.lists.has("--where")) return fail(json, "--cols, --of, --measure and --where go with --by.");
+  if (a.values.has("--cols") || a.values.has("--of") || a.values.has("--measure") || a.lists.has("--where")) return fail(json, t("cliRead.stats.needsBy"));
 
   const { store, ref } = log;
   const views = sortedFlights(store, ref, log.codes).filter((v) => inPeriod(v.day, year));
@@ -123,19 +132,36 @@ export async function statsCommand(args: string[]) {
   // Home: the sentence and the facts.
   const thisYear = todayIn().slice(0, 4);
   const past = year === "all" || year === thisYear;
-  const when = year === "all" ? `Since you started logging in ${yearsIn(store)[0] ?? thisYear}, you have` : year === thisYear ? `So far in ${year} you have` : `In ${year} you`;
-  const flownPart = views.length ? `${past ? "flown" : "flew"} ${plural(views.length, "flight")}${fs.distanceKm.value > 0 ? `, ${plain(dist(fs.distanceKm.value))}` : ""}${fs.aircraft.value > 0 ? ` on ${plural(fs.aircraft.value, "aircraft", "aircraft")}` : ""}` : "";
-  const spotPart = ss.aircraft.value ? `spotted ${plural(ss.aircraft.value, "aircraft", "aircraft")} at ${plural(ss.airports.value, "airport")}` : "";
-  const sentence = !flownPart && !spotPart ? `Nothing logged in ${year === "all" ? "your log yet" : year}.` : `${when} ${[flownPart, spotPart].filter(Boolean).join(", and ")}.${both.length ? ` You flew on ${both.length} of the aircraft you photographed.` : ""}`;
+  const flown = views.length > 0;
+  const spotted = ss.aircraft.value > 0;
+  const said = {
+    first: yearsIn(store)[0] ?? thisYear,
+    year,
+    parts: flown && spotted ? "both" : flown ? "flown" : "spotted",
+    flights: views.length,
+    withDistance: fs.distanceKm.value > 0 ? "yes" : "no",
+    distance: plain(dist(fs.distanceKm.value)),
+    aircraft: fs.aircraft.value,
+    spotted: ss.aircraft.value,
+    airports: ss.airports.value,
+  };
+  const sentence = !flown && !spotted
+    ? t("cliRead.stats.sentence.nothing", { year })
+    : [
+        year === "all" ? t("cliRead.stats.sentence.all", said) : past ? t("cliRead.stats.sentence.current", said) : t("cliRead.stats.sentence.past", said),
+        both.length ? t("cliRead.stats.sentence.flownOnSpotted", { count: both.length }) : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
   const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
   const topFrame = fs.byAirframe.items[0];
   const topFrameFlight = topFrame ? views.find((v) => v.f.airframeId === topFrame.key) : undefined;
   const facts: [string, string, string | null][] = [];
-  if (longest?.km) facts.push(["Longest flight", `${longest.fromCode} → ${longest.toCode}`, [dist(longest.km), longest.f.flightNumber].filter(Boolean).join(" · ")]);
-  if (fs.minutes.value) facts.push(["Time in the air", durShort(fs.minutes.value), `across ${plural(views.length - fs.minutes.leftOut, "flight")}`]);
-  if (fs.byAirline.items[0]) facts.push([fs.byAirline.top.length > 1 ? "Most flown airlines" : "Most flown airline", fs.byAirline.top.map((id) => airlineLabel(id, ref)).join(" and "), plural(fs.byAirline.items[0].count, "flight")]);
-  if (topFrame && topFrame.count > 1 && topFrameFlight) facts.push(["Most flown aircraft", topFrameFlight.f.registration ?? "", `${plural(topFrame.count, "flight")} · ${typeName(topFrameFlight.f.typeCode, ref)}`]);
-  if (ss.byType.items[0]) facts.push(["Most spotted type", typeName(ss.byType.items[0].key, ref), plural(ss.byType.items[0].count, "aircraft", "aircraft")]);
+  if (longest?.km) facts.push([t("cliRead.stats.fact.longest"), `${longest.fromCode} → ${longest.toCode}`, [dist(longest.km), longest.f.flightNumber].filter(Boolean).join(" · ")]);
+  if (fs.minutes.value) facts.push([t("cliRead.stats.fact.timeInAir"), durShort(fs.minutes.value), t("cliRead.stats.fact.acrossFlights", { count: views.length - fs.minutes.leftOut })]);
+  if (fs.byAirline.items[0]) facts.push([t("cliRead.stats.fact.topAirlines", { count: fs.byAirline.top.length }), list(fs.byAirline.top.map((id) => airlineLabel(id, ref))), t("common.count.flights", { count: fs.byAirline.items[0].count })]);
+  if (topFrame && topFrame.count > 1 && topFrameFlight) facts.push([t("cliRead.stats.fact.topAircraft"), topFrameFlight.f.registration ?? "", `${t("common.count.flights", { count: topFrame.count })} · ${typeName(topFrameFlight.f.typeCode, ref)}`]);
+  if (ss.byType.items[0]) facts.push([t("cliRead.stats.fact.topSpottedType"), typeName(ss.byType.items[0].key, ref), t("common.count.aircraft", { count: ss.byType.items[0].count })]);
 
   const m = (x: Measured) => ({ value: x.value, leftOut: x.leftOut });
   // Aircraft age (docs/24, "Aircraft age"), as on Statistics: oldest first, the first --top rows.
@@ -221,117 +247,119 @@ export async function statsCommand(args: string[]) {
   if (!part) {
     out.push(bold(sentence));
     if (facts.length) out.push("", ...factLines(facts));
-  } else out.push(bold(`${part === "flights" ? "Flights" : part === "spotting" ? "Spotting" : "Flown and spotted"}, ${periodLabel(year)}`));
+  } else out.push(bold(t("cliRead.stats.partTitle", { part, year })));
   if (!part || part === "flights") {
     out.push(
       ...section(
-        "Flights",
+        t("cliRead.stats.flights"),
         factLines(
           [
-            ["Flights", nf.format(fs.flights), null],
-            ["Distance", dist(fs.distanceKm.value), [`${flightsPart.timesAroundTheEarth} times around the Earth`, leftOut(fs.distanceKm, "airports")].filter(Boolean).join(" · ")],
-            ["Time in the air", durShort(fs.minutes.value), leftOut(fs.minutes, "times")],
-            ["Airports", nf.format(fs.airports.value), plural(fs.countries.value, "country", "countries")],
-            ["Airlines", nf.format(fs.airlines.value), null],
-            ["Aircraft", nf.format(fs.aircraft.value), [fs.aircraft.provisional ? `${nf.format(fs.aircraft.provisional)} without a serial number` : "all confirmed", leftOut(fs.aircraft, "registration")].filter(Boolean).join(" · ")],
-            ["Aircraft types", nf.format(fs.types.value), null],
-            ["Routes", nf.format(fs.routes.value), "counted both ways as one"],
+            [t("cliRead.stats.figure.flights"), nf.format(fs.flights), null],
+            [t("cliRead.stats.figure.distance"), dist(fs.distanceKm.value), [t("cliRead.stats.timesAroundEarth", { times: flightsPart.timesAroundTheEarth }), leftOut(fs.distanceKm, "airports")].filter(Boolean).join(" · ")],
+            [t("cliRead.stats.figure.timeInAir"), durShort(fs.minutes.value), leftOut(fs.minutes, "times")],
+            [t("cliRead.stats.figure.airports"), nf.format(fs.airports.value), t("common.count.countries", { count: fs.countries.value })],
+            [t("cliRead.stats.figure.airlines"), nf.format(fs.airlines.value), null],
+            [t("cliRead.stats.figure.aircraft"), nf.format(fs.aircraft.value), [serialText(fs.aircraft.provisional), leftOut(fs.aircraft, "registration")].filter(Boolean).join(" · ")],
+            [t("cliRead.stats.figure.types"), nf.format(fs.types.value), null],
+            [t("cliRead.stats.figure.routes"), nf.format(fs.routes.value), t("cliRead.stats.routesBothWays")],
           ] as [string, string, string | null][],
         ),
       ),
-      ...rankedLines(c, "Airlines", fs.byAirline, "airline", ["flight", "flights"], "airline"),
-      ...rankedLines(c, "Routes", fs.byRoute, "route", ["flight", "flights"], "airports"),
-      ...rankedLines(c, "Airports", fs.airportVisits, "airport", ["visit", "visits"], "airport"),
-      ...rankedLines(c, "Aircraft types", fs.byType, "type", ["flight", "flights"], "type"),
-      ...rankedLines(c, "Families", fs.byFamily, "family", ["flight", "flights"], "type"),
-      ...rankedLines(c, "Manufacturers", fs.byManufacturer, "manufacturer", ["flight", "flights"], "type"),
-      ...rankedLines(c, "Seat position", fs.seatPositions, "seatPosition", ["flight", "flights"], "seat position"),
-      ...rankedLines(c, "Cabin", fs.cabinClasses, "cabin", ["flight", "flights"], "cabin"),
+      ...rankedLines(c, t("cliRead.stats.ranked.airlines"), fs.byAirline, "airline", flightCount, "airline"),
+      ...rankedLines(c, t("cliRead.stats.ranked.routes"), fs.byRoute, "route", flightCount, "airports"),
+      ...rankedLines(c, t("cliRead.stats.ranked.airports"), fs.airportVisits, "airport", (count) => t("cliRead.stats.count.visits", { count }), "airport"),
+      ...rankedLines(c, t("cliRead.stats.ranked.types"), fs.byType, "type", flightCount, "type"),
+      ...rankedLines(c, t("cliRead.stats.ranked.families"), fs.byFamily, "family", flightCount, "type"),
+      ...rankedLines(c, t("cliRead.stats.ranked.manufacturers"), fs.byManufacturer, "manufacturer", flightCount, "type"),
+      ...rankedLines(c, t("cliRead.stats.ranked.seatPosition"), fs.seatPositions, "seatPosition", flightCount, "seatPosition"),
+      ...rankedLines(c, t("cliRead.stats.ranked.cabin"), fs.cabinClasses, "cabin", flightCount, "cabin"),
     );
     if (ages.whenFlown.length) {
       const days = ages.whenFlown.map((r) => r.days);
       const lines = [
-        ages.whenFlown.length === 1
-          ? `Aircraft age: ${ageText(agesPart.averageDays!)} when you flew.`
-          : `Average aircraft age: ${ageText(agesPart.averageDays!)} (range: ${ageText(Math.min(...days))} to ${ageText(Math.max(...days))}).`,
+        t("cliRead.stats.age.summary", { count: ages.whenFlown.length, average: ageText(agesPart.averageDays!), min: ageText(Math.min(...days)), max: ageText(Math.max(...days)) }),
         "",
         ...table(
-          [{ head: "When you flew", flex: true }, { head: "Aircraft" }, { head: "Age", align: "right" }],
-          agesPart.whenFlown.map((r) => [`${r.flightNumber ?? "Flight"} · ${r.day}`, [r.registration, r.typeCode && typeName(r.typeCode, ref)].filter(Boolean).join(" · "), r.age]),
+          [{ head: t("cliRead.stats.age.column.whenFlown"), flex: true }, { head: t("cliRead.stats.age.column.aircraft") }, { head: t("cliRead.stats.age.column.age"), align: "right" }],
+          agesPart.whenFlown.map((r) => [`${r.flightNumber ?? t("cliRead.stats.age.flight")} · ${r.day}`, [r.registration, r.typeCode && typeName(r.typeCode, ref)].filter(Boolean).join(" · "), r.age]),
         ),
-        ...(agesPart.whenFlownMore ? [dim(`and ${agesPart.whenFlownMore} more`)] : []),
+        ...(agesPart.whenFlownMore ? [dim(more(agesPart.whenFlownMore))] : []),
         "",
         ...table(
-          [{ head: "Age today", flex: true }, { head: "First flight" }, { head: "Since first flight", align: "right" }],
-          agesPart.now.map((r) => [[r.registration ?? "Aircraft", r.status && STATUS_WORD[r.status], r.typeCode && typeName(r.typeCode, ref)].filter(Boolean).join(" · "), r.firstFlightDate, r.sinceFirstFlight]),
+          [{ head: t("cliRead.stats.age.column.today"), flex: true }, { head: t("cliRead.stats.age.column.firstFlight") }, { head: t("cliRead.stats.age.column.sinceFirstFlight"), align: "right" }],
+          agesPart.now.map((r) => [[r.registration ?? t("cliRead.stats.age.aircraft"), r.status && STATUS_WORD[r.status], r.typeCode && typeName(r.typeCode, ref)].filter(Boolean).join(" · "), r.firstFlightDate, r.sinceFirstFlight]),
         ),
-        ...(agesPart.nowMore ? [dim(`and ${agesPart.nowMore} more`)] : []),
-        ...(ages.now.some((r) => outOfService(r.status)) ? [dim(`${AGE_TODAY_NOTE}.`)] : []),
+        ...(agesPart.nowMore ? [dim(more(agesPart.nowMore))] : []),
+        ...(ages.now.some((r) => outOfService(r.status)) ? [dim(ageTodayNote())] : []),
       ];
       const left = ageLeftOutText(ages.leftOut);
       if (left) lines.push(dim(left));
-      out.push(...section("Aircraft age", lines));
+      out.push(...section(t("cliRead.stats.age"), lines));
     }
-    if (fs.perYear.length > 1) out.push(...section("By year", table([{ head: "Year" }, { head: "Flights", align: "right" }, { head: "Distance", align: "right" }, { head: "Time in the air", align: "right" }], fs.perYear.map((y) => [y.year, String(y.flights), dist(y.distanceKm), durShort(y.minutes)]))));
+    if (fs.perYear.length > 1) {
+      const head = [{ head: t("cliRead.stats.byYear.year") }, { head: t("cliRead.stats.byYear.flights"), align: "right" as const }, { head: t("cliRead.stats.byYear.distance"), align: "right" as const }, { head: t("cliRead.stats.byYear.timeInAir"), align: "right" as const }];
+      out.push(...section(t("cliRead.stats.byYear"), table(head, fs.perYear.map((y) => [y.year, String(y.flights), dist(y.distanceKm), durShort(y.minutes)]))));
+    }
   }
   if (!part || part === "spotting") {
     out.push(
       ...section(
-        "Spotting",
+        t("cliRead.stats.spotting"),
         factLines([
-          ["Aircraft", nf.format(ss.aircraft.value), [ss.aircraft.provisional ? `${nf.format(ss.aircraft.provisional)} without a serial number` : "all confirmed", leftOut(ss.aircraft, "registration")].filter(Boolean).join(" · ")],
-          ["Sightings", nf.format(ss.sightings), null],
-          ["Airlines", nf.format(ss.airlines.value), leftOut(ss.airlines, "airline")],
-          ["Families", nf.format(ss.families.value), null],
-          ["Aircraft types", nf.format(ss.typeCodes.value), null],
-          ["Special-livery aircraft", nf.format(ss.specialLiveryAircraft.value), plural(ss.specialLiveries.value, "livery", "liveries")],
+          [t("cliRead.stats.figure.aircraft"), nf.format(ss.aircraft.value), [serialText(ss.aircraft.provisional), leftOut(ss.aircraft, "registration")].filter(Boolean).join(" · ")],
+          [t("cliRead.stats.figure.sightings"), nf.format(ss.sightings), null],
+          [t("cliRead.stats.figure.airlines"), nf.format(ss.airlines.value), leftOut(ss.airlines, "airline")],
+          [t("cliRead.stats.figure.families"), nf.format(ss.families.value), null],
+          [t("cliRead.stats.figure.types"), nf.format(ss.typeCodes.value), null],
+          [t("cliRead.stats.figure.specialLiveries"), nf.format(ss.specialLiveryAircraft.value), t("common.count.liveries", { count: ss.specialLiveries.value })],
         ]),
       ),
-      ...rankedLines(c, "Airlines", ss.byAirline, "airline", ["aircraft", "aircraft"], "airline"),
-      ...rankedLines(c, "Families", ss.byFamily, "family", ["aircraft", "aircraft"], "type"),
-      ...rankedLines(c, "Aircraft types", ss.byType, "type", ["aircraft", "aircraft"], "type"),
-      ...rankedLines(c, "Manufacturers", ss.byManufacturer, "manufacturer", ["aircraft", "aircraft"], "type"),
-      ...rankedLines(c, "Locations", ss.byLocation, "location", ["aircraft", "aircraft"], "location"),
-      ...rankedLines(c, "Registration countries", ss.byRegistrationCountry, "regCountry", ["aircraft", "aircraft"], "registration"),
-      ...rankedLines(c, "Phase", ss.byPhase, "phase", ["sighting", "sightings"], "phase"),
+      ...rankedLines(c, t("cliRead.stats.ranked.airlines"), ss.byAirline, "airline", aircraftCount, "airline"),
+      ...rankedLines(c, t("cliRead.stats.ranked.families"), ss.byFamily, "family", aircraftCount, "type"),
+      ...rankedLines(c, t("cliRead.stats.ranked.types"), ss.byType, "type", aircraftCount, "type"),
+      ...rankedLines(c, t("cliRead.stats.ranked.manufacturers"), ss.byManufacturer, "manufacturer", aircraftCount, "type"),
+      ...rankedLines(c, t("cliRead.stats.ranked.locations"), ss.byLocation, "location", aircraftCount, "location"),
+      ...rankedLines(c, t("cliRead.stats.ranked.registrationCountries"), ss.byRegistrationCountry, "regCountry", aircraftCount, "registration"),
+      ...rankedLines(c, t("cliRead.stats.ranked.phase"), ss.byPhase, "phase", (count) => t("common.count.sightings", { count }), "phase"),
     );
   }
   if (!part || part === "both") {
     out.push(
       ...section(
-        "Flown and spotted",
+        t("cliRead.stats.both"),
         factLines([
-          ["Flown and photographed", nf.format(cs.flownAndPhotographed.length), "aircraft"],
-          ["Types spotted, never flown", nf.format(cs.spottedNeverFlown.length), null],
+          [t("cliRead.stats.figure.flownAndPhotographed"), nf.format(cs.flownAndPhotographed.length), t("cliRead.stats.aircraftUnit", { count: cs.flownAndPhotographed.length })],
+          [t("cliRead.stats.figure.spottedNeverFlown"), nf.format(cs.spottedNeverFlown.length), null],
         ]),
       ),
     );
     if (typeRows.length) {
-      out.push(...section("Types flown and spotted", table([{ head: "Type", flex: true }, { head: "Flights", align: "right" }, { head: "Aircraft flown", align: "right" }, { head: "Aircraft spotted", align: "right" }], typeRows.map((r) => [ty(log, r.typeCode), r.flights ? String(r.flights) : "-", r.aircraftFlown ? String(r.aircraftFlown) : "-", r.aircraftSpotted ? String(r.aircraftSpotted) : "-"]))));
-      if (bothPart.more) out.push(`  ${dim(`and ${bothPart.more} more`)}`);
+      const head = [{ head: t("cliRead.stats.types.type"), flex: true }, { head: t("cliRead.stats.types.flights"), align: "right" as const }, { head: t("cliRead.stats.types.aircraftFlown"), align: "right" as const }, { head: t("cliRead.stats.types.aircraftSpotted"), align: "right" as const }];
+      out.push(...section(t("cliRead.stats.types"), table(head, typeRows.map((r) => [ty(log, r.typeCode), r.flights ? String(r.flights) : "-", r.aircraftFlown ? String(r.aircraftFlown) : "-", r.aircraftSpotted ? String(r.aircraftSpotted) : "-"]))));
+      if (bothPart.more) out.push(`  ${dim(more(bothPart.more))}`);
     }
   }
-  out.push("", dim(`${periodLabel(year)[0]!.toUpperCase()}${periodLabel(year).slice(1)}. Read from ${log.from}.`));
+  out.push("", dim(t("cliRead.stats.footer", { year, from: log.from })));
   for (const line of out) console.log(line);
 }
 
 function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, values: Map<string, string>, filters: PivotFilter[], viewName: string | null = null) {
   const { log } = c;
   const dataset = (values.get("--of") ?? "flights") as Dataset;
-  if (dataset !== "flights" && dataset !== "sightings") return fail(json, "--of takes flights or sightings.");
+  if (dataset !== "flights" && dataset !== "sightings") return fail(json, t("cliRead.stats.ofInvalid"));
   const measure = (values.get("--measure") ?? "records") as Measure;
-  if (!["records", "aircraft", "distance", "time"].includes(measure)) return fail(json, "--measure takes records, aircraft, distance or time.");
-  if (dataset === "sightings" && (measure === "distance" || measure === "time")) return fail(json, "Distance and time are measured for flights only.");
+  if (!["records", "aircraft", "distance", "time"].includes(measure)) return fail(json, t("cliRead.stats.measureInvalid"));
+  if (dataset === "sightings" && (measure === "distance" || measure === "time")) return fail(json, t("cliRead.stats.measureFlightsOnly"));
   const dimOf = (id: string | undefined) => {
     if (id === undefined) return null;
     const d = DIMENSIONS.find((x) => x.id === id);
-    if (!d) return fail(json, `There is no dimension "${id}". Choose from: ${DIMENSION_IDS.join(", ")}.`);
-    if (!d.datasets.includes(dataset)) return fail(json, `${id} is for ${d.datasets.join(" and ")}, not ${dataset}.`);
+    if (!d) return fail(json, noDimension(id));
+    if (!d.datasets.includes(dataset)) return fail(json, wrongDataset(id, d.datasets, dataset));
     return d;
   };
   const rowDim = dimOf(values.get("--by"))!;
   const colDim = dimOf(values.get("--cols"));
-  if (colDim && colDim.id === rowDim.id) return fail(json, "--by and --cols need two different dimensions.");
+  if (colDim && colDim.id === rowDim.id) return fail(json, t("cliRead.stats.sameDimensions"));
   const inYear: (Flight | Sighting)[] = dataset === "flights" ? sortedFlights(log.store, log.ref, log.codes).filter((v) => inPeriod(v.day, year)).map((v) => v.f) : log.store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
   const records = filterRecords(dataset, inYear, filters, ctx);
   const r = pivot(dataset, records, rowDim, colDim, measure, ctx);
@@ -361,13 +389,16 @@ function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, valu
 
   const fmt = (n: number) => plain(measure === "distance" ? distance(n, log.unit) : measure === "time" ? durShort(n) : nf.format(n));
   const cols = colDim ? r.columns : [];
-  const head = [{ head: rowDim.label, flex: true }, ...cols.map((k) => ({ head: keyLabel(log, colDim!.id, k), align: "right" as const })), { head: colDim ? "Total" : measure === "records" ? (dataset === "flights" ? "Flights" : "Sightings") : measure === "aircraft" ? "Aircraft" : measure === "distance" ? "Distance" : "Time", align: "right" as const }];
+  const totalHead = colDim ? t("cliRead.stats.pivot.total") : t("cliRead.stats.pivot.measure", { measure: measure === "records" ? dataset : measure });
+  const head = [{ head: rowDim.label, flex: true }, ...cols.map((k) => ({ head: keyLabel(log, colDim!.id, k), align: "right" as const })), { head: totalHead, align: "right" as const }];
   const body = rows.map((k) => [keyLabel(log, rowDim.id, k), ...cols.map((col) => (cell(k, col) ? fmt(cell(k, col)) : "")), fmt(r.rowTotals.get(k) ?? 0)]);
-  console.log(bold(`${viewName !== null ? `${viewName}: ` : ""}${dataset === "flights" ? "Flights" : "Sightings"} by ${rowDim.label.toLowerCase()}${colDim ? ` and ${colDim.label.toLowerCase()}` : ""}, ${periodLabel(year)}`));
-  if (filters.length) console.log(dim(`Only ${plain(filtersText(filters, log.ref, log.codes))}: ${nf.format(records.length)} of ${plural(inYear.length, dataset === "flights" ? "flight" : "sighting")}`));
+  const by = { dataset, rows: rowDim.label.toLowerCase(), year };
+  const title = colDim ? t("cliRead.stats.pivot.titleColumns", { ...by, columns: colDim.label.toLowerCase() }) : t("cliRead.stats.pivot.title", by);
+  console.log(bold(viewName !== null ? t("cliRead.stats.pivot.view", { view: viewName, title }) : title));
+  if (filters.length) console.log(dim(t("cliRead.stats.pivot.only", { filters: plain(filtersText(filters, log.ref, log.codes)), counted: nf.format(records.length), total: inYear.length, dataset })));
   console.log("");
   for (const line of table(head, body)) console.log(line);
-  if (r.rows.length > rows.length) console.log(dim(`and ${r.rows.length - rows.length} more`));
-  if (r.leftOut) console.log(dim(`${plural(r.leftOut, "record")} left out (no ${rowDim.label.toLowerCase()}${colDim ? ` or ${colDim.label.toLowerCase()}` : ""})`));
-  console.log(dim(`Read from ${log.from}.`));
+  if (r.rows.length > rows.length) console.log(dim(more(r.rows.length - rows.length)));
+  if (r.leftOut) console.log(dim(colDim ? t("cliRead.stats.pivot.leftOutEither", { count: r.leftOut, rows: rowDim.label.toLowerCase(), columns: colDim.label.toLowerCase() }) : t("cliRead.stats.pivot.leftOut", { count: r.leftOut, rows: rowDim.label.toLowerCase() })));
+  console.log(dim(readFrom(log)));
 }

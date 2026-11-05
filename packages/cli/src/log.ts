@@ -1,6 +1,7 @@
 // The user's log as the commands read it, and the inbox they write to. With storage chosen
 // (`./touchdown storage`), both are there; without, the log is a backup file and the inbox is data/private/inbox/.
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { operatorFromOverride, readBackup, readInbox, Store, type InboxFile, type RefIndex } from "@touchdown/core";
@@ -21,7 +22,7 @@ export interface LoadedLog {
 
 /** A backup file's log, read-only. The user's own operators are added to `ref`. */
 export function readBackupLog(file: string, ref: RefIndex): LoadedLog {
-  if (!existsSync(file)) throw new Error(`${shownPath(file)}: no such file.`);
+  if (!existsSync(file)) throw new Error(t("cliWrite.log.noFile", { file: shownPath(file) }));
   const backup = readBackup(new Uint8Array(readFileSync(file)));
   if (backup.problems.length) throw new Error(`${shownPath(file)}: ${backup.problems.join("; ")}`);
   const store = new Store({ deviceId: "cli", validate: false });
@@ -35,10 +36,10 @@ export async function loadLog(ref: RefIndex, opts: { file?: string; storage: Ope
   if (opts.file) return readBackupLog(opts.file, ref);
   if (opts.storage) {
     const { store, problems } = await readLog(opts.storage, ref);
-    return { store, from: `your log in ${opts.storage.name}`, problems };
+    return { store, from: t("cliWrite.log.yourLogIn", { place: opts.storage.name }), problems };
   }
   if (existsSync(DEFAULT_LOG)) return readBackupLog(DEFAULT_LOG, ref);
-  return { store: null, from: "no log (no storage chosen and no backup)", problems: [] };
+  return { store: null, from: t("cliWrite.log.noLog"), problems: [] };
 }
 
 /** Where inbox files go: the inbox of the chosen storage, or data/private/inbox/. */
@@ -59,7 +60,7 @@ export function inboxPlace(storage: OpenedStorage | null): InboxPlace {
   if (storage) {
     const b = storage.backend;
     return {
-      name: `the inbox in ${storage.name}`,
+      name: t("cliWrite.log.inboxIn", { place: storage.name }),
       shared: true,
       list: async () => (await b.listFiles("inbox")).map((f) => f.name).filter((n) => n.endsWith(".json")).sort(),
       read: (name) => b.readFile("inbox", name),
@@ -97,9 +98,9 @@ export async function writeInboxFile(place: InboxPlace, name: string, file: Inbo
   const data = encoder.encode(JSON.stringify(file, null, 2) + "\n");
   await place.write(name, data);
   const back = await place.read(name);
-  if (!back || back.length !== data.length || back.some((b, i) => b !== data[i])) throw new Error(`${name} did not read back as written from ${place.name}.`);
+  if (!back || back.length !== data.length || back.some((b, i) => b !== data[i])) throw new Error(t("cliWrite.log.readBackDiffers", { name, place: place.name }));
   const r = readInbox(JSON.parse(new TextDecoder().decode(back)), name, ref);
-  if ("error" in r) throw new Error(`${name} was written but does not read: ${r.error}.`);
+  if ("error" in r) throw new Error(t("cliWrite.log.writtenUnreadable", { name, error: String(r.error) }));
 }
 
 /** The time in a file's name: local, "2026-10-24-153012". */

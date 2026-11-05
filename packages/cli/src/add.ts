@@ -3,6 +3,7 @@
 // put in the inbox for review in the web app. Nothing reaches the log without that review. Ticket numbers and booking
 // references are not taken: they are added in the web app (AGENTS.md, "Data and privacy").
 
+import { list, t } from "@touchdown/i18n/cli";
 import { readFileSync } from "node:fs";
 import {
   checkAll,
@@ -35,48 +36,9 @@ import {
 import { freeName, inboxPlace, loadLog, stamp, writeInboxFile, type InboxPlace } from "./log.ts";
 import { userPath } from "./paths.ts";
 import { chosenStorage } from "./storage.ts";
-import { askHidden, bold, dim, green, plural, red, yellow } from "./term.ts";
+import { askHidden, bold, dim, green, red, tc, yellow } from "./term.ts";
 
-export const ADD_HELP = `Usage: ./touchdown add [FILE.json | -] [--dry-run] [--json] [--keep-errors] [--log FILE]
-
-Checks flights and sightings and puts them in the inbox, where the web app shows them for review and import.
-They are JSON, from a file or from standard input ("-", or a pipe):
-
-  {
-    "flights":   [{ "date": "2026-10-18", "flightNumber": "XY123", "from": "EGLL", "to": "KJFK",
-                    "takeoff": "11:40", "landing": "14:35", "seat": "31K" }],
-    "sightings": [{ "date": "2026-10-20", "registration": "G-ABCD", "airport": "EGLL",
-                    "airline": "BAW", "typeCode": "A21N", "phase": "landing" }]
-  }
-
-Flight fields:   ${INBOX_FLIGHT_FIELDS.join(", ")}
-                 ticketNumber, bookingRef (private)
-Sighting fields: date, registration, airport, airline, typeCode, model, phase, livery, specialLivery, notes
-
-Dates are YYYY-MM-DD. Times (boarding, takeoff, landing) are local clock times, HH:MM, at the airport they
-happen at; duration is H:MM. Airports and airlines are ICAO or IATA codes; an airline may be a company's
-name. A record may say where values came from: "sources": { "typeCode": "claude" } (you, claude, codex,
-opensky, adsbdb, fr24); values without one count as typed by you.
-
-Ticket numbers and booking references are private: they go into the inbox file with the flight, and are never
-printed, only reported as given. Give them in the JSON, or with --ticket and --booking type the first
-flight's at a prompt that does not show them (a terminal and an input file are needed).
-
-Each record is checked as the Import page checks it, against your log as it is now (from the storage chosen
-with ./touchdown storage, else data/private/touchdown-backup.zip, or --log FILE): unknown codes, impossible
-dates and times, records already in your log, overlapping flights and the other checks. If any record has an
-error, nothing is written, unless --keep-errors. Records already in your log are left out. The inbox file is
-then written, read back and read again as the web app will read it.
-
-  --dry-run       check only, write nothing
-  --json          print the report as JSON, for agents and scripts
-  --keep-errors   write records with errors as well; the review shows the errors again
-  --ticket        type the first flight's ticket number at a prompt that does not show it
-  --booking       type the first flight's booking reference the same way
-  --log FILE      check against this backup instead of the storage
-
-Exit status: 0 written, or nothing new to write; 1 errors found, nothing written; 2 the input, the log or the
-storage could not be read.`;
+export const addHelp = () => t("cli.help.add", { fields: INBOX_FLIGHT_FIELDS.join(", ") });
 
 const SIGHTING_INPUT = ["date", "registration", "airport", "airline", "typeCode", "model", "phase", "livery", "specialLivery", "notes"] as const;
 const FLIGHT_INPUT = [...INBOX_FLIGHT_FIELDS, ...INBOX_PRIVATE_FIELDS] as const;
@@ -95,61 +57,64 @@ function textOf(v: unknown): string | null | undefined {
   return undefined;
 }
 
+/** "flight 2", "sighting 1": a record by its place in its list in the input. */
+const recordName = (kind: "flight" | "sighting", n: number) => t("cliWrite.add.record", { kind, n });
+
 function readRecord(rec: unknown, where: string, allowed: readonly string[]): ReadRecord | { error: string } {
-  if (!rec || typeof rec !== "object" || Array.isArray(rec)) return { error: `${where} is not an object.` };
+  if (!rec || typeof rec !== "object" || Array.isArray(rec)) return { error: t("cliWrite.add.notObject", { where }) };
   const out: ReadRecord = { values: {}, sources: {} };
   for (const [k, v] of Object.entries(rec)) {
     if (k === "sources") {
-      if (!v || typeof v !== "object" || Array.isArray(v)) return { error: `${where}: "sources" must be an object of field: source.` };
+      if (!v || typeof v !== "object" || Array.isArray(v)) return { error: t("cliWrite.add.sourcesNotObject", { where }) };
       for (const [f, s] of Object.entries(v)) {
-        if (!allowed.includes(f)) return { error: `${where}: "sources" names an unknown field "${f}".` };
-        if (!SOURCES.has(s as SpotSource)) return { error: `${where}: the source of ${f} must be one of ${[...SOURCES].join(", ")}.` };
+        if (!allowed.includes(f)) return { error: t("cliWrite.add.sourceUnknownField", { where, field: f }) };
+        if (!SOURCES.has(s as SpotSource)) return { error: t("cliWrite.add.badSource", { where, field: f, sources: [...SOURCES].join(", ") }) };
         out.sources[f] = s as SpotSource;
       }
     } else if (!allowed.includes(k)) {
-      return { error: `${where}: unknown field "${k}". The fields are: ${allowed.join(", ")}.` };
+      return { error: t("cliWrite.add.unknownField", { where, field: k, fields: allowed.join(", ") }) };
     } else {
-      const t = textOf(v);
-      if (t === undefined) return { error: `${where}: ${k} must be text or a number.` };
-      if (t && t.length > (k === "notes" ? 500 : 200)) return { error: `${where}: ${k} is too long.` };
-      if (t) out.values[k] = t;
+      const text = textOf(v);
+      if (text === undefined) return { error: t("cliWrite.add.notText", { where, field: k }) };
+      if (text && text.length > (k === "notes" ? 500 : 200)) return { error: t("cliWrite.add.tooLong", { where, field: k }) };
+      if (text) out.values[k] = text;
     }
   }
-  for (const k of ["date", "firstFlight"]) if (out.values[k] && !isValidDate(out.values[k]!)) return { error: `${where}: ${k} ${out.values[k]} is not a date written YYYY-MM-DD.` };
+  for (const k of ["date", "firstFlight"]) if (out.values[k] && !isValidDate(out.values[k]!)) return { error: t("cliWrite.add.notDate", { where, field: k, value: out.values[k]! }) };
   return out;
 }
 
 /** The input as an inbox file, or what is wrong with it. */
 export function addFile(json: unknown, createdAt: string): { file: InboxFile } | { error: string } {
-  if (!json || typeof json !== "object" || Array.isArray(json)) return { error: 'Give a JSON object with a "flights" list, a "sightings" list, or both.' };
+  if (!json || typeof json !== "object" || Array.isArray(json)) return { error: t("cliWrite.add.notJsonObject") };
   const o = json as Record<string, unknown>;
   const extra = Object.keys(o).filter((k) => k !== "flights" && k !== "sightings");
-  if (extra.length) return { error: `Unexpected keys: ${extra.join(", ")}. Give "flights" and "sightings" lists.` };
-  for (const k of ["flights", "sightings"]) if (o[k] !== undefined && !Array.isArray(o[k])) return { error: `"${k}" must be a list.` };
+  if (extra.length) return { error: t("cliWrite.add.unexpectedKeys", { keys: extra.join(", ") }) };
+  for (const k of ["flights", "sightings"]) if (o[k] !== undefined && !Array.isArray(o[k])) return { error: t("cliWrite.add.notList", { key: k }) };
   const flights: InboxFlight[] = [];
   const sightings: InboxSighting[] = [];
   for (const [i, rec] of ((o.flights as unknown[]) ?? []).entries()) {
-    const r = readRecord(rec, `flight ${i + 1}`, FLIGHT_INPUT);
+    const r = readRecord(rec, recordName("flight", i + 1), FLIGHT_INPUT);
     if ("error" in r) return r;
-    if (!r.values.flightNumber && !(r.values.from && r.values.to) && !r.values.registration) return { error: `flight ${i + 1}: give a flight number, a route (from and to) or a registration.` };
+    if (!r.values.flightNumber && !(r.values.from && r.values.to) && !r.values.registration) return { error: t("cliWrite.add.flightNeeds", { where: recordName("flight", i + 1) }) };
     flights.push({ values: r.values, ...(Object.keys(r.sources).length ? { sources: r.sources } : {}), open: [] });
   }
   for (const [i, rec] of ((o.sightings as unknown[]) ?? []).entries()) {
-    const r = readRecord(rec, `sighting ${i + 1}`, SIGHTING_INPUT);
+    const r = readRecord(rec, recordName("sighting", i + 1), SIGHTING_INPUT);
     if ("error" in r) return r;
-    if (!r.values.registration) return { error: `sighting ${i + 1}: give the registration.` };
+    if (!r.values.registration) return { error: t("cliWrite.add.sightingNeeds", { where: recordName("sighting", i + 1) }) };
     const { airline, phase, ...rest } = r.values;
     const values: SpotValues = { ...rest, ...(airline ? { operator: airline } : {}) };
     if (phase) {
       const named = phase.toLowerCase().replace(/[\s-]+/g, "_");
       const p = (PHASES as readonly string[]).includes(named) ? named : phaseOf(phase);
-      if (!p) return { error: `sighting ${i + 1}: phase "${phase}" is not one of ${PHASES.join(", ")}.` };
+      if (!p) return { error: t("cliWrite.add.badPhase", { where: recordName("sighting", i + 1), phase, phases: PHASES.join(", ") }) };
       values.phase = p;
     }
     const sources = Object.fromEntries(Object.entries(r.sources).map(([f, s]) => [f === "airline" ? "operator" : f, s]));
     sightings.push({ values, sources, open: [], missing: [], aircraft: null });
   }
-  if (!flights.length && !sightings.length) return { error: "There are no flights or sightings in the input." };
+  if (!flights.length && !sightings.length) return { error: t("cliWrite.add.empty") };
   return { file: { schema: INBOX_SCHEMA, version: INBOX_VERSION, createdAt, checker: null, sightings, flights } };
 }
 
@@ -185,10 +150,10 @@ function labelOf(c: Candidate): string {
   if (c.table === "flights") {
     const v = c.values;
     const route = v.fromRaw || v.toRaw ? `${v.fromRaw ?? "?"}–${v.toRaw ?? "?"}` : null;
-    return [v.flightNumber ?? v.registration ?? "flight", v.scheduledDate ? `on ${v.scheduledDate}` : null, route].filter(Boolean).join(" ");
+    return t("cliWrite.add.label.flight", { name: v.flightNumber ?? v.registration ?? t("cliWrite.add.label.aFlight"), dated: v.scheduledDate ? "yes" : "no", date: v.scheduledDate ?? "", routed: route ? "yes" : "no", route: route ?? "" });
   }
   const v = c.values;
-  return [v.registration ?? v.registrationRaw, v.seenOn ? `on ${v.seenOn}` : null, v.airportRaw ? `at ${v.airportRaw}` : null].filter(Boolean).join(" ");
+  return t("cliWrite.add.label.sighting", { registration: v.registration ?? v.registrationRaw ?? "", dated: v.seenOn ? "yes" : "no", date: v.seenOn ?? "", placed: v.airportRaw ? "yes" : "no", airport: v.airportRaw ?? "" });
 }
 
 function readValues(c: Candidate, ref: RefIndex): Record<string, string> {
@@ -210,15 +175,15 @@ function readValues(c: Candidate, ref: RefIndex): Record<string, string> {
 function statusText(kind: MatchKind, fills: string[], conflicts: { field: string; existing: unknown; incoming: unknown }[]): string {
   switch (kind) {
     case "new":
-      return "new";
+      return t("cliWrite.add.status.new");
     case "identical":
-      return "already in your log, left out";
+      return t("cliWrite.add.status.identical");
     case "update":
-      return `fills ${fills.join(", ")} in a record already in your log`;
+      return t("cliWrite.add.status.update", { fields: fills.join(", ") });
     case "conflict":
-      return `differs from a record in your log: ${conflicts.map((d) => `${d.field} ${String(d.existing)} → ${String(d.incoming)}`).join("; ")}`;
+      return t("cliWrite.add.status.conflict", { differences: conflicts.map((d) => `${d.field} ${String(d.existing)} → ${String(d.incoming)}`).join("; ") });
     case "duplicate":
-      return "repeats an earlier sighting in this input (same aircraft, place and day); the import merges them";
+      return t("cliWrite.add.status.duplicate");
   }
 }
 
@@ -277,7 +242,7 @@ export function checkRecords(file: InboxFile, log: Store | null, ref: RefIndex, 
       n: c.table === "flights" ? c.sourceRow - sightingCount : c.sourceRow,
       label: labelOf(c),
       status: inFile ? "waiting" : m.kind,
-      statusText: inFile ? `already waiting in the inbox (${inFile}), left out` : statusText(m.kind, m.fills, m.conflicts),
+      statusText: inFile ? t("cliWrite.add.status.waiting", { file: inFile }) : statusText(m.kind, m.fills, m.conflicts),
       read: readValues(c, ref),
       private: c.table === "flights" ? INBOX_PRIVATE_FIELDS.filter((f) => !!(c.values as Record<string, unknown>)[f]) : [],
       problems: [...c.issues.map((x) => ({ severity: x.severity, rule: x.ruleId, message: x.message })), ...own.map((f) => ({ severity: f.severity, rule: f.ruleId, message: f.message }))],
@@ -322,7 +287,7 @@ async function readInput(input: string | undefined): Promise<string> {
 export async function addCommand(args: string[], ref: RefIndex): Promise<void> {
   const o = options(args);
   if (!o || args.includes("--help") || args.includes("-h") || (!o.input && process.stdin.isTTY)) {
-    console.log(ADD_HELP);
+    console.log(addHelp());
     process.exit(args.includes("--help") || args.includes("-h") ? 0 : 2);
   }
   const fail = (message: string): never => {
@@ -335,16 +300,16 @@ export async function addCommand(args: string[], ref: RefIndex): Promise<void> {
   try {
     json = JSON.parse(await readInput(o.input));
   } catch (e) {
-    fail(`The input is not JSON: ${(e as Error).message}`);
+    fail(t("cliWrite.add.notJson", { problem: (e as Error).message }));
   }
   const made = addFile(json, new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   if ("error" in made) return fail(made.error);
   if (o.ticket || o.booking) {
     const first = made.file.flights?.[0];
-    if (!first) return fail("--ticket and --booking are for a flight, and the input has none.");
+    if (!first) return fail(t("cliWrite.add.privateNeedsFlight"));
     try {
-      if (o.ticket) first.values.ticketNumber = (await askHidden("Ticket number of the first flight (not shown): ")).replace(/\s+/g, "") || undefined;
-      if (o.booking) first.values.bookingRef = (await askHidden("Booking reference of the first flight (not shown): ")) || undefined;
+      if (o.ticket) first.values.ticketNumber = (await askHidden(t("cliWrite.add.askTicket"))).replace(/\s+/g, "") || undefined;
+      if (o.booking) first.values.bookingRef = (await askHidden(t("cliWrite.add.askBooking"))) || undefined;
     } catch (e) {
       return fail((e as Error).message);
     }
@@ -395,23 +360,24 @@ export async function addCommand(args: string[], ref: RefIndex): Promise<void> {
   } else {
     printReport(records, log.from, log.problems);
     if (written) {
-      const what = [written.flights ? plural(written.flights, "flight") : null, written.sightings ? plural(written.sightings, "sighting") : null].filter(Boolean).join(" and ");
-      console.log(`\n${green("Written")} ${what} to ${written.place}: ${written.file}. Read back and checked.`);
-      console.log(`${yellow("Not in your log yet:")} ${place.shared ? "run ./touchdown review, or open Touchdown on any device and use “Review and import” at the top." : "start the web app (npm run dev -w @touchdown/web) and use “Review and import” at the top."}`);
-    } else if (reason === "errors") console.log(`\n${red("Nothing written:")} ${plural(errors.length, "record has", "records have")} errors. Fix them, or write them anyway with --keep-errors.`);
-    else if (reason === "dry-run") console.log(dim("\nDry run: nothing written."));
-    else if (reason === "nothing new") console.log("\nNothing written: everything is in your log or waiting in the inbox already.");
+      const what = list([written.flights ? t("cli.count.flights", { count: written.flights }) : null, written.sightings ? t("cli.count.sightings", { count: written.sightings }) : null].filter((x): x is string => !!x));
+      console.log(`\n${tc("cliWrite.add.written", { what, place: written.place, file: written.file }, { green })}`);
+      console.log(tc("cli.notInLogYet", { shared: place.shared ? "yes" : "no" }, { yellow }));
+    } else if (reason === "errors") console.log(`\n${tc("cliWrite.add.notWritten", { count: errors.length }, { red })}`);
+    else if (reason === "dry-run") console.log(dim(`\n${t("cli.dryRun")}`));
+    else if (reason === "nothing new") console.log(`\n${t("cliWrite.add.nothingNew")}`);
   }
   process.exit(reason === "errors" ? 1 : 0);
 }
 
 function printReport(records: RecordReport[], from: string, problems: string[]) {
-  console.log(`Checked against ${from}.`);
+  console.log(t("cli.checkedAgainst", { from }));
   for (const p of problems) console.log(red(`  ${p}`));
   for (const r of records) {
     const errors = r.problems.filter((p) => p.severity === "error").length;
     const mark = errors ? red("✗") : r.status === "identical" || r.status === "waiting" ? dim("–") : green("✓");
-    console.log(`${mark} ${bold(`${r.kind} ${r.n}`)}  ${r.label}  ${dim(r.statusText)}${r.private.length ? dim(` · ${r.private.map((f) => (f === "ticketNumber" ? "ticket number" : "booking reference")).join(" and ")} given`) : ""}`);
-    for (const p of r.problems) console.log(`    ${p.severity === "error" ? red("error") : p.severity === "warning" ? yellow("warning") : dim("note")} ${dim(p.rule)} ${p.message}`);
+    const given = r.private.length ? dim(` · ${t("cliWrite.add.privateGiven", { fields: list(r.private.map((f) => (f === "ticketNumber" ? t("cliWrite.add.private.ticketNumber") : t("cliWrite.add.private.bookingRef")))) })}`) : "";
+    console.log(`${mark} ${bold(recordName(r.kind, r.n))}  ${r.label}  ${dim(r.statusText)}${given}`);
+    for (const p of r.problems) console.log(`    ${p.severity === "error" ? red(t("cli.severity.error")) : p.severity === "warning" ? yellow(t("cli.severity.warning")) : dim(t("cli.severity.note"))} ${dim(p.rule)} ${p.message}`);
   }
 }

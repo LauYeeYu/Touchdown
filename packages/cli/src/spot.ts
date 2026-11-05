@@ -3,6 +3,7 @@
 // are filled from the sources, the agent checks the result and sorts out the words Touchdown could not place, and
 // you are asked for what is still missing. The sightings go to an inbox file for the Import page.
 
+import { list as listOf, t, tDynamic } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { createInterface, type Interface } from "node:readline/promises";
@@ -59,7 +60,7 @@ import { privatePath, shownPath, userPath } from "./paths.ts";
 import { agentForRun, AGENT_NAME, agentRules, savedStorage, type AgentChoice } from "./settings.ts";
 import { INBOX_DIR, inboxPlace, loadLog, writeInboxFile } from "./log.ts";
 import { chosenStorage, type OpenedStorage } from "./storage.ts";
-import { bold, colour, dim, duration, fit, green, plural, red, width, wrap, yellow } from "./term.ts";
+import { bold, colour, dim, duration, fit, green, red, tc, width, wrap, yellow } from "./term.ts";
 
 const CACHE = privatePath("cache/airframes");
 const HISTORY_FILE = privatePath("cache/spot-history.txt");
@@ -75,43 +76,10 @@ async function webAppRunning(): Promise<boolean> {
   return !!res?.ok;
 }
 
-export const SPOT_HELP = `Usage: ./touchdown spot [LINE… | FILE] [--at AIRPORT] [--on DATE] [--phase PHASE] [--agent claude|codex|none]
-                       [--log FILE | --no-log] [--fr24] [--chrome-port N] [--no-adsbdb] [--offline]
-                       [--model NAME] [--out FILE] [--dry-run]
-
-Log the aircraft you saw by typing them, one per line: the registration, then anything else you know.
-  G-ABCD landing
-  D-ABCD at EDDF on 2025-03-15 DLH A20N "Retro livery"
-A line with only a place, date or phase ("at EGLL", "on yesterday", "landing") sets it for the lines after
-it; "no phase" clears the phase. An empty line checks the aircraft typed so far and saves them. Type "help"
-in the session for its commands and keys.
-
-Each registration is looked up in your log (in the storage chosen with ./touchdown storage, else
-data/private/touchdown-backup.zip), the OpenSky snapshot (August 2025, downloaded once, about 110 MB) and adsbdb, and in Flightradar24 through your Chrome with --fr24. Empty
-fields are filled from them. Then the agent you chose (asked the first time; ./touchdown agent changes it)
-checks every value and sorts out the words Touchdown could not place. Values the sources back are used; the
-agent's own guesses and changes to what you typed are asked about, and so is whatever is still missing. When
-your log has the aircraft in a special livery, you are asked whether it still wore it.
-
-The sightings are saved to the inbox as spot-<date>-<time>.json: the inbox in your storage, which the web app
-reads on any device, else data/private/inbox/ (or --out). They are not in your log yet: the web app shows
-them as waiting, and you review and import them there.
-
-  FILE.xlsx|.csv        read the rows of a spreadsheet of sightings, in any layout, instead of typed lines:
-                        each row is looked up, filled and checked; what is open goes to the web app's review
-  --map H=FIELD         say what a spreadsheet column holds, by header or number ("Misc=other", "7=ignore")
-  --at, --on, --phase   the place, date and phase to start with (the date is today unless given)
-  LINE…                 lines to read instead of typing them (one argument per line); also read from a pipe
-  --agent NAME          the agent for this run: claude, codex, or none (lookups only)
-  --log FILE            a Touchdown backup to look registrations up in instead (in the web app: Settings, Back up)
-  --fr24                also read Flightradar24 through Chrome started with --remote-debugging-port=9222 and
-                        signed in (--chrome-port N); about 10 seconds per aircraft
-  --no-adsbdb           do not ask adsbdb
-  --offline             only cached answers and local files
-  --dry-run             show what the first agent call would send, and stop`;
+export const spotHelp = () => t("cli.help.spot");
 
 function usage(code = 1): never {
-  console.log(SPOT_HELP);
+  console.log(spotHelp());
   process.exit(code);
 }
 
@@ -191,21 +159,11 @@ interface Entry {
   worn: WornLivery | null;
 }
 
-const BASIS: Record<AgentSuggestion["basis"], string> = {
-  reference_data: "reference data",
-  lookup_data: "a lookup",
-  consistency: "your other lines",
-  model_knowledge: "the agent's own knowledge",
-  typed: "the text you typed",
-};
+/** Where a suggestion came from, after "from": "from reference data". */
+const basisLabel = (basis: AgentSuggestion["basis"]) => tDynamic(`cliWrite.spot.basis.${basis}`);
 
-const HINT: Partial<Record<SpotField, string>> = {
-  typeCode: "ICAO type designator, e.g. A320, B738",
-  operator: 'airline code, e.g. BAW or BA, or "private"',
-  airport: "airport code, e.g. EGLL or LHR",
-  date: "e.g. 2025-03-15, today, yesterday",
-  phase: "approaching, landing, taking off, taxiing, parked, towing, overflight, other",
-};
+/** What to type for a missing field (missingFields gives only these: date, airport, typeCode, operator, phase). */
+const hintFor = (field: SpotField) => tDynamic(`cliWrite.spot.hint.${field}`);
 
 const stamp = (d = new Date()) => {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -249,7 +207,7 @@ export async function spotCommand(args: string[]): Promise<void> {
   if (o.settings.length) {
     const s = parseSpotLine(o.settings.join(" "), ref, today);
     if (s.problems.length || !s.setting) {
-      console.error(red(s.problems.join(" ") || `Could not read ${o.settings.join(" ")}.`));
+      console.error(red(s.problems.join(" ") || t("cliWrite.spot.unreadSettings", { text: o.settings.join(" ") })));
       process.exit(1);
     }
     Object.assign(settings, s.setting);
@@ -266,7 +224,7 @@ export async function spotCommand(args: string[]): Promise<void> {
   let agent: Agent | null = null;
   if (choice !== "none") {
     const a = findAgent(choice);
-    if ("error" in a) console.log(yellow(`${a.error} Going on without an agent: lookups only. ./touchdown agent chooses another.`));
+    if ("error" in a) console.log(yellow(t("cliWrite.spot.noAgent", { error: a.error })));
     else agent = a;
   }
   const prompt = readFileSync(PROMPT_FILE, "utf8");
@@ -280,7 +238,7 @@ export async function spotCommand(args: string[]): Promise<void> {
     try {
       storage = await chosenStorage();
     } catch (e) {
-      console.log(yellow(`${(e as Error).message} Going on without it: the session is saved in data/private/inbox/, and ./touchdown inbox send sends it later.`));
+      console.log(yellow(t("cliWrite.spot.noStorage", { error: (e as Error).message })));
     }
   }
   let log: Store | null = null;
@@ -291,7 +249,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       log = loaded.store;
       for (const p of loaded.problems) console.log(yellow(p));
     } catch (e) {
-      console.error(red(`${(e as Error).message} Back up in the web app (Settings) and pass the file with --log, or use --no-log.`));
+      console.error(red(t("cliWrite.spot.noLog", { error: (e as Error).message })));
       process.exit(1);
     }
     logSize = log ? log.all("sightings").length + log.all("flights").length : 0;
@@ -327,17 +285,17 @@ export async function spotCommand(args: string[]): Promise<void> {
       const held = (r: OpenSkyRow) => (!r.registered || r.registered <= date) && (!r.regUntil || date <= r.regUntil);
       const row = [...(rows.some(held) ? rows.filter(held) : rows)].sort((a, b) => b.updated.localeCompare(a.updated))[0];
       if (row) out.push(openSkyEvidence(row, ref));
-    } else sourceNote("opensky", `OpenSky: ${index.error}; not used.`);
+    } else sourceNote("opensky", t("cliWrite.spot.openSkyUnused", { error: index.error }));
     if (adsb && !(opts.quick && out.some((e) => e.source === "opensky"))) {
       const r = await adsb.lookup(registration);
-      if ("error" in r) sourceNote("adsbdb", `${r.error}.`);
+      if ("error" in r) sourceNote("adsbdb", t("cliWrite.spot.adsbdbError", { error: r.error }));
       else if (r.evidence) out.push(r.evidence);
     }
     if (fr24) {
       const url = fr24Url(registration);
       const page = await fr24.read(registration, url);
       if ("blocked" in page) {
-        sourceNote("fr24", `Flightradar24: ${page.blocked}; not used for the rest of this session.`);
+        sourceNote("fr24", t("cliWrite.spot.fr24Blocked", { why: page.blocked }));
         await fr24.close();
         fr24 = null;
       } else {
@@ -365,17 +323,17 @@ export async function spotCommand(args: string[]): Promise<void> {
 
   const valuesLine = (e: Entry) => {
     const v = e.choice.values;
-    const op = v.operator ? `${v.operator}${opName(v.operator) ? ` ${opName(v.operator)}` : ""}` : yellow("airline?");
+    const op = v.operator ? `${v.operator}${opName(v.operator) ? ` ${opName(v.operator)}` : ""}` : yellow(t("cliWrite.spot.values.noAirline"));
     const parts = [
-      v.typeCode ?? yellow("type?"),
-      v.model ?? dim("no model"),
+      v.typeCode ?? yellow(t("cliWrite.spot.values.noType")),
+      v.model ?? dim(t("cliWrite.spot.values.noModel")),
       op,
-      v.phase ? v.phase.replace("_", " ") : yellow("phase?"),
-      v.airport ?? yellow("place?"),
-      v.date ?? yellow("date?"),
-      ...(v.specialLivery ? [`special livery "${v.specialLivery}"`] : []),
-      ...(v.livery ? [`livery "${v.livery}"`] : []),
-      ...(v.notes ? [`notes "${v.notes}"`] : []),
+      v.phase ? v.phase.replace("_", " ") : yellow(t("cliWrite.spot.values.noPhase")),
+      v.airport ?? yellow(t("cliWrite.spot.values.noPlace")),
+      v.date ?? yellow(t("cliWrite.spot.values.noDate")),
+      ...(v.specialLivery ? [t("cliWrite.spot.values.specialLivery", { name: v.specialLivery })] : []),
+      ...(v.livery ? [t("cliWrite.spot.values.livery", { name: v.livery })] : []),
+      ...(v.notes ? [t("cliWrite.spot.values.notes", { notes: v.notes })] : []),
     ];
     return `${dim(String(e.n).padStart(3))}  ${bold(fit(v.registration ?? "", 9))} ${parts.join(dim(" · "))}`;
   };
@@ -386,16 +344,16 @@ export async function spotCommand(args: string[]): Promise<void> {
       if (s === "you" || f === "notes") continue;
       by.set(s, [...(by.get(s) ?? []), f]);
     }
-    const parts = [...by].map(([s, fs]) => `${fs.map((f) => SPOT_FIELD_LABEL[f]).join(", ")} from ${SOURCE_NAME[s]}`);
+    const parts = [...by].map(([s, fs]) => t("cliWrite.spot.sources.from", { fields: fs.map((f) => SPOT_FIELD_LABEL[f]).join(", "), source: SOURCE_NAME[s] }));
     // The other sources that say the same.
     const differ = new Set(e.choice.disagreements.flatMap((d) => d.others.map((x) => x.source)));
     const agree = e.evidence.filter((x) => !by.has(x.source) && !differ.has(x.source) && (x.typeCode || x.model || x.operator)).map((x) => SOURCE_NAME[x.source]);
-    if (agree.length && by.size) parts.push(`${agree.join(" and ")} ${agree.length === 1 ? "agrees" : "agree"}`);
+    if (agree.length && by.size) parts.push(t("cliWrite.spot.sources.agree", { sources: listOf(agree), count: agree.length }));
     const mine = e.evidence.find((x) => x.source === "your_log");
-    if (log) parts.push(mine?.note ?? "new to your log");
-    if (!e.evidence.some((x) => x.source !== "your_log")) parts.push("not found in any lookup");
-    for (const x of e.evidence) if (x.note && x.source !== "your_log") parts.push(`${SOURCE_NAME[x.source]}: ${x.note}`);
-    for (const d of e.choice.disagreements) for (const x of d.others) parts.push(`${SOURCE_NAME[x.source]} says ${x.value} for the ${SPOT_FIELD_LABEL[d.field]}`);
+    if (log) parts.push(mine?.note ?? t("cliWrite.spot.sources.newToLog"));
+    if (!e.evidence.some((x) => x.source !== "your_log")) parts.push(t("cliWrite.spot.sources.notFound"));
+    for (const x of e.evidence) if (x.note && x.source !== "your_log") parts.push(t("cliWrite.spot.sources.note", { source: SOURCE_NAME[x.source], note: x.note }));
+    for (const d of e.choice.disagreements) for (const x of d.others) parts.push(t("cliWrite.spot.sources.says", { source: SOURCE_NAME[x.source], value: x.value, field: SPOT_FIELD_LABEL[d.field] }));
     return parts.length ? `       ${dim(parts.join(" · "))}` : null;
   };
 
@@ -412,7 +370,7 @@ export async function spotCommand(args: string[]): Promise<void> {
   const tip = (key: string, text: string) => {
     if (!typing || tipped.has(key)) return;
     tipped.add(key);
-    for (const l of wrap(`Tip: ${text}`, width() - 4)) console.log(dim(`  ${l}`));
+    for (const l of wrap(t("cliWrite.spot.tip", { text }), width() - 4)) console.log(dim(`  ${l}`));
   };
 
   // ---------- the session's aircraft ----------
@@ -426,7 +384,7 @@ export async function spotCommand(args: string[]): Promise<void> {
   const outShown = shownPath(out);
 
   const describeSettings = () =>
-    [settings.airport ? `${settings.airport}${ref.airportByCode(settings.airport) ? ` ${ref.airportByCode(settings.airport)!.name}` : ""}` : "no place set", settings.date, settings.phase?.replace("_", " ") ?? "no phase"].join(dim(" · "));
+    [settings.airport ? `${settings.airport}${ref.airportByCode(settings.airport) ? ` ${ref.airportByCode(settings.airport)!.name}` : ""}` : t("cliWrite.spot.settings.noPlace"), settings.date, settings.phase?.replace("_", " ") ?? t("cliWrite.spot.settings.noPhase")].join(dim(" · "));
 
   const remove = (e: Entry) => {
     e.gone = true;
@@ -458,12 +416,12 @@ export async function spotCommand(args: string[]): Promise<void> {
       if ("airport" in parsed.setting) settings.airport = parsed.setting.airport;
       if ("date" in parsed.setting) settings.date = parsed.setting.date;
       if ("phase" in parsed.setting) settings.phase = parsed.setting.phase;
-      note(dim(`  Now: ${describeSettings()}`));
+      note(dim(`  ${t("cliWrite.spot.now", { settings: describeSettings() })}`));
       return;
     }
     if (!parsed.typed.registration) {
       for (const p of parsed.problems) note(yellow(`  ${p}`));
-      tip("registration", 'start a line with the registration, e.g. G-ABCD landing. A line with only a place, date or phase ("at EGLL", "on yesterday", "landing") sets it for the next lines. Type help for more.');
+      tip("registration", t("cliWrite.spot.tips.registration"));
       return;
     }
     const typed: SpotValues = withSettings(parsed.typed, settings);
@@ -475,7 +433,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       const reg = was.choice.values.registration ?? "";
       if (registrationMatchForm(reg) === registrationMatchForm(parsed.typed.registration)) target = was;
       else if (opts.ask) {
-        const a = await opts.ask(`  You changed line ${was.n} (${reg}). Replace it with this aircraft? [Y/n] `);
+        const a = await opts.ask(`  ${t("cliWrite.spot.replaceAsk", { n: was.n, registration: reg })} `);
         if (a !== null && !/^no?$/i.test(a.trim())) target = was;
       }
     }
@@ -485,7 +443,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       sameDay = !!target;
     }
 
-    showStatus(`  looking up ${parsed.typed.registration}…`);
+    showStatus(`  ${t("cliWrite.spot.lookingUp", { registration: parsed.typed.registration })}`);
     const evidence = await lookUp(parsed.typed.registration, typed.date ?? today, { self: typed.airport });
     const e: Entry = {
       n: target?.n ?? ++typedCount,
@@ -505,7 +463,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       worn: wornIn(parsed.typed.registration, typed),
     };
     const reg = normaliseRegistration(e.choice.values.registration, ref);
-    if (reg && !reg.knownFormat) e.problems.push(`${reg.display} is not in any country's registration format; check it.`);
+    if (reg && !reg.knownFormat) e.problems.push(t("cliWrite.spot.unknownFormat", { registration: reg.display }));
     if (target) {
       const at = entries.indexOf(target);
       remove(target);
@@ -513,17 +471,12 @@ export async function spotCommand(args: string[]): Promise<void> {
     } else entries.push(e);
     pending.push(e);
     show(e);
-    if (target) note(dim(`       Replaces line ${target.n}${sameDay ? ": the same aircraft at the same place on the same day is one sighting" : ""}.`));
-    if (!e.choice.values.airport) tip("place", 'no place yet. Type "at EGLL" on a line of its own to set it for the next aircraft, or press ↑ and add "at EGLL" to this line.');
+    if (target) note(dim(`       ${t("cliWrite.spot.replaces", { n: target.n, sameDay: sameDay ? "yes" : "no" })}`));
+    if (!e.choice.values.airport) tip("place", t("cliWrite.spot.tips.place"));
     if (e.text) {
-      tip(
-        "text",
-        agent
-          ? `words Touchdown did not recognise ("${e.text}") go to the agent when you save; it puts them in a field such as special livery, or keeps them as notes.`
-          : `words Touchdown did not recognise ("${e.text}") are kept as notes.`,
-      );
+      tip("text", t("cliWrite.spot.tips.text", { text: e.text, agent: agent ? "yes" : "no" }));
     }
-    if (pending.length === 5) tip("save", "press Enter on an empty line to check and save what you have typed so far. You can keep typing afterwards.");
+    if (pending.length === 5) tip("save", t("cliWrite.spot.tips.save"));
   };
 
   /** A spreadsheet row, read like a typed line: its fields as typed, and its free text for the agent to sort. */
@@ -549,7 +502,7 @@ export async function spotCommand(args: string[]): Promise<void> {
     const evidence = await lookUp(registration, typed.date ?? today, { self: typed.airport, quick: true });
     const e: Entry = {
       n: ++typedCount,
-      line: `row ${c.sourceRow}`,
+      line: t("cli.row", { n: c.sourceRow }),
       text: v.notes ?? "",
       evidence,
       choice: chooseValues(typed, evidence, ref, today),
@@ -620,15 +573,15 @@ export async function spotCommand(args: string[]): Promise<void> {
   const runCheck = async (batch: Entry[]) => {
     if (!agent || !batch.length) return;
     if (!tested && !selfTestPassed(agent)) {
-      showStatus(`  ${agent.name}: self-test, sending a record that tries to take over the agent…`);
+      showStatus(`  ${t("cliWrite.spot.selfTest.running", { agent: agent.name })}`);
       const why = await selfTest(agent, prompt, ref, o.model);
       if (why) {
-        note(red(`  ${agent.name} ${agent.version} did not pass the self-test: ${why}. Going on without an agent.`));
+        note(red(`  ${t("cliWrite.spot.selfTest.failed", { agent: agent.name, version: agent.version, why })}`));
         agent = null;
         return;
       }
       recordSelfTest(agent);
-      note(dim(`  ${agent.name} ${agent.version} passed the self-test: it ignored an instruction hidden in a record.`));
+      note(dim(`  ${t("cliWrite.spot.selfTest.passed", { agent: agent.name, version: agent.version })}`));
     }
     tested = true;
     const findings = findingsFor(batch);
@@ -637,8 +590,8 @@ export async function spotCommand(args: string[]): Promise<void> {
     for (let i = 0; i < records.length; i += CHECK_BATCH_SIZE) chunks.push(records.slice(i, i + CHECK_BATCH_SIZE));
     const byId = new Map(batch.map((e) => [`row-${e.n}`, e]));
     const started = Date.now();
-    const ticker = setInterval(() => showStatus(`  Checking ${plural(batch.length, "aircraft", "aircraft")} with ${agent!.name}… ${duration(Date.now() - started)}`), 1000);
-    showStatus(`  Checking ${plural(batch.length, "aircraft", "aircraft")} with ${agent.name}…`);
+    const ticker = setInterval(() => showStatus(`  ${t("cliWrite.spot.checkingFor", { count: batch.length, agent: agent!.name, time: duration(Date.now() - started) })}`), 1000);
+    showStatus(`  ${t("cliWrite.spot.checking", { count: batch.length, agent: agent.name })}`);
     let cost = 0;
     let rejected = 0;
     const failures: string[] = [];
@@ -677,32 +630,32 @@ export async function spotCommand(args: string[]): Promise<void> {
     );
     clearInterval(ticker);
     note(
-      `  ${failures.length ? red("✗") : green("✓")} Checked with ${agent.name} in ${duration(Date.now() - started)}${cost ? dim(`, about $${cost.toFixed(2)} of usage`) : ""}${rejected ? dim(`; ${plural(rejected, "answer")} rejected by Touchdown's checks`) : ""}.`,
+      `  ${failures.length ? red("✗") : green("✓")} ${tc("cliWrite.spot.checked", { agent: agent.name, time: duration(Date.now() - started), usage: cost ? "yes" : "no", cost: cost.toFixed(2), rejected }, { dim })}`,
     );
-    for (const f of failures) note(red(`    No valid answer: ${f}. Those aircraft are saved as the lookups left them.`));
+    for (const f of failures) note(red(`    ${t("cliWrite.spot.noValidAnswer", { why: f })}`));
   };
 
   // ---------- asking ----------
 
-  const readAnswer = (field: SpotField, input: string): { value: string } | { error: string } => {
-    const t = input.trim();
+  const readAnswer = (field: SpotField, typed: string): { value: string } | { error: string } => {
+    const input = typed.trim();
     switch (field) {
       case "typeCode":
-        return ref.type(t) ? { value: t.toUpperCase() } : { error: `${t} is not an ICAO type designator.` };
+        return ref.type(input) ? { value: input.toUpperCase() } : { error: t("cliWrite.spot.answer.notType", { value: input }) };
       case "operator":
-        return ref.operatorByCode(t) ? { value: t } : { error: `No airline has the code or name ${t}.` };
+        return ref.operatorByCode(input) ? { value: input } : { error: t("cliWrite.spot.answer.noAirline", { value: input }) };
       case "airport":
-        return ref.airportByCode(t) ? { value: t } : { error: `No airport has the code ${t}.` };
+        return ref.airportByCode(input) ? { value: input } : { error: t("cliWrite.spot.answer.noAirport", { value: input }) };
       case "date": {
-        const d = spotDate(t, today);
-        return d && d <= today ? { value: d } : { error: `${t} is not a date (or it is in the future).` };
+        const d = spotDate(input, today);
+        return d && d <= today ? { value: d } : { error: t("cliWrite.spot.answer.notDate", { value: input }) };
       }
       case "phase": {
-        const p = spotPhase(t);
-        return p ? { value: p } : { error: `${t} is not a phase.` };
+        const p = spotPhase(input);
+        return p ? { value: p } : { error: t("cliWrite.spot.answer.notPhase", { value: input }) };
       }
       default:
-        return { value: t };
+        return { value: input };
     }
   };
 
@@ -711,8 +664,8 @@ export async function spotCommand(args: string[]): Promise<void> {
   /** Asks about one aircraft; false when the input closed. */
   const askAbout = async (e: Entry, ask: Ask): Promise<boolean> => {
     if (e.agentNote) {
-      console.log(`${head(e)} ${yellow(`The agent: ${e.agentNote}`)}`);
-      console.log(dim(`               Your line is below: change it and press Enter to correct it, or press Enter as it is to keep it.`));
+      console.log(`${head(e)} ${yellow(t("cliWrite.spot.agentSays", { note: e.agentNote }))}`);
+      console.log(dim(`               ${t("cliWrite.spot.ask.lineBelow")}`));
       const a = await ask(`               › `, e.line);
       if (a === null) return false;
       if (a.trim() && a.trim() !== e.line.trim()) {
@@ -721,10 +674,9 @@ export async function spotCommand(args: string[]): Promise<void> {
       }
     }
     for (const s of e.ask) {
-      const change = `${s.current || "(empty)"} → ${bold(s.suggested || "(clear)")}`;
-      console.log(`${head(e)} ${SPOT_FIELD_LABEL[s.field as SpotField]} ${change} ${dim(`(from ${BASIS[s.basis]}, ${s.confidence})`)}`);
+      console.log(`${head(e)} ${tc("cliWrite.spot.ask.suggestion", { field: SPOT_FIELD_LABEL[s.field as SpotField], current: s.current || t("cli.value.empty"), suggested: s.suggested || t("cli.value.clear"), basis: basisLabel(s.basis), confidence: s.confidence }, { bold, dim })}`);
       for (const l of wrap(s.reason, width() - 16)) console.log(`               ${dim(l)}`);
-      const a = await ask(`               Use it? [y/N] `);
+      const a = await ask(`               ${t("cliWrite.spot.ask.useIt")} `);
       if (a === null) return false;
       if (/^y(es)?$/i.test(a.trim())) {
         setValue(e, s.field as SpotField, s.suggested, agent?.checker ?? "you");
@@ -734,7 +686,7 @@ export async function spotCommand(args: string[]): Promise<void> {
     e.ask = [];
     if (liveryOpen(e)) {
       const w = e.worn!;
-      const a = await ask(`${head(e)} Still in ${w.name}? ${dim(`(in your log on ${w.on}; y to use it, or type another special livery; Enter to leave it empty)`)} `);
+      const a = await ask(`${head(e)} ${tc("cliWrite.spot.ask.stillIn", { livery: w.name, date: w.on }, { dim })} `);
       if (a === null) return false;
       const t = a.trim();
       if (/^y(es)?$/i.test(t)) setValue(e, "specialLivery", w.name, "your_log");
@@ -743,7 +695,7 @@ export async function spotCommand(args: string[]): Promise<void> {
     }
     for (const f of missingFields(e.choice.values)) {
       for (let tries = 0; ; tries++) {
-        const a = await ask(`${head(e)} ${SPOT_FIELD_LABEL[f]}? ${dim(`(${HINT[f]}; Enter to leave it empty)`)} `);
+        const a = await ask(`${head(e)} ${tc("cliWrite.spot.ask.field", { field: SPOT_FIELD_LABEL[f], hint: hintFor(f) }, { dim })} `);
         if (a === null) return false;
         if (!a.trim()) {
           e.missing.push(f);
@@ -770,9 +722,9 @@ export async function spotCommand(args: string[]): Promise<void> {
     ...e.problems,
     // Without the agent's check, every disagreement between sources is left for the user.
     ...(e.checked ? [] : e.choice.disagreements.map(describeDisagreement)),
-    ...(e.agentNote ? [`The agent: ${e.agentNote}`] : []),
-    ...e.notAsked.map((s) => `The agent suggests ${SPOT_FIELD_LABEL[s.field as SpotField]} ${s.suggested || "(empty)"}: ${s.reason}`),
-    ...(liveryOpen(e) ? [`Your log has it in ${e.worn!.name} on ${e.worn!.on}; not asked whether it still wore it.`] : []),
+    ...(e.agentNote ? [t("cliWrite.spot.agentSays", { note: e.agentNote })] : []),
+    ...e.notAsked.map((s) => t("cliWrite.spot.open.suggests", { field: SPOT_FIELD_LABEL[s.field as SpotField], value: s.suggested || t("cli.value.empty"), reason: s.reason })),
+    ...(liveryOpen(e) ? [t("cliWrite.spot.open.livery", { livery: e.worn!.name, date: e.worn!.on })] : []),
   ];
 
   const toInbox = (e: Entry): InboxSighting => ({
@@ -809,7 +761,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       sentTo = place.name;
     } catch (e) {
       sentTo = null;
-      console.log(yellow(`Not saved to ${place.name}: ${(e as Error).message} Kept in ${outShown}; ./touchdown inbox send sends it later.`));
+      console.log(yellow(t("cliWrite.spot.notSent", { place: place.name, error: (e as Error).message, file: outShown })));
     }
   };
 
@@ -817,26 +769,26 @@ export async function spotCommand(args: string[]): Promise<void> {
   const finish = async (ask: Ask | null) => {
     const batch = pending;
     if (!batch.length) {
-      if (typing) console.log(dim("  Nothing to save: type an aircraft first."));
+      if (typing) console.log(dim(`  ${t("cliWrite.spot.nothingToSave")}`));
       return;
     }
     pending = [];
     await runCheck(batch);
     // What the agent changed or doubts; the rest is as shown when typed.
     const changed = batch.filter((e) => e.used.length || e.agentNote);
-    if (agent && batch.some((e) => e.checked) && !changed.length) note(dim("  The agent found nothing to change."));
+    if (agent && batch.some((e) => e.checked) && !changed.length) note(dim(`  ${t("cliWrite.spot.agentNothing")}`));
     for (const e of changed) {
       note(valuesLine(e));
       for (const s of e.used) {
-        console.log(`       ${green("✓")} ${SPOT_FIELD_LABEL[s.field as SpotField]} ${s.current || "(empty)"} → ${s.suggested || "(clear)"} ${dim(`(from ${BASIS[s.basis]})`)}`);
+        console.log(`       ${green("✓")} ${tc("cliWrite.spot.used", { field: SPOT_FIELD_LABEL[s.field as SpotField], current: s.current || t("cli.value.empty"), suggested: s.suggested || t("cli.value.clear"), basis: basisLabel(s.basis) }, { dim })}`);
         for (const l of wrap(s.reason, width() - 16)) console.log(`         ${dim(l)}`);
       }
       // At a terminal the note comes with its question below.
-      if (e.agentNote && !ask) console.log(`       ${yellow(`The agent: ${e.agentNote}`)}`);
+      if (e.agentNote && !ask) console.log(`       ${yellow(t("cliWrite.spot.agentSays", { note: e.agentNote }))}`);
     }
     const open = batch.filter((e) => e.agentNote || e.ask.length || liveryOpen(e) || missingFields(e.choice.values).length);
     if (open.length && ask) {
-      console.log(`\n${bold(`${plural(open.length, "aircraft", "aircraft")} need${open.length === 1 ? "s" : ""} you`)} ${dim("(press Enter to skip a question)")}`);
+      console.log(`\n${tc("cliWrite.spot.needYou", { count: open.length }, { bold, dim })}`);
       for (const e of open) if (!(await askAbout(e, ask))) break;
     }
     // Lines typed again replace the aircraft they correct, and are checked in a round of their own below.
@@ -850,52 +802,53 @@ export async function spotCommand(args: string[]): Promise<void> {
     if (done.length) {
       saved.push(...done);
       await writeInbox();
-      console.log(`\n${green("Saved")} ${plural(done.length, "sighting")} to ${sentTo ? `${sentTo} (${basename(out)})` : outShown}${saved.length > done.length ? ` (${saved.length} in this session)` : ""}.`);
+      console.log(`\n${tc("cliWrite.spot.saved", { count: done.length, place: sentTo ? t("cliWrite.spot.placeFile", { place: sentTo, file: basename(out) }) : outShown, more: saved.length > done.length ? "yes" : "no", total: saved.length }, { green })}`);
       const left = done.filter((e) => e.missing.length || openOf(e).length);
-      if (left.length) console.log(bold(`Still open${left.length > 15 ? ` (the first 15 of ${left.length}; the web app lists them all when you review)` : ""}:`));
+      if (left.length) console.log(bold(t("cliWrite.spot.stillOpen", { many: left.length > 15 ? "yes" : "no", shown: 15, total: left.length })));
       for (const e of left.slice(0, 15)) {
-        const parts = [...(e.missing.length ? [`no ${e.missing.map((f) => SPOT_FIELD_LABEL[f]).join(", ")}`] : []), ...openOf(e)];
+        const parts = [...(e.missing.length ? [t("cliWrite.spot.noFields", { fields: e.missing.map((f) => SPOT_FIELD_LABEL[f]).join(", ") })] : []), ...openOf(e)];
         const lines = parts.flatMap((p) => wrap(p, width() - 16));
         console.log(`${head(e)} ${lines[0]}`);
         for (const l of lines.slice(1)) console.log(`               ${l}`);
       }
     }
     if (pending.length) {
-      console.log(dim(`\nChecking the ${plural(pending.length, "line")} typed again.`));
+      console.log(dim(`\n${t("cliWrite.spot.checkingAgain", { count: pending.length })}`));
       await finish(ask);
     } else if (saved.length) {
       await whereNext();
-      tip("more", "keep typing to add more aircraft to the same session, or type quit to end.");
+      tip("more", t("cliWrite.spot.tips.more"));
     }
   };
 
   /** Where the saved sightings are, and the step that adds them to the log. */
   const whereNext = async () => {
     if (sentTo) {
-      console.log(`${yellow("Not in your log yet:")} open Touchdown on any device and use “Review and import” at the top, or the list on the Import page.`);
+      console.log(tc("cliWrite.spot.next.shared", {}, { yellow }));
       return;
     }
-    const start = (await webAppRunning()) ? `open ${WEB_APP}` : `start the web app (npm run dev -w @touchdown/web), open ${WEB_APP}`;
+    const running = (await webAppRunning()) ? "yes" : "no";
     // A file saved elsewhere (--out) is not in the inbox the web app watches.
-    if (dirname(out) !== INBOX_DIR) console.log(`${yellow("Not in your log yet:")} ${start}, go to Import and choose ${outShown}.`);
-    else console.log(`${yellow("Not in your log yet:")} ${start} and use "Review and import" at the top, or the list on the Import page.`);
+    console.log(tc("cliWrite.spot.next.local", { running, url: WEB_APP, elsewhere: dirname(out) !== INBOX_DIR ? "yes" : "no", file: outShown }, { yellow }));
   };
 
   const list = () => {
-    if (!entries.length) return console.log(dim("  Nothing typed yet."));
-    for (const e of [...entries].sort((a, b) => a.n - b.n)) console.log(`${valuesLine(e)}  ${saved.includes(e) ? dim("saved") : yellow("not saved yet")}`);
+    if (!entries.length) return console.log(dim(`  ${t("cliWrite.spot.nothingTyped")}`));
+    for (const e of [...entries].sort((a, b) => a.n - b.n)) console.log(`${valuesLine(e)}  ${saved.includes(e) ? dim(t("cliWrite.spot.list.saved")) : yellow(t("cliWrite.spot.list.notSaved"))}`);
   };
 
   // ---------- the session ----------
 
-  console.log(bold("Touchdown spotting session"));
-  console.log(`  Place     ${describeSettings()}`);
-  const sources = [log ? `your log${storage ? ` in ${storage.name}` : ""} (${plural(logSize, "record")})` : null, "OpenSky snapshot (August 2025)", adsb ? "adsbdb" : null, fr24 ? `Flightradar24 through Chrome on port ${o.chromePort}` : null].filter(Boolean);
-  console.log(`  Sources   ${sources.join(", ")}${o.offline ? dim(" (offline: cached answers only)") : ""}`);
-  console.log(`  Agent     ${agent ? `${agent.name} ${agent.version}, locked down: no tools, no MCP servers, no hooks` : AGENT_NAME.none}  ${dim("(./touchdown agent to change)")}`);
-  console.log(`  Saves to  ${place ? `${place.name} (${basename(out)})` : outShown} ${dim("(the web app shows it for you to review and import)")}`);
+  // The labels are padded to one width, so the values line up.
+  const label = (text: string) => `  ${text.padEnd(10)}`;
+  console.log(bold(t("cliWrite.spot.header.title")));
+  console.log(`${label(t("cliWrite.spot.header.place"))}${describeSettings()}`);
+  const sources = [log ? t("cliWrite.spot.header.log", { inStorage: storage ? "yes" : "no", storage: storage?.name ?? "", count: logSize }) : null, t("cliWrite.spot.header.openSky"), adsb ? "adsbdb" : null, fr24 ? t("cliWrite.spot.header.fr24", { port: o.chromePort }) : null].filter(Boolean);
+  console.log(`${label(t("cliWrite.spot.header.sources"))}${sources.join(", ")}${o.offline ? dim(` ${t("cliWrite.spot.header.offline")}`) : ""}`);
+  console.log(`${label(t("cliWrite.spot.header.agent"))}${agent ? t("cliWrite.spot.header.lockedDown", { agent: agent.name, version: agent.version }) : AGENT_NAME.none}  ${dim(t("cliWrite.spot.header.agentChange"))}`);
+  console.log(`${label(t("cliWrite.spot.header.savesTo"))}${place ? t("cliWrite.spot.placeFile", { place: place.name, file: basename(out) }) : outShown} ${dim(t("cliWrite.spot.header.review"))}`);
   const ready = await openSky();
-  if (!(ready instanceof Map)) console.log(yellow(`  OpenSky: ${ready.error}; not used.`));
+  if (!(ready instanceof Map)) console.log(yellow(`  ${t("cliWrite.spot.openSkyUnused", { error: ready.error })}`));
 
   if (o.file) {
     const tty = !!process.stdin.isTTY && !!process.stdout.isTTY;
@@ -905,7 +858,7 @@ export async function spotCommand(args: string[]): Promise<void> {
       process.exit(1);
     }
     if (read.kind !== "sightings") {
-      console.error(red(`${basename(o.file)} holds flights. spot is for sightings: import flights on the Import page, or check them with ./touchdown check.`));
+      console.error(red(t("cliWrite.spot.sheetHoldsFlights", { file: basename(o.file) })));
       process.exit(1);
     }
     const rows = read.source.candidates.filter((c): c is SightingCandidate => c.table === "sightings");
@@ -913,18 +866,18 @@ export async function spotCommand(args: string[]): Promise<void> {
     let skipped = 0;
     console.log("");
     for (const [i, c] of rows.entries()) {
-      showStatus(`  Looking up row ${i + 1} of ${rows.length}… ${duration(Date.now() - started)}`);
+      showStatus(`  ${t("cliWrite.spot.lookingUpRow", { n: i + 1, total: rows.length, time: duration(Date.now() - started) })}`);
       if (!(await addRow(c))) skipped++;
     }
     const filled = entries.reduce((n, e) => n + Object.values(e.choice.sources).filter((s) => s !== "you").length, 0);
-    note(`  ${green("✓")} Looked up ${plural(entries.length, "row")} in ${duration(Date.now() - started)}${skipped ? `; ${plural(skipped, "row")} without a registration left out` : ""}.`);
-    console.log(dim(`    ${plural(filled, "empty field")} filled from the lookups; ${plural(entries.filter((e) => e.choice.disagreements.length).length, "row")} where a source says something else.`));
+    note(`  ${green("✓")} ${t("cliWrite.spot.lookedUp", { count: entries.length, time: duration(Date.now() - started), skipped })}`);
+    console.log(dim(`    ${t("cliWrite.spot.filled", { filled, differ: entries.filter((e) => e.choice.disagreements.length).length })}`));
     if (o.dryRun) return dryRun();
     // A whole sheet is many agent calls: say so, and let the user go on without the agent.
     if (agent && tty && entries.length > CHECK_BATCH_SIZE) {
       const calls = Math.ceil(entries.length / CHECK_BATCH_SIZE);
       const rl = createInterface({ input: process.stdin, output: process.stdout });
-      const a = (await rl.question(`Check all ${plural(entries.length, "row")} with ${agent.name}? That is ${calls} calls, roughly $${(calls * 0.2).toFixed(0)}–${(calls * 0.4).toFixed(0)} of usage. [Y/n] `)).trim();
+      const a = (await rl.question(`${t("cliWrite.spot.checkAllAsk", { count: entries.length, agent: agent.name, calls, low: (calls * 0.2).toFixed(0), high: (calls * 0.4).toFixed(0) })} `)).trim();
       rl.close();
       if (/^no?$/i.test(a)) agent = null;
     }
@@ -947,11 +900,11 @@ export async function spotCommand(args: string[]): Promise<void> {
   }
 
   typing = true;
-  console.log(`\nType one aircraft per line, starting with its registration, then anything you know:`);
-  console.log(`  ${bold("G-ABCD landing")}     ${bold('D-ABCD at EDDF DLH "Retro livery"')}     ${bold("N1001X on yesterday taking off")}`);
-  console.log(dim(`Enter on an empty line: check and save · ↑: bring back a line to fix it · Tab: complete · help: more`));
-  console.log(dim(`Saved aircraft wait in the web app until you review and import them there.`));
-  if (!settings.airport) console.log(dim(`No place set yet: type "at" and the airport code, e.g. at EGLL, to set it for the next lines.`));
+  console.log(`\n${t("cliWrite.spot.intro.type")}`);
+  console.log(`  ${tc("cliWrite.spot.intro.examples", {}, { bold })}`);
+  console.log(dim(t("cliWrite.spot.intro.keys")));
+  console.log(dim(t("cliWrite.spot.intro.saved")));
+  if (!settings.airport) console.log(dim(t("cliWrite.spot.intro.noPlace")));
 
   // Lines from earlier sessions, most recent first, so ↑ reaches them too.
   let earlier: string[] = [];
@@ -988,7 +941,7 @@ export async function spotCommand(args: string[]): Promise<void> {
   );
   rl.on("SIGINT", () => {
     saveHistory();
-    if (pending.length) console.log(yellow(`\nStopped. ${plural(pending.length, "aircraft", "aircraft")} typed since the last save ${pending.length === 1 ? "was" : "were"} not saved.`));
+    if (pending.length) console.log(yellow(`\n${t("cliWrite.spot.stopped", { count: pending.length })}`));
     else console.log("");
     process.exit(130);
   });
@@ -1015,8 +968,8 @@ export async function spotCommand(args: string[]): Promise<void> {
     return a;
   };
   const promptText = () => {
-    const set = `${settings.airport ?? "no place"} · ${settings.date}${settings.phase ? ` · ${settings.phase.replace("_", " ")}` : ""}`;
-    return `${dim(set)}${pending.length ? ` ${yellow(`· ${pending.length} to save`)}` : ""} › `;
+    const set = `${settings.airport ?? t("cliWrite.spot.prompt.noPlace")} · ${settings.date}${settings.phase ? ` · ${settings.phase.replace("_", " ")}` : ""}`;
+    return `${dim(set)}${pending.length ? ` ${yellow(`· ${t("cliWrite.spot.prompt.toSave", { count: pending.length })}`)}` : ""} › `;
   };
 
   let prefill: string | undefined;
@@ -1028,50 +981,50 @@ export async function spotCommand(args: string[]): Promise<void> {
     const target = editing;
     editing = undefined;
     if (line === null) break;
-    const t = line.trim();
-    if (!t) {
+    const typed = line.trim();
+    if (!typed) {
       await finish(ask);
       continue;
     }
-    if (/^(quit|exit|q)$/i.test(t)) {
-      forget(t);
+    if (/^(quit|exit|q)$/i.test(typed)) {
+      forget(typed);
       break;
     }
-    const edit = /^edit(?:\s+(\d+))?$/i.exec(t);
-    const drop = /^drop\s+(\d+)$/i.exec(t);
-    if (/^(check|save|help|\?|list|undo|drop)$/i.test(t) || edit || drop) forget(t);
-    if (/^(check|save)$/i.test(t)) await finish(ask);
-    else if (/^(help|\?)$/i.test(t)) help();
-    else if (/^list$/i.test(t)) list();
+    const edit = /^edit(?:\s+(\d+))?$/i.exec(typed);
+    const drop = /^drop\s+(\d+)$/i.exec(typed);
+    if (/^(check|save|help|\?|list|undo|drop)$/i.test(typed) || edit || drop) forget(typed);
+    if (/^(check|save)$/i.test(typed)) await finish(ask);
+    else if (/^(help|\?)$/i.test(typed)) help();
+    else if (/^list$/i.test(typed)) list();
     else if (edit) {
       const e = edit[1] ? entries.find((x) => x.n === Number(edit[1])) : [...entries].sort((a, b) => b.n - a.n)[0];
-      if (!e) console.log(dim(edit[1] ? `  There is no line ${edit[1]}; list shows the numbers.` : "  Nothing typed yet."));
+      if (!e) console.log(dim(`  ${edit[1] ? t("cliWrite.spot.noLine", { n: edit[1] }) : t("cliWrite.spot.nothingTyped")}`));
       else {
         editing = e;
         prefill = e.line;
-        console.log(dim(`  Change line ${e.n} and press Enter; it replaces the old one. Press Enter as it is to leave it.`));
+        console.log(dim(`  ${t("cliWrite.spot.editLine", { n: e.n })}`));
       }
-    } else if (drop || /^(undo|drop)$/i.test(t)) {
+    } else if (drop || /^(undo|drop)$/i.test(typed)) {
       const e = drop ? entries.find((x) => x.n === Number(drop[1])) : pending.at(-1);
-      if (!e) console.log(dim(drop ? `  There is no line ${drop[1]}; list shows the numbers.` : "  Nothing typed since the last save."));
+      if (!e) console.log(dim(`  ${drop ? t("cliWrite.spot.noLine", { n: drop[1]! }) : t("cliWrite.spot.nothingSinceSave")}`));
       else {
         const wasSaved = saved.includes(e);
         remove(e);
         if (wasSaved) await writeInbox();
-        console.log(dim(`  Dropped line ${e.n} (${e.choice.values.registration})${wasSaved ? `, also from ${sentTo ? basename(out) : outShown}` : ""}.`));
+        console.log(dim(`  ${t("cliWrite.spot.dropped", { n: e.n, registration: e.choice.values.registration ?? "", saved: wasSaved ? "yes" : "no", file: sentTo ? basename(out) : outShown })}`));
       }
-    } else if (target && t === target.line.trim()) console.log(dim(`  Line ${target.n} left as it was.`));
+    } else if (target && typed === target.line.trim()) console.log(dim(`  ${t("cliWrite.spot.lineKept", { n: target.n })}`));
     else {
-      typedLines.unshift(t);
+      typedLines.unshift(typed);
       const from = recalled ? [...entries].reverse().find((x) => x.line === recalled) : undefined;
-      await addLine(t, { replace: target, recalled: from, ask });
+      await addLine(typed, { replace: target, recalled: from, ask });
     }
   }
   // Ctrl-D: the input is gone, so the rest is checked and saved without questions.
   if (pending.length) await finish(closed ? null : ask);
   saveHistory();
   if (saved.length) {
-    console.log(`\n${bold(`${plural(saved.length, "sighting")} saved in this session.`)}`);
+    console.log(`\n${bold(t("cliWrite.spot.savedInSession", { count: saved.length }))}`);
     await whereNext();
   }
   process.stdin.off("keypress", onKey);
@@ -1079,37 +1032,12 @@ export async function spotCommand(args: string[]): Promise<void> {
   await fr24?.close();
 
   function help() {
-    console.log(`
-${bold("Typing an aircraft")}: the registration first, then anything you know, in any order.
-  G-ABCD landing          D-ABCD at EDDF DLH A20N          N1001X on 2025-03-15 "Retro livery"
-  place     at EGLL, at LHR                  date    today, yesterday, 2025-03-15, 15/03/2025
-  phase     approaching, landing, taking off, taxiing, parked, towing, overflight
-  airline   BAW, or BA in capitals           type    A320, B738          model   A320-232, 737-8K5
-  Other words go to the agent, which puts them in a field (special livery, livery, …) or keeps them as notes.
-  When your log has the aircraft in a special livery, you are asked whether it still wore it.
-
-${bold("For the lines after it")}: a line with only a place, date or phase, e.g. "at EGLL", "on yesterday" or
-  "landing"; "no phase" clears the phase. The prompt shows what is set and how many aircraft are not saved.
-
-${bold("Commands")}
-  Enter      check the aircraft typed since the last save, ask about what is open, and save them
-  list       the aircraft in this session, numbered
-  edit [N]   bring back line N (without N, the last one) to change it; it replaces the old one
-  drop N     remove line N, also from the saved file      undo   remove the last line not saved yet
-  quit       save what is left and end                     Ctrl-C ends without saving the rest
-  Saved aircraft are not in your log yet: the web app shows them, and you review and import them there.
-
-${bold("Keys")}
-  ↑ ↓        earlier lines, from this and earlier sessions. Change one and press Enter: it replaces that
-             aircraft (you are asked first if you changed the registration).
-  Tab        completes commands, phases, registrations from your log, and airport codes after "at"
-  Typing the same aircraft again for the same place and day replaces the earlier line.
-`);
+    console.log(`\n${tc("cli.help.spotSession", {}, { bold })}\n`);
   }
 
   function dryRun() {
     const records = pending.slice(0, CHECK_BATCH_SIZE).map((e) => recordOf(e, []));
-    console.log(`\nThe first agent call would send this on stdin, with the instructions in prompts/verifier.md:\n`);
+    console.log(`\n${t("cliWrite.spot.dryRun")}\n`);
     console.log(JSON.stringify(agentPayload(records, rules, ref), null, 2));
   }
 }

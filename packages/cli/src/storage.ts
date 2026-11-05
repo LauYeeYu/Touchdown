@@ -3,6 +3,7 @@
 // to the inbox; it never creates a log or upgrades one. Without storage, the log is read from a backup file and
 // files are saved in data/private/inbox/, where the web app's dev server finds them.
 
+import { t } from "@touchdown/i18n/cli";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { operatorFromOverride, SCHEMA_NAME, SCHEMA_VERSION, Store, type RefIndex } from "@touchdown/core";
@@ -12,26 +13,9 @@ import { BrowserDriveAuth, forgetDriveAccess, StandardDriveAuth } from "./google
 import { savedSession, siteFetch } from "./site.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { savedStorage, saveStorage, type StorageChoice } from "./settings.ts";
-import { bold, dim, green, plural, red } from "./term.ts";
+import { bold, dim, green, red, tc } from "./term.ts";
 
-export const STORAGE_HELP = `Usage: ./touchdown storage [drive | folder PATH | none | --json]
-
-Where the CLI finds your log and sends what you add: the storage the web app syncs with. With it, spot
-looks registrations up in your log as it is now, and spot and add put their files in the log's inbox, which
-the web app shows for review on any device. The CLI only reads your log; it writes nothing but the inbox.
-
-  (nothing)     show the storage and what it holds
-  drive         use the log in your Google Drive (sign in first with ./touchdown login). In Standard mode
-                the site gives the access, as it gives your browser. In Private mode your browser does:
-                a Touchdown page opens and passes an hour's access to the command line, and opens again
-                when the hour is over
-  folder PATH   use the log in a folder on this computer: the folder the web app syncs with
-  none          no storage: spot reads data/private/touchdown-backup.zip and files are saved in
-                data/private/inbox/ (the web app's dev server picks them up)
-  --json        show the storage and what it holds as JSON (exit status 2 when it cannot be read)
-
-The choice belongs to this computer (data/private/touchdown-cli.json). Private mode's hour of access is
-kept in data/private/google-access.json until it runs out.`;
+export const storageHelp = () => t("cli.help.storage");
 
 /** The storage holds no Touchdown log, or none the CLI can see. */
 export class NoLog extends Error {}
@@ -45,27 +29,27 @@ export interface OpenedStorage {
   schemaVersion: number;
 }
 
-export const storageName = (c: StorageChoice) => (c.kind === "gdrive" ? `Google Drive (${c.account})` : shownPath(c.path));
+export const storageName = (c: StorageChoice) => (c.kind === "gdrive" ? t("cliWrite.storage.driveName", { account: c.account }) : shownPath(c.path));
 
 function filesFor(c: StorageChoice): FileAdapter {
   if (c.kind === "folder") return new NodeFolder(c.path);
-  if (!savedSession()) throw new Error("The command line is not signed in to Touchdown. Sign in with ./touchdown login.");
+  if (!savedSession()) throw new Error(t("cli.notSignedIn"));
   return new GoogleDrive(c.via === "standard" ? new StandardDriveAuth() : new BrowserDriveAuth(c.account));
 }
 
 /** Open the storage and check that it holds a log this version reads. Nothing is written. */
 export async function openStorage(c: StorageChoice, files: FileAdapter = filesFor(c)): Promise<OpenedStorage> {
   const found = await files.read("manifest.json");
-  if (!found) throw new NoLog(c.kind === "gdrive" ? `There is no Touchdown log the CLI can see in ${storageName(c)}.` : `${storageName(c)} holds no Touchdown log (no manifest.json).`);
+  if (!found) throw new NoLog(c.kind === "gdrive" ? t("cliWrite.storage.noLogDrive", { place: storageName(c) }) : t("cliWrite.storage.noLogFolder", { place: storageName(c) }));
   let manifest: { schema?: string; backend?: string; schemaVersion?: number };
   try {
     manifest = JSON.parse(new TextDecoder().decode(found.data)) as typeof manifest;
   } catch {
-    throw new Error(`${storageName(c)}: manifest.json is not valid JSON.`);
+    throw new Error(t("cliWrite.storage.badManifest", { place: storageName(c) }));
   }
-  if (manifest.schema !== SCHEMA_NAME || manifest.backend !== "json_tables") throw new Error(`${storageName(c)} does not hold a Touchdown log in JSON tables.`);
+  if (manifest.schema !== SCHEMA_NAME || manifest.backend !== "json_tables") throw new Error(t("cliWrite.storage.notJsonTables", { place: storageName(c) }));
   const version = Number(manifest.schemaVersion);
-  if (version > SCHEMA_VERSION) throw new Error(`The log uses schema version ${version}; this copy of Touchdown reads up to ${SCHEMA_VERSION}. Update it: git pull, then npm install.`);
+  if (version > SCHEMA_VERSION) throw new Error(t("cliWrite.storage.newerSchema", { version, known: SCHEMA_VERSION }));
   return { choice: c, name: storageName(c), files, backend: new JsonTablesBackend(files, "cli"), schemaVersion: version };
 }
 
@@ -115,9 +99,12 @@ async function storageJson(ref: RefIndex) {
 async function describe(s: OpenedStorage, ref: RefIndex) {
   const { store, problems } = await readLog(s, ref);
   const waiting = await inboxFiles(s);
-  console.log(`${bold("Storage")}  ${s.name}`);
-  console.log(`  Log      ${plural(store.all("flights").length, "flight")}, ${plural(store.all("sightings").length, "sighting")} ${dim(`(schema version ${s.schemaVersion})`)}`);
-  console.log(`  Inbox    ${waiting.length ? `${plural(waiting.length, "file")} waiting for review in the web app` : "empty"}`);
+  // Labels lined up in a column of nine.
+  const gap = (label: string) => " ".repeat(Math.max(1, 9 - label.length));
+  const label = (l: string) => `  ${l}${gap(l)}`;
+  console.log(`${bold(t("cliWrite.storage.label.storage"))}${gap(t("cliWrite.storage.label.storage"))}${s.name}`);
+  console.log(`${label(t("cliWrite.storage.label.log"))}${tc("cliWrite.storage.log", { flights: store.all("flights").length, sightings: store.all("sightings").length, version: s.schemaVersion }, { dim })}`);
+  console.log(`${label(t("cliWrite.storage.label.inbox"))}${t("cliWrite.storage.inbox", { files: waiting.length })}`);
   for (const p of problems) console.log(red(`  ${p}`));
 }
 
@@ -126,16 +113,15 @@ export async function storageCommand(args: string[], ref: RefIndex): Promise<voi
   if (args[0] === "--json" && args.length === 1) return storageJson(ref);
   const [what, ...rest] = args;
   if (what === "--help" || what === "-h" || (what && !["drive", "folder", "none"].includes(what)) || (what !== "folder" && rest.length) || (what === "folder" && rest.length !== 1)) {
-    console.log(STORAGE_HELP);
+    console.log(storageHelp());
     process.exit(what === "--help" || what === "-h" ? 0 : 1);
   }
   const current = savedStorage();
 
   if (!what) {
     if (!current) {
-      console.log("No storage chosen. spot reads your log from data/private/touchdown-backup.zip, and files are saved in");
-      console.log("data/private/inbox/, where the web app's dev server picks them up.");
-      console.log(dim("Choose one with ./touchdown storage drive, or ./touchdown storage folder PATH."));
+      console.log(t("cliWrite.storage.noneChosen"));
+      console.log(dim(t("cliWrite.storage.chooseOne")));
       return;
     }
     await describe(await openStorage(current), ref);
@@ -145,7 +131,7 @@ export async function storageCommand(args: string[], ref: RefIndex): Promise<voi
   if (what === "none") {
     forgetDriveAccess();
     saveStorage(null);
-    console.log("No storage. spot reads data/private/touchdown-backup.zip, and files are saved in data/private/inbox/.");
+    console.log(t("cliWrite.storage.none"));
     return;
   }
 
@@ -154,27 +140,27 @@ export async function storageCommand(args: string[], ref: RefIndex): Promise<voi
     const path = userPath(rest[0]!);
     const root = existsSync(join(path, "manifest.json")) ? path : existsSync(join(path, "Touchdown", "manifest.json")) ? join(path, "Touchdown") : null;
     if (!root) {
-      console.error(red(`${shownPath(path)} holds no Touchdown log. Give the folder the web app syncs with (it has manifest.json in it).`));
+      console.error(red(t("cliWrite.storage.folderNoLog", { path: shownPath(path) })));
       process.exit(1);
     }
     choice = { kind: "folder", path: root };
   } else {
     const session = savedSession();
     if (!session) {
-      console.error(red("Sign in to Touchdown first: ./touchdown login."));
+      console.error(red(t("cliWrite.storage.signInFirst")));
       process.exit(1);
     }
     // Standard mode when the site keeps a working key for this account; Private mode's browser hand-over otherwise.
     const st = (await (await siteFetch("/api/storage")).json()) as { connected?: boolean; account?: string | null; status?: string | null };
     if (st.connected && st.account && st.status === "ok") {
       choice = { kind: "gdrive", account: st.account, via: "standard" };
-      console.log(`Standard mode: the site gives the command line access to Google Drive (${st.account}).`);
+      console.log(t("cliWrite.storage.standard", { account: st.account }));
     } else {
-      if (st.connected) console.log(dim("The site's key to your Google Drive no longer works; your browser gives the access instead."));
+      if (st.connected) console.log(dim(t("cliWrite.storage.keyBroken")));
       forgetDriveAccess();
       const account = await new BrowserDriveAuth(current?.kind === "gdrive" ? current.account : null, { say: (l) => console.log(dim(l)) }).signedInAccount();
       choice = { kind: "gdrive", account, via: "browser" };
-      console.log(`Private mode: your browser gave the command line an hour's access to Google Drive (${account}).`);
+      console.log(t("cliWrite.storage.private", { account }));
     }
   }
 
@@ -184,10 +170,10 @@ export async function storageCommand(args: string[], ref: RefIndex): Promise<voi
   } catch (e) {
     if (!(e instanceof NoLog)) throw e;
     console.error(red(e.message));
-    if (choice.kind === "gdrive") console.error("The web app does not sync to this Google account yet (in the web app: Settings, Sync mode). The storage is not changed.");
+    if (choice.kind === "gdrive") console.error(t("cliWrite.storage.notSynced"));
     process.exit(1);
   }
   saveStorage(choice);
-  console.log(green("Saved."));
+  console.log(green(t("cliWrite.storage.saved")));
   await describe(opened, ref);
 }
