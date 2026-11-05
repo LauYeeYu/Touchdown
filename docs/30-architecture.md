@@ -53,6 +53,7 @@ packages/core/       schema (single source of truth) and generators, normalisati
 packages/storage/    backend interface, sync engine, backends: json_tables, sqlite_file
                      (later: sqlite_local, postgres, d1), file adapters: gdrive, localfs, manual
 packages/cli/        companion CLI (check, later: serve, track, render)
+packages/i18n/       the interface's words: message files by language, t(), plural forms (G12)
 packages/refdata/    scripts that build reference JSON (airports, operators, types)
 services/lookup/     lookup service
 prompts/             agent instructions (verifier.md)
