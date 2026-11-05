@@ -2,6 +2,7 @@
 // kept in this browser, like the theme, so every flight and airport page opens the way the user last left it.
 
 import { useRef, useState } from "react";
+import { t } from "@touchdown/i18n";
 import { Icon } from "../lib/icons.tsx";
 
 export type MapStyle = "map" | "globe";
@@ -40,14 +41,14 @@ export function useMapStyle() {
 /** A small two-segment switch, placed at the end of a map's legend row. */
 export function MapStyleSwitch({ value, onChange }: { value: MapStyle; onChange: (s: MapStyle) => void }) {
   return (
-    <div className="segmented segmented--small map-style" role="group" aria-label="Show as">
+    <div className="segmented segmented--small map-style" role="group" aria-label={t("maps.style.label")}>
       <button type="button" className="seg" aria-pressed={value === "map"} onClick={() => onChange("map")}>
         <Icon name="map" />
-        Map
+        {t("maps.style.map")}
       </button>
       <button type="button" className="seg" aria-pressed={value === "globe"} onClick={() => onChange("globe")}>
         <Icon name="globe" />
-        Globe
+        {t("maps.style.globe")}
       </button>
     </div>
   );

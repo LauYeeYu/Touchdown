@@ -4,7 +4,8 @@
 // it sits under the sentence.
 
 import type { ReactNode } from "react";
-import { dayMonthYear, plural } from "../lib/format.ts";
+import { t } from "@touchdown/i18n";
+import { dayMonthYear } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Credit, Photo } from "./Photo.tsx";
 
@@ -19,13 +20,13 @@ export interface LiveryFact {
  */
 export function LiveryBand({ names, reg, alt, about, facts, linked = false }: { names: string[]; reg: string | null; alt: string; about: ReactNode; facts: LiveryFact[]; linked?: boolean }) {
   return (
-    <section className={`livery-band${linked ? " stretch" : ""}`} aria-label={names.length > 1 ? "Special liveries" : "Special livery"}>
+    <section className={`livery-band${linked ? " stretch" : ""}`} aria-label={t("aircraft.livery.special", { count: names.length })}>
       <Photo reg={reg} alt={alt} />
       <div className="livery-band__text">
         <div>
           <p className="livery-band__mark">
             <Icon name="paint-roller" />
-            {names.length > 1 ? "Special liveries" : "Special livery"}
+            {t("aircraft.livery.special", { count: names.length })}
           </p>
           <h2 className="livery-band__name">{names.join(" · ")}</h2>
           {about && <p className="livery-band__about">{about}</p>}
@@ -48,9 +49,9 @@ export function LiveryBand({ names, reg, alt, about, facts, linked = false }: { 
 
 /** Flights in the livery out of all on the aircraft: "This flight", "Both flights", "All 3 flights", "1 of 2 flights". */
 export function flownIn(n: number, total: number): string {
-  if (total === 1) return "This flight";
-  if (n === total) return total === 2 ? "Both flights" : `All ${total} flights`;
-  return `${n} of ${plural(total, "flight")}`;
+  if (total === 1) return t("aircraft.livery.thisFlight");
+  if (n === total) return t("aircraft.livery.allFlights", { total });
+  return t("aircraft.livery.someFlights", { n, total });
 }
 
 /** Days the aircraft was photographed in the livery: "9 Jun 2025", "3 times, first 9 Jun 2025". A narrow band breaks
@@ -58,8 +59,8 @@ export function flownIn(n: number, total: number): string {
 export function photographedIn(days: (string | null)[]): string {
   const known = days.filter((d): d is string => !!d).sort();
   const first = known[0] ? dayMonthYear(known[0]).replace(/ /g, NBSP) : null;
-  if (days.length === 1) return first ?? "Once, no date";
-  return first ? `${plural(days.length, "time")}, first${NBSP}${first}` : plural(days.length, "time");
+  if (days.length === 1) return first ?? t("aircraft.livery.onceNoDate");
+  return first ? t("aircraft.livery.timesFirst", { count: days.length, date: first }) : t("common.count.times", { count: days.length });
 }
 
 const NBSP = "\u00a0";

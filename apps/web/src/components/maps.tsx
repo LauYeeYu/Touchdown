@@ -8,6 +8,7 @@ import { scaleSqrt } from "d3-scale";
 import { feature } from "topojson-client";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import world from "world-atlas/countries-110m.json";
+import { t } from "@touchdown/i18n";
 import { esc, hideTip, showTip } from "./overlay.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { TrackLoadingNote, useTracksLoading } from "../lib/trackLoading.tsx";
@@ -443,7 +444,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           const xy = proj(s.at);
           if (!xy) continue;
           spotR.set(s.code, r(s.aircraft));
-          const c = el(g, "circle", { class: `spot${s.both ? " is-both" : ""}`, cx: xy[0], cy: xy[1], r: r(s.aircraft), tabindex: 0, role: "link", "aria-label": `${s.label}. Open the airport page` });
+          const c = el(g, "circle", { class: `spot${s.both ? " is-both" : ""}`, cx: xy[0], cy: xy[1], r: r(s.aircraft), tabindex: 0, role: "link", "aria-label": t("maps.spot.label", { label: s.label }) });
           c.addEventListener("pointerenter", (ev) => showTip(s.tip, ev.clientX, ev.clientY));
           c.addEventListener("pointermove", (ev) => showTip(s.tip, ev.clientX, ev.clientY));
           c.addEventListener("pointerleave", hideTip);
@@ -467,8 +468,8 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         if (!xy) continue;
         const dot = el(apG, "circle", { class: "airport", "data-code": code, cx: xy[0], cy: xy[1], r: 4 });
         // A larger invisible target, so the small dot is easy to point at and tap.
-        const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 11, tabindex: 0, role: "link", "aria-label": `${v.name}: ${v.n} flights. Open the airport page` });
-        const tip = `<strong>${esc(v.name)} (${esc(code)})</strong><br><span class="muted">${v.n} flight${v.n === 1 ? "" : "s"} in this period · click for the airport page</span>`;
+        const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 11, tabindex: 0, role: "link", "aria-label": t("maps.airport.label", { name: v.name, count: v.n }) });
+        const tip = `<strong>${esc(v.name)} (${esc(code)})</strong><br><span class="muted">${esc(t("maps.airport.tip", { count: v.n }))}</span>`;
         hit.addEventListener("pointerenter", (ev) => {
           dot.classList.add("is-hover");
           showTip(tip, ev.clientX, ev.clientY);
@@ -641,10 +642,10 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
         const xy = proj(at);
         if (!xy) continue;
         el(svg, "circle", { class: "airport", cx: xy[0], cy: xy[1], r: 5 });
-        const t = el(svg, "text", { class: "airport-label is-link is-clickable", x: xy[0] + (anchor === "end" ? -10 : 10), y: xy[1] + 4, "text-anchor": anchor, style: "font-size:13px" });
-        t.textContent = code;
-        const hit = el(svg, "circle", { class: "airport-hit is-clickable", cx: xy[0], cy: xy[1], r: 12, tabindex: 0, role: "link", "aria-label": `${code}: open the airport page` });
-        for (const node of [t, hit]) {
+        const text = el(svg, "text", { class: "airport-label is-link is-clickable", x: xy[0] + (anchor === "end" ? -10 : 10), y: xy[1] + 4, "text-anchor": anchor, style: "font-size:13px" });
+        text.textContent = code;
+        const hit = el(svg, "circle", { class: "airport-hit is-clickable", cx: xy[0], cy: xy[1], r: 12, tabindex: 0, role: "link", "aria-label": t("maps.airport.open", { code }) });
+        for (const node of [text, hit]) {
           node.addEventListener("click", () => clickRef.current?.(which));
           node.addEventListener("keydown", (ev) => {
             if ((ev as KeyboardEvent).key === "Enter") clickRef.current?.(which);

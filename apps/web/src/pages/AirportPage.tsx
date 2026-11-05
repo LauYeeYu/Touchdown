@@ -1,8 +1,9 @@
 // One airport: how often the user left from it, landed at it and changed planes there, the flights, and the
 // aircraft photographed there. Opened from an airport or a spotting location on any map.
 
-import { Fragment, useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { cityName } from "@touchdown/core";
 import { airportSummary } from "@touchdown/core/view";
@@ -10,7 +11,7 @@ import { useApp } from "../data/context.tsx";
 import { usePeriod } from "../lib/period.ts";
 import { airportWithCode, codeStyle, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, mapSpots, trackInfo } from "../lib/mapdata.ts";
-import { airlineLabel, countryName, dateOnly, distance, plural, shortAirport } from "../lib/format.ts";
+import { airlineLabel, countryName, dateOnly, distance, shortAirport } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -23,14 +24,10 @@ import { NotFound } from "./NotFound.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 const FLIGHT_PAGE = 20;
 const AIRCRAFT_PAGE = 30;
-
-/** "once", "twice", "3 times". */
-function times(n: number): string {
-  return n === 1 ? "once" : n === 2 ? "twice" : `${n} times`;
-}
 
 
 export function AirportPage() {
@@ -65,7 +62,7 @@ export function AirportPage() {
   const voice = voiceOf(app);
   const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
   if (!ap || (!data.everFlown && !data.everSpotted)) {
-    return <NotFound what={ap ? `${shortAirport(id, ref)} is not in ${shared ? "this link" : "your log"}.` : "That airport is not in the reference data."} back={{ to: "/stats", label: "Statistics" }} />;
+    return <NotFound what={ap ? t("airport.notFound", { airport: shortAirport(id, ref), where: shared ? "link" : "log" }) : t("airport.notFound.reference")} back={{ to: "/stats", label: t("airport.notFound.back") }} />;
   }
 
   const name = shortAirport(id, ref);
@@ -80,33 +77,31 @@ export function AirportPage() {
       {here.length > 0 && (
         <span className="legend__item">
           <span className="swatch-line" />
-          Flights to and from {code}
+          {t("airport.legend.flights", { code })}
         </span>
       )}
       {sightings.length > 0 && (
         <span className="legend__item">
           <span className="swatch-dot" />
-          Spotting locations
+          {t("airport.legend.spots")}
         </span>
       )}
-      <span className="legend__item">Click another airport to open its page</span>
+      <span className="legend__item">{t("airport.legend.click")}</span>
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
     </>
   );
-  const opening = year === "all" ? "" : year === thisYear ? `So far in ${year}${voice.kind === "none" ? ", " : " "}` : `In ${year}${voice.kind === "none" ? ", " : " "}`;
-  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-  const flownParts: { lead: string; n: number }[] = [];
-  if (dep) flownParts.push({ lead: `left from ${name}`, n: dep });
-  if (land) flownParts.push({ lead: `landed ${dep ? "there" : `at ${name}`}`, n: land });
-  if (trans) flownParts.push({ lead: `changed planes ${dep || land ? "there" : `at ${name}`}`, n: trans });
-  const flownText = flownParts.length > 0;
+  // The sentence opens with the period, if one is chosen: "So far in 2026", "In 2025".
+  const period = year === "all" ? "all" : year === thisYear ? "current" : "past";
+  const parts = `${dep ? "d" : ""}${land ? "l" : ""}${trans ? "t" : ""}`;
+  const flownText = parts.length > 0;
+  const fig = (text: ReactNode) => <Fig>{text}</Fig>;
   const goBack = () => (window.history.length > 1 ? router.history.back() : navigate({ to: "/stats" }));
 
   return (
     <div className="page">
-      <nav className="crumbs" aria-label="Back">
+      <nav className="crumbs" aria-label={t("common.back")}>
         <button type="button" className="crumbs__back" onClick={goBack}>
-          <Icon name="arrow-left" /> Back
+          <Icon name="arrow-left" /> {t("common.back")}
         </button>
       </nav>
       <div className="airport-hero">
@@ -125,34 +120,23 @@ export function AirportPage() {
       </div>
       <h2 className="lead lead--airport">
         {nothing ? (
-          <>Nothing logged at {name} in {year}.</>
+          t("airport.lead.nothing", { airport: name, year })
         ) : (
           <>
             {flownText && (
               <>
-                {voice.kind === "none" ? opening : voice.kind === "named" ? <>{opening}{who} </> : `${opening ? opening + "you" : "You"} `}
-                {flownParts.map((p, i) => (
-                  <Fragment key={p.lead}>
-                    {i > 0 && (i === flownParts.length - 1 ? " and " : ", ")}
-                    {voice.kind === "none" && !opening && i === 0 ? cap(p.lead) : p.lead} <Fig>{times(p.n)}</Fig>
-                  </Fragment>
-                ))}
-                .{" "}
+                {tx("airport.lead.flown", { period, year, voice: voice.kind, owner: who, cap: voice.kind === "none" && period === "all" ? "yes" : "no", parts, airport: name, dep, land, trans }, { fig })}{" "}
               </>
             )}
-            {sightings.length > 0 && (
-              <>
-                {voice.kind === "none" ? (flownText || !opening ? "Photographed" : `${opening}photographed`) : voice.kind === "named" ? <>{flownText ? "" : opening}{who} photographed</> : flownText ? "You photographed" : `${opening ? opening + "you" : "You"} photographed`} <Fig>{plural(spotted.length, "aircraft", "aircraft")}</Fig> {flownText ? "there" : `at ${name}`} on{" "}
-                <Fig>{plural(days.size, "day")}</Fig>.
-              </>
-            )}
+            {sightings.length > 0 &&
+              tx("airport.lead.spotted", { period: flownText ? "all" : period, year, voice: voice.kind, owner: who, aircraft: spotted.length, there: flownText ? "yes" : "no", airport: name, days: days.size }, { fig })}
           </>
         )}
       </h2>
       {nothing && year !== "all" && (
         <p>
           <button type="button" className="btn btn--quiet" onClick={() => setYear("all")}>
-            Show all years
+            {t("airport.showAll")}
           </button>
         </p>
       )}
@@ -161,35 +145,31 @@ export function AirportPage() {
         <dl className="facts">
           {here.length > 0 && (
             <>
-              <Fact label="Departures" value={dep} detail={dep ? "flights that started here" : "none"} />
-              <Fact label="Transits" value={trans} detail="landed, then left within 24 hours" />
-              <Fact label="Landings" value={land} detail={land ? "flights that ended here" : "none"} />
+              <Fact label={t("airport.departures")} value={dep} detail={dep ? t("airport.departures.detail") : t("airport.none")} />
+              <Fact label={t("airport.transits")} value={trans} detail={t("airport.transits.detail")} />
+              <Fact label={t("airport.landings")} value={land} detail={land ? t("airport.landings.detail") : t("airport.none")} />
             </>
           )}
           {topOther && (
             <Fact
-              label="Most flown with"
+              label={t("airport.mostFlownWith")}
               value={
                 <Link className="facts__link" to="/airports/$id" params={{ id: topOther[0] }}>
                   {airportWithCode(topOther[0], ref)}
                 </Link>
               }
-              detail={plural(topOther[1], "flight")}
+              detail={t("common.count.flights", { count: topOther[1] })}
             />
           )}
           {sightings.length > 0 && (
             <Fact
-              label="Aircraft photographed"
-              value={plural(spotted.length, "aircraft", "aircraft")}
-              detail={
-                <>
-                  {plural(sightings.length, "sighting")} on {plural(days.size, "day")}
-                </>
-              }
+              label={t("airport.photographed")}
+              value={t("common.count.aircraft", { count: spotted.length })}
+              detail={t("airport.photographed.detail", { sightings: sightings.length, days: days.size })}
             />
           )}
           {firstDay && (
-            <Fact label={year === "all" ? "First time here" : `First time in ${year}`} value={dateOnly(firstDay, { day: "numeric", month: "short", year: "numeric" })} />
+            <Fact label={t("airport.firstTime", { period: year === "all" ? "all" : "year", year })} value={dateOnly(firstDay, { day: "numeric", month: "short", year: "numeric" })} />
           )}
         </dl>
       )}
@@ -201,7 +181,7 @@ export function AirportPage() {
             spots={spots}
             height={mapStyle.height}
             head={mapHead}
-            label={`Globe with ${plural(here.length, "flight")} to and from ${name}`}
+            label={t("airport.globeLabel", { count: here.length, airport: name })}
             onFlightClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
             onAirportClick={(other) => other !== id && navigate({ to: "/airports/$id", params: { id: other } })}
           />
@@ -214,7 +194,7 @@ export function AirportPage() {
               mode="fit"
               onArcClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
               onAirportClick={(other) => other !== id && navigate({ to: "/airports/$id", params: { id: other } })}
-              label={`Map of ${plural(here.length, "flight")} to and from ${name}`}
+              label={t("airport.mapLabel", { count: here.length, airport: name })}
             />
           </div>
         ))}
@@ -223,19 +203,19 @@ export function AirportPage() {
         <section className="section" aria-labelledby="airport-flights">
           <div className="section__head">
             <h2 className="section__title" id="airport-flights">
-              Flights
+              {t("airport.flights")}
             </h2>
             <span className="section__aside">
-              {plural(here.length, "flight")} · {distance(here.reduce((s, v) => s + (v.km ?? 0), 0), unit)}
+              {t("common.count.flights", { count: here.length })} · {distance(here.reduce((s, v) => s + (v.km ?? 0), 0), unit)}
             </span>
           </div>
           <div ref={flightPages.top} className="list-top" />
           <ul className="rows">
             {flightPages.slice.map((v) => (
-              <FlightRow key={v.f.id} v={v} track={trackMeta.get(v.f.id) ?? null} review={review.has(v.f.id)} badge={transitIds.has(v.f.id) ? <span className="pill">Transit</span> : null} />
+              <FlightRow key={v.f.id} v={v} track={trackMeta.get(v.f.id) ?? null} review={review.has(v.f.id)} badge={transitIds.has(v.f.id) ? <span className="pill">{t("airport.transit")}</span> : null} />
             ))}
           </ul>
-          <Pager paging={flightPages} noun={["flight", "flights"]} />
+          <Pager paging={flightPages} kind="flights" />
         </section>
       )}
 
@@ -243,17 +223,17 @@ export function AirportPage() {
         <section className="section" aria-labelledby="airport-spotted">
           <div className="section__head">
             <h2 className="section__title" id="airport-spotted">
-              Aircraft photographed here
+              {t("airport.spotted")}
             </h2>
-            <span className="section__aside">{plural(sightings.length, "sighting")}</span>
+            <span className="section__aside">{t("common.count.sightings", { count: sightings.length })}</span>
           </div>
           <div className="cols cols--aircraft" aria-hidden="true">
-            <span>Registration</span>
-            <span>Type</span>
-            <span>Airline</span>
-            <span className="num">Here</span>
-            <span className="num">Flights</span>
-            <span className="num">Last here</span>
+            <span>{t("aircraft.cols.registration")}</span>
+            <span>{t("aircraft.cols.type")}</span>
+            <span>{t("aircraft.cols.airline")}</span>
+            <span className="num">{t("airport.cols.here")}</span>
+            <span className="num">{t("aircraft.cols.flights")}</span>
+            <span className="num">{t("airport.cols.lastHere")}</span>
           </div>
           <div ref={aircraftPages.top} className="list-top" />
           <ul className="rows">
@@ -262,16 +242,16 @@ export function AirportPage() {
               const body = (
                 <>
                   <span className="row__route-wrap">
-                    <span className="row__route">{e.registration || "No registration"}</span>
-                    <span className="row__cities">{airlineLabel(e.operatorId, ref) || e.operatorRaw || "Unknown operator"}</span>
+                    <span className="row__route">{e.registration || t("aircraft.noRegistration")}</span>
+                    <span className="row__cities">{airlineLabel(e.operatorId, ref) || e.operatorRaw || t("airport.unknownOperator")}</span>
                   </span>
                   <TypeCell code={e.typeCode} />
                   <span className="row__cell row__airline">{airlineLabel(e.operatorId, ref) || e.operatorRaw || "—"}</span>
-                  <span className="row__num tabular" title={`Seen here on ${plural(e.days.size || 1, "day")}`}>
+                  <span className="row__num tabular" title={t("airport.seenHere", { count: e.days.size || 1 })}>
                     <span className="dot dot--spotted" />
                     {e.count}
                   </span>
-                  <span className="row__num tabular" title={flown ? (shared ? "Flights on this aircraft" : "Flights you took on this aircraft") : ""}>
+                  <span className="row__num tabular" title={flown ? t("airport.flownOn", { where: shared ? "link" : "log" }) : ""}>
                     {flown > 0 && <span className="dot dot--flown" />}
                     {flown || "—"}
                   </span>
@@ -293,7 +273,7 @@ export function AirportPage() {
               );
             })}
           </ul>
-          <Pager paging={aircraftPages} noun={["aircraft", "aircraft"]} />
+          <Pager paging={aircraftPages} kind="aircraft" />
         </section>
       )}
     </div>

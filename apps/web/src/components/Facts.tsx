@@ -1,7 +1,7 @@
 // One fact in a fact list (<dl className="facts">): a label, the value, and an optional detail line.
 
 import type { ReactNode } from "react";
-import { plural } from "../lib/format.ts";
+import { t } from "@touchdown/i18n";
 
 export function Fact({ label, value, detail }: { label: ReactNode; value: ReactNode; detail?: ReactNode }) {
   return (
@@ -15,12 +15,13 @@ export function Fact({ label, value, detail }: { label: ReactNode; value: ReactN
   );
 }
 
-/** "3 records left out (no airline)": records a count could not include. Nothing when there are none. */
+/**
+ * "3 records left out (no airline)": records a count could not include. Nothing when there are none. `what` is the
+ * field they lack: airline, airport, airports, type, cabin, location, registration, phase, times or seat position.
+ */
 export function LeftOut({ m, what }: { m: { leftOut: number }; what: string }) {
   if (!m.leftOut) return null;
   return (
-    <span className="left-out">
-      {plural(m.leftOut, "record")} left out (no {what})
-    </span>
+    <span className="left-out">{t("airport.facts.leftOut", { count: m.leftOut, kind: what.replace(/ /g, "_"), what })}</span>
   );
 }

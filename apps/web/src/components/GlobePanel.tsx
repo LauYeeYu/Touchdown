@@ -4,6 +4,7 @@
 // to the page. Without the Fullscreen API it covers the window instead.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { t } from "@touchdown/i18n";
 import { Globe, type GlobeHandle } from "./Globe.tsx";
 import type { MapFlight, MapSpot } from "./maps.tsx";
 import { Icon } from "../lib/icons.tsx";
@@ -58,30 +59,31 @@ export function GlobePanel({ flights, spots, label, head, note, onFlightClick, o
     } else setFull(true);
   };
 
-  const opens = onFlightClick && onAirportClick ? " · click a route or an airport to open it" : onAirportClick ? " · click an airport to open it" : onFlightClick ? " · click a route to open it" : "";
+  const opens = onFlightClick && onAirportClick ? "both" : onAirportClick ? "airport" : onFlightClick ? "route" : "none";
+  const zoom = full ? "full" : "page";
   return (
     <div className={`map-wrap globe-panel${full ? " is-full" : ""}${className ? ` ${className}` : ""}`} ref={panel}>
       {head && <div className="legend globe-panel__head">{head}</div>}
       <div className="globe-stage" style={height && !full ? { height } : undefined}>
-        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} samples={samples} takeoff={takeoff} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={`${label}. Drag or use the arrow keys to turn it. Pinch, ${full ? "scroll" : "Ctrl-scroll"} or use plus and minus to zoom.`} />
-        <button type="button" className="globe-expand" onClick={toggle} aria-label={full ? "Leave full screen" : "Show the globe full screen"}>
+        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} samples={samples} takeoff={takeoff} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={t("maps.globe.label", { label, zoom })} />
+        <button type="button" className="globe-expand" onClick={toggle} aria-label={full ? t("maps.globe.collapseLabel") : t("maps.globe.expandLabel")}>
           <Icon name={full ? "minimize-2" : "maximize-2"} />
-          {full ? "Collapse" : "Expand"}
+          {full ? t("maps.globe.collapse") : t("maps.globe.expand")}
         </button>
-        <div className="globe-controls" aria-label="Globe controls">
-          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(1.4)} aria-label="Zoom in" title="Zoom in">
+        <div className="globe-controls" aria-label={t("maps.globe.controls")}>
+          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(1.4)} aria-label={t("maps.globe.zoomIn")} title={t("maps.globe.zoomIn")}>
             <Icon name="plus" />
           </button>
-          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(1 / 1.4)} aria-label="Zoom out" title="Zoom out">
+          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(1 / 1.4)} aria-label={t("maps.globe.zoomOut")} title={t("maps.globe.zoomOut")}>
             <Icon name="minus" />
           </button>
-          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.reset()} aria-label="Turn back to show everything" title="Turn back to show everything">
+          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.reset()} aria-label={t("maps.globe.reset")} title={t("maps.globe.reset")}>
             <Icon name="rotate-ccw" />
           </button>
         </div>
         <TrackLoadingNote waiting={flights.filter((f) => f.pending).length} total={flights.filter((f) => f.pending || f.track).length} one={flights.length === 1} />
         <p className="globe-hint">
-          Drag to turn · {full ? "scroll or pinch" : "pinch or Ctrl-scroll"} to zoom{opens}
+          {t("maps.globe.hint", { zoom, opens })}
           {note && ` · ${note}`}
         </p>
       </div>

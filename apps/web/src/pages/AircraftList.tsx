@@ -1,11 +1,12 @@
 // Aircraft: every airframe in the log, counted once however many registrations it had (requirement I4).
 
 import { useMemo } from "react";
+import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightDay, liveryNames } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
-import { airlineLabel, dateOnly, plural, typeName } from "../lib/format.ts";
+import { airlineLabel, dateOnly, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
@@ -13,14 +14,15 @@ import { Select } from "../components/Select.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 type Filter = "all" | "flown" | "both" | "livery";
 
-const FILTERS: [Filter, string][] = [
-  ["all", "All"],
-  ["flown", "Flown on"],
-  ["both", "Flown and photographed"],
-  ["livery", "Special livery"],
+const FILTERS: [Filter, () => string][] = [
+  ["all", () => t("common.all")],
+  ["flown", () => t("aircraft.list.filter.flown")],
+  ["both", () => t("aircraft.list.filter.both")],
+  ["livery", () => t("aircraft.list.filter.livery")],
 ];
 
 const PAGE_SIZE = 50;
@@ -80,58 +82,51 @@ export function AircraftList() {
       <h1 className="lead">
         {views.length ? (
           <>
-            {voice.kind === "named" ? (
-              // A shared whole log names its owner (lib/voice.tsx), and leaves out how aircraft are matched.
+            {/* A shared whole log names its owner (lib/voice.tsx), and leaves out how aircraft are matched. */}
+            {tx("aircraft.list.lead", { voice: voice.kind, owner: voice.kind === "named" ? <Name name={voice.name} /> : null, count: views.length, flown, both }, { fig: (text) => <Fig>{text}</Fig> })}
+            {voice.kind === "you" && (
               <>
-                <Name name={voice.name} />'s log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: <Name name={voice.name} /> flew on <Fig>{flown}</Fig>, and also photographed <Fig>{both}</Fig> of those.
-              </>
-            ) : voice.kind === "none" ? (
-              <>
-                The log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: <Fig>{flown}</Fig> flown on, and <Fig>{both}</Fig> of those also photographed.
-              </>
-            ) : (
-              <>
-                Your log holds <Fig>{plural(views.length, "aircraft", "aircraft")}</Fig>: you flew on <Fig>{flown}</Fig>, and <Fig>{both}</Fig> of those you also photographed.{" "}
-                {provisional > 0 && `${provisional === views.length ? "All are" : provisional === 1 ? "One is" : `${provisional} are`} matched by registration until a serial number is known.`}
+                {" "}
+                {provisional > 0 && t("aircraft.list.provisional", { all: provisional === views.length ? "yes" : "no", count: provisional })}
               </>
             )}
           </>
         ) : (
-          app.readOnly ? "No aircraft in the log." : "No aircraft yet. They appear as you log flights and sightings with registrations."
+          app.readOnly ? t("aircraft.list.emptyShared") : t("aircraft.list.empty")
         )}
       </h1>
       <div className="filters" role="search">
         <label className="search">
-          <span className="visually-hidden">Search aircraft</span>
+          <span className="visually-hidden">{t("aircraft.list.search")}</span>
           <Icon name="search" />
-          <input className="input" type="search" placeholder="Registration, type, airline or serial number" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+          <input className="input" type="search" placeholder={t("aircraft.list.searchPlaceholder")} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
-        <div className="chips" role="radiogroup" aria-label="Show">
+        <div className="chips" role="radiogroup" aria-label={t("aircraft.list.show")}>
           {FILTERS.map(([k, label]) => (
             <button key={k} type="button" role="radio" aria-checked={filter === k} className="chip" onClick={() => setFilter(k)}>
-              {label}
+              {label()}
             </button>
           ))}
         </div>
         <Select<typeof sort>
-          label="Sort"
+          label={t("aircraft.list.sort")}
           value={sort}
           onChange={setSort}
           options={[
-            { value: "last", label: "Last seen first" },
-            { value: "count", label: "Most records first" },
-            { value: "reg", label: "By registration" },
+            { value: "last", label: t("aircraft.list.sort.last") },
+            { value: "count", label: t("aircraft.list.sort.count") },
+            { value: "reg", label: t("aircraft.list.sort.reg") },
           ]}
         />
-        <span className="filters__count">{plural(shown.length, "aircraft", "aircraft")}</span>
+        <span className="filters__count">{t("common.count.aircraft", { count: shown.length })}</span>
       </div>
       <div className="cols cols--aircraft" aria-hidden="true">
-        <span>Registration</span>
-        <span>Type</span>
-        <span>Airline</span>
-        <span className="num">Flights</span>
-        <span className="num">Sightings</span>
-        <span className="num">Last seen</span>
+        <span>{t("aircraft.cols.registration")}</span>
+        <span>{t("aircraft.cols.type")}</span>
+        <span>{t("aircraft.cols.airline")}</span>
+        <span className="num">{t("aircraft.cols.flights")}</span>
+        <span className="num">{t("aircraft.cols.sightings")}</span>
+        <span className="num">{t("aircraft.cols.lastSeen")}</span>
       </div>
       <div ref={paging.top} className="list-top" />
       <ul className="rows">
@@ -140,14 +135,11 @@ export function AircraftList() {
             <Link className="row row--aircraft" to="/aircraft/$id" params={{ id: v.airframe.id }}>
               <span className="row__route-wrap">
                 <span className="row__route">
-                  {v.registration ?? "No registration"}
+                  {v.registration ?? t("aircraft.noRegistration")}
                   {liveries.get(v.airframe.id)?.map((name) => (
-                    <span key={name} className="pill pill--paint" title={`${name} livery`}>
+                    <span key={name} className="pill pill--paint" title={t("aircraft.liveryName", { name })}>
                       <Icon name="paint-roller" />
-                      <span>
-                        <span className="visually-hidden">Special livery: </span>
-                        {name}
-                      </span>
+                      <span>{tx("aircraft.list.liveryPill", { name }, { hidden: (text) => <span className="visually-hidden">{text}</span> })}</span>
                     </span>
                   ))}
                 </span>
@@ -169,7 +161,7 @@ export function AircraftList() {
           </li>
         ))}
       </ul>
-      <Pager paging={paging} noun={["aircraft", "aircraft"]} />
+      <Pager paging={paging} kind="aircraft" />
     </div>
   );
 }
