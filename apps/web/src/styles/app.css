@@ -3524,7 +3524,8 @@ a.wordmark {
   color: var(--ink-3);
 }
 
-.guide-step__text a .icon {
+.guide-step__text a .icon,
+.data-item a .icon {
   width: 14px;
   height: 14px;
   margin-left: 3px;

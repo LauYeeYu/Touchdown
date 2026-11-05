@@ -2376,7 +2376,7 @@ export interface MessageArgs {
   "settings.sheets.open": { name: "text" };
   "settings.myfr24.button": { count: "number" };
   "settings.myfr24.done": { count: "number" };
-  "settings.myfr24.title": {};
+  "settings.myfr24.title": { "<link>": "tag" };
   "settings.myfr24.choose": {};
   "settings.myfr24.notYet": { count: "number" };
   "settings.myfr24.dialog.title": {};

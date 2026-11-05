@@ -282,6 +282,9 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   );
 }
 
+/** myFR24's import page, where the file goes (Settings › Import there). */
+const MYFR24_IMPORT = "https://my.flightradar24.com/settings/import";
+
 export function SettingsPage() {
   const { app } = useApp();
   const { store, ref } = app;
@@ -467,7 +470,18 @@ export function SettingsPage() {
           </div>
         </li>
         <li className="data-item">
-          <span className="account-item__text">{t("settings.myfr24.title")}</span>
+          <span className="account-item__text">
+            <span>
+              {tx("settings.myfr24.title", {}, {
+                link: (text) => (
+                  <a href={MYFR24_IMPORT} target="_blank" rel="noopener">
+                    {text}
+                    <Icon name="external-link" />
+                  </a>
+                ),
+              })}
+            </span>
+          </span>
           <div className="data-item__actions">
             <button type="button" className="btn btn--quiet btn--small" disabled={!store.count("flights")} onClick={() => setChoosingFr24(true)}>
               <Icon name="list-checks" />
