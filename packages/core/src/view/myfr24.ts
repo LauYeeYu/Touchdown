@@ -3,6 +3,7 @@
 // its import reads it as it reads its own. The web app (Settings) and the CLI (`export myfr24`) write the same file.
 
 import { arrivalAirportId, flightDay } from "../derive.ts";
+import { FR24_EXPORTED_KEY } from "../edit.ts";
 import type { RefIndex } from "../ref/index.ts";
 import type { Airport } from "../ref/types.ts";
 import type { Flight } from "../schema/tables.ts";
@@ -63,6 +64,22 @@ function fr24Index(store: Store): Map<string, Map<string, string>> {
  */
 export function inMyFr24(f: Flight, ids: Map<string, string> | undefined): boolean {
   return f.sourceKind === "fr24_csv" || !!ids?.size;
+}
+
+/** What the log knows of a flight in myFR24: it came from myFR24's export, or was sent in a file (when, in UTC). */
+export type MyFr24State = { kind: "imported" } | { kind: "sent"; at: string };
+
+/** The flights in myFR24 already, as far as the log knows, with how they got there. A flight not in it has no entry. */
+export function myFr24States(store: Store): Map<string, MyFr24State> {
+  const fr24 = fr24Index(store);
+  const out = new Map<string, MyFr24State>();
+  for (const f of store.all("flights")) {
+    const ids = fr24.get(f.id);
+    const at = ids?.get(FR24_EXPORTED_KEY);
+    if (at) out.set(f.id, { kind: "sent", at });
+    else if (inMyFr24(f, ids)) out.set(f.id, { kind: "imported" });
+  }
+  return out;
 }
 
 /** The flights a myFR24 file holds, oldest first: every flight, or only those not in myFR24 already. */

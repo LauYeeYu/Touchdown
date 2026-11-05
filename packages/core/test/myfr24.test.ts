@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { markMyFr24Export, parseSource, readCsv, saveFlight } from "../src/index.ts";
-import { MYFR24_HEADER, myFr24Csv, myFr24Flights } from "../src/view/index.ts";
+import { MYFR24_HEADER, myFr24Csv, myFr24Flights, myFr24States } from "../src/view/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 function aLog() {
@@ -74,6 +74,16 @@ describe("the myFR24 file", () => {
     expect(markMyFr24Export(store, [bare.id, full.id], Date.UTC(2026, 10, 5))).toBe(1);
     expect(store.all("external_ids").filter((e) => e.ownerId === bare.id).map((e) => [e.system, e.key, e.value])).toEqual([["fr24", "exportedAt", "2026-11-04T09:30:00Z"]]);
     expect(myFr24Flights(store, true)).toEqual([]);
+  });
+
+  it("says how each flight got into myFR24, for the chooser: from its export, or sent in a file and when", () => {
+    const { store, full, bare } = aLog();
+    const imported = saveFlight(store, ref, { scheduledDate: "2023-01-05", flightNumber: "UA9003", fromRaw: "JFK", toRaw: "SEA", sourceKind: "fr24_csv" }).row;
+    markMyFr24Export(store, [bare.id], Date.UTC(2026, 10, 4, 9, 30));
+    const states = myFr24States(store);
+    expect(states.get(imported.id)).toEqual({ kind: "imported" });
+    expect(states.get(bare.id)).toEqual({ kind: "sent", at: "2026-11-04T09:30:00Z" });
+    expect(states.has(full.id)).toBe(false);
   });
 
   it("keeps myFR24's own ids for a flight that came from its export", () => {

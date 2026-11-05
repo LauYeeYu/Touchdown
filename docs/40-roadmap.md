@@ -56,7 +56,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Deliver: pivot builder and saved views, combined stats, per-year summary, myFR24 export, Google Sheets export, onboarding guide for friends.
 - Done when: a friend can start from zero with their own Google account and import a myFR24 CSV.
-- Built: the custom view (a pivot) and saved views, the combined statistics and the per-year figures ([24](24-statistics.md)); the myFR24 export, in Settings and as `touchdown export myfr24`, with "only flights not in myFR24 yet"; the Google Sheets export, the three tables as one Google Sheet in the user's Drive; Getting started (`/guide`, [31](31-ui.md)). Left: trying a file of a few flights in myFR24's import (Q-FR24-IMPORT), and the Statistics page's tables as CSV ([21](21-import-export.md), "Exports").
+- Built: the custom view (a pivot) and saved views, the combined statistics and the per-year figures ([24](24-statistics.md)); the myFR24 export, in Settings from the flights the user chooses and as `touchdown export myfr24 [--new]`; the Google Sheets export, the three tables as one Google Sheet in the user's Drive; Getting started (`/guide`, [31](31-ui.md)). Left: trying a file of a few flights in myFR24's import (Q-FR24-IMPORT), and the Statistics page's tables as CSV ([21](21-import-export.md), "Exports").
 
 ## Phase 8: Standard mode and sharing
 

@@ -2880,6 +2880,237 @@ a.shares-list__title:hover {
   margin: 0;
 }
 
+.data-item__state {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+/* A list to choose from (components/PickList.tsx): a box on each row, the chosen rows in the selection container,
+   the ways to choose and what is chosen above it. In a dialog (MyFr24Dialog.tsx) the list takes the height left. */
+.pick-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(46rem, calc(100vw - 32px));
+  height: min(46rem, calc(100dvh - 48px));
+}
+
+.pick-dialog .share-dialog__title {
+  margin: 0;
+}
+
+.pick-dialog .pick__panel {
+  flex: 1 1 auto;
+}
+
+.pick-dialog .share-dialog__foot {
+  margin-top: 4px;
+}
+
+/* The list in a panel, its head (all of it, what is chosen) above a hairline. The boxes and the count line up with
+   the rows' boxes and tags: 4px of panel and 12px of row. */
+.pick__panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--surface-lowest);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+/* 1px more above, for the panel's outline drawn inside it. */
+.pick__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Centred by their letters, cap height to baseline, not by a line box that keeps room for descenders. */
+.pick__all-label,
+.pick__count {
+  text-box: trim-both cap alphabetic;
+}
+
+/* The one button for all, in the list's head. */
+.pick__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pick__all:hover {
+  background: var(--surface-high);
+}
+
+.pick__all:disabled {
+  cursor: default;
+  color: var(--ink-3);
+  background: none;
+}
+
+.pick__all[aria-checked="true"] .pick__box,
+.pick__all[aria-checked="mixed"] .pick__box {
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--paper);
+}
+
+.pick__count {
+  margin-left: auto;
+  padding-right: 12px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pick__hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.pick__hint .icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+}
+
+.pick__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pick__row {
+  display: grid;
+  grid-template-columns: 18px 7.5rem 5.5rem minmax(0, 1fr) auto;
+  grid-template-areas: "box date flight route tag";
+  align-items: center;
+  gap: 4px 14px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pick__row:hover {
+  background: var(--surface-high);
+}
+
+.pick__row[aria-selected="true"] {
+  background: var(--selected-container);
+  color: var(--on-selected-container);
+}
+
+/* A run of chosen rows reads as one block. */
+.pick__row[aria-selected="true"]:has(+ .pick__row[aria-selected="true"]) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.pick__row[aria-selected="true"] + .pick__row[aria-selected="true"] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.pick__row:focus-visible {
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+.pick__box {
+  grid-area: box;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1.5px var(--rule-hover);
+  background: var(--surface-lowest);
+}
+
+.pick__row[aria-selected="true"] .pick__box {
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--paper);
+}
+
+.pick__box .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 3;
+}
+
+.pick__date {
+  grid-area: date;
+  color: var(--ink-2);
+}
+
+.pick__row[aria-selected="true"] .pick__date {
+  color: inherit;
+}
+
+.pick__flight {
+  grid-area: flight;
+  font-weight: 600;
+}
+
+.pick__route {
+  grid-area: route;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick__tag {
+  grid-area: tag;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  white-space: nowrap;
+}
+
+.pick__row[aria-selected="true"] .pick__tag {
+  color: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-selected-container) 30%, transparent);
+}
+
+@media (max-width: 560px) {
+  .pick__row {
+    grid-template-columns: 18px auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "box date date tag"
+      "box flight route route";
+  }
+}
+
 .data-card + .button-row {
   margin-top: 20px;
 }

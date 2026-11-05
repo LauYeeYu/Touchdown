@@ -4,7 +4,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
-import { dateOnly, myFr24Csv, myFr24Flights } from "@touchdown/core/view";
+import { dateOnly, myFr24Flights } from "@touchdown/core/view";
 import { dateStyles, getDateStyle, t, type DateStyle } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
@@ -18,6 +18,7 @@ import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
 import { toast } from "../components/overlay.tsx";
 import { Select } from "../components/Select.tsx";
+import { MyFr24Dialog } from "../components/MyFr24Dialog.tsx";
 import { AccountSection } from "../components/AccountSettings.tsx";
 import { clause, tracksToComeText } from "../components/Shell.tsx";
 import { download } from "../lib/download.ts";
@@ -286,7 +287,7 @@ export function SettingsPage() {
   const { store, ref } = app;
   const s = app.settings();
   const [includePrivate, setIncludePrivate] = useState(false);
-  const [onlyNewFr24, setOnlyNewFr24] = useState(true);
+  const [choosingFr24, setChoosingFr24] = useState(false);
   const [sheet, setSheet] = useState<{ busy: boolean; made: MadeSheet | null }>({ busy: false, made: null });
   const [designator, setDesignator] = useState("");
   const [family, setFamily] = useState("");
@@ -328,7 +329,7 @@ export function SettingsPage() {
     location.reload();
   };
 
-  const fr24Flights = myFr24Flights(store, onlyNewFr24);
+  const fr24New = myFr24Flights(store, true).length;
 
   /** The tables as one Google Sheet in the user's Google Drive (docs/21, "Exports"). */
   const toGoogleSheets = async () => {
@@ -477,25 +478,14 @@ export function SettingsPage() {
             {t("settings.myfr24.title")}
             <small>{t("settings.myfr24.note")}</small>
           </span>
-          <label className="check">
-            <input type="checkbox" checked={onlyNewFr24} onChange={(e) => setOnlyNewFr24(e.target.checked)} />
-            {t("settings.myfr24.onlyNew")}
-          </label>
           <div className="data-item__actions">
-            <button
-              type="button"
-              className="btn btn--quiet btn--small"
-              disabled={!fr24Flights.length}
-              onClick={() => {
-                download(`flightdiary-touchdown-${todayIn()}.csv`, myFr24Csv(store, ref, fr24Flights), "text/csv");
-                app.markMyFr24Export(fr24Flights.map((f) => f.id));
-                toast(t("settings.myfr24.done", { count: fr24Flights.length }));
-              }}
-            >
-              <Icon name="download" />
-              {t("settings.myfr24.button", { count: fr24Flights.length })}
+            <button type="button" className="btn btn--quiet btn--small" disabled={!store.count("flights")} onClick={() => setChoosingFr24(true)}>
+              <Icon name="list-checks" />
+              {t("settings.myfr24.choose")}
             </button>
+            <span className="data-item__state">{t("settings.myfr24.notYet", { count: fr24New })}</span>
           </div>
+          {choosingFr24 && <MyFr24Dialog onClose={() => setChoosingFr24(false)} />}
         </li>
       </ul>
       <div className="button-row">
