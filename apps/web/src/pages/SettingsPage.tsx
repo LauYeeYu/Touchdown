@@ -4,15 +4,15 @@
 import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
-import { myFr24Csv, myFr24Flights } from "@touchdown/core/view";
-import { t } from "@touchdown/i18n";
+import { dateOnly, myFr24Csv, myFr24Flights } from "@touchdown/core/view";
+import { dateStyles, getDateStyle, t, type DateStyle } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle, SignInCancelled } from "../data/google.ts";
 import { momentLabel } from "../lib/format.ts";
-import { tx } from "../lib/i18n.tsx";
+import { chooseDateStyle, tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
@@ -309,6 +309,9 @@ export function SettingsPage() {
   }, []);
 
   const set = (patch: Partial<Settings>) => app.updateSettings(patch);
+  // Kept in this browser, not in the log: pages drawn after the change use it (docs/31-ui.md, "Language").
+  const [dateStyle, setDateStyle] = useState<DateStyle>(getDateStyle());
+  const today = todayIn();
   const families = [...ref.families.values()].sort((a, b) => a.name.localeCompare(b.name));
   const overrides = store.all("family_overrides");
 
@@ -358,6 +361,17 @@ export function SettingsPage() {
       <div className="form-grid form-grid--choices">
         <Field label={t("settings.display.theme")}>
           <Segmented label={t("settings.display.theme")} value={s.theme ?? "system"} onChange={(v) => set({ theme: v ?? "system" })} options={[{ value: "system", label: t("settings.display.theme.system") }, { value: "light", label: t("settings.display.theme.light") }, { value: "dark", label: t("settings.display.theme.dark") }]} />
+        </Field>
+        <Field label={t("settings.display.dates")}>
+          <Segmented
+            label={t("settings.display.dates")}
+            value={dateStyle}
+            onChange={(v) => {
+              chooseDateStyle(v ?? "language");
+              setDateStyle(getDateStyle());
+            }}
+            options={dateStyles().map((style) => ({ value: style, label: dateOnly(today, { day: "numeric", month: "short", year: "numeric" }, style) }))}
+          />
         </Field>
         <Field label={t("settings.display.distance")}>
           <Segmented label={t("settings.display.distance")} value={s.distanceUnit ?? "km"} onChange={(v) => set({ distanceUnit: v ?? "km" })} options={[{ value: "km", label: t("settings.display.distance.km") }, { value: "mi", label: t("settings.display.distance.mi") }, { value: "nm", label: t("settings.display.distance.nm") }]} />

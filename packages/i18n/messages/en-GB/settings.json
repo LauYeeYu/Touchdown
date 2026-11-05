@@ -47,6 +47,7 @@
   "display.theme.system": "Follow the device",
   "display.theme.light": "Light",
   "display.theme.dark": "Dark",
+  "display.dates": "Date format",
   "display.distance": "Distance",
   "display.distance.km": "Kilometres",
   "display.distance.mi": "Miles",

@@ -2346,6 +2346,7 @@ export interface MessageArgs {
   "settings.display.theme.system": {};
   "settings.display.theme.light": {};
   "settings.display.theme.dark": {};
+  "settings.display.dates": {};
   "settings.display.distance": {};
   "settings.display.distance.km": {};
   "settings.display.distance.mi": {};
