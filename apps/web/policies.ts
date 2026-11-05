@@ -51,7 +51,7 @@ ${themeScript()}
         <a class="wordmark" href="/">${wordmarkHtml()}</a>
       </div>
     </header>
-    <main id="view" class="page page--form policy">
+    <main id="view" class="page policy">
 ${body}
       <p class="policy__links"><a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a> · <a href="/signin">Sign in</a></p>
     </main>

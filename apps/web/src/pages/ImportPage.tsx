@@ -297,7 +297,7 @@ export function ImportPage() {
 
   if (choosingColumns && columns) {
     return (
-      <div className="page page--form">
+      <div className="page">
         <nav className="crumbs" aria-label={t("common.back")}>
           <button
             type="button"
@@ -576,7 +576,7 @@ export function ImportPage() {
   }
 
   return (
-    <div className="page page--form">
+    <div className="page">
       <div className="view-top" />
       <h1 className="form-title">{t("import.title")}</h1>
       <p className="form-sub">{t("import.lead")}</p>

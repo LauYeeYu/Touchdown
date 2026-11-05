@@ -548,7 +548,7 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 
 ## Layout
 
-A single centred column: `min(1120px, 100% - 2 × gutter)`, gutter 32px, 16px on phones. Views open 40px below the header (24px on phones) with the period control, then the lead sentence 24px below, then the subject at full column width. Sections are separated by 64px (44px on phones), each with a title row (title left, aside or link right, baseline-aligned) 20px above its content. Two-column splits use 7:5 or 5:7 with a 48px gap; chart pairs use two equal columns with a 48px gap. The main area keeps 96px of bottom padding (120px at 840px and below, to clear the bottom navigation bar).
+A single centred column: `min(1120px, 100% - 2 × gutter)`, gutter 32px, 16px on phones. Text runs the column's width: notes, policies, panels and lists have no measure of their own, on Settings, Import, Shared links and the privacy and terms pages as everywhere (Decided). Only the forms that take a record (a flight, a sighting, a spotting session), sign-in and the first run are narrower, 880px at most, and the lead sentences keep their own width, set by their size. Views open 40px below the header (24px on phones) with the period control, then the lead sentence 24px below, then the subject at full column width. Sections are separated by 64px (44px on phones), each with a title row (title left, aside or link right, baseline-aligned) 20px above its content. Two-column splits use 7:5 or 5:7 with a 48px gap; chart pairs use two equal columns with a 48px gap. The main area keeps 96px of bottom padding (120px at 840px and below, to clear the bottom navigation bar).
 
 Spacing runs on 4px steps, mainly 4, 8, 12, 16, 20, 24, 32, 48 and 64px.
 

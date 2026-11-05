@@ -354,7 +354,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="page page--form page--settings">
+    <div className="page">
       <div className="view-top" />
       <h1 className="form-title">{t("settings.title")}</h1>
 

@@ -65,7 +65,7 @@ export function SharedLinks() {
 
   if (!on) {
     return (
-      <div className="page page--form">
+      <div className="page">
         <div className="view-top" />
         <h1 className="form-title">{t("sharing.title")}</h1>
         <p className="form-sub">{t("sharing.needStandard")}</p>
@@ -100,7 +100,7 @@ export function SharedLinks() {
   };
 
   return (
-    <div className="page page--form">
+    <div className="page">
       <div className="view-top" />
       <h1 className="form-title">{t("sharing.title")}</h1>
       <p className="form-sub">
