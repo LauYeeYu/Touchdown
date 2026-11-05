@@ -2852,8 +2852,8 @@ a.shares-list__title:hover {
   padding: 0 0 16px;
 }
 
-/* Settings › Data: the account card, each item what it is and what it holds, then the options its buttons follow,
-   then the buttons. Buttons sit under the text, not at the end, because an item may have four. */
+/* Settings › Data: the account card, each item its name, then the options its buttons follow, then the buttons.
+   Buttons sit under the name, not at the end, because an item may have four. */
 .data-card {
   margin-top: 16px;
 }
@@ -2870,10 +2870,6 @@ a.shares-list__title:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-}
-
-.data-item .account-item__text small {
-  text-wrap: pretty;
 }
 
 .data-item .check input {

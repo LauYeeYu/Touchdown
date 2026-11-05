@@ -396,14 +396,11 @@ export function SettingsPage() {
           {kept === false && ` ${t("settings.data.mayClear")}`}
         </span>
       </p>
-      {/* Each way to take the log out, or bring a backup in, is one item: what it is, what it holds, the options its
-          buttons follow, then the buttons. The account card's look (DESIGN.md, "Settings → Account"). */}
+      {/* Each way to take the log out, or bring a backup in, is one item: its name, the options its buttons follow, then
+          the buttons. The account card's look (DESIGN.md, "Settings → Account"). */}
       <ul className="account-card data-card">
         <li className="data-item">
-          <span className="account-item__text">
-            {t("settings.data.backup.title")}
-            <small>{t("settings.data.backupNote")}</small>
-          </span>
+          <span className="account-item__text">{t("settings.data.backup.title")}</span>
           <div className="data-item__actions">
             <button
               type="button"
@@ -446,10 +443,7 @@ export function SettingsPage() {
           </div>
         </li>
         <li className="data-item">
-          <span className="account-item__text">
-            {t("settings.data.tables.title")}
-            <small>{t("settings.data.tables.note")}</small>
-          </span>
+          <span className="account-item__text">{t("settings.data.tables.title")}</span>
           <label className="check">
             <input type="checkbox" checked={includePrivate} onChange={(e) => setIncludePrivate(e.target.checked)} />
             {t("settings.data.includePrivate")}
@@ -474,10 +468,7 @@ export function SettingsPage() {
           </div>
         </li>
         <li className="data-item">
-          <span className="account-item__text">
-            {t("settings.myfr24.title")}
-            <small>{t("settings.myfr24.note")}</small>
-          </span>
+          <span className="account-item__text">{t("settings.myfr24.title")}</span>
           <div className="data-item__actions">
             <button type="button" className="btn btn--quiet btn--small" disabled={!store.count("flights")} onClick={() => setChoosingFr24(true)}>
               <Icon name="list-checks" />

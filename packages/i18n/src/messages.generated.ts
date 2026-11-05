@@ -2362,10 +2362,8 @@ export interface MessageArgs {
   "settings.data.export": {};
   "settings.data.restore": {};
   "settings.data.backup.title": {};
-  "settings.data.backupNote": {};
   "settings.data.csv": { table: "choice" };
   "settings.data.tables.title": {};
-  "settings.data.tables.note": {};
   "settings.data.includePrivate": {};
   "settings.restore.problems": { problems: "text" };
   "settings.restore.confirm": { count: "number"; synced: "choice" };
@@ -2380,7 +2378,6 @@ export interface MessageArgs {
   "settings.myfr24.button": { count: "number" };
   "settings.myfr24.done": { count: "number" };
   "settings.myfr24.title": {};
-  "settings.myfr24.note": {};
   "settings.myfr24.choose": {};
   "settings.myfr24.notYet": { count: "number" };
   "settings.myfr24.dialog.title": {};
