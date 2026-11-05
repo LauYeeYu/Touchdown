@@ -1,6 +1,7 @@
 // The JSON tables file format (docs/12-storage-and-sync.md, "File backend: JSON tables"): one file per
 // table with the column list once and every row with exactly those columns, plus a manifest.
 
+import { t } from "@touchdown/i18n";
 import { allColumns } from "./schema/columns.ts";
 import { isPrivateTable, SCHEMA_NAME, SCHEMA_VERSION, TABLES, type TableName } from "./schema/tables.ts";
 import type { TableFile } from "./schema/upgrade.ts";
@@ -51,12 +52,12 @@ export interface TableFileProblem {
 export function checkTableFile(file: unknown, table: TableName): TableFileProblem[] {
   const f = file as Partial<TableFile>;
   const problems: TableFileProblem[] = [];
-  if (f.schema !== SCHEMA_NAME) problems.push({ table, message: "not a Touchdown table file" });
-  if (f.table !== table) problems.push({ table, message: `holds table ${String(f.table)}` });
+  if (f.schema !== SCHEMA_NAME) problems.push({ table, message: t("core.tableFile.notTableFile") });
+  if (f.table !== table) problems.push({ table, message: t("core.tableFile.otherTable", { table: String(f.table) }) });
   const expected = allColumns(TABLES[table]).map((c) => c.name);
-  if (JSON.stringify(f.columns) !== JSON.stringify(expected)) problems.push({ table, message: "column list differs from the schema" });
+  if (JSON.stringify(f.columns) !== JSON.stringify(expected)) problems.push({ table, message: t("core.tableFile.columns") });
   for (const [i, row] of (f.rows ?? []).entries()) {
-    for (const p of validateRow(table, row)) problems.push({ table, message: `row ${i + 1}: ${p.column} ${p.message}` });
+    for (const p of validateRow(table, row)) problems.push({ table, message: t("core.tableFile.row", { n: i + 1, column: p.column, problem: p.message }) });
     if (problems.length > 20) break;
   }
   return problems;

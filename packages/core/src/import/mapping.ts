@@ -2,6 +2,7 @@
 // is worked out from the headers and the values, the user confirms or changes it, and the rows are read with
 // it. Only the my.flightradar24.com export, the same for everyone, has a fixed reader (formats.ts).
 
+import { t, tDynamic } from "@touchdown/i18n";
 import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
 import type { FlightValues, SightingValues } from "../schema/tables.ts";
 import { normaliseFlight, normaliseSighting } from "../normalise/record.ts";
@@ -63,34 +64,44 @@ interface FieldDef {
   private?: boolean;
 }
 
+/** A field's definition, its label read when used: the interface's language is chosen after this module loads. */
+function def(field: ColumnField, d: Omit<FieldDef, "label">): FieldDef {
+  return {
+    ...d,
+    get label() {
+      return tDynamic(`importer.field.${field}`);
+    },
+  };
+}
+
 export const FIELD_DEFS: Record<ColumnField, FieldDef> = {
-  date: { label: "Date", kinds: BOTH, headers: ["date", "day", "seen on", "date seen", "spotted on", "flight date", "scheduled date"] },
-  registration: { label: "Registration", kinds: BOTH, headers: ["registration", "registration number", "registration no", "reg", "reg no", "reg number", "tail", "tail number", "aircraft registration"] },
-  airline: { label: "Airline", kinds: BOTH, headers: ["airline", "airlines", "operator", "carrier", "airline code", "operator code"] },
-  typeCode: { label: "Type code", kinds: BOTH, headers: ["type code", "icao type", "type designator", "aircraft type code", "type"] },
-  model: { label: "Model", kinds: BOTH, headers: ["aircraft", "model", "aircraft model", "variant", "aircraft variant", "aircraft type"] },
-  specialLivery: { label: "Special livery", kinds: BOTH, headers: ["special livery", "special scheme", "special colours", "special colors"] },
-  livery: { label: "Livery", kinds: BOTH, headers: ["livery", "colours", "colors", "scheme", "paint"] },
-  notes: { label: "Notes", kinds: BOTH, headers: ["notes", "note", "comment", "comments", "remarks"], many: true },
-  other: { label: "Other text", kinds: BOTH, headers: ["misc", "miscellaneous", "other", "extra", "details", "description"], many: true },
-  airport: { label: "Place (airport)", kinds: SIGHTINGS, headers: ["location", "airport", "place", "spotting location", "spot", "airport code", "where"] },
-  phase: { label: "Phase", kinds: SIGHTINGS, headers: ["status", "phase", "stage", "flight phase"] },
-  country: { label: "Registration country (checked, not stored)", kinds: SIGHTINGS, headers: ["country", "registration country", "reg country"] },
-  flightNumber: { label: "Flight number", kinds: FLIGHTS, headers: ["flight number", "flight", "flight no", "flight num", "flight code"] },
-  from: { label: "From", kinds: FLIGHTS, headers: ["departure", "from", "origin", "departure airport", "dep", "from airport"] },
-  to: { label: "To", kinds: FLIGHTS, headers: ["destination", "to", "arrival", "arrival airport", "dest", "arr", "to airport"] },
-  seat: { label: "Seat", kinds: FLIGHTS, headers: ["seat", "seat number", "seat no"] },
-  class: { label: "Class or fare", kinds: FLIGHTS, headers: ["class", "cabin", "fare", "fare class", "booking class", "travel class", "cabin class"] },
-  gate: { label: "Departure gate", kinds: FLIGHTS, headers: ["gate", "departure gate"] },
-  boarding: { label: "Boarding time", kinds: FLIGHTS, headers: ["boarding time", "boarding"] },
-  takeoff: { label: "Takeoff time", kinds: FLIGHTS, headers: ["departure time", "takeoff", "takeoff time", "take off", "take off time", "dep time", "off time", "atd"] },
-  landing: { label: "Landing time", kinds: FLIGHTS, headers: ["landing time", "landing", "arrival time", "arr time", "on time", "landed"] },
-  duration: { label: "Duration", kinds: FLIGHTS, headers: ["duration", "flight time", "block time", "time in air", "air time"] },
-  distance: { label: "Distance in km (checked, not stored)", kinds: FLIGHTS, headers: ["distance", "distance km", "km"] },
-  ticketNumber: { label: "Ticket number (private)", kinds: FLIGHTS, headers: ["etkt", "ticket", "ticket number", "e ticket", "eticket", "ticket no"], private: true },
-  bookingRef: { label: "Booking reference (private)", kinds: FLIGHTS, headers: ["booking reference", "booking ref", "pnr", "confirmation", "confirmation number", "record locator", "booking"], private: true },
-  firstFlight: { label: "Aircraft's first flight", kinds: FLIGHTS, headers: ["first flight date", "first flight"] },
-  ignore: { label: "Not used", kinds: BOTH, headers: ["manufacturer", "maker", "plane family", "family", "aircraft family", "route", "photo", "photos", "link", "url", "id"] },
+  date: def("date", { kinds: BOTH, headers: ["date", "day", "seen on", "date seen", "spotted on", "flight date", "scheduled date"] }),
+  registration: def("registration", { kinds: BOTH, headers: ["registration", "registration number", "registration no", "reg", "reg no", "reg number", "tail", "tail number", "aircraft registration"] }),
+  airline: def("airline", { kinds: BOTH, headers: ["airline", "airlines", "operator", "carrier", "airline code", "operator code"] }),
+  typeCode: def("typeCode", { kinds: BOTH, headers: ["type code", "icao type", "type designator", "aircraft type code", "type"] }),
+  model: def("model", { kinds: BOTH, headers: ["aircraft", "model", "aircraft model", "variant", "aircraft variant", "aircraft type"] }),
+  specialLivery: def("specialLivery", { kinds: BOTH, headers: ["special livery", "special scheme", "special colours", "special colors"] }),
+  livery: def("livery", { kinds: BOTH, headers: ["livery", "colours", "colors", "scheme", "paint"] }),
+  notes: def("notes", { kinds: BOTH, headers: ["notes", "note", "comment", "comments", "remarks"], many: true }),
+  other: def("other", { kinds: BOTH, headers: ["misc", "miscellaneous", "other", "extra", "details", "description"], many: true }),
+  airport: def("airport", { kinds: SIGHTINGS, headers: ["location", "airport", "place", "spotting location", "spot", "airport code", "where"] }),
+  phase: def("phase", { kinds: SIGHTINGS, headers: ["status", "phase", "stage", "flight phase"] }),
+  country: def("country", { kinds: SIGHTINGS, headers: ["country", "registration country", "reg country"] }),
+  flightNumber: def("flightNumber", { kinds: FLIGHTS, headers: ["flight number", "flight", "flight no", "flight num", "flight code"] }),
+  from: def("from", { kinds: FLIGHTS, headers: ["departure", "from", "origin", "departure airport", "dep", "from airport"] }),
+  to: def("to", { kinds: FLIGHTS, headers: ["destination", "to", "arrival", "arrival airport", "dest", "arr", "to airport"] }),
+  seat: def("seat", { kinds: FLIGHTS, headers: ["seat", "seat number", "seat no"] }),
+  class: def("class", { kinds: FLIGHTS, headers: ["class", "cabin", "fare", "fare class", "booking class", "travel class", "cabin class"] }),
+  gate: def("gate", { kinds: FLIGHTS, headers: ["gate", "departure gate"] }),
+  boarding: def("boarding", { kinds: FLIGHTS, headers: ["boarding time", "boarding"] }),
+  takeoff: def("takeoff", { kinds: FLIGHTS, headers: ["departure time", "takeoff", "takeoff time", "take off", "take off time", "dep time", "off time", "atd"] }),
+  landing: def("landing", { kinds: FLIGHTS, headers: ["landing time", "landing", "arrival time", "arr time", "on time", "landed"] }),
+  duration: def("duration", { kinds: FLIGHTS, headers: ["duration", "flight time", "block time", "time in air", "air time"] }),
+  distance: def("distance", { kinds: FLIGHTS, headers: ["distance", "distance km", "km"] }),
+  ticketNumber: def("ticketNumber", { kinds: FLIGHTS, headers: ["etkt", "ticket", "ticket number", "e ticket", "eticket", "ticket no"], private: true }),
+  bookingRef: def("bookingRef", { kinds: FLIGHTS, headers: ["booking reference", "booking ref", "pnr", "confirmation", "confirmation number", "record locator", "booking"], private: true }),
+  firstFlight: def("firstFlight", { kinds: FLIGHTS, headers: ["first flight date", "first flight"] }),
+  ignore: def("ignore", { kinds: BOTH, headers: ["manufacturer", "maker", "plane family", "family", "aircraft family", "route", "photo", "photos", "link", "url", "id"] }),
 };
 
 /** Fields that mark a file of flights rather than sightings. */
@@ -227,18 +238,18 @@ export function guessMapping(sheet: SheetData, ref: RefIndex): SheetMapping {
     const named = (COLUMN_FIELDS as readonly ColumnField[]).find((f) => FIELD_DEFS[f].headers.includes(h)) ?? null;
     const samples = (named && FIELD_DEFS[named].private) || !values.length ? [] : [...new Set(values)].slice(0, 5);
     const byValue = BY_VALUE.map((f) => ({ f, s: share(values, f, ref) })).sort((a, b) => b.s - a.s)[0]!;
-    if (!h && !values.length) return { index, header, field: "ignore", confidence: "sure", samples, why: "empty column" };
+    if (!h && !values.length) return { index, header, field: "ignore", confidence: "sure", samples, why: t("importer.guess.empty") };
     if (named) {
       const testable = BY_VALUE.includes(named) || named === "from" || named === "to" || named === "boarding" || named === "landing" || named === "distance" || named === "firstFlight";
-      if (!testable || !values.length) return { index, header, field: named, confidence: "sure", samples, why: "its header" };
+      if (!testable || !values.length) return { index, header, field: named, confidence: "sure", samples, why: t("importer.guess.header") };
       const s = share(values, named, ref);
-      if (s >= 0.6) return { index, header, field: named, confidence: "sure", samples, why: "its header and values" };
+      if (s >= 0.6) return { index, header, field: named, confidence: "sure", samples, why: t("importer.guess.headerAndValues") };
       // "Type" holding model names, say: the values say otherwise.
-      if (byValue.s >= 0.8 && byValue.f !== named) return { index, header, field: byValue.f, confidence: "unsure", samples, why: `the header says ${FIELD_DEFS[named].label.toLowerCase()}, but the values look like ${FIELD_DEFS[byValue.f].label.toLowerCase()}` };
-      return { index, header, field: named, confidence: "likely", samples, why: "its header (few values fit)" };
+      if (byValue.s >= 0.8 && byValue.f !== named) return { index, header, field: byValue.f, confidence: "unsure", samples, why: t("importer.guess.headerNotValues", { header: FIELD_DEFS[named].label.toLowerCase(), values: FIELD_DEFS[byValue.f].label.toLowerCase() }) };
+      return { index, header, field: named, confidence: "likely", samples, why: t("importer.guess.headerFewValues") };
     }
-    if (byValue.s >= 0.8) return { index, header, field: byValue.f, confidence: "likely", samples, why: `its values look like ${FIELD_DEFS[byValue.f].label.toLowerCase()}` };
-    return { index, header, field: "ignore", confidence: "unsure", samples, why: "neither its header nor its values identify it" };
+    if (byValue.s >= 0.8) return { index, header, field: byValue.f, confidence: "likely", samples, why: t("importer.guess.values", { field: FIELD_DEFS[byValue.f].label.toLowerCase() }) };
+    return { index, header, field: "ignore", confidence: "unsure", samples, why: t("importer.guess.unknown") };
   });
 
   // One column per field, except for text that can be joined: the surer (then the first) keeps it.
@@ -248,14 +259,14 @@ export function guessMapping(sheet: SheetData, ref: RefIndex): SheetMapping {
     if (c.field === "ignore" || FIELD_DEFS[c.field].many) continue;
     const first = taken.get(c.field);
     if (!first) taken.set(c.field, c);
-    else Object.assign(c, { field: "ignore", confidence: "unsure", why: `column ${first.index + 1} ("${first.header}") already holds ${FIELD_DEFS[c.field].label.toLowerCase()}` });
+    else Object.assign(c, { field: "ignore", confidence: "unsure", why: t("importer.guess.taken", { column: first.index + 1, header: first.header, field: FIELD_DEFS[c.field].label.toLowerCase() }) });
   }
 
   // Only columns placed with some confidence decide between flights and sightings.
   const kind: RowKind = columns.some((c) => c.confidence !== "unsure" && FLIGHT_MARKERS.includes(c.field)) ? "flights" : "sightings";
   // A field of the other kind is not used ("Gate" in a file of sightings).
   for (const c of columns) {
-    if (c.field !== "ignore" && !FIELD_DEFS[c.field].kinds.includes(kind)) Object.assign(c, { field: "ignore", confidence: "unsure", why: `${FIELD_DEFS[c.field].label.toLowerCase()} is not part of ${kind}` });
+    if (c.field !== "ignore" && !FIELD_DEFS[c.field].kinds.includes(kind)) Object.assign(c, { field: "ignore", confidence: "unsure", why: t("importer.guess.otherKind", { field: FIELD_DEFS[c.field].label.toLowerCase(), kind }) });
   }
   return { kind, columns };
 }
@@ -271,11 +282,11 @@ export function mappingProblem(m: { kind: RowKind; fields: ColumnField[] }): str
   for (const f of COLUMN_FIELDS) {
     if (f === "ignore" || FIELD_DEFS[f].many) continue;
     const at = m.fields.flatMap((x, i) => (x === f ? [i + 1] : []));
-    if (at.length > 1) return `Columns ${at.join(" and ")} both hold the ${FIELD_DEFS[f].label.toLowerCase()}. Choose one.`;
+    if (at.length > 1) return t("importer.mapping.twice", { columns: at.map(String).reduce((first, second) => t("core.list.and", { first, second })), field: FIELD_DEFS[f].label.toLowerCase() });
   }
-  if (m.kind === "sightings" && !has("registration")) return "No column holds the registration.";
-  if (m.kind === "flights" && !has("date")) return "No column holds the date.";
-  if (m.kind === "flights" && !has("flightNumber") && !(has("from") && has("to"))) return "No column holds the flight number, or the from and to airports.";
+  if (m.kind === "sightings" && !has("registration")) return t("importer.mapping.noRegistration");
+  if (m.kind === "flights" && !has("date")) return t("importer.mapping.noDate");
+  if (m.kind === "flights" && !has("flightNumber") && !(has("from") && has("to"))) return t("importer.mapping.noFlight");
   return null;
 }
 
@@ -372,9 +383,9 @@ function sightingRow(get: Get, raw: Record<string, string | null>, sourceRow: nu
     },
     ref,
   );
-  if (status && !phaseOf(status)) issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "phase", message: `Status "${status}" is not a known phase, so it is stored as "other".` });
+  if (status && !phaseOf(status)) issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "phase", message: t("importer.row.unknownPhase", { status }) });
   if (!values.operatorId && looksLikeOperatorName(values.operatorRaw)) {
-    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "operatorId", message: `"${values.operatorRaw}" is a name, not an airline code, so it is added as an operator.` });
+    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "info", field: "operatorId", message: t("importer.row.operatorName", { name: values.operatorRaw ?? "" }) });
   }
   // The country is the registration country: compared with the prefix, not stored (Q-COUNTRY).
   const country = get("country");
@@ -383,7 +394,7 @@ function sightingRow(get: Get, raw: Record<string, string | null>, sourceRow: nu
   // Hong Kong and Macau registrations are commonly filed under China.
   const sameCountry = sheetCountry === regCountry || (sheetCountry === "CN" && (regCountry === "HK" || regCountry === "MO"));
   if (country && sheetCountry && regCountry && !sameCountry) {
-    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "warning", field: "registration", message: `The sheet says the registration country is ${country}, but ${values.registration} has the ${regCountry} prefix.` });
+    issues.push({ ruleId: "I-SOURCE-DIFF", severity: "warning", field: "registration", message: t("importer.row.country", { country, registration: values.registration ?? "", prefix: regCountry }) });
   }
   return { table: "sightings", sourceRow, raw, values, issues, external: [], airframeFacts: {}, tags: split.tags };
 }
@@ -437,7 +448,7 @@ function flightRow(get: Get, raw: Record<string, string | null>, sourceRow: numb
   if (from && to && Number.isFinite(sheetKm) && sheetKm > 0) {
     const gc = haversineKm(from, to);
     if (Math.abs(sheetKm - gc) / gc > 0.03) {
-      issues.push({ ruleId: "V-DISTANCE-DIFF", severity: "info", field: null, message: `The sheet says ${sheetKm} km, but the great-circle distance is ${Math.round(gc)} km. The great-circle distance is used.` });
+      issues.push({ ruleId: "V-DISTANCE-DIFF", severity: "info", field: null, message: t("importer.row.distance", { km: sheetKm, greatCircle: Math.round(gc) }) });
     }
   }
   const airframeFacts: FlightCandidate["airframeFacts"] = {};

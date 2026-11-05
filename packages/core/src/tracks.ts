@@ -2,6 +2,7 @@
 // with times), match it to a flight or check it against the one the user chose, simplify it to at most 2,000 points
 // and store it in place of the great circle.
 
+import { t } from "@touchdown/i18n";
 import type { RefIndex } from "./ref/index.ts";
 import type { Flight } from "./schema/tables.ts";
 import type { Store } from "./store.ts";
@@ -194,9 +195,9 @@ export function readTrackFile(name: string, text: string): TrackFile | { error: 
     file = { points: parseTrackKml(text), provider: fr24 ? "fr24_kml" : "other", attribution: fr24 ? FR24_ATTRIBUTION : "Track data: a KML file uploaded by the user" };
   } else if (lower.endsWith(".csv") || head.includes("timestamp")) {
     file = { points: parseTrackCsv(text), provider: "fr24_csv", attribution: FR24_ATTRIBUTION };
-    if (!file.points.length) return { error: "This CSV is not a Flightradar24 track: it needs Timestamp and Position columns." };
-  } else return { error: "Give a Flightradar24 CSV or KML file, or a KML or GPX file whose points have times." };
-  if (file.points.length < 2) return { error: "The file has no track with times: it needs at least two points, each with its time." };
+    if (!file.points.length) return { error: t("view.track.error.notFr24Csv") };
+  } else return { error: t("view.track.error.unknownFile") };
+  if (file.points.length < 2) return { error: t("view.track.error.noTimes") };
   return file;
 }
 
@@ -392,10 +393,10 @@ export function trackTimeProblem(first: number, last: number, flight: Flight, sl
   const trackDay = toUtcIso(first * 1000).slice(0, 10);
   if (t0 !== null && t1 !== null) {
     if (Math.min(t1 + slackMs, last * 1000) > Math.max(t0 - slackMs, first * 1000)) return null;
-    return `The track runs from ${trackDay} ${hhmm(first)} to ${hhmm(last)} UTC, outside this flight (takeoff ${toUtcIso(t0).slice(0, 16).replace("T", " ")} UTC).`;
+    return t("view.track.problem.outsideTimes", { day: trackDay, from: hhmm(first), to: hhmm(last), takeoff: toUtcIso(t0).slice(0, 16).replace("T", " ") });
   }
   if (!day || [day, addDays(day, -1), addDays(day, 1)].includes(trackDay)) return null;
-  return `The track is from ${trackDay}, but this flight is on ${day}.`;
+  return t("view.track.problem.otherDay", { trackDay, day });
 }
 
 /** How much longer than the route a track may be (holding, a long way round) before it is taken for another route's. */
@@ -416,8 +417,7 @@ export function trackRouteProblem(track: { coverage: string | null; distanceKm: 
   const km = track.distanceKm;
   const tooShort = track.coverage === "complete" && km < gc - 2 * NEAR_KM;
   if (!tooShort && km <= gc * ROUTE_MAX_FACTOR + ROUTE_MAX_EXTRA_KM) return null;
-  const n = (x: number) => Math.round(x).toLocaleString("en-GB");
-  return `The track is ${n(km)} km long, but ${code(a)} to ${code(b)} is ${n(gc)} km.`;
+  return t("view.track.problem.length", { km: Math.round(km), from: code(a), to: code(b), gc: Math.round(gc) });
 }
 
 /**
@@ -439,13 +439,13 @@ export function fitTrack(points: TrackPointInput[], flight: Flight, ref: RefInde
   // It goes the flight's way: it ends nearer the arrival than it started, and starts nearer the departure than it
   // ended. A partial track that stops over an ocean still does.
   const towards = a.id === b.id || (endKm < haversineKm(b, first) && startKm < haversineKm(a, last));
-  if (!towards) return { problem: `The track does not run from ${code(a)} to ${code(b)}: it starts ${Math.round(startKm)} km from ${code(a)} and ends ${Math.round(endKm)} km from ${code(b)}.` };
+  if (!towards) return { problem: t("view.track.problem.direction", { from: code(a), to: code(b), startKm: Math.round(startKm), endKm: Math.round(endKm) }) };
   const coverage = startKm < NEAR_KM && endKm < NEAR_KM ? "complete" : "partial";
   if (coverage === "partial") {
     const gc = haversineKm(a, b);
     const km = trackDistanceKm(points);
     if (points.length < MIN_PARTIAL_POINTS || (gc && km < gc * MIN_PARTIAL_SHARE)) {
-      return { problem: `The track covers too little of the flight to draw (${Math.round(km)} of ${Math.round(gc)} km), so the great circle stays.` };
+      return { problem: t("view.track.problem.tooLittle", { km: Math.round(km), gc: Math.round(gc) }) };
     }
   }
   return { coverage, startKm, endKm };
@@ -672,7 +672,7 @@ export interface ReadsbMatch {
  */
 export function trackFromReadsb(traces: ReadsbTrace[], flight: Flight, ref: RefIndex): ReadsbMatch | { problem: string } {
   const fixes = traces.flatMap(readsbFixes).sort((a, b) => a.t - b.t).filter((p, i, list) => i === 0 || p.t !== list[i - 1]!.t);
-  if (fixes.length < 2) return { problem: "The aircraft has no positions that day." };
+  if (fixes.length < 2) return { problem: t("view.track.problem.noPositions") };
   const legs: Fix[][] = [];
   let leg: Fix[] = [];
   const close = () => {
@@ -723,7 +723,7 @@ export function trackFromReadsb(traces: ReadsbTrace[], flight: Flight, ref: RefI
     const candidate: Candidate = { points, coverage: fit.coverage, callsign: signs.find((s) => numericCallsign(s) === wanted) ?? signs[signs.length - 1] ?? null, offsetMin: outside ? Math.round((first - t0) / 60_000) : null, byCallsign, awayMs };
     if (!best || better(candidate, best)) best = candidate;
   }
-  if (!best) return { problem: problem ?? "No leg in the aircraft's traces fits this flight." };
+  if (!best) return { problem: problem ?? t("view.track.problem.noLeg") };
   const { byCallsign: _b, awayMs: _a, ...match } = best;
   return match;
 }

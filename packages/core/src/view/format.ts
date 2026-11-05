@@ -1,27 +1,41 @@
 // Display formatting. Stored date-times carry their local wall-clock time and offset, so times are shown
 // from the stored text, never converted through the viewer's time zone.
 
+import { getDateStyle, locale, numberFormat, t, tDynamic, type DateStyle } from "@touchdown/i18n";
 import { cityName, type RefIndex } from "../ref/index.ts";
 import { parseDateTime } from "../time/index.ts";
 import { formatModel } from "../normalise/model.ts";
 import type { Settings } from "../schema/tables.ts";
 
-export const nf = new Intl.NumberFormat("en-GB");
-export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-export const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const NBSP = " ";
+/** Numbers in the interface's language: "12,345". */
+export const nf = { format: (n: number | bigint): string => numberFormat(locale()).format(n) };
 
-export function plural(n: number, one: string, many = one + "s"): string {
-  return `${nf.format(n)}${NBSP}${n === 1 ? one : many}`;
+/** The months' names in the interface's language, January first: "J" (narrow), "Jan" (short) or "January" (long). */
+export function monthNames(width: "narrow" | "short" | "long" = "long"): string[] {
+  return Array.from({ length: 12 }, (_, i) => dateOnly(`2000-${String(i + 1).padStart(2, "0")}-01`, { month: width }));
 }
 
 const dateFormats = new Map<string, Intl.DateTimeFormat>();
-/** Format a calendar date (YYYY-MM-DD). */
-export function dateOnly(ymd: string, opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }): string {
-  const key = JSON.stringify(opts);
+
+function intlDate(tag: string, ymd: string, opts: Intl.DateTimeFormatOptions): string {
+  const key = tag + JSON.stringify(opts);
   let f = dateFormats.get(key);
-  if (!f) dateFormats.set(key, (f = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...opts })));
+  if (!f) dateFormats.set(key, (f = new Intl.DateTimeFormat(tag, { timeZone: "UTC", ...opts })));
   return f.format(new Date(ymd + "T12:00:00Z"));
+}
+
+/**
+ * Format a calendar date (YYYY-MM-DD) in the date format chosen (docs/31-ui.md, "Language"): the language's own way,
+ * another regional way of it ("Mar 15, 2025"), or ISO 8601 ("2025-03-15", "03-15" without the year) for a date with
+ * its day. Weekday and month names are always in the language, and a month without a day is always a name. Settings
+ * passes `dateStyle` to show each choice.
+ */
+export function dateOnly(ymd: string, opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }, dateStyle: DateStyle = getDateStyle()): string {
+  const style = dateStyle === "language" ? locale() : dateStyle;
+  if (style !== "iso") return intlDate(style, ymd, opts);
+  if (!opts.day) return intlDate(locale(), ymd, opts);
+  const date = opts.year ? ymd.slice(0, 10) : ymd.slice(5, 10);
+  return opts.weekday ? t("format.isoWithWeekday", { weekday: intlDate(locale(), ymd, { weekday: opts.weekday }), date }) : date;
 }
 
 export const dayShort = (ymd: string) => dateOnly(ymd, { weekday: "short", day: "numeric", month: "short" });
@@ -38,22 +52,35 @@ export function localDay(dt: string | null | undefined): string | null {
   return dt ? (parseDateTime(dt)?.date ?? null) : null;
 }
 
-/** A moment on this device's clock, with its date and UTC offset: "23 Oct 2026, 14:05 UTC+1". */
 /** "08:00 Wed 2 Apr · UTC−4": a precise time with its local date and offset (DESIGN.md, "The Dated Time Rule"). */
 export function dateTimeLabel(dt: string | null | undefined): string {
   if (!dt) return "";
   const d = localDay(dt);
-  return [clock(dt), d && dayShort(d), "·", offsetLabel(dt)].filter(Boolean).join(" ");
+  return d ? t("format.dateTime", { time: clock(dt), day: dayShort(d), offset: offsetLabel(dt) }) : t("format.timeOffset", { time: clock(dt), offset: offsetLabel(dt) });
 }
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** The day of a moment on this device's clock, in the date format chosen: "23 Oct 2026". */
+export function momentDay(ms: number): string {
+  const d = new Date(ms);
+  return dayMonthYear(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`);
+}
+
+const momentTime = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+/** A moment on this device's clock, its day and 24-hour time: "23 Oct 2026, 14:05". */
+export function momentShort(ms: number): string {
+  return t("format.momentShort", { day: momentDay(ms), time: momentTime(new Date(ms)) });
+}
+
+/** A moment on this device's clock, with its date and UTC offset: "23 Oct 2026, 14:05 UTC+1". Times are 24-hour. */
 export function momentLabel(ms: number): string {
   const d = new Date(ms);
   const off = -d.getTimezoneOffset();
   const h = Math.floor(Math.abs(off) / 60);
   const m = Math.abs(off) % 60;
-  const day = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-  return `${day}, ${time} UTC${off < 0 ? "−" : "+"}${h}${m ? ":" + String(m).padStart(2, "0") : ""}`;
+  return t("format.moment", { day: momentDay(ms), time: momentTime(d), offset: `UTC${off < 0 ? "−" : "+"}${h}${m ? ":" + pad2(m) : ""}` });
 }
 
 /** "UTC+8", "UTC−5", "UTC+5:30". */
@@ -66,21 +93,22 @@ export function offsetLabel(dt: string): string {
 export function durLong(min: number): string {
   const h = Math.floor(min / 60);
   const m = Math.round(min % 60);
-  return h ? `${nf.format(h)}${NBSP}h${m ? ` ${m}${NBSP}min` : ""}` : `${m}${NBSP}min`;
+  if (!h) return t("format.duration.minutes", { m });
+  return m ? t("format.duration.hoursMinutes", { h: nf.format(h), m }) : t("format.duration.hours", { h: nf.format(h) });
 }
 
 /** "2h 07m" as plain text (for tooltips and labels); pages use the Duration component. */
 export function durShort(min: number): string {
   const total = Math.round(min);
   const h = Math.floor(total / 60);
-  return h ? `${nf.format(h)}h${NBSP}${String(total % 60).padStart(2, "0")}m` : `${total % 60}m`;
+  return h ? t("format.duration.short.hours", { h: nf.format(h), m: String(total % 60).padStart(2, "0") }) : t("format.duration.short.minutes", { m: total % 60 });
 }
 
 const UNIT = { km: 1, mi: 0.621371, nm: 0.539957 } as const;
 
 export function distance(km: number, unit: Settings["distanceUnit"] = "km"): string {
   const u: keyof typeof UNIT = unit ?? "km";
-  return `${nf.format(Math.round(km * UNIT[u]))}${NBSP}${u}`;
+  return t(`format.distance.${u}`, { n: nf.format(Math.round(km * UNIT[u])) });
 }
 
 export function airportLabel(id: string | null | undefined, ref: RefIndex, style: Settings["codeDisplay"] = "iata"): string {
@@ -144,93 +172,34 @@ export function modelLabel(model: string | null | undefined, typeCode: string | 
   return formatModel(model, ref.manufacturerOf(typeCode), (style ?? "standard") as "standard" | "compact");
 }
 
-export const CABIN_LABEL: Record<string, string> = {
-  economy: "Economy",
-  premium_economy: "Premium economy",
-  business: "Business",
-  first: "First",
-  private: "Private",
-};
+/**
+ * Labels for stored values, read from the messages (`labels.json`) each time one is asked for, so they are in the
+ * interface's language: `CABIN_LABEL.business` is "Business".
+ */
+function labelTable(prefix: string, keys: readonly string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of keys) Object.defineProperty(out, k, { enumerable: true, get: () => tDynamic(`labels.${prefix}.${k}`) });
+  return out;
+}
 
-export const PHASE_LABEL: Record<string, string> = {
-  approaching: "Approaching",
-  landing: "Landing",
-  taking_off: "Taking off",
-  taxiing: "Taxiing",
-  parked: "Parked",
-  towing: "Towing",
-  overflight: "Overflight",
-  other: "Other",
-};
+export const CABIN_LABEL = labelTable("cabin", ["economy", "premium_economy", "business", "first", "private"]);
 
-export const REASON_LABEL: Record<string, string> = { leisure: "Leisure", business: "Business", crew: "Crew", other: "Other" };
+export const PHASE_LABEL = labelTable("phase", ["approaching", "landing", "taking_off", "taxiing", "parked", "towing", "overflight", "other"]);
 
-export const TAG_LABEL: Record<string, string> = {
-  partial_body: "Partial body",
-  too_far: "Too far",
-  night: "Night",
-  backlit: "Backlit",
-  blurry: "Blurry",
-};
+export const REASON_LABEL = labelTable("reason", ["leisure", "business", "crew", "other"]);
+
+export const TAG_LABEL = labelTable("tag", ["partial_body", "too_far", "night", "backlit", "blurry"]);
 
 /** Stored fields of flights and sightings, by the name the import review gives them. */
-export const FIELD_LABEL: Record<string, string> = {
-  scheduledDate: "Date",
-  flightNumber: "Flight number",
-  airlineId: "Airline",
-  airlineRaw: "Airline code",
-  operatingAirlineId: "Operated by",
-  fromAirportId: "From",
-  fromRaw: "From (as written)",
-  toAirportId: "To",
-  toRaw: "To (as written)",
-  divertedToAirportId: "Diverted to",
-  boardingAt: "Boarding",
-  departureScheduledAt: "Scheduled departure",
-  departureAt: "Departure",
-  takeoffAt: "Takeoff",
-  landingAt: "Landing",
-  arrivalScheduledAt: "Scheduled arrival",
-  arrivalAt: "Arrival",
-  departureTerminal: "Terminal",
-  departureGate: "Gate",
-  arrivalTerminal: "Arrival terminal",
-  arrivalGate: "Arrival gate",
-  seat: "Seat",
-  seatPosition: "Seat position",
-  cabinClass: "Cabin",
-  bookingClass: "Booking class",
-  fareBrand: "Fare",
-  reason: "Reason",
-  ticketNumber: "Ticket number",
-  bookingRef: "Booking reference",
-  registration: "Registration",
-  registrationRaw: "Registration as typed",
-  typeCode: "Type code",
-  typeCodeRaw: "Type code as typed",
-  model: "Model",
-  modelRaw: "Model as typed",
-  livery: "Livery",
-  specialLivery: "Special livery",
-  notes: "Notes",
-  seenOn: "Date",
-  seenAt: "Time",
-  airportId: "Airport",
-  airportRaw: "Airport code",
-  spotName: "Spot",
-  operatorId: "Airline",
-  operatorRaw: "Airline code",
-  phase: "Phase",
-  photoCount: "Photos",
-};
+export const FIELD_LABEL = labelTable("field", ["scheduledDate", "flightNumber", "airlineId", "airlineRaw", "operatingAirlineId", "fromAirportId", "fromRaw", "toAirportId", "toRaw", "divertedToAirportId", "boardingAt", "departureScheduledAt", "departureAt", "takeoffAt", "landingAt", "arrivalScheduledAt", "arrivalAt", "departureTerminal", "departureGate", "arrivalTerminal", "arrivalGate", "seat", "seatPosition", "cabinClass", "bookingClass", "fareBrand", "reason", "ticketNumber", "bookingRef", "registration", "registrationRaw", "typeCode", "typeCodeRaw", "model", "modelRaw", "livery", "specialLivery", "notes", "seenOn", "seenAt", "airportId", "airportRaw", "spotName", "operatorId", "operatorRaw", "phase", "photoCount"]);
 
 /** Where a recorded track came from, after "from": "the path the aircraft flew, from adsb.lol". */
-export const TRACK_SOURCE: Record<string, string> = { fr24_csv: "a Flightradar24 track file", fr24_kml: "a Flightradar24 track file", adsblol: "adsb.lol", aeroapi: "FlightAware", gpx: "a GPX file", other: "a KML file" };
+export const TRACK_SOURCE = labelTable("trackSource", ["fr24_csv", "fr24_kml", "adsblol", "aeroapi", "gpx", "other"]);
 
 export function countryName(code: string | null | undefined): string {
   if (!code) return "";
   try {
-    return new Intl.DisplayNames(["en-GB"], { type: "region" }).of(code) ?? code;
+    return new Intl.DisplayNames([locale()], { type: "region" }).of(code) ?? code;
   } catch {
     return code;
   }

@@ -3,6 +3,7 @@
 // retired or written off the time to today is the time since its first flight, not an age in service. The same in the
 // web app (Statistics) and the CLI. Nothing here is stored.
 
+import { locale, t } from "@touchdown/i18n";
 import { flightDay } from "../derive.ts";
 import type { Airframe, Flight } from "../schema/tables.ts";
 import { daysBetween } from "../time/index.ts";
@@ -76,12 +77,17 @@ const DAYS_A_MONTH = DAYS_A_YEAR / 12;
 
 /** An age as Statistics and the CLI write it: "12 days" under a month, "7 months" under a year, else "24.3 years". */
 export function ageText(days: number): string {
-  if (days < 31) return days === 1 ? "1 day" : `${days} days`;
-  if (days < 365) {
-    const months = Math.max(1, Math.floor(days / DAYS_A_MONTH));
-    return months === 1 ? "1 month" : `${months} months`;
-  }
-  return `${(days / DAYS_A_YEAR).toFixed(1)} years`;
+  if (days < 31) return t("view.age.days", { count: days });
+  if (days < 365) return t("view.age.months", { count: Math.max(1, Math.floor(days / DAYS_A_MONTH)) });
+  return t("view.age.years", { years: oneDecimal(days / DAYS_A_YEAR) });
+}
+
+const decimals = new Map<string, Intl.NumberFormat>();
+/** "24.3", "1.0": one decimal, in the interface's language. */
+function oneDecimal(n: number): string {
+  let f = decimals.get(locale());
+  if (!f) decimals.set(locale(), (f = new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })));
+  return f.format(n);
 }
 
 /** The average of the ages given, in days, or null for none. */
@@ -89,25 +95,38 @@ export function averageAge(rows: { days: number }[]): number | null {
   return rows.length ? Math.round(rows.reduce((s, r) => s + r.days, 0) / rows.length) : null;
 }
 
-/** An aircraft's status as a word, for one that is not simply flying: "Stored", "Retired", "Written off". */
-export const STATUS_WORD: Partial<Record<NonNullable<Airframe["status"]>, string>> = { stored: "Stored", retired: "Retired", written_off: "Written off" };
+/**
+ * An aircraft's status as a word, for one that is not simply flying: "Stored", "Retired", "Written off". Read from the
+ * messages each time one is asked for, so it is in the interface's language.
+ */
+export const STATUS_WORD: Partial<Record<NonNullable<Airframe["status"]>, string>> = {
+  get stored() {
+    return t("view.airframeStatus.stored");
+  },
+  get retired() {
+    return t("view.airframeStatus.retired");
+  },
+  get written_off() {
+    return t("view.airframeStatus.written_off");
+  },
+};
 
 /** The flights left out, by reason, as short phrases: "2 missing aircraft". */
 export function ageLeftOutParts(left: AircraftAges["leftOut"]): string[] {
-  const n = (k: number) => k.toLocaleString("en-GB");
   return [
-    left.noDate > 0 && `${n(left.noDate)} missing flight date`,
-    left.noAircraft > 0 && `${n(left.noAircraft)} missing aircraft`,
-    left.noFirstFlight > 0 && `${n(left.noFirstFlight)} missing first flight date`,
-    left.beforeFirstFlight > 0 && `${n(left.beforeFirstFlight)} invalid date (flight before first flight)`,
+    left.noDate > 0 && t("view.age.leftOut.noDate", { count: left.noDate }),
+    left.noAircraft > 0 && t("view.age.leftOut.noAircraft", { count: left.noAircraft }),
+    left.noFirstFlight > 0 && t("view.age.leftOut.noFirstFlight", { count: left.noFirstFlight }),
+    left.beforeFirstFlight > 0 && t("view.age.leftOut.beforeFirstFlight", { count: left.beforeFirstFlight }),
   ].filter((x): x is string => !!x);
 }
 
 /** The flights left out, as one line: "Excluded: 2 missing aircraft · 1 missing first flight date". */
 export function ageLeftOutText(left: AircraftAges["leftOut"]): string | null {
   const parts = ageLeftOutParts(left);
-  return parts.length ? `Excluded: ${parts.join(" · ")}` : null;
+  return parts.length ? t("view.age.excluded", { reasons: parts.join(" · ") }) : null;
 }
 
-/** "Age today" for an aircraft no longer flying: the log has no retirement date. */
-export const AGE_TODAY_NOTE = `Because retirement dates aren't tracked, "Age today" reflects total elapsed time since first flight, not active service`;
+/** "Age today" for an aircraft no longer flying: the log has no retirement date. Without a full stop. */
+export const ageTodayNote = (): string => t("view.age.todayNote");
+

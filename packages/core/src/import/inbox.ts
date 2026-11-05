@@ -5,6 +5,7 @@
 // flight's ticket number and booking reference, given by the user, and a spreadsheet's rows (`touchdown import`).
 // Versions 1 and 2 are still read.
 
+import { t } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import { PHASES, type PROVENANCE_SOURCES, type SightingValues } from "../schema/tables.ts";
 import { isValidDate } from "../schema/validate.ts";
@@ -142,41 +143,42 @@ const isText = (v: unknown, max: number) => v === null || (typeof v === "string"
 /** Checks an inbox file and turns it into rows for the import review, and the changes it holds. */
 export function readInbox(json: unknown, fileName: string, ref: RefIndex): { source: ParsedSource; changes: InboxChange[] } | { error: string } {
   const f = json as Partial<InboxFile> | null;
-  if (!f || typeof f !== "object" || f.schema !== INBOX_SCHEMA) return { error: "not a Touchdown inbox file" };
-  if (f.version !== 1 && f.version !== 2 && f.version !== INBOX_VERSION) return { error: "an inbox file from another version of Touchdown" };
-  if (f.checker !== null && f.checker !== "claude" && f.checker !== "codex") return { error: "unknown checker" };
+  if (!f || typeof f !== "object" || f.schema !== INBOX_SCHEMA) return { error: t("importer.inbox.notInbox") };
+  if (f.version !== 1 && f.version !== 2 && f.version !== INBOX_VERSION) return { error: t("importer.inbox.otherVersion") };
+  if (f.checker !== null && f.checker !== "claude" && f.checker !== "codex") return { error: t("importer.inbox.unknownChecker") };
   const flights = f.version === 1 ? [] : (f.flights ?? []);
-  if (!Array.isArray(f.sightings) || !Array.isArray(flights)) return { error: "malformed: no list of sightings or flights" };
+  if (!Array.isArray(f.sightings) || !Array.isArray(flights)) return { error: t("importer.inbox.noLists") };
   const extra = Object.keys(f).filter((k) => !["schema", "version", "createdAt", "checker", "sightings", ...(f.version === 1 ? [] : ["flights"]), ...(f.version === 3 ? ["changes", "sheet"] : [])].includes(k));
-  if (extra.length) return { error: `unexpected keys: ${extra.join(", ")}` };
+  if (extra.length) return { error: t("importer.inbox.unexpectedKeys", { keys: extra.join(", ") }) };
   if (f.version === 3 && f.sheet !== undefined) {
-    if (f.sightings.length || flights.length || f.changes?.length) return { error: "a file with a spreadsheet holds nothing else" };
+    if (f.sightings.length || flights.length || f.changes?.length) return { error: t("importer.inbox.sheetAlone") };
     const read = readSheet(f.sheet, ref);
     return "error" in read ? read : { source: read, changes: [] };
   }
   const read = f.version === 3 ? readChanges(f.changes ?? []) : { changes: [] };
   if ("error" in read) return read;
   const total = f.sightings.length + flights.length;
-  if ((!total && !read.changes.length) || total > MAX_RECORDS) return { error: `no records or changes, or more than ${MAX_RECORDS} records` };
+  if ((!total && !read.changes.length) || total > MAX_RECORDS) return { error: t("importer.inbox.size", { max: MAX_RECORDS }) };
   const fields = new Set<string>(SPOT_FIELDS);
   const candidates: Candidate[] = [];
   for (const [i, s] of f.sightings.entries()) {
     const n = i + 1;
-    if (!s || typeof s !== "object") return { error: `sighting ${n} is malformed` };
+    const bad = (problem: string) => ({ error: t("importer.inbox.sighting", { n, problem }) });
+    if (!s || typeof s !== "object") return { error: t("importer.inbox.sightingMalformed", { n }) };
     const keys = Object.keys(s).filter((k) => !["values", "sources", "open", "missing", "aircraft", "tags"].includes(k));
-    if (keys.length) return { error: `sighting ${n}: unexpected keys ${keys.join(", ")}` };
-    for (const [k, v] of Object.entries(s.values ?? {})) if (!fields.has(k) || !isText(v, k === "notes" ? 500 : 200)) return { error: `sighting ${n}: field ${k} is not allowed` };
-    for (const [k, v] of Object.entries(s.sources ?? {})) if (!fields.has(k) || !SOURCES.has(v as SpotSource)) return { error: `sighting ${n}: unknown source for ${k}` };
-    if (!Array.isArray(s.open) || s.open.some((x) => typeof x !== "string" || x.length > 300) || s.open.length > 20) return { error: `sighting ${n}: malformed notes on the open fields` };
-    if (!Array.isArray(s.missing) || s.missing.some((x) => !fields.has(x))) return { error: `sighting ${n}: malformed missing fields` };
-    if (s.tags !== undefined && (!Array.isArray(s.tags) || s.tags.length > 20 || s.tags.some((t) => typeof t !== "string" || !/^[a-z_]{1,40}$/.test(t)))) return { error: `sighting ${n}: malformed tags` };
+    if (keys.length) return bad(t("importer.inbox.keys", { keys: keys.join(", ") }));
+    for (const [k, v] of Object.entries(s.values ?? {})) if (!fields.has(k) || !isText(v, k === "notes" ? 500 : 200)) return bad(t("importer.inbox.fieldNotAllowed", { field: k }));
+    for (const [k, v] of Object.entries(s.sources ?? {})) if (!fields.has(k) || !SOURCES.has(v as SpotSource)) return bad(t("importer.inbox.unknownSource", { field: k }));
+    if (!Array.isArray(s.open) || s.open.some((x) => typeof x !== "string" || x.length > 300) || s.open.length > 20) return bad(t("importer.inbox.openNotes"));
+    if (!Array.isArray(s.missing) || s.missing.some((x) => !fields.has(x))) return bad(t("importer.inbox.missingFields"));
+    if (s.tags !== undefined && (!Array.isArray(s.tags) || s.tags.length > 20 || s.tags.some((t) => typeof t !== "string" || !/^[a-z_]{1,40}$/.test(t)))) return bad(t("importer.inbox.tags"));
     const v = s.values;
-    if (!v.registration) return { error: `sighting ${n} has no registration` };
-    if (v.date && !isValidDate(v.date)) return { error: `sighting ${n}: ${v.date} is not a date` };
-    if (v.phase && !(PHASES as readonly string[]).includes(v.phase)) return { error: `sighting ${n}: ${v.phase} is not a phase` };
+    if (!v.registration) return { error: t("importer.inbox.sightingNoRegistration", { n }) };
+    if (v.date && !isValidDate(v.date)) return bad(t("importer.inbox.notDate", { value: v.date }));
+    if (v.phase && !(PHASES as readonly string[]).includes(v.phase)) return bad(t("importer.inbox.notPhase", { value: v.phase }));
     const a = s.aircraft;
     if (a !== null && (typeof a !== "object" || !a.msn || typeof a.provider !== "string" || ![a.manufacturer, a.msn, a.lineNumber, a.firstFlightDate, a.url].every((x) => isText(x, 300)))) {
-      return { error: `sighting ${n}: malformed aircraft facts` };
+      return bad(t("importer.inbox.aircraft"));
     }
 
     const values = normaliseSighting(
@@ -210,15 +212,16 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
   const flightFields = new Set<string>([...INBOX_FLIGHT_FIELDS, ...(f.version === 3 ? INBOX_PRIVATE_FIELDS : [])]);
   for (const [i, fl] of flights.entries()) {
     const n = i + 1;
-    if (!fl || typeof fl !== "object") return { error: `flight ${n} is malformed` };
+    const bad = (problem: string) => ({ error: t("importer.inbox.flight", { n, problem }) });
+    if (!fl || typeof fl !== "object") return { error: t("importer.inbox.flightMalformed", { n }) };
     const keys = Object.keys(fl).filter((k) => !["values", "sources", "open"].includes(k));
-    if (keys.length) return { error: `flight ${n}: unexpected keys ${keys.join(", ")}` };
-    for (const [k, v] of Object.entries(fl.values ?? {})) if (!flightFields.has(k) || !isText(v, k === "notes" ? 500 : 200)) return { error: `flight ${n}: field ${k} is not allowed` };
-    for (const [k, v] of Object.entries(fl.sources ?? {})) if (!flightFields.has(k) || !SOURCES.has(v as SpotSource)) return { error: `flight ${n}: unknown source for ${k}` };
-    if (!Array.isArray(fl.open) || fl.open.some((x) => typeof x !== "string" || x.length > 300) || fl.open.length > 20) return { error: `flight ${n}: malformed notes on the open fields` };
+    if (keys.length) return bad(t("importer.inbox.keys", { keys: keys.join(", ") }));
+    for (const [k, v] of Object.entries(fl.values ?? {})) if (!flightFields.has(k) || !isText(v, k === "notes" ? 500 : 200)) return bad(t("importer.inbox.fieldNotAllowed", { field: k }));
+    for (const [k, v] of Object.entries(fl.sources ?? {})) if (!flightFields.has(k) || !SOURCES.has(v as SpotSource)) return bad(t("importer.inbox.unknownSource", { field: k }));
+    if (!Array.isArray(fl.open) || fl.open.some((x) => typeof x !== "string" || x.length > 300) || fl.open.length > 20) return bad(t("importer.inbox.openNotes"));
     const v = fl.values ?? {};
-    if (!v.flightNumber && !(v.from && v.to) && !v.registration) return { error: `flight ${n} has no flight number, route or registration` };
-    for (const k of ["date", "firstFlight"] as const) if (v[k] && !isValidDate(v[k])) return { error: `flight ${n}: ${v[k]} is not a date (YYYY-MM-DD)` };
+    if (!v.flightNumber && !(v.from && v.to) && !v.registration) return { error: t("importer.inbox.flightEmpty", { n }) };
+    for (const k of ["date", "firstFlight"] as const) if (v[k] && !isValidDate(v[k])) return bad(t("importer.inbox.notDateFormat", { value: v[k] }));
     candidates.push(inboxFlight(fl, f.sightings.length + n, fileName, ref));
   }
   return { source: { format: "touchdown_inbox", fileName, candidates, rowsRead: candidates.length, agentChecker: f.checker ?? null }, changes: read.changes };
@@ -226,25 +229,26 @@ export function readInbox(json: unknown, fileName: string, ref: RefIndex): { sou
 
 /** A spreadsheet's rows, checked and read as the Import page reads the file. */
 function readSheet(sh: InboxSheet, ref: RefIndex): ParsedSource | { error: string } {
-  if (!sh || typeof sh !== "object") return { error: "malformed spreadsheet" };
+  if (!sh || typeof sh !== "object") return { error: t("importer.sheet.malformed") };
+  const bad = (problem: string) => ({ error: t("importer.sheet.problem", { problem }) });
   const keys = Object.keys(sh).filter((k) => !["fileName", "name", "header", "rows", "firstRow", "mapping"].includes(k));
-  if (keys.length) return { error: `spreadsheet: unexpected keys ${keys.join(", ")}` };
-  if (typeof sh.fileName !== "string" || !sh.fileName || sh.fileName.length > 200 || typeof sh.name !== "string" || sh.name.length > 200) return { error: "spreadsheet: malformed file or sheet name" };
-  if (!Array.isArray(sh.header) || !sh.header.length || sh.header.length > 200 || sh.header.some((h) => typeof h !== "string" || h.length > 200)) return { error: "spreadsheet: malformed header" };
-  if (!Array.isArray(sh.rows) || !sh.rows.length || sh.rows.length > MAX_SHEET_ROWS) return { error: `spreadsheet: no rows, or more than ${MAX_SHEET_ROWS}` };
-  if (!Number.isInteger(sh.firstRow) || sh.firstRow < 1) return { error: "spreadsheet: malformed first row" };
+  if (keys.length) return bad(t("importer.inbox.keys", { keys: keys.join(", ") }));
+  if (typeof sh.fileName !== "string" || !sh.fileName || sh.fileName.length > 200 || typeof sh.name !== "string" || sh.name.length > 200) return bad(t("importer.sheet.names"));
+  if (!Array.isArray(sh.header) || !sh.header.length || sh.header.length > 200 || sh.header.some((h) => typeof h !== "string" || h.length > 200)) return bad(t("importer.sheet.header"));
+  if (!Array.isArray(sh.rows) || !sh.rows.length || sh.rows.length > MAX_SHEET_ROWS) return bad(t("importer.sheet.rows", { max: MAX_SHEET_ROWS }));
+  if (!Number.isInteger(sh.firstRow) || sh.firstRow < 1) return bad(t("importer.sheet.firstRow"));
   const cell = (c: unknown) => c === null || typeof c === "boolean" || (typeof c === "number" && Number.isFinite(c)) || (typeof c === "string" && c.length <= 2000);
-  for (const [i, row] of sh.rows.entries()) if (!Array.isArray(row) || row.length !== sh.header.length || !row.every(cell)) return { error: `spreadsheet: row ${i + 1} is malformed` };
+  for (const [i, row] of sh.rows.entries()) if (!Array.isArray(row) || row.length !== sh.header.length || !row.every(cell)) return bad(t("importer.sheet.row", { n: i + 1 }));
   const m = sh.mapping;
   if (m === null) {
-    if (!isFr24Export(sh.header)) return { error: "spreadsheet: no columns given, and it is not the Flightradar24 export" };
+    if (!isFr24Export(sh.header)) return bad(t("importer.sheet.noColumns"));
   } else {
-    if (!m || typeof m !== "object" || (m.kind !== "flights" && m.kind !== "sightings") || !Array.isArray(m.fields) || m.fields.length !== sh.header.length || m.fields.some((x) => !(COLUMN_FIELDS as readonly string[]).includes(x))) return { error: "spreadsheet: malformed columns" };
+    if (!m || typeof m !== "object" || (m.kind !== "flights" && m.kind !== "sightings") || !Array.isArray(m.fields) || m.fields.length !== sh.header.length || m.fields.some((x) => !(COLUMN_FIELDS as readonly string[]).includes(x))) return bad(t("importer.sheet.columns"));
     const problem = mappingProblem(m);
-    if (problem) return { error: `spreadsheet: ${problem}` };
+    if (problem) return bad(problem);
   }
   const source = parseSource({ name: sh.name, header: sh.header, rows: sh.rows, firstRow: sh.firstRow }, sh.fileName, ref, m ?? undefined);
-  return source ?? { error: "spreadsheet: its columns do not hold enough to read rows" };
+  return source ?? bad(t("importer.sheet.notEnough"));
 }
 
 /** The stored fields a flight's value sets, for its provenance rows. */

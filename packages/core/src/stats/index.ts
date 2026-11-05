@@ -1,6 +1,7 @@
 // Statistics (docs/24-statistics.md). "Aircraft" always means distinct airframes; every metric says how
 // many records it left out and why. Ties in "most frequent" are all listed.
 
+import { t } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, routeKey } from "../derive.ts";
@@ -313,6 +314,7 @@ export type Dataset = "flights" | "sightings";
 
 export interface Dimension {
   id: string;
+  /** "Airline": a message, read each time it is asked for, so it is in the interface's language. */
   label: string;
   datasets: Dataset[];
   get: (r: Flight | Sighting, ctx: StatsContext, dataset: Dataset) => string | null;
@@ -321,23 +323,23 @@ export interface Dimension {
 }
 
 export const DIMENSIONS: Dimension[] = [
-  { id: "airline", label: "Airline", datasets: ["flights", "sightings"], get: (r, _c, d) => (d === "flights" ? (r as Flight).airlineId : (r as Sighting).operatorId) },
-  { id: "manufacturer", label: "Manufacturer", datasets: ["flights", "sightings"], get: (r, c) => manufacturerOf(typeOf(r, c), c) },
-  { id: "family", label: "Family", datasets: ["flights", "sightings"], get: (r, c) => familyOf(typeOf(r, c), c) },
-  { id: "type", label: "Type code", datasets: ["flights", "sightings"], get: (r, c) => typeOf(r, c) },
-  { id: "model", label: "Model", datasets: ["flights", "sightings"], get: (r) => r.model },
-  { id: "regCountry", label: "Registration country", datasets: ["flights", "sightings"], get: (r, c) => normaliseRegistration(r.registration, c.ref)?.country ?? null },
-  { id: "airport", label: "Airport", datasets: ["sightings"], get: (r) => (r as Sighting).airportId },
-  { id: "from", label: "From", datasets: ["flights"], get: (r) => (r as Flight).fromAirportId },
-  { id: "to", label: "To", datasets: ["flights"], get: (r) => arrivalAirportId(r as Flight) },
-  { id: "route", label: "Route", datasets: ["flights"], get: (r, c) => routeKey(r as Flight, c.ref) },
-  { id: "year", label: "Year", datasets: ["flights", "sightings"], get: (r, _c, d) => (d === "flights" ? flightDay(r as Flight) : (r as Sighting).seenOn)?.slice(0, 4) ?? null },
-  { id: "month", label: "Month", datasets: ["flights", "sightings"], get: (r, _c, d) => (d === "flights" ? flightDay(r as Flight) : (r as Sighting).seenOn)?.slice(5, 7) ?? null },
-  { id: "hour", label: "Hour (local)", datasets: ["flights", "sightings"], get: (r, _c, d) => (parseDateTime((d === "flights" ? (r as Flight).takeoffAt : (r as Sighting).seenAt) ?? "")?.time.slice(0, 2)) ?? null },
-  { id: "cabin", label: "Cabin class", datasets: ["flights"], get: (r) => (r as Flight).cabinClass },
-  { id: "seatPosition", label: "Seat position", datasets: ["flights"], get: (r) => (r as Flight).seatPosition },
-  { id: "phase", label: "Phase", datasets: ["sightings"], get: (r, c) => phasesIn(r as Sighting, c)[0] ?? null, getAll: (r, c) => phasesIn(r as Sighting, c) },
-  { id: "specialLivery", label: "Special livery", datasets: ["flights", "sightings"], get: (r) => r.specialLivery },
+  { id: "airline", get label() { return t("view.dimension.airline"); }, datasets: ["flights", "sightings"], get: (r, _c, d) => (d === "flights" ? (r as Flight).airlineId : (r as Sighting).operatorId) },
+  { id: "manufacturer", get label() { return t("view.dimension.manufacturer"); }, datasets: ["flights", "sightings"], get: (r, c) => manufacturerOf(typeOf(r, c), c) },
+  { id: "family", get label() { return t("view.dimension.family"); }, datasets: ["flights", "sightings"], get: (r, c) => familyOf(typeOf(r, c), c) },
+  { id: "type", get label() { return t("view.dimension.type"); }, datasets: ["flights", "sightings"], get: (r, c) => typeOf(r, c) },
+  { id: "model", get label() { return t("view.dimension.model"); }, datasets: ["flights", "sightings"], get: (r) => r.model },
+  { id: "regCountry", get label() { return t("view.dimension.regCountry"); }, datasets: ["flights", "sightings"], get: (r, c) => normaliseRegistration(r.registration, c.ref)?.country ?? null },
+  { id: "airport", get label() { return t("view.dimension.airport"); }, datasets: ["sightings"], get: (r) => (r as Sighting).airportId },
+  { id: "from", get label() { return t("view.dimension.from"); }, datasets: ["flights"], get: (r) => (r as Flight).fromAirportId },
+  { id: "to", get label() { return t("view.dimension.to"); }, datasets: ["flights"], get: (r) => arrivalAirportId(r as Flight) },
+  { id: "route", get label() { return t("view.dimension.route"); }, datasets: ["flights"], get: (r, c) => routeKey(r as Flight, c.ref) },
+  { id: "year", get label() { return t("view.dimension.year"); }, datasets: ["flights", "sightings"], get: (r, _c, d) => (d === "flights" ? flightDay(r as Flight) : (r as Sighting).seenOn)?.slice(0, 4) ?? null },
+  { id: "month", get label() { return t("view.dimension.month"); }, datasets: ["flights", "sightings"], get: (r, _c, d) => (d === "flights" ? flightDay(r as Flight) : (r as Sighting).seenOn)?.slice(5, 7) ?? null },
+  { id: "hour", get label() { return t("view.dimension.hour"); }, datasets: ["flights", "sightings"], get: (r, _c, d) => (parseDateTime((d === "flights" ? (r as Flight).takeoffAt : (r as Sighting).seenAt) ?? "")?.time.slice(0, 2)) ?? null },
+  { id: "cabin", get label() { return t("view.dimension.cabin"); }, datasets: ["flights"], get: (r) => (r as Flight).cabinClass },
+  { id: "seatPosition", get label() { return t("view.dimension.seatPosition"); }, datasets: ["flights"], get: (r) => (r as Flight).seatPosition },
+  { id: "phase", get label() { return t("view.dimension.phase"); }, datasets: ["sightings"], get: (r, c) => phasesIn(r as Sighting, c)[0] ?? null, getAll: (r, c) => phasesIn(r as Sighting, c) },
+  { id: "specialLivery", get label() { return t("view.dimension.specialLivery"); }, datasets: ["flights", "sightings"], get: (r) => r.specialLivery },
 ];
 
 export type Measure = "records" | "aircraft" | "distance" | "time";

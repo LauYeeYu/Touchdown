@@ -1,5 +1,6 @@
 // Findings produced by the checks (docs/20-validation.md). Checks never block saving.
 
+import { tDynamic } from "@touchdown/i18n";
 import type { TableName } from "../schema/tables.ts";
 
 export type Severity = "error" | "warning" | "info";
@@ -34,43 +35,53 @@ export interface Finding {
   fingerprint: string;
 }
 
+/** A rule's title, read when used: the interface's language is chosen after this module loads. */
+function rule(id: string, severity: Severity | "varies"): { title: string; severity: Severity | "varies" } {
+  return {
+    get title() {
+      return tDynamic(`rules.title.${id}`);
+    },
+    severity,
+  };
+}
+
 export const RULES: Record<string, { title: string; severity: Severity | "varies" }> = {
-  "V-REG-FORMAT": { title: "Registration format", severity: "warning" },
-  "V-DATE-SANE": { title: "Date out of range", severity: "error" },
-  "V-AIRPORT-KNOWN": { title: "Unknown airport", severity: "error" },
-  "V-AIRPORT-SAME": { title: "Same departure and arrival airport", severity: "warning" },
-  "V-OPERATOR-KNOWN": { title: "Unknown airline", severity: "error" },
-  "V-TYPE-KNOWN": { title: "Unknown type code", severity: "error" },
-  "V-MODEL-TYPE": { title: "Model does not match type code", severity: "warning" },
-  "V-MODEL-PARSE": { title: "Model not recognised", severity: "warning" },
-  "V-FLIGHTNO-FORMAT": { title: "Flight number format", severity: "warning" },
-  "V-FLIGHTNO-AIRLINE": { title: "Flight number and airline differ", severity: "warning" },
-  "V-SEAT-FORMAT": { title: "Seat format", severity: "warning" },
-  "V-TIMES-ORDER": { title: "Times out of order", severity: "error" },
-  "V-TIME-OFFSET": { title: "UTC offset does not match the airport", severity: "error" },
-  "V-DAY-ROLLOVER": { title: "Takeoff date", severity: "varies" },
-  "V-SCHEDULE-DATE": { title: "Scheduled departure on another day", severity: "varies" },
-  "V-TRACK-TIMES": { title: "Track outside the flight's times", severity: "error" },
-  "V-TRACK-ROUTE": { title: "Track does not fit the route", severity: "warning" },
-  "V-DURATION-SPEED": { title: "Implausible speed", severity: "warning" },
-  "V-DISTANCE-DIFF": { title: "Distance differs from great circle", severity: "info" },
-  "V-BEFORE-FIRST-FLIGHT": { title: "Before the aircraft's first flight", severity: "error" },
-  "V-REG-COUNTRY": { title: "Registration country differs from airline country", severity: "info" },
-  "V-INCOMPLETE": { title: "Missing fields", severity: "info" },
-  "V-PRIVATE-IN-NOTES": { title: "Private data in notes", severity: "info" },
-  "C-TYPE-MISMATCH": { title: "Type code differs from the aircraft's", severity: "error" },
-  "C-REG-OVERLAP": { title: "Registration on two aircraft at once", severity: "error" },
-  "C-OPERATOR-MISMATCH": { title: "Operator differs from the aircraft's", severity: "warning" },
-  "C-DUP-FLIGHT": { title: "Duplicate flight", severity: "warning" },
-  "C-DUP-SIGHTING": { title: "Duplicate sighting", severity: "info" },
-  "C-DUP-TICKET": { title: "Duplicate ticket coupon", severity: "warning" },
-  "C-FLIGHT-OVERLAP": { title: "Flights overlap in time", severity: "error" },
-  "C-CODE-VARIANTS": { title: "Code spelt in different ways", severity: "warning" },
-  "C-LIVERY-NAME": { title: "Livery spelt in different ways", severity: "info" },
-  "C-LIVERY-MISSING": { title: "Special livery missing", severity: "warning" },
-  "C-SAME-DAY": { title: "Flown and photographed on the same day", severity: "info" },
+  "V-REG-FORMAT": rule("V-REG-FORMAT", "warning"),
+  "V-DATE-SANE": rule("V-DATE-SANE", "error"),
+  "V-AIRPORT-KNOWN": rule("V-AIRPORT-KNOWN", "error"),
+  "V-AIRPORT-SAME": rule("V-AIRPORT-SAME", "warning"),
+  "V-OPERATOR-KNOWN": rule("V-OPERATOR-KNOWN", "error"),
+  "V-TYPE-KNOWN": rule("V-TYPE-KNOWN", "error"),
+  "V-MODEL-TYPE": rule("V-MODEL-TYPE", "warning"),
+  "V-MODEL-PARSE": rule("V-MODEL-PARSE", "warning"),
+  "V-FLIGHTNO-FORMAT": rule("V-FLIGHTNO-FORMAT", "warning"),
+  "V-FLIGHTNO-AIRLINE": rule("V-FLIGHTNO-AIRLINE", "warning"),
+  "V-SEAT-FORMAT": rule("V-SEAT-FORMAT", "warning"),
+  "V-TIMES-ORDER": rule("V-TIMES-ORDER", "error"),
+  "V-TIME-OFFSET": rule("V-TIME-OFFSET", "error"),
+  "V-DAY-ROLLOVER": rule("V-DAY-ROLLOVER", "varies"),
+  "V-SCHEDULE-DATE": rule("V-SCHEDULE-DATE", "varies"),
+  "V-TRACK-TIMES": rule("V-TRACK-TIMES", "error"),
+  "V-TRACK-ROUTE": rule("V-TRACK-ROUTE", "warning"),
+  "V-DURATION-SPEED": rule("V-DURATION-SPEED", "warning"),
+  "V-DISTANCE-DIFF": rule("V-DISTANCE-DIFF", "info"),
+  "V-BEFORE-FIRST-FLIGHT": rule("V-BEFORE-FIRST-FLIGHT", "error"),
+  "V-REG-COUNTRY": rule("V-REG-COUNTRY", "info"),
+  "V-INCOMPLETE": rule("V-INCOMPLETE", "info"),
+  "V-PRIVATE-IN-NOTES": rule("V-PRIVATE-IN-NOTES", "info"),
+  "C-TYPE-MISMATCH": rule("C-TYPE-MISMATCH", "error"),
+  "C-REG-OVERLAP": rule("C-REG-OVERLAP", "error"),
+  "C-OPERATOR-MISMATCH": rule("C-OPERATOR-MISMATCH", "warning"),
+  "C-DUP-FLIGHT": rule("C-DUP-FLIGHT", "warning"),
+  "C-DUP-SIGHTING": rule("C-DUP-SIGHTING", "info"),
+  "C-DUP-TICKET": rule("C-DUP-TICKET", "warning"),
+  "C-FLIGHT-OVERLAP": rule("C-FLIGHT-OVERLAP", "error"),
+  "C-CODE-VARIANTS": rule("C-CODE-VARIANTS", "warning"),
+  "C-LIVERY-NAME": rule("C-LIVERY-NAME", "info"),
+  "C-LIVERY-MISSING": rule("C-LIVERY-MISSING", "warning"),
+  "C-SAME-DAY": rule("C-SAME-DAY", "info"),
   // Found while importing: compares the source row with what the importer derived.
-  "I-SOURCE-DIFF": { title: "Source values disagree", severity: "warning" },
+  "I-SOURCE-DIFF": rule("I-SOURCE-DIFF", "warning"),
 };
 
 export const SEVERITY_ORDER: Record<Severity, number> = { error: 0, warning: 1, info: 2 };

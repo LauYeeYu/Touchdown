@@ -2,6 +2,7 @@
 // fields included, restorable into either file backend. CSV exports per table, flattened.
 
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { t } from "@touchdown/i18n";
 import { FILE_TABLES, checkTableFile, manifestFor, stringifyTableFile, tableFilePath, toTableFile, upgradeTableFile, type TableFile } from "./jsontables.ts";
 import { privateIndex } from "./private.ts";
 import { allColumns } from "./schema/columns.ts";
@@ -35,17 +36,17 @@ export function readBackup(data: Uint8Array): BackupContents {
   const find = (suffix: string) => Object.keys(files).find((k) => k === suffix || k.endsWith("/" + suffix));
   const manifestPath = find("manifest.json");
   if (!manifestPath) {
-    out.problems.push("No manifest.json: this is not a Touchdown backup.");
+    out.problems.push(t("core.backup.noManifest"));
     return out;
   }
   const manifest = JSON.parse(strFromU8(files[manifestPath]!)) as { schema?: string; schemaVersion?: number };
   if (manifest.schema !== SCHEMA_NAME) {
-    out.problems.push("The manifest is not a Touchdown manifest.");
+    out.problems.push(t("core.backup.notManifest"));
     return out;
   }
   out.schemaVersion = manifest.schemaVersion ?? null;
   if ((manifest.schemaVersion ?? 0) > SCHEMA_VERSION) {
-    out.problems.push(`The backup uses schema version ${manifest.schemaVersion}, and this app understands only up to ${SCHEMA_VERSION}. Reload the app to update it.`);
+    out.problems.push(t("core.backup.newer", { version: manifest.schemaVersion ?? "", supported: SCHEMA_VERSION }));
     return out;
   }
   const base = manifestPath.slice(0, -"manifest.json".length);

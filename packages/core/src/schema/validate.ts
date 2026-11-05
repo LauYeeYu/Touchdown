@@ -1,6 +1,7 @@
 // Runtime validators generated from the table definitions. Every backend validates rows on read and
 // write (docs/12-storage-and-sync.md); rows that fail are rejected, never stored.
 
+import { t } from "@touchdown/i18n";
 import { z } from "zod";
 import { allColumns, type ColumnDef, type TableDef } from "./columns.ts";
 import { TABLES, type TableName } from "./tables.ts";
@@ -63,10 +64,10 @@ function columnSchema(col: ColumnDef): z.ZodType {
       s = z.boolean();
       break;
     case "date":
-      s = z.string().refine(isValidDate, "not a YYYY-MM-DD date");
+      s = z.string().refine(isValidDate, { error: () => t("core.schema.notDate") });
       break;
     case "datetime":
-      s = z.string().refine(isValidDateTime, "not an ISO 8601 date-time with UTC offset");
+      s = z.string().refine(isValidDateTime, { error: () => t("core.schema.notDateTime") });
       break;
     case "enum":
       s = z.enum(col.values as [string, ...string[]]);

@@ -1,6 +1,7 @@
 // Building date-times from a date and separate clock times (docs/21-import-export.md,
 // "Building date-times from clock times").
 
+import { t } from "@touchdown/i18n";
 import { formatOffset, parseClock, parseDateTime, toZoned, zonedInstants, addDays } from "../time/index.ts";
 import type { ImportIssue } from "./candidate.ts";
 
@@ -95,14 +96,12 @@ export function buildFlightTimes(x: ClockInputs): BuiltTimes {
           const originOffset = parseDateTime(out.takeoffAt!)!.offsetMin;
           const impliedTakeoff = hhmm(clockMinutes(landingClock) - x.durationMin - destOffset + originOffset);
           const twelve = Math.abs(clockMinutes(impliedTakeoff) - clockMinutes(takeoffClock!)) === 720;
-          const hint = twelve
-            ? ` Landing ${landingClock} minus the duration gives takeoff ${impliedTakeoff}, so ${takeoffClock} looks like a 12-hour clock slip.`
-            : ` Landing ${landingClock} minus the duration gives takeoff ${impliedTakeoff}.`;
+          const values = { takeoff: takeoffClock!, duration: hhmm(x.durationMin), landed: got, offset: formatOffset(destOffset), landing: landingClock, implied: impliedTakeoff };
           issues.push({
             ruleId: "I-SOURCE-DIFF",
             severity: "warning",
             field: "landingAt",
-            message: `Takeoff ${takeoffClock} plus duration ${hhmm(x.durationMin)} lands at ${got} (${formatOffset(destOffset)}), but the row says ${landingClock}.${hint}`,
+            message: twelve ? t("importer.times.landingTwelve", values) : t("importer.times.landing", values),
           });
         }
       }
@@ -112,7 +111,7 @@ export function buildFlightTimes(x: ClockInputs): BuiltTimes {
     }
   }
   if (boardingMs !== null && takeoffMs !== null && boardingMs > takeoffMs) {
-    issues.push({ ruleId: "V-TIMES-ORDER", severity: "error", field: "boardingAt", message: `Boarding ${boardingClock} is after takeoff ${takeoffClock}.` });
+    issues.push({ ruleId: "V-TIMES-ORDER", severity: "error", field: "boardingAt", message: t("importer.times.boarding", { boarding: boardingClock!, takeoff: takeoffClock! }) });
   }
   return out;
 }

@@ -1,10 +1,11 @@
 // The values of a custom view's dimensions (docs/24, "Custom view") as the Statistics page names them: the web app, the
 // CLI and the review of a saved view use the same names.
 
+import { has, tDynamic } from "@touchdown/i18n";
 import { DIMENSIONS, type PivotFilter } from "../stats/index.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { airportWithCode, routeCodes, type CodeStyle } from "./codes.ts";
-import { airlineLabel, CABIN_LABEL, countryName, MONTHS_LONG, PHASE_LABEL, typeName } from "./format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, monthNames, PHASE_LABEL, typeName } from "./format.ts";
 
 /** "British Airways", "London Heathrow (LHR)", "Airbus A320neo (A20N)", "March", "09:00". */
 export function pivotValueLabel(dimId: string, key: string, ref: RefIndex, codes: CodeStyle = "iata"): string {
@@ -28,14 +29,19 @@ export function pivotValueLabel(dimId: string, key: string, ref: RefIndex, codes
     case "cabin":
       return CABIN_LABEL[key] ?? key;
     case "seatPosition":
-      return key ? key[0]!.toUpperCase() + key.slice(1) : key;
+      return seatPositionLabel(key);
     case "month":
-      return MONTHS_LONG[Number(key) - 1] ?? key;
+      return monthNames()[Number(key) - 1] ?? key;
     case "hour":
       return `${key}:00`;
     default:
       return key;
   }
+}
+
+/** "Window", "Aisle": a seat position as a word; a value with no message as it is stored, with a capital. */
+export function seatPositionLabel(key: string): string {
+  return has(`view.seatPosition.${key}`) ? tDynamic(`view.seatPosition.${key}`) : key ? key[0]!.toUpperCase() + key.slice(1) : key;
 }
 
 /** A dimension's name, "Airline". */

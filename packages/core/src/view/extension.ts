@@ -2,6 +2,7 @@
 // track (docs/23-tracks-and-maps.md, "Route extension"). The same in the web app (a flight's page, Statistics) and the
 // CLI. Nothing here is stored.
 
+import { locale, t } from "@touchdown/i18n";
 import { arrivalAirportId, routeKey } from "../derive.ts";
 import { haversineKm } from "../geo/index.ts";
 import type { RefIndex } from "../ref/index.ts";
@@ -117,6 +118,14 @@ export function routeExtensionByRoute(flights: Flight[], extensions: Map<string,
 
 /** "+13%", "+8.4%", "+8%", "under +0.1%": whole percents from 10, one decimal below. "At least" is for the caller to add. */
 export function extensionPercent(percent: number): string {
-  if (percent < 0.05) return "under +0.1%";
-  return `+${percent >= 10 ? Math.round(percent) : Number(percent.toFixed(1))}%`;
+  if (percent < 0.05) return t("view.extension.under");
+  return t("view.extension.percent", { percent: upToOneDecimal(percent >= 10 ? Math.round(percent) : Number(percent.toFixed(1))) });
+}
+
+const formats = new Map<string, Intl.NumberFormat>();
+/** "8.4", "8", "120": at most one decimal, in the interface's language. */
+function upToOneDecimal(n: number): string {
+  let f = formats.get(locale());
+  if (!f) formats.set(locale(), (f = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1, useGrouping: false })));
+  return f.format(n);
 }

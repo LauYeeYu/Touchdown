@@ -1,6 +1,7 @@
 // Field rules (V-) and cross-record rules (C-) from docs/20-validation.md. External rules (X-) need the
 // lookup service and arrive in phase 4.
 
+import { locale, t, tDynamic } from "@touchdown/i18n";
 import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -16,13 +17,37 @@ import { trackRouteProblem, trackTimeProblem } from "../tracks.ts";
 
 export const FIRST_POWERED_FLIGHT = "1903-12-17";
 
-let regionNames: Intl.DisplayNames | null = null;
+const regionNames = new Map<string, Intl.DisplayNames>();
 function countryLabel(code: string): string {
   try {
-    regionNames ??= new Intl.DisplayNames(["en-GB"], { type: "region" });
-    return regionNames.of(code) ?? code;
+    let names = regionNames.get(locale());
+    if (!names) regionNames.set(locale(), (names = new Intl.DisplayNames([locale()], { type: "region" })));
+    return names.of(code) ?? code;
   } catch {
     return code;
+  }
+}
+
+/** "A and B", "A and B and C". */
+const andList = (items: string[]) => (items.length ? items.reduce((first, second) => t("core.list.and", { first, second })) : "");
+/** "A or B". */
+const orList = (items: string[]) => (items.length ? items.reduce((first, second) => t("core.list.or", { first, second })) : "");
+/** Spellings of one value, each in quotes: "AAl" and "AAL". */
+const quotedList = (items: string[]) => andList(items.map((text) => t("core.quoted", { text })));
+
+/** The words for a missing field in V-INCOMPLETE. */
+function missingLabel(field: string): string {
+  switch (field) {
+    case "date":
+      return t("rules.missing.date");
+    case "departure airport":
+      return t("rules.missing.departureAirport");
+    case "arrival airport":
+      return t("rules.missing.arrivalAirport");
+    case "location":
+      return t("rules.missing.location");
+    default:
+      return t("rules.missing.registration");
   }
 }
 
@@ -55,18 +80,21 @@ const FLIGHT_TIME_FIELDS = ["boardingAt", "departureAt", "takeoffAt", "landingAt
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 function flightLabel(f: Flight): string {
-  return [f.flightNumber, f.scheduledDate ?? flightDay(f)].filter(Boolean).join(" on ") || "This flight";
+  const date = f.scheduledDate ?? flightDay(f);
+  if (f.flightNumber && date) return t("rules.label.flight", { flightNumber: f.flightNumber, date });
+  return f.flightNumber || date || t("rules.label.thisFlight");
 }
 
 /** For a company's name in the airline field ("Hyundai"): add it as the user's own operator. */
 function namedOperatorFix(r: RecordRef, field: string, raw: string): SuggestedFix[] {
   if (!looksLikeOperatorName(raw)) return [];
   const name = raw.trim();
-  return [{ table: r.table, id: r.id, field, value: null, operatorName: name, label: `Add ${name} as an operator` }];
+  return [{ table: r.table, id: r.id, field, value: null, operatorName: name, label: t("rules.fix.addOperator", { name }) }];
 }
 
 function sightingLabel(s: Sighting): string {
-  return [s.registration, s.seenOn].filter(Boolean).join(" on ") || "This sighting";
+  if (s.registration && s.seenOn) return t("rules.label.sighting", { registration: s.registration, date: s.seenOn });
+  return s.registration || s.seenOn || t("rules.label.thisSighting");
 }
 
 export function checkAll(store: Store, ref: RefIndex, opts: CheckOptions = {}): Finding[] {
@@ -96,41 +124,42 @@ function checkAircraftFields(
   if (rec.registration) {
     const n = normaliseRegistration(rec.registration, ref);
     if (n && !n.knownFormat) {
-      out.add("V-REG-FORMAT", "warning", [r], ["registration"], `${rec.registration} does not match any known national registration format.`, [rec.registration]);
+      out.add("V-REG-FORMAT", "warning", [r], ["registration"], t("rules.regFormat", { registration: rec.registration }), [rec.registration]);
     }
     if (n?.country && operatorCountry && n.country !== operatorCountry) {
-      out.add("V-REG-COUNTRY", "info", [r], ["registration"], `${rec.registration} is registered in ${countryLabel(n.country)}, and the airline is from ${countryLabel(operatorCountry)}. Common with leased aircraft.`, [rec.registration, operatorCountry]);
+      out.add("V-REG-COUNTRY", "info", [r], ["registration"], t("rules.regCountry", { registration: rec.registration, country: countryLabel(n.country), airlineCountry: countryLabel(operatorCountry) }), [rec.registration, operatorCountry]);
     }
   }
   if (rec.typeCode && !ref.type(rec.typeCode)) {
     const fromModel = rec.model ? ref.typesForModel(rec.model) : [];
-    const fixes: SuggestedFix[] = fromModel.length === 1 ? [{ ...r, field: "typeCode", value: fromModel[0]!, label: `Set type code to ${fromModel[0]}` }] : [];
-    out.add("V-TYPE-KNOWN", "error", [r], ["typeCode"], `${rec.typeCode} is not an ICAO type designator.`, [rec.typeCode], fixes);
+    const fixes: SuggestedFix[] = fromModel.length === 1 ? [{ ...r, field: "typeCode", value: fromModel[0]!, label: t("rules.fix.setTypeCode", { typeCode: fromModel[0]! }) }] : [];
+    out.add("V-TYPE-KNOWN", "error", [r], ["typeCode"], t("rules.typeKnown", { typeCode: rec.typeCode }), [rec.typeCode], fixes);
   }
   if (rec.modelRaw && !rec.model) {
-    out.add("V-MODEL-PARSE", "warning", [r], ["model"], `The model "${rec.modelRaw}" could not be read.`, [rec.modelRaw]);
+    out.add("V-MODEL-PARSE", "warning", [r], ["model"], t("rules.modelParse", { model: rec.modelRaw }), [rec.modelRaw]);
   }
   if (rec.model && rec.typeCode && ref.type(rec.typeCode) && ref.modelMatchesType(rec.model, rec.typeCode) === false) {
     const types = ref.typesForModel(rec.model);
-    const fixes: SuggestedFix[] = types.length === 1 ? [{ ...r, field: "typeCode", value: types[0]!, label: `Set type code to ${types[0]}` }] : [];
-    const hint = types.length ? ` The model fits ${types.join(" or ")}.` : "";
-    out.add("V-MODEL-TYPE", "warning", [r], ["model", "typeCode"], `${label}: model ${rec.model} does not match type code ${rec.typeCode}.${hint}`, [rec.model, rec.typeCode], fixes);
+    const fixes: SuggestedFix[] = types.length === 1 ? [{ ...r, field: "typeCode", value: types[0]!, label: t("rules.fix.setTypeCode", { typeCode: types[0]! }) }] : [];
+    const values = { label, model: rec.model, typeCode: rec.typeCode };
+    const message = types.length ? t("rules.modelTypeFits", { ...values, types: orList(types) }) : t("rules.modelType", values);
+    out.add("V-MODEL-TYPE", "warning", [r], ["model", "typeCode"], message, [rec.model, rec.typeCode], fixes);
   }
   if (rec.notes && /\b\d{13}\b/.test(rec.notes)) {
-    out.add("V-PRIVATE-IN-NOTES", "info", [r], ["notes"], "The notes seem to contain a ticket number. Move it to the private ticket field?", [fnv1a(rec.notes)]);
+    out.add("V-PRIVATE-IN-NOTES", "info", [r], ["notes"], t("rules.privateInNotes"), [fnv1a(rec.notes)]);
   }
 }
 
 function checkDate(out: Collector, r: RecordRef, field: string, date: string | null, today: string, label: string) {
   if (!date) return;
-  if (date < FIRST_POWERED_FLIGHT) out.add("V-DATE-SANE", "error", [r], [field], `${label}: ${date} is before the first powered flight.`, [date]);
-  else if (date > today) out.add("V-DATE-SANE", "error", [r], [field], `${label}: ${date} is in the future. Only flown flights and past sightings are logged.`, [date]);
+  if (date < FIRST_POWERED_FLIGHT) out.add("V-DATE-SANE", "error", [r], [field], t("rules.dateBeforeFlight", { label, date }), [date]);
+  else if (date > today) out.add("V-DATE-SANE", "error", [r], [field], t("rules.dateFuture", { label, date }), [date]);
 }
 
 function checkFirstFlight(out: Collector, r: RecordRef, date: string | null, airframes: Map<string, Airframe>, airframeId: string | null, label: string) {
   const a = airframeId ? airframes.get(airframeId) : undefined;
   if (date && a?.firstFlightDate && date < a.firstFlightDate) {
-    out.add("V-BEFORE-FIRST-FLIGHT", "error", [r], ["registration"], `${label} is dated before the aircraft's first flight (${a.firstFlightDate}).`, [date, a.firstFlightDate]);
+    out.add("V-BEFORE-FIRST-FLIGHT", "error", [r], ["registration"], t("rules.beforeFirstFlight", { label, date: a.firstFlightDate }), [date, a.firstFlightDate]);
   }
 }
 
@@ -144,23 +173,23 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
 
   const from = ref.airport(f.fromAirportId);
   const to = ref.airport(f.toAirportId);
-  if (f.fromRaw && !from) out.add("V-AIRPORT-KNOWN", "error", [r], ["fromAirportId"], `${label}: airport code ${f.fromRaw} is not known.`, [f.fromRaw]);
-  if (f.toRaw && !to) out.add("V-AIRPORT-KNOWN", "error", [r], ["toAirportId"], `${label}: airport code ${f.toRaw} is not known.`, [f.toRaw]);
+  if (f.fromRaw && !from) out.add("V-AIRPORT-KNOWN", "error", [r], ["fromAirportId"], t("rules.airportKnown", { label, code: f.fromRaw }), [f.fromRaw]);
+  if (f.toRaw && !to) out.add("V-AIRPORT-KNOWN", "error", [r], ["toAirportId"], t("rules.airportKnown", { label, code: f.toRaw }), [f.toRaw]);
   if (from && to && from.id === to.id && !f.divertedToAirportId) {
-    out.add("V-AIRPORT-SAME", "warning", [r], ["fromAirportId", "toAirportId"], `${label} departs from and arrives at ${from.iata ?? from.icao}.`, [from.id]);
+    out.add("V-AIRPORT-SAME", "warning", [r], ["fromAirportId", "toAirportId"], t("rules.airportSame", { label, airport: from.iata ?? from.icao ?? "" }), [from.id]);
   }
 
   const airline = ref.operator(f.airlineId);
-  if (f.airlineRaw && !airline) out.add("V-OPERATOR-KNOWN", "error", [r], ["airlineId"], `${label}: airline code ${f.airlineRaw} is not known.`, [f.airlineRaw], namedOperatorFix(F(f.id), "airlineId", f.airlineRaw));
+  if (f.airlineRaw && !airline) out.add("V-OPERATOR-KNOWN", "error", [r], ["airlineId"], t("rules.operatorKnown", { label, code: f.airlineRaw }), [f.airlineRaw], namedOperatorFix(F(f.id), "airlineId", f.airlineRaw));
 
   if (f.flightNumber) {
     const p = parseFlightNumber(f.flightNumber);
-    if (!p) out.add("V-FLIGHTNO-FORMAT", "warning", [r], ["flightNumber"], `${f.flightNumber} is not a flight number (airline code + 1–4 digits).`, [f.flightNumber]);
+    if (!p) out.add("V-FLIGHTNO-FORMAT", "warning", [r], ["flightNumber"], t("rules.flightNumberFormat", { flightNumber: f.flightNumber }), [f.flightNumber]);
     else if (airline && p.designator !== airline.iata && p.designator !== airline.icao) {
-      out.add("V-FLIGHTNO-AIRLINE", "warning", [r], ["flightNumber", "airlineId"], `${f.flightNumber} does not start with ${airline.name}'s code (${[airline.iata, airline.icao].filter(Boolean).join(" / ")}).`, [f.flightNumber, airline.id]);
+      out.add("V-FLIGHTNO-AIRLINE", "warning", [r], ["flightNumber", "airlineId"], t("rules.flightNumberAirline", { flightNumber: f.flightNumber, airline: airline.name, codes: [airline.iata, airline.icao].filter(Boolean).join(" / ") }), [f.flightNumber, airline.id]);
     }
   }
-  if (f.seat && !isSeatFormat(f.seat)) out.add("V-SEAT-FORMAT", "warning", [r], ["seat"], `${label}: seat ${f.seat} is not a row number and a letter.`, [f.seat]);
+  if (f.seat && !isSeatFormat(f.seat)) out.add("V-SEAT-FORMAT", "warning", [r], ["seat"], t("rules.seatFormat", { label, seat: f.seat }), [f.seat]);
 
   // The airline that flew it, when another than the one that sold it, is the one whose country the registration is compared with.
   checkAircraftFields(out, r, f, ref, (ref.operator(f.operatingAirlineId) ?? airline)?.country ?? null, label);
@@ -175,7 +204,7 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     const [kb, tb] = seq[i]!;
     const strict = ka === "takeoffAt" && kb === "landingAt";
     if (tb < ta || (strict && tb === ta)) {
-      out.add("V-TIMES-ORDER", "error", [r], [ka, kb], `${label}: ${kb.replace("At", "")} is before ${ka.replace("At", "")}.`, [f[ka as keyof Flight], f[kb as keyof Flight]], afterMidnightFix(f, r, ka, kb, from?.tz, landed?.tz));
+      out.add("V-TIMES-ORDER", "error", [r], [ka, kb], t("rules.timesOrder", { label, later: tDynamic(`rules.time.${kb.replace("At", "")}`), earlier: tDynamic(`rules.time.${ka.replace("At", "")}`) }), [f[ka as keyof Flight], f[kb as keyof Flight]], afterMidnightFix(f, r, ka, kb, from?.tz, landed?.tz));
     }
   }
   const zones: [string, string | null | undefined][] = [
@@ -196,21 +225,21 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     if (expected !== p.offsetMin) {
       // Keep the wall-clock time; the offset was wrong.
       const fixed = zonedDateTime(p.date, p.time, tz)!;
-      out.add("V-TIME-OFFSET", "error", [r], [field], `${label}: ${v} has offset ${formatOffset(p.offsetMin)}, but the airport's time zone (${tz}) was ${formatOffset(expected)} then.`, [v, tz], [{ ...r, field, value: fixed, label: `Use ${fixed}` }]);
+      out.add("V-TIME-OFFSET", "error", [r], [field], t("rules.timeOffset", { label, value: v, offset: formatOffset(p.offsetMin), tz, expected: formatOffset(expected) }), [v, tz], [{ ...r, field, value: fixed, label: t("rules.fix.use", { value: fixed }) }]);
     }
   }
   if (f.scheduledDate && f.takeoffAt) {
     const takeoffDay = localDateOf(f.takeoffAt)!;
     const diff = daysBetween(f.scheduledDate, takeoffDay);
     if (diff === 1) {
-      out.add("V-DAY-ROLLOVER", "info", [r], ["takeoffAt"], `${label} took off after midnight, on ${takeoffDay}.`, [f.scheduledDate, f.takeoffAt]);
+      out.add("V-DAY-ROLLOVER", "info", [r], ["takeoffAt"], t("rules.dayRollover", { label, date: takeoffDay }), [f.scheduledDate, f.takeoffAt]);
     } else if (diff !== 0) {
-      out.add("V-DAY-ROLLOVER", "error", [r], ["takeoffAt"], `${label}: takeoff on ${takeoffDay} is ${diff} days from the scheduled date.`, [f.scheduledDate, f.takeoffAt]);
+      out.add("V-DAY-ROLLOVER", "error", [r], ["takeoffAt"], t("rules.dayRolloverDays", { label, date: takeoffDay, days: diff }), [f.scheduledDate, f.takeoffAt]);
     } else {
       const clock = parseDateTime(f.takeoffAt)!.time;
       const evidence = f.boardingAt || f.departureScheduledAt || f.departureAt;
       if (clock < "04:00" && !evidence) {
-        out.add("V-DAY-ROLLOVER", "warning", [r], ["takeoffAt"], `${label}: takeoff at ${clock.slice(0, 5)} on the scheduled date. If the flight left after midnight, it took off on ${addDays(f.scheduledDate, 1)}.`, [f.takeoffAt]);
+        out.add("V-DAY-ROLLOVER", "warning", [r], ["takeoffAt"], t("rules.dayRolloverEarly", { label, clock: clock.slice(0, 5), date: addDays(f.scheduledDate, 1) }), [f.takeoffAt]);
       }
     }
   }
@@ -219,7 +248,7 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     const scheduledDay = localDateOf(f.departureScheduledAt);
     const diff = scheduledDay ? daysBetween(f.scheduledDate, scheduledDay) : 0;
     if (diff !== 0) {
-      out.add("V-SCHEDULE-DATE", Math.abs(diff) === 1 ? "warning" : "error", [r], ["scheduledDate", "departureScheduledAt"], `${label}: the scheduled departure is on ${scheduledDay}, but the flight's date, the day it was scheduled to leave, is ${f.scheduledDate}.`, [f.scheduledDate, f.departureScheduledAt]);
+      out.add("V-SCHEDULE-DATE", Math.abs(diff) === 1 ? "warning" : "error", [r], ["scheduledDate", "departureScheduledAt"], t("rules.scheduleDate", { label, day: scheduledDay ?? "", date: f.scheduledDate }), [f.scheduledDate, f.departureScheduledAt]);
     }
   }
   // A track is checked against its flight when it is added: these find one the flight has since moved away from.
@@ -227,22 +256,22 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     const first = instant(track.firstPointAt);
     const last = instant(track.lastPointAt);
     const late = first !== null && last !== null ? trackTimeProblem(first / 1000, last / 1000, f) : null;
-    if (late) out.add("V-TRACK-TIMES", "error", [r], ["takeoffAt", "landingAt"], `${label}: ${lowerFirst(late)} Correct the flight's date and times, or replace the track.`, [f.scheduledDate, f.takeoffAt, f.landingAt, track.id]);
+    if (late) out.add("V-TRACK-TIMES", "error", [r], ["takeoffAt", "landingAt"], t("rules.trackTimes", { label, problem: lowerFirst(late) }), [f.scheduledDate, f.takeoffAt, f.landingAt, track.id]);
     const away = trackRouteProblem(track, f, ref);
-    if (away) out.add("V-TRACK-ROUTE", "warning", [r], ["fromAirportId", "toAirportId"], `${label}: ${lowerFirst(away)} Correct the airports, or replace the track.`, [f.fromAirportId, arrivalAirportId(f), track.id]);
+    if (away) out.add("V-TRACK-ROUTE", "warning", [r], ["fromAirportId", "toAirportId"], t("rules.trackRoute", { label, problem: lowerFirst(away) }), [f.fromAirportId, arrivalAirportId(f), track.id]);
   }
   const km = flightDistanceKm(f, ref);
   const min = flightDurationMin(f);
   if (km && min) {
     const kmh = km / (min / 60);
     if (kmh < 150 || kmh > 1100) {
-      out.add("V-DURATION-SPEED", "warning", [r], ["takeoffAt", "landingAt"], `${label}: ${Math.round(km)} km in ${Math.floor(min / 60)}h ${min % 60}m is ${Math.round(kmh)} km/h on average. Check the airports, dates and times.`, [Math.round(km), min]);
+      out.add("V-DURATION-SPEED", "warning", [r], ["takeoffAt", "landingAt"], t("rules.speed", { label, km: Math.round(km), hours: Math.floor(min / 60), minutes: min % 60, kmh: Math.round(kmh) }), [Math.round(km), min]);
     }
   }
   if (f.distanceKmOverride) {
     const gc = greatCircleKm(f, ref);
     if (gc && Math.abs(f.distanceKmOverride - gc) / gc > 0.03) {
-      out.add("V-DISTANCE-DIFF", "info", [r], ["distanceKmOverride"], `${label}: the distance entered (${Math.round(f.distanceKmOverride)} km) differs from the great-circle distance (${Math.round(gc)} km).`, [f.distanceKmOverride], [{ ...r, field: "distanceKmOverride", value: null, label: "Use the great-circle distance" }]);
+      out.add("V-DISTANCE-DIFF", "info", [r], ["distanceKmOverride"], t("rules.distance", { label, entered: Math.round(f.distanceKmOverride), greatCircle: Math.round(gc) }), [f.distanceKmOverride], [{ ...r, field: "distanceKmOverride", value: null, label: t("rules.fix.greatCircle") }]);
     }
   }
   const missing = [
@@ -251,7 +280,7 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     !f.toAirportId && "arrival airport",
     !f.registration && "registration",
   ].filter(Boolean) as string[];
-  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], `${label}: no ${missing.join(", ")}.`, missing);
+  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: missing.map(missingLabel).join(", ") }), missing);
 }
 
 /**
@@ -272,7 +301,7 @@ function afterMidnightFix(f: Flight, r: RecordRef, ka: string, kb: string, fromT
   const next = instant(takeoff)!;
   if (next <= before || next - before > 4 * 3_600_000) return [];
   const also: SuggestedFix["also"] = f.landingAt ? [{ field: "landingAt", value: shift(f.landingAt, toTz) }] : [];
-  return [{ ...r, field: "takeoffAt", value: takeoff, also, label: `Move takeoff${f.landingAt ? " and landing" : ""} to the next day (${addDays(p.date, 1)})` }];
+  return [{ ...r, field: "takeoffAt", value: takeoff, also, label: t("rules.fix.moveTakeoff", { landing: f.landingAt ? "yes" : "no", date: addDays(p.date, 1) }) }];
 }
 
 // ---------- sightings ----------
@@ -282,15 +311,15 @@ function checkSighting(out: Collector, s: Sighting, ref: RefIndex, today: string
   const label = sightingLabel(s);
   checkDate(out, r, "seenOn", s.seenOn, today, label);
   if (s.seenAt && s.seenOn && localDateOf(s.seenAt) !== s.seenOn) {
-    out.add("V-TIMES-ORDER", "error", [r], ["seenAt"], `${label}: the time ${s.seenAt} is not on ${s.seenOn}.`, [s.seenAt, s.seenOn]);
+    out.add("V-TIMES-ORDER", "error", [r], ["seenAt"], t("rules.seenAt", { label, time: s.seenAt, date: s.seenOn }), [s.seenAt, s.seenOn]);
   }
-  if (s.airportRaw && !ref.airport(s.airportId)) out.add("V-AIRPORT-KNOWN", "error", [r], ["airportId"], `${label}: airport code ${s.airportRaw} is not known.`, [s.airportRaw]);
+  if (s.airportRaw && !ref.airport(s.airportId)) out.add("V-AIRPORT-KNOWN", "error", [r], ["airportId"], t("rules.airportKnown", { label, code: s.airportRaw }), [s.airportRaw]);
   const op = ref.operator(s.operatorId);
-  if (s.operatorRaw && !op) out.add("V-OPERATOR-KNOWN", "error", [r], ["operatorId"], `${label}: airline code ${s.operatorRaw} is not known.`, [s.operatorRaw], namedOperatorFix(r, "operatorId", s.operatorRaw));
+  if (s.operatorRaw && !op) out.add("V-OPERATOR-KNOWN", "error", [r], ["operatorId"], t("rules.operatorKnown", { label, code: s.operatorRaw }), [s.operatorRaw], namedOperatorFix(r, "operatorId", s.operatorRaw));
   checkAircraftFields(out, r, s, ref, op && op.kind !== "private" ? op.country : null, label);
   checkFirstFlight(out, r, s.seenOn, airframes, s.airframeId, label);
   const missing = [!s.seenOn && "date", !s.airportId && "location", !s.registration && "registration"].filter(Boolean) as string[];
-  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], `${label}: no ${missing.join(", ")}.`, missing);
+  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: missing.map(missingLabel).join(", ") }), missing);
 }
 
 // ---------- cross-record ----------
@@ -331,36 +360,36 @@ function checkCross(
     for (const x of odd) {
       const reverse: SuggestedFix[] =
         agreeing.length === 1 && x.rec.typeCode
-          ? [{ ...agreeing[0]!.r, field: "typeCode", value: x.rec.typeCode, label: `Set the other record to ${x.rec.typeCode}` }]
+          ? [{ ...agreeing[0]!.r, field: "typeCode", value: x.rec.typeCode, label: t("rules.fix.setOtherRecord", { typeCode: x.rec.typeCode }) }]
           : [];
-      const basis = a.provisional ? `${same} other record${same === 1 ? " of this aircraft says" : "s of this aircraft say"} ${a.typeCode}` : `the aircraft is a ${a.typeCode}`;
+      const values = { registrations: regs, typeCode: x.rec.typeCode ?? "", aircraftType: a.typeCode };
       out.add(
         "C-TYPE-MISMATCH",
         "error",
         [x.r],
         ["typeCode"],
-        `${regs} is recorded as ${x.rec.typeCode} here, but ${basis}. A typo, or a different aircraft with the same registration?`,
+        a.provisional ? t("rules.typeMismatchRecords", { ...values, count: same }) : t("rules.typeMismatch", values),
         [x.rec.typeCode, a.typeCode],
-        [{ ...x.r, field: "typeCode", value: a.typeCode, label: `Set this record to ${a.typeCode}` }, ...reverse],
+        [{ ...x.r, field: "typeCode", value: a.typeCode, label: t("rules.fix.setThisRecord", { typeCode: a.typeCode }) }, ...reverse],
       );
     }
   }
 
   for (const o of opts.overlaps ?? []) {
     const r = o.table === "flights" ? F(o.id) : S(o.id);
-    out.add("C-REG-OVERLAP", "error", [r], ["registration"], `${o.registration} is held by ${o.airframeIds.length} aircraft on this date. Fix the registration periods or choose the aircraft.`, [o.registration, o.airframeIds]);
+    out.add("C-REG-OVERLAP", "error", [r], ["registration"], t("rules.regOverlap", { registration: o.registration, count: o.airframeIds.length }), [o.registration, o.airframeIds]);
   }
 
   // C-DUP-FLIGHT: same date + flight number + from.
   for (const [, list] of groupBy(flights, (f) => (f.flightNumber && f.fromAirportId ? `${f.scheduledDate ?? flightDay(f)}|${f.flightNumber}|${f.fromAirportId}` : null))) {
     if (list.length > 1) {
-      out.add("C-DUP-FLIGHT", "warning", list.map((f) => F(f.id)), ["flightNumber"], `${flightLabel(list[0]!)} is logged ${list.length} times.`, []);
+      out.add("C-DUP-FLIGHT", "warning", list.map((f) => F(f.id)), ["flightNumber"], t("rules.dupFlight", { label: flightLabel(list[0]!), count: list.length }), []);
     }
   }
   // C-DUP-SIGHTING: same date + registration + location.
   for (const [, list] of groupBy(sightings, (s) => (s.registration && s.seenOn ? `${s.seenOn}|${s.registration}|${s.airportId ?? s.airportRaw ?? ""}` : null))) {
     if (list.length > 1) {
-      out.add("C-DUP-SIGHTING", "info", list.map((s) => S(s.id)), ["registration"], `${sightingLabel(list[0]!)} is logged ${list.length} times at the same place. One sighting per aircraft per place per day is usual. Keep both only if that is intended.`, []);
+      out.add("C-DUP-SIGHTING", "info", list.map((s) => S(s.id)), ["registration"], t("rules.dupSighting", { label: sightingLabel(list[0]!), count: list.length }), []);
     }
   }
   // C-DUP-TICKET: same ticket number and coupon. The number itself is private and never shown. The legs of one flight
@@ -368,7 +397,7 @@ function checkCross(
   for (const [, list] of groupBy(flights, (f) => tickets.get(f.id)?.ticketNumber?.replace(/\s+/g, "") || null)) {
     const segments = list.filter((f) => !list.some((g) => g !== f && nextLegOf(g, f))).length;
     if (segments > 1) {
-      out.add("C-DUP-TICKET", "warning", list.map((f) => F(f.id)), ["ticketNumber"], `${list.map(flightLabel).join(" and ")} have the same ticket number and coupon. One coupon is probably mistyped.`, []);
+      out.add("C-DUP-TICKET", "warning", list.map((f) => F(f.id)), ["ticketNumber"], t("rules.dupTicket", { flights: andList(list.map(flightLabel)) }), []);
     }
   }
   // C-FLIGHT-OVERLAP: two flights in the air at the same time.
@@ -380,7 +409,7 @@ function checkCross(
     const p = timed[i - 1]!;
     const q = timed[i]!;
     if (q.a < p.b) {
-      out.add("C-FLIGHT-OVERLAP", "error", [F(p.f.id), F(q.f.id)], ["takeoffAt", "landingAt"], `${flightLabel(p.f)} and ${flightLabel(q.f)} overlap in time.`, [p.f.takeoffAt, q.f.takeoffAt]);
+      out.add("C-FLIGHT-OVERLAP", "error", [F(p.f.id), F(q.f.id)], ["takeoffAt", "landingAt"], t("rules.flightOverlap", { first: flightLabel(p.f), second: flightLabel(q.f) }), [p.f.takeoffAt, q.f.takeoffAt]);
     }
   }
   // C-CODE-VARIANTS: raw airline and airport codes that differ only by case or spaces (AAl and AAL). Type
@@ -403,7 +432,7 @@ function checkCross(
         "warning",
         odd.map((x) => ("seenOn" in x ? S(x.id) : F(x.id))),
         [field],
-        `${spellings.map((s) => `"${s}"`).join(" and ")} are the same code. They are counted as one (${norm}).`,
+        t("rules.codeVariants", { spellings: quotedList(spellings), code: norm }),
         [field, spellings.sort()],
       );
     }
@@ -413,7 +442,7 @@ function checkCross(
     for (const [, same] of groupBy(list, (x) => x.rec.specialLivery!.toLowerCase().replace(/\s+/g, " ").trim())) {
       const spellings = [...new Set(same.map((x) => x.rec.specialLivery!))];
       if (spellings.length > 1) {
-        out.add("C-LIVERY-NAME", "info", same.map((x) => x.r), ["specialLivery"], `The same livery is spelt ${spellings.map((s) => `"${s}"`).join(" and ")}.`, [spellings.sort()]);
+        out.add("C-LIVERY-NAME", "info", same.map((x) => x.r), ["specialLivery"], t("rules.liveryName", { spellings: quotedList(spellings) }), [spellings.sort()]);
       }
     }
   }
@@ -426,15 +455,14 @@ function checkCross(
       if (x.specialLivery || !x.date) continue;
       const worn = liveryAround(dated, x.date);
       if (!worn) continue;
-      const what = x.r.table === "flights" ? "this flight" : "this sighting";
       out.add(
         "C-LIVERY-MISSING",
         "warning",
         [x.r],
         ["specialLivery"],
-        `${x.rec.registration ?? "The aircraft"} was in ${worn.name} on ${worn.on}, but ${what} has no special livery.`,
+        t("rules.liveryMissing", { aircraft: x.rec.registration ?? t("rules.label.theAircraft"), livery: worn.name, date: worn.on, table: x.r.table }),
         [worn.name],
-        [{ ...x.r, field: "specialLivery", value: worn.name, label: `Set special livery to ${worn.name}` }],
+        [{ ...x.r, field: "specialLivery", value: worn.name, label: t("rules.fix.setSpecialLivery", { livery: worn.name }) }],
       );
     }
   }
@@ -451,7 +479,7 @@ function checkCross(
     if (!s.airframeId || !s.airportId || !s.seenOn) continue;
     const f = flownThrough.get(`${s.airframeId}|${s.airportId}|${s.seenOn}`);
     if (f) {
-      out.add("C-SAME-DAY", "info", [S(s.id), F(f.id)], [], `You photographed ${s.registration} on the day you flew on it (${flightLabel(f)}).`, []);
+      out.add("C-SAME-DAY", "info", [S(s.id), F(f.id)], [], t("rules.sameDay", { registration: s.registration ?? "", flight: flightLabel(f) }), []);
     }
   }
 }

@@ -2,6 +2,7 @@
 // every answer passes before anyone sees it, and how accepted suggestions change an import's rows. Shared by
 // the web app (builds the request, reads the result) and the CLI (runs the agent).
 
+import { t } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import { PHASES, type FlightValues, type SightingValues } from "../schema/tables.ts";
 import { isValidDate } from "../schema/validate.ts";
@@ -205,28 +206,29 @@ export function buildCheckRequest(
 /** Checks a request read from a file before anything is sent: its shape, its size, and that it carries nothing extra. */
 export function readCheckRequest(json: unknown): { request: CheckRequest } | { error: string } {
   const r = json as Partial<CheckRequest> | null;
-  if (!r || typeof r !== "object") return { error: "not a JSON object" };
-  if (r.schema !== CHECK_REQUEST_SCHEMA || r.version !== CHECK_VERSION) return { error: "not a Touchdown check request (or one from another version)" };
-  if (typeof r.batchId !== "string" || !/^chk-[0-9a-f]{16}$/.test(r.batchId)) return { error: "missing or malformed batch id" };
-  if (!Array.isArray(r.records) || !r.records.length) return { error: "no records" };
-  if (r.records.length > CHECK_MAX_RECORDS) return { error: `more than ${CHECK_MAX_RECORDS} records` };
-  if (!Array.isArray(r.rules) || r.rules.some((x) => typeof x !== "string" || x.length > 500) || r.rules.length > 50) return { error: "malformed rules" };
+  if (!r || typeof r !== "object") return { error: t("core.agent.request.notObject") };
+  if (r.schema !== CHECK_REQUEST_SCHEMA || r.version !== CHECK_VERSION) return { error: t("core.agent.request.notRequest") };
+  if (typeof r.batchId !== "string" || !/^chk-[0-9a-f]{16}$/.test(r.batchId)) return { error: t("core.agent.request.batchId") };
+  if (!Array.isArray(r.records) || !r.records.length) return { error: t("core.agent.request.noRecords") };
+  if (r.records.length > CHECK_MAX_RECORDS) return { error: t("core.agent.request.tooMany", { max: CHECK_MAX_RECORDS }) };
+  if (!Array.isArray(r.rules) || r.rules.some((x) => typeof x !== "string" || x.length > 500) || r.rules.length > 50) return { error: t("core.agent.request.rules") };
   const extra = Object.keys(r).filter((k) => !["schema", "version", "batchId", "createdAt", "format", "rules", "records"].includes(k));
-  if (extra.length) return { error: `unexpected keys: ${extra.join(", ")}` };
+  if (extra.length) return { error: t("core.agent.request.keys", { keys: extra.join(", ") }) };
   const ids = new Set<string>();
   for (const rec of r.records as CheckRecord[]) {
-    if (!rec || typeof rec.recordId !== "string" || !/^row-\d{1,6}$/.test(rec.recordId) || ids.has(rec.recordId)) return { error: "malformed or repeated record id" };
+    if (!rec || typeof rec.recordId !== "string" || !/^row-\d{1,6}$/.test(rec.recordId) || ids.has(rec.recordId)) return { error: t("core.agent.request.recordId") };
     ids.add(rec.recordId);
-    if (rec.kind !== "sighting" && rec.kind !== "flight") return { error: `${rec.recordId}: unknown kind` };
+    const bad = (problem: string) => ({ error: t("core.agent.request.record", { record: rec.recordId, problem }) });
+    if (rec.kind !== "sighting" && rec.kind !== "flight") return bad(t("core.agent.request.kind"));
     const allowed = new Set<string>(AGENT_FIELDS[rec.kind]);
     for (const part of [rec.fields, rec.asTyped]) {
-      if (!part || typeof part !== "object") return { error: `${rec.recordId}: malformed fields` };
-      for (const [k, v] of Object.entries(part)) if (!allowed.has(k) || typeof v !== "string" || v.length > 200) return { error: `${rec.recordId}: field ${k} is not allowed` };
+      if (!part || typeof part !== "object") return bad(t("core.agent.request.fields"));
+      for (const [k, v] of Object.entries(part)) if (!allowed.has(k) || typeof v !== "string" || v.length > 200) return bad(t("core.agent.request.field", { field: k }));
     }
-    if (!Array.isArray(rec.findings) || rec.findings.some((x) => typeof x !== "string" || x.length > 500)) return { error: `${rec.recordId}: malformed findings` };
-    if (rec.notes !== undefined && (typeof rec.notes !== "string" || rec.notes.length > 500)) return { error: `${rec.recordId}: malformed notes` };
+    if (!Array.isArray(rec.findings) || rec.findings.some((x) => typeof x !== "string" || x.length > 500)) return bad(t("core.agent.request.findings"));
+    if (rec.notes !== undefined && (typeof rec.notes !== "string" || rec.notes.length > 500)) return bad(t("core.agent.request.notes"));
     const keys = Object.keys(rec).filter((k) => !["recordId", "kind", "fields", "asTyped", "findings", "notes"].includes(k));
-    if (keys.length) return { error: `${rec.recordId}: unexpected keys ${keys.join(", ")}` };
+    if (keys.length) return bad(t("core.agent.request.recordKeys", { keys: keys.join(", ") }));
   }
   return { request: r as CheckRequest };
 }
@@ -336,31 +338,31 @@ export function suggestionProblem(field: AgentField, value: string, ref: RefInde
   const v = value.trim();
   switch (field) {
     case "typeCode":
-      return ref.type(v) ? null : `"${v}" is not a known ICAO type designator`;
+      return ref.type(v) ? null : t("core.agent.problem.type", { value: v });
     case "registration": {
       const n = normaliseRegistration(v, ref);
-      return n?.knownFormat ? null : `"${v}" does not match any country's registration format`;
+      return n?.knownFormat ? null : t("core.agent.problem.registration", { value: v });
     }
     case "operator":
     case "airline":
-      return /^[A-Z0-9]{2,3}$/i.test(v) && ref.operatorByCode(v) ? null : `"${v}" is not a known airline code`;
+      return /^[A-Z0-9]{2,3}$/i.test(v) && ref.operatorByCode(v) ? null : t("core.agent.problem.airline", { value: v });
     case "airport":
     case "from":
     case "to":
-      return ref.airportByCode(v) ? null : `"${v}" is not a known airport code`;
+      return ref.airportByCode(v) ? null : t("core.agent.problem.airport", { value: v });
     case "date":
-      return isValidDate(v) && (!today || v <= today) ? null : `"${v}" is not a valid date`;
+      return isValidDate(v) && (!today || v <= today) ? null : t("core.agent.problem.date", { value: v });
     case "flightNumber":
-      return /^[A-Z0-9]{2}[A-Z]?\d{1,4}[A-Z]?$/.test(v.toUpperCase().replace(/\s+/g, "")) ? null : `"${v}" is not a flight number`;
+      return /^[A-Z0-9]{2}[A-Z]?\d{1,4}[A-Z]?$/.test(v.toUpperCase().replace(/\s+/g, "")) ? null : t("core.agent.problem.flightNumber", { value: v });
     case "phase":
-      return (PHASES as readonly string[]).includes(v) ? null : `"${v}" is not a phase`;
+      return (PHASES as readonly string[]).includes(v) ? null : t("core.agent.problem.phase", { value: v });
     case "model":
-      return v && v.length <= 60 ? null : "the model is empty or too long";
+      return v && v.length <= 60 ? null : t("core.agent.problem.model");
     case "livery":
     case "specialLivery":
-      return v.length <= 80 ? null : "too long";
+      return v.length <= 80 ? null : t("core.agent.problem.tooLong");
     case "notes":
-      return v.length <= 500 ? null : "too long";
+      return v.length <= 500 ? null : t("core.agent.problem.tooLong");
   }
 }
 
@@ -370,7 +372,7 @@ export function suggestionProblem(field: AgentField, value: string, ref: RefInde
  */
 export function checkAgentAnswer(answer: unknown, records: CheckRecord[], ref: RefIndex, today?: string): { records: AgentRecordResult[]; rejected: RejectedAnswer[] } | { error: string } {
   const a = answer as { records?: unknown } | null;
-  if (!a || typeof a !== "object" || !Array.isArray(a.records)) return { error: "the answer has no records list" };
+  if (!a || typeof a !== "object" || !Array.isArray(a.records)) return { error: t("core.agent.answer.noRecords") };
   const byId = new Map(records.map((r) => [r.recordId, r]));
   const out: AgentRecordResult[] = [];
   const rejected: RejectedAnswer[] = [];
@@ -379,7 +381,7 @@ export function checkAgentAnswer(answer: unknown, records: CheckRecord[], ref: R
     const id = String(raw?.recordId ?? "");
     const rec = byId.get(id);
     if (!rec || seen.has(id)) {
-      rejected.push({ recordId: clip(id, 40), field: "", suggested: "", why: rec ? "answered twice" : "not a record in this batch" });
+      rejected.push({ recordId: clip(id, 40), field: "", suggested: "", why: rec ? t("core.agent.answer.twice") : t("core.agent.answer.notInBatch") });
       continue;
     }
     seen.add(id);
@@ -391,9 +393,11 @@ export function checkAgentAnswer(answer: unknown, records: CheckRecord[], ref: R
       const field = String(s?.field ?? "");
       const suggested = clip(s?.suggested, 120);
       const why = !allowed.has(field)
-        ? `${field || "a field"} cannot be suggested for a ${rec.kind}`
+        ? field
+          ? t("core.agent.answer.field", { field, kind: rec.kind })
+          : t("core.agent.answer.anyField", { kind: rec.kind })
         : !CONFIDENCES.has(String(s.confidence)) || !BASES.has(String(s.basis))
-          ? "malformed suggestion"
+          ? t("core.agent.answer.malformed")
           : suggestionProblem(field as AgentField, suggested, ref, today);
       if (why) {
         rejected.push({ recordId: id, field, suggested, why });
@@ -402,7 +406,7 @@ export function checkAgentAnswer(answer: unknown, records: CheckRecord[], ref: R
       const current = rec.fields[field as AgentField] ?? "";
       if (sameValue(field as AgentField, current, suggested, ref)) continue;
       if (suggestions.some((x) => x.field === field)) {
-        rejected.push({ recordId: id, field, suggested, why: "a second suggestion for the same field" });
+        rejected.push({ recordId: id, field, suggested, why: t("core.agent.answer.second") });
         continue;
       }
       suggestions.push({ field: field as AgentField, current, suggested, confidence: s.confidence as Confidence, basis: s.basis as Basis, reason: clip(s.reason, 200) });
@@ -427,11 +431,11 @@ function sameValue(field: AgentField, a: string, b: string, ref: RefIndex): bool
 /** Checks a result file against the rows of the file now being imported, and checks every suggestion again. */
 export function readCheckResult(json: unknown, request: CheckRequest, ref: RefIndex): { result: CheckResultFile; dropped: number } | { error: string } {
   const r = json as Partial<CheckResultFile> | null;
-  if (!r || typeof r !== "object" || r.schema !== CHECK_RESULT_SCHEMA || r.version !== CHECK_VERSION) return { error: "This is not a Touchdown check result." };
-  if (r.batchId !== request.batchId) return { error: "This result is for another file. Check the file you are importing, or import the file the result was made for." };
-  if (r.checker !== "claude" && r.checker !== "codex") return { error: "The result does not say which agent made it." };
+  if (!r || typeof r !== "object" || r.schema !== CHECK_RESULT_SCHEMA || r.version !== CHECK_VERSION) return { error: t("core.agent.result.notResult") };
+  if (r.batchId !== request.batchId) return { error: t("core.agent.result.otherFile") };
+  if (r.checker !== "claude" && r.checker !== "codex") return { error: t("core.agent.result.noChecker") };
   const checked = checkAgentAnswer({ records: r.records ?? [] }, request.records, ref);
-  if ("error" in checked) return { error: `The result is malformed: ${checked.error}.` };
+  if ("error" in checked) return { error: t("core.agent.result.malformed", { problem: checked.error }) };
   const before = (r.records ?? []).reduce((n, x) => n + (Array.isArray(x?.suggestions) ? x.suggestions.length : 0), 0);
   const after = checked.records.reduce((n, x) => n + x.suggestions.length, 0);
   return {

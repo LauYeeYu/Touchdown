@@ -2,6 +2,7 @@
 // is read into a sighting's fields; lookups (fetched by the CLI) say what they know about the registration; the
 // values are chosen from both, and what is still missing or doubtful is listed for the user.
 
+import { t, tDynamic } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import { PHASES } from "../schema/tables.ts";
 import { isValidDate } from "../schema/validate.ts";
@@ -25,30 +26,30 @@ export type SpotValues = Partial<Record<SpotField, string>>;
 /** Fields a sighting should have. Whatever is still empty after the lookups is asked for. */
 export const SPOT_WANTED: SpotField[] = ["date", "airport", "typeCode", "operator", "phase"];
 
-export const SPOT_FIELD_LABEL: Record<SpotField, string> = {
-  registration: "registration",
-  date: "date",
-  airport: "place",
-  typeCode: "type code",
-  model: "model",
-  operator: "airline",
-  phase: "phase",
-  livery: "livery",
-  specialLivery: "special livery",
-  notes: "notes",
-};
+/** A field's name in a sentence, "type code": read when used, as the interface's language is chosen after this module loads. */
+export const SPOT_FIELD_LABEL: Record<SpotField, string> = Object.defineProperties(
+  {} as Record<SpotField, string>,
+  Object.fromEntries(SPOT_FIELDS.map((f) => [f, { enumerable: true, get: () => tDynamic(`core.spot.field.${f}`) }])),
+);
 
 /** Where a value came from: typed by the user, a lookup, worked out from another field, or the agent. */
 export type SpotSource = "you" | "your_log" | "opensky" | "adsbdb" | "fr24" | "derived" | "claude" | "codex";
 export type LookupSource = "your_log" | "opensky" | "adsbdb" | "fr24";
 
+/** A source's name in a sentence: the services' own names, and words for the user, their log and a worked-out value. */
 export const SOURCE_NAME: Record<SpotSource, string> = {
-  you: "you",
-  your_log: "your log",
+  get you() {
+    return t("core.spot.source.you");
+  },
+  get your_log() {
+    return t("core.spot.source.yourLog");
+  },
   opensky: "OpenSky",
   adsbdb: "adsbdb",
   fr24: "Flightradar24",
-  derived: "worked out",
+  get derived() {
+    return t("core.spot.source.derived");
+  },
   claude: "Claude Code",
   codex: "Codex",
 };
@@ -178,12 +179,12 @@ export function parseSpotLine(line: string, ref: RefIndex, today: string): SpotL
   const rest: string[] = [];
   const set = (field: SpotField, value: string) => {
     const cur = out.typed[field];
-    if (cur && cur !== value) out.problems.push(`Two values for the ${SPOT_FIELD_LABEL[field]}: ${cur} and ${value}. The first is kept.`);
+    if (cur && cur !== value) out.problems.push(t("core.spot.twoValues", { field: SPOT_FIELD_LABEL[field], first: cur, second: value }));
     else out.typed[field] = value;
   };
   for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i]!;
-    const lower = t.toLowerCase();
+    const token = tokens[i]!;
+    const lower = token.toLowerCase();
     const next = tokens[i + 1];
     const pair = next ? `${lower} ${next.toLowerCase()}` : "";
     if (PHASE_WORDS[pair]) {
@@ -195,17 +196,17 @@ export function parseSpotLine(line: string, ref: RefIndex, today: string): SpotL
       set("phase", PHASE_WORDS[lower]!);
       continue;
     }
-    if ((lower === "at" && next) || t.startsWith("@")) {
-      const code = t.startsWith("@") ? t.slice(1) : next!;
+    if ((lower === "at" && next) || token.startsWith("@")) {
+      const code = token.startsWith("@") ? token.slice(1) : next!;
       const ap = airportCode(code, ref);
       if (ap) {
         set("airport", ap);
-        if (!t.startsWith("@")) i++;
+        if (!token.startsWith("@")) i++;
         continue;
       }
-      if (t.startsWith("@") || /^[A-Za-z0-9]{3,4}$/.test(code)) {
-        out.problems.push(`No airport has the code ${code.toUpperCase()}.`);
-        if (!t.startsWith("@")) i++;
+      if (token.startsWith("@") || /^[A-Za-z0-9]{3,4}$/.test(code)) {
+        out.problems.push(t("core.spot.noAirport", { code: code.toUpperCase() }));
+        if (!token.startsWith("@")) i++;
         continue;
       }
     }
@@ -217,26 +218,26 @@ export function parseSpotLine(line: string, ref: RefIndex, today: string): SpotL
         continue;
       }
     }
-    const d = spotDate(t, today);
+    const d = spotDate(token, today);
     if (d) {
       set("date", d);
       continue;
     }
-    const hit = classify(t, ref);
+    const hit = classify(token, ref);
     if (hit) {
       set(hit.field, hit.value);
       continue;
     }
-    rest.push(t);
+    rest.push(token);
   }
   out.text = [...quoted, rest.join(" ")].filter(Boolean).join(" · ");
-  if (out.typed.date && out.typed.date > today) out.problems.push(`${out.typed.date} is in the future.`);
+  if (out.typed.date && out.typed.date > today) out.problems.push(t("core.spot.future", { date: out.typed.date }));
   if (!out.typed.registration) {
     const keys = Object.keys(out.typed);
     if (!out.text && keys.length && keys.every((k) => k === "airport" || k === "date" || k === "phase")) {
       out.setting = { ...(out.typed as SpotSettings) };
       out.typed = {};
-    } else if (keys.length || out.text) out.problems.push("No registration on this line.");
+    } else if (keys.length || out.text) out.problems.push(t("core.spot.noRegistration"));
   }
   return out;
 }
@@ -343,8 +344,7 @@ export function logEvidence(store: Store, ref: RefIndex, registration: string, d
   const op = ref.operator(near.op);
   const seen = recs.filter((r) => !r.flown).length;
   const flown = recs.length - seen;
-  const span = dated.length > 1 ? ` (${dated[0]!.date} to ${dated.at(-1)!.date})` : dated.length ? ` (${dated[0]!.date})` : "";
-  const parts = [seen && `seen ${seen === 1 ? "once" : `${seen} times`}`, flown && `flown on ${flown === 1 ? "once" : `${flown} times`}`].filter(Boolean);
+  const counts = [seen && t("core.spot.log.seen", { count: seen }), flown && t("core.spot.log.flown", { count: flown })].filter(Boolean).join(", ");
   return {
     source: "your_log",
     typeCode: typeCode && ref.type(typeCode) ? typeCode : null,
@@ -352,7 +352,7 @@ export function logEvidence(store: Store, ref: RefIndex, registration: string, d
     operator: op ? (op.icao ?? op.iata ?? null) : null,
     operatorName: op?.name ?? null,
     asOf: near.date ?? null,
-    note: `${parts.join(", ")}${span}`,
+    note: dated.length > 1 ? t("core.spot.log.span", { counts, from: dated[0]!.date, to: dated.at(-1)!.date }) : dated.length ? t("core.spot.log.day", { counts, date: dated[0]!.date }) : counts,
     facts: null,
     url: null,
   };
@@ -486,10 +486,10 @@ const factRank = (e: Evidence) => ({ fr24: 0, opensky: 1, adsbdb: 2, your_log: 3
 
 /** "airline: Flightradar24 says BAW, OpenSky says SHT. BAW is kept." */
 export function describeDisagreement(d: Disagreement): string {
-  const others = d.others.map((o) => `${SOURCE_NAME[o.source]} says ${o.value}`).join(", ");
-  const kept = d.keptFrom === "you" ? `you typed ${d.kept}` : `${SOURCE_NAME[d.keptFrom]} says ${d.kept}`;
-  const why = d.otherAircraft ? " That is another kind of aircraft: the registration may have been reused, or the type mistyped." : "";
-  return `${SPOT_FIELD_LABEL[d.field]}: ${kept}, ${others}. ${d.kept} is kept.${why}`;
+  const others = d.others.map((o) => t("core.spot.says", { source: SOURCE_NAME[o.source], value: o.value })).join(", ");
+  const kept = d.keptFrom === "you" ? t("core.spot.youTyped", { value: d.kept }) : t("core.spot.says", { source: SOURCE_NAME[d.keptFrom], value: d.kept });
+  const values = { field: SPOT_FIELD_LABEL[d.field], kept, others, value: d.kept };
+  return d.otherAircraft ? t("core.spot.disagreementOther", values) : t("core.spot.disagreement", values);
 }
 
 /** Fields the user should supply: wanted and still empty. */

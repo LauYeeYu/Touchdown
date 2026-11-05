@@ -2,6 +2,7 @@
 // against the user's records and stored on the airframe (docs/13-reference-data.md, "Airframe facts").
 // Fetching happens outside core (the CLI); this module only checks and stores what came back.
 
+import { t } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import { AIRFRAME_STATUSES, type Airframe } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -136,19 +137,21 @@ export function factsMismatch(store: Store, ref: RefIndex, a: Airframe, facts: A
   if (facts.typeCode && a.typeCode && facts.typeCode !== a.typeCode) {
     const fa = ref.familyIdOf(facts.typeCode);
     const fb = ref.familyIdOf(a.typeCode);
-    if (!fa || !fb || fa !== fb) return `the source says ${facts.typeText ?? facts.typeCode}, but your records say ${a.typeCode}`;
+    if (!fa || !fb || fa !== fb) return t("core.facts.sourceSays", { source: facts.typeText ?? facts.typeCode, yours: a.typeCode });
   }
   if (facts.manufacturer && a.manufacturer && !sameMaker(facts.manufacturer, a.manufacturer)) {
-    return `the source says ${facts.manufacturer}, but your records say ${a.manufacturer}`;
+    return t("core.facts.sourceSays", { source: facts.manufacturer, yours: a.manufacturer });
   }
   const dates = recordDatesOf(store, a.id);
   const first = dates[0];
   if (first && facts.firstFlightDate && first < facts.firstFlightDate) {
-    return `that aircraft first flew on ${facts.firstFlightDate}, after your record of ${first}, so the registration probably belonged to another aircraft then`;
+    return t("core.facts.firstFlew", { date: facts.firstFlightDate, record: first });
   }
   if (first && facts.notBefore && first < facts.notBefore) {
-    const after = facts.notBeforeLabel?.endsWith(" after") ? "" : ", after";
-    return `that aircraft ${facts.notBeforeLabel ?? `dates from ${facts.notBefore}`}${after} your record of ${first}, so the registration probably belonged to another aircraft then`;
+    // The source's own words for the date, made by the lookup: "was built in 2019", or one that ends in "after".
+    const label = facts.notBeforeLabel;
+    if (label === undefined || label === null) return t("core.facts.datesFrom", { date: facts.notBefore, record: first });
+    return label.endsWith(" after") ? t("core.facts.notBeforeAfter", { label, record: first }) : t("core.facts.notBefore", { label, record: first });
   }
   const key = registrationMatchForm(facts.registration);
   const spans = facts.registrations.filter((s) => registrationMatchForm(s.registration) === key && (s.from || s.to));
@@ -156,8 +159,8 @@ export function factsMismatch(store: Store, ref: RefIndex, a: Airframe, facts: A
     const fits = (d: string) => spans.some((s) => (!s.from || addDays(s.from, -SPAN_SLACK_DAYS) <= d) && (!s.to || d <= addDays(s.to, SPAN_SLACK_DAYS)));
     const outside = dates.find((d) => !fits(d));
     if (outside) {
-      const held = spans.map((s) => `${s.from ?? "…"} to ${s.to ?? "now"}`).join(", ");
-      return `that aircraft carried ${facts.registration} ${held}, which does not include your record of ${outside}`;
+      const held = spans.map((s) => t("core.facts.span", { from: s.from ?? "…", to: s.to ?? t("core.facts.now") })).join(", ");
+      return t("core.facts.carried", { registration: facts.registration, spans: held, record: outside });
     }
   }
   return null;
@@ -190,7 +193,7 @@ export function applyAirframeFacts(store: Store, ref: RefIndex, airframeId: stri
     const out: FactsOutcome = { airframeId, applied: [], differs: [], rejected: null, mergedInto: null };
     let a = store.get("airframes", airframeId);
     if (!a) {
-      out.rejected = "the aircraft is no longer in the log";
+      out.rejected = t("core.facts.gone");
       return out;
     }
     const why = factsMismatch(store, ref, a, facts);
@@ -245,7 +248,7 @@ export function applyAirframeFacts(store: Store, ref: RefIndex, airframeId: stri
 export function airframeFactsEffect(store: Store, ref: RefIndex, airframeId: string, facts: AirframeFacts, opts: ApplyOptions = {}): Omit<FactsOutcome, "airframeId"> {
   const out: Omit<FactsOutcome, "airframeId"> = { applied: [], differs: [], rejected: null, mergedInto: null };
   const a = store.get("airframes", airframeId);
-  if (!a) return { ...out, rejected: "the aircraft is no longer in the log" };
+  if (!a) return { ...out, rejected: t("core.facts.gone") };
   out.rejected = factsMismatch(store, ref, a, facts);
   if (out.rejected) return out;
   const manufacturer = makerFor(ref, a, facts);

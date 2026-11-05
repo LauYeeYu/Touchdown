@@ -1,5 +1,6 @@
 // Match, commit and undo (docs/21-import-export.md, stages 4–10 and "Undo").
 
+import { t } from "@touchdown/i18n";
 import { looksLikeOperatorName, operatorFromOverride, type Operator, type RefIndex } from "../ref/index.ts";
 import { TABLES, type Flight, type FlightValues, type Sighting, type SightingValues, type TableName } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -57,7 +58,7 @@ function afterMidnightCorrections(existing: Flight, incoming: Partial<FlightValu
   const oldTake = instant(existing.takeoffAt);
   if (board === null || newTake === null || oldTake === null || existing.boardingAt) return [];
   if (!aDayLater(existing.takeoffAt, incoming.takeoffAt) || !(oldTake < board && board < newTake)) return [];
-  const reason = `The flight left after midnight: boarding was at ${incoming.boardingAt!.slice(11, 16)} the evening before.`;
+  const reason = t("importer.match.afterMidnight", { clock: incoming.boardingAt!.slice(11, 16) });
   const out: Correction[] = [{ field: "takeoffAt", existing: existing.takeoffAt, incoming: incoming.takeoffAt, reason }];
   if (aDayLater(existing.landingAt, incoming.landingAt)) {
     out.push({ field: "landingAt", existing: existing.landingAt, incoming: incoming.landingAt, reason });

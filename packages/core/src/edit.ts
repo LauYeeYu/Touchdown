@@ -3,6 +3,7 @@
 // app and the CLI apply a change with the same code. Each change keeps the version it replaces in record_history
 // and links records to airframes again; the result of that linking is returned, for the checks that use it.
 
+import { t } from "@touchdown/i18n";
 import { operatorFromOverride, type RefIndex } from "./ref/index.ts";
 import { TABLES, type FlightValues, type Row, type Settings, type SightingValues, type TableName } from "./schema/tables.ts";
 import type { Store } from "./store.ts";
@@ -211,7 +212,7 @@ export function addNamedOperator(store: Store, ref: RefIndex, name: string, opts
         linked++;
       }
     }
-    const message = `Added ${name.trim()} as an operator and linked ${linked === 1 ? "1 entry" : `${linked} entries`} to it.`;
+    const message = t("core.edit.namedOperator", { name: name.trim(), count: linked });
     return { linked, message, resolved: resolveAirframes(store, ref) };
   });
 }
