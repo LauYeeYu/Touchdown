@@ -18,6 +18,7 @@ import {
   type TableFile,
   type TableName,
 } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import type { Backend, Cursor, FileAdapter, FileArea, PullResult, PushItem, PushResult, StoredRow } from "./types.ts";
 import { isBasedOn, versionOf } from "./version.ts";
 
@@ -26,7 +27,7 @@ const decoder = new TextDecoder();
 
 export class SchemaTooNewError extends Error {
   constructor(readonly stored: number) {
-    super(`The log uses schema version ${stored}, and this version of Touchdown understands only up to ${SCHEMA_VERSION}. Reload to update the app.`);
+    super(t("storage.schemaTooNew", { stored, supported: SCHEMA_VERSION }));
   }
 }
 
@@ -62,7 +63,7 @@ function parseTable(data: Uint8Array, table: TableName): { rows: StoredRow[] } |
   try {
     file = JSON.parse(decoder.decode(data)) as TableFile;
   } catch {
-    return { problems: ["not valid JSON"] };
+    return { problems: [t("storage.table.notJson")] };
   }
   // A newer version of the app has changed the log since this one opened it: stop until this app is updated, and
   // never write over the file.
@@ -98,9 +99,9 @@ export class JsonTablesBackend implements Backend {
     try {
       manifest = JSON.parse(decoder.decode(found.data)) as Partial<Manifest>;
     } catch {
-      throw new Error("manifest.json is not valid JSON.");
+      throw new Error(t("storage.manifest.notJson"));
     }
-    if (manifest.schema !== SCHEMA_NAME || manifest.backend !== "json_tables") throw new Error("This folder does not hold a Touchdown log in JSON tables.");
+    if (manifest.schema !== SCHEMA_NAME || manifest.backend !== "json_tables") throw new Error(t("storage.manifest.notLog"));
     const version = Number(manifest.schemaVersion);
     if (version > SCHEMA_VERSION) throw new SchemaTooNewError(version);
     // Older table files are upgraded as they are read and written in the new version from then on; the manifest
@@ -147,8 +148,8 @@ export class JsonTablesBackend implements Backend {
     const [tableFiles, privateFiles, trackFiles] = await Promise.all([this.files.list("tables"), this.files.list("private"), this.files.list("tracks")]);
     const listed = new Map<string, string>([...tableFiles.map((f) => [`tables/${f.name}`, f.version] as const), ...privateFiles.map((f) => [`private/${f.name}`, f.version] as const)]);
     const read = await Promise.all(
-      FILE_TABLES.map(async (t): Promise<StoredRow[] | null> => {
-        const path = tablePath(t);
+      FILE_TABLES.map(async (table): Promise<StoredRow[] | null> => {
+        const path = tablePath(table);
         const version = listed.get(path);
         // A table with no file yet reads as empty once, so the rows this device has for it get sent.
         if (version === undefined) {
@@ -158,9 +159,9 @@ export class JsonTablesBackend implements Backend {
         if (cursor[path] === version) return null;
         const file = await this.files.read(path);
         if (!file) return null;
-        const parsed = parseTable(file.data, t);
+        const parsed = parseTable(file.data, table);
         if ("problems" in parsed) {
-          out.problems.push(...parsed.problems.slice(0, 5).map((p) => `${path}: ${p}`));
+          out.problems.push(...parsed.problems.slice(0, 5).map((p) => t("storage.fileProblem", { file: path, problem: p })));
           return null;
         }
         next[path] = file.version;

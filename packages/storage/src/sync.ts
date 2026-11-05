@@ -9,6 +9,7 @@
 // version: nothing new is made or sent.
 
 import { conflictMatters, rowKey, toUtcIso, ulidFrom, type Change, type Row, type Store, type TableName } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { dataFields, mergeRow, sameValue, type FieldConflict } from "./merge.ts";
 import type { Backend, Cursor, PullResult, PushItem, StoredRow } from "./types.ts";
 import { isBasedOn, isNewer, versionOf } from "./version.ts";
@@ -423,7 +424,7 @@ export class SyncEngine {
         try {
           points = await this.backend.readTrack(trackId);
         } catch (e) {
-          report.problems.push(`tracks/${trackId}.json: ${(e as Error).message}`);
+          report.problems.push(t("storage.fileProblem", { file: `tracks/${trackId}.json`, problem: (e as Error).message }));
         }
         arrived.push({ trackId, points });
         soon();

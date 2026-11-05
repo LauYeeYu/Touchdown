@@ -2,6 +2,7 @@
 // sign-in pages, and the /auth/ requests for accounts, sessions and invitations. Standard web Request and Response
 // only, so the same code runs in a Cloudflare Worker and in Node.
 
+import { t } from "@touchdown/i18n/server";
 import { b64url, hashToken, newSalt, openToken, passwordHash, randomToken, sameString, sealToken, sha256, TOKEN_RE } from "./crypto.ts";
 import { siteId, type Database } from "./db.ts";
 import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
@@ -121,12 +122,12 @@ function bearerOf(request: Request): string | null {
 export function checkOrigin(request: Request, s: Server) {
   if (request.method === "GET" || request.method === "HEAD" || bearerOf(request)) return;
   const origin = request.headers.get("Origin");
-  if (!origin || !s.config.origins.includes(origin)) throw new Fail(403, "Not allowed from here.");
+  if (!origin || !s.config.origins.includes(origin)) throw new Fail(403, t("server.error.notFromHere"));
 }
 
 /** The command line may only do what CLI_ALLOWED lists. */
 function checkCli(session: Session | null, method: string, path: string) {
-  if (session?.cli && !CLI_ALLOWED.has(`${method} ${path}`)) throw new Fail(403, "The command line cannot do this. Use the web app.");
+  if (session?.cli && !CLI_ALLOWED.has(`${method} ${path}`)) throw new Fail(403, t("server.error.notForCli"));
 }
 
 function sessionCookie(token: string, s: Server, maxAgeS: number): string {
@@ -156,44 +157,44 @@ export function safeNext(next: string | null | undefined): string {
 
 function email(v: unknown): string {
   const e = typeof v === "string" ? v.trim().toLowerCase() : "";
-  if (e.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Fail(400, "Enter a valid email address.");
+  if (e.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Fail(400, t("server.error.email"));
   return e;
 }
 
 function name(v: unknown): string {
   const n = typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
-  if (!n || n.length > 80) throw new Fail(400, "Enter a name of up to 80 characters.");
+  if (!n || n.length > 80) throw new Fail(400, t("server.error.name"));
   return n;
 }
 
 function key(v: unknown): string {
-  if (typeof v !== "string" || !TOKEN_RE.test(v)) throw new Fail(400, "The password could not be read. Reload the page and try again.");
+  if (typeof v !== "string" || !TOKEN_RE.test(v)) throw new Fail(400, t("server.error.passwordUnread"));
   return v;
 }
 
 function token(v: unknown): string {
-  if (typeof v !== "string" || !TOKEN_RE.test(v)) throw new Fail(404, "This link is not valid.");
+  if (typeof v !== "string" || !TOKEN_RE.test(v)) throw new Fail(404, t("server.error.linkInvalid"));
   return v;
 }
 
 export async function body(request: Request): Promise<Record<string, unknown>> {
   const text = await request.text();
-  if (text.length > 10_000) throw new Fail(413, "Too large.");
+  if (text.length > 10_000) throw new Fail(413, t("server.error.tooLarge"));
   try {
     const v = JSON.parse(text || "{}") as unknown;
     if (v && typeof v === "object" && !Array.isArray(v)) return v as Record<string, unknown>;
   } catch {
     // fall through
   }
-  throw new Fail(400, "Not valid JSON.");
+  throw new Fail(400, t("server.error.notJson"));
 }
 
 /** A short label for "signed in on": browser and system, nothing more. */
 export function deviceLabel(ua: string | null): string {
-  if (!ua) return "Unknown device";
-  const browser = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "A browser";
-  const system = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "another system";
-  return `${browser} on ${system}`;
+  if (!ua) return t("server.device.unknown");
+  const browser = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : t("server.device.aBrowser");
+  const system = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : t("server.device.otherSystem");
+  return t("server.device.browserOn", { browser, system });
 }
 
 // ---------- the handler ----------
@@ -203,7 +204,7 @@ export async function handle(request: Request, s: Server): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
   // The gate decides by path, so a path must mean what it says: no dot segments or slashes hidden in escapes.
-  if (!plainPath(path)) return withHeaders(json(400, { error: "Bad address." }), "/");
+  if (!plainPath(path)) return withHeaders(json(400, { error: t("server.error.badAddress") }), "/");
   try {
     const site = await siteId(s.db, randomToken, toUtcIso(now));
     if (path.startsWith("/auth/")) return withHeaders(await auth(request, s, url, now, site), path);
@@ -225,18 +226,18 @@ export async function handle(request: Request, s: Server): Promise<Response> {
     }
     if (path.startsWith(SIGNIN_FILES) || path === "/favicon.svg") return done(await s.assets.fetch(request));
     // The command line's session opens its few requests, not the app's pages and files.
-    if (session?.cli && !path.startsWith("/api/")) return withHeaders(json(401, { error: "Sign in first." }), path);
+    if (session?.cli && !path.startsWith("/api/")) return withHeaders(json(401, { error: t("server.error.signIn") }), path);
     if (!session) {
       const page = request.method === "GET" && (request.headers.get("Accept") ?? "").includes("text/html");
       if (page) return withHeaders(Response.redirect(new URL(`/signin?next=${encodeURIComponent(path + url.search)}`, url).toString(), 302), path);
-      return withHeaders(json(401, { error: "Sign in first." }), path);
+      return withHeaders(json(401, { error: t("server.error.signIn") }), path);
     }
     if (path.startsWith("/api/storage")) return done(await storage(request, s, url, now, session));
     if (path === "/api/shares" || path.startsWith("/api/shares/")) {
       checkCli(session, request.method, path);
       return done(await shareApi(request, s, url, now, session.account.id));
     }
-    if (path.startsWith("/api/")) return done(json(404, { error: "Not found." }));
+    if (path.startsWith("/api/")) return done(json(404, { error: t("server.error.notFound") }));
     return done(await s.assets.fetch(request));
   } catch (e) {
     if (e instanceof Fail) return withHeaders(json(e.status, { error: e.message }, e.headers), path);
@@ -304,12 +305,12 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
   const session = await currentSession(request, s, now);
   checkCli(session, method, path);
   const signedIn = () => {
-    if (!session) throw new Fail(401, "Sign in first.");
+    if (!session) throw new Fail(401, t("server.error.signIn"));
     return session;
   };
   const owner = () => {
     const me = signedIn();
-    if (me.account.role !== "owner") throw new Fail(403, "Only the owner can do this.");
+    if (me.account.role !== "owner") throw new Fail(403, t("server.error.ownerOnly"));
     return me;
   };
   const withRenewal = (res: Response) => {
@@ -324,9 +325,9 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
 
   if (method === "POST" && path === "/auth/setup") {
     const b = await body(request);
-    if (await s.db.first("SELECT id FROM accounts WHERE role = 'owner' LIMIT 1")) throw new Fail(404, "Not found.");
+    if (await s.db.first("SELECT id FROM accounts WHERE role = 'owner' LIMIT 1")) throw new Fail(404, t("server.error.notFound"));
     const expected = s.config.setupToken ?? "";
-    if (expected.length < 16 || typeof b.setupToken !== "string" || !sameString(b.setupToken, expected)) throw new Fail(403, "The setup secret is not right.");
+    if (expected.length < 16 || typeof b.setupToken !== "string" || !sameString(b.setupToken, expected)) throw new Fail(403, t("server.error.setupSecret"));
     const id = await createAccount(s, { email: email(b.email), name: name(b.name), role: "owner", key: key(b.key) }, nowIso);
     return json(200, { ok: true }, { "Set-Cookie": await startSession(s, id, request, now) });
   }
@@ -339,14 +340,14 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
       "SELECT a.*, p.salt, p.hash FROM accounts a LEFT JOIN password_credentials p ON p.accountId = a.id WHERE a.email = ?",
       [e],
     );
-    const wrong = new Fail(401, "Wrong email or password.");
+    const wrong = new Fail(401, t("server.error.wrongPassword"));
     if (!row) {
       await passwordHash(newSalt(), k); // about the same work as for an existing account
       throw wrong;
     }
     if (row.lockedUntil && row.lockedUntil > nowIso) {
       const s2 = Math.ceil((Date.parse(row.lockedUntil) - now) / 1000);
-      throw new Fail(429, `Too many wrong passwords. Try again in ${s2 < 90 ? `${s2} seconds` : `${Math.ceil(s2 / 60)} minutes`}.`, { "Retry-After": String(s2) });
+      throw new Fail(429, s2 < 90 ? t("server.error.lockedSeconds", { seconds: s2 }) : t("server.error.lockedMinutes", { minutes: Math.ceil(s2 / 60) }), { "Retry-After": String(s2) });
     }
     if (!row.salt || !row.hash || !sameString(await passwordHash(row.salt, k), row.hash)) {
       const failed = row.failedSignins + 1;
@@ -412,8 +413,8 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
   if (method === "POST" && path === "/auth/cli/approve") {
     const me = signedIn();
     const b = await body(request);
-    if (typeof b.challenge !== "string" || !TOKEN_RE.test(b.challenge)) throw new Fail(400, "The command line's request could not be read. Run ./touchdown login again.");
-    const system = typeof b.system === "string" && ["macOS", "Windows", "Linux"].includes(b.system) ? b.system : "another system";
+    if (typeof b.challenge !== "string" || !TOKEN_RE.test(b.challenge)) throw new Fail(400, t("server.error.cliRequest"));
+    const system = typeof b.system === "string" && ["macOS", "Windows", "Linux"].includes(b.system) ? b.system : t("server.device.otherSystem");
     const code = randomToken();
     await s.db.batch([
       { sql: "DELETE FROM cli_logins WHERE expiresAt <= ?", params: [nowIso] },
@@ -460,7 +461,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     const b = await body(request);
     const cred = await s.db.first<{ salt: string; hash: string }>("SELECT salt, hash FROM password_credentials WHERE accountId = ?", [me.account.id]);
     // Setting a first password (an account made with Google) needs no current one.
-    if (cred && !sameString(await passwordHash(cred.salt, key(b.key)), cred.hash)) throw new Fail(401, "The current password is not right.");
+    if (cred && !sameString(await passwordHash(cred.salt, key(b.key)), cred.hash)) throw new Fail(401, t("server.error.currentPassword"));
     const newKey = key(b.newKey);
     const salt = newSalt();
     const statements = [
@@ -470,7 +471,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     if (path === "/auth/email") {
       const e = email(b.email);
       const taken = await s.db.first<{ id: string }>("SELECT id FROM accounts WHERE email = ?", [e]);
-      if (taken && taken.id !== me.account.id) throw new Fail(409, "Another account uses this address.");
+      if (taken && taken.id !== me.account.id) throw new Fail(409, t("server.error.emailTaken"));
       statements.unshift({ sql: "UPDATE accounts SET email = ? WHERE id = ?", params: [e, me.account.id] });
     }
     await s.db.batch(statements);
@@ -481,7 +482,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
 
   if (method === "GET" && path === "/auth/google/start") {
     const google = s.config.google;
-    if (!google) throw new Fail(404, "Google sign-in is not set up on this site.");
+    if (!google) throw new Fail(404, t("server.error.noGoogle"));
     const invite = url.searchParams.get("invite");
     const typed = url.searchParams.get("name")?.trim().replace(/\s+/g, " ").slice(0, 80) || null;
     const start = await googleStart(s.db, google, siteOrigin(s, url), {
@@ -496,7 +497,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
 
   if (method === "GET" && path === "/auth/google/callback") {
     const google = s.config.google;
-    if (!google) throw new Fail(404, "Google sign-in is not set up on this site.");
+    if (!google) throw new Fail(404, t("server.error.noGoogle"));
     const go = (to: string, cookie?: string) => {
       const res = new Response(null, { status: 302, headers: { Location: new URL(to, url).toString(), "Cache-Control": "no-store" } });
       res.headers.append("Set-Cookie", clearGoogleCookie(s.config.secureCookies !== false));
@@ -559,7 +560,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
 
   if (method === "DELETE" && path === "/auth/google") {
     const me = signedIn();
-    if (!(await s.db.first("SELECT accountId FROM password_credentials WHERE accountId = ?", [me.account.id]))) throw new Fail(400, "Set a password first, or you could not sign in any more.");
+    if (!(await s.db.first("SELECT accountId FROM password_credentials WHERE accountId = ?", [me.account.id]))) throw new Fail(400, t("server.error.passwordFirst"));
     await s.db.run("DELETE FROM google_identities WHERE accountId = ?", [me.account.id]);
     return withRenewal(json(200, { ok: true }));
   }
@@ -604,7 +605,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
   if (method === "POST" && personReset) {
     const me = owner();
     const acc = await s.db.first<Account>("SELECT * FROM accounts WHERE id = ?", [personReset[1]!]);
-    if (!acc) throw new Fail(404, "No such person.");
+    if (!acc) throw new Fail(404, t("server.error.noPerson"));
     // One open reset link per person: a new one replaces the old.
     await s.db.run("DELETE FROM invites WHERE purpose = 'reset' AND accountId = ? AND usedAt IS NULL", [acc.id]);
     return withRenewal(json(200, await makeInvite(s, url, "reset", acc.id, null, me.account.id, now, RESET_HOURS * 3_600_000)));
@@ -614,13 +615,13 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
   if (method === "DELETE" && personDelete) {
     const me = owner();
     const id = personDelete[1]!;
-    if (id === me.account.id) throw new Fail(400, "The owner cannot remove their own account.");
+    if (id === me.account.id) throw new Fail(400, t("server.error.ownerStays"));
     await dropStorageKey(s, id);
     await removeAccount(s, id);
     return withRenewal(json(200, { ok: true }));
   }
 
-  throw new Fail(404, "Not found.");
+  throw new Fail(404, t("server.error.notFound"));
 }
 
 /** A new account, with a password key or a Google identity (or both). */
@@ -632,23 +633,23 @@ async function cliToken(request: Request, s: Server, now: number): Promise<Respo
   const b = await body(request);
   const code = typeof b.code === "string" && TOKEN_RE.test(b.code) ? b.code : null;
   const verifier = typeof b.verifier === "string" && /^[A-Za-z0-9._~-]{43,128}$/.test(b.verifier) ? b.verifier : null;
-  if (!code || !verifier) throw new Fail(400, "The sign-in could not be read. Run ./touchdown login again.");
+  if (!code || !verifier) throw new Fail(400, t("server.error.cliSigninUnread"));
   const codeHash = await hashToken(code);
   const row = await s.db.first<{ accountId: string; challenge: string; system: string; expiresAt: string }>("SELECT accountId, challenge, system, expiresAt FROM cli_logins WHERE codeHash = ?", [codeHash]);
   await s.db.run("DELETE FROM cli_logins WHERE codeHash = ?", [codeHash]);
   const nowIso = toUtcIso(now);
-  if (!row || row.expiresAt <= nowIso || !sameString(b64url(await sha256(verifier)), row.challenge)) throw new Fail(400, "This sign-in has run out or does not match. Run ./touchdown login again.");
+  if (!row || row.expiresAt <= nowIso || !sameString(b64url(await sha256(verifier)), row.challenge)) throw new Fail(400, t("server.error.cliSigninExpired"));
   const a = await s.db.first<{ name: string; email: string }>("SELECT name, email FROM accounts WHERE id = ?", [row.accountId]);
-  if (!a) throw new Fail(400, "This account no longer exists.");
-  const t = randomToken();
+  if (!a) throw new Fail(400, t("server.error.accountGone"));
+  const session = randomToken();
   await s.db.batch([
     {
       sql: "INSERT INTO sessions (tokenHash, accountId, createdAt, lastUsedAt, expiresAt, device, kind) VALUES (?, ?, ?, ?, ?, ?, 'cli')",
-      params: [await hashToken(t), row.accountId, nowIso, nowIso, CLI_FOREVER, `Command line on ${row.system}`],
+      params: [await hashToken(session), row.accountId, nowIso, nowIso, CLI_FOREVER, t("server.device.cli", { system: row.system })],
     },
     { sql: "UPDATE accounts SET lastSeenAt = ? WHERE id = ?", params: [nowIso, row.accountId] },
   ]);
-  return json(200, { token: t, name: a.name, email: a.email });
+  return json(200, { token: session, name: a.name, email: a.email });
 }
 
 async function createAccount(
@@ -657,7 +658,7 @@ async function createAccount(
   nowIso: string,
   inviteId?: string,
 ): Promise<string> {
-  if (await s.db.first("SELECT id FROM accounts WHERE email = ?", [a.email])) throw new Fail(409, "An account with this address exists already. Sign in instead.");
+  if (await s.db.first("SELECT id FROM accounts WHERE email = ?", [a.email])) throw new Fail(409, t("server.error.accountExists"));
   const id = newId();
   const statements: { sql: string; params: (string | number | null)[] }[] = [{ sql: "INSERT INTO accounts (id, email, name, role, createdAt) VALUES (?, ?, ?, ?, ?)", params: [id, a.email, a.name, a.role, nowIso] }];
   if (a.key) {
@@ -673,7 +674,7 @@ async function createAccount(
     const used = await s.db.first<{ usedBy: string }>("SELECT usedBy FROM invites WHERE id = ?", [inviteId]);
     if (used?.usedBy !== id) {
       await removeAccount(s, id);
-      throw new Fail(410, "This invitation has been used.");
+      throw new Fail(410, t("server.error.inviteUsed"));
     }
   }
   return id;
@@ -711,14 +712,14 @@ async function makeInvite(s: Server, url: URL, purpose: "join" | "reset", accoun
   return { id, link: `${base}/${purpose}/${t}`, expiresAt };
 }
 
-async function openInvite(s: Server, t: string, purpose: "join" | "reset" | null, nowIso: string) {
+async function openInvite(s: Server, invite: string, purpose: "join" | "reset" | null, nowIso: string) {
   const inv = await s.db.first<{ id: string; purpose: "join" | "reset"; accountId: string | null; expiresAt: string; usedAt: string | null }>(
     "SELECT id, purpose, accountId, expiresAt, usedAt FROM invites WHERE tokenHash = ?",
-    [await hashToken(t)],
+    [await hashToken(invite)],
   );
-  if (!inv || (purpose && inv.purpose !== purpose)) throw new Fail(404, "This link is not valid.");
-  if (inv.usedAt) throw new Fail(410, "This link has been used.");
-  if (inv.expiresAt <= nowIso) throw new Fail(410, "This link has expired. Ask the owner for a new one.");
+  if (!inv || (purpose && inv.purpose !== purpose)) throw new Fail(404, t("server.error.linkInvalid"));
+  if (inv.usedAt) throw new Fail(410, t("server.error.linkUsed"));
+  if (inv.expiresAt <= nowIso) throw new Fail(410, t("server.error.linkExpired"));
   return inv;
 }
 
@@ -795,7 +796,7 @@ async function storage(request: Request, s: Server, url: URL, now: number, sessi
 
   if (method === "POST" && path === "/api/storage/terms") {
     const b = await body(request);
-    if (b.version !== TERMS_VERSION) throw new Fail(409, "These terms have changed. Reload the page to read the new ones.");
+    if (b.version !== TERMS_VERSION) throw new Fail(409, t("server.error.termsChanged"));
     await s.db.run("INSERT OR IGNORE INTO consents (accountId, termsVersion, acceptedAt) VALUES (?, ?, ?)", [me.id, TERMS_VERSION, nowIso]);
     return json(200, { ok: true });
   }
@@ -810,19 +811,19 @@ async function storage(request: Request, s: Server, url: URL, now: number, sessi
   }
 
   if (method === "POST" && path === "/api/storage/token") {
-    if (!row) throw new Fail(404, "Standard mode is not connected for this account.");
-    if (row.status === "broken" || !standardOn(s)) throw new Fail(409, "The key to your Google Drive no longer works. Connect Google Drive again.");
+    if (!row) throw new Fail(404, t("server.error.notConnected"));
+    if (row.status === "broken" || !standardOn(s)) throw new Fail(409, t("server.error.driveKeyBroken"));
     let access: Awaited<ReturnType<typeof googleAccess>>;
     try {
       access = await googleAccess(s.config.google!, await storageKey(s, row), s.fetch ?? ((i, init) => fetch(i, init)));
     } catch (e) {
       // Google down or refusing for another reason than the key: the app shows "Not synced" and tries again later.
-      if (e instanceof GoogleError || e instanceof TypeError) throw new Fail(502, "Google did not answer. Touchdown tries again shortly.");
+      if (e instanceof GoogleError || e instanceof TypeError) throw new Fail(502, t("server.error.googleSilent"));
       throw e;
     }
     if (access === "broken") {
       await s.db.run("UPDATE storage_connections SET status = 'broken', statusAt = ? WHERE id = ?", [nowIso, row.id]);
-      throw new Fail(409, "The key to your Google Drive no longer works. Connect Google Drive again.");
+      throw new Fail(409, t("server.error.driveKeyBroken"));
     }
     await s.db.run("UPDATE storage_connections SET lastUsedAt = ? WHERE id = ?", [nowIso, row.id]);
     return json(200, { accessToken: access.accessToken, expiresAt: toUtcIso(now + access.expiresIn * 1000), account: row.externalAccount });
@@ -833,5 +834,5 @@ async function storage(request: Request, s: Server, url: URL, now: number, sessi
     return json(200, { ok: true });
   }
 
-  throw new Fail(404, "Not found.");
+  throw new Fail(404, t("server.error.notFound"));
 }

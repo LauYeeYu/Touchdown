@@ -15,6 +15,7 @@
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, resolve, sep } from "node:path";
+import { t } from "@touchdown/i18n/server";
 import { handle, type Assets } from "./handler.ts";
 import { sqliteFile } from "./node.ts";
 
@@ -53,7 +54,7 @@ const assets: Assets = {
     const inside = file === dist || file.startsWith(dist + sep);
     const found = inside && existsSync(file) && statSync(file).isFile() ? file : null;
     if (!found) {
-      if (extname(path)) return new Response("Not found", { status: 404 });
+      if (extname(path)) return new Response(t("server.serve.notFound"), { status: 404 });
       return new Response(readFileSync(join(dist, "index.html")), { headers: { "Content-Type": TYPES[".html"]! } });
     }
     return new Response(readFileSync(found), { headers: { "Content-Type": TYPES[extname(found)] ?? "application/octet-stream" } });
@@ -89,7 +90,7 @@ createServer(async (req, res) => {
     // No request details in the log: addresses show which aircraft someone looks at.
     console.error("Request failed:", (e as Error).message);
     res.statusCode = 500;
-    res.end("Server error");
+    res.end(t("server.serve.error"));
   }
 }).listen(port, host, () => {
   console.log(`Touchdown at http://${host}:${port} (site addresses: ${origins.join(", ")}); database ${dbFile}`);

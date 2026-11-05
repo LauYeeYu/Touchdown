@@ -5,6 +5,7 @@
 
 import { SCHEMA_VERSION, SHARE_KINDS, SHARE_TABLES, shareContent, shareTracks, upgradeTableFile, type ShareAnchor, type ShareContent, type ShareKind, type ShareTables, type TableFile } from "@touchdown/core/share";
 import type { TableName } from "@touchdown/core";
+import { t } from "@touchdown/i18n/server";
 import { googleAccess, GoogleError } from "./google.ts";
 import { b64url } from "./crypto.ts";
 import { body, checkOrigin, Fail, json, siteOrigin, standardOn, storageKey, TERMS_VERSION, toUtcIso, type Server, type StorageRow } from "./handler.ts";
@@ -74,22 +75,22 @@ export async function shareApi(request: Request, s: Server, url: URL, now: numbe
   if (method === "POST" && path === "/api/shares") {
     const b = await body(request);
     const kind = b.kind as ShareKind;
-    if (!SHARE_KINDS.includes(kind)) throw new Fail(400, "Not a kind of link.");
+    if (!SHARE_KINDS.includes(kind)) throw new Fail(400, t("server.share.notKind"));
     const subject = kind === "log" ? "" : typeof b.subject === "string" && RECORD_ID.test(b.subject) ? b.subject : null;
-    if (subject === null) throw new Fail(400, "Say which record to share.");
+    if (subject === null) throw new Fail(400, t("server.share.noSubject"));
     const anchor = kind === "aircraft" && typeof b.anchor === "string" && /^(flights|sightings)\/[A-Za-z0-9_-]{1,64}$/.test(b.anchor) ? b.anchor : null;
 
     const conn = await s.db.first<StorageRow>("SELECT * FROM storage_connections WHERE accountId = ?", [accountId]);
-    if (!conn || !standardOn(s)) throw new Fail(409, "Share links need Standard mode.");
-    if (conn.status === "broken") throw new Fail(409, "The key to your Google Drive no longer works. Connect Google Drive again.");
+    if (!conn || !standardOn(s)) throw new Fail(409, t("server.share.needsStandard"));
+    if (conn.status === "broken") throw new Fail(409, t("server.error.driveKeyBroken"));
     if (!(await s.db.first("SELECT accountId FROM consents WHERE accountId = ? AND termsVersion = ?", [accountId, TERMS_VERSION]))) {
-      return json(409, { error: "Accept the updated terms for Standard mode first.", terms: TERMS_VERSION });
+      return json(409, { error: t("server.share.acceptTerms"), terms: TERMS_VERSION });
     }
     // The log's folder, found as the app finds it: the server reads the link's tables from there.
     if (!conn.location) {
       const token = await accessFor(s, conn, now);
-      if (token === "broken") throw new Fail(409, "The key to your Google Drive no longer works. Connect Google Drive again.");
-      if (!(await logFolder(s, conn, token))) throw new Fail(409, "Your log was not found in your Google Drive. Let it sync, then share again.");
+      if (token === "broken") throw new Fail(409, t("server.error.driveKeyBroken"));
+      if (!(await logFolder(s, conn, token))) throw new Fail(409, t("server.share.noLog"));
     }
 
     const existing = await s.db.first<ShareRow>("SELECT * FROM shares WHERE accountId = ? AND kind = ? AND subject = ?", [accountId, kind, subject]);
@@ -110,7 +111,7 @@ export async function shareApi(request: Request, s: Server, url: URL, now: numbe
     return json(200, { ok: true });
   }
 
-  throw new Fail(404, "Not found.");
+  throw new Fail(404, t("server.error.notFound"));
 }
 
 // ---------- opening a link ----------
@@ -168,8 +169,8 @@ async function inTurn<T>(items: T[], n: number, work: (item: T) => Promise<void>
  * stopped answer the same.
  */
 export async function sharePage(request: Request, s: Server, url: URL, now: number, shareFiles: string): Promise<Response> {
-  if (request.method !== "GET" && request.method !== "HEAD") return json(405, { error: "Not allowed." });
-  if (tooMany(request, now)) return json(429, { error: "Too many requests. Wait a minute." }, { "Retry-After": "60" });
+  if (request.method !== "GET" && request.method !== "HEAD") return json(405, { error: t("server.share.notAllowed") });
+  if (tooMany(request, now)) return json(429, { error: t("server.share.tooMany") }, { "Retry-After": "60" });
   const m = url.pathname.match(/^\/p\/([^/]+)(?:\/(content|tracks))?\/?$/);
   const id = m?.[1] && SHARE_ID.test(m[1]) ? m[1] : null;
   const share = id ? await s.db.first<ShareRow & { ownerName: string }>("SELECT shares.*, accounts.name AS ownerName FROM shares JOIN accounts ON accounts.id = shares.accountId WHERE shares.id = ?", [id]) : null;
@@ -185,7 +186,7 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
   }
   if (!share) return NOT_FOUND();
   const flights = m[2] === "tracks" ? [...new Set((url.searchParams.get("flights") ?? "").split(",").filter(Boolean))] : [];
-  if (m[2] === "tracks" && (!flights.length || flights.length > TRACKS_AT_ONCE || !flights.every((f) => RECORD_ID.test(f)))) return json(400, { error: `Ask for 1 to ${TRACKS_AT_ONCE} flights.` });
+  if (m[2] === "tracks" && (!flights.length || flights.length > TRACKS_AT_ONCE || !flights.every((f) => RECORD_ID.test(f)))) return json(400, { error: t("server.share.tracksAtOnce", { max: TRACKS_AT_ONCE }) });
 
   const conn = await s.db.first<StorageRow>("SELECT * FROM storage_connections WHERE accountId = ?", [share.accountId]);
   if (!conn || conn.status === "broken" || !standardOn(s)) return NOT_AVAILABLE();

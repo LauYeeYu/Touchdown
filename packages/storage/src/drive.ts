@@ -5,11 +5,12 @@
 // Drive finds files by id, and a folder may hold two files with the same name. Paths are looked up by name, and
 // when two devices create the same file at the same moment, the older one is used and the newer one removed.
 
+import { t } from "@touchdown/i18n";
 import type { FileAdapter, FileInfo } from "./types.ts";
 
 /** The user has to sign in to their storage again before sync can go on. */
 export class SignInNeeded extends Error {
-  constructor(message = "Sign in again to sync.") {
+  constructor(message = t("storage.signInAgain")) {
     super(message);
     this.name = "SignInNeeded";
   }
@@ -372,7 +373,7 @@ export class GoogleDrive implements FileAdapter {
       await this.check(res);
       return res.headers.get("Location");
     });
-    if (!session) throw new Error("Google Drive did not start the upload.");
+    if (!session) throw new Error(t("storage.drive.noUpload"));
     return (await this.json(session, { method: "PUT", headers: { "Content-Type": type }, body: data as BufferSource })) as DriveFile;
   }
 
@@ -401,9 +402,9 @@ export class GoogleDrive implements FileAdapter {
       // Not JSON: keep the status text.
     }
     if (res.status === 403 && (reason === "insufficientPermissions" || reason === "insufficientFilePermissions")) {
-      throw new SignInNeeded("Touchdown needs permission to use its files in Google Drive. Sign in again and allow it.");
+      throw new SignInNeeded(t("storage.drive.permission"));
     }
-    throw new DriveError(res.status, `Google Drive: ${message}`);
+    throw new DriveError(res.status, t("storage.drive.error", { message }));
   }
 
   /** A current token. Requests sent at once wait for one answer, so the app asks for one token, not one each. */
