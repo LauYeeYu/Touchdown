@@ -3,8 +3,9 @@
 // shows them. Only recorded positions are described; pointing at a gap says what is missing there.
 
 import { haversineKm, type Store } from "@touchdown/core";
+import { rich, t } from "@touchdown/i18n";
 import { esc } from "../components/overlay.tsx";
-import { nf } from "./format.ts";
+import { dayShort } from "./format.ts";
 
 type LonLat = [number, number];
 
@@ -94,14 +95,15 @@ const clock = (t: number) => {
   const d = new Date(t * 1000);
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 };
-const day = (t: number) => new Date(t * 1000).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const day = (t: number) => dayShort(new Date(t * 1000).toISOString().slice(0, 10));
 /** "8 min", "2 h 07 min". */
 export const span = (seconds: number) => {
   const m = Math.round(Math.abs(seconds) / 60);
-  return m >= 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)} min` : `${m} min`;
+  return m >= 60 ? t("data.track.span.hours", { h: Math.floor(m / 60), m: pad(m % 60) }) : t("data.track.span.minutes", { m });
 };
-const position = ([lon, lat]: LonLat) => `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? "E" : "W"}`;
-const unit = (u: string) => ` <span class="muted">${u}</span>`;
+const position = ([lon, lat]: LonLat) => t("data.track.latLon", { lat: Math.abs(lat).toFixed(2), ns: lat >= 0 ? "n" : "s", lon: Math.abs(lon).toFixed(2), ew: lon >= 0 ? "e" : "w" });
+/** A unit in a tooltip, set in the muted colour. */
+const muted = (parts: string[]) => `<span class="muted">${parts.join("")}</span>`;
 
 /**
  * The tooltip for a recorded position. Times are UTC with their date (the position is over no airport). `takeoff`
@@ -109,20 +111,20 @@ const unit = (u: string) => ` <span class="muted">${u}</span>`;
  */
 export function sampleTip(samples: TrackSample[], i: number, takeoff: number | null): string {
   const p = samples[i]!;
-  const since = takeoff !== null && p.t >= takeoff ? `${span(p.t - takeoff)} after takeoff` : `${span(p.t - samples[0]!.t)} after the first position`;
+  const since = takeoff !== null && p.t >= takeoff ? t("data.track.sinceTakeoff", { span: span(p.t - takeoff) }) : t("data.track.sinceFirst", { span: span(p.t - samples[0]!.t) });
   const v = verticalSpeed(samples, i);
-  const vs = v === null ? null : Math.abs(v) < 150 ? "level" : `${v > 0 ? "climbing" : "descending"} ${nf.format(Math.round(Math.abs(v) / 50) * 50)}${unit("ft/min")}`;
+  const vs = v === null ? null : Math.abs(v) < 150 ? t("data.track.level") : rich<"data.track.vertical", string>("data.track.vertical", { direction: v > 0 ? "up" : "down", rate: Math.round(Math.abs(v) / 50) * 50 }, { muted }).join("");
   const next = samples[i + 1];
   const track = p.headingDeg ?? (next ? bearing(p.at, next.at) : i ? bearing(samples[i - 1]!.at, p.at) : null);
   const rows: [string, string | null][] = [
-    ["Altitude", p.altitudeFt === null ? null : p.altitudeFt <= 0 ? "on the ground" : `${nf.format(p.altitudeFt)}${unit("ft")}`],
-    ["Vertical speed", vs],
-    ["Ground speed", p.groundSpeedKt === null ? null : `${nf.format(p.groundSpeedKt)}${unit("kt")}`],
-    ["Track", track === null ? null : `${String(Math.round(track) % 360).padStart(3, "0")}°`],
-    ["Position", position(p.at)],
+    [t("data.track.altitude"), p.altitudeFt === null ? null : p.altitudeFt <= 0 ? t("data.track.onGround") : rich<"data.track.feet", string>("data.track.feet", { ft: p.altitudeFt }, { muted }).join("")],
+    [t("data.track.verticalSpeed"), vs],
+    [t("data.track.groundSpeed"), p.groundSpeedKt === null ? null : rich<"data.track.knots", string>("data.track.knots", { kt: p.groundSpeedKt }, { muted }).join("")],
+    [t("data.track.track"), track === null ? null : `${String(Math.round(track) % 360).padStart(3, "0")}°`],
+    [t("data.track.position"), position(p.at)],
   ];
   return (
-    `<strong>${esc(day(p.t))} · ${clock(p.t)} UTC</strong><br><span class="muted">${since}</span>` +
+    `<strong>${esc(t("data.track.title", { day: day(p.t), time: clock(p.t) }))}</strong><br><span class="muted">${since}</span>` +
     `<dl class="tip-facts">${rows
       .filter(([, v]) => v !== null)
       .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`)
@@ -132,16 +134,16 @@ export function sampleTip(samples: TrackSample[], i: number, takeoff: number | n
 
 /** The tooltip for a stretch with no position recorded. */
 export function gapTip(g: TrackGap): string {
-  const dist = `${nf.format(Math.round(km(g.from, g.to)))} km`;
+  const dist = Math.round(km(g.from, g.to));
   if (!g.before && g.after) {
-    return `<strong>Before the first position</strong><br>${dist} from ${esc(g.airport)} to the first position, at ${clock(g.after.t)} UTC<br><span class="muted">Drawn as the great circle.</span>`;
+    return `<strong>${t("data.track.gap.before.title")}</strong><br>${t("data.track.gap.before.text", { km: dist, airport: esc(g.airport), time: clock(g.after.t) })}<br><span class="muted">${t("data.track.gap.greatCircle")}</span>`;
   }
   if (g.before && !g.after) {
-    return `<strong>After the last position</strong><br>${dist} from the last position, at ${clock(g.before.t)} UTC, to ${esc(g.airport)}<br><span class="muted">Drawn as the great circle.</span>`;
+    return `<strong>${t("data.track.gap.after.title")}</strong><br>${t("data.track.gap.after.text", { km: dist, time: clock(g.before.t), airport: esc(g.airport) })}<br><span class="muted">${t("data.track.gap.greatCircle")}</span>`;
   }
   const a = g.before!;
   const b = g.after!;
-  return `<strong>No position received</strong><br>${span(b.t - a.t)} · ${dist}, ${clock(a.t)} to ${clock(b.t)} UTC<br><span class="muted">Drawn as the great circle between the last position before and the first after.</span>`;
+  return `<strong>${t("data.track.gap.none.title")}</strong><br>${t("data.track.gap.none.text", { span: span(b.t - a.t), km: dist, from: clock(a.t), to: clock(b.t) })}<br><span class="muted">${t("data.track.gap.none.note")}</span>`;
 }
 
 /** A top-down airliner pointing north in a 24-unit box, centred on (12, 12): the hover marker, turned to the track. */

@@ -1,9 +1,10 @@
 // Turning flights and sightings into map marks.
 
 import { haversineKm, simplifyTrack, type RefIndex, type Settings, type Sighting, type Store } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import type { MapFlight, MapSpot } from "../components/maps.tsx";
 import { esc } from "../components/overlay.tsx";
-import { dateOnly, dayShort, distance, plural, shortAirport } from "./format.ts";
+import { dateOnly, dayShort, distance, shortAirport } from "./format.ts";
 import type { FlightView } from "./views.ts";
 import { primaryCode, textCode } from "./codes.ts";
 import { isGap } from "./trackStatus.ts";
@@ -81,7 +82,7 @@ export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["d
       toName: shortAirport(b.id, ref),
       route: v.route ?? "",
       both: !!v.f.airframeId && bothAirframes.has(v.f.airframeId),
-      tip: `<strong>${esc(v.f.flightNumber ?? "Flight")} · ${esc(v.fromCode)} → ${esc(v.toCode)}</strong><br><span class="muted">${v.day ? `${dayShort(v.day)} ${v.day.slice(0, 4)}` : "No date"}${v.km ? ` · ${distance(v.km, unit)}` : ""}</span>`,
+      tip: `<strong>${esc(v.f.flightNumber ?? t("data.map.flight"))} · ${esc(v.fromCode)} → ${esc(v.toCode)}</strong><br><span class="muted">${v.day ? `${dayShort(v.day)} ${v.day.slice(0, 4)}` : t("data.map.noDate")}${v.km ? ` · ${distance(v.km, unit)}` : ""}</span>`,
       ...overviewTrack(tracks.get(v.f.id), [a.lon, a.lat], [b.lon, b.lat], trackPoints),
       pending: recorded.has(v.f.id) && !tracks.has(v.f.id),
     });
@@ -115,8 +116,8 @@ export function mapSpots(sightings: Sighting[], ref: RefIndex, bothAirframes: Se
       at: [a.lon, a.lat],
       aircraft: v.airframes.size,
       both: v.both,
-      label: `${name}: ${plural(v.airframes.size, "aircraft", "aircraft")} seen`,
-      tip: `<strong>${esc(name)} (${esc(textCode(a))})</strong><br><span class="muted">${plural(v.airframes.size, "aircraft", "aircraft")} seen on ${plural(v.days.size, "day")}${v.last ? ` · last ${dateOnly(v.last)}` : ""} · click for the airport page</span>`,
+      label: t("data.map.spot.label", { name, count: v.airframes.size }),
+      tip: `<strong>${esc(name)} (${esc(textCode(a))})</strong><br><span class="muted">${[t("data.map.spot.seen", { aircraft: v.airframes.size, days: v.days.size }), v.last ? t("data.map.spot.last", { date: dateOnly(v.last) }) : null, t("data.map.spot.open")].filter(Boolean).join(" · ")}</span>`,
     });
   }
   return out;

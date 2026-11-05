@@ -4,6 +4,7 @@
 // mode is also recorded in the synced settings (`dataMode`).
 
 import { toUtcIso } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { GoogleDrive } from "@touchdown/storage";
 import { db } from "./db.ts";
 import { holdsLog, pickFolder } from "./folder.ts";
@@ -19,7 +20,7 @@ export type PrivateConnection = Extract<Connection, { mode: "private" }>;
 /** A connection that syncs: Private or Standard. */
 export type SyncedConnection = Exclude<Connection, { mode: "local" }>;
 
-export const standardConnection = (account: string, since: string): Connection => ({ mode: "standard", adapter: "gdrive", account, name: `Google Drive (${account})`, since });
+export const standardConnection = (account: string, since: string): Connection => ({ mode: "standard", adapter: "gdrive", account, name: t("data.connection.googleDrive", { account }), since });
 export type StorageKind = PrivateConnection["adapter"];
 
 /**
@@ -42,7 +43,7 @@ export async function chooseStorage(kind: StorageKind): Promise<{ connection: Pr
   }
   const files = await new GoogleDrive(new GoogleSignIn(account)).list("");
   return {
-    connection: { mode: "private", adapter: "gdrive", account, name: `Google Drive (${account})`, since },
+    connection: { mode: "private", adapter: "gdrive", account, name: t("data.connection.googleDrive", { account }), since },
     holdsLog: files.some((f) => f.name === "manifest.json"),
   };
 }

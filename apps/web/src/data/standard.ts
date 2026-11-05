@@ -2,6 +2,7 @@
 // the user's Google Drive, and the browser asks it for short-lived access for its own sync, instead of Google's
 // popup. The key itself never reaches the browser.
 
+import { t } from "@touchdown/i18n";
 import { SignInNeeded, type DriveAuth } from "@touchdown/storage";
 import { AuthError, call } from "./account.ts";
 
@@ -26,15 +27,29 @@ export const standard = {
   connectUrl: (back: string) => `/api/storage/connect?next=${encodeURIComponent(back)}`,
 };
 
-/** What a `storage-error` on the way back from connecting means. */
+/** What a `storage-error` on the way back from connecting means. Read when used, in the interface's language. */
 export const STANDARD_ERRORS: Record<string, string> = {
-  terms: "Accept the terms first.",
-  cancelled: "Google Drive was not connected.",
-  "no-drive": "Google Drive was not connected: tick the box for Google Drive on Google's screen, so Touchdown can use its directory.",
-  "no-key": "Google did not give Touchdown a lasting key. Try again.",
-  expired: "Connecting took too long, or began in another browser. Try again.",
-  failed: "Connecting Google Drive did not work. Try again.",
-  unavailable: "Standard mode is not available on this site.",
+  get terms() {
+    return t("data.standard.error.terms");
+  },
+  get cancelled() {
+    return t("data.standard.error.cancelled");
+  },
+  get "no-drive"() {
+    return t("data.standard.error.noDrive");
+  },
+  get "no-key"() {
+    return t("data.standard.error.noKey");
+  },
+  get expired() {
+    return t("data.standard.error.expired");
+  },
+  get failed() {
+    return t("data.standard.error.failed");
+  },
+  get unavailable() {
+    return t("data.standard.error.unavailable");
+  },
 };
 
 /** One access token for the whole page, kept in memory until shortly before it ends. */

@@ -2,6 +2,7 @@
 // flow, in a popup. A token lasts an hour and is kept in this browser until then, never on a server. After that,
 // sync waits until the user signs in again: browsers open the popup only on a click.
 
+import { t } from "@touchdown/i18n";
 import { GoogleDrive, SignInNeeded, type DriveAuth } from "@touchdown/storage";
 import { db } from "./db.ts";
 import { GOOGLE_CLIENT_ID } from "../config.ts";
@@ -50,8 +51,8 @@ export function loadGoogle(): Promise<Gis> {
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
-    script.onload = () => (window.google ? resolve(window.google) : reject(new Error("Google sign-in did not load.")));
-    script.onerror = () => reject(new Error("Google sign-in could not be loaded. Check the connection and try again."));
+    script.onload = () => (window.google ? resolve(window.google) : reject(new Error(t("data.google.notLoaded"))));
+    script.onerror = () => reject(new Error(t("data.google.loadFailed")));
     document.head.append(script);
   }).catch((e: unknown) => {
     loading = null;
@@ -80,7 +81,7 @@ export class GoogleSignIn implements DriveAuth {
     // Another tab may have signed in since.
     if (!this.usable(this.saved)) this.saved = ((await db.meta.get(KEY))?.value as SavedToken | undefined) ?? null;
     if (this.usable(this.saved)) return this.saved.token;
-    throw new SignInNeeded("Sign in to Google again to sync.");
+    throw new SignInNeeded(t("data.google.signInAgain"));
   }
 
   refused(token: string) {
@@ -126,21 +127,21 @@ export async function requestDriveToken(account: string | null): Promise<SavedTo
           reject(
             e.type === "popup_closed"
               ? new SignInCancelled()
-              : new Error(e.type === "popup_failed_to_open" ? "The browser blocked Google's sign-in window. Allow pop-ups for this site and try again." : (e.message ?? "Google sign-in failed.")),
+              : new Error(e.type === "popup_failed_to_open" ? t("data.google.popupBlocked") : (e.message ?? t("data.google.failed"))),
           ),
       })
       .requestAccessToken();
   });
-  if (response.error === "access_denied") throw new Error("Google Drive was not connected: Touchdown was not allowed to use it.");
-  if (response.error || !response.access_token) throw new Error(response.error_description ?? response.error ?? "Google did not sign you in.");
+  if (response.error === "access_denied") throw new Error(t("data.google.denied"));
+  if (response.error || !response.access_token) throw new Error(response.error_description ?? response.error ?? t("data.google.notSignedIn"));
   if (!google.accounts.oauth2.hasGrantedAllScopes(response, SCOPE)) {
-    throw new Error("Touchdown needs permission to use its files in Google Drive. Sign in again and tick the box for Google Drive.");
+    throw new Error(t("data.google.needsDrive"));
   }
   const token = response.access_token;
   const expiresAt = Date.now() + Number(response.expires_in ?? 3600) * 1000;
   const signedIn = await new GoogleDrive({ token: async () => token, refused: () => {} }).account();
   if (account && signedIn !== account) {
-    throw new Error(`You signed in as ${signedIn}, but this log is in the Google Drive of ${account}. Sign in as ${account}.`);
+    throw new Error(t("data.google.otherAccount", { signedIn, account }));
   }
   return { token, expiresAt, account: signedIn };
 }

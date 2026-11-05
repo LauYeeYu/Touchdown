@@ -3,6 +3,7 @@
 // request about the account.
 
 import { argon2id } from "hash-wasm";
+import { t } from "@touchdown/i18n";
 
 export const MIN_PASSWORD = 10;
 
@@ -17,7 +18,7 @@ export async function passwordKey(password: string, email: string, siteId: strin
 
 /** What is wrong with a new password, or null. */
 export function passwordProblem(password: string, repeated: string): string | null {
-  if (password.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters.`;
-  if (password !== repeated) return "The two passwords are not the same.";
+  if (password.length < MIN_PASSWORD) return t("data.password.tooShort", { count: MIN_PASSWORD });
+  if (password !== repeated) return t("data.password.different");
   return null;
 }

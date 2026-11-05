@@ -3,6 +3,7 @@
 // which lets Touchdown create the file: from the server in Standard mode, from the browser's Google sign-in in Private
 // mode, and from Google's popup for this one export otherwise. Call it from a click, for that popup.
 
+import { t } from "@touchdown/i18n";
 import type { Connection } from "./connection.ts";
 import { GoogleSignIn, requestDriveToken } from "./google.ts";
 import { ServerDriveAuth } from "./standard.ts";
@@ -34,7 +35,7 @@ export async function saveAsGoogleSheet(c: Connection | null, name: string, work
   const res = await fetch(UPLOAD, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": `multipart/related; boundary=${boundary}` }, body });
   if (!res.ok) {
     const reason = ((await res.json().catch(() => null)) as { error?: { message?: string } } | null)?.error?.message;
-    throw new Error(reason ?? `Google Drive answered ${res.status}.`);
+    throw new Error(reason ?? t("data.sheets.driveAnswered", { status: res.status }));
   }
   const file = (await res.json()) as { id: string; name?: string; webViewLink?: string };
   return { name: file.name ?? name, url: file.webViewLink ?? `https://docs.google.com/spreadsheets/d/${file.id}/edit` };

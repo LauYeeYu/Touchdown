@@ -2,7 +2,7 @@
 // (vite.config.ts). The production build never calls this.
 
 import { readBackup } from "@touchdown/core";
-import { nf } from "../lib/format.ts";
+import { t } from "@touchdown/i18n";
 import type { AppData } from "./app.ts";
 
 export const LOCAL_BACKUP_KEY = "td-dev-local-backup"; // modification time of the backup last loaded
@@ -39,17 +39,17 @@ export function loadedBackupModified(): number {
 export async function replaceWithLocalBackup(app: AppData, step?: (text: string) => void): Promise<boolean> {
   const modified = await localBackupModified();
   if (modified === null) return false;
-  step?.("Downloading the local backup…");
+  step?.(t("data.localBackup.downloading"));
   const res = await fetch("/__local/backup.zip", { cache: "no-store" }).catch(() => null);
   if (!res?.ok) return false;
-  step?.("Reading the backup…");
+  step?.(t("data.localBackup.reading"));
   const back = readBackup(new Uint8Array(await res.arrayBuffer()));
   if (back.problems.length) {
     console.warn("Local backup not loaded:", back.problems);
     return false;
   }
   const records = [...back.tables.values()].reduce((n, rows) => n + rows.length, 0);
-  step?.(`Saving ${nf.format(records)} records in this browser…`);
+  step?.(t("data.localBackup.saving", { count: records }));
   await app.replaceAll(back.tables);
   try {
     localStorage.setItem(LOCAL_BACKUP_KEY, String(modified));

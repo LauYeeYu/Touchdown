@@ -3,6 +3,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import type { ShareKind } from "@touchdown/core/share";
+import { t } from "@touchdown/i18n";
 
 export interface ShareLink {
   id: string;
@@ -35,8 +36,8 @@ export class TermsNeeded extends Error {
 async function request<T>(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; terms?: number };
-  if (res.status === 409 && typeof data.terms === "number") throw new TermsNeeded(data.terms, data.error ?? "Accept the updated terms first.");
-  if (!res.ok) throw new Error(data.error ?? `Something went wrong (${res.status}).`);
+  if (res.status === 409 && typeof data.terms === "number") throw new TermsNeeded(data.terms, data.error ?? t("data.shares.termsNeeded"));
+  if (!res.ok) throw new Error(data.error ?? t("data.request.failed", { status: res.status }));
   return data;
 }
 

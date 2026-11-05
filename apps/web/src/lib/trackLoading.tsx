@@ -4,7 +4,8 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Icon } from "./icons.tsx";
-import { nf } from "./format.ts";
+import { t } from "@touchdown/i18n";
+import { tx } from "./i18n.tsx";
 
 /** Recorded tracks are being read now: the app's sync, or a share link's requests for them. */
 export const TrackLoading = createContext(false);
@@ -37,14 +38,20 @@ export function TrackLoadingNote({ waiting, total, one = false }: { waiting: num
     <p className={`track-loading${shown ? " is-shown" : ""}`} role="status" aria-hidden={!shown}>
       <Icon name="loader-circle" />
       {one ? (
-        <span>Loading the recorded track</span>
+        <span>{t("data.trackLoading.one")}</span>
       ) : (
         <span>
-          Loading tracks
-          <span className="track-loading__count" aria-hidden="true">
-            {" "}
-            · {nf.format(n - w)} of {nf.format(n)}
-          </span>
+          {tx(
+            "data.trackLoading.many",
+            { done: n - w, total: n },
+            {
+              count: (text) => (
+                <span className="track-loading__count" aria-hidden="true">
+                  {text}
+                </span>
+              ),
+            },
+          )}
         </span>
       )}
     </p>

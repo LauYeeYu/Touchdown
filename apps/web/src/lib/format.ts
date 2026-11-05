@@ -2,9 +2,7 @@
 
 export {
   nf,
-  MONTHS,
-  MONTHS_LONG,
-  plural,
+  monthNames,
   dateOnly,
   dayShort,
   dayLong,
@@ -13,6 +11,8 @@ export {
   localDay,
   dateTimeLabel,
   momentLabel,
+  momentDay,
+  momentShort,
   offsetLabel,
   durLong,
   durShort,

@@ -6,7 +6,8 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { changeStatus, matchCandidates, readInbox, type InboxChange, type ParsedSource } from "@touchdown/core";
-import { dayMonthYear, plural } from "../lib/format.ts";
+import { list, t } from "@touchdown/i18n";
+import { dayMonthYear } from "../lib/format.ts";
 import type { AppData } from "./app.ts";
 
 export interface WaitingSession {
@@ -199,8 +200,8 @@ export function useInboxWatcher(app: AppData, version: number): void {
 
 /** "2 flights and 1 sighting", "3 changes". */
 export function recordsText(flights: number, sightings: number, changes = 0): string {
-  const parts = [flights ? plural(flights, "flight") : null, sightings ? plural(sightings, "sighting") : null, changes ? plural(changes, "change") : null].filter(Boolean) as string[];
-  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : (parts[0] ?? "nothing");
+  const parts = [flights ? t("common.count.flights", { count: flights }) : null, sightings ? t("common.count.sightings", { count: sightings }) : null, changes ? t("common.count.changes", { count: changes }) : null].filter(Boolean) as string[];
+  return parts.length ? list(parts) : t("data.inbox.nothing");
 }
 
 /** The commands that write change files (docs/34), by the name they give them. */
@@ -210,23 +211,35 @@ const CHANGE_FILE = /^(edit|delete|tracks?|aircraft|airframes|issues|undo|famili
 export const madeBy = (name: string) =>
   name.startsWith("add-") ? "./touchdown add" : name.startsWith("import-") ? "./touchdown import" : CHANGE_FILE.test(name) ? `./touchdown ${CHANGE_FILE.exec(name)![1]}` : "./touchdown spot";
 
+/** What made the file and when, from the name the command gives it: the day, the time ("23:37") and a file's name. */
+function fileOrigin(name: string): { kind: "spot" | "sheet" | "file" | "added" | "changed"; day: string; time: string; file: string } | null {
+  const typed = /^spot-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
+  if (typed) return { kind: "spot", day: dayMonthYear(typed[1]!), time: `${typed[2]}:${typed[3]}`, file: "" };
+  const sheet = /^sheet-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})\d{2}-(.+)\.json$/.exec(name);
+  if (sheet) return { kind: "sheet", day: dayMonthYear(sheet[1]!), time: `${sheet[2]}:${sheet[3]}`, file: sheet[4]! };
+  const file = /^import-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})\d{2}-(.+?)(?:-\d+)?\.json$/.exec(name);
+  if (file) return { kind: "file", day: dayMonthYear(file[1]!), time: `${file[2]}:${file[3]}`, file: file[4]! };
+  const added = /^add-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
+  if (added) return { kind: "added", day: dayMonthYear(added[1]!), time: `${added[2]}:${added[3]}`, file: "" };
+  const changed = CHANGE_FILE.exec(name);
+  if (changed) return { kind: "changed", day: dayMonthYear(changed[2]!), time: `${changed[3]}:${changed[4]}`, file: "" };
+  return null;
+}
+
 /**
  * "Spotting session, 22 Oct 2026 at 23:37", "Spreadsheet spotting, read on …", "File flights.xlsx, read on …" or
  * "Added from the command line, 24 Oct 2026 at 10:15", from the name the command gives the file; the name itself
  * otherwise.
  */
 export function sessionLabel(name: string): string {
-  const typed = /^spot-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
-  if (typed) return `Spotting session, ${dayMonthYear(typed[1]!)} at ${typed[2]}:${typed[3]}`;
-  const sheet = /^sheet-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})\d{2}-(.+)\.json$/.exec(name);
-  if (sheet) return `Spreadsheet ${sheet[4]}, read on ${dayMonthYear(sheet[1]!)} at ${sheet[2]}:${sheet[3]}`;
-  const file = /^import-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})\d{2}-(.+?)(?:-\d+)?\.json$/.exec(name);
-  if (file) return `File ${file[4]}, read on ${dayMonthYear(file[1]!)} at ${file[2]}:${file[3]}`;
-  const added = /^add-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/.exec(name);
-  if (added) return `Added from the command line, ${dayMonthYear(added[1]!)} at ${added[2]}:${added[3]}`;
-  const changed = CHANGE_FILE.exec(name);
-  if (changed) return `Changes from the command line, ${dayMonthYear(changed[2]!)} at ${changed[3]}:${changed[4]}`;
-  return name;
+  const o = fileOrigin(name);
+  if (!o) return name;
+  const { day, time, file } = o;
+  if (o.kind === "spot") return t("data.inbox.label.spot", { day, time });
+  if (o.kind === "sheet") return t("data.inbox.label.sheet", { file, day, time });
+  if (o.kind === "file") return t("data.inbox.label.file", { file, day, time });
+  if (o.kind === "added") return t("data.inbox.label.added", { day, time });
+  return t("data.inbox.label.changed", { day, time });
 }
 
 /**
@@ -234,11 +247,11 @@ export function sessionLabel(name: string): string {
  * spotting.xlsx (…)", "the command line on 24 Oct 2026 at 10:15".
  */
 export function sessionPhrase(name: string): string {
-  const label = sessionLabel(name);
-  if (label.startsWith("Spotting session, ")) return label.replace(/^Spotting session, /, "your spotting session of ");
-  if (label.startsWith("Spreadsheet ")) return label.replace(/^Spreadsheet (.+), read on (.+)$/, "the spreadsheet $1 (read on $2)");
-  if (label.startsWith("File ")) return label.replace(/^File (.+), read on (.+)$/, "the file $1 (read on $2)");
-  if (label.startsWith("Added from the command line, ")) return label.replace(/^Added from the command line, /, "the command line on ");
-  if (label.startsWith("Changes from the command line, ")) return label.replace(/^Changes from the command line, /, "the command line on ");
-  return label;
+  const o = fileOrigin(name);
+  if (!o) return name;
+  const { day, time, file } = o;
+  if (o.kind === "spot") return t("data.inbox.phrase.spot", { day, time });
+  if (o.kind === "sheet") return t("data.inbox.phrase.sheet", { file, day, time });
+  if (o.kind === "file") return t("data.inbox.phrase.file", { file, day, time });
+  return t("data.inbox.phrase.commandLine", { day, time });
 }
