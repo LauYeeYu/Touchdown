@@ -181,7 +181,6 @@ export function Flights() {
               {t("flights.legend.notRecorded")}
             </span>
           )}
-          <span className="legend__item">{t("flights.legend.hint")}</span>
           <Link className="legend__action" to="/stats">
             <Icon name="globe" />
             {t("flights.legend.globe")}

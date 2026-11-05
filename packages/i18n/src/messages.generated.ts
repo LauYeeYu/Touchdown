@@ -1441,7 +1441,6 @@ export interface MessageArgs {
   "flights.legend.someRecorded": { count: "number"; recorded: "text" };
   "flights.legend.noneRecorded": {};
   "flights.legend.notRecorded": {};
-  "flights.legend.hint": {};
   "flights.legend.globe": {};
   "flights.map.label": { count: "number"; filtered: "choice"; shown: "text" };
   "flights.filters.search": {};

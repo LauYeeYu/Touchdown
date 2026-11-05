@@ -13,7 +13,6 @@
   "legend.someRecorded": "Recorded track on {recorded} of {count, plural, one {#\u00a0flight} other {#\u00a0flights}}, great circle on the rest",
   "legend.noneRecorded": "Great circles: no recorded tracks for these flights",
   "legend.notRecorded": "Not recorded",
-  "legend.hint": "Point at a row or an underlined route to find it",
   "legend.globe": "Explore on a globe",
   "map.label": "Map of {count, plural, one {#\u00a0flight} other {#\u00a0flights}}{filtered, select, yes {, {shown} of them matching the search and filters} other {}}",
   "filters.search": "Search flights",
