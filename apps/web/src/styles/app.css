@@ -2690,7 +2690,6 @@ a.btn--primary {
 }
 
 .share-dialog__text {
-  max-width: 62ch;
   margin: 0 0 14px;
   font-size: 0.9375rem;
   line-height: 1.55;
@@ -3173,7 +3172,6 @@ a.shares-list__title:hover {
 .invite-message {
   display: grid;
   gap: 6px;
-  max-width: 44rem;
   margin-top: 14px;
 }
 
@@ -3219,7 +3217,6 @@ a.wordmark {
 
 .policy p,
 .policy li {
-  max-width: 68ch;
   line-height: 1.6;
 }
 
@@ -3308,7 +3305,6 @@ a.wordmark {
 .modes {
   display: grid;
   gap: 8px;
-  max-width: 44rem;
   margin: 24px 0 20px;
 }
 
@@ -3420,7 +3416,6 @@ a.wordmark {
 }
 
 .local-warning {
-  max-width: 44rem;
 }
 
 .local-warning .status-line {
@@ -3453,7 +3448,6 @@ a.wordmark {
   margin: 0 0 8px;
   font-size: 0.9375rem;
   color: var(--ink-2);
-  max-width: 62ch;
 }
 
 .form-sub code {
@@ -3470,7 +3464,6 @@ a.wordmark {
 /* Getting started (pages/Guide.tsx): each step's text beside its diagram (5:7, 48px apart, as the layout's splits
    are), the steps divided by hairlines. On a phone the diagram follows its text. */
 .guide__intro {
-  max-width: 40em;
   margin: 0;
   font-size: 1.0625rem;
   line-height: 1.55;
@@ -5258,7 +5251,6 @@ a.wordmark {
 /* Aircraft age on Statistics: the figures in a sentence, then the age when flown beside the time since first flight,
    two tables of equal width. */
 .age-summary {
-  max-width: 44em;
   margin: 12px 0 0;
   color: var(--ink-2);
 }
@@ -5739,7 +5731,6 @@ a.wordmark {
 .dropzone span span {
   font-size: 0.9375rem;
   color: var(--ink-2);
-  max-width: 64ch;
 }
 
 .import-done {
@@ -5964,7 +5955,6 @@ a.wordmark {
 
 /* The panel on the Import page, between the summary and the row filters: a tonal box with numbered steps. */
 .agent-panel {
-  max-width: 880px;
   margin: 20px 0 4px;
   padding: 18px 20px 20px;
   border-radius: 20px;
@@ -5978,14 +5968,12 @@ a.wordmark {
 }
 
 .agent-panel__lead {
-  max-width: 70ch;
   margin: 6px 0 0;
   font-size: 0.9375rem;
   color: var(--ink-2);
 }
 
 .agent-panel__note {
-  max-width: 78ch;
   margin: 14px 0 0;
   font-size: 0.8125rem;
   color: var(--ink-3);
@@ -6134,7 +6122,6 @@ a.wordmark {
 }
 
 .suggestion__reason {
-  max-width: 80ch;
   margin: 0;
   font-size: 0.8125rem;
   color: var(--ink-2);
@@ -6696,7 +6683,6 @@ a.wordmark {
 /* A track file chosen on a flight's page, shown with what it would save above the map. */
 .track-file {
   margin-top: 24px;
-  max-width: 64ch;
 }
 
 .known {
