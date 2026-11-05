@@ -350,7 +350,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="page page--form">
+    <div className="page page--form page--settings">
       <div className="view-top" />
       <h1 className="form-title">{t("settings.title")}</h1>
       <p className="form-sub">{tx("settings.guide", {}, { link: (text) => <Link to="/guide">{text}</Link> })}</p>

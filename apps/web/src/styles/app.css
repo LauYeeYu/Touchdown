@@ -2852,6 +2852,11 @@ a.shares-list__title:hover {
   padding: 0 0 16px;
 }
 
+/* Settings' notes run the width of the page, as its lists and cards do. */
+.page--settings .form-sub {
+  max-width: none;
+}
+
 .account-form {
   display: grid;
   gap: 12px;
