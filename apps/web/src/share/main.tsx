@@ -5,6 +5,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
+import { t } from "@touchdown/i18n";
 import "../styles/app.css";
 import { validateWithoutEval } from "@touchdown/core";
 import type { ShareContent } from "@touchdown/core/share";
@@ -13,6 +14,7 @@ import { setCodeStyle } from "../lib/codes.ts";
 import { LinkScopeContext } from "../lib/link.tsx";
 import { setSlugData } from "../lib/slugs.ts";
 import { Boot, waitingProgress } from "../components/Boot.tsx";
+import { startLanguage } from "../lib/i18n.tsx";
 import { Frame, Message } from "./Frame.tsx";
 import { loadShare, type Loaded } from "./data.ts";
 import { scopeOf, shareRouter } from "./router.tsx";
@@ -20,15 +22,13 @@ import { scopeOf, shareRouter } from "./router.tsx";
 // The same strict Content Security Policy as the app: no code from strings.
 validateWithoutEval();
 
-const TITLES: Record<string, string> = { flight: "A flight", sighting: "A sighting", aircraft: "An aircraft" };
-
 /**
  * The tab's title. A whole log's names its owner by their account's name, whole and unchanged in any script, and
  * isolated so that a name written right to left stays before "'s log".
  */
 function titleOf(content: ShareContent): string {
-  if (content.kind === "log") return content.owner ? `\u2068${content.owner}\u2069's log` : "A shared log";
-  return TITLES[content.kind] ?? "Shared";
+  if (content.kind === "log") return content.owner ? t("share.title.log", { owner: content.owner }) : t("share.title.logUnnamed");
+  return t("share.title.record", { kind: content.kind });
 }
 
 // The app's loading screen (components/Boot.tsx): the page's own bar creeps towards 30% while the code loads, the
@@ -38,7 +38,7 @@ const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches 
 
 function SharePage() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [progress, setProgress] = useState({ at: START, text: "Opening the link…" });
+  const [progress, setProgress] = useState(() => ({ at: START, text: t("share.opening") }));
   const [finished, setFinished] = useState(false);
   // Each try opens the link afresh, without reloading the page.
   const [attempt, setAttempt] = useState(0);
@@ -61,24 +61,24 @@ function SharePage() {
   const retry = () => {
     setLoaded(null);
     setFinished(false);
-    setProgress({ at: 0.3, text: "Opening the link…" });
+    setProgress({ at: 0.3, text: t("share.opening") });
     setAttempt((n) => n + 1);
   };
 
   // The page renders under the loading screen while the bar lands and the screen fades.
   const page = !loaded ? null : loaded.state === "not-found" ? (
-    <Frame>{<Message title="This link does not open anything." text="It may have been stopped by the person who shared it, or the address may be incomplete." />}</Frame>
+    <Frame>{<Message title={t("share.notFound.title")} text={t("share.notFound.text")} />}</Frame>
   ) : loaded.state === "busy" ? (
-    <Frame>{<Message title="Too many requests just now." text="Wait a minute, then try again." onRetry={retry} />}</Frame>
+    <Frame>{<Message title={t("share.busy.title")} text={t("share.busy.text")} onRetry={retry} />}</Frame>
   ) : loaded.state === "not-available" ? (
-    <Frame>{<Message title="This link is not available right now." text="The log it shows cannot be reached at the moment." onRetry={retry} />}</Frame>
+    <Frame>{<Message title={t("share.notAvailable.title")} text={t("share.notAvailable.text")} onRetry={retry} />}</Frame>
   ) : (
     <Shared data={loaded.data} />
   );
   return (
     <>
       {page}
-      {!finished && <Boot label="Opening the link" progress={loaded ? 1 : progress.at} text={loaded?.state === "ok" ? "Ready" : progress.text} done={!!loaded} />}
+      {!finished && <Boot label={t("share.opening.label")} progress={loaded ? 1 : progress.at} text={loaded?.state === "ok" ? t("share.ready") : progress.text} done={!!loaded} />}
     </>
   );
 }
@@ -92,13 +92,12 @@ function Shared({ data }: { data: Extract<Loaded, { state: "ok" }>["data"] }) {
     return shareRouter(data);
   });
   useEffect(() => {
-    document.title = `${titleOf(content)} · Touchdown`;
+    document.title = titleOf(content);
     void data.loadTracks();
   }, [data, content]);
 
   if (content.gone) {
-    const what = content.kind === "flight" ? "This flight" : content.kind === "sighting" ? "This sighting" : "This aircraft";
-    return <Frame>{<Message title={`${what} is no longer shared.`} text="It was taken out of the log it was shared from." />}</Frame>;
+    return <Frame>{<Message title={t("share.gone.title", { kind: content.kind })} text={t("share.gone.text")} />}</Frame>;
   }
   return (
     <AppContext.Provider value={data.asApp}>
@@ -109,8 +108,10 @@ function Shared({ data }: { data: Extract<Loaded, { state: "ok" }>["data"] }) {
   );
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <SharePage />
-  </StrictMode>,
+void startLanguage().then(() =>
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <SharePage />
+    </StrictMode>,
+  ),
 );

@@ -5,6 +5,7 @@
 
 import { createHashHistory, createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
 import type { TableName } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import type { LinkScope } from "../lib/link.tsx";
 import { airportParams, slugParams } from "../lib/slugs.ts";
 import { Home } from "../pages/Home.tsx";
@@ -39,7 +40,7 @@ export function scopeOf(data: ShareData): LinkScope | null {
 export function shareRouter(data: ShareData) {
   const { kind, subject } = data.content;
   const log = kind === "log";
-  const root = createRootRoute({ component: ShareShell, notFoundComponent: () => <NotFound what="This page is not part of the link." /> });
+  const root = createRootRoute({ component: ShareShell, notFoundComponent: () => <NotFound what={t("share.notInLink")} /> });
   // The routes are not the app's registered ones, so their targets are given as plain values.
   const go = (to: string, id?: string | null) => redirect({ to, params: id ? { id } : undefined, replace: true } as never);
   const page = kind === "flight" ? "/flights/$id" : kind === "sighting" ? "/spotting/$id" : kind === "aircraft" ? "/aircraft/$id" : null;

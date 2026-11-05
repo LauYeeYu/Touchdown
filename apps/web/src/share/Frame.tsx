@@ -3,6 +3,7 @@
 // app's own frame (Shell.tsx).
 
 import type { ReactNode } from "react";
+import { t } from "@touchdown/i18n";
 import { Wordmark } from "../components/Wordmark.tsx";
 import { SiteFoot } from "./Shell.tsx";
 
@@ -31,7 +32,7 @@ export function Message({ title, text, onRetry }: { title: string; text: string;
       <p className="share-message__text">{text}</p>
       {onRetry && (
         <button type="button" className="btn btn--quiet btn--small share-message__retry" onClick={onRetry}>
-          Try again
+          {t("share.retry")}
         </button>
       )}
     </div>

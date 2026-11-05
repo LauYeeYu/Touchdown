@@ -4,10 +4,12 @@
 
 import { StrictMode, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { t } from "@touchdown/i18n";
 import "../styles/app.css";
 import { Icon } from "../lib/icons.tsx";
 import { MIN_PASSWORD, passwordKey, passwordProblem } from "../lib/passwordKey.ts";
 import { Wordmark } from "../components/Wordmark.tsx";
+import { startLanguage } from "../lib/i18n.tsx";
 
 interface Site {
   siteId: string;
@@ -23,17 +25,20 @@ interface Invite {
 }
 
 /** What went wrong on the way back from Google or with an invitation (the server's ?error= codes). */
-const ERRORS: Record<string, string> = {
-  "google-cancelled": "Google sign-in was cancelled.",
-  "google-failed": "Google sign-in did not work. Try again.",
-  "google-expired": "The Google sign-in took too long, or began in another browser. Try again.",
-  "google-no-account": "No account here uses this Google account. Sign in with your password and connect Google in Settings, or ask the owner for an invitation.",
-  "google-taken": "This Google account already has an account here. Sign in instead.",
-  "email-taken": "An account with this Google address exists already. Sign in instead.",
-  invite: "This invitation is no longer valid. Ask the owner for a new one.",
-};
+function errorText(code: string): string | null {
+  const errors: Record<string, string> = {
+    "google-cancelled": t("signin.errors.googleCancelled"),
+    "google-failed": t("signin.errors.googleFailed"),
+    "google-expired": t("signin.errors.googleExpired"),
+    "google-no-account": t("signin.errors.googleNoAccount"),
+    "google-taken": t("signin.errors.googleTaken"),
+    "email-taken": t("signin.errors.emailTaken"),
+    invite: t("signin.errors.invite"),
+  };
+  return errors[code] ?? null;
+}
 
-const errorFromUrl = () => ERRORS[new URLSearchParams(location.search).get("error") ?? ""] ?? null;
+const errorFromUrl = () => errorText(new URLSearchParams(location.search).get("error") ?? "");
 
 /** Where to go after signing in: a path on this site, nothing else. */
 function next(): string {
@@ -45,9 +50,9 @@ async function request<T>(method: "GET" | "POST", path: string, body?: unknown):
   try {
     const res = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
     const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-    return res.ok ? { ok: true, data } : { ok: false, error: data.error ?? `Something went wrong (${res.status}). Try again.` };
+    return res.ok ? { ok: true, data } : { ok: false, error: data.error ?? t("signin.errors.status", { status: res.status }) };
   } catch {
-    return { ok: false, error: "The site could not be reached. Check the connection and try again." };
+    return { ok: false, error: t("signin.errors.offline") };
   }
 }
 
@@ -67,7 +72,7 @@ function Frame({ title, sub, children }: { title: string; sub?: ReactNode; child
         {sub && <p className="form-sub">{sub}</p>}
         {children}
         <p className="signin__policies">
-          <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a>
+          <a href="/privacy">{t("signin.privacy")}</a> · <a href="/terms">{t("signin.terms")}</a>
         </p>
       </main>
     </>
@@ -98,7 +103,7 @@ function GoogleButton({ site, query }: { site: Site; query: () => string | null 
   if (!site.google) return null;
   return (
     <>
-      <p className="signin__or">or</p>
+      <p className="signin__or">{t("signin.or")}</p>
       <div className="button-row">
         <button
           type="button"
@@ -108,7 +113,7 @@ function GoogleButton({ site, query }: { site: Site; query: () => string | null 
             if (q !== null) location.assign(`/auth/google/start?${q}`);
           }}
         >
-          Continue with Google
+          {t("signin.google")}
         </button>
       </div>
     </>
@@ -141,19 +146,19 @@ function SignIn({ site }: { site: Site }) {
     return null;
   });
   return (
-    <Frame title="Sign in">
+    <Frame title={t("signin.signIn.title")}>
       <form className="signin__form" onSubmit={onSubmit}>
-        <Input label="Email address" name="email" type="email" autoComplete="username" autoFocus />
-        <Input label="Password" name="password" type="password" autoComplete="current-password" />
+        <Input label={t("signin.field.email")} name="email" type="email" autoComplete="username" autoFocus />
+        <Input label={t("signin.field.password")} name="password" type="password" autoComplete="current-password" />
         <Problem text={problem} />
         <div className="button-row">
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? t("signin.signIn.busy") : t("signin.signIn.submit")}
           </button>
         </div>
       </form>
       <GoogleButton site={site} query={() => `next=${encodeURIComponent(next())}`} />
-      <p className="form-sub signin__note">New here? You need an invitation link from the person who runs this site. Forgot your password? Ask them for a reset link.</p>
+      <p className="form-sub signin__note">{t("signin.signIn.note")}</p>
     </Frame>
   );
 }
@@ -161,9 +166,9 @@ function SignIn({ site }: { site: Site }) {
 function NewPassword() {
   return (
     <>
-      <Input label="Password" name="password" type="password" autoComplete="new-password" minLength={MIN_PASSWORD} />
-      <Input label="Password again" name="repeat" type="password" autoComplete="new-password" minLength={MIN_PASSWORD} />
-      <p className="form-sub">At least {MIN_PASSWORD} characters. It never leaves this browser: only a key made from it is sent.</p>
+      <Input label={t("signin.field.password")} name="password" type="password" autoComplete="new-password" minLength={MIN_PASSWORD} />
+      <Input label={t("signin.field.repeat")} name="repeat" type="password" autoComplete="new-password" minLength={MIN_PASSWORD} />
+      <p className="form-sub">{t("signin.password.rule", { min: MIN_PASSWORD })}</p>
     </>
   );
 }
@@ -171,7 +176,7 @@ function NewPassword() {
 function Join({ site, token }: { site: Site; token: string }) {
   const [invite, setInvite] = useState<Invite | null | string>(null);
   useEffect(() => {
-    void request<Invite>("GET", `/auth/invite/${encodeURIComponent(token)}`).then((r) => setInvite(r.ok ? (r.data.purpose === "join" ? r.data : "This link is not an invitation.") : r.error));
+    void request<Invite>("GET", `/auth/invite/${encodeURIComponent(token)}`).then((r) => setInvite(r.ok ? (r.data.purpose === "join" ? r.data : t("signin.errors.notInvitation")) : r.error));
   }, [token]);
   const { busy, problem, setProblem, onSubmit } = useSubmit(async (f) => {
     const p = passwordProblem(text(f, "password"), text(f, "repeat"));
@@ -182,18 +187,18 @@ function Join({ site, token }: { site: Site; token: string }) {
     location.assign("/");
     return null;
   });
-  if (invite === null) return <Frame title="Join Touchdown">{null}</Frame>;
-  if (typeof invite === "string") return <Frame title="Join Touchdown" sub={invite}>{null}</Frame>;
+  if (invite === null) return <Frame title={t("signin.join.title")}>{null}</Frame>;
+  if (typeof invite === "string") return <Frame title={t("signin.join.title")} sub={invite}>{null}</Frame>;
   return (
-    <Frame title="Join Touchdown" sub="You have an invitation. Make your account.">
+    <Frame title={t("signin.join.title")} sub={t("signin.join.sub")}>
       <form className="signin__form" onSubmit={onSubmit}>
-        <Input label="Your name" name="name" autoComplete="name" maxLength={80} autoFocus />
-        <Input label="Email address" name="email" type="email" autoComplete="username" />
+        <Input label={t("signin.field.name")} name="name" autoComplete="name" maxLength={80} autoFocus />
+        <Input label={t("signin.field.email")} name="email" type="email" autoComplete="username" />
         <NewPassword />
         <Problem text={problem} />
         <div className="button-row">
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "Making your account…" : "Make my account"}
+            {busy ? t("signin.join.busy") : t("signin.join.submit")}
           </button>
         </div>
       </form>
@@ -202,7 +207,7 @@ function Join({ site, token }: { site: Site; token: string }) {
         query={() => {
           const name = (document.querySelector<HTMLInputElement>("input[name=name]")?.value ?? "").trim();
           if (!name) {
-            setProblem("Enter your name first. Google is used only to sign in.");
+            setProblem(t("signin.errors.nameFirst"));
             return null;
           }
           return `invite=${encodeURIComponent(token)}&name=${encodeURIComponent(name)}`;
@@ -215,10 +220,10 @@ function Join({ site, token }: { site: Site; token: string }) {
 function Reset({ site, token }: { site: Site; token: string }) {
   const [invite, setInvite] = useState<Invite | null | string>(null);
   useEffect(() => {
-    void request<Invite>("GET", `/auth/invite/${encodeURIComponent(token)}`).then((r) => setInvite(r.ok ? (r.data.purpose === "reset" ? r.data : "This link is not a reset link.") : r.error));
+    void request<Invite>("GET", `/auth/invite/${encodeURIComponent(token)}`).then((r) => setInvite(r.ok ? (r.data.purpose === "reset" ? r.data : t("signin.errors.notReset")) : r.error));
   }, [token]);
   const { busy, problem, onSubmit } = useSubmit(async (f) => {
-    if (typeof invite !== "object" || !invite?.email) return "This link is not valid.";
+    if (typeof invite !== "object" || !invite?.email) return t("signin.errors.notValid");
     const p = passwordProblem(text(f, "password"), text(f, "repeat"));
     if (p) return p;
     const r = await request("POST", "/auth/reset", { token, key: await passwordKey(text(f, "password"), invite.email, site.siteId) });
@@ -226,17 +231,17 @@ function Reset({ site, token }: { site: Site; token: string }) {
     location.assign("/");
     return null;
   });
-  if (invite === null) return <Frame title="New password">{null}</Frame>;
-  if (typeof invite === "string") return <Frame title="New password" sub={invite}>{null}</Frame>;
+  if (invite === null) return <Frame title={t("signin.reset.title")}>{null}</Frame>;
+  if (typeof invite === "string") return <Frame title={t("signin.reset.title")} sub={invite}>{null}</Frame>;
   return (
-    <Frame title="New password" sub={`For ${invite.email}. Setting it signs you out everywhere else.`}>
+    <Frame title={t("signin.reset.title")} sub={t("signin.reset.sub", { email: invite.email ?? "" })}>
       <form className="signin__form" onSubmit={onSubmit}>
         <input type="email" name="username" autoComplete="username" value={invite.email ?? ""} readOnly hidden />
         <NewPassword />
         <Problem text={problem} />
         <div className="button-row">
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "Saving…" : "Set the password"}
+            {busy ? t("signin.reset.busy") : t("signin.reset.submit")}
           </button>
         </div>
       </form>
@@ -256,26 +261,26 @@ function Setup({ site }: { site: Site }) {
   });
   if (!site.setupNeeded) {
     return (
-      <Frame title="Set up Touchdown" sub="This site is set up already.">
+      <Frame title={t("signin.setup.title")} sub={t("signin.setup.done")}>
         <div className="button-row">
           <a className="btn btn--primary" href="/signin">
-            Sign in
+            {t("signin.signIn.submit")}
           </a>
         </div>
       </Frame>
     );
   }
   return (
-    <Frame title="Set up Touchdown" sub="Make the owner's account. The owner invites everyone else.">
+    <Frame title={t("signin.setup.title")} sub={t("signin.setup.sub")}>
       <form className="signin__form" onSubmit={onSubmit}>
-        <Input label="Setup secret" name="setupToken" type="password" autoComplete="off" autoFocus />
-        <Input label="Your name" name="name" autoComplete="name" maxLength={80} />
-        <Input label="Email address" name="email" type="email" autoComplete="username" />
+        <Input label={t("signin.field.setupToken")} name="setupToken" type="password" autoComplete="off" autoFocus />
+        <Input label={t("signin.field.name")} name="name" autoComplete="name" maxLength={80} />
+        <Input label={t("signin.field.email")} name="email" type="email" autoComplete="username" />
         <NewPassword />
         <Problem text={problem} />
         <div className="button-row">
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "Setting up…" : "Make the owner's account"}
+            {busy ? t("signin.setup.busy") : t("signin.setup.submit")}
           </button>
         </div>
       </form>
@@ -301,8 +306,10 @@ function Page() {
   return <SignIn site={site} />;
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <Page />
-  </StrictMode>,
+void startLanguage().then(() =>
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <Page />
+    </StrictMode>,
+  ),
 );

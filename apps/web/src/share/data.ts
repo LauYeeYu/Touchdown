@@ -4,8 +4,8 @@
 
 import { phasesOf, refOverridesOf, RefIndex, settingsOf, Store, tagsOf, type Finding, type Row, type Settings, type TableName } from "@touchdown/core";
 import type { ShareContent } from "@touchdown/core/share";
+import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
-import { nf } from "../lib/format.ts";
 
 /** The link's id: the page is /p/<id>. */
 export const shareId = () => location.pathname.split("/")[2] ?? "";
@@ -219,7 +219,7 @@ export async function loadShare(report: (at: number, text: string) => void = () 
     await new Promise((r) => setTimeout(r, CONTENT_RETRIES_MS[attempt]));
   }
   if (content.format !== "touchdown-share" || content.version !== 1) return { state: "not-available" };
-  report(0.65, "Loading airports, airlines and aircraft types…");
+  report(0.65, t("share.loading.reference"));
   const store = new Store({ deviceId: "share", validate: false });
   for (const [table, rows] of Object.entries(content.tables) as [TableName, Record<string, unknown>[]][]) {
     store.load(table, rows.map((r) => ({ ...SYSTEM, ...r }) as unknown as Row<TableName>));
@@ -233,7 +233,7 @@ export async function loadShare(report: (at: number, text: string) => void = () 
   if (reader.progress) {
     const step = () => {
       const p = reader.progress;
-      if (p) report(0.9 + 0.09 * (p.done / p.total), `Loading recorded tracks · ${nf.format(p.done)} of ${nf.format(p.total)}`);
+      if (p) report(0.9 + 0.09 * (p.done / p.total), t("share.loading.tracks", { done: p.done, total: p.total }));
     };
     step();
     const stop = reader.subscribe(step);
@@ -242,6 +242,6 @@ export async function loadShare(report: (at: number, text: string) => void = () 
     clearTimeout(timer);
     stop();
   }
-  report(0.99, "Preparing the pages…");
+  report(0.99, t("share.loading.pages"));
   return { state: "ok", data };
 }

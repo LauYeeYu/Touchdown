@@ -4,6 +4,7 @@
 
 import { useParams } from "@tanstack/react-router";
 import { liveryName, phasesOf } from "@touchdown/core";
+import { list, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode } from "../lib/codes.ts";
 import { airlineLabel, dateOnly, PHASE_LABEL, TAG_LABEL, typeName } from "../lib/format.ts";
@@ -18,7 +19,7 @@ export function SightingView() {
   const { app } = useApp();
   const { store, ref } = app;
   const s = id ? store.get("sightings", id) : null;
-  if (!s) return <NotFound what="That sighting is not in this link." back={{ to: "/spotting", label: "Spotting" }} />;
+  if (!s) return <NotFound what={t("share.sighting.notInLink")} back={{ to: "/spotting", label: t("share.nav.spotting") }} />;
   const a = store.get("airframes", s.airframeId);
   const typeText = s.model ? s.model : typeName(s.typeCode ?? a?.typeCode ?? null, ref);
   const place = s.spotName ?? airportWithCode(s.airportId, ref, s.airportRaw);
@@ -31,9 +32,9 @@ export function SightingView() {
 
   return (
     <div className="page">
-      <nav className="crumbs" aria-label="Back">
+      <nav className="crumbs" aria-label={t("common.back")}>
         <Link to="/spotting">
-          <Icon name="arrow-left" /> Spotting
+          <Icon name="arrow-left" /> {t("share.nav.spotting")}
         </Link>
       </nav>
       <div className={`aircraft-hero${livery ? " aircraft-hero--livery" : ""}`}>
@@ -41,21 +42,27 @@ export function SightingView() {
           <h1 className="route-hero__code">
             {a ? (
               <Link className="route-hero__link" to="/aircraft/$id" params={{ id: a.id }}>
-                {reg || "No registration"}
+                {reg || t("share.sighting.noRegistration")}
               </Link>
             ) : (
-              reg || "No registration"
+              reg || t("share.sighting.noRegistration")
             )}
           </h1>
           <p className="flight-date">
-            <b>{typeText || "Type not recorded"}</b>
+            <b>{typeText || t("share.sighting.typeUnknown")}</b>
             {(s.operatorId || s.operatorRaw) && ` · ${s.operatorId ? airlineLabel(s.operatorId, ref) : s.operatorRaw}`}
           </p>
           <p className="lead lead--flight">
-            Photographed{place ? ` at ${place}` : ""}
-            {day ? ` on ${day}` : ""}
-            {phases.length ? `, ${phases.join(", ").toLowerCase()}` : ""}
-            {livery ? `, in its ${livery} livery` : ""}.
+            {t("share.sighting.lead", {
+              at: place ? "yes" : "no",
+              place: place ?? "",
+              on: day ? "yes" : "no",
+              day: day ?? "",
+              seen: phases.length ? "yes" : "no",
+              phases: list(phases, "unit").toLowerCase(),
+              inLivery: livery ? "yes" : "no",
+              livery: livery ?? "",
+            })}
           </p>
         </div>
         {!livery && (
@@ -67,19 +74,19 @@ export function SightingView() {
           </figure>
         )}
       </div>
-      {livery && <LiveryBand names={[livery]} reg={reg || null} alt={`${reg}, ${typeText}`} about={typeText} facts={[{ label: "Photographed in it", value: photographedIn([s.seenOn]) }]} />}
+      {livery && <LiveryBand names={[livery]} reg={reg || null} alt={`${reg}, ${typeText}`} about={typeText} facts={[{ label: t("share.sighting.photographedIn"), value: photographedIn([s.seenOn]) }]} />}
 
       <section className="section">
         <dl className="dl share-dl">
           {place && (
             <div>
-              <dt>Place</dt>
+              <dt>{t("share.sighting.place")}</dt>
               <dd>{place}</dd>
             </div>
           )}
           {day && (
             <div>
-              <dt>Day</dt>
+              <dt>{t("share.sighting.day")}</dt>
               <dd>
                 {day}
                 {s.seenAt && ` · ${s.seenAt.slice(11, 16)}`}
@@ -88,41 +95,41 @@ export function SightingView() {
           )}
           {phases.length > 0 && (
             <div>
-              <dt>Seen</dt>
-              <dd>{phases.join(", ")}</dd>
+              <dt>{t("share.sighting.seen")}</dt>
+              <dd>{list(phases, "unit")}</dd>
             </div>
           )}
           {tags.length > 0 && (
             <div>
-              <dt>Photo</dt>
-              <dd>{tags.join(", ")}</dd>
+              <dt>{t("share.sighting.photo")}</dt>
+              <dd>{list(tags, "unit")}</dd>
             </div>
           )}
           {a?.msn && (
             <div>
-              <dt>Serial number</dt>
+              <dt>{t("share.sighting.msn")}</dt>
               <dd>{a.msn}</dd>
             </div>
           )}
           {a?.firstFlightDate && (
             <div>
-              <dt>First flight</dt>
+              <dt>{t("share.sighting.firstFlight")}</dt>
               <dd>{dateOnly(a.firstFlightDate, { day: "numeric", month: "short", year: "numeric" })}</dd>
             </div>
           )}
           {s.notes && (
             <div>
-              <dt>Notes</dt>
+              <dt>{t("share.sighting.notes")}</dt>
               <dd className="share-notes">{s.notes}</dd>
             </div>
           )}
           {photos.length > 0 && (
             <div>
-              <dt>Photos</dt>
+              <dt>{t("share.sighting.photos")}</dt>
               <dd>
                 {photos.map((p) => (
                   <a key={p.id} href={p.url!} target="_blank" rel="noopener noreferrer" className="share-photo-link">
-                    {p.label || "Photos"}
+                    {p.label || t("share.sighting.photos")}
                   </a>
                 ))}
               </dd>
