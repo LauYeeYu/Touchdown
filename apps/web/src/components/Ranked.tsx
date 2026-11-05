@@ -3,7 +3,8 @@
 
 import { useState } from "react";
 import type { Tally } from "@touchdown/core";
-import { nf, plural } from "../lib/format.ts";
+import { t } from "@touchdown/i18n";
+import { nf } from "../lib/format.ts";
 import { LeftOut } from "./Facts.tsx";
 import { useGrow } from "../lib/motion.ts";
 
@@ -11,28 +12,29 @@ interface Props {
   title: string;
   t: Tally;
   label: (key: string) => string;
-  unit: [string, string];
+  /** A row's count with its noun, for the row's tooltip: `(n) => t("common.count.flights", { count: n })`. */
+  count: (n: number) => string;
   limit?: number;
   color?: string;
   /** What a left-out record lacks: "airline" gives "3 records left out (no airline)". */
   missing: string;
 }
 
-export function Ranked({ title, t, label, unit, limit = 8, color = "var(--flown)", missing }: Props) {
+export function Ranked({ title, t: tally, label, count, limit = 8, color = "var(--flown)", missing }: Props) {
   const [all, setAll] = useState(false);
-  const items = all ? t.items : t.items.slice(0, limit);
-  const max = t.items[0]?.count ?? 1;
+  const items = all ? tally.items : tally.items.slice(0, limit);
+  const max = tally.items[0]?.count ?? 1;
   // "Show all" opens the list as a disclosure opens, so the lists below slide down instead of jumping.
   const grow = useGrow<HTMLOListElement>(all);
   return (
     <section className="ranked">
       <h3 className="ranked__title">{title}</h3>
-      {!t.items.length ? (
-        <p className="section__aside">Nothing recorded.</p>
+      {!tally.items.length ? (
+        <p className="section__aside">{t("stats.ranked.nothing")}</p>
       ) : (
         <ol className="ranked__list" ref={grow}>
           {items.map((x) => (
-            <li key={x.key} title={`${label(x.key)}: ${plural(x.count, unit[0], unit[1])}`}>
+            <li key={x.key} title={t("stats.ranked.tip", { label: label(x.key), count: count(x.count) })}>
               <span className="ranked__label">{label(x.key)}</span>
               <span className="ranked__bar" aria-hidden="true">
                 <span style={{ width: `${(x.count / max) * 100}%`, background: color }} />
@@ -43,12 +45,12 @@ export function Ranked({ title, t, label, unit, limit = 8, color = "var(--flown)
         </ol>
       )}
       <p className="ranked__foot">
-        {t.items.length > limit && (
+        {tally.items.length > limit && (
           <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
-            {all ? "Show fewer" : `Show all ${t.items.length}`}
+            {all ? t("stats.showFewer") : t("stats.showAll", { count: tally.items.length })}
           </button>
         )}
-        <LeftOut m={t} what={missing} />
+        <LeftOut m={tally} what={missing} />
       </p>
     </section>
   );

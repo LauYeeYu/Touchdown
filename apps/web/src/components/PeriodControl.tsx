@@ -4,9 +4,10 @@
 // control never changes width when the selection changes.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { t } from "@touchdown/i18n";
 import { Icon } from "../lib/icons.tsx";
 
-const label = (y: string) => (y === "all" ? "All time" : y);
+const label = (y: string) => (y === "all" ? t("stats.period.allTime") : y);
 
 interface Props {
   year: string;
@@ -25,10 +26,10 @@ function Segments({ year, years, k, onPick, onMenu, menuOpen, triggerRef }: {
 }) {
   if (k === 0) {
     return (
-      <div className="segmented" role="group" aria-label="Period">
+      <div className="segmented" role="group" aria-label={t("stats.period.label")}>
         <button type="button" className="seg seg--menu" aria-haspopup="menu" aria-expanded={!!menuOpen} aria-pressed="true" onClick={onMenu} ref={triggerRef}>
           <Icon name="check" className="seg__check" />
-          <span className="seg__label" data-ghost="All time">
+          <span className="seg__label" data-ghost={t("stats.period.allTime")}>
             <span>{label(year)}</span>
           </span>
           <Icon name="chevron-down" className="seg__chev" />
@@ -39,14 +40,14 @@ function Segments({ year, years, k, onPick, onMenu, menuOpen, triggerRef }: {
   const recent = years.slice(-k);
   const earlier = years.slice(0, years.length - recent.length);
   const pickedEarlier = earlier.includes(year);
-  const ghost = earlier.reduce((a, b) => (a.length >= b.length ? a : b), "Earlier");
+  const ghost = earlier.reduce((a, b) => (a.length >= b.length ? a : b), t("stats.period.earlier"));
   return (
-    <div className="segmented" role="group" aria-label="Period">
+    <div className="segmented" role="group" aria-label={t("stats.period.label")}>
       {earlier.length > 0 && (
         <button type="button" className="seg seg--menu" aria-haspopup="menu" aria-expanded={!!menuOpen} aria-pressed={pickedEarlier} onClick={onMenu} ref={triggerRef}>
           <Icon name="check" className="seg__check" />
           <span className="seg__label" data-ghost={ghost}>
-            <span>{pickedEarlier ? year : "Earlier"}</span>
+            <span>{pickedEarlier ? year : t("stats.period.earlier")}</span>
           </span>
           <Icon name="chevron-down" className="seg__chev" />
         </button>
@@ -135,7 +136,7 @@ export function PeriodControl({ year, years, onChange }: Props) {
       <div className="period">
         <Segments year={year} years={years} k={k} onPick={pick} onMenu={() => setOpen((o) => !o)} menuOpen={open} triggerRef={trigger} />
         {open && menuYears.length > 0 && (
-          <div className="menu" role="menu" aria-label={k === 0 ? "Period" : "Earlier years"} ref={menu} onKeyDown={onMenuKey} style={{ left: trigger.current?.offsetLeft ?? 0 }}>
+          <div className="menu" role="menu" aria-label={k === 0 ? t("stats.period.label") : t("stats.period.earlierYears")} ref={menu} onKeyDown={onMenuKey} style={{ left: trigger.current?.offsetLeft ?? 0 }}>
             {menuYears.map((y) => (
               <button key={y} type="button" role="menuitemradio" className="menu__item" aria-checked={y === year} onClick={() => pick(y)}>
                 <Icon name="check" className="menu__check" />

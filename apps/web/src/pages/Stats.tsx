@@ -3,13 +3,14 @@
 
 import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { AGE_TODAY_NOTE, ageLeftOutText, ageText, aircraftAges, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
+import { t } from "@touchdown/i18n";
+import { ageLeftOutText, ageText, aircraftAges, ageTodayNote, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, seatPositionLabel, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
 import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, CABIN_LABEL, countryName, dateOnly, dayMonthYear, distance, nf, PHASE_LABEL, plural, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, dateOnly, dayMonthYear, distance, nf, PHASE_LABEL, typeName } from "../lib/format.ts";
 import { Link } from "../lib/link.tsx";
 import { airportWithCode, routeCodes } from "../lib/codes.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -25,6 +26,7 @@ import { CustomView } from "../components/CustomView.tsx";
 import { Select } from "../components/Select.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { TrackLoading, TrackLoadingNote } from "../lib/trackLoading.tsx";
+import { tx } from "../lib/i18n.tsx";
 
 type Tab = "flights" | "sightings" | "both" | "pivot";
 
@@ -96,6 +98,8 @@ export function Stats() {
   const ap = (id: string) => airportWithCode(id, ref) || id;
   const ty = (code: string) => `${typeName(code, ref)} (${code})`;
   const fam = (id: string) => ref.family(id)?.name ?? id;
+  const flightCount = (n: number) => t("common.count.flights", { count: n });
+  const aircraftCount = (n: number) => t("common.count.aircraft", { count: n });
 
   return (
     <div className="page">
@@ -105,86 +109,86 @@ export function Stats() {
       <GlobePanel
         flights={showFlights ? globe.marks : []}
         spots={showSpots ? globe.spots : []}
-        label={`Globe with ${plural(showFlights ? globe.marks.length : 0, "flight")} and ${plural(showSpots ? globe.spots.length : 0, "spotting location")}`}
-        note={`${year === "all" ? "all time" : year}${recorded ? ` · ${recorded} of ${plural(globe.marks.length, "flight")} with a recorded track` : ""}`}
+        label={t("stats.globe.label", { flights: showFlights ? globe.marks.length : 0, spots: showSpots ? globe.spots.length : 0 })}
+        note={`${year === "all" ? t("stats.globe.allTime") : year}${recorded ? ` · ${t("stats.globe.recorded", { recorded, count: globe.marks.length })}` : ""}`}
         onFlightClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
         onAirportClick={(id) => navigate({ to: "/airports/$id", params: { id } })}
         head={
           <>
-            <div className="chips" role="group" aria-label="Show on the globe">
+            <div className="chips" role="group" aria-label={t("stats.globe.show")}>
               <button type="button" className="chip" aria-pressed={showFlights} onClick={() => setShowFlights((v) => !v)}>
                 <span className="swatch-line" />
-                Flights ({globe.marks.length})
+                {t("stats.globe.flights", { count: globe.marks.length })}
               </button>
               <button type="button" className="chip" aria-pressed={showSpots} onClick={() => setShowSpots((v) => !v)}>
                 <span className="swatch-dot" />
-                Spotting ({globe.spots.length})
+                {t("stats.globe.spots", { count: globe.spots.length })}
               </button>
             </div>
             {globe.airlines.length > 1 && (
-              <Select label="Airline" value={globe.picked} onChange={setAirline} options={[{ value: "", label: "All airlines" }, ...globe.airlines.map((a) => ({ value: a, label: airlineLabel(a, ref) }))]} />
+              <Select label={t("stats.globe.airline")} value={globe.picked} onChange={setAirline} options={[{ value: "", label: t("stats.globe.allAirlines") }, ...globe.airlines.map((a) => ({ value: a, label: airlineLabel(a, ref) }))]} />
             )}
           </>
         }
       />
       <Tabs
-        label="Statistics"
+        label={t("stats.tabs.label")}
         value={tab}
         onChange={setTab}
         items={[
-          ["flights", "Flights"],
-          ["sightings", "Spotting"],
-          ["both", "Both"],
-          ["pivot", "Custom view"],
+          ["flights", t("stats.tabs.flights")],
+          ["sightings", t("stats.tabs.sightings")],
+          ["both", t("stats.tabs.both")],
+          ["pivot", t("stats.tabs.custom")],
         ]}
       />
 
       {tab === "flights" && (
         <div role="tabpanel">
           <dl className="facts facts--stats">
-            <Fact label="Flights" value={nf.format(fs.flights)} />
-            <Fact label="Distance" value={distance(fs.distanceKm.value, unit)} detail={<>{(fs.distanceKm.value / EARTH_CIRCUMFERENCE_KM).toFixed(1)} times around the Earth <LeftOut m={fs.distanceKm} what="airports" /></>} />
-            <Fact label="Time in the air" value={<Duration min={fs.minutes.value} pad={false} />} detail={<LeftOut m={fs.minutes} what="times" />} />
-            <Fact label="Airports" value={measuredText(fs.airports)} detail={`${plural(fs.countries.value, "country", "countries")}`} />
-            <Fact label="Airlines" value={measuredText(fs.airlines)} />
-            <Fact label="Aircraft" value={measuredText(fs.aircraft)} detail={<>{fs.aircraft.provisional ? `${nf.format(fs.aircraft.provisional)} without a serial number` : "all confirmed"} <LeftOut m={fs.aircraft} what="registration" /></>} />
-            <Fact label="Aircraft types" value={measuredText(fs.types)} />
-            <Fact label="Routes" value={measuredText(fs.routes)} detail="counted both ways as one" />
+            <Fact label={t("stats.flights.flights")} value={nf.format(fs.flights)} />
+            <Fact label={t("stats.flights.distance")} value={distance(fs.distanceKm.value, unit)} detail={<>{t("stats.flights.aroundEarth", { times: (fs.distanceKm.value / EARTH_CIRCUMFERENCE_KM).toFixed(1) })} <LeftOut m={fs.distanceKm} what="airports" /></>} />
+            <Fact label={t("stats.flights.time")} value={<Duration min={fs.minutes.value} pad={false} />} detail={<LeftOut m={fs.minutes} what="times" />} />
+            <Fact label={t("stats.flights.airports")} value={measuredText(fs.airports)} detail={t("common.count.countries", { count: fs.countries.value })} />
+            <Fact label={t("stats.flights.airlines")} value={measuredText(fs.airlines)} />
+            <Fact label={t("stats.flights.aircraft")} value={measuredText(fs.aircraft)} detail={<>{fs.aircraft.provisional ? t("stats.aircraft.provisional", { count: fs.aircraft.provisional }) : t("stats.aircraft.confirmed")} <LeftOut m={fs.aircraft} what="registration" /></>} />
+            <Fact label={t("stats.flights.types")} value={measuredText(fs.types)} />
+            <Fact label={t("stats.flights.routes")} value={measuredText(fs.routes)} detail={t("stats.flights.routesBothWays")} />
           </dl>
           <div className="ranked-grid">
-            <Ranked title="Airlines" t={fs.byAirline} label={op} unit={["flight", "flights"]} missing="airline" />
-            <Ranked title="Routes" t={fs.byRoute} label={(k) => routeCodes(k, ref)} unit={["flight", "flights"]} missing="airports" />
-            <Ranked title="Airports" t={fs.airportVisits} label={ap} unit={["visit", "visits"]} missing="airport" />
-            <Ranked title="Aircraft types" t={fs.byType} label={ty} unit={["flight", "flights"]} missing="type" />
-            <Ranked title="Families" t={fs.byFamily} label={fam} unit={["flight", "flights"]} missing="type" />
-            <Ranked title="Manufacturers" t={fs.byManufacturer} label={(k) => k} unit={["flight", "flights"]} missing="type" />
-            <Ranked title="Seat position" t={fs.seatPositions} label={(k) => k[0]!.toUpperCase() + k.slice(1)} unit={["flight", "flights"]} missing="seat position" />
-            <Ranked title="Cabin" t={fs.cabinClasses} label={(k) => CABIN_LABEL[k] ?? k} unit={["flight", "flights"]} missing="cabin" />
+            <Ranked title={t("stats.flights.airlines")} t={fs.byAirline} label={op} count={flightCount} missing="airline" />
+            <Ranked title={t("stats.flights.routes")} t={fs.byRoute} label={(k) => routeCodes(k, ref)} count={flightCount} missing="airports" />
+            <Ranked title={t("stats.flights.airports")} t={fs.airportVisits} label={ap} count={(n) => t("stats.flights.visits", { count: n })} missing="airport" />
+            <Ranked title={t("stats.flights.types")} t={fs.byType} label={ty} count={flightCount} missing="type" />
+            <Ranked title={t("stats.flights.families")} t={fs.byFamily} label={fam} count={flightCount} missing="type" />
+            <Ranked title={t("stats.flights.manufacturers")} t={fs.byManufacturer} label={(k) => k} count={flightCount} missing="type" />
+            <Ranked title={t("stats.flights.seatPosition")} t={fs.seatPositions} label={seatPositionLabel} count={flightCount} missing="seat position" />
+            <Ranked title={t("stats.flights.cabin")} t={fs.cabinClasses} label={(k) => CABIN_LABEL[k] ?? k} count={flightCount} missing="cabin" />
           </div>
           {(extension.flights.length > 0 || extension.wait) && (
             <section className="section" aria-labelledby="extension-title">
               <div className="section__head section__head--wrap">
                 <span className="titled">
                   <h2 className="section__title" id="extension-title">
-                    Route extension
+                    {t("stats.extension.title")}
                   </h2>
                   <HelpTip
-                    label="About route extension"
-                    text={`The distance each flight flew beyond the great circle between its airports. A track that has a gap or does not reach an airport counts that stretch as the great circle, so its figure is a minimum, marked "at least".${
-                      !extension.wait && extension.flights.length < flights.length ? ` Shown for ${nf.format(extension.flights.length)} of ${plural(flights.length, "flight")} with a recorded track.` : ""
+                    label={t("stats.extension.about")}
+                    text={`${t("stats.extension.help")}${
+                      !extension.wait && extension.flights.length < flights.length ? ` ${t("stats.extension.shownFor", { shown: extension.flights.length, count: flights.length })}` : ""
                     }`}
                   />
                 </span>
                 <div className="extension-sort">
                   <span className="extension-sort__label" id="extension-sort">
-                    Sort by
+                    {t("stats.extension.sortBy")}
                   </span>
                   <div className="segmented segmented--small" role="group" aria-labelledby="extension-sort">
                     <button type="button" className="seg" aria-pressed={extensionSort === "percent"} onClick={() => setExtensionSort("percent")}>
-                      Extension
+                      {t("stats.extension.percent")}
                     </button>
                     <button type="button" className="seg" aria-pressed={extensionSort === "extra"} onClick={() => setExtensionSort("extra")}>
-                      Extra
+                      {t("stats.extension.extra")}
                     </button>
                   </div>
                 </div>
@@ -204,16 +208,16 @@ export function Stats() {
               <div className="section__head section__head--wrap">
                 <span className="titled">
                   <h2 className="section__title" id="age-title">
-                    Aircraft age
+                    {t("stats.age.title")}
                   </h2>
-                  <HelpTip label="About aircraft age" text={ageHelp(ages, flights.length)} />
+                  <HelpTip label={t("stats.age.about")} text={ageHelp(ages, flights.length)} />
                 </span>
-                <div className="segmented segmented--small" role="group" aria-label="Order">
+                <div className="segmented segmented--small" role="group" aria-label={t("stats.age.order")}>
                   <button type="button" className="seg" aria-pressed={ageOrder === "oldest"} onClick={() => setAgeOrder("oldest")}>
-                    Oldest first
+                    {t("stats.age.oldest")}
                   </button>
                   <button type="button" className="seg" aria-pressed={ageOrder === "youngest"} onClick={() => setAgeOrder("youngest")}>
-                    Youngest first
+                    {t("stats.age.youngest")}
                   </button>
                 </div>
               </div>
@@ -228,15 +232,15 @@ export function Stats() {
           {fs.perYear.length > 1 && (
             <section className="section">
               <div className="section__head">
-                <h2 className="section__title">By year</h2>
+                <h2 className="section__title">{t("stats.byYear.title")}</h2>
               </div>
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Year</th>
-                    <th className="num">Flights</th>
-                    <th className="num">Distance</th>
-                    <th className="num">Time in the air</th>
+                    <th>{t("stats.column.year")}</th>
+                    <th className="num">{t("stats.flights.flights")}</th>
+                    <th className="num">{t("stats.flights.distance")}</th>
+                    <th className="num">{t("stats.flights.time")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,24 +264,24 @@ export function Stats() {
       {tab === "sightings" && (
         <div role="tabpanel">
           <dl className="facts facts--stats">
-            <Fact label="Aircraft" value={measuredText(ss.aircraft)} detail={<>{ss.aircraft.provisional ? `${nf.format(ss.aircraft.provisional)} without a serial number` : "all confirmed"} <LeftOut m={ss.aircraft} what="registration" /></>} />
-            <Fact label="Sightings" value={nf.format(ss.sightings)} />
-            <Fact label="Airlines" value={measuredText(ss.airlines)} detail={<LeftOut m={ss.airlines} what="airline" />} />
-            <Fact label="Families" value={measuredText(ss.families)} />
-            <Fact label="Aircraft types" value={measuredText(ss.typeCodes)} />
-            <Fact label="Special-livery aircraft" value={measuredText(ss.specialLiveryAircraft)} detail={plural(ss.specialLiveries.value, "livery", "liveries")} />
-            <Fact label="Seen more than once" value={nf.format(ss.repeats.length)} detail="aircraft" />
-            <Fact label="Locations" value={measuredText(ss.airports)} />
+            <Fact label={t("stats.sightings.aircraft")} value={measuredText(ss.aircraft)} detail={<>{ss.aircraft.provisional ? t("stats.aircraft.provisional", { count: ss.aircraft.provisional }) : t("stats.aircraft.confirmed")} <LeftOut m={ss.aircraft} what="registration" /></>} />
+            <Fact label={t("stats.sightings.sightings")} value={nf.format(ss.sightings)} />
+            <Fact label={t("stats.sightings.airlines")} value={measuredText(ss.airlines)} detail={<LeftOut m={ss.airlines} what="airline" />} />
+            <Fact label={t("stats.sightings.families")} value={measuredText(ss.families)} />
+            <Fact label={t("stats.sightings.types")} value={measuredText(ss.typeCodes)} />
+            <Fact label={t("stats.sightings.specialLivery")} value={measuredText(ss.specialLiveryAircraft)} detail={t("common.count.liveries", { count: ss.specialLiveries.value })} />
+            <Fact label={t("stats.sightings.repeats")} value={nf.format(ss.repeats.length)} detail={t("stats.sightings.repeatsUnit")} />
+            <Fact label={t("stats.sightings.locations")} value={measuredText(ss.airports)} />
           </dl>
-          <p className="section__aside stats-note">Counts are aircraft, each physical aircraft once, unless they say sightings.</p>
+          <p className="section__aside stats-note">{t("stats.sightings.note")}</p>
           <div className="ranked-grid">
-            <Ranked title="Airlines" t={ss.byAirline} label={op} unit={["aircraft", "aircraft"]} color="var(--spotted)" missing="airline" />
-            <Ranked title="Families" t={ss.byFamily} label={fam} unit={["aircraft", "aircraft"]} color="var(--spotted)" missing="type" />
-            <Ranked title="Aircraft types" t={ss.byType} label={ty} unit={["aircraft", "aircraft"]} color="var(--spotted)" missing="type" />
-            <Ranked title="Manufacturers" t={ss.byManufacturer} label={(k) => k} unit={["aircraft", "aircraft"]} color="var(--spotted)" missing="type" />
-            <Ranked title="Locations" t={ss.byLocation} label={ap} unit={["aircraft", "aircraft"]} color="var(--spotted)" missing="location" />
-            <Ranked title="Registration countries" t={ss.byRegistrationCountry} label={countryName} unit={["aircraft", "aircraft"]} color="var(--spotted)" missing="registration" />
-            <Ranked title="Phase" t={ss.byPhase} label={(k) => PHASE_LABEL[k] ?? k} unit={["sighting", "sightings"]} color="var(--spotted)" missing="phase" />
+            <Ranked title={t("stats.sightings.airlines")} t={ss.byAirline} label={op} count={aircraftCount} color="var(--spotted)" missing="airline" />
+            <Ranked title={t("stats.sightings.families")} t={ss.byFamily} label={fam} count={aircraftCount} color="var(--spotted)" missing="type" />
+            <Ranked title={t("stats.sightings.types")} t={ss.byType} label={ty} count={aircraftCount} color="var(--spotted)" missing="type" />
+            <Ranked title={t("stats.sightings.manufacturers")} t={ss.byManufacturer} label={(k) => k} count={aircraftCount} color="var(--spotted)" missing="type" />
+            <Ranked title={t("stats.sightings.locations")} t={ss.byLocation} label={ap} count={aircraftCount} color="var(--spotted)" missing="location" />
+            <Ranked title={t("stats.sightings.regCountries")} t={ss.byRegistrationCountry} label={countryName} count={aircraftCount} color="var(--spotted)" missing="registration" />
+            <Ranked title={t("stats.sightings.phase")} t={ss.byPhase} label={(k) => PHASE_LABEL[k] ?? k} count={(n) => t("common.count.sightings", { count: n })} color="var(--spotted)" missing="phase" />
           </div>
         </div>
       )}
@@ -285,20 +289,20 @@ export function Stats() {
       {tab === "both" && (
         <div role="tabpanel">
           <dl className="facts facts--stats">
-            <Fact label="Flown and photographed" value={nf.format(cs.flownAndPhotographed.length)} detail="aircraft" />
-            <Fact label="Types spotted, never flown" value={nf.format(cs.spottedNeverFlown.length)} />
+            <Fact label={t("stats.both.flownAndPhotographed")} value={nf.format(cs.flownAndPhotographed.length)} detail={t("stats.both.flownAndPhotographedUnit")} />
+            <Fact label={t("stats.both.spottedNeverFlown")} value={nf.format(cs.spottedNeverFlown.length)} />
           </dl>
           <section className="section">
             <div className="section__head">
-              <h2 className="section__title">Types flown and spotted</h2>
+              <h2 className="section__title">{t("stats.both.types")}</h2>
             </div>
             <table className="table">
               <thead>
                 <tr>
-                  <th>Type</th>
-                  <th className="num">Flights</th>
-                  <th className="num">Aircraft flown</th>
-                  <th className="num">Aircraft spotted</th>
+                  <th>{t("stats.column.type")}</th>
+                  <th className="num">{t("stats.flights.flights")}</th>
+                  <th className="num">{t("stats.both.aircraftFlown")}</th>
+                  <th className="num">{t("stats.both.aircraftSpotted")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -325,8 +329,7 @@ export function Stats() {
 function Pct({ e }: { e: { percent: number; minimum: boolean } }) {
   return (
     <span className="ext-fig">
-      {e.minimum && <span className="ext-min">at least </span>}
-      <span>{extensionPercent(e.percent)}</span>
+      {e.minimum ? tx("stats.extension.atLeast", { percent: extensionPercent(e.percent) }, { min: (text) => <span className="ext-min">{text}</span>, figure: (text) => <span>{text}</span> }) : <span>{extensionPercent(e.percent)}</span>}
     </span>
   );
 }
@@ -340,7 +343,7 @@ function SortHeading({ by, label, sort, onSort, className }: { by: ExtensionSort
   const on = sort === by;
   return (
     <th className={`num ${className}`} aria-sort={on ? "descending" : "none"}>
-      <button type="button" className={`th-sort${on ? " is-on" : ""}`} onClick={() => onSort(by)} title={on ? `Sorted by ${label.toLowerCase()}, largest first` : `Sort by ${label.toLowerCase()}`}>
+      <button type="button" className={`th-sort${on ? " is-on" : ""}`} onClick={() => onSort(by)} title={on ? t("stats.extension.sortedByColumn", { by }) : t("stats.extension.sortByColumn", { by })}>
         {label}
         <Icon name={on ? "chevron-down" : "chevrons-up-down"} />
       </button>
@@ -356,15 +359,15 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
   const grow = useGrow<HTMLDivElement>(all);
   return (
     <div>
-      <h3 className="ranked__title">Most indirect flights</h3>
+      <h3 className="ranked__title">{t("stats.extension.mostIndirect")}</h3>
       <div ref={grow}>
         <table className="table table--fixed">
           <thead>
             <tr>
-              <th>Flight</th>
-              <th className="col-route">Route</th>
-              <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} className="col-ext" />
-              <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} className="col-extra" />
+              <th>{t("stats.column.flight")}</th>
+              <th className="col-route">{t("stats.column.route")}</th>
+              <SortHeading by="percent" label={t("stats.extension.percent")} sort={sort} onSort={onSort} className="col-ext" />
+              <SortHeading by="extra" label={t("stats.extension.extra")} sort={sort} onSort={onSort} className="col-extra" />
             </tr>
           </thead>
           <tbody>
@@ -374,7 +377,7 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
                 <tr key={e.flightId}>
                   <td>
                     <Link to="/flights/$id" params={{ id: e.flightId }}>
-                      {v?.f.flightNumber ?? "Flight"}
+                      {v?.f.flightNumber ?? t("stats.column.flight")}
                     </Link>
                     {v?.day && <span className="muted"> · {dateOnly(v.day, { day: "numeric", month: "short", year: "numeric" })}</span>}
                     {v && <span className="extension-sub">{`${v.fromCode} → ${v.toCode}`}</span>}
@@ -393,7 +396,7 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
       {rows.length > 10 && (
         <p className="ranked__foot">
           <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
-            {all ? "Show fewer" : `Show all ${rows.length}`}
+            {all ? t("stats.showFewer") : t("stats.showAll", { count: rows.length })}
           </button>
         </p>
       )}
@@ -405,14 +408,14 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
 function ExtensionByRoute({ rows, label, unit, sort, onSort }: { rows: RouteExtensionByRoute[]; label: (key: string) => string; unit: Settings["distanceUnit"]; sort: ExtensionSort; onSort: (s: ExtensionSort) => void }) {
   return (
     <div>
-      <h3 className="ranked__title">By route</h3>
+      <h3 className="ranked__title">{t("stats.extension.byRoute")}</h3>
       <table className="table table--fixed">
         <thead>
           <tr>
-            <th>Route</th>
-            <th className="num col-count">Flights</th>
-            <SortHeading by="percent" label="Extension" sort={sort} onSort={onSort} className="col-ext" />
-            <SortHeading by="extra" label="Extra" sort={sort} onSort={onSort} className="col-extra" />
+            <th>{t("stats.column.route")}</th>
+            <th className="num col-count">{t("stats.flights.flights")}</th>
+            <SortHeading by="percent" label={t("stats.extension.percent")} sort={sort} onSort={onSort} className="col-ext" />
+            <SortHeading by="extra" label={t("stats.extension.extra")} sort={sort} onSort={onSort} className="col-extra" />
           </tr>
         </thead>
         <tbody>
@@ -420,7 +423,7 @@ function ExtensionByRoute({ rows, label, unit, sort, onSort }: { rows: RouteExte
             <tr key={r.route}>
               <td className="extension-route">
                 {label(r.route)}
-                <span className="extension-sub">{plural(r.flights, "flight")}</span>
+                <span className="extension-sub">{t("common.count.flights", { count: r.flights })}</span>
               </td>
               <td className="num col-count">{nf.format(r.flights)}</td>
               <td className="num">
@@ -475,14 +478,14 @@ function ExtensionWaiting({ wait }: { wait: TrackWait }) {
     <div className="extension-grid extension-wait" aria-busy="true">
       <TrackLoadingNote waiting={wait.total - wait.done} total={wait.total} />
       <div aria-hidden="true">
-        <h3 className="ranked__title">Most indirect flights</h3>
+        <h3 className="ranked__title">{t("stats.extension.mostIndirect")}</h3>
         <table className="table table--fixed">
           <thead>
             <tr>
-              <th>Flight</th>
-              <th className="col-route">Route</th>
-              <th className="num col-ext">Extension</th>
-              <th className="num col-extra">Extra</th>
+              <th>{t("stats.column.flight")}</th>
+              <th className="col-route">{t("stats.column.route")}</th>
+              <th className="num col-ext">{t("stats.extension.percent")}</th>
+              <th className="num col-extra">{t("stats.extension.extra")}</th>
             </tr>
           </thead>
           <tbody>
@@ -502,14 +505,14 @@ function ExtensionWaiting({ wait }: { wait: TrackWait }) {
       </div>
       {wait.routeRows > 0 && (
         <div aria-hidden="true">
-          <h3 className="ranked__title">By route</h3>
+          <h3 className="ranked__title">{t("stats.extension.byRoute")}</h3>
           <table className="table table--fixed">
             <thead>
               <tr>
-                <th>Route</th>
-                <th className="num col-count">Flights</th>
-                <th className="num col-ext">Extension</th>
-                <th className="num col-extra">Extra</th>
+                <th>{t("stats.column.route")}</th>
+                <th className="num col-count">{t("stats.flights.flights")}</th>
+                <th className="num col-ext">{t("stats.extension.percent")}</th>
+                <th className="num col-extra">{t("stats.extension.extra")}</th>
               </tr>
             </thead>
             <tbody>
@@ -534,8 +537,8 @@ function ExtensionWaiting({ wait }: { wait: TrackWait }) {
 
 /** What the section measures, and for how many of the period's flights. */
 function ageHelp(ages: AircraftAges, flights: number): string {
-  const shown = ages.whenFlown.length < flights ? ` Shown for ${nf.format(ages.whenFlown.length)} of ${plural(flights, "flight")}.` : "";
-  return `Age is calculated from each aircraft's first flight to your flight date, and to today. ${AGE_TODAY_NOTE}.${shown}`;
+  const shown = ages.whenFlown.length < flights ? ` ${t("stats.age.shownFor", { shown: ages.whenFlown.length, count: flights })}` : "";
+  return `${t("stats.age.help", { note: ageTodayNote() })}${shown}`;
 }
 
 /** The section's figures in a sentence: the average age when flown, and its range. */
@@ -544,14 +547,10 @@ function AgeSummary({ rows }: { rows: AgeWhenFlown[] }) {
   const average = averageAge(rows)!;
   if (rows.length === 1)
     return (
-      <p className="age-summary">
-        Aircraft age: <b>{ageText(average)}</b> when you flew.
-      </p>
+      <p className="age-summary">{tx("stats.age.one", { age: ageText(average) }, { b: (text) => <b>{text}</b> })}</p>
     );
   return (
-    <p className="age-summary">
-      Average aircraft age: <b>{ageText(average)}</b> (range: <b>{ageText(Math.min(...days))}</b> to <b>{ageText(Math.max(...days))}</b>).
-    </p>
+    <p className="age-summary">{tx("stats.age.average", { average: ageText(average), min: ageText(Math.min(...days)), max: ageText(Math.max(...days)) }, { b: (text) => <b>{text}</b> })}</p>
   );
 }
 
@@ -569,7 +568,7 @@ function useTenRows<T>(rows: T[]) {
     rows.length > 10 ? (
       <p className="ranked__foot">
         <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
-          {all ? "Show fewer" : `Show all ${rows.length}`}
+          {all ? t("stats.showFewer") : t("stats.showAll", { count: rows.length })}
         </button>
       </p>
     ) : null;
@@ -581,14 +580,14 @@ function AgeWhenFlownTable({ rows, views, reference }: { rows: AgeWhenFlown[]; v
   const { shown, grow, foot } = useTenRows(rows);
   return (
     <div>
-      <h3 className="ranked__title">When you flew</h3>
+      <h3 className="ranked__title">{t("stats.age.whenFlown")}</h3>
       <div ref={grow}>
         <table className="table table--fixed">
           <thead>
             <tr>
-              <th>Flight</th>
-              <th className="col-reg">Aircraft</th>
-              <th className="num col-age">Age</th>
+              <th>{t("stats.column.flight")}</th>
+              <th className="col-reg">{t("stats.column.aircraft")}</th>
+              <th className="num col-age">{t("stats.age.age")}</th>
             </tr>
           </thead>
           <tbody>
@@ -599,14 +598,14 @@ function AgeWhenFlownTable({ rows, views, reference }: { rows: AgeWhenFlown[]; v
                 <tr key={r.flightId}>
                   <td>
                     <Link to="/flights/$id" params={{ id: r.flightId }}>
-                      {f?.flightNumber ?? "Flight"}
+                      {f?.flightNumber ?? t("stats.column.flight")}
                     </Link>
                     <span className="muted"> · {dayMonthYear(r.day)}</span>
                     <span className="extension-sub">{[f?.registration, type].filter(Boolean).join(" · ")}</span>
                   </td>
                   <td className="col-reg">
                     <Link to="/aircraft/$id" params={{ id: r.airframeId }}>
-                      {f?.registration ?? "Aircraft"}
+                      {f?.registration ?? t("stats.column.aircraft")}
                     </Link>
                     {type && <span className="age-sub">{type}</span>}
                   </td>
@@ -630,14 +629,14 @@ function AgeNowTable({ rows, reference }: { rows: AgeNow[]; reference: RefIndex 
   const { shown, grow, foot } = useTenRows(rows);
   return (
     <div>
-      <h3 className="ranked__title">Age today</h3>
+      <h3 className="ranked__title">{t("stats.age.today")}</h3>
       <div ref={grow}>
         <table className="table table--fixed">
           <thead>
             <tr>
-              <th>Aircraft</th>
-              <th className="col-first">First flight</th>
-              <th className="num col-age">Since first flight</th>
+              <th>{t("stats.column.aircraft")}</th>
+              <th className="col-first">{t("stats.age.firstFlight")}</th>
+              <th className="num col-age">{t("stats.age.sinceFirstFlight")}</th>
             </tr>
           </thead>
           <tbody>
@@ -649,14 +648,15 @@ function AgeNowTable({ rows, reference }: { rows: AgeNow[]; reference: RefIndex 
                   <td>
                     <span className="age-aircraft">
                       <Link to="/aircraft/$id" params={{ id: r.airframeId }}>
-                        {r.registration ?? "Aircraft"}
+                        {r.registration ?? t("stats.column.aircraft")}
                       </Link>
                       {status && <span className="pill">{status}</span>}
                     </span>
                     <span className="age-sub">
                       {type}
                       <span className="age-sub__phone">
-                        {type ? " · " : ""}first flew {dayMonthYear(r.firstFlightDate)}
+                        {type ? " · " : ""}
+                        {t("stats.age.firstFlew", { date: dayMonthYear(r.firstFlightDate) })}
                       </span>
                     </span>
                   </td>

@@ -3,7 +3,8 @@
 
 import { useEffect, useRef } from "react";
 import { scaleLinear } from "d3-scale";
-import { MONTHS, MONTHS_LONG, nf, plural } from "../lib/format.ts";
+import { t } from "@touchdown/i18n";
+import { monthNames, nf } from "../lib/format.ts";
 import { hideTip, showTip } from "./overlay.tsx";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -24,13 +25,13 @@ function roundedTopBar(x: number, y: number, w: number, h: number, r: number): s
 interface MonthChartProps {
   values: number[]; // 12
   color: string;
-  unitOne: string;
-  unitMany: string;
+  /** A month's figure with its noun, for the month's tooltip: `(n) => t("common.count.flights", { count: n })`. */
+  count: (n: number) => string;
   futureFrom: number | null; // first month index not yet reached, for the current year
   yearLabel: string;
 }
 
-export function MonthChart({ values, color, unitOne, unitMany, futureFrom, yearLabel }: MonthChartProps) {
+export function MonthChart({ values, color, count, futureFrom, yearLabel }: MonthChartProps) {
   const host = useRef<HTMLDivElement>(null);
   const key = values.join(",") + `|${futureFrom}|${yearLabel}`;
   useEffect(() => {
@@ -61,15 +62,18 @@ export function MonthChart({ values, color, unitOne, unitMany, futureFrom, yearL
       const max = Math.max(...values);
       const maxIndex = values.indexOf(max);
       const bars: SVGPathElement[] = [];
+      const initials = monthNames("narrow");
+      const months = monthNames();
       values.forEach((v, i) => {
         const cx = band * i + band / 2;
         const future = futureFrom !== null && i >= futureFrom;
         if (future) el(g, "line", { class: "future", x1: cx - bw / 2 + 2, x2: cx + bw / 2 - 2, y1: ih, y2: ih });
         else if (v > 0) bars.push(el(g, "path", { class: "bar", "data-i": i, fill: color, d: roundedTopBar(cx - bw / 2, y(v), bw, ih - y(v), 4) }));
         if (i === maxIndex && v > 0) el(g, "text", { class: "bar-label", x: cx, y: y(v) - 6, "text-anchor": "middle" }).textContent = nf.format(v);
-        el(g, "text", { class: "tick-label", x: cx, y: ih + 17, "text-anchor": "middle" }).textContent = MONTHS[i]![0]!;
+        el(g, "text", { class: "tick-label", x: cx, y: ih + 17, "text-anchor": "middle" }).textContent = initials[i]!;
         const hit = el(g, "rect", { class: "bar-hit", x: band * i, y: -m.top, width: band, height: ih + m.top + 20 });
-        const tip = `<strong>${MONTHS_LONG[i]}${yearLabel ? " " + yearLabel : ""}</strong><br><span class="muted">${future ? "Not yet" : plural(v, unitOne, unitMany)}</span>`;
+        const month = yearLabel ? t("stats.chart.monthYear", { month: months[i]!, year: yearLabel }) : months[i]!;
+        const tip = `<strong>${month}</strong><br><span class="muted">${future ? t("stats.chart.notYet") : count(v)}</span>`;
         const enter = (ev: PointerEvent) => {
           for (const b of bars) b.classList.toggle("is-dim", Number(b.dataset.i) !== i);
           showTip(tip, ev.clientX, ev.clientY);
@@ -129,12 +133,12 @@ export function AltitudeChart({ points }: { points: AltitudePoint[] }) {
       const g = el(svg, "g", { transform: `translate(${m.left},${m.top})` });
       const grid = el(g, "g", { class: "grid" });
       const axis = el(g, "g", { class: "axis" });
-      for (const t of [0, 10000, 20000, 30000, 40000]) {
-        el(grid, "line", { x1: 0, x2: iw, y1: y(t), y2: y(t) });
-        el(axis, "text", { x: -8, y: y(t) + 4, "text-anchor": "end" }).textContent = t ? `${t / 1000}k ft` : "0";
+      for (const ft of [0, 10000, 20000, 30000, 40000]) {
+        el(grid, "line", { x1: 0, x2: iw, y1: y(ft), y2: y(ft) });
+        el(axis, "text", { x: -8, y: y(ft) + 4, "text-anchor": "end" }).textContent = ft ? t("stats.chart.axisFeet", { n: ft / 1000 }) : "0";
       }
       const step = total > 600 ? 120 : 60;
-      for (let h = step; h < total; h += step) el(axis, "text", { x: x(h), y: ih + 18, "text-anchor": "middle" }).textContent = `${h / 60} h`;
+      for (let h = step; h < total; h += step) el(axis, "text", { x: x(h), y: ih + 18, "text-anchor": "middle" }).textContent = t("stats.chart.axisHours", { h: h / 60 });
       const line = points.map((p, i) => `${i ? "L" : "M"}${x(p.min).toFixed(1)},${y(p.alt).toFixed(1)}`).join("");
       el(g, "path", { class: "area", d: `${line}L${x(total)},${ih}L0,${ih}Z` });
       el(g, "path", { class: "line", d: line });
@@ -143,9 +147,9 @@ export function AltitudeChart({ points }: { points: AltitudePoint[] }) {
       const hit = el(g, "rect", { width: iw, height: ih, fill: "transparent" });
       hit.addEventListener("pointermove", (ev) => {
         const r = hit.getBoundingClientRect();
-        const t = x.invert(ev.clientX - r.left);
+        const at = x.invert(ev.clientX - r.left);
         let best = points[0]!;
-        for (const p of points) if (Math.abs(p.min - t) < Math.abs(best.min - t)) best = p;
+        for (const p of points) if (Math.abs(p.min - at) < Math.abs(best.min - at)) best = p;
         cross.setAttribute("style", "");
         cross.setAttribute("x1", String(x(best.min)));
         cross.setAttribute("x2", String(x(best.min)));
@@ -154,7 +158,8 @@ export function AltitudeChart({ points }: { points: AltitudePoint[] }) {
         dot.setAttribute("cy", String(y(best.alt)));
         const h = Math.floor(best.min / 60);
         const mm = Math.round(best.min % 60);
-        showTip(`<strong>${nf.format(best.alt)} ft${best.gs !== null ? ` · ${best.gs} kt` : ""}</strong><br><span class="muted">${h ? `${h} h ` : ""}${mm} min after the first point · ${best.clock}</span>`, ev.clientX, ev.clientY);
+        const after = h ? t("stats.chart.afterHours", { h, m: mm }) : t("stats.chart.afterMinutes", { m: mm });
+        showTip(`<strong>${t("stats.chart.feet", { alt: best.alt })}${best.gs !== null ? ` · ${t("stats.chart.knots", { gs: best.gs })}` : ""}</strong><br><span class="muted">${after} · ${best.clock}</span>`, ev.clientX, ev.clientY);
       });
       hit.addEventListener("pointerleave", () => {
         cross.setAttribute("style", "display:none");
