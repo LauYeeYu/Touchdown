@@ -2340,7 +2340,6 @@ export interface MessageArgs {
   "settings.sync.conflicts": { "<link>": "tag"; count: "number" };
   "settings.sync.now": {};
   "settings.title": {};
-  "settings.guide": { "<link>": "tag" };
   "settings.display.title": {};
   "settings.display.theme": {};
   "settings.display.theme.system": {};

@@ -41,7 +41,6 @@
   "sync.conflicts": "{count, plural, one {#\u00a0field was} other {#\u00a0fields were}} changed on two devices before either saw the other's change. <link>Choose which to keep</link>.",
   "sync.now": "Sync now",
   "title": "Settings",
-  "guide": "<link>Getting started</link> explains the modes and the first steps.",
   "display.title": "Display",
   "display.theme": "Theme",
   "display.theme.system": "Follow the device",
