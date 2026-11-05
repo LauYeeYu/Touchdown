@@ -2852,6 +2852,38 @@ a.shares-list__title:hover {
   padding: 0 0 16px;
 }
 
+/* Settings › Data: the account card, each item what it is and what it holds, then the options its buttons follow,
+   then the buttons. Buttons sit under the text, not at the end, because an item may have four. */
+.data-card {
+  margin-top: 16px;
+}
+
+.data-item {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.data-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.data-item .account-item__text small {
+  text-wrap: pretty;
+}
+
+.data-item .check input {
+  margin: 0;
+}
+
+.data-card + .button-row {
+  margin-top: 20px;
+}
+
 /* Settings' notes run the width of the page, as its lists and cards do. */
 .page--settings .form-sub {
   max-width: none;

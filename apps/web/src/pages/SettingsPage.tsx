@@ -395,94 +395,109 @@ export function SettingsPage() {
           {kept === false && ` ${t("settings.data.mayClear")}`}
         </span>
       </p>
-      <div className="button-row">
-        <button
-          type="button"
-          className="btn btn--quiet"
-          onClick={() => {
-            download(`touchdown-backup-${todayIn()}.zip`, backupZip(store) as BlobPart, "application/zip");
-            app.markBackup();
-          }}
-        >
-          <Icon name="download" />
-          {t("settings.data.export")}
-        </button>
-        <label className="btn btn--quiet">
-          <Icon name="upload" />
-          {t("settings.data.restore")}
-          <input
-            type="file"
-            accept=".zip,application/zip"
-            className="visually-hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void restore(f);
-              e.target.value = "";
-            }}
-          />
-        </label>
-      </div>
-      {import.meta.env.DEV && (
-        <div className="button-row">
-          <button
-            type="button"
-            className="btn btn--quiet btn--small"
-            onClick={async () => {
-              if (!window.confirm(t("settings.dev.loadConfirm"))) return;
-              if (import.meta.env.DEV && !(await (await import("../data/localBackup.ts")).loadLocalBackup(app))) toast(t("settings.dev.noBackup"));
-            }}
-          >
-            <Icon name="hard-drive" />
-            {t("settings.dev.load")}
-          </button>
-        </div>
-      )}
-      <p className="form-sub">{t("settings.data.backupNote")}</p>
-      <div className="button-row">
-        {(["flights", "sightings", "airframes"] as const).map((table) => (
-          <button key={table} type="button" className="btn btn--quiet btn--small" onClick={() => download(`touchdown-${table}-${todayIn()}.csv`, tableCsv(store, table, includePrivate), "text/csv")}>
-            <Icon name="file" />
-            {t("settings.data.csv", { table })}
-          </button>
-        ))}
-        <label className="check">
-          <input type="checkbox" checked={includePrivate} onChange={(e) => setIncludePrivate(e.target.checked)} />
-          {t("settings.data.includePrivate")}
-        </label>
-      </div>
-      <div className="button-row">
-        <button type="button" className="btn btn--quiet btn--small" disabled={sheet.busy} onClick={() => void toGoogleSheets()}>
-          <Icon name={sheet.busy ? "loader-circle" : "table"} />
-          {sheet.busy ? t("settings.sheets.making") : t("settings.sheets.button")}
-        </button>
-        {sheet.made && (
-          <a className="link-btn" href={sheet.made.url} target="_blank" rel="noopener">
-            {t("settings.sheets.open", { name: sheet.made.name })}
-            <Icon name="external-link" />
-          </a>
-        )}
-      </div>
-      <p className="form-sub">{t("settings.sheets.note")}</p>
-      <div className="button-row">
-        <button
-          type="button"
-          className="btn btn--quiet btn--small"
-          disabled={!fr24Flights.length}
-          onClick={() => {
-            download(`flightdiary-touchdown-${todayIn()}.csv`, myFr24Csv(store, ref, fr24Flights), "text/csv");
-            app.markMyFr24Export(fr24Flights.map((f) => f.id));
-            toast(t("settings.myfr24.done", { count: fr24Flights.length }));
-          }}
-        >
-          <Icon name="download" />
-          {t("settings.myfr24.button", { count: fr24Flights.length })}
-        </button>
-        <label className="check">
-          <input type="checkbox" checked={onlyNewFr24} onChange={(e) => setOnlyNewFr24(e.target.checked)} />
-          {t("settings.myfr24.onlyNew")}
-        </label>
-      </div>
-      <p className="form-sub">{t("settings.myfr24.note")}</p>
+      {/* Each way to take the log out, or bring a backup in, is one item: what it is, what it holds, the options its
+          buttons follow, then the buttons. The account card's look (DESIGN.md, "Settings → Account"). */}
+      <ul className="account-card data-card">
+        <li className="data-item">
+          <span className="account-item__text">
+            {t("settings.data.backup.title")}
+            <small>{t("settings.data.backupNote")}</small>
+          </span>
+          <div className="data-item__actions">
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              onClick={() => {
+                download(`touchdown-backup-${todayIn()}.zip`, backupZip(store) as BlobPart, "application/zip");
+                app.markBackup();
+              }}
+            >
+              <Icon name="download" />
+              {t("settings.data.export")}
+            </button>
+            <label className="btn btn--quiet btn--small">
+              <Icon name="upload" />
+              {t("settings.data.restore")}
+              <input
+                type="file"
+                accept=".zip,application/zip"
+                className="visually-hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void restore(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {import.meta.env.DEV && (
+              <button
+                type="button"
+                className="btn btn--quiet btn--small"
+                onClick={async () => {
+                  if (!window.confirm(t("settings.dev.loadConfirm"))) return;
+                  if (import.meta.env.DEV && !(await (await import("../data/localBackup.ts")).loadLocalBackup(app))) toast(t("settings.dev.noBackup"));
+                }}
+              >
+                <Icon name="hard-drive" />
+                {t("settings.dev.load")}
+              </button>
+            )}
+          </div>
+        </li>
+        <li className="data-item">
+          <span className="account-item__text">
+            {t("settings.data.tables.title")}
+            <small>{t("settings.data.tables.note")}</small>
+          </span>
+          <label className="check">
+            <input type="checkbox" checked={includePrivate} onChange={(e) => setIncludePrivate(e.target.checked)} />
+            {t("settings.data.includePrivate")}
+          </label>
+          <div className="data-item__actions">
+            {(["flights", "sightings", "airframes"] as const).map((table) => (
+              <button key={table} type="button" className="btn btn--quiet btn--small" onClick={() => download(`touchdown-${table}-${todayIn()}.csv`, tableCsv(store, table, includePrivate), "text/csv")}>
+                <Icon name="file" />
+                {t("settings.data.csv", { table })}
+              </button>
+            ))}
+            <button type="button" className="btn btn--quiet btn--small" disabled={sheet.busy} onClick={() => void toGoogleSheets()}>
+              <Icon name={sheet.busy ? "loader-circle" : "table"} />
+              {sheet.busy ? t("settings.sheets.making") : t("settings.sheets.button")}
+            </button>
+            {sheet.made && (
+              <a className="link-btn" href={sheet.made.url} target="_blank" rel="noopener">
+                {t("settings.sheets.open", { name: sheet.made.name })}
+                <Icon name="external-link" />
+              </a>
+            )}
+          </div>
+        </li>
+        <li className="data-item">
+          <span className="account-item__text">
+            {t("settings.myfr24.title")}
+            <small>{t("settings.myfr24.note")}</small>
+          </span>
+          <label className="check">
+            <input type="checkbox" checked={onlyNewFr24} onChange={(e) => setOnlyNewFr24(e.target.checked)} />
+            {t("settings.myfr24.onlyNew")}
+          </label>
+          <div className="data-item__actions">
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              disabled={!fr24Flights.length}
+              onClick={() => {
+                download(`flightdiary-touchdown-${todayIn()}.csv`, myFr24Csv(store, ref, fr24Flights), "text/csv");
+                app.markMyFr24Export(fr24Flights.map((f) => f.id));
+                toast(t("settings.myfr24.done", { count: fr24Flights.length }));
+              }}
+            >
+              <Icon name="download" />
+              {t("settings.myfr24.button", { count: fr24Flights.length })}
+            </button>
+          </div>
+        </li>
+      </ul>
       <div className="button-row">
         <button
           type="button"

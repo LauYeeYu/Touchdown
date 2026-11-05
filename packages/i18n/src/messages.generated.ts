@@ -2361,8 +2361,11 @@ export interface MessageArgs {
   "settings.data.mayClear": {};
   "settings.data.export": {};
   "settings.data.restore": {};
+  "settings.data.backup.title": {};
   "settings.data.backupNote": {};
   "settings.data.csv": { table: "choice" };
+  "settings.data.tables.title": {};
+  "settings.data.tables.note": {};
   "settings.data.includePrivate": {};
   "settings.restore.problems": { problems: "text" };
   "settings.restore.confirm": { count: "number"; synced: "choice" };
@@ -2374,10 +2377,10 @@ export interface MessageArgs {
   "settings.sheets.made": { name: "text" };
   "settings.sheets.failed": { problem: "text" };
   "settings.sheets.open": { name: "text" };
-  "settings.sheets.note": {};
   "settings.myfr24.button": { count: "number" };
   "settings.myfr24.done": { count: "number" };
   "settings.myfr24.onlyNew": {};
+  "settings.myfr24.title": {};
   "settings.myfr24.note": {};
   "settings.delete.confirm": { place: "text"; synced: "choice" };
   "settings.delete.word": {};
