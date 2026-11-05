@@ -8,7 +8,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@touchdown/core": "*"
+    "@touchdown/core": "*",
+    "@touchdown/i18n": "*"
   },
   "devDependencies": {
     "@touchdown/refdata": "*"

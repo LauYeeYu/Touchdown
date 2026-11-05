@@ -1,0 +1,19 @@
+{
+  "style.label": "Show as",
+  "style.map": "Map",
+  "style.globe": "Globe",
+  "globe.label": "{label}. Drag or use the arrow keys to turn it. Pinch, {zoom, select, full {scroll} other {Ctrl-scroll}} or use plus and minus to zoom.",
+  "globe.expand": "Expand",
+  "globe.expandLabel": "Show the globe full screen",
+  "globe.collapse": "Collapse",
+  "globe.collapseLabel": "Leave full screen",
+  "globe.controls": "Globe controls",
+  "globe.zoomIn": "Zoom in",
+  "globe.zoomOut": "Zoom out",
+  "globe.reset": "Turn back to show everything",
+  "globe.hint": "Drag to turn · {zoom, select, full {scroll or pinch} other {pinch or Ctrl-scroll}} to zoom{opens, select, both { · click a route or an airport to open it} airport { · click an airport to open it} route { · click a route to open it} other {}}",
+  "airport.tip": "{count, plural, one {# flight in this period} other {# flights in this period}} · click for the airport page",
+  "airport.label": "{name}: {count, plural, one {# flight} other {# flights}}. Open the airport page",
+  "airport.open": "{code}: open the airport page",
+  "spot.label": "{label}. Open the airport page"
+}

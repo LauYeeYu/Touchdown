@@ -10,6 +10,7 @@
     "./share": "./src/share.ts"
   },
   "dependencies": {
+    "@touchdown/i18n": "*",
     "fflate": "^0.8.3",
     "papaparse": "^5.7.0",
     "zod": "^4.6.7"

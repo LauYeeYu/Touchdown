@@ -1,0 +1,22 @@
+{
+  "boot.label": "Opening Touchdown",
+  "boot.error": "Touchdown could not open its local data.",
+  "boot.offlineWithoutAccount": "Connect to the internet and sign in. After that, Touchdown opens in this browser without a connection too.",
+  "pager.label": "Pages of {kind, select, flights {flights} sightings {sightings} aircraft {aircraft} daysOut {days out} other {items}}",
+  "pager.count": "{from}–{to} of {total} {kind, select, flights {{count, plural, one {flight} other {flights}}} sightings {{count, plural, one {sighting} other {sightings}}} aircraft {aircraft} daysOut {{count, plural, one {day out} other {days out}}} other {}}",
+  "pager.previous": "Previous page",
+  "pager.next": "Next page",
+  "pager.page": "Page {page}",
+  "duration.hoursMinutes": "{h}<unit>h</unit> {m}<unit>m</unit>",
+  "duration.minutes": "{m}<unit>m</unit>",
+  "photo.noRegistration": "No registration",
+  "photo.looking": "Looking for a reference photo…",
+  "photo.none": "No reference photo found for this registration.",
+  "photo.credit": "{short, select, yes {©} other {Photo ©}} <link>{photographer}</link> · planespotters.net",
+  "form.date": "{label} date",
+  "form.time": "{label} time, local",
+  "form.until": "until {year}",
+  "livery.question": "Recorded in <b>{name}</b> on {date}. Still in it?",
+  "livery.use": "Yes, add it",
+  "livery.useLabel": "Add special livery {name}"
+}

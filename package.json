@@ -15,7 +15,8 @@
     "test": "vitest run",
     "typecheck": "tsc -b",
     "touchdown": "tsx packages/cli/src/main.ts",
-    "serve": "node packages/server/src/serve.ts"
+    "serve": "node packages/server/src/serve.ts",
+    "messages": "tsx packages/i18n/scripts/messages.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

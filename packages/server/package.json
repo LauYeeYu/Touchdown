@@ -8,5 +8,8 @@
     ".": "./src/index.ts",
     "./headers": "./src/headers.ts",
     "./node": "./src/node.ts"
+  },
+  "dependencies": {
+    "@touchdown/i18n": "*"
   }
 }

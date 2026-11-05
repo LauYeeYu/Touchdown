@@ -1,0 +1,15 @@
+{
+  "duration.hours": "{h}\u00a0h",
+  "duration.minutes": "{m}\u00a0min",
+  "duration.hoursMinutes": "{h}\u00a0h {m}\u00a0min",
+  "duration.short.hours": "{h}h\u00a0{m}m",
+  "duration.short.minutes": "{m}m",
+  "distance.km": "{n}\u00a0km",
+  "distance.mi": "{n}\u00a0mi",
+  "distance.nm": "{n}\u00a0nm",
+  "moment": "{day}, {time} {offset}",
+  "dateTime": "{time} {day} · {offset}",
+  "timeOffset": "{time} · {offset}",
+  "isoWithWeekday": "{weekday} {date}",
+  "momentShort": "{day}, {time}"
+}
