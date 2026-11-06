@@ -4,6 +4,7 @@
   "drive.error": "Google Drive: {message}",
   "drive.noUpload": "Google Drive did not start the upload.",
   "schemaTooNew": "The log uses schema version {stored}, and this version of Touchdown understands only up to {supported}. Reload to update the app.",
+  "upgradeHeld": "The log was left at schema version {stored}, so older copies of Touchdown can still sync it. Reload to be asked again.",
   "manifest.notJson": "manifest.json is not valid JSON.",
   "manifest.notLog": "This directory does not hold a Touchdown log in JSON tables.",
   "table.notJson": "not valid JSON",

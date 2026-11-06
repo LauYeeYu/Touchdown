@@ -56,11 +56,20 @@ export interface PushResult {
   conflicts: string[];
 }
 
+export interface OpenOptions {
+  /**
+   * Asked before a log at an older schema version is brought up to this one, after which an app of the older version
+   * stops syncing it until it is updated. False leaves the log as it is, and `open` stops with `UpgradeHeld`. Without
+   * it, the log is brought up to date.
+   */
+  upgrade?: (stored: number) => boolean | Promise<boolean>;
+}
+
 export interface Backend {
   readonly id: "json_tables" | "sqlite_file";
   readonly kind: "file" | "server";
-  /** Create the storage when it is empty, and report the stored schema version. */
-  open(): Promise<{ schemaVersion: number; created: boolean }>;
+  /** Create the storage when it is empty, bring an older log up to this schema version, and report the stored one. */
+  open(options?: OpenOptions): Promise<{ schemaVersion: number; created: boolean }>;
   pull(cursor: Cursor): Promise<PullResult>;
   push(items: PushItem[]): Promise<PushResult>;
   readTrack(trackId: string): Promise<StoredRow[]>;

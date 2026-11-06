@@ -19,7 +19,7 @@ import {
   type TableName,
 } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
-import type { Backend, Cursor, FileAdapter, FileArea, PullResult, PushItem, PushResult, StoredRow } from "./types.ts";
+import type { Backend, Cursor, FileAdapter, FileArea, OpenOptions, PullResult, PushItem, PushResult, StoredRow } from "./types.ts";
 import { isBasedOn, versionOf } from "./version.ts";
 
 const encoder = new TextEncoder();
@@ -28,6 +28,13 @@ const decoder = new TextDecoder();
 export class SchemaTooNewError extends Error {
   constructor(readonly stored: number) {
     super(t("storage.schemaTooNew", { stored, supported: SCHEMA_VERSION }));
+  }
+}
+
+/** The log is at an older schema version and was left there, as `OpenOptions.upgrade` answered. */
+export class UpgradeHeld extends Error {
+  constructor(readonly stored: number) {
+    super(t("storage.upgradeHeld", { stored }));
   }
 }
 
@@ -82,7 +89,7 @@ export class JsonTablesBackend implements Backend {
     private readonly deviceId: string,
   ) {}
 
-  async open() {
+  async open(options: OpenOptions = {}) {
     const found = await this.files.read("manifest.json");
     if (!found) {
       const manifest: Manifest = {
@@ -108,6 +115,7 @@ export class JsonTablesBackend implements Backend {
     // tells an older app on another device to update first. Files of tables the schema no longer has are left
     // where they are and not read.
     if (version < SCHEMA_VERSION) {
+      if (options.upgrade && !(await options.upgrade(version))) throw new UpgradeHeld(version);
       const tables = Object.fromEntries(FILE_TABLES.map((t) => [t, tablePath(t)]));
       await this.files.write("manifest.json", encoder.encode(JSON.stringify({ ...manifest, schemaVersion: SCHEMA_VERSION, tables, lastWriter: this.deviceId }, null, 2) + "\n"));
     }

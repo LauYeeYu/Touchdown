@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { commitImport, matchCandidates, parseSource, reconcile, RefIndex, rowVersion, saveFlight, SCHEMA_VERSION, Store, TABLES, updateSettings, type TableName } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
-import { JsonTablesBackend, MemoryFolder, MemorySyncState, mergeText, SchemaTooNewError, SyncEngine } from "../src/index.ts";
+import { JsonTablesBackend, MemoryFolder, MemorySyncState, mergeText, SchemaTooNewError, SyncEngine, UpgradeHeld } from "../src/index.ts";
 import { conflicts, device, FLIGHTS, race, settle, snapshot, testClock, versions, type Device } from "./helpers.ts";
 
 describe("sync between devices", () => {
@@ -525,6 +525,27 @@ describe("storage files", () => {
     const folder = new MemoryFolder();
     await folder.write("manifest.json", new TextEncoder().encode(JSON.stringify({ schema: "touchdown", schemaVersion: SCHEMA_VERSION + 1, backend: "json_tables", tables: {}, lastWriter: "dev_x" })));
     await expect(new JsonTablesBackend(folder, "dev_a").open()).rejects.toBeInstanceOf(SchemaTooNewError);
+  });
+
+  it("brings an older log up to date only when the upgrade question says so", async () => {
+    const older = JSON.stringify({ schema: "touchdown", schemaVersion: SCHEMA_VERSION - 1, backend: "json_tables", tables: {}, lastWriter: "dev_x" });
+    const folder = new MemoryFolder();
+    await folder.write("manifest.json", new TextEncoder().encode(older));
+    const asked: number[] = [];
+    const no = (stored: number) => (asked.push(stored), false);
+    await expect(new JsonTablesBackend(folder, "dev_a").open({ upgrade: no })).rejects.toBeInstanceOf(UpgradeHeld);
+    expect(asked).toEqual([SCHEMA_VERSION - 1]);
+    expect(new TextDecoder().decode(folder.files.get("manifest.json")!.data)).toBe(older);
+
+    expect(await new JsonTablesBackend(folder, "dev_a").open({ upgrade: async () => true })).toEqual({ schemaVersion: SCHEMA_VERSION - 1, created: false });
+    expect(JSON.parse(new TextDecoder().decode(folder.files.get("manifest.json")!.data)).schemaVersion).toBe(SCHEMA_VERSION);
+    // At this version there is nothing to ask, and without the question an older log is brought up to date as before.
+    await new JsonTablesBackend(folder, "dev_a").open({ upgrade: no });
+    expect(asked).toHaveLength(1);
+    const plain = new MemoryFolder();
+    await plain.write("manifest.json", new TextEncoder().encode(older));
+    await new JsonTablesBackend(plain, "dev_a").open();
+    expect(JSON.parse(new TextDecoder().decode(plain.files.get("manifest.json")!.data)).schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   it("keeps files in their area", async () => {

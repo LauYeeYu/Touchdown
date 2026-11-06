@@ -2850,6 +2850,7 @@ export interface MessageArgs {
   "storage.drive.error": { message: "text" };
   "storage.drive.noUpload": {};
   "storage.schemaTooNew": { stored: "text"; supported: "text" };
+  "storage.upgradeHeld": { stored: "text" };
   "storage.manifest.notJson": {};
   "storage.manifest.notLog": {};
   "storage.table.notJson": {};
