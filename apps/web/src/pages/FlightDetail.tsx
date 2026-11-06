@@ -308,7 +308,12 @@ export function FlightDetail() {
               <span className="route-hero__city">{f.fromRaw ?? t("flights.detail.hero.unknown")}</span>
             )}
             {A && <span className="route-hero__name">{A.name}</span>}
-            {secondaryCode(A) && <span className="route-hero__icao"> · {secondaryCode(A)}</span>}
+            {secondaryCode(A) && (
+              <span className="route-hero__icao">
+                <span className="route-hero__sep">{"\u00a0· "}</span>
+                {secondaryCode(A)}
+              </span>
+            )}
           </p>
         </div>
         <div className="route-hero__mid" aria-hidden="true">
@@ -338,7 +343,12 @@ export function FlightDetail() {
               <span className="route-hero__city">{f.toRaw ?? t("flights.detail.hero.unknown")}</span>
             )}
             {B && <span className="route-hero__name">{B.name}</span>}
-            {secondaryCode(B) && <span className="route-hero__icao"> · {secondaryCode(B)}</span>}
+            {secondaryCode(B) && (
+              <span className="route-hero__icao">
+                <span className="route-hero__sep">{"\u00a0· "}</span>
+                {secondaryCode(B)}
+              </span>
+            )}
           </p>
         </div>
       </div>

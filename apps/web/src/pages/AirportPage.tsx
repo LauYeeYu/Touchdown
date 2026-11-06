@@ -112,7 +112,12 @@ export function AirportPage() {
             {ap.name}
             {ap.country ? ` · ${countryName(ap.country)}` : ""}
           </span>
-          {other && <span className="route-hero__icao"> · {other}</span>}
+          {other && (
+            <span className="route-hero__icao">
+              <span className="route-hero__sep">{"\u00a0· "}</span>
+              {other}
+            </span>
+          )}
         </p>
       </div>
       <div className="view-top view-top--airport">

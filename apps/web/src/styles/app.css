@@ -1899,8 +1899,11 @@ main {
   font-weight: 600;
 }
 
+/* The other code, after the name. The dot keeps to the name's last word (a non-breaking space before it, no break
+   after it), so a long name never wraps with the dot opening a line. */
 .route-hero__icao {
   color: var(--ink-3);
+  white-space: nowrap;
 }
 
 .route-hero__mid {
@@ -2320,7 +2323,9 @@ main {
     font-size: 0.8125rem;
   }
 
-  .route-hero__name {
+  /* Without the name, the other code has a line of its own under the city, with no dot before it. */
+  .route-hero__name,
+  .route-hero__sep {
     display: none;
   }
 
