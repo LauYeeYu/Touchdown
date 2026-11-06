@@ -24,18 +24,32 @@ export function useGrow<T extends HTMLElement>(key: unknown) {
     box.getBoundingClientRect();
     box.style.transition = `height ${to > from ? 280 : 220}ms cubic-bezier(0.16, 1, 0.3, 1)`;
     box.style.height = `${to}px`;
-    const end = () => {
+    let running = true;
+    const stop = () => {
+      running = false;
+      clearTimeout(timer);
+      box.removeEventListener("transitionend", onEnd);
       box.style.height = "";
       box.style.overflow = "";
       box.style.transition = "";
-      box.removeEventListener("transitionend", end);
+    };
+    const finish = () => {
+      stop();
       last.current = box.offsetHeight;
     };
-    box.addEventListener("transitionend", end);
-    const timer = setTimeout(end, 400);
+    // Only the box's own height: a ranked bar moving to a new length ends a transition too, and the event bubbles.
+    const onEnd = (e: TransitionEvent) => {
+      if (e.target === box && e.propertyName === "height") finish();
+    };
+    box.addEventListener("transitionend", onEnd);
+    const timer = setTimeout(finish, 400);
+    // The reader's next change, before this one ends or after. By now React has put in the new rows, so the box's own
+    // height is already the next one: measured here, the next change would start where it ends and not move. Mid-way,
+    // the height on screen (the inline one) is where it starts. Once ended, `finish` has measured it.
     return () => {
-      clearTimeout(timer);
-      end();
+      if (!running) return;
+      last.current = box.getBoundingClientRect().height;
+      stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
