@@ -234,7 +234,7 @@ export function Home() {
                   )}
                   {last.km !== null && (
                     <li>
-                      <Icon name="ruler" />
+                      <Icon name="spline" />
                       {distance(last.km, unit)}
                     </li>
                   )}
