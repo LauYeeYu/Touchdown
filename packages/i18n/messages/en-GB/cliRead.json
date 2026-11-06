@@ -275,7 +275,7 @@
   "stats.age.column.whenFlown": "Age when flown",
   "stats.age.column.aircraft": "Aircraft",
   "stats.age.column.age": "Age",
-  "stats.age.column.today": "Now",
+  "stats.age.column.today": "Age now",
   "stats.age.column.firstFlight": "First flight",
   "stats.age.column.sinceFirstFlight": "Since first flight",
   "stats.age.flight": "Flight",

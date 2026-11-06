@@ -56,7 +56,7 @@
   "age.one": "Aircraft age: <b>{age}</b> when you flew.",
   "age.average": "Average aircraft age: <b>{average}</b> (range: <b>{min}</b> to <b>{max}</b>).",
   "age.whenFlown": "Age when flown",
-  "age.today": "Now",
+  "age.today": "Age now",
   "age.age": "Age",
   "age.firstFlight": "First flight",
   "age.sinceFirstFlight": "Since first flight",
