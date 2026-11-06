@@ -32,6 +32,9 @@ export const MIGRATIONS: { to: number; addColumns?: { table: TableName | "*"; co
   // number and booking reference are moved into it after the first pull (core private.ts, settleOlder). The JSON
   // tables backend keeps private tables in private/ and moves their files there from tables/ when it opens.
   { to: 7 },
+  // The language and the date format are kept in the log, for every device, instead of in each browser (docs/31,
+  // "Language"). Empty until chosen.
+  { to: 8, addColumns: [{ table: "settings", column: "language" }, { table: "settings", column: "dateFormat" }] },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */

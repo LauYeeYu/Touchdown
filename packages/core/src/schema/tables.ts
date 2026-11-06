@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -270,6 +270,11 @@ export const settings = table("settings", "settings", [
   c.enum("theme", ["system", "light", "dark"]),
   c.enum("codeDisplay", ["iata", "icao", "both"]),
   c.enum("modelNaming", ["standard", "compact"]),
+  // The interface's language and date format, for every device (docs/31-ui.md, "Language"). Text, not a list of
+  // values: a language added later is not a new schema version. Empty: each browser's own languages, and the
+  // language's own way of writing dates.
+  c.text("language"),
+  c.text("dateFormat"),
   c.ref("homeAirportId", "airports"),
   c.enum("dataMode", DATA_MODES),
   c.enum("storageBackend", ["json_tables", "sqlite_file", "sqlite_local", "postgres", "d1"]),

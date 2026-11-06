@@ -38,6 +38,8 @@ export const DEFAULT_SETTINGS: Omit<Settings, "id" | "rev" | "updatedAt" | "upda
   theme: "system",
   codeDisplay: "iata",
   modelNaming: "standard",
+  language: null,
+  dateFormat: null,
   homeAirportId: null,
   dataMode: null,
   storageBackend: "json_tables",

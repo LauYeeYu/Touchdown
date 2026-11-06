@@ -114,6 +114,25 @@ describe("schema versions", () => {
     expect(back.tables.has("agent_rules" as never)).toBe(false);
   });
 
+  it("reads a version 7 backup with no language or date format chosen", () => {
+    const store = new Store({ deviceId: "dev_a" });
+    store.insert("settings", { theme: "dark", codeDisplay: "icao" }, "settings");
+    // Rewrite the backup as version 7 wrote it: settings without language and dateFormat.
+    const files = unzipSync(backupZip(store));
+    for (const [path, data] of Object.entries(files)) {
+      const json = JSON.parse(strFromU8(data));
+      json.schemaVersion = 7;
+      if (json.table === "settings") {
+        json.columns = json.columns.filter((c: string) => c !== "language" && c !== "dateFormat");
+        for (const r of json.rows) (delete r.language, delete r.dateFormat);
+      }
+      files[path] = strToU8(JSON.stringify(json));
+    }
+    const back = readBackup(zipSync(files));
+    expect(back.problems).toEqual([]);
+    expect(back.tables.get("settings")?.[0]).toMatchObject({ theme: "dark", codeDisplay: "icao", language: null, dateFormat: null });
+  });
+
   it("records which other device's version an edit was based on, through later edits", () => {
     const a = new Store({ deviceId: "dev_a", now: () => Date.parse("2026-01-01T00:00:00Z") });
     const b = new Store({ deviceId: "dev_b", now: () => Date.parse("2026-01-01T00:00:05Z") });

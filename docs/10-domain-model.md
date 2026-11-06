@@ -279,6 +279,8 @@ The physical aircraft. Facts come from shared lookups and can be refreshed; user
 | `theme` | enum | `system` (follow the device), `light`, `dark` |
 | `codeDisplay` | enum | `iata`, `icao`, `both` |
 | `modelNaming` | enum | `standard` (`Boeing 777-322(ER)`) or `compact` (`B777-322ER`). Display only (D4). |
+| `language` | text | The interface's language, a BCP 47 tag (`en-GB`), for every device ([31](31-ui.md), "Language"). Empty: each browser's own languages. Text, so a language added later is not a schema change. |
+| `dateFormat` | text | How dates are written: another regional way of the language (`en-US`) or `iso`. Empty: the language's own way. |
 | `homeAirportId` | ref airports | Used for defaults. |
 | `dataMode` | enum | `standard`, `private`, `local` ([32](32-modes-and-sharing.md)). |
 | `storageBackend` | enum | `json_tables`, `sqlite_file` (later: `sqlite_local`, `postgres`, `d1`) |

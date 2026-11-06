@@ -162,7 +162,7 @@ A visible folder in the user's storage, created by the app:
 
 ```
 Touchdown/
-  manifest.json            { "schema": "touchdown", "schemaVersion": 7, "backend": "json_tables",
+  manifest.json            { "schema": "touchdown", "schemaVersion": 8, "backend": "json_tables",
                              "tables": { "flights": "tables/flights.json", ... }, "lastWriter": "dev_8f2c" }
   tables/
     flights.json
@@ -194,7 +194,7 @@ Table file format:
 ```json
 {
   "schema": "touchdown",
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "table": "flights",
   "columns": ["id", "rev", "updatedAt", "updatedBy", "deleted", "scheduledDate", "flightNumber", "takeoffAt", "..."],
   "rows": [
@@ -250,6 +250,7 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 - The stored schema version is in `manifest.json` (JSON tables) or the `meta` table (SQLite, server backends).
 - Migration steps are defined once in core (add column, rename column, add table, transform values). Each backend has a runner: JSON tables rewrite the files; SQL backends run generated DDL plus data updates.
 - Version 7 (built, `movePrivateFiles` in `packages/storage/src/jsonTables.ts`): tables marked private live in `private/`. Opening the log moves a file such a table still has in `tables/` (left by an older version): its rows are written into the file in `private/` as a push would write them, so a newer row there is never replaced, and only then is the old file removed. A device that stops half way finds the old file at its next opening and finishes. The flights' private values are moved by an edit in the first sync (step 3 of "Sync algorithm"; [32](32-modes-and-sharing.md), "Private data").
+- Version 8 (built): the settings gain `language` and `dateFormat`, which were kept in each browser before. Both start empty: each device follows its own browser's languages, and the language's own way of writing dates, until one is chosen in Settings.
 - Built so far: adding columns (`MIGRATIONS` and `upgradeTableFile` in core). Table files and backups from an older version are upgraded as they are read, and written in the current version from then on; opening a JSON tables folder moves its manifest to the current version.
 - Decided: no backup is written before a migration, and moved values leave no `migration` history. A migration is made safe instead: it follows the rules under "Rules for a new version", and its tests run two devices through it at once and a device opening it on an old copy.
 - If the log, or a table file in it, was written by a newer version than the app understands, the app stops syncing and asks for a reload (built): a bar under the masthead, "A newer version of Touchdown has changed your log … Reload to update the app", with a Reload button, and "Reload to update" as the save state. The app is not read-only: edits made meanwhile are kept in the browser and sent after the reload, which loads the new version. Such a file is never written over. Table files of an older version are upgraded as they are read, so a newer app reads what an older one wrote. The command line refuses a log newer than itself ("git pull, then npm install"), and `review` refuses an older one until the web app has opened it once.
