@@ -31,7 +31,7 @@
   "age.leftOut.noAircraft": "{count, plural, one {# flight without an aircraft} other {# flights without an aircraft}}",
   "age.leftOut.noFirstFlight": "{count, plural, one {# flight on aircraft without a first flight date} other {# flights on aircraft without a first flight date}}",
   "age.leftOut.beforeFirstFlight": "{count, plural, one {# flight dated before its aircraft's first flight} other {# flights dated before its aircraft's first flight}}",
-  "age.excluded": "Left out: {reasons}",
+  "age.excluded": "Excluded: {reasons}",
   "age.todayNote": "The log records no day an aircraft stopped flying, so for one marked retired or written off, the time to today is the time since its first flight, not its age in service.",
   "extension.under": "under +0.1%",
   "extension.percent": "+{percent}%",
