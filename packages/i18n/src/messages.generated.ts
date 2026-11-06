@@ -613,6 +613,7 @@ export interface MessageArgs {
   "cliRead.stats.age.column.sinceFirstFlight": {};
   "cliRead.stats.age.flight": {};
   "cliRead.stats.age.aircraft": {};
+  "cliRead.stats.age.retiredNote": {};
   "cliRead.stats.byYear": {};
   "cliRead.stats.byYear.year": {};
   "cliRead.stats.byYear.flights": {};

@@ -131,10 +131,10 @@ describe("reading the log from the command line", () => {
       leftOut: { noDate: 0, noAircraft: 0, noFirstFlight: 1, beforeFirstFlight: 0 },
     });
     const text = (await run(statsCommand, "flights", "--year", "all")).text;
-    expect(text).toMatch(/Average aircraft age: 7\.2 years \(range: 6\.8 years to 7\.6 years\)\./);
+    expect(text).toMatch(/On average an aircraft was 7\.2 years old when you flew on it, from 6\.8 years to 7\.6 years\./);
     expect(text).toMatch(/N9001Z · Retired · Airbus A321neo +2018-06-01 +\d+\.\d years/);
-    expect(text).toMatch(/Because retirement dates aren't tracked, "Age today" reflects total elapsed time since first flight, not active service\./);
-    expect(text).toMatch(/Excluded: 1 missing first flight date$/m);
+    expect(text).toMatch(/For an aircraft retired or written off, the time since its first flight is not its age in service\./);
+    expect(text).toMatch(/Left out: 1 flight on aircraft without a first flight date$/m);
     const p = (await run(statsCommand, "--by", "airline", "--cols", "year", "--year", "all", "--json")).json();
     expect(p.rows.map((r: { label: string; total: number }) => [r.label, r.total])).toEqual([
       ["Delta Air Lines", 2],
