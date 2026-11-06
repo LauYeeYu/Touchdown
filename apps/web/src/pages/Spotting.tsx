@@ -1,6 +1,6 @@
 // Spotting: the period's sightings in a sentence, where they happened, then each session (a day at a place).
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
 import { phaseIndex, sightingStats, type Sighting } from "@touchdown/core";
@@ -20,6 +20,7 @@ import { Select } from "../components/Select.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { useViewState } from "../lib/viewState.ts";
+import { useGrow } from "../lib/motion.ts";
 import { isolated, Name, voiceOf } from "../lib/voice.tsx";
 import { tx } from "../lib/i18n.tsx";
 
@@ -177,7 +178,7 @@ export function Spotting() {
                 )}
               </span>
             </div>
-            <ul className="rows">
+            <SessionRows all={expanded.includes(sess.key)}>
               {rows.map((s) => (
                 <li key={s.id}>
                   {/* The aircraft's page, like every list of aircraft; the sighting itself until it is matched to one. */}
@@ -215,7 +216,7 @@ export function Spotting() {
                   </Link>
                 </li>
               ))}
-            </ul>
+            </SessionRows>
             {!open && (
               <button type="button" className="btn btn--quiet btn--small show-all" onClick={() => setExpanded((e) => [...e, sess.key])}>
                 {t("spotting.day.showAll", { count: sess.shown.length })}
@@ -226,5 +227,15 @@ export function Spotting() {
       })}
       <Pager paging={paging} kind="daysOut" />
     </div>
+  );
+}
+
+/** A day's sightings. "Show all" opens the list as a disclosure opens, so the days below slide down. */
+function SessionRows({ all, children }: { all: boolean; children: ReactNode }) {
+  const grow = useGrow<HTMLUListElement>(all);
+  return (
+    <ul className="rows" ref={grow}>
+      {children}
+    </ul>
   );
 }
