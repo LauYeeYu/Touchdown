@@ -5,7 +5,7 @@
 //   tx("shell.emptyLog.synced", { name: <b>{c.name}</b> })
 
 import { createElement, Fragment, type ReactNode } from "react";
-import { getDateStyle, LOCALES, locale, matchLocale, rich, setDateStyle, setLocale, type DateStyle, type Locale, type MessageKey, type Params } from "@touchdown/i18n";
+import { LOCALES, locale, matchLocale, rich, setDateStyle, setLocale, type Locale, type MessageKey, type Params } from "@touchdown/i18n";
 
 type TagNames<K extends MessageKey> = Parameters<typeof rich<K, ReactNode>>[2] extends infer T ? (T extends Record<string, unknown> ? keyof T : never) : never;
 type Rest<K extends MessageKey> = [TagNames<K>] extends [never]
@@ -21,6 +21,7 @@ export function tx<K extends MessageKey>(key: K, ...[params, tags]: Rest<K>): Re
   return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : createElement(Fragment, null, ...parts);
 }
 
+// The log's language and date format as this browser last saw them, for the pages drawn before the log is open.
 const SAVED_LANGUAGE = "touchdown.language";
 const SAVED_DATES = "touchdown.dateFormat";
 
@@ -33,8 +34,9 @@ function read(key: string): string | null {
 }
 
 /**
- * Choose the interface's language and date format before the first page is drawn: those chosen in this browser, else
- * the best of the browser's languages and its own way of writing dates. Sets the page's `lang`.
+ * Choose the interface's language and date format before the first page is drawn: those the log chose, as this
+ * browser last saw them, else the best of the browser's languages and its own way of writing dates. Sets the page's
+ * `lang`. Once the log is open, `followLog` puts the log's own choice in place.
  */
 export async function startLanguage(): Promise<void> {
   const saved = read(SAVED_LANGUAGE);
@@ -44,13 +46,35 @@ export async function startLanguage(): Promise<void> {
   document.documentElement.lang = locale();
 }
 
-/** Keep a date format in this browser and use it from now on. Pages drawn before keep theirs until drawn again. */
-export function chooseDateStyle(style: DateStyle): void {
-  setDateStyle(style);
+/** The log's language and date format (`settings`). Empty: this browser's languages, the language's own way. */
+export interface LanguageChoice {
+  language: string | null;
+  dateFormat: string | null;
+}
+
+/**
+ * Follow the language and date format chosen in the log, for every device (docs/31-ui.md, "Language"), and keep them
+ * in this browser for the pages drawn before the log is open: the loading screen and the sign-in pages. With `now`,
+ * before the first page is drawn, the language changes too. Later, a language chosen on another device waits for the
+ * next load, since changing it redraws every word. The date format changes at once: pages drawn after use it.
+ */
+export async function followLog(choice: LanguageChoice, now = false): Promise<void> {
+  const chosen = choice.language && choice.language in LOCALES ? (choice.language as Locale) : null;
+  keep(SAVED_LANGUAGE, chosen);
+  keep(SAVED_DATES, choice.dateFormat);
+  if (now) {
+    const wanted = chosen ?? matchLocale(navigator.languages ?? [navigator.language]);
+    if (wanted !== locale()) await setLocale(wanted);
+    document.documentElement.lang = locale();
+  }
+  setDateStyle(choice.dateFormat ?? "language");
+}
+
+function keep(key: string, value: string | null) {
   try {
-    if (getDateStyle() === "language") localStorage.removeItem(SAVED_DATES);
-    else localStorage.setItem(SAVED_DATES, getDateStyle());
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
   } catch {
-    // Storage blocked: the choice lasts until the page is closed.
+    // Storage blocked: the log's choice still applies, once the log is open.
   }
 }

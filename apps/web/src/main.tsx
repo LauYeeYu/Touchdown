@@ -35,7 +35,7 @@ import { airportParams, slugParams, setSlugData } from "./lib/slugs.ts";
 import { setCodeStyle } from "./lib/codes.ts";
 import { toUtcIso, validateWithoutEval } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
-import { startLanguage } from "./lib/i18n.tsx";
+import { followLog, startLanguage } from "./lib/i18n.tsx";
 
 // The hosted site's security policy forbids eval (docs/30).
 validateWithoutEval();
@@ -190,6 +190,15 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     if (writer) void opened.takeOutbox();
     // Development only: the open log, for trying things in the console.
     if (import.meta.env.DEV) Object.assign(window, { touchdown: opened });
+    // The log's language and date format, before the first page is drawn, and as they change (lib/i18n.tsx).
+    const choice = () => ({ language: opened.settings().language, dateFormat: opened.settings().dateFormat });
+    let followed = JSON.stringify(choice());
+    await followLog(choice(), true);
+    opened.subscribe(() => {
+      const now = JSON.stringify(choice());
+      if (now !== followed) void followLog(choice());
+      followed = now;
+    });
     report({ at: PREPARED, text: t("shell.opening.showing") });
     setSlugData(opened);
     // Airport codes follow the setting on every page (lib/codes.ts).

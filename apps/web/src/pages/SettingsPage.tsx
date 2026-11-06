@@ -5,14 +5,14 @@ import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
 import { dateOnly, myFr24Flights } from "@touchdown/core/view";
-import { dateStyles, getDateStyle, t, type DateStyle } from "@touchdown/i18n";
+import { dateStyles, LOCALES, t, type DateStyle } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle, SignInCancelled } from "../data/google.ts";
 import { momentLabel } from "../lib/format.ts";
-import { chooseDateStyle, tx } from "../lib/i18n.tsx";
+import { tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
 import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, useSyncInfo, type Mode } from "../components/ModeChoice.tsx";
@@ -313,8 +313,15 @@ export function SettingsPage() {
   }, []);
 
   const set = (patch: Partial<Settings>) => app.updateSettings(patch);
-  // Kept in this browser, not in the log: pages drawn after the change use it (docs/31-ui.md, "Language").
-  const [dateStyle, setDateStyle] = useState<DateStyle>(getDateStyle());
+  // The language and date format are kept in the log, for every device (docs/31-ui.md, "Language"). Pages drawn after
+  // a new date format use it. A new language reloads the page, once the choice is saved in this browser's copy.
+  const dateStyle: DateStyle = dateStyles().includes(s.dateFormat ?? "language") ? (s.dateFormat ?? "language") : "language";
+  const language = s.language && s.language in LOCALES ? s.language : "browser";
+  const chooseLanguage = async (v: string | null) => {
+    set({ language: v && v !== "browser" ? v : null });
+    await app.flushNow();
+    location.reload();
+  };
   const today = todayIn();
   const families = [...ref.families.values()].sort((a, b) => a.name.localeCompare(b.name));
   const overrides = store.all("family_overrides");
@@ -365,14 +372,21 @@ export function SettingsPage() {
         <Field label={t("settings.display.theme")}>
           <Segmented label={t("settings.display.theme")} value={s.theme ?? "system"} onChange={(v) => set({ theme: v ?? "system" })} options={[{ value: "system", label: t("settings.display.theme.system") }, { value: "light", label: t("settings.display.theme.light") }, { value: "dark", label: t("settings.display.theme.dark") }]} />
         </Field>
+        {Object.keys(LOCALES).length > 1 && (
+          <Field label={t("settings.display.language")}>
+            <Segmented
+              label={t("settings.display.language")}
+              value={language}
+              onChange={(v) => void chooseLanguage(v)}
+              options={[{ value: "browser", label: t("settings.display.language.browser") }, ...Object.entries(LOCALES).map(([tag, l]) => ({ value: tag, label: l.name }))]}
+            />
+          </Field>
+        )}
         <Field label={t("settings.display.dates")}>
           <Segmented
             label={t("settings.display.dates")}
             value={dateStyle}
-            onChange={(v) => {
-              chooseDateStyle(v ?? "language");
-              setDateStyle(getDateStyle());
-            }}
+            onChange={(v) => set({ dateFormat: v && v !== "language" ? v : null })}
             options={dateStyles().map((style) => ({ value: style, label: dateOnly(today, { day: "numeric", month: "short", year: "numeric" }, style) }))}
           />
         </Field>

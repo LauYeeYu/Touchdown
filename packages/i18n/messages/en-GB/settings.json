@@ -46,6 +46,8 @@
   "display.theme.system": "Follow the device",
   "display.theme.light": "Light",
   "display.theme.dark": "Dark",
+  "display.language": "Language",
+  "display.language.browser": "Follow the browser",
   "display.dates": "Date format",
   "display.distance": "Distance",
   "display.distance.km": "Kilometres",
