@@ -280,7 +280,6 @@
   "stats.age.column.sinceFirstFlight": "Since first flight",
   "stats.age.flight": "Flight",
   "stats.age.aircraft": "Aircraft",
-  "stats.age.retiredNote": "For an aircraft retired or written off, the time since its first flight is not its age in service.",
   "stats.byYear": "By year",
   "stats.byYear.year": "Year",
   "stats.byYear.flights": "Flights",

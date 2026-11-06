@@ -3,7 +3,7 @@
 // so they are the web app's.
 
 import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightStats, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
-import { ageLeftOutText, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
+import { ageLeftOutText, ageTodayNote, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
 import { list, t, tDynamic } from "@touchdown/i18n/cli";
 import { noDimension, whereFilters, wrongDataset } from "./where.ts";
 import { savedViewNamed, viewsCommand } from "./change.ts";
@@ -290,7 +290,7 @@ export async function statsCommand(args: string[]) {
           agesPart.now.map((r) => [[r.registration ?? t("cliRead.stats.age.aircraft"), r.status && STATUS_WORD[r.status], r.typeCode && typeName(r.typeCode, ref)].filter(Boolean).join(" · "), r.firstFlightDate, r.sinceFirstFlight]),
         ),
         ...(agesPart.nowMore ? [dim(more(agesPart.nowMore))] : []),
-        ...(ages.now.some((r) => outOfService(r.status)) ? [dim(t("cliRead.stats.age.retiredNote"))] : []),
+        ...(ages.now.some((r) => outOfService(r.status)) ? [dim(ageTodayNote())] : []),
       ];
       const left = ageLeftOutText(ages.leftOut);
       if (left) lines.push(dim(left));
