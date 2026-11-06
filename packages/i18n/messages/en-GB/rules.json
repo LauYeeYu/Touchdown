@@ -89,7 +89,7 @@
   "typeMismatchRecords": "{registrations} is recorded as {typeCode} here, but {count, plural, one {# other record of this aircraft says} other {# other records of this aircraft say}} {aircraftType}. A typo, or a different aircraft with the same registration?",
   "regOverlap": "{registration} is held by {count, plural, one {# aircraft} other {# aircraft}} on this date. Fix the registration periods or choose the aircraft.",
   "dupFlight": "{label} is logged {count, plural, one {# time} other {# times}}.",
-  "dupSighting": "{label} is logged {count, plural, one {# time} other {# times}} at the same place. One sighting per aircraft per place per day is usual. Keep both only if that is intended.",
+  "dupSighting": "{label} is logged {count, plural, one {# time} other {# times}} at the same place. One sighting per aircraft per place per day is usual. Keep both only if intended.",
   "dupTicket": "{flights} have the same ticket number and coupon. One coupon is probably mistyped.",
   "flightOverlap": "{first} and {second} overlap in time.",
   "codeVariants": "{spellings} are the same code. They are counted as one ({code}).",
