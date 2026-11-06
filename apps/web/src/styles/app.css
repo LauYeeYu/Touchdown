@@ -7473,6 +7473,18 @@ button.select {
   }
 }
 
+/* The rows "Show all" brings in fade in as their box opens to them (useGrow in lib/motion.ts, which leaves them out
+   for reduced motion): ranked lists, the statistics tables, the custom view and a day's sightings. */
+.grow-in {
+  animation: grow-in 280ms var(--ease) both;
+}
+
+@keyframes grow-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tabs.is-ready .tabs__indicator,
   .ranked__bar span {

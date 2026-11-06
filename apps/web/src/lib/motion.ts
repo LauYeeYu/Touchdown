@@ -5,20 +5,27 @@ import { useLayoutEffect, useRef } from "react";
 
 const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** A box's rows: a list's items or a table's body rows. */
+const rowsOf = (box: HTMLElement) => [...box.querySelectorAll(":scope > li, :scope tbody > tr")];
+
 /**
  * A box whose height follows its content smoothly when the reader asks for more or less of it ("Show all", "Show
  * fewer"): from the height it had to the height it now needs, as a disclosure opens (280ms, 220ms to close), so what
- * is below slides instead of jumping. `key` is what the reader changed; other changes (a new period) are instant.
+ * is below slides instead of jumping. The rows it opens to fade in as it does (`.grow-in`). `key` is what the reader
+ * changed; other changes (a new period) are instant.
  */
 export function useGrow<T extends HTMLElement>(key: unknown) {
   const ref = useRef<T>(null);
   const last = useRef<number | null>(null);
+  const before = useRef<Set<Element>>(new Set());
   useLayoutEffect(() => {
     const box = ref.current;
     if (!box) return;
     const from = last.current;
     const to = box.offsetHeight;
     if (from === null || from === to || still()) return;
+    const added = to > from ? rowsOf(box).filter((row) => !before.current.has(row)) : [];
+    for (const row of added) row.classList.add("grow-in");
     box.style.height = `${from}px`;
     box.style.overflow = "hidden";
     box.getBoundingClientRect();
@@ -32,6 +39,7 @@ export function useGrow<T extends HTMLElement>(key: unknown) {
       box.style.height = "";
       box.style.overflow = "";
       box.style.transition = "";
+      for (const row of added) row.classList.remove("grow-in");
     };
     const finish = () => {
       stop();
@@ -53,9 +61,12 @@ export function useGrow<T extends HTMLElement>(key: unknown) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  // The height after every other change, so the next one starts from what is on screen.
+  // The height and rows after every other change, so the next one starts from what is on screen.
   useLayoutEffect(() => {
-    if (ref.current && !ref.current.style.height) last.current = ref.current.offsetHeight;
+    const box = ref.current;
+    if (!box) return;
+    if (!box.style.height) last.current = box.offsetHeight;
+    before.current = new Set(rowsOf(box));
   });
   return ref;
 }
