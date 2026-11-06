@@ -66,5 +66,6 @@
   "track.gap.greatCircle": "Drawn as the great circle.",
   "track.gap.none.title": "No position received",
   "track.gap.none.text": "{span} · {km, number} km, {from} to {to} UTC",
-  "track.gap.none.note": "Drawn as the great circle between the last position before and the first after."
+  "track.gap.none.note": "Drawn as the great circle between the last position before and the first after.",
+  "sync.devUpgrade": "This development copy of Touchdown would bring your log in {place} from schema version {stored} to {version}. The site cannot sync the log after that until it runs version {version} too.\n\nBring the log up to date now?"
 }

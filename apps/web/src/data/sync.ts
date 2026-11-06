@@ -3,7 +3,8 @@
 // returns, and every few minutes. Only the tab that writes the browser's copy syncs (tabs.ts); the others show its
 // sync and ask it to sync (TabSync).
 
-import { FILE_TABLES, settleOlder, ulid, type Store } from "@touchdown/core";
+import { FILE_TABLES, SCHEMA_VERSION, settleOlder, ulid, type Store } from "@touchdown/core";
+import { t } from "@touchdown/i18n";
 import { GoogleDrive, JsonTablesBackend, SchemaTooNewError, SignInNeeded, SyncEngine, tablePath, type FileAdapter, type QueuedRow, type SyncState, type SyncStateStore } from "@touchdown/storage";
 import type { StorageKind, SyncedConnection } from "./connection.ts";
 import { db } from "./db.ts";
@@ -159,6 +160,17 @@ const overNetwork = (c: SyncedConnection) => c.mode === "standard" || c.adapter 
 /** A request that reached no server: no network, or none that answers. Browsers word it differently. */
 const unreachable = (e: unknown) => e instanceof TypeError && /fetch|network|load failed/i.test(e.message);
 
+/**
+ * Development only: a log at an older schema version is brought up to date only when the developer says so. The site,
+ * still at the older version until its next deploy, stops syncing a log brought up to date. A "no" holds until the
+ * page reloads, and sync stops with the reason meanwhile.
+ */
+let upgradeHeld = false;
+function askUpgrade(stored: number, place: string): boolean {
+  if (!upgradeHeld) upgradeHeld = !window.confirm(t("data.sync.devUpgrade", { place, stored, version: SCHEMA_VERSION }));
+  return !upgradeHeld;
+}
+
 /** A promise and its resolve, for a moment awaited from several places. */
 function moment() {
   let resolve!: () => void;
@@ -287,7 +299,7 @@ export class SyncController implements SyncHandle {
     try {
       this.set({ state: "syncing" });
       const backend = new JsonTablesBackend(this.storage.files, this.store.deviceId);
-      await backend.open();
+      await backend.open(import.meta.env.DEV ? { upgrade: (stored) => askUpgrade(stored, this.info.place) } : {});
       const engine = new SyncEngine(this.store, backend, new StoredSyncState(this.hooks.persist));
       await engine.start();
       if (this.stopped) {

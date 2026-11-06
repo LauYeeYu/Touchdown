@@ -1373,6 +1373,7 @@ export interface MessageArgs {
   "data.track.gap.none.title": {};
   "data.track.gap.none.text": { from: "text"; km: "number"; span: "text"; to: "text" };
   "data.track.gap.none.note": {};
+  "data.sync.devUpgrade": { place: "text"; stored: "text"; version: "text" };
   "flightForm.saved": {};
   "flightForm.added": {};
   "flightForm.backToFlight": {};
