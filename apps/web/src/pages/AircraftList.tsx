@@ -1,7 +1,7 @@
 // Aircraft: every airframe in the log, counted once however many registrations it had (requirement I4).
 
 import { useMemo } from "react";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightDay, liveryNames } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
@@ -14,7 +14,7 @@ import { Select } from "../components/Select.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
-import { tx } from "../lib/i18n.tsx";
+import { headline, tx } from "../lib/i18n.tsx";
 
 type Filter = "all" | "flown" | "both" | "livery";
 
@@ -80,19 +80,23 @@ export function AircraftList() {
     <div className="page">
       <div className="view-top" />
       <h1 className="lead">
-        {views.length ? (
+        {headline(
           <>
-            {/* A shared whole log names its owner (lib/voice.tsx), and leaves out how aircraft are matched. */}
-            {tx("aircraft.list.lead", { voice: voice.kind, owner: voice.kind === "named" ? <Name name={voice.name} /> : null, count: views.length, flown, both }, { fig: (text) => <Fig>{text}</Fig> })}
-            {voice.kind === "you" && (
-              <>
-                {" "}
-                {provisional > 0 && t("aircraft.list.provisional", { all: provisional === views.length ? "yes" : "no", count: provisional })}
-              </>
-            )}
-          </>
-        ) : (
-          app.readOnly ? t("aircraft.list.emptyShared") : t("aircraft.list.empty")
+          {views.length ? (
+            <>
+              {/* A shared whole log names its owner (lib/voice.tsx), and leaves out how aircraft are matched. */}
+              {tx("aircraft.list.lead", { voice: voice.kind, owner: voice.kind === "named" ? <Name name={voice.name} /> : null, count: views.length, flown, both }, { fig: (text) => <Fig>{text}</Fig> })}
+              {voice.kind === "you" && (
+                <>
+                  {sentenceGap()}
+                  {provisional > 0 && t("aircraft.list.provisional", { all: provisional === views.length ? "yes" : "no", count: provisional })}
+                </>
+              )}
+            </>
+          ) : (
+            app.readOnly ? t("aircraft.list.emptyShared") : t("aircraft.list.empty")
+          )}
+          </>,
         )}
       </h1>
       <div className="filters" role="search">

@@ -4,7 +4,7 @@ import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
 import { flightStats, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
-import { list, t } from "@touchdown/i18n";
+import { list, sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { BigCode } from "../components/BigCode.tsx";
@@ -24,7 +24,7 @@ import { EmptyLog } from "./EmptyLog.tsx";
 import { Disclosure } from "../components/Disclosure.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
-import { tx } from "../lib/i18n.tsx";
+import { headline, tx } from "../lib/i18n.tsx";
 
 /** Model names such as 737-800 stay on one line instead of breaking at the hyphen. */
 function Keep({ text }: { text: string }) {
@@ -131,34 +131,38 @@ export function Home() {
         <ShareLogButton />
       </div>
       <h1 className="lead">
-        {!views.length && !ss.aircraft.value ? (
-          t("home.lead.nothing", { period, voice: voice.kind, year })
-        ) : (
+        {headline(
           <>
-            {tx(
-              "home.lead.summary",
-              {
-                voice: voice.kind,
-                period,
-                first: firstYear,
-                year,
-                name: who,
-                flights: views.length,
-                withDistance: fs.distanceKm.value > 0 ? "yes" : "no",
-                distance: distance(fs.distanceKm.value, unit),
-                aircraft: flownAircraft,
-                spotted: ss.aircraft.value,
-                airports: spotAirports,
-              },
-              { flown, spotted, fig },
-            )}
-            {both.length > 0 && (
-              <>
-                {" "}
-                {tx("home.lead.both", { voice: voice.kind, name: who, count: both.length }, { both: bothPhrase, fig })}
-              </>
-            )}
-          </>
+          {!views.length && !ss.aircraft.value ? (
+            t("home.lead.nothing", { period, voice: voice.kind, year })
+          ) : (
+            <>
+              {tx(
+                "home.lead.summary",
+                {
+                  voice: voice.kind,
+                  period,
+                  first: firstYear,
+                  year,
+                  name: who,
+                  flights: views.length,
+                  withDistance: fs.distanceKm.value > 0 ? "yes" : "no",
+                  distance: distance(fs.distanceKm.value, unit),
+                  aircraft: flownAircraft,
+                  spotted: ss.aircraft.value,
+                  airports: spotAirports,
+                },
+                { flown, spotted, fig },
+              )}
+              {both.length > 0 && (
+                <>
+                  {sentenceGap()}
+                  {tx("home.lead.both", { voice: voice.kind, name: who, count: both.length }, { both: bothPhrase, fig })}
+                </>
+              )}
+            </>
+          )}
+          </>,
         )}
       </h1>
 

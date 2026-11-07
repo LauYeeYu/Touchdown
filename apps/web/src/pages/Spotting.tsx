@@ -22,7 +22,7 @@ import { Fact } from "../components/Facts.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { useGrow } from "../lib/motion.ts";
 import { isolated, Name, voiceOf } from "../lib/voice.tsx";
-import { tx } from "../lib/i18n.tsx";
+import { headline, tx } from "../lib/i18n.tsx";
 
 const SESSION_PREVIEW = 12;
 const SESSIONS_PER_PAGE = 10;
@@ -86,24 +86,28 @@ export function Spotting() {
         )}
       </div>
       <h1 className="lead">
-        {sightings.length
-          ? tx(
-              "spotting.lead",
-              {
-                period,
-                voice: voice.kind,
-                name: voice.kind === "named" ? <Name name={voice.name} /> : "",
-                first,
-                year,
-                aircraft: ss.aircraft.value,
-                fresh: year !== "all" && newCount > 0 && newCount !== ss.aircraft.value ? "yes" : "no",
-                newCount,
-                airports: ss.airports.value,
-                days: sessions.length,
-              },
-              { fig: (text) => <Fig>{text}</Fig> },
-            )
-          : t("spotting.empty", { period: year === "all" ? "all" : "year", voice: voice.kind, year })}
+        {headline(
+          <>
+          {sightings.length
+            ? tx(
+                "spotting.lead",
+                {
+                  period,
+                  voice: voice.kind,
+                  name: voice.kind === "named" ? <Name name={voice.name} /> : "",
+                  first,
+                  year,
+                  aircraft: ss.aircraft.value,
+                  fresh: year !== "all" && newCount > 0 && newCount !== ss.aircraft.value ? "yes" : "no",
+                  newCount,
+                  airports: ss.airports.value,
+                  days: sessions.length,
+                },
+                { fig: (text) => <Fig>{text}</Fig> },
+              )
+            : t("spotting.empty", { period: year === "all" ? "all" : "year", voice: voice.kind, year })}
+          </>,
+        )}
       </h1>
       {sightings.length > 0 && (
         <dl className="facts">

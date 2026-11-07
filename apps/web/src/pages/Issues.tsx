@@ -4,7 +4,7 @@
 
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
-import { list, t } from "@touchdown/i18n";
+import { inSentence, list, t } from "@touchdown/i18n";
 import { flightDay, PRIVATE_FIELDS, RULES, type Finding, type RecordRef, type Row, type TableName } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import type { AppData } from "../data/app.ts";
@@ -15,6 +15,7 @@ import { Tabs } from "../components/Tabs.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { orderIssues } from "../lib/issueOrder.ts";
 import { aircraftViews } from "../lib/views.ts";
+import { headline } from "../lib/i18n.tsx";
 
 type Sev = "error" | "warning" | "info";
 
@@ -133,10 +134,10 @@ function ConflictItem({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
           </dl>
         )}
         <div className="finding__actions">
-          <button type="button" className="btn btn--small btn--quiet" aria-label={deleted ? undefined : t("issues.conflict.keepLabel", { field: label.toLowerCase() })} onClick={() => app.resolveConflict(c.id, "kept")}>
+          <button type="button" className="btn btn--small btn--quiet" aria-label={deleted ? undefined : t("issues.conflict.keepLabel", { field: inSentence(label) })} onClick={() => app.resolveConflict(c.id, "kept")}>
             {deleted ? t("issues.conflict.keepEntry") : t("issues.conflict.keep")}
           </button>
-          <button type="button" className="btn btn--small btn--ghost" aria-label={deleted ? undefined : t("issues.conflict.useOtherLabel", { field: label.toLowerCase() })} onClick={() => app.resolveConflict(c.id, "other")}>
+          <button type="button" className="btn btn--small btn--ghost" aria-label={deleted ? undefined : t("issues.conflict.useOtherLabel", { field: inSentence(label) })} onClick={() => app.resolveConflict(c.id, "other")}>
             {deleted ? t("issues.conflict.deleteIt") : t("issues.conflict.useOther")}
           </button>
         </div>
@@ -169,9 +170,13 @@ export function Issues() {
     <div className="page">
       <div className="view-top" />
       <h1 className="lead">
-        {conflicts.length + count("error") + count("warning") === 0
-          ? t("issues.lead.none")
-          : sentence(conflicts.length, count("error"), count("warning"))}
+        {headline(
+          <>
+          {conflicts.length + count("error") + count("warning") === 0
+            ? t("issues.lead.none")
+            : sentence(conflicts.length, count("error"), count("warning"))}
+          </>,
+        )}
       </h1>
       <p className="form-sub">{t("issues.lead.sub")}</p>
       <Tabs

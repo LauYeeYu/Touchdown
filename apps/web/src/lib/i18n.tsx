@@ -4,7 +4,7 @@
 //   tx("shell.emptyLog.guide", {}, { link: (text) => <Link to="/guide">{text}</Link> })
 //   tx("shell.emptyLog.synced", { name: <b>{c.name}</b> })
 
-import { createElement, Fragment, type ReactNode } from "react";
+import { cloneElement, createElement, Fragment, isValidElement, type ReactNode } from "react";
 import { LOCALES, locale, matchLocale, rich, setDateStyle, setLocale, type Locale, type MessageKey, type Params } from "@touchdown/i18n";
 
 type TagNames<K extends MessageKey> = Parameters<typeof rich<K, ReactNode>>[2] extends infer T ? (T extends Record<string, unknown> ? keyof T : never) : never;
@@ -77,4 +77,41 @@ function keep(key: string, value: string | null) {
   } catch {
     // Storage blocked: the log's choice still applies, once the log is open.
   }
+}
+
+/** The text of rendered parts: strings, and the children of elements (a figure, a link). */
+function textOf(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (isValidElement(node)) return textOf((node.props as { children?: ReactNode }).children);
+  return "";
+}
+
+/** The parts without the full stop that ends them, and whether there was one. */
+function dropStop(node: ReactNode): [ReactNode, boolean] {
+  if (typeof node === "string") return /。\s*$/.test(node) ? [node.replace(/。(\s*)$/, "$1"), true] : [node, false];
+  if (Array.isArray(node)) {
+    for (let i = node.length - 1; i >= 0; i--) {
+      const [part, done] = dropStop(node[i] as ReactNode);
+      if (done) return [[...node.slice(0, i), part, ...node.slice(i + 1)], true];
+      if (textOf(node[i] as ReactNode).trim()) break;
+    }
+    return [node, false];
+  }
+  if (isValidElement(node)) {
+    const children = (node.props as { children?: ReactNode }).children;
+    const [part, done] = dropStop(children);
+    return done ? [cloneElement(node, undefined, ...(Array.isArray(part) ? part : [part])), true] : [node, false];
+  }
+  return [node, false];
+}
+
+/**
+ * A page's summary, shown as its heading. Chinese ends a heading of one sentence without its full stop (。), as a
+ * headline does, and keeps the stops of a summary of several sentences, as in running text.
+ */
+export function headline(node: ReactNode): ReactNode {
+  if (!locale().startsWith("zh")) return node;
+  const stops = textOf(node).match(/[。！？]/g)?.length ?? 0;
+  return stops === 1 ? dropStop(node)[0] : node;
 }

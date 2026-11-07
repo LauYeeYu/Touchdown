@@ -3,7 +3,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { cityName } from "@touchdown/core";
 import { airportSummary } from "@touchdown/core/view";
@@ -24,7 +24,7 @@ import { NotFound } from "./NotFound.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
-import { tx } from "../lib/i18n.tsx";
+import { headline, tx } from "../lib/i18n.tsx";
 
 const FLIGHT_PAGE = 20;
 const AIRCRAFT_PAGE = 30;
@@ -124,18 +124,22 @@ export function AirportPage() {
         <PeriodControl year={year} years={years} onChange={setYear} />
       </div>
       <h2 className="lead lead--airport">
-        {nothing ? (
-          t("airport.lead.nothing", { airport: name, year })
-        ) : (
+        {headline(
           <>
-            {flownText && (
-              <>
-                {tx("airport.lead.flown", { period, year, voice: voice.kind, owner: who, cap: voice.kind === "none" && period === "all" ? "yes" : "no", parts, airport: name, dep, land, trans }, { fig })}{" "}
-              </>
-            )}
-            {sightings.length > 0 &&
-              tx("airport.lead.spotted", { period: flownText ? "all" : period, year, voice: voice.kind, owner: who, aircraft: spotted.length, there: flownText ? "yes" : "no", airport: name, days: days.size }, { fig })}
-          </>
+          {nothing ? (
+            t("airport.lead.nothing", { airport: name, year })
+          ) : (
+            <>
+              {flownText && (
+                <>
+                  {tx("airport.lead.flown", { period, year, voice: voice.kind, owner: who, cap: voice.kind === "none" && period === "all" ? "yes" : "no", parts, airport: name, dep, land, trans }, { fig })}{sentenceGap()}
+                </>
+              )}
+              {sightings.length > 0 &&
+                tx("airport.lead.spotted", { period: flownText ? "all" : period, year, voice: voice.kind, owner: who, aircraft: spotted.length, there: flownText ? "yes" : "no", airport: name, days: days.size }, { fig })}
+            </>
+          )}
+          </>,
         )}
       </h2>
       {nothing && year !== "all" && (

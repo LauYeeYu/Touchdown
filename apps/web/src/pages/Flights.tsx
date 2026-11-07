@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightStats, todayIn } from "@touchdown/core";
 import { flightSearch, flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
@@ -22,7 +22,7 @@ import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
-import { tx } from "../lib/i18n.tsx";
+import { headline, tx } from "../lib/i18n.tsx";
 
 type Highlight = { kind: "id" | "route"; key: string } | null;
 
@@ -122,47 +122,51 @@ export function Flights() {
         )}
       </div>
       <h1 className="lead">
-        {views.length ? (
+        {headline(
           <>
-            {tx(
-              "flights.lead.flights",
-              { voice: voice.kind, period, first, year, name: who, count: views.length, extent, distance: distance(fs.distanceKm.value, unit), time: durLong(fs.minutes.value) },
-              { fig },
-            )}{" "}
-            {longest?.km &&
-              longest.route &&
-              tx(
-                "flights.lead.longest",
-                { from: longest.fromCode, to: longest.toCode, distance: distance(longest.km, unit) },
-                {
-                  fig,
-                  phrase: (text) => (
-                    <span className="phrase phrase--flown" {...bind(longest.route!)}>
-                      {text}
-                    </span>
-                  ),
-                },
-              )}
-            {topRoute && topRoute.count > 1 && (
-              <>
-                {longest?.km && longest.route ? " " : ""}
-                {tx(
-                  "flights.lead.topRoute",
-                  { voice: voice.kind, name: who, a: ra ?? "", b: rb ?? "", count: topRoute.count },
+          {views.length ? (
+            <>
+              {tx(
+                "flights.lead.flights",
+                { voice: voice.kind, period, first, year, name: who, count: views.length, extent, distance: distance(fs.distanceKm.value, unit), time: durLong(fs.minutes.value) },
+                { fig },
+              )}{sentenceGap()}
+              {longest?.km &&
+                longest.route &&
+                tx(
+                  "flights.lead.longest",
+                  { from: longest.fromCode, to: longest.toCode, distance: distance(longest.km, unit) },
                   {
                     fig,
                     phrase: (text) => (
-                      <span className="phrase phrase--flown" {...bind(topRoute.key)}>
+                      <span className="phrase phrase--flown" {...bind(longest.route!)}>
                         {text}
                       </span>
                     ),
                   },
                 )}
-              </>
-            )}
-          </>
-        ) : (
-          t("flights.lead.empty", { scope: year !== "all" ? "year" : shared ? "shared" : "own", year })
+              {topRoute && topRoute.count > 1 && (
+                <>
+                  {longest?.km && longest.route ? sentenceGap() : ""}
+                  {tx(
+                    "flights.lead.topRoute",
+                    { voice: voice.kind, name: who, a: ra ?? "", b: rb ?? "", count: topRoute.count },
+                    {
+                      fig,
+                      phrase: (text) => (
+                        <span className="phrase phrase--flown" {...bind(topRoute.key)}>
+                          {text}
+                        </span>
+                      ),
+                    },
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            t("flights.lead.empty", { scope: year !== "all" ? "year" : shared ? "shared" : "own", year })
+          )}
+          </>,
         )}
       </h1>
       <div className="map-wrap">
