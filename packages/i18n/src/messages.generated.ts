@@ -87,8 +87,6 @@ export interface MessageArgs {
   "aircraft.cols.flights": {};
   "aircraft.cols.sightings": {};
   "aircraft.cols.lastSeen": {};
-  "aircraft.list.lead": { "<fig>": "tag"; both: "number"; count: "number"; flown: "number"; owner: "text"; voice: "choice" };
-  "aircraft.list.provisional": { all: "choice"; count: "number" };
   "aircraft.list.empty": {};
   "aircraft.list.emptyShared": {};
   "aircraft.list.search": {};
@@ -168,6 +166,9 @@ export interface MessageArgs {
   "aircraft.detail.merge.confirm": { count: "number"; from: "text"; to: "text" };
   "aircraft.detail.merge.done": {};
   "aircraft.detail.merge.button": {};
+  "aircraft.list.facts.flown": {};
+  "aircraft.list.facts.alsoSpotted": { count: "number" };
+  "aircraft.list.facts.spotted": {};
   "airport.notFound": { airport: "text"; where: "choice" };
   "airport.notFound.reference": {};
   "airport.notFound.back": {};
@@ -1435,9 +1436,6 @@ export interface MessageArgs {
   "flights.noDate": {};
   "flights.notFound.log": {};
   "flights.notFound.link": {};
-  "flights.lead.flights": { "<fig>": "tag"; count: "number"; distance: "text"; extent: "choice"; first: "text"; name: "text"; period: "choice"; time: "text"; voice: "choice"; year: "text" };
-  "flights.lead.longest": { "<fig>": "tag"; "<phrase>": "tag"; distance: "text"; from: "text"; to: "text" };
-  "flights.lead.topRoute": { "<fig>": "tag"; "<phrase>": "tag"; a: "text"; b: "text"; count: "number"; name: "text"; voice: "choice" };
   "flights.lead.empty": { scope: "choice"; year: "text" };
   "flights.legend.allRecorded": { count: "number" };
   "flights.legend.someRecorded": { count: "number"; recorded: "text" };
@@ -1555,6 +1553,7 @@ export interface MessageArgs {
   "flights.detail.source.title": {};
   "flights.detail.source.text": { source: "choice" };
   "flights.detail.checksPassed": {};
+  "flights.facts.topRoute": {};
   "format.duration.hours": { h: "text" };
   "format.duration.minutes": { m: "text" };
   "format.duration.hoursMinutes": { h: "text"; m: "text" };
@@ -2721,12 +2720,15 @@ export interface MessageArgs {
   "signin.setup.busy": {};
   "spotting.title": {};
   "spotting.logSession": {};
-  "spotting.lead": { "<fig>": "tag"; aircraft: "number"; airports: "number"; days: "number"; first: "text"; fresh: "choice"; name: "text"; newCount: "number"; period: "choice"; voice: "choice"; year: "text" };
   "spotting.empty": { period: "choice"; voice: "choice"; year: "text" };
   "spotting.facts.topAirline": { count: "number" };
   "spotting.facts.topType": {};
   "spotting.facts.specialLiveries": {};
   "spotting.facts.busiestDay": {};
+  "spotting.facts.aircraft": {};
+  "spotting.facts.newToLog": { count: "number" };
+  "spotting.facts.days": {};
+  "spotting.facts.airports": { count: "number" };
   "spotting.map.legend": {};
   "spotting.map.label": { count: "number" };
   "spotting.search.label": {};

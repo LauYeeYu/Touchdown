@@ -15,6 +15,23 @@ export function Fact({ label, value, detail }: { label: ReactNode; value: ReactN
   );
 }
 
+/** Model names such as 737-800 stay on one line instead of breaking at the hyphen. */
+export function Keep({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\S*-\S*)/).map((part, i) =>
+        /-/.test(part) ? (
+          <span key={i} className="keep">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 /**
  * "3 records left out (no airline)": records a count could not include. Nothing when there are none. `what` is the
  * field they lack: airline, airport, airports, type, cabin, location, registration, phase, times or seat position.

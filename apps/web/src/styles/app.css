@@ -708,6 +708,11 @@ main {
   min-width: 0;
 }
 
+/* Six figures as two rows of three, rather than a row of five and one left over. */
+.facts--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .facts dt {
   font-size: 0.8125rem;
   color: var(--ink-3);

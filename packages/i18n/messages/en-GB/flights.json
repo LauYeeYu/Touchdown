@@ -5,9 +5,6 @@
   "noDate": "No date",
   "notFound.log": "That flight is not in your log.",
   "notFound.link": "That flight is not in this link.",
-  "lead.flights": "{voice, select, you {{period, select, all {Since {first} you have taken} current {So far in {year} you have taken} other {In {year} you took}}} named {{period, select, all {Since {first} {name} has taken} current {So far in {year} {name} has taken} other {In {year} {name} took}}} other {{period, select, all {Since {first},} current {So far in {year},} other {In {year},}}}} <fig>{count, plural, one {#\u00a0flight} other {#\u00a0flights}}</fig>{extent, select, both {: <fig>{distance}</fig> and <fig>{time}</fig> in the air} distance {: <fig>{distance}</fig>} time { and <fig>{time}</fig> in the air} other {}}.",
-  "lead.longest": "The longest was <phrase><fig>{from} → {to}</fig>, {distance}</phrase>.",
-  "lead.topRoute": "{voice, select, you {The route you flew most was} named {The route {name} flew most was} other {The route flown most was}} <phrase><fig>{a} ⇄ {b}</fig>, {count, plural, one {#\u00a0time} other {#\u00a0times}}</phrase>.",
   "lead.empty": "{scope, select, own {No flights logged in your log.} shared {No flights logged in the log.} other {No flights logged in {year}.}}",
   "legend.allRecorded": "Recorded tracks for all {count, plural, one {#\u00a0flight} other {#\u00a0flights}}",
   "legend.someRecorded": "Recorded track on {recorded} of {count, plural, one {#\u00a0flight} other {#\u00a0flights}}, great circle on the rest",
@@ -124,5 +121,6 @@
   "detail.notes": "Notes",
   "detail.source.title": "Source and checks",
   "detail.source.text": "{source, select, fr24_csv {Imported from a my.flightradar24.com CSV.} sheet {Imported from a spreadsheet.} csv {Imported from a CSV file.} api {Filled from a flight lookup.} other {Entered by hand.}} Times are takeoff and landing, stored with their date and UTC offset.",
-  "detail.checksPassed": "All checks passed."
+  "detail.checksPassed": "All checks passed.",
+  "facts.topRoute": "Most flown route"
 }

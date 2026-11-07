@@ -7,8 +7,6 @@
   "cols.flights": "Flüge",
   "cols.sightings": "Sichtungen",
   "cols.lastSeen": "Zuletzt gesehen",
-  "list.lead": "{voice, select, named {Das Logbuch von {owner} enthält <fig>{count, plural, one {#\u00a0Flugzeug} other {#\u00a0Flugzeuge}}</fig>: Mit <fig>{flown, number}</fig> ist {owner} geflogen, und <fig>{both, number}</fig> davon hat {owner} auch fotografiert.} none {Das Logbuch enthält <fig>{count, plural, one {#\u00a0Flugzeug} other {#\u00a0Flugzeuge}}</fig>: mit <fig>{flown, number}</fig> davon geflogen, <fig>{both, number}</fig> davon auch fotografiert.} other {Dein Logbuch enthält <fig>{count, plural, one {#\u00a0Flugzeug} other {#\u00a0Flugzeuge}}</fig>: Mit <fig>{flown, number}</fig> bist du geflogen, und <fig>{both, number}</fig> davon hast du auch fotografiert.}}",
-  "list.provisional": "{all, select, yes {Alle werden über das Kennzeichen zugeordnet, bis eine Seriennummer bekannt ist.} other {{count, plural, =1 {Eines wird über das Kennzeichen zugeordnet, bis eine Seriennummer bekannt ist.} other {# werden über das Kennzeichen zugeordnet, bis eine Seriennummer bekannt ist.}}}}",
   "list.empty": "Noch keine Flugzeuge. Sobald du Flüge und Sichtungen mit Kennzeichen einträgst, erscheinen sie hier.",
   "list.emptyShared": "Keine Flugzeuge im Logbuch.",
   "list.search": "Flugzeuge durchsuchen",
@@ -87,5 +85,8 @@
   "detail.merge.placeholder": "Kennzeichen des anderen Eintrags",
   "detail.merge.confirm": "{from} mit {to} zusammenführen? {count, plural, one {#\u00a0Eintrag wird} other {#\u00a0Einträge werden}} zu diesem Flugzeug verschoben.",
   "detail.merge.done": "Zusammengeführt.",
-  "detail.merge.button": "Hier zusammenführen"
+  "detail.merge.button": "Hier zusammenführen",
+  "list.facts.flown": "Mitgeflogen",
+  "list.facts.alsoSpotted": "{count, plural, one {#\u00a0davon auch fotografiert} other {#\u00a0davon auch fotografiert}}",
+  "list.facts.spotted": "Fotografiert"
 }

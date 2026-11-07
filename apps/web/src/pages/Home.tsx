@@ -22,26 +22,9 @@ import { Duration } from "../components/Duration.tsx";
 import { Fig, Phrase, usePhrases } from "../components/Phrase.tsx";
 import { EmptyLog } from "./EmptyLog.tsx";
 import { Disclosure } from "../components/Disclosure.tsx";
-import { Fact } from "../components/Facts.tsx";
+import { Fact, Keep } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
 import { headline, tx } from "../lib/i18n.tsx";
-
-/** Model names such as 737-800 stay on one line instead of breaking at the hyphen. */
-function Keep({ text }: { text: string }) {
-  return (
-    <>
-      {text.split(/(\S*-\S*)/).map((part, i) =>
-        /-/.test(part) ? (
-          <span key={i} className="keep">
-            {part}
-          </span>
-        ) : (
-          part
-        ),
-      )}
-    </>
-  );
-}
 
 export function Home() {
   const { app, version } = useApp();

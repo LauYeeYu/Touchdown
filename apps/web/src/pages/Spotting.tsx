@@ -1,4 +1,4 @@
-// Spotting: the period's sightings in a sentence, where they happened, then each session (a day at a place).
+// Spotting: the period's figures, where the sightings happened, then each session (a day at a place).
 
 import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -10,19 +10,18 @@ import { airportWithCode, textCode } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sessionsOf } from "../lib/views.ts";
 import { mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, dateOnly, dayLong, PHASE_LABEL, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
+import { airlineLabel, dateOnly, dayLong, nf, PHASE_LABEL, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
-import { Fig } from "../components/Phrase.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { Select } from "../components/Select.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { useGrow } from "../lib/motion.ts";
-import { isolated, Name, voiceOf } from "../lib/voice.tsx";
-import { headline, tx } from "../lib/i18n.tsx";
+import { isolated, voiceOf } from "../lib/voice.tsx";
+import { headline } from "../lib/i18n.tsx";
 
 const SESSION_PREVIEW = 12;
 const SESSIONS_PER_PAGE = 10;
@@ -31,7 +30,7 @@ export function Spotting() {
   const { app, version } = useApp();
   const { store, ref } = app;
   const navigate = useNavigate();
-  const { year, setYear, years, thisYear } = usePeriod(store, version);
+  const { year, setYear, years } = usePeriod(store, version);
   // Kept for Back (lib/viewState.ts).
   const [q, setQ] = useViewState("q", "");
   const [airport, setAirport] = useViewState("airport", "");
@@ -66,8 +65,6 @@ export function Spotting() {
   // About "you", a shared whole log's owner by name, or nobody on a link to one record (lib/voice.tsx).
   const shared = app.readOnly;
   const voice = voiceOf(app);
-  const first = years[0] ?? thisYear;
-  const period = year === "all" ? "all" : year === thisYear ? "current" : "other";
   const busiest = [...sessions].sort((a, b) => b.sightings.length - a.sightings.length)[0];
   const topAirline = ss.byAirline.items[0];
   const topType = ss.byType.items[0];
@@ -85,32 +82,15 @@ export function Spotting() {
           </span>
         )}
       </div>
-      <h1 className="lead">
-        {headline(
-          <>
-          {sightings.length
-            ? tx(
-                "spotting.lead",
-                {
-                  period,
-                  voice: voice.kind,
-                  name: voice.kind === "named" ? <Name name={voice.name} /> : "",
-                  first,
-                  year,
-                  aircraft: ss.aircraft.value,
-                  fresh: year !== "all" && newCount > 0 && newCount !== ss.aircraft.value ? "yes" : "no",
-                  newCount,
-                  airports: ss.airports.value,
-                  days: sessions.length,
-                },
-                { fig: (text) => <Fig>{text}</Fig> },
-              )
-            : t("spotting.empty", { period: year === "all" ? "all" : "year", voice: voice.kind, year })}
-          </>,
-        )}
-      </h1>
+      {sightings.length ? <h1 className="visually-hidden">{t("shell.nav.spotting")}</h1> : <h1 className="lead">{headline(t("spotting.empty", { period: year === "all" ? "all" : "year", voice: voice.kind, year }))}</h1>}
       {sightings.length > 0 && (
-        <dl className="facts">
+        <dl className="facts facts--three">
+          <Fact
+            label={t("spotting.facts.aircraft")}
+            value={nf.format(ss.aircraft.value)}
+            detail={year !== "all" && newCount > 0 && newCount !== ss.aircraft.value ? t("spotting.facts.newToLog", { count: newCount }) : t("common.count.sightings", { count: sightings.length })}
+          />
+          <Fact label={t("spotting.facts.days")} value={nf.format(sessions.length)} detail={t("spotting.facts.airports", { count: ss.airports.value })} />
           {topAirline && (
             <Fact label={t("spotting.facts.topAirline", { count: ss.byAirline.top.length })} value={list(ss.byAirline.top.map((id) => airlineLabel(id, ref)))} detail={t("common.count.aircraft", { count: topAirline.count })} />
           )}

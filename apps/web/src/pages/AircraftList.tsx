@@ -1,19 +1,19 @@
 // Aircraft: every airframe in the log, counted once however many registrations it had (requirement I4).
 
 import { useMemo } from "react";
-import { sentenceGap, t } from "@touchdown/i18n";
+import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightDay, liveryNames } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
-import { airlineLabel, dateOnly, typeName } from "../lib/format.ts";
+import { airlineLabel, dateOnly, nf, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
-import { Fig } from "../components/Phrase.tsx";
+import { Fact } from "../components/Facts.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { Select } from "../components/Select.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { useViewState } from "../lib/viewState.ts";
-import { Name, voiceOf } from "../lib/voice.tsx";
+import { voiceOf } from "../lib/voice.tsx";
 import { headline, tx } from "../lib/i18n.tsx";
 
 type Filter = "all" | "flown" | "both" | "livery";
@@ -54,6 +54,11 @@ export function AircraftList() {
   const flown = views.filter((v) => v.flights.length).length;
   const both = views.filter((v) => v.flights.length && v.sightings.length).length;
   const provisional = views.filter((v) => v.airframe.provisional).length;
+  const spotted = views.filter((v) => v.sightings.length).length;
+  const sightings = views.reduce((n, v) => n + v.sightings.length, 0);
+  const withLivery = views.filter((v) => liveries.get(v.airframe.id)?.length).length;
+  const liveryCount = liveryNames([...liveries.values()].flat()).length;
+  const mostFlown = views.reduce<(typeof views)[number] | null>((best, v) => (!best || v.flights.length > best.flights.length ? v : best), null);
 
   const needle = q.trim().toLowerCase().replace(/[\s-]+/g, "");
   const shown = views
@@ -79,26 +84,21 @@ export function AircraftList() {
   return (
     <div className="page">
       <div className="view-top" />
-      <h1 className="lead">
-        {headline(
-          <>
-          {views.length ? (
-            <>
-              {/* A shared whole log names its owner (lib/voice.tsx), and leaves out how aircraft are matched. */}
-              {tx("aircraft.list.lead", { voice: voice.kind, owner: voice.kind === "named" ? <Name name={voice.name} /> : null, count: views.length, flown, both }, { fig: (text) => <Fig>{text}</Fig> })}
-              {voice.kind === "you" && (
-                <>
-                  {sentenceGap()}
-                  {provisional > 0 && t("aircraft.list.provisional", { all: provisional === views.length ? "yes" : "no", count: provisional })}
-                </>
-              )}
-            </>
-          ) : (
-            app.readOnly ? t("aircraft.list.emptyShared") : t("aircraft.list.empty")
-          )}
-          </>,
-        )}
-      </h1>
+      {views.length ? (
+        <>
+          <h1 className="visually-hidden">{t("shell.nav.aircraft")}</h1>
+          <dl className="facts">
+            {/* A shared whole log leaves out how aircraft are matched (lib/voice.tsx). */}
+            <Fact label={t("stats.flights.aircraft")} value={nf.format(views.length)} detail={voice.kind === "you" ? (provisional ? t("stats.aircraft.provisional", { count: provisional }) : t("stats.aircraft.confirmed")) : undefined} />
+            {flown > 0 && <Fact label={t("aircraft.list.facts.flown")} value={t("common.count.aircraft", { count: flown })} detail={both > 0 ? t("aircraft.list.facts.alsoSpotted", { count: both }) : undefined} />}
+            {spotted > 0 && <Fact label={t("aircraft.list.facts.spotted")} value={t("common.count.aircraft", { count: spotted })} detail={t("common.count.sightings", { count: sightings })} />}
+            {withLivery > 0 && <Fact label={t("spotting.facts.specialLiveries")} value={t("common.count.aircraft", { count: withLivery })} detail={t("common.count.liveries", { count: liveryCount })} />}
+            {mostFlown && mostFlown.flights.length > 1 && <Fact label={t("home.facts.aircraft")} value={mostFlown.registration ?? ""} detail={`${t("common.count.flights", { count: mostFlown.flights.length })} · ${typeName(mostFlown.airframe.typeCode, ref)}`} />}
+          </dl>
+        </>
+      ) : (
+        <h1 className="lead">{headline(app.readOnly ? t("aircraft.list.emptyShared") : t("aircraft.list.empty"))}</h1>
+      )}
       <div className="filters" role="search">
         <label className="search">
           <span className="visually-hidden">{t("aircraft.list.search")}</span>

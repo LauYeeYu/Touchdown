@@ -5,9 +5,6 @@
   "noDate": "無日期",
   "notFound.log": "日誌中沒有這個航班。",
   "notFound.link": "連結中沒有這個航班。",
-  "lead.flights": "{voice, select, you {{period, select, all {自\u2060{first}\u2060年以來，你搭乘了} current {{year}\u2060年至今，你搭乘了} other {{year}\u2060年，你搭乘了}}} named {{period, select, all {自\u2060{first}\u2060年以來，{name}搭乘了} current {{year}\u2060年至今，{name}搭乘了} other {{year}\u2060年，{name}搭乘了}}} other {{period, select, all {自\u2060{first}\u2060年以來，共搭乘} current {{year}\u2060年至今，共搭乘} other {{year}\u2060年，共搭乘}}}}<fig>{count, plural, other {#個航班}}</fig>{extent, select, both {，飛行<fig>{distance}</fig>、<fig>{time}</fig>} distance {，飛行<fig>{distance}</fig>} time {，飛行<fig>{time}</fig>} other {}}。",
-  "lead.longest": "最長的一班是<phrase><fig>{from} → {to}</fig>，{distance}</phrase>。",
-  "lead.topRoute": "{voice, select, you {你最常飛的航線是} named {{name}最常飛的航線是} other {最常飛的航線是}}<phrase><fig>{a} ⇄ {b}</fig>，{count, plural, other {#次}}</phrase>。",
   "lead.empty": "{scope, select, own {你還沒有記錄航班。} shared {日誌中沒有航班。} other {{year}\u2060年沒有航班。}}",
   "legend.allRecorded": "{count, plural, other {#個航班}}都有軌跡",
   "legend.someRecorded": "{count, plural, other {#個航班}}中{recorded}個有軌跡，其餘顯示大圓航線",
@@ -124,5 +121,6 @@
   "detail.notes": "備註",
   "detail.source.title": "來源和檢查",
   "detail.source.text": "{source, select, fr24_csv {從my.flightradar24.com的CSV匯入。} sheet {從試算表匯入。} csv {從CSV檔案匯入。} api {透過航班查詢填入。} other {手動輸入。}}時間指起飛和降落時間，儲存時附帶日期和UTC時差。",
-  "detail.checksPassed": "所有檢查都已通過。"
+  "detail.checksPassed": "所有檢查都已通過。",
+  "facts.topRoute": "最常飛的航線"
 }

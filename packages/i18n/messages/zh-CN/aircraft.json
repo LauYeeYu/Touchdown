@@ -7,8 +7,6 @@
   "cols.flights": "航班",
   "cols.sightings": "拍摄",
   "cols.lastSeen": "最近一次",
-  "list.lead": "{voice, select, named {{owner}的日志中有<fig>{count, plural, other {#架飞机}}</fig>：乘坐过<fig>{flown, number}</fig>架，其中<fig>{both, number}</fig>架也拍摄过。} none {日志中有<fig>{count, plural, other {#架飞机}}</fig>：乘坐过<fig>{flown, number}</fig>架，其中<fig>{both, number}</fig>架也拍摄过。} other {日志中有<fig>{count, plural, other {#架飞机}}</fig>：你乘坐过<fig>{flown, number}</fig>架，其中<fig>{both, number}</fig>架也拍摄过。}}",
-  "list.provisional": "{all, select, yes {查到序列号之前，所有飞机都暂按注册号匹配。} other {{count, plural, =1 {查到序列号之前，有1架飞机暂按注册号匹配。} other {查到序列号之前，有#架飞机暂按注册号匹配。}}}}",
   "list.empty": "还没有飞机。记录带注册号的航班和拍摄记录后，飞机就会出现在这里。",
   "list.emptyShared": "日志中没有飞机。",
   "list.search": "搜索飞机",
@@ -87,5 +85,8 @@
   "detail.merge.placeholder": "另一条目的注册号",
   "detail.merge.confirm": "要将{from}合并到{to}吗？{from}的{count, plural, other {#条记录}}会移到这架飞机。",
   "detail.merge.done": "已合并。",
-  "detail.merge.button": "合并到这里"
+  "detail.merge.button": "合并到这里",
+  "list.facts.flown": "乘坐过",
+  "list.facts.alsoSpotted": "{count, plural, other {其中#架也拍摄过}}",
+  "list.facts.spotted": "拍摄过"
 }

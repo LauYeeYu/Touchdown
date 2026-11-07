@@ -7,8 +7,6 @@
   "cols.flights": "Flights",
   "cols.sightings": "Sightings",
   "cols.lastSeen": "Last seen",
-  "list.lead": "{voice, select, named {{owner}'s log holds <fig>{count, plural, one {#\u00a0aircraft} other {#\u00a0aircraft}}</fig>: {owner} flew on <fig>{flown, number}</fig>, and also photographed <fig>{both, number}</fig> of those.} none {The log holds <fig>{count, plural, one {#\u00a0aircraft} other {#\u00a0aircraft}}</fig>: <fig>{flown, number}</fig> flown on, and <fig>{both, number}</fig> of those also photographed.} other {Your log holds <fig>{count, plural, one {#\u00a0aircraft} other {#\u00a0aircraft}}</fig>: you flew on <fig>{flown, number}</fig>, and <fig>{both, number}</fig> of those you also photographed.}}",
-  "list.provisional": "{all, select, yes {All are matched by registration until a serial number is known.} other {{count, plural, =1 {One is matched by registration until a serial number is known.} other {# are matched by registration until a serial number is known.}}}}",
   "list.empty": "No aircraft yet. They appear as you log flights and sightings with registrations.",
   "list.emptyShared": "No aircraft in the log.",
   "list.search": "Search aircraft",
@@ -87,5 +85,8 @@
   "detail.merge.placeholder": "Registration of the other entry",
   "detail.merge.confirm": "Merge {from} into {to}? Its {count, plural, one {#\u00a0record moves} other {#\u00a0records move}} to this aircraft.",
   "detail.merge.done": "Merged.",
-  "detail.merge.button": "Merge here"
+  "detail.merge.button": "Merge here",
+  "list.facts.flown": "Flown on",
+  "list.facts.alsoSpotted": "{count, plural, one {#\u00a0also spotted} other {#\u00a0also spotted}}",
+  "list.facts.spotted": "Spotted"
 }

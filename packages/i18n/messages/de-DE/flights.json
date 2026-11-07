@@ -5,9 +5,6 @@
   "noDate": "Kein Datum",
   "notFound.log": "Dieser Flug ist nicht in deinem Logbuch.",
   "notFound.link": "Dieser Flug ist nicht in diesem Link.",
-  "lead.flights": "{voice, select, you {{period, select, all {Seit {first} kommst du auf} current {{year} kommst du bisher auf} other {{year} kamst du auf}}} named {{period, select, all {Seit {first} kommt {name} auf} current {{year} kommt {name} bisher auf} other {{year} kam {name} auf}}} other {{period, select, all {Seit {first} gibt es} current {{year} gibt es bisher} other {{year} gab es}}}} <fig>{count, plural, one {#\u00a0Flug} other {#\u00a0Flüge}}</fig>{extent, select, both {: <fig>{distance}</fig> und <fig>{time}</fig> in der Luft} distance {: <fig>{distance}</fig>} time { und <fig>{time}</fig> in der Luft} other {}}.",
-  "lead.longest": "Der längste Flug war <phrase><fig>{from} → {to}</fig>, {distance}</phrase>.",
-  "lead.topRoute": "{voice, select, you {Deine häufigste Strecke war} named {Die häufigste Strecke von {name} war} other {Die häufigste Strecke war}} <phrase><fig>{a} ⇄ {b}</fig>, {count, plural, one {einmal} other {#\u00a0Mal}}</phrase>.",
   "lead.empty": "{scope, select, own {Dein Logbuch enthält keine Flüge.} shared {Das Logbuch enthält keine Flüge.} other {Im Jahr {year} sind keine Flüge eingetragen.}}",
   "legend.allRecorded": "Aufgezeichnete Flugwege für alle {count, plural, one {#\u00a0Flug} other {#\u00a0Flüge}}",
   "legend.someRecorded": "Aufgezeichneter Flugweg bei {recorded} von {count, plural, one {#\u00a0Flug} other {#\u00a0Flügen}}, Großkreis bei den übrigen",
@@ -124,5 +121,6 @@
   "detail.notes": "Notizen",
   "detail.source.title": "Quelle und Prüfungen",
   "detail.source.text": "{source, select, fr24_csv {Aus einer CSV-Datei von my.flightradar24.com importiert.} sheet {Aus einer Tabelle importiert.} csv {Aus einer CSV-Datei importiert.} api {Aus einer Flugabfrage übernommen.} other {Von Hand eingegeben.}} Die Zeiten sind Start und Landung, gespeichert mit Datum und UTC-Offset.",
-  "detail.checksPassed": "Alle Prüfungen bestanden."
+  "detail.checksPassed": "Alle Prüfungen bestanden.",
+  "facts.topRoute": "Häufigste Strecke"
 }

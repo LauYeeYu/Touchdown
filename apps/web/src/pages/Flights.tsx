@@ -1,8 +1,8 @@
-// Flights: the period in a sentence, the period's routes on a map, then the list grouped by month.
+// Flights: the period's figures, its routes on a map, then the list grouped by month.
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { sentenceGap, t } from "@touchdown/i18n";
+import { list, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightStats, todayIn } from "@touchdown/core";
 import { flightSearch, flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
@@ -11,18 +11,19 @@ import { routeCodes } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights, type FlightView } from "../lib/views.ts";
 import { mapFlights, trackIndex, trackInfo } from "../lib/mapdata.ts";
-import { airlineLabel, dateOnly, distance, durLong, monthNames } from "../lib/format.ts";
+import { airlineLabel, dateOnly, distance, monthNames, nf } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
-import { Fig, usePhrases } from "../components/Phrase.tsx";
+import { usePhrases } from "../components/Phrase.tsx";
+import { Fact, Keep } from "../components/Facts.tsx";
+import { Duration } from "../components/Duration.tsx";
 import { FlightRow } from "../components/FlightRow.tsx";
 import { Select } from "../components/Select.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
-import { Name, voiceOf } from "../lib/voice.tsx";
-import { headline, tx } from "../lib/i18n.tsx";
+import { headline } from "../lib/i18n.tsx";
 
 type Highlight = { kind: "id" | "route"; key: string } | null;
 
@@ -32,7 +33,7 @@ export function Flights() {
   const { app, version } = useApp();
   const { store, ref } = app;
   const navigate = useNavigate();
-  const { year, setYear, years, thisYear } = usePeriod(store, version);
+  const { year, setYear, years } = usePeriod(store, version);
   const unit = app.settings().distanceUnit ?? "km";
   // Kept for Back (lib/viewState.ts).
   const [q, setQ] = useViewState("q", "");
@@ -75,16 +76,10 @@ export function Flights() {
   const recordedShown = marks.filter((m) => m.track && shownIds.has(m.id)).length;
   const shownKm = shown.reduce((s, v) => s + (v.km ?? 0), 0);
 
-  // About "you", a shared whole log's owner by name, or nobody on a link to one record (lib/voice.tsx).
   const shared = app.readOnly;
-  const voice = voiceOf(app);
-  const who = voice.kind === "named" ? <Name name={voice.name} /> : null;
-  const first = years[0] ?? thisYear;
-  const period = year === "all" ? "all" : year === thisYear ? "current" : "past";
-  const extent = fs.distanceKm.value > 0 ? (fs.minutes.value > 0 ? "both" : "distance") : fs.minutes.value > 0 ? "time" : "none";
-  const fig = (text: React.ReactNode) => <Fig>{text}</Fig>;
   const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
   const topRoute = fs.byRoute.items[0];
+  const topAirline = fs.byAirline.items[0];
   const [ra, rb] = topRoute ? routeCodes(topRoute.key, ref, " ").split(" ") : [];
 
   // A highlight comes from a hovered row or arc, else from a pointed-at or pinned phrase.
@@ -121,54 +116,40 @@ export function Flights() {
           </Link>
         )}
       </div>
-      <h1 className="lead">
-        {headline(
-          <>
-          {views.length ? (
-            <>
-              {tx(
-                "flights.lead.flights",
-                { voice: voice.kind, period, first, year, name: who, count: views.length, extent, distance: distance(fs.distanceKm.value, unit), time: durLong(fs.minutes.value) },
-                { fig },
-              )}{sentenceGap()}
-              {longest?.km &&
-                longest.route &&
-                tx(
-                  "flights.lead.longest",
-                  { from: longest.fromCode, to: longest.toCode, distance: distance(longest.km, unit) },
-                  {
-                    fig,
-                    phrase: (text) => (
-                      <span className="phrase phrase--flown" {...bind(longest.route!)}>
-                        {text}
-                      </span>
-                    ),
-                  },
-                )}
-              {topRoute && topRoute.count > 1 && (
-                <>
-                  {longest?.km && longest.route ? sentenceGap() : ""}
-                  {tx(
-                    "flights.lead.topRoute",
-                    { voice: voice.kind, name: who, a: ra ?? "", b: rb ?? "", count: topRoute.count },
-                    {
-                      fig,
-                      phrase: (text) => (
-                        <span className="phrase phrase--flown" {...bind(topRoute.key)}>
-                          {text}
-                        </span>
-                      ),
-                    },
-                  )}
-                </>
-              )}
-            </>
-          ) : (
-            t("flights.lead.empty", { scope: year !== "all" ? "year" : shared ? "shared" : "own", year })
-          )}
-          </>,
-        )}
-      </h1>
+      {views.length ? (
+        <>
+          <h1 className="visually-hidden">{t("shell.nav.flights")}</h1>
+          <dl className="facts">
+            <Fact label={t("stats.flights.flights")} value={nf.format(views.length)} detail={fs.distanceKm.value > 0 ? distance(fs.distanceKm.value, unit) : undefined} />
+            {fs.minutes.value > 0 && <Fact label={t("home.facts.time")} value={<Duration min={fs.minutes.value} pad={false} />} detail={t("home.facts.timeDetail", { count: views.length - fs.minutes.leftOut })} />}
+            {longest?.km && longest.route && (
+              <Fact
+                label={t("home.facts.longest")}
+                value={
+                  <span className="phrase phrase--flown" {...bind(longest.route)}>
+                    {longest.fromCode} → {longest.toCode}
+                  </span>
+                }
+                detail={[distance(longest.km, unit), longest.f.flightNumber].filter(Boolean).join(" · ")}
+              />
+            )}
+            {topRoute && topRoute.count > 1 && (
+              <Fact
+                label={t("flights.facts.topRoute")}
+                value={
+                  <span className="phrase phrase--flown" {...bind(topRoute.key)}>
+                    {ra} ⇄ {rb}
+                  </span>
+                }
+                detail={t("common.count.times", { count: topRoute.count })}
+              />
+            )}
+            {topAirline && <Fact label={t("home.facts.airline", { count: fs.byAirline.top.length })} value={<Keep text={list(fs.byAirline.top.map((id) => airlineLabel(id, ref)))} />} detail={t("common.count.flights", { count: topAirline.count })} />}
+          </dl>
+        </>
+      ) : (
+        <h1 className="lead">{headline(t("flights.lead.empty", { scope: year !== "all" ? "year" : shared ? "shared" : "own", year }))}</h1>
+      )}
       <div className="map-wrap">
         <div className="legend">
           <span className="legend__item">

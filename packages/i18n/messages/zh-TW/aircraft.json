@@ -7,8 +7,6 @@
   "cols.flights": "航班",
   "cols.sightings": "拍攝",
   "cols.lastSeen": "最近一次",
-  "list.lead": "{voice, select, named {{owner}的日誌中有<fig>{count, plural, other {#架飛機}}</fig>：搭乘過<fig>{flown, number}</fig>架，其中<fig>{both, number}</fig>架也拍到過。} none {日誌中有<fig>{count, plural, other {#架飛機}}</fig>：搭乘過<fig>{flown, number}</fig>架，其中<fig>{both, number}</fig>架也拍到過。} other {日誌中有<fig>{count, plural, other {#架飛機}}</fig>：你搭乘過<fig>{flown, number}</fig>架，其中<fig>{both, number}</fig>架也拍到過。}}",
-  "list.provisional": "{all, select, yes {得知序號前，全部暫以註冊號比對。} other {{count, plural, =1 {得知序號前，有1架暫以註冊號比對。} other {得知序號前，有#架暫以註冊號比對。}}}}",
   "list.empty": "還沒有飛機。記錄帶有註冊號的航班和拍攝紀錄後，飛機就會出現在這裡。",
   "list.emptyShared": "日誌中沒有飛機。",
   "list.search": "搜尋飛機",
@@ -87,5 +85,8 @@
   "detail.merge.placeholder": "另一筆資料的註冊號",
   "detail.merge.confirm": "要將{from}併入{to}嗎？{count, plural, other {#筆紀錄}}會移到這架飛機。",
   "detail.merge.done": "已合併。",
-  "detail.merge.button": "合併到這裡"
+  "detail.merge.button": "合併到這裡",
+  "list.facts.flown": "搭乘過",
+  "list.facts.alsoSpotted": "{count, plural, other {其中#架也拍攝過}}",
+  "list.facts.spotted": "拍攝過"
 }
