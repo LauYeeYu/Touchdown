@@ -25,11 +25,18 @@ export function monthNames(width: "narrow" | "short" | "long" = "long"): string[
 
 const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
+/**
+ * A Chinese date is one word ("4月26日"): word joiners between its figures and characters keep out the narrow gap a
+ * page puts between Chinese and figures elsewhere (CSS text-autospace, DESIGN.md "Typography").
+ */
+const glued = (s: string) => s.replace(/(?<=\d)(?=[\u4e00-\u9fff])|(?<=[\u4e00-\u9fff])(?=\d)/g, "\u2060");
+
 function intlDate(tag: string, ymd: string, opts: Intl.DateTimeFormatOptions): string {
   const key = tag + JSON.stringify(opts);
   let f = dateFormats.get(key);
   if (!f) dateFormats.set(key, (f = new Intl.DateTimeFormat(tag, { timeZone: "UTC", ...opts })));
-  return f.format(new Date(ymd + "T12:00:00Z"));
+  const text = f.format(new Date(ymd + "T12:00:00Z"));
+  return tag.startsWith("zh") ? glued(text) : text;
 }
 
 /**

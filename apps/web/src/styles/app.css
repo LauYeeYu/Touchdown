@@ -67,6 +67,24 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Chinese is not in Source Sans 3: its characters come from the system's Chinese face for the script of the page's
+   language (Simplified or Traditional), while Latin letters and figures stay in Source Sans 3. Between Chinese and Latin
+   letters or figures the browser puts a narrow gap (an eighth of a character, text-autospace), so the Chinese messages
+   carry no typed space there: a space is wider than the gap Chinese type wants, and values put into a sentence (codes,
+   numbers, names) get the gap too. A browser without text-autospace sets them close, as much Chinese text is. */
+:root:lang(zh-CN),
+:root:lang(zh-TW) {
+  text-autospace: normal;
+}
+
+:root:lang(zh-CN) {
+  --sans: "Source Sans 3 Variable", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root:lang(zh-TW) {
+  --sans: "Source Sans 3 Variable", "PingFang TC", "Noto Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;

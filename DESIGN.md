@@ -519,7 +519,7 @@ Paper and ink with two data inks; neutrals are warm (hue around 85-95 in OKLCH) 
 
 ## Typography
 
-**Display Font:** Source Sans 3 (variable, weights 200 to 900; SIL Open Font License), served with the app (`@fontsource-variable/source-sans-3`: one file per script, each loaded only when a page has its characters). Until it loads, and for scripts it lacks, the system sans stands in (ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif)
+**Display Font:** Source Sans 3 (variable, weights 200 to 900; SIL Open Font License), served with the app (`@fontsource-variable/source-sans-3`: one file per script, each loaded only when a page has its characters). Until it loads, and for scripts it lacks, the system sans stands in (ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif). In Chinese, its characters come from the system's Chinese face for the page's script (PingFang SC, Noto Sans SC, Microsoft YaHei for zh-CN; PingFang TC, Noto Sans TC, Microsoft JhengHei for zh-TW), with Latin letters and figures still in Source Sans 3. Between Chinese and Latin letters or figures the browser draws a narrow gap (`text-autospace`), so Chinese messages carry no typed space there
 **Body Font:** the same stack
 **Label/Mono Font:** the same face with tabular figures; there is no monospace face
 
