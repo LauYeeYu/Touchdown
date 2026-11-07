@@ -37,7 +37,10 @@ Built (G12, [31](31-ui.md), "Language"): airports, the places they serve and air
 
 | Part | Rule |
 |---|---|
-| Matching | An airport by ICAO, else IATA, an ICAO match first (an IATA code can pass from a closed airport to another). An airline by ICAO, and only when Wikidata's English name is the same company's (`sameAirline`), since ICAO codes pass between airlines over the years. |
+| Matching | An airport by ICAO, else IATA, an ICAO match first (an IATA code can pass from a closed airport to another). An airline by ICAO, and only when Wikidata's English name is the same company's (`sameAirline`), since ICAO codes pass between airlines over the years. The English name is the `en` label, else the `mul` one (the label for every language, where many items keep it). |
+| Several items with one code | An airport and the air base beside it, an airport and the one it replaced, an airline and the one that had its code before: the item whose English name is most like the table's (`best`), the same whatever order Wikidata answers in. Of those named at least half as alike as the closest, one with a name in the language comes first and, where the table names an airport, a civil one. |
+| Places | Of the places the item serves, the one whose English name is the table's place as the app shows it ("Manchester, Greater Manchester" is Manchester), else that place where another item with the code serves it, else the item's place that has a name in the language. |
+| Airport names | A Chinese label that is only the place's name ("查尔斯顿" for Charleston International Airport) or has no word for an airfield (机场, 基地, 站 and the like: "布里斯托尔（BRS）") is passed over for another of the item's labels, else the airport keeps its English name. Where the table names an airport, a label with 机场 or 空港 comes first. |
 | zh-CN | The `zh-cn`, `zh-hans`, `zh-sg` or `zh` label, in Simplified characters. |
 | zh-TW | The `zh-tw` or `zh-hant` label, else `zh-hk`, else the Simplified one converted with Taiwan's wording (OpenCC, used only when the data is built, never shipped). Some converted names may differ from Taiwan's official ones. |
 | de-DE | The `de` label, kept only where it differs from the English name. |
