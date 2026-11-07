@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { toUtcIso } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
-import { chooseStorage, type StorageKind } from "../data/connection.ts";
+import { chooseStorage, placeName, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle } from "../data/google.ts";
 import { standard, STANDARD_ERRORS, type StandardStatus } from "../data/standard.ts";
@@ -87,11 +87,11 @@ export function FirstRun({ app, onDone }: { app: AppData; onDone: () => void }) 
       return;
     }
     const { connection } = picked;
-    setBusy(picked.holdsLog ? t("shell.firstRun.reading", { name: connection.name }) : t("shell.firstRun.settingUp", { name: connection.name }));
+    setBusy(picked.holdsLog ? t("shell.firstRun.reading", { name: placeName(connection) }) : t("shell.firstRun.settingUp", { name: placeName(connection) }));
     await app.connect(connection);
     const info = app.getSyncInfo();
     if (info?.state === "failed") {
-      setError(t("shell.firstRun.couldNotUse", { name: connection.name, error: info.error ?? "" }));
+      setError(t("shell.firstRun.couldNotUse", { name: placeName(connection), error: info.error ?? "" }));
       setBusy(null);
       return;
     }

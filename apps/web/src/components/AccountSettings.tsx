@@ -13,6 +13,7 @@ import { Field, TextInput } from "./form.tsx";
 import { toast } from "./overlay.tsx";
 import { invitationMessage } from "../lib/invitation.ts";
 import { tx } from "../lib/i18n.tsx";
+import { placeName } from "../data/connection.ts";
 
 const when = (iso: string | null) => (iso ? momentLabel(Date.parse(iso)) : t("account.never"));
 /** A day on this device's calendar: "3 Oct 2026". */
@@ -71,7 +72,7 @@ async function signOut(app: AppData) {
     await app.sync?.run();
     const waiting = app.getSyncInfo()?.waiting ?? 0;
     if (waiting > 0) {
-      if (!window.confirm(t("account.signOut.waiting", { count: waiting, place: c.name }))) return;
+      if (!window.confirm(t("account.signOut.waiting", { count: waiting, place: placeName(c) }))) return;
     } else keep = false;
   } else if (!window.confirm(t("account.signOut.localOnly"))) {
     return;

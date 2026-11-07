@@ -6,6 +6,7 @@ import { useSyncInfo } from "../components/ModeChoice.tsx";
 import { useApp } from "../data/context.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { tx } from "../lib/i18n.tsx";
+import { placeName } from "../data/connection.ts";
 
 export function EmptyLog() {
   const { app } = useApp();
@@ -58,7 +59,7 @@ export function EmptyLog() {
       </p>
       <p className="status-line">
         <Icon name="hard-drive" />
-        <span>{c && c.mode !== "local" ? t("shell.emptyLog.synced", { name: c.name }) : t("shell.emptyLog.local")}</span>
+        <span>{c && c.mode !== "local" ? t("shell.emptyLog.synced", { name: placeName(c) }) : t("shell.emptyLog.local")}</span>
       </p>
     </div>
   );

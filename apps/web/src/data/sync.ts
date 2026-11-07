@@ -6,7 +6,7 @@
 import { FILE_TABLES, SCHEMA_VERSION, settleOlder, ulid, type Store } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import { GoogleDrive, JsonTablesBackend, SchemaTooNewError, SignInNeeded, SyncEngine, tablePath, type FileAdapter, type QueuedRow, type SyncState, type SyncStateStore } from "@touchdown/storage";
-import type { StorageKind, SyncedConnection } from "./connection.ts";
+import { placeName, type StorageKind, type SyncedConnection } from "./connection.ts";
 import { db } from "./db.ts";
 import { folderAllowed, LocalFolder } from "./folder.ts";
 import { GoogleSignIn, loadGoogle, SignInCancelled } from "./google.ts";
@@ -198,7 +198,7 @@ export class SyncController implements SyncHandle {
     private readonly hooks: SyncHooks,
   ) {
     this.storage = storageFor(connection);
-    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: connection.name, lastAt: null, waiting: 0, problems: [], error: null, tables: false, tracks: null };
+    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: placeName(connection), lastAt: null, waiting: 0, problems: [], error: null, tables: false, tracks: null };
   }
 
   subscribe = (fn: () => void) => {
@@ -424,7 +424,7 @@ export class TabSync implements SyncHandle {
     private readonly flush: () => Promise<void>,
   ) {
     this.storage = storageFor(connection);
-    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: connection.name, lastAt: null, waiting: 0, problems: [], error: null, tables, tracks: null };
+    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: placeName(connection), lastAt: null, waiting: 0, problems: [], error: null, tables, tracks: null };
     // Coming back into view syncs, as it does in the writing tab.
     const onShow = () => document.visibilityState === "visible" && this.post({ type: "run", id: "" });
     document.addEventListener("visibilitychange", onShow);
