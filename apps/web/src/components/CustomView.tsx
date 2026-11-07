@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { dimensionValues, DIMENSIONS, filterRecords, pivot, pivotRecords, viewFilters, type Dataset, type Dimension, type Flight, type Measure, type PivotFilter, type Sighting, type StatsContext } from "@touchdown/core";
 import { dimensionLabel, pivotValueLabel } from "@touchdown/core/view";
-import { t } from "@touchdown/i18n";
+import { inSentence, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airlineLabel, dateOnly, distance, durShort, nf } from "../lib/format.ts";
 import { codeStyle, airportWithCode } from "../lib/codes.ts";
@@ -42,7 +42,7 @@ const RECORD_PAGE = 20;
 /** A figure picked in the table: null for a total's side. */
 type Picked = { row: string | null; col: string | null };
 
-const lower = (d: Dimension) => d.label.toLowerCase();
+const lower = (d: Dimension) => inSentence(d.label);
 
 export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; flights: Flight[]; sightings: Sighting[] }) {
   const { app } = useApp();
@@ -366,7 +366,7 @@ function FilterPanel({ dataset, dim, dims = [], all, active, ctx, name, onChange
   const set = new Set(chosen);
   const toggle = (v: string) => onChange(current.id, set.has(v) ? chosen.filter((x) => x !== v) : [...chosen, v]);
   return (
-    <div className="menu menu--start filter-panel" role="dialog" aria-label={t("views.filter.byDimension", { dimension: current.label.toLowerCase() })} ref={panel} onKeyDown={onKey}>
+    <div className="menu menu--start filter-panel" role="dialog" aria-label={t("views.filter.byDimension", { dimension: inSentence(current.label) })} ref={panel} onKeyDown={onKey}>
       <p className="filter-panel__title">
         {!dim && !chosen.length && (
           <button type="button" className="icon-btn filter-panel__back" onClick={() => setPicked(null)} aria-label={t("views.filter.back")} title={t("views.filter.back")}>
@@ -379,7 +379,7 @@ function FilterPanel({ dataset, dim, dims = [], all, active, ctx, name, onChange
         <label className="search filter-panel__search">
           <span className="visually-hidden">{t("views.filter.find")}</span>
           <Icon name="search" />
-          <input className="input" type="search" placeholder={t("views.filter.findDimension", { dimension: current.label.toLowerCase() })} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+          <input className="input" type="search" placeholder={t("views.filter.findDimension", { dimension: inSentence(current.label) })} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
       )}
       <div className="filter-panel__values">

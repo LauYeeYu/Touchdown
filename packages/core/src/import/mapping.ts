@@ -2,7 +2,7 @@
 // is worked out from the headers and the values, the user confirms or changes it, and the rows are read with
 // it. Only the my.flightradar24.com export, the same for everyone, has a fixed reader (formats.ts).
 
-import { t, tDynamic } from "@touchdown/i18n";
+import { inSentence, t, tDynamic } from "@touchdown/i18n";
 import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
 import type { FlightValues, SightingValues } from "../schema/tables.ts";
 import { normaliseFlight, normaliseSighting } from "../normalise/record.ts";
@@ -245,10 +245,10 @@ export function guessMapping(sheet: SheetData, ref: RefIndex): SheetMapping {
       const s = share(values, named, ref);
       if (s >= 0.6) return { index, header, field: named, confidence: "sure", samples, why: t("importer.guess.headerAndValues") };
       // "Type" holding model names, say: the values say otherwise.
-      if (byValue.s >= 0.8 && byValue.f !== named) return { index, header, field: byValue.f, confidence: "unsure", samples, why: t("importer.guess.headerNotValues", { header: FIELD_DEFS[named].label.toLowerCase(), values: FIELD_DEFS[byValue.f].label.toLowerCase() }) };
+      if (byValue.s >= 0.8 && byValue.f !== named) return { index, header, field: byValue.f, confidence: "unsure", samples, why: t("importer.guess.headerNotValues", { header: inSentence(FIELD_DEFS[named].label), values: inSentence(FIELD_DEFS[byValue.f].label) }) };
       return { index, header, field: named, confidence: "likely", samples, why: t("importer.guess.headerFewValues") };
     }
-    if (byValue.s >= 0.8) return { index, header, field: byValue.f, confidence: "likely", samples, why: t("importer.guess.values", { field: FIELD_DEFS[byValue.f].label.toLowerCase() }) };
+    if (byValue.s >= 0.8) return { index, header, field: byValue.f, confidence: "likely", samples, why: t("importer.guess.values", { field: inSentence(FIELD_DEFS[byValue.f].label) }) };
     return { index, header, field: "ignore", confidence: "unsure", samples, why: t("importer.guess.unknown") };
   });
 
@@ -259,14 +259,14 @@ export function guessMapping(sheet: SheetData, ref: RefIndex): SheetMapping {
     if (c.field === "ignore" || FIELD_DEFS[c.field].many) continue;
     const first = taken.get(c.field);
     if (!first) taken.set(c.field, c);
-    else Object.assign(c, { field: "ignore", confidence: "unsure", why: t("importer.guess.taken", { column: first.index + 1, header: first.header, field: FIELD_DEFS[c.field].label.toLowerCase() }) });
+    else Object.assign(c, { field: "ignore", confidence: "unsure", why: t("importer.guess.taken", { column: first.index + 1, header: first.header, field: inSentence(FIELD_DEFS[c.field].label) }) });
   }
 
   // Only columns placed with some confidence decide between flights and sightings.
   const kind: RowKind = columns.some((c) => c.confidence !== "unsure" && FLIGHT_MARKERS.includes(c.field)) ? "flights" : "sightings";
   // A field of the other kind is not used ("Gate" in a file of sightings).
   for (const c of columns) {
-    if (c.field !== "ignore" && !FIELD_DEFS[c.field].kinds.includes(kind)) Object.assign(c, { field: "ignore", confidence: "unsure", why: t("importer.guess.otherKind", { field: FIELD_DEFS[c.field].label.toLowerCase(), kind }) });
+    if (c.field !== "ignore" && !FIELD_DEFS[c.field].kinds.includes(kind)) Object.assign(c, { field: "ignore", confidence: "unsure", why: t("importer.guess.otherKind", { field: inSentence(FIELD_DEFS[c.field].label), kind }) });
   }
   return { kind, columns };
 }
@@ -282,7 +282,7 @@ export function mappingProblem(m: { kind: RowKind; fields: ColumnField[] }): str
   for (const f of COLUMN_FIELDS) {
     if (f === "ignore" || FIELD_DEFS[f].many) continue;
     const at = m.fields.flatMap((x, i) => (x === f ? [i + 1] : []));
-    if (at.length > 1) return t("importer.mapping.twice", { columns: at.map(String).reduce((first, second) => t("core.list.and", { first, second })), field: FIELD_DEFS[f].label.toLowerCase() });
+    if (at.length > 1) return t("importer.mapping.twice", { columns: at.map(String).reduce((first, second) => t("core.list.and", { first, second })), field: inSentence(FIELD_DEFS[f].label) });
   }
   if (m.kind === "sightings" && !has("registration")) return t("importer.mapping.noRegistration");
   if (m.kind === "flights" && !has("date")) return t("importer.mapping.noDate");

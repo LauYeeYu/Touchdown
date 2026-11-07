@@ -1,7 +1,7 @@
 // Field rules (V-) and cross-record rules (C-) from docs/20-validation.md. External rules (X-) need the
 // lookup service and arrive in phase 4.
 
-import { locale, t, tDynamic } from "@touchdown/i18n";
+import { inSentence, locale, t, tDynamic } from "@touchdown/i18n";
 import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -77,7 +77,6 @@ const S = (id: string): RecordRef => ({ table: "sightings", id });
 
 const FLIGHT_TIME_FIELDS = ["boardingAt", "departureAt", "takeoffAt", "landingAt", "arrivalAt"] as const;
 
-const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 function flightLabel(f: Flight): string {
   const date = f.scheduledDate ?? flightDay(f);
@@ -256,9 +255,9 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     const first = instant(track.firstPointAt);
     const last = instant(track.lastPointAt);
     const late = first !== null && last !== null ? trackTimeProblem(first / 1000, last / 1000, f) : null;
-    if (late) out.add("V-TRACK-TIMES", "error", [r], ["takeoffAt", "landingAt"], t("rules.trackTimes", { label, problem: lowerFirst(late) }), [f.scheduledDate, f.takeoffAt, f.landingAt, track.id]);
+    if (late) out.add("V-TRACK-TIMES", "error", [r], ["takeoffAt", "landingAt"], t("rules.trackTimes", { label, problem: inSentence(late) }), [f.scheduledDate, f.takeoffAt, f.landingAt, track.id]);
     const away = trackRouteProblem(track, f, ref);
-    if (away) out.add("V-TRACK-ROUTE", "warning", [r], ["fromAirportId", "toAirportId"], t("rules.trackRoute", { label, problem: lowerFirst(away) }), [f.fromAirportId, arrivalAirportId(f), track.id]);
+    if (away) out.add("V-TRACK-ROUTE", "warning", [r], ["fromAirportId", "toAirportId"], t("rules.trackRoute", { label, problem: inSentence(away) }), [f.fromAirportId, arrivalAirportId(f), track.id]);
   }
   const km = flightDistanceKm(f, ref);
   const min = flightDurationMin(f);

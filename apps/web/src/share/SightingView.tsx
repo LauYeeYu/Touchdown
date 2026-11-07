@@ -4,7 +4,7 @@
 
 import { useParams } from "@tanstack/react-router";
 import { liveryName, phasesOf } from "@touchdown/core";
-import { list, t } from "@touchdown/i18n";
+import { inSentence, list, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode } from "../lib/codes.ts";
 import { airlineLabel, dateOnly, PHASE_LABEL, TAG_LABEL, typeName } from "../lib/format.ts";
@@ -23,7 +23,7 @@ export function SightingView() {
   const a = store.get("airframes", s.airframeId);
   const typeText = s.model ? s.model : typeName(s.typeCode ?? a?.typeCode ?? null, ref);
   const place = s.spotName ?? airportWithCode(s.airportId, ref, s.airportRaw);
-  const phases = phasesOf(store, s.id).map((p, i) => (i ? (PHASE_LABEL[p] ?? p).toLowerCase() : (PHASE_LABEL[p] ?? p)));
+  const phases = phasesOf(store, s.id).map((p, i) => (i ? inSentence(PHASE_LABEL[p] ?? p) : (PHASE_LABEL[p] ?? p)));
   const livery = s.specialLivery?.trim() ? liveryName(s.specialLivery) : null;
   const tags = store.all("sighting_tags").filter((t) => t.sightingId === s.id && t.tag).map((t) => TAG_LABEL[t.tag!] ?? t.tag!);
   const photos = store.all("photo_links").filter((p) => p.ownerTable === "sightings" && p.ownerId === s.id && p.url);
@@ -59,7 +59,7 @@ export function SightingView() {
               on: day ? "yes" : "no",
               day: day ?? "",
               seen: phases.length ? "yes" : "no",
-              phases: list(phases, "unit").toLowerCase(),
+              phases: list(phases.map(inSentence), "unit"),
               inLivery: livery ? "yes" : "no",
               livery: livery ?? "",
             })}
