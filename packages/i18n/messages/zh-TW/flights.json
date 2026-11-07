@@ -19,7 +19,7 @@
   "filters.placeholder": "航班號碼、航線、機場、註冊號或機型",
   "filters.airline": "航空公司",
   "filters.allAirlines": "所有航空公司",
-  "filters.recordedOnly": "只看有記錄軌跡的",
+  "filters.recordedOnly": "只看有記錄軌跡",
   "missingTracks.title": "簡短清單，列出歷年所有沒有記錄軌跡的航班：日期、航班號碼、航線、註冊號、機型和UTC時間，不含私密資料。可傳給能找到軌跡的人，再到各航班頁面加入對方傳回的檔案。",
   "missingTracks.button": "{count}個航班沒有軌跡（CSV）",
   "empty.filtered": "沒有符合這些篩選條件的航班。",
