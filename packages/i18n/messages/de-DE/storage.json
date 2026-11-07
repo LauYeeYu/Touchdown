@@ -1,0 +1,12 @@
+{
+  "signInAgain": "Melde dich erneut an, um zu synchronisieren.",
+  "drive.permission": "Touchdown braucht die Erlaubnis, seine Dateien in Google Drive zu verwenden. Melde dich erneut an und erlaube es.",
+  "drive.error": "Google Drive: {message}",
+  "drive.noUpload": "Google Drive hat den Upload nicht gestartet.",
+  "schemaTooNew": "Das Logbuch nutzt Schemaversion {stored}, diese Touchdown-Version kennt nur Versionen bis {supported}. Lade neu, um die App zu aktualisieren.",
+  "upgradeHeld": "Das Logbuch bleibt bei Schemaversion {stored}, damit ältere Touchdown-Versionen es weiter synchronisieren können. Lade neu, um erneut gefragt zu werden.",
+  "manifest.notJson": "manifest.json ist kein gültiges JSON.",
+  "manifest.notLog": "Dieser Ordner enthält kein Touchdown-Logbuch in JSON-Tabellen.",
+  "table.notJson": "kein gültiges JSON",
+  "fileProblem": "{file}: {problem}"
+}

@@ -1,0 +1,15 @@
+{
+  "duration.hours": "{h}小時",
+  "duration.minutes": "{m}分鐘",
+  "duration.hoursMinutes": "{h}小時{m}分鐘",
+  "duration.short.hours": "{h}時{m}分",
+  "duration.short.minutes": "{m}分",
+  "distance.km": "{n}公里",
+  "distance.mi": "{n}英里",
+  "distance.nm": "{n}海里",
+  "moment": "{day} {time} {offset}",
+  "dateTime": "{day} {time} · {offset}",
+  "timeOffset": "{time} · {offset}",
+  "isoWithWeekday": "{date} {weekday}",
+  "momentShort": "{day} {time}"
+}

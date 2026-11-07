@@ -1,0 +1,22 @@
+{
+  "boot.label": "Touchdown wird geöffnet",
+  "boot.error": "Touchdown konnte seine lokalen Daten nicht öffnen.",
+  "boot.offlineWithoutAccount": "Verbinde dich mit dem Internet und melde dich an. Danach öffnet sich Touchdown in diesem Browser auch ohne Verbindung.",
+  "pager.label": "Seiten: {kind, select, flights {Flüge} sightings {Sichtungen} aircraft {Flugzeuge} daysOut {Spotting-Tage} other {Einträge}}",
+  "pager.count": "{from}–{to} von {total} {kind, select, flights {{count, plural, one {Flug} other {Flügen}}} sightings {{count, plural, one {Sichtung} other {Sichtungen}}} aircraft {Flugzeugen} daysOut {{count, plural, one {Spotting-Tag} other {Spotting-Tagen}}} other {}}",
+  "pager.previous": "Vorherige Seite",
+  "pager.next": "Nächste Seite",
+  "pager.page": "Seite {page}",
+  "duration.hoursMinutes": "{h}<unit>h</unit> {m}<unit>m</unit>",
+  "duration.minutes": "{m}<unit>m</unit>",
+  "photo.noRegistration": "Kein Kennzeichen",
+  "photo.looking": "Referenzfoto wird gesucht…",
+  "photo.none": "Kein Referenzfoto für dieses Kennzeichen gefunden.",
+  "photo.credit": "{short, select, yes {©} other {Foto ©}} <link>{photographer}</link> · planespotters.net",
+  "form.date": "{label}: Datum",
+  "form.time": "{label}: Uhrzeit, Ortszeit",
+  "form.until": "bis {year}",
+  "livery.question": "Am {date} in <b>{name}</b> erfasst. Noch in dieser Lackierung?",
+  "livery.use": "Ja, hinzufügen",
+  "livery.useLabel": "Sonderlackierung {name} hinzufügen"
+}

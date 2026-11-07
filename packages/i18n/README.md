@@ -2,15 +2,20 @@
 
 The interface's words (G12, docs/31-ui.md, "Language"). Every sentence, label, unit and error the web app, the share
 page, the sign-in pages, the CLI and the server show is a message in `messages/<language>/*.json`, looked up by key.
-UK English (`en-GB`) is the source language and the only one so far. A translation is the same files under its own
-tag (`messages/de/flights.json`), listed in `LOCALES` (`src/index.ts`).
+UK English (`en-GB`) is the source language. The web pages are also in American English (`en-US`), German (`de-DE`),
+Simplified Chinese (`zh-CN`) and Traditional Chinese for Taiwan (`zh-TW`). The CLI and the server stay in UK English.
+A translation is the same files under its own tag (`messages/de-DE/flights.json`), listed in `LOCALES`
+(`src/index.ts`).
 
 | Path | Holds |
 |------|-------|
 | `messages/en-GB/<file>.json` | The messages of one part of the interface, by key: `{ "emptyLog.title": "Your log is empty." }`. |
+| `messages/<tag>/<file>.json` | A translation of the web pages' files, by the same keys. |
+| `src/translations/<tag>.generated.ts` | Loads a translation's files when its language is chosen, written by `npm run messages`. |
+| `GLOSSARY.md` | Each language's notes and the words for Touchdown's terms. |
 | `src/catalog.ts` | Loads the source files the web pages, the core package and the storage package use. A new file is added here. |
 | `src/cli.ts`, `src/server.ts` | The CLI's files (`cli*.json`) and the server's (`server.json`), added only by those programs, so the web pages do not load them. The CLI's code imports from `@touchdown/i18n/cli` and the server's from `@touchdown/i18n/server`. A test checks both. |
-| `src/index.ts` | `t()`, `tDynamic()`, `rich()`, `list()`, `locale()`, `setLocale()`, `matchLocale()`, and the date format: `dateStyles()`, `setDateStyle()`. |
+| `src/index.ts` | `t()`, `tDynamic()`, `rich()`, `list()`, `inSentence()`, `sentenceGap()`, `wordGap()`, `inSourceLanguage()`, `locale()`, `setLocale()`, `matchLocale()`, and the date format: `dateStyles()`, `setDateStyle()`. |
 | `src/message.ts` | The message syntax, a subset of ICU MessageFormat. |
 | `src/messages.generated.ts` | Every key and the arguments each message takes, written by `npm run messages`, which also formats the source files. |
 | `scripts/leftovers.ts` | Lists text in code files that looks like words for people, still outside the messages. |
@@ -63,22 +68,41 @@ A non-breaking space is written `\u00a0` in the JSON, so it can be seen: `"#\u00
 - Never call `t()` when a module loads (a constant at the top of a file): the language is chosen after. Call it while drawing, or make the constant a function. `labelTable` in `packages/core/src/view/format.ts` gives a table whose values are read when used.
 - Dates, months and numbers come from the core helpers (`dateOnly`, `dayShort`, `dayMonthYear`, `momentDay`, `momentShort`, `momentLabel`, `monthNames`, `nf`), which follow `locale()` and the date format chosen (docs/31-ui.md, "Language"). Never write `"en-GB"` or call `toLocaleString` in a formatter.
 - Lists in prose ("A, B and C") come from `list()`.
+- A label put inside a sentence goes through `inSentence()`, never `toLowerCase()`: English lower-cases its first
+  letter, German keeps the capitals of its nouns.
+- Two sentences shown one after the other are joined with `sentenceGap()`, and two words or values set side by side
+  (a date and its weekday) with `wordGap()`, never a typed space: Chinese leaves none after its full stop, and draws
+  its own narrow gap between Chinese and Latin letters.
+- A page's summary heading goes through `headline()` (`apps/web/src/lib/i18n.tsx`): in Chinese, a summary of one
+  sentence drops its full stop (。), as a headline does. Messages keep their full stops.
+- What is written for a program rather than shown (the agent check's request) is made inside `inSourceLanguage()`, in
+  UK English whatever the interface's language. The log itself holds values and codes, never the interface's words.
+- Changing a UK English message changes its translations too: de-DE, zh-CN and zh-TW, and en-US where its spelling
+  differs. A test fails while a translation lacks a message, but it cannot tell when one no longer says what the
+  English says.
 - The copy keeps the writing rules (AGENTS.md): no semicolons, no question-word openers except real questions. A test checks both in the source language.
 
 ## Translating
 
-A new language is a directory of the same files under its tag (`messages/de/flights.json`), listed in `LOCALES` with the
-name it gives itself and the other regional date formats its speakers use. A test checks that each translated message
-takes the same arguments as the source. The writing rules in AGENTS.md are rules for English: each language gets its
-own notes.
+A language is a directory of the web pages' files under its tag (`messages/de-DE/flights.json`), listed in `LOCALES`
+with the name it gives itself and the other regional date formats its speakers use. `npm run messages` formats its
+files and writes `src/translations/<tag>.generated.ts`, which loads them when the language is chosen. Tests check that
+each translated message takes the same arguments and tags as the source, that de-DE, zh-CN and zh-TW have every message
+the web pages show, and that en-US has only the messages spelt differently: the rest come from UK English. Each
+language's notes (how it addresses the user, punctuation, spacing) and the words for Touchdown's terms are in
+`GLOSSARY.md`.
 
-Known limits, for whoever adds the second language (Q-I18N):
+The CLI's and the server's files are not translated (Q-I18N). The CLI stays in UK English whatever the terminal's
+language, so a report never mixes two languages.
 
-- Some labels are lower-cased in code to sit inside a sentence (`FIELD_DEFS[…].label.toLowerCase()`, dimension names,
-  the track problems in the V-TRACK findings). Languages that do not lower-case nouns that way need their own form.
+Known limits:
+
 - A few stored texts stay in the language they were written in: the credit of a recorded track, the device names of
   sessions, the reason an airframe lookup gives (`notBeforeLabel`, saved in inbox files).
 - The server answers in UK English: picking the request's language needs a `t()` bound to one language per request.
+- The privacy policy and the terms (`PRIVACY.md`, `TERMS.md`) are in English.
+- Names from the reference data (cities, airports, airlines, aircraft types) are shown as the data has them, mostly
+  in English.
 
 ## What stays in code
 

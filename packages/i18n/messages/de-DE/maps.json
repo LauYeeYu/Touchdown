@@ -1,0 +1,19 @@
+{
+  "style.label": "Anzeigen als",
+  "style.map": "Karte",
+  "style.globe": "Globus",
+  "globe.label": "{label}. Zum Drehen ziehen oder die Pfeiltasten nutzen. Zum Zoomen zwei Finger, {zoom, select, full {Scrollen} other {Strg + Scrollen}} oder Plus und Minus nutzen.",
+  "globe.expand": "Vergrößern",
+  "globe.expandLabel": "Globus im Vollbild zeigen",
+  "globe.collapse": "Verkleinern",
+  "globe.collapseLabel": "Vollbild verlassen",
+  "globe.controls": "Globus-Steuerung",
+  "globe.zoomIn": "Hineinzoomen",
+  "globe.zoomOut": "Herauszoomen",
+  "globe.reset": "Zurückdrehen und alles zeigen",
+  "globe.hint": "Ziehen zum Drehen · {zoom, select, full {Scrollen oder zwei Finger} other {zwei Finger oder Strg + Scrollen}} zum Zoomen{opens, select, both { · Strecke oder Flughafen zum Öffnen anklicken} airport { · Flughafen zum Öffnen anklicken} route { · Strecke zum Öffnen anklicken} other {}}",
+  "airport.tip": "{count, plural, one {# Flug in diesem Zeitraum} other {# Flüge in diesem Zeitraum}} · Klick öffnet die Flughafenseite",
+  "airport.label": "{name}: {count, plural, one {# Flug} other {# Flüge}}. Flughafenseite öffnen",
+  "airport.open": "{code}: Flughafenseite öffnen",
+  "spot.label": "{label}. Flughafenseite öffnen"
+}

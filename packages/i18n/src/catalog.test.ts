@@ -4,8 +4,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { formatSource, generate, GENERATED, readSource, SOURCE_DIR } from "../scripts/messages.ts";
+import { formatSource, generate, GENERATED, readSource, SOURCE_DIR, translationModule, translationTags, TRANSLATIONS } from "../scripts/messages.ts";
 import { EN_GB } from "./catalog.ts";
+import { LOCALES, SOURCE_LOCALE } from "./index.ts";
 import { CLI_MESSAGES } from "./cli.ts";
 import { SERVER_MESSAGES } from "./server.ts";
 import { messageArgs, parseMessage } from "./message.ts";
@@ -71,6 +72,27 @@ describe("message files", () => {
         const args = [...messageArgs(parseMessage(text)).keys()].sort();
         expect(args, `${tag}: ${key}`).toEqual([...messageArgs(parseMessage(original!)).keys()].sort());
       }
+    }
+  });
+
+  it("are listed in LOCALES, each translation formatted and loaded by its own module (npm run messages)", () => {
+    expect(Object.keys(LOCALES).filter((l) => l !== SOURCE_LOCALE).sort()).toEqual(translationTags());
+    for (const tag of translationTags()) {
+      for (const [ns, messages] of readSource(join(MESSAGES, tag))) expect(readFileSync(join(MESSAGES, tag, `${ns}.json`), "utf8"), `${tag}/${ns}`).toBe(formatSource(messages));
+      expect(readFileSync(join(TRANSLATIONS, `${tag}.generated.ts`), "utf8"), tag).toBe(translationModule(tag));
+    }
+  });
+
+  it("are translated for the web pages, in full, but en-US, which has only the messages spelt differently", () => {
+    const web = flat(new Map(Object.entries(EN_GB)));
+    for (const tag of translationTags()) {
+      const files = readSource(join(MESSAGES, tag));
+      // The CLI and the server stay in UK English (docs/31-ui.md, "Language").
+      expect([...files.keys()].filter((ns) => !(ns in EN_GB)), `${tag}: files the web pages do not load`).toEqual([]);
+      const translated = flat(files);
+      if (tag === "en-US") for (const [key, text] of translated) expect(text, `${tag}: ${key} is as in UK English`).not.toBe(web.get(key));
+      else expect([...web.keys()].filter((key) => !translated.has(key)), `${tag}: not translated`).toEqual([]);
+      for (const [key, text] of translated) expect(/[;；]/.test(text), `${tag}: ${key} has a semicolon`).toBe(false);
     }
   });
 

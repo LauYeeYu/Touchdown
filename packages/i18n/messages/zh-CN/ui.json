@@ -1,0 +1,22 @@
+{
+  "boot.label": "正在打开Touchdown",
+  "boot.error": "Touchdown无法打开本地数据。",
+  "boot.offlineWithoutAccount": "请先联网并登录。之后即使没有网络，Touchdown也能在此浏览器中打开。",
+  "pager.label": "{kind, select, flights {航班} sightings {拍摄记录} aircraft {飞机} daysOut {拍摄日} other {条目}}分页",
+  "pager.count": "{from}–{to}，共{total}{kind, select, flights {{count, plural, other {个航班}}} sightings {{count, plural, other {条拍摄记录}}} aircraft {架飞机} daysOut {{count, plural, other {个拍摄日}}} other {}}",
+  "pager.previous": "上一页",
+  "pager.next": "下一页",
+  "pager.page": "第{page}页",
+  "duration.hoursMinutes": "{h}<unit>时</unit>{m}<unit>分</unit>",
+  "duration.minutes": "{m}<unit>分</unit>",
+  "photo.noRegistration": "无注册号",
+  "photo.looking": "正在查找参考照片…",
+  "photo.none": "未找到此注册号的参考照片。",
+  "photo.credit": "{short, select, yes {©} other {照片 ©}} <link>{photographer}</link> · planespotters.net",
+  "form.date": "{label}日期",
+  "form.time": "{label}时间（当地）",
+  "form.until": "至\u2060{year}\u2060年",
+  "livery.question": "{date}\u2060记录的涂装为“<b>{name}</b>”。现在还是吗？",
+  "livery.use": "是，添加",
+  "livery.useLabel": "添加特殊涂装“{name}”"
+}

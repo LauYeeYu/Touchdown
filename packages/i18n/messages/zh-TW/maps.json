@@ -1,0 +1,19 @@
+{
+  "style.label": "顯示方式",
+  "style.map": "地圖",
+  "style.globe": "地球儀",
+  "globe.label": "{label}。拖曳或按方向鍵旋轉。用雙指、{zoom, select, full {捲動} other {按住Ctrl捲動}}或加減號縮放。",
+  "globe.expand": "展開",
+  "globe.expandLabel": "以全螢幕顯示地球儀",
+  "globe.collapse": "收合",
+  "globe.collapseLabel": "離開全螢幕",
+  "globe.controls": "地球儀控制項",
+  "globe.zoomIn": "放大",
+  "globe.zoomOut": "縮小",
+  "globe.reset": "轉回顯示全部",
+  "globe.hint": "拖曳旋轉 · {zoom, select, full {捲動或雙指縮放} other {雙指或按住Ctrl捲動縮放}}{opens, select, both { · 點選航線或機場可開啟} airport { · 點選機場可開啟} route { · 點選航線可開啟} other {}}",
+  "airport.tip": "此期間{count, plural, other {有#個航班}} · 點選開啟機場頁面",
+  "airport.label": "{name}：{count, plural, other {#個航班}}。開啟機場頁面",
+  "airport.open": "{code}：開啟機場頁面",
+  "spot.label": "{label}。開啟機場頁面"
+}

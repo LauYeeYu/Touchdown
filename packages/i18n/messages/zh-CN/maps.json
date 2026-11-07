@@ -1,0 +1,19 @@
+{
+  "style.label": "显示方式",
+  "style.map": "地图",
+  "style.globe": "地球仪",
+  "globe.label": "{label}。拖动或按方向键可旋转，双指捏合、{zoom, select, full {滚动} other {按住Ctrl滚动}}或按加号、减号键可缩放。",
+  "globe.expand": "展开",
+  "globe.expandLabel": "全屏显示地球仪",
+  "globe.collapse": "收起",
+  "globe.collapseLabel": "退出全屏",
+  "globe.controls": "地球仪控件",
+  "globe.zoomIn": "放大",
+  "globe.zoomOut": "缩小",
+  "globe.reset": "复位并显示全部",
+  "globe.hint": "拖动旋转 · {zoom, select, full {滚动或双指捏合} other {双指捏合或按住Ctrl滚动}}缩放{opens, select, both { · 点击航线或机场即可打开} airport { · 点击机场即可打开} route { · 点击航线即可打开} other {}}",
+  "airport.tip": "此时间段内{count, plural, other {#个航班}} · 点击打开机场页面",
+  "airport.label": "{name}：{count, plural, other {#个航班}}。打开机场页面",
+  "airport.open": "{code}：打开机场页面",
+  "spot.label": "{label}。打开机场页面"
+}

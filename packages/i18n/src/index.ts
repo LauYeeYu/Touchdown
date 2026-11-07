@@ -17,12 +17,21 @@ export type { Catalog } from "./catalog.ts";
 
 export const SOURCE_LOCALE = "en-GB";
 
+/** A translation's files, written into `translations/` by `npm run messages`, as a catalog. */
+const translation = async (module: Promise<{ default: Catalog }>): Promise<Catalog> => (await module).default;
+
 /**
  * The languages the interface can be shown in, by BCP 47 tag: the name each gives itself, its messages, and the other
- * regional ways its speakers write dates, offered beside its own and ISO 8601 (`dateStyles`).
+ * regional ways its speakers write dates, offered beside its own and ISO 8601 (`dateStyles`). A translation is loaded
+ * only when it is chosen. A message it lacks is shown in UK English: en-US has only the messages spelt differently.
+ * The CLI and the server stay in UK English (Q-I18N).
  */
 export const LOCALES = {
   "en-GB": { name: "English (UK)", dates: ["en-US"], load: async (): Promise<Catalog> => EN_GB },
+  "en-US": { name: "English (US)", dates: ["en-GB"], load: () => translation(import("./translations/en-US.generated.ts")) },
+  "de-DE": { name: "Deutsch", dates: [], load: () => translation(import("./translations/de-DE.generated.ts")) },
+  "zh-CN": { name: "简体中文", dates: [], load: () => translation(import("./translations/zh-CN.generated.ts")) },
+  "zh-TW": { name: "繁體中文", dates: [], load: () => translation(import("./translations/zh-TW.generated.ts")) },
 } satisfies Record<string, { name: string; dates: string[]; load: () => Promise<Catalog> }>;
 
 export type Locale = keyof typeof LOCALES;
@@ -52,7 +61,9 @@ const SOURCE: Catalog = { ...EN_GB };
 
 let current: { locale: Locale; catalog: Catalog } = { locale: SOURCE_LOCALE, catalog: EN_GB };
 let dateStyle: DateStyle = "language";
-const parsed = new Map<string, MessageNode[]>();
+let parsed = new Map<string, MessageNode[]>();
+/** The source language's parsed messages, kept apart for `inSourceLanguage`. */
+const parsedSource = new Map<string, MessageNode[]>();
 const warned = new Set<string>();
 
 function warn(what: string) {
@@ -108,19 +119,68 @@ export function addMessages(part: Catalog): void {
   Object.assign(SOURCE, part);
 }
 
-/** The best of the interface's languages for a list in order of preference (`navigator.languages`, `LANG`). */
-export function matchLocale(requested: readonly string[]): Locale {
-  const tags = Object.keys(LOCALES) as Locale[];
-  for (const r of requested) {
-    const exact = tags.find((t) => t.toLowerCase() === r.toLowerCase());
-    if (exact) return exact;
+/**
+ * Run `make` with messages, dates and numbers in UK English, whatever the interface's language, and go back after. For
+ * what is written for a program rather than shown, such as the agent check's request, whose instructions are in
+ * English (docs/22). The log itself holds values and codes, not words, so it reads the same in every language.
+ */
+export function inSourceLanguage<T>(make: () => T): T {
+  const was = { current, dateStyle, parsed };
+  current = { locale: SOURCE_LOCALE, catalog: EN_GB };
+  dateStyle = "language";
+  parsed = parsedSource;
+  try {
+    return make();
+  } finally {
+    ({ current, dateStyle, parsed } = was);
   }
+}
+
+/**
+ * The best of the interface's languages for a list in order of preference (`navigator.languages`): the first one
+ * asked for that the interface has in some form. Within a language, the same region and script, then the same script
+ * (Chinese of Hong Kong is written in Traditional characters, so it gets zh-TW), then the first listed (en-AU gets
+ * en-GB). With none of them, UK English.
+ */
+export function matchLocale(requested: readonly string[]): Locale {
+  const ours = (Object.keys(LOCALES) as Locale[]).map((tag) => ({ tag, full: new Intl.Locale(tag).maximize() }));
   for (const r of requested) {
-    const lang = r.split(/[-_]/)[0]!.toLowerCase();
-    const same = tags.find((t) => t.split("-")[0]!.toLowerCase() === lang);
-    if (same) return same;
+    let want: Intl.Locale;
+    try {
+      want = new Intl.Locale(r.replace(/_/g, "-")).maximize();
+    } catch {
+      continue; // Not a language tag ("C", "POSIX").
+    }
+    const same = ours.filter((o) => o.full.language === want.language);
+    const pick = same.find((o) => o.full.script === want.script && o.full.region === want.region) ?? same.find((o) => o.full.script === want.script) ?? same[0];
+    if (pick) return pick.tag;
   }
   return SOURCE_LOCALE;
+}
+
+/**
+ * What goes between two sentences shown one after the other: a space, or nothing in Chinese, whose full stop (。) is
+ * as wide as a character and leaves its own room.
+ */
+export function sentenceGap(): string {
+  return current.locale.startsWith("zh") ? "" : " ";
+}
+
+/**
+ * What goes between two words or values the code sets side by side (a date and its weekday): a space, or nothing in
+ * Chinese, where the page draws its own narrow gap between Chinese and Latin letters (CSS text-autospace).
+ */
+export function wordGap(): string {
+  return current.locale.startsWith("zh") ? "" : " ";
+}
+
+/**
+ * A label as it reads inside a sentence. English lower-cases its first letter ("Flight number" in "Set the flight
+ * number"), unless the label opens with a code or a name in capitals ("ICAO code"). German keeps the capitals of its
+ * nouns, and Chinese has none.
+ */
+export function inSentence(label: string): string {
+  return current.locale.startsWith("en") && /^\p{Lu}\p{Ll}/u.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label;
 }
 
 function source(key: string): string | undefined {

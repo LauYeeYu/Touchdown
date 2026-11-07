@@ -1,0 +1,12 @@
+{
+  "signInAgain": "需要重新登录才能同步。",
+  "drive.permission": "Touchdown需要授权才能使用Google云端硬盘中的Touchdown文件。请重新登录并授权。",
+  "drive.error": "Google云端硬盘：{message}",
+  "drive.noUpload": "Google云端硬盘没有开始上传。",
+  "schemaTooNew": "日志的数据结构版本为{stored}，但此版本的Touchdown最高只支持{supported}。重新加载即可更新应用。",
+  "upgradeHeld": "日志仍保留在数据结构版本{stored}，这样旧版Touchdown仍能同步。重新加载后会再次询问。",
+  "manifest.notJson": "manifest.json不是有效的JSON。",
+  "manifest.notLog": "此文件夹中没有JSON表格格式的Touchdown日志。",
+  "table.notJson": "不是有效的JSON",
+  "fileProblem": "{file}：{problem}"
+}

@@ -1,0 +1,22 @@
+{
+  "boot.label": "正在開啟Touchdown",
+  "boot.error": "Touchdown無法開啟本機資料。",
+  "boot.offlineWithoutAccount": "請連上網路並登入。之後即使沒有網路，也能在此瀏覽器開啟Touchdown。",
+  "pager.label": "{kind, select, flights {航班} sightings {拍攝紀錄} aircraft {飛機} daysOut {拍攝日} other {項目}}分頁",
+  "pager.count": "{from}–{to}，共{total}{kind, select, flights {{count, plural, other {個航班}}} sightings {{count, plural, other {筆拍攝紀錄}}} aircraft {架飛機} daysOut {{count, plural, other {個拍攝日}}} other {}}",
+  "pager.previous": "上一頁",
+  "pager.next": "下一頁",
+  "pager.page": "第{page}頁",
+  "duration.hoursMinutes": "{h}<unit>時</unit>{m}<unit>分</unit>",
+  "duration.minutes": "{m}<unit>分</unit>",
+  "photo.noRegistration": "沒有註冊號",
+  "photo.looking": "正在尋找參考照片…",
+  "photo.none": "找不到這個註冊號的參考照片。",
+  "photo.credit": "{short, select, yes {©} other {照片 ©}} <link>{photographer}</link> · planespotters.net",
+  "form.date": "{label}日期",
+  "form.time": "{label}時間（當地）",
+  "form.until": "至\u2060{year}\u2060年",
+  "livery.question": "{date}\u2060記錄為「<b>{name}</b>」塗裝，現在還是嗎？",
+  "livery.use": "是，新增",
+  "livery.useLabel": "新增特殊塗裝「{name}」"
+}
