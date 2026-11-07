@@ -40,6 +40,12 @@ filler, no exclamation marks.
   "{date}\u2060搭乘", "自\u2060{first}\u2060年起", "{year}\u2060年至今". Dates the code formats are joined inside already
   ("4月26日"). Counts keep the gap: "14个航班" shows as "14 个航班".
 - Units: `公里`, `英里`, `海里`. Durations: `{h}小时`, `{m}分钟`, `{h}小时{m}分钟`. The short form `{h}时{m}分`.
+- A number and its unit stay on one line: a narrow no-break space (`\u202f`) between them, which looks like the page's
+  own gap, and word joiners inside the unit, "{km}\u202f公\u2060里", "{h}\u202f小\u2060时" (`format.json`).
+- Write what a Chinese interface would say, not each part of the English. "Hidden · private field" next to a Show
+  button is 隐藏, a status after a value is short, and a label does not end in 的 ("仅显示有记录轨迹").
+- Values set side by side are separated with 、 and a label before its value with ：, which `series()` and
+  `labelled()` write. Never join a list with ", " in code.
 - Every sentence ends with 。 in the messages. A page's summary of one sentence is shown without it, as a headline
   (the page drops it). A summary of several sentences keeps every 。.
 
@@ -50,6 +56,8 @@ filler, no exclamation marks.
 - Full-width punctuation as in zh-CN. Quotation marks 「…」, nested 『…』.
 - The same spacing as zh-CN: no typed space between Chinese and Latin letters, digits, arguments or tags.
 - Units: `公里`, `英里`, `海里`. Durations: `{h}小時`, `{m}分鐘`, `{h}小時{m}分鐘`. The short form `{h}時{m}分`.
+  Kept on one line as in zh-CN.
+- Write what a Chinese interface would say, as in zh-CN.
 - Full stops as in zh-CN: a one-sentence page summary is shown without its 。.
 
 ## Glossary
@@ -60,6 +68,7 @@ filler, no exclamation marks.
 | record (one flight or sighting) | Eintrag | 记录 | 紀錄 |
 | flight (one flown) | Flug, Flüge | 航班（个航班） | 航班（個航班） |
 | sighting | Sichtung | 拍摄记录（条拍摄记录），a short label 拍摄 | 拍攝紀錄（筆拍攝紀錄），a short label 拍攝 |
+| photographed, spotted (an aircraft) | fotografiert | 拍到 | 拍到 |
 | spotting (the activity, the page) | Spotting | 拍摄 | 拍攝 |
 | spotting session (logging a day's sightings at one place in one go) | Spotting-Session | 拍摄场次 | 拍攝場次 |
 | days out (the days spent spotting, counted) | Spotting-Tage | 拍摄日 | 拍攝日 |
@@ -67,7 +76,7 @@ filler, no exclamation marks.
 | registration | Kennzeichen | 注册号 | 註冊號 |
 | aircraft type | Flugzeugtyp, Typ | 机型 | 機型 |
 | type code | Typcode | 机型代码 | 機型代碼 |
-| family (of types) | Familie | 系列 | 系列 |
+| family (of types) | Familie | 系列 ("空客A320系列") | 系列 |
 | airline, operator | Airline | 航空公司 | 航空公司 |
 | operator, where it is set against airline ("Not an airline: saved as an operator") | Betreiber | 运营方 | 營運方 |
 | operated by | durchgeführt von | 实际承运 | 實際營運 |
@@ -75,7 +84,7 @@ filler, no exclamation marks.
 | special livery | Sonderlackierung | 特殊涂装 | 特殊塗裝 |
 | airport | Flughafen | 机场 | 機場 |
 | route | Strecke | 航线 | 航線 |
-| recorded track | aufgezeichneter Flugweg | 记录的轨迹 | 記錄的軌跡 |
+| recorded track | aufgezeichneter Flugweg | 轨迹, set against the great circle 实际轨迹, never 记录的轨迹 | 軌跡, set against the great circle 實際軌跡, never 記錄的軌跡 |
 | track | Flugweg | 轨迹 | 軌跡 |
 | great circle | Großkreis | 大圆航线 | 大圓航線 |
 | gap (in a track) | Lücke | 中断 | 中斷 |
@@ -83,7 +92,7 @@ filler, no exclamation marks.
 | time in the air | Flugzeit | 飞行时间 | 飛行時間 |
 | departure, arrival | Abflug, Ankunft | 出发, 到达 | 出發, 抵達 |
 | takeoff, landing | Start, Landung | 起飞, 降落 | 起飛, 降落 |
-| scheduled | planmäßig | 计划 | 表定 |
+| scheduled | planmäßig | 计划, a date that slipped 原定 | 表定 |
 | diverted to | umgeleitet nach | 备降 | 轉降 |
 | gate, terminal | Gate, Terminal | 登机口, 航站楼 | 登機門, 航廈 |
 | seat | Sitzplatz | 座位 | 座位 |
@@ -105,13 +114,15 @@ filler, no exclamation marks.
 | directory | Ordner | 文件夹 | 資料夾 |
 | file | Datei | 文件 | 檔案 |
 | spreadsheet | Tabelle | 表格 | 試算表 |
-| Google Drive | Google Drive | Google 云端硬盘 | Google 雲端硬碟 |
-| this browser | dieser Browser | 此浏览器 | 此瀏覽器 |
+| Google Drive | Google Drive | Google云端硬盘 | Google雲端硬碟 |
+| this browser | dieser Browser | 此浏览器, in a sentence 这个浏览器 | 此瀏覽器, in a sentence 這個瀏覽器 |
 | device | Gerät | 设备 | 裝置 |
 | share link | Freigabelink | 分享链接 | 分享連結 |
 | sign in, sign out | anmelden, abmelden | 登录, 退出登录 | 登入, 登出 |
 | account | Konto | 账户 | 帳戶 |
 | invite, member | einladen, Mitglied | 邀请, 成员 | 邀請, 成員 |
+| the site's owner, who invites people | Inhaber | 站长 | 站長 |
+| the person who shared a link | Person, die den Link geteilt hat | 分享者 | 分享者 |
 | settings | Einstellungen | 设置 | 設定 |
 | Getting started | Erste Schritte | 入门指南 | 入門指南 |
 | Home, Flights, Spotting, Aircraft, Statistics (navigation) | Start, Flüge, Spotting, Flugzeuge, Statistik | 首页, 航班, 拍摄, 飞机, 统计 | 首頁, 航班, 拍攝, 飛機, 統計 |
@@ -123,5 +134,5 @@ filler, no exclamation marks.
 | route extension (distance beyond the great circle) | Streckenverlängerung | 航线绕行 | 繞航 |
 | track (a direction in degrees, in a position's tooltip) | Kurs | 航向 | 航向 |
 | modes: Standard, Private, Local | Standard, Privat, Lokal | 标准, 私密, 本地 | 標準, 私密, 本機 |
-| agent (Claude Code or Codex checking an import) | Agent | 智能体 | AI 代理 |
+| agent (Claude Code or Codex checking an import) | Agent | AI助手 | AI助理 |
 | command line | Befehlszeile | 命令行 | 命令列 |

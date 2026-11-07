@@ -11,12 +11,12 @@
   "duration.minutes": "{m}<unit>分</unit>",
   "photo.noRegistration": "无注册号",
   "photo.looking": "正在查找参考照片…",
-  "photo.none": "未找到此注册号的参考照片。",
+  "photo.none": "没有找到这个注册号的参考照片。",
   "photo.credit": "{short, select, yes {©} other {照片 ©}} <link>{photographer}</link> · planespotters.net",
   "form.date": "{label}日期",
   "form.time": "{label}时间（当地）",
   "form.until": "至\u2060{year}\u2060年",
-  "livery.question": "{date}\u2060记录的涂装为“<b>{name}</b>”。现在还是吗？",
+  "livery.question": "{date}\u2060记录为“<b>{name}</b>”涂装，现在还是吗？",
   "livery.use": "是，添加",
   "livery.useLabel": "添加特殊涂装“{name}”"
 }

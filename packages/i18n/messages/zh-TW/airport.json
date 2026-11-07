@@ -4,10 +4,10 @@
   "notFound.back": "統計",
   "legend.flights": "往返{code}的航班",
   "legend.spots": "拍攝地點",
-  "legend.click": "點選其他機場可開啟該機場頁面",
+  "legend.click": "點選其他機場可開啟它的頁面",
   "lead.nothing": "{year}\u2060年在{airport}沒有任何紀錄。",
   "lead.flown": "{period, select, current {{year}\u2060年至今，{voice, select, none {} named {{owner}} other {你}}} past {{year}\u2060年，{voice, select, none {} named {{owner}} other {你}}} other {{voice, select, none {} named {{owner}} other {你}}}}{parts, select, d {{cap, select, yes {從} other {從}}{airport}出發<fig>{dep, plural, =1 {#次} =2 {#次} other {#次}}</fig>} l {{cap, select, yes {在} other {在}}{airport}降落<fig>{land, plural, =1 {#次} =2 {#次} other {#次}}</fig>} t {{cap, select, yes {在} other {在}}{airport}轉機<fig>{trans, plural, =1 {#次} =2 {#次} other {#次}}</fig>} dl {{cap, select, yes {在} other {在}}{airport}出發<fig>{dep, plural, =1 {#次} =2 {#次} other {#次}}</fig>、降落<fig>{land, plural, =1 {#次} =2 {#次} other {#次}}</fig>} dt {{cap, select, yes {在} other {在}}{airport}出發<fig>{dep, plural, =1 {#次} =2 {#次} other {#次}}</fig>、轉機<fig>{trans, plural, =1 {#次} =2 {#次} other {#次}}</fig>} lt {{cap, select, yes {在} other {在}}{airport}降落<fig>{land, plural, =1 {#次} =2 {#次} other {#次}}</fig>、轉機<fig>{trans, plural, =1 {#次} =2 {#次} other {#次}}</fig>} other {{cap, select, yes {在} other {在}}{airport}出發<fig>{dep, plural, =1 {#次} =2 {#次} other {#次}}</fig>、降落<fig>{land, plural, =1 {#次} =2 {#次} other {#次}}</fig>、轉機<fig>{trans, plural, =1 {#次} =2 {#次} other {#次}}</fig>}}。",
-  "lead.spotted": "{period, select, current {{year}\u2060年至今，{voice, select, none {} named {{owner}} other {你}}} past {{year}\u2060年，{voice, select, none {} named {{owner}} other {你}}} other {{voice, select, none {} named {{owner}} other {你}}}}{there, select, yes {在那裡} other {在{airport}}}拍攝<fig>{days, plural, other {#天}}</fig>，拍到<fig>{aircraft, plural, other {#架飛機}}</fig>。",
+  "lead.spotted": "{period, select, current {{year}\u2060年至今，{voice, select, none {} named {{owner}} other {你}}} past {{year}\u2060年，{voice, select, none {} named {{owner}} other {你}}} other {{voice, select, none {} named {{owner}} other {你}}}}{there, select, yes {在這裡} other {在{airport}}}拍攝<fig>{days, plural, other {#天}}</fig>，拍到<fig>{aircraft, plural, other {#架飛機}}</fig>。",
   "showAll": "顯示所有年份",
   "departures": "出發",
   "departures.detail": "從這裡出發的航班",
@@ -27,8 +27,8 @@
   "spotted": "在這裡拍到的飛機",
   "cols.here": "在此",
   "cols.lastHere": "最近在此",
-  "unknownOperator": "未知的航空公司",
-  "seenHere": "在這裡拍到過，共{count, plural, other {#天}}",
+  "unknownOperator": "未知航空公司",
+  "seenHere": "有{count, plural, other {#天}}在這裡拍到",
   "flownOn": "{where, select, link {搭乘這架飛機的航班} other {你搭乘這架飛機的航班}}",
-  "facts.leftOut": "{count, plural, other {#筆紀錄未計入}}（沒有{kind, select, airline {航空公司} airport {機場} airports {機場} type {機型} cabin {艙等} location {地點} registration {註冊號} phase {階段} times {時間} seat_position {座位位置} other { {what}}}）"
+  "facts.leftOut": "{count, plural, other {#筆紀錄未計入}}（沒有{kind, select, airline {航空公司} airport {機場} airports {機場} type {機型} cabin {艙等} location {地點} registration {註冊號} phase {階段} times {時間} seat_position {座位位置} other {{what}}}）"
 }

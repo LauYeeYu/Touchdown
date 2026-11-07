@@ -1,13 +1,13 @@
 {
-  "notFound": "{where, select, link {此链接中没有{airport}。} other {日志中没有{airport}。}}",
+  "notFound": "{where, select, link {这个链接中没有{airport}。} other {日志中没有{airport}。}}",
   "notFound.reference": "参考数据中没有这个机场。",
   "notFound.back": "统计",
   "legend.flights": "往返{code}的航班",
   "legend.spots": "拍摄地点",
-  "legend.click": "点击其他机场即可打开该机场页面",
+  "legend.click": "点击其他机场可打开它的页面",
   "lead.nothing": "{year}\u2060年在{airport}没有任何记录。",
   "lead.flown": "{period, select, current {{year}\u2060年至今，{voice, select, none {} named {{owner}} other {你}}} past {{year}\u2060年，{voice, select, none {} named {{owner}} other {你}}} other {{voice, select, none {} named {{owner}} other {你}}}}{parts, select, d {{cap, select, yes {从} other {从}}{airport}出发<fig>{dep, plural, =1 {1次} =2 {2次} other {#次}}</fig>} l {{cap, select, yes {在} other {在}}{airport}降落<fig>{land, plural, =1 {1次} =2 {2次} other {#次}}</fig>} t {{cap, select, yes {在} other {在}}{airport}转机<fig>{trans, plural, =1 {1次} =2 {2次} other {#次}}</fig>} dl {{cap, select, yes {从} other {从}}{airport}出发<fig>{dep, plural, =1 {1次} =2 {2次} other {#次}}</fig>，在此降落<fig>{land, plural, =1 {1次} =2 {2次} other {#次}}</fig>} dt {{cap, select, yes {从} other {从}}{airport}出发<fig>{dep, plural, =1 {1次} =2 {2次} other {#次}}</fig>，在此转机<fig>{trans, plural, =1 {1次} =2 {2次} other {#次}}</fig>} lt {{cap, select, yes {在} other {在}}{airport}降落<fig>{land, plural, =1 {1次} =2 {2次} other {#次}}</fig>，在此转机<fig>{trans, plural, =1 {1次} =2 {2次} other {#次}}</fig>} other {{cap, select, yes {从} other {从}}{airport}出发<fig>{dep, plural, =1 {1次} =2 {2次} other {#次}}</fig>，在此降落<fig>{land, plural, =1 {1次} =2 {2次} other {#次}}</fig>、转机<fig>{trans, plural, =1 {1次} =2 {2次} other {#次}}</fig>}}。",
-  "lead.spotted": "{period, select, current {{year}\u2060年至今，{voice, select, none {} named {{owner}} other {你}}} past {{year}\u2060年，{voice, select, none {} named {{owner}} other {你}}} other {{voice, select, none {} named {{owner}} other {你}}}}{there, select, yes {在那里} other {在{airport}}}拍摄<fig>{days, plural, other {#天}}</fig>，拍到<fig>{aircraft, plural, other {#架飞机}}</fig>。",
+  "lead.spotted": "{period, select, current {{year}\u2060年至今，{voice, select, none {} named {{owner}} other {你}}} past {{year}\u2060年，{voice, select, none {} named {{owner}} other {你}}} other {{voice, select, none {} named {{owner}} other {你}}}}{there, select, yes {在这里} other {在{airport}}}拍摄<fig>{days, plural, other {#天}}</fig>，拍到<fig>{aircraft, plural, other {#架飞机}}</fig>。",
   "showAll": "显示所有年份",
   "departures": "出发",
   "departures.detail": "从这里出发的航班",
@@ -28,7 +28,7 @@
   "cols.here": "此处",
   "cols.lastHere": "上次在此",
   "unknownOperator": "未知航空公司",
-  "seenHere": "在此见到过{count, plural, other {#天}}",
+  "seenHere": "有{count, plural, other {#天}}在这里拍到",
   "flownOn": "{where, select, link {乘坐这架飞机的航班} other {你乘坐这架飞机的航班}}",
-  "facts.leftOut": "{count, plural, other {#条记录未计入}}（缺少{kind, select, airline {航空公司} airport {机场} airports {机场} type {机型} cabin {舱位} location {位置} registration {注册号} phase {阶段} times {时间} seat_position {座位位置} other { {what}}}）"
+  "facts.leftOut": "{count, plural, other {#条记录未计入}}（缺少{kind, select, airline {航空公司} airport {机场} airports {机场} type {机型} cabin {舱位} location {位置} registration {注册号} phase {阶段} times {时间} seat_position {座位位置} other {{what}}}）"
 }
