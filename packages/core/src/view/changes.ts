@@ -3,7 +3,7 @@
 // findings the changes taken would bring. Worked out on copies of the log, so nothing is written until the import.
 // Private values (ticket numbers, booking references) are shown only when the caller asks: the terminal never does.
 
-import { has, t, tDynamic, type MessageKey } from "@touchdown/i18n";
+import { has, series, t, tDynamic, type MessageKey } from "@touchdown/i18n";
 import { flightDay } from "../derive.ts";
 import { refOverridesOf, tagsOf, viewFilters } from "../edit.ts";
 import { phasesOf } from "../phases.ts";
@@ -124,13 +124,13 @@ const SIGHTING_SHOW: ShowLine[] = [
   ["typeCode", "changes.field.type", typeText],
   ["model", "labels.field.model", (r, x) => (r.model ? modelLabel(r.model as string, r.typeCode as string | null, x.ref, x.o.models) : ((r.modelRaw as string) ?? ""))],
   // Every status, as the review read it (rowOf).
-  ["phase", "labels.field.phase", (r) => ((r.phases as string[] | undefined) ?? (r.phase ? [r.phase as string] : [])).map((p) => PHASE_LABEL[p] ?? p).join(", ")],
+  ["phase", "labels.field.phase", (r) => series(((r.phases as string[] | undefined) ?? (r.phase ? [r.phase as string] : [])).map((p) => PHASE_LABEL[p] ?? p))],
   ["livery", "labels.field.livery", text("livery")],
   ["specialLivery", "labels.field.specialLivery", text("specialLivery")],
   ["photoCount", "labels.field.photoCount", text("photoCount")],
   ["notes", "labels.field.notes", text("notes")],
   // The tags travel with the row as the review read it (rowOf).
-  ["tags", "changes.field.tags", (r) => ((r.tags as string[] | undefined) ?? []).map((t) => TAG_LABEL[t] ?? t).sort().join(", ")],
+  ["tags", "changes.field.tags", (r) => series(((r.tags as string[] | undefined) ?? []).map((t) => TAG_LABEL[t] ?? t).sort())],
 ];
 
 const AIRFRAME_SHOW: ShowLine[] = [

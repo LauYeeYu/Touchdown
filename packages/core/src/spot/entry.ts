@@ -2,7 +2,7 @@
 // is read into a sighting's fields; lookups (fetched by the CLI) say what they know about the registration; the
 // values are chosen from both, and what is still missing or doubtful is listed for the user.
 
-import { t, tDynamic } from "@touchdown/i18n";
+import { series, t, tDynamic } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import { PHASES } from "../schema/tables.ts";
 import { isValidDate } from "../schema/validate.ts";
@@ -344,7 +344,7 @@ export function logEvidence(store: Store, ref: RefIndex, registration: string, d
   const op = ref.operator(near.op);
   const seen = recs.filter((r) => !r.flown).length;
   const flown = recs.length - seen;
-  const counts = [seen && t("core.spot.log.seen", { count: seen }), flown && t("core.spot.log.flown", { count: flown })].filter(Boolean).join(", ");
+  const counts = series([seen && t("core.spot.log.seen", { count: seen }), flown && t("core.spot.log.flown", { count: flown })].filter((x): x is string => !!x));
   return {
     source: "your_log",
     typeCode: typeCode && ref.type(typeCode) ? typeCode : null,
@@ -486,7 +486,7 @@ const factRank = (e: Evidence) => ({ fr24: 0, opensky: 1, adsbdb: 2, your_log: 3
 
 /** "airline: Flightradar24 says BAW, OpenSky says SHT. BAW is kept." */
 export function describeDisagreement(d: Disagreement): string {
-  const others = d.others.map((o) => t("core.spot.says", { source: SOURCE_NAME[o.source], value: o.value })).join(", ");
+  const others = series(d.others.map((o) => t("core.spot.says", { source: SOURCE_NAME[o.source], value: o.value })));
   const kept = d.keptFrom === "you" ? t("core.spot.youTyped", { value: d.kept }) : t("core.spot.says", { source: SOURCE_NAME[d.keptFrom], value: d.kept });
   const values = { field: SPOT_FIELD_LABEL[d.field], kept, others, value: d.kept };
   return d.otherAircraft ? t("core.spot.disagreementOther", values) : t("core.spot.disagreement", values);

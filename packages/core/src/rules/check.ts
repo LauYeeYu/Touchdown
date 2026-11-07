@@ -1,7 +1,7 @@
 // Field rules (V-) and cross-record rules (C-) from docs/20-validation.md. External rules (X-) need the
 // lookup service and arrive in phase 4.
 
-import { inSentence, locale, t, tDynamic } from "@touchdown/i18n";
+import { inSentence, locale, series, t, tDynamic } from "@touchdown/i18n";
 import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -279,7 +279,7 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     !f.toAirportId && "arrival airport",
     !f.registration && "registration",
   ].filter(Boolean) as string[];
-  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: missing.map(missingLabel).join(", ") }), missing);
+  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: series(missing.map(missingLabel)) }), missing);
 }
 
 /**
@@ -318,7 +318,7 @@ function checkSighting(out: Collector, s: Sighting, ref: RefIndex, today: string
   checkAircraftFields(out, r, s, ref, op && op.kind !== "private" ? op.country : null, label);
   checkFirstFlight(out, r, s.seenOn, airframes, s.airframeId, label);
   const missing = [!s.seenOn && "date", !s.airportId && "location", !s.registration && "registration"].filter(Boolean) as string[];
-  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: missing.map(missingLabel).join(", ") }), missing);
+  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: series(missing.map(missingLabel)) }), missing);
 }
 
 // ---------- cross-record ----------

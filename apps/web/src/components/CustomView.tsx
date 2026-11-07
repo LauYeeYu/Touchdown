@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { dimensionValues, DIMENSIONS, filterRecords, pivot, pivotRecords, viewFilters, type Dataset, type Dimension, type Flight, type Measure, type PivotFilter, type Sighting, type StatsContext } from "@touchdown/core";
 import { dimensionLabel, pivotValueLabel } from "@touchdown/core/view";
-import { inSentence, t } from "@touchdown/i18n";
+import { inSentence, series, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airlineLabel, dateOnly, distance, durShort, nf } from "../lib/format.ts";
 import { codeStyle, airportWithCode } from "../lib/codes.ts";
@@ -147,7 +147,7 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
   const word = (text: React.ReactNode) => <span className="custom__word">{text}</span>;
   /** A figure that opens its records. */
   const figure = (key: string, value: number, row: string | null, col: string | null, total = false, style?: React.CSSProperties) => {
-    const where = [row !== null && name(rowDim.id, row), col !== null && colDim && name(colDim.id, col)].filter(Boolean).join(", ") || t("views.figure.everyRow");
+    const where = series([row !== null && name(rowDim.id, row), col !== null && colDim && name(colDim.id, col)].filter((x): x is string => !!x)) || t("views.figure.everyRow");
     return (
       <td key={key} className={`num pivot__cell${total ? " pivot__total" : ""}${style ? " is-shaded" : ""}`} style={style}>
         <button type="button" className={`pivot__fig${isPicked(row, col) ? " is-picked" : ""}`} aria-pressed={isPicked(row, col)} aria-label={t("views.figure.label", { value: fmt(value), where, dataset })} onClick={() => pick({ row, col })}>
@@ -189,7 +189,7 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
             <span key={f.dimension} className="menu-anchor">
               <span className="chip chip--removable filter-chip is-on">
                 <button type="button" className="filter-chip__edit" aria-haspopup="dialog" aria-expanded={editing === f.dimension} onClick={() => setEditing(editing === f.dimension ? null : f.dimension)}>
-                  <span className="filter-chip__dim">{t("views.filters.dimension", { dimension: d.label })}</span> {shown.join(", ")}
+                  <span className="filter-chip__dim">{t("views.filters.dimension", { dimension: d.label })}</span> {series(shown)}
                   {f.values.length > 2 && <span className="filter-chip__more"> +{f.values.length - 2}</span>}
                 </button>
                 <button type="button" className="chip__x" aria-label={t("views.filters.remove", { dimension: lower(d) })} onClick={() => setFilter(f.dimension, [])}>

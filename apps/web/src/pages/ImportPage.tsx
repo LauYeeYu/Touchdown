@@ -34,7 +34,7 @@ import {
   type SheetData,
   type SheetMapping,
 } from "@touchdown/core";
-import { inSentence, inSourceLanguage, list, sentenceGap, t } from "@touchdown/i18n";
+import { inSentence, inSourceLanguage, list, sentenceGap, series, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { ColumnMapping, type ColumnChoice } from "../components/ColumnMapping.tsx";
 import { savedMapping, saveMapping } from "../data/mappings.ts";
@@ -493,7 +493,7 @@ export function ImportPage() {
                   <p className="review-row__fills">
                     {t("import.review.corrections", {
                       fields: list(m.corrections.map((x) => (FIELD_LABEL[x.field] ? inSentence(FIELD_LABEL[x.field]!) : x.field))),
-                      changes: m.corrections.map((x) => `${show(x.field, x.existing)} → ${show(x.field, x.incoming)}`).join(", "),
+                      changes: series(m.corrections.map((x) => `${show(x.field, x.existing)} → ${show(x.field, x.incoming)}`)),
                       reason: m.corrections[0]!.reason,
                     })}{sentenceGap()}
                     <label className="check">
@@ -506,7 +506,7 @@ export function ImportPage() {
                     </label>
                   </p>
                 )}
-                {m.kind === "update" && m.fills.length > 0 && <p className="review-row__fills">{t("import.review.fills", { fields: m.fills.filter((x) => !x.endsWith("Raw")).map((x) => FIELD_LABEL[x] ?? x).join(", ") })}</p>}
+                {m.kind === "update" && m.fills.length > 0 && <p className="review-row__fills">{t("import.review.fills", { fields: series(m.fills.filter((x) => !x.endsWith("Raw")).map((x) => FIELD_LABEL[x] ?? x)) })}</p>}
                 {m.conflicts.length > 0 && (
                   <table className="table table--diff">
                     <thead>

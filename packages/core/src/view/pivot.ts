@@ -1,7 +1,7 @@
 // The values of a custom view's dimensions (docs/24, "Custom view") as the Statistics page names them: the web app, the
 // CLI and the review of a saved view use the same names.
 
-import { has, tDynamic } from "@touchdown/i18n";
+import { has, labelled, series, tDynamic } from "@touchdown/i18n";
 import { DIMENSIONS, type PivotFilter } from "../stats/index.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { airportWithCode, routeCodes, type CodeStyle } from "./codes.ts";
@@ -49,5 +49,5 @@ export const dimensionLabel = (id: string) => DIMENSIONS.find((d) => d.id === id
 
 /** "Airline: British Airways, Lufthansa · Family: A320": a view's filters in a line. */
 export function filtersText(filters: PivotFilter[], ref: RefIndex, codes: CodeStyle = "iata"): string {
-  return filters.map((f) => `${dimensionLabel(f.dimension)}: ${f.values.map((v) => pivotValueLabel(f.dimension, v, ref, codes)).join(", ")}`).join(" · ");
+  return filters.map((f) => labelled(dimensionLabel(f.dimension), series(f.values.map((v) => pivotValueLabel(f.dimension, v, ref, codes))))).join(" · ");
 }

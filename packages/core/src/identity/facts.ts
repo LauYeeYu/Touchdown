@@ -2,7 +2,7 @@
 // against the user's records and stored on the airframe (docs/13-reference-data.md, "Airframe facts").
 // Fetching happens outside core (the CLI); this module only checks and stores what came back.
 
-import { t } from "@touchdown/i18n";
+import { series, t } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import { AIRFRAME_STATUSES, type Airframe } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -159,7 +159,7 @@ export function factsMismatch(store: Store, ref: RefIndex, a: Airframe, facts: A
     const fits = (d: string) => spans.some((s) => (!s.from || addDays(s.from, -SPAN_SLACK_DAYS) <= d) && (!s.to || d <= addDays(s.to, SPAN_SLACK_DAYS)));
     const outside = dates.find((d) => !fits(d));
     if (outside) {
-      const held = spans.map((s) => t("core.facts.span", { from: s.from ?? "…", to: s.to ?? t("core.facts.now") })).join(", ");
+      const held = series(spans.map((s) => t("core.facts.span", { from: s.from ?? "…", to: s.to ?? t("core.facts.now") })));
       return t("core.facts.carried", { registration: facts.registration, spans: held, record: outside });
     }
   }

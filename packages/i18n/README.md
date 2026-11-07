@@ -15,7 +15,7 @@ A translation is the same files under its own tag (`messages/de-DE/flights.json`
 | `GLOSSARY.md` | Each language's notes and the words for Touchdown's terms. |
 | `src/catalog.ts` | Loads the source files the web pages, the core package and the storage package use. A new file is added here. |
 | `src/cli.ts`, `src/server.ts` | The CLI's files (`cli*.json`) and the server's (`server.json`), added only by those programs, so the web pages do not load them. The CLI's code imports from `@touchdown/i18n/cli` and the server's from `@touchdown/i18n/server`. A test checks both. |
-| `src/index.ts` | `t()`, `tDynamic()`, `rich()`, `list()`, `inSentence()`, `sentenceGap()`, `wordGap()`, `inSourceLanguage()`, `locale()`, `setLocale()`, `matchLocale()`, and the date format: `dateStyles()`, `setDateStyle()`. |
+| `src/index.ts` | `t()`, `tDynamic()`, `rich()`, `list()`, `series()`, `labelled()`, `inSentence()`, `sentenceGap()`, `wordGap()`, `inSourceLanguage()`, `locale()`, `setLocale()`, `matchLocale()`, and the date format: `dateStyles()`, `setDateStyle()`. |
 | `src/message.ts` | The message syntax, a subset of ICU MessageFormat. |
 | `src/messages.generated.ts` | Every key and the arguments each message takes, written by `npm run messages`, which also formats the source files. |
 | `scripts/leftovers.ts` | Lists text in code files that looks like words for people, still outside the messages. |
@@ -67,7 +67,9 @@ A non-breaking space is written `\u00a0` in the JSON, so it can be seen: `"#\u00
 - Write each key in full in the code (`t("flights.filters.any")`), so the unused-key test finds it. A key put together at run time goes through `tDynamic` with a template literal (`` tDynamic(`labels.cabin.${c}`) ``), which counts every key under its prefix as used.
 - Never call `t()` when a module loads (a constant at the top of a file): the language is chosen after. Call it while drawing, or make the constant a function. `labelTable` in `packages/core/src/view/format.ts` gives a table whose values are read when used.
 - Dates, months and numbers come from the core helpers (`dateOnly`, `dayShort`, `dayMonthYear`, `momentDay`, `momentShort`, `momentLabel`, `monthNames`, `nf`), which follow `locale()` and the date format chosen (docs/31-ui.md, "Language"). Never write `"en-GB"` or call `toLocaleString` in a formatter.
-- Lists in prose ("A, B and C") come from `list()`.
+- Lists in prose ("A, B and C") come from `list()`. Values set side by side with no "and" ("A320, A321") come from
+  `series()`, never `join(", ")`: Chinese separates them with 、. A label before its value in a line ("Airline:
+  Lufthansa") comes from `labelled()`, which writes Chinese's ：.
 - A label put inside a sentence goes through `inSentence()`, never `toLowerCase()`: English lower-cases its first
   letter, German keeps the capitals of its nouns.
 - Two sentences shown one after the other are joined with `sentenceGap()`, and two words or values set side by side

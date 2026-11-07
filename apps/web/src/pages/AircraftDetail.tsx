@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { inSentence, sentenceGap, t } from "@touchdown/i18n";
+import { inSentence, sentenceGap, series, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightDay, isValidDate, liveryName, liveryNames, pastedFactsFor, phasesOf, sameLivery, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
@@ -277,14 +277,14 @@ export function AircraftDetail() {
               <dt>{t("aircraft.detail.registrations")}</dt>
               <dd>
                 {regs.length
-                  ? regs.map((p) => (p.validFrom || p.validTo ? t("aircraft.detail.registrationPeriod", { reg: `${p.registration}`, hasFrom: p.validFrom ? "yes" : "no", from: p.validFrom ?? "", hasTo: p.validTo ? "yes" : "no", to: p.validTo ?? "" }) : `${p.registration}`)).join(", ")
+                  ? series(regs.map((p) => (p.validFrom || p.validTo ? t("aircraft.detail.registrationPeriod", { reg: `${p.registration}`, hasFrom: p.validFrom ? "yes" : "no", from: p.validFrom ?? "", hasTo: p.validTo ? "yes" : "no", to: p.validTo ?? "" }) : `${p.registration}`)))
                   : "—"}
               </dd>
             </div>
             {liveries.length > 0 && (
               <div>
                 <dt>{t("aircraft.livery.special", { count: liveries.length })}</dt>
-                <dd>{liveries.join(", ")}</dd>
+                <dd>{series(liveries)}</dd>
               </div>
             )}
             <div>
@@ -323,14 +323,14 @@ export function AircraftDetail() {
                         {t("aircraft.detail.paste.found", {
                           hasSite: pasted.site ? "yes" : "no",
                           site: pasted.site ?? "",
-                          facts: [
-                            pastedPatch.msn && t("aircraft.detail.paste.msn", { msn: pastedPatch.msn }),
-                            pastedPatch.lineNumber && t("aircraft.detail.line", { n: pastedPatch.lineNumber }),
-                            pastedPatch.firstFlightDate && t("aircraft.detail.paste.firstFlight", { date: dayMonthYear(pastedPatch.firstFlightDate) }),
-                            pastedPatch.deliveryDate && t("aircraft.detail.paste.delivered", { date: dayMonthYear(pastedPatch.deliveryDate) }),
-                          ]
-                            .filter(Boolean)
-                            .join(", "),
+                          facts: series(
+                            [
+                              pastedPatch.msn && t("aircraft.detail.paste.msn", { msn: pastedPatch.msn }),
+                              pastedPatch.lineNumber && t("aircraft.detail.line", { n: pastedPatch.lineNumber }),
+                              pastedPatch.firstFlightDate && t("aircraft.detail.paste.firstFlight", { date: dayMonthYear(pastedPatch.firstFlightDate) }),
+                              pastedPatch.deliveryDate && t("aircraft.detail.paste.delivered", { date: dayMonthYear(pastedPatch.deliveryDate) }),
+                            ].filter((x): x is string => !!x),
+                          ),
                         })}
                       </p>
                     ) : (
@@ -431,7 +431,7 @@ export function AircraftDetail() {
 }
 
 /** A sighting's statuses on their own line: "Taking off, taxiing". */
-const phaseList = (phases: string[]) => phases.map((p, i) => (i ? inSentence(PHASE_LABEL[p] ?? p) : (PHASE_LABEL[p] ?? p))).join(", ");
+const phaseList = (phases: string[]) => series(phases.map((p, i) => (i ? inSentence(PHASE_LABEL[p] ?? p) : (PHASE_LABEL[p] ?? p))));
 
 /** A timeline record in a special livery: its name on a line under the record. */
 function LiveryNote({ name }: { name: string }) {

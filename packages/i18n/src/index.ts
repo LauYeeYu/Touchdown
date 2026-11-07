@@ -238,6 +238,16 @@ export function rich<K extends MessageKey, R>(key: K, ...[params, tags]: RichRes
   return format<R>(key, params as Record<string, unknown> | undefined, tags as Record<string, (parts: (string | R)[]) => R> | undefined);
 }
 
+/** Values set side by side with no "and": "a, b, c", in Chinese "a、b、c". */
+export function series(items: readonly string[]): string {
+  return items.join(current.locale.startsWith("zh") ? "、" : ", ");
+}
+
+/** A label before its value in a line: "Airline: Lufthansa", in Chinese "航空公司：汉莎航空". */
+export function labelled(label: string, value: string): string {
+  return current.locale.startsWith("zh") ? `${label}：${value}` : `${label}: ${value}`;
+}
+
 /** A list in the language's words: "a, b and c" (conjunction), "a, b or c" (disjunction), "a, b, c" (unit). */
 export function list(items: readonly string[], type: "conjunction" | "disjunction" | "unit" = "conjunction"): string {
   return new Intl.ListFormat(current.locale, { style: "long", type }).format(items);
