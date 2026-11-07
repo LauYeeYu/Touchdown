@@ -2,6 +2,7 @@
 
 export {
   nf,
+  oneDecimal,
   monthNames,
   dateOnly,
   dayShort,

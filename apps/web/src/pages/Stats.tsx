@@ -10,7 +10,7 @@ import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, CABIN_LABEL, countryName, dateOnly, dayMonthYear, distance, nf, PHASE_LABEL, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, dateOnly, dayMonthYear, distance, nf, oneDecimal, PHASE_LABEL, typeName } from "../lib/format.ts";
 import { Link } from "../lib/link.tsx";
 import { airportWithCode, routeCodes } from "../lib/codes.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -147,7 +147,7 @@ export function Stats() {
         <div role="tabpanel">
           <dl className="facts facts--stats">
             <Fact label={t("stats.flights.flights")} value={nf.format(fs.flights)} />
-            <Fact label={t("stats.flights.distance")} value={distance(fs.distanceKm.value, unit)} detail={<>{t("stats.flights.aroundEarth", { times: (fs.distanceKm.value / EARTH_CIRCUMFERENCE_KM).toFixed(1) })} <LeftOut m={fs.distanceKm} what="airports" /></>} />
+            <Fact label={t("stats.flights.distance")} value={distance(fs.distanceKm.value, unit)} detail={<>{t("stats.flights.aroundEarth", { times: oneDecimal(fs.distanceKm.value / EARTH_CIRCUMFERENCE_KM) })} <LeftOut m={fs.distanceKm} what="airports" /></>} />
             <Fact label={t("stats.flights.time")} value={<Duration min={fs.minutes.value} pad={false} />} detail={<LeftOut m={fs.minutes} what="times" />} />
             <Fact label={t("stats.flights.airports")} value={measuredText(fs.airports)} detail={t("common.count.countries", { count: fs.countries.value })} />
             <Fact label={t("stats.flights.airlines")} value={measuredText(fs.airlines)} />

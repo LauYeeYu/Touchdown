@@ -10,6 +10,14 @@ import type { Settings } from "../schema/tables.ts";
 /** Numbers in the interface's language: "12,345". */
 export const nf = { format: (n: number | bigint): string => numberFormat(locale()).format(n) };
 
+const decimals = new Map<string, Intl.NumberFormat>();
+/** "24.3", "1.0" ("24,3" in German): one decimal, in the interface's language. */
+export function oneDecimal(n: number): string {
+  let f = decimals.get(locale());
+  if (!f) decimals.set(locale(), (f = new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })));
+  return f.format(n);
+}
+
 /** The months' names in the interface's language, January first: "J" (narrow), "Jan" (short) or "January" (long). */
 export function monthNames(width: "narrow" | "short" | "long" = "long"): string[] {
   return Array.from({ length: 12 }, (_, i) => dateOnly(`2000-${String(i + 1).padStart(2, "0")}-01`, { month: width }));

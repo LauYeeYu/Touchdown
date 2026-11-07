@@ -3,10 +3,11 @@
 // retired or written off the time to today is the time since its first flight, not an age in service. The same in the
 // web app (Statistics) and the CLI. Nothing here is stored.
 
-import { locale, t } from "@touchdown/i18n";
+import { t } from "@touchdown/i18n";
 import { flightDay } from "../derive.ts";
 import type { Airframe, Flight } from "../schema/tables.ts";
 import { daysBetween } from "../time/index.ts";
+import { oneDecimal } from "./format.ts";
 
 export interface AgeWhenFlown {
   flightId: string;
@@ -80,14 +81,6 @@ export function ageText(days: number): string {
   if (days < 31) return t("view.age.days", { count: days });
   if (days < 365) return t("view.age.months", { count: Math.max(1, Math.floor(days / DAYS_A_MONTH)) });
   return t("view.age.years", { years: oneDecimal(days / DAYS_A_YEAR) });
-}
-
-const decimals = new Map<string, Intl.NumberFormat>();
-/** "24.3", "1.0": one decimal, in the interface's language. */
-function oneDecimal(n: number): string {
-  let f = decimals.get(locale());
-  if (!f) decimals.set(locale(), (f = new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })));
-  return f.format(n);
 }
 
 /** The average of the ages given, in days, or null for none. */
