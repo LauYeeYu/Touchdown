@@ -70,6 +70,8 @@ A non-breaking space is written `\u00a0` in the JSON, so it can be seen: `"#\u00
 - Lists in prose ("A, B and C") come from `list()`. Values set side by side with no "and" ("A320, A321") come from
   `series()`, never `join(", ")`: Chinese separates them with 、. A label before its value in a line ("Airline:
   Lufthansa") comes from `labelled()`, which writes Chinese's ：.
+- A button that follows text in the same line (Show after "Hidden") takes the class `link-btn--after`: Chinese has no
+  space between sentences, so the page draws the gap.
 - A label put inside a sentence goes through `inSentence()`, never `toLowerCase()`: English lower-cases its first
   letter, German keeps the capitals of its nouns.
 - Two sentences shown one after the other are joined with `sentenceGap()`, and two words or values set side by side

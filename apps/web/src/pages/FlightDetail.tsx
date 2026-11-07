@@ -687,14 +687,14 @@ export function FlightDetail() {
                   ) : showTicket ? (
                     <>
                       {ticketNumber}{sentenceGap()}
-                      <button type="button" className="link-btn" onClick={() => setShowTicket(false)}>
+                      <button type="button" className="link-btn link-btn--after" onClick={() => setShowTicket(false)}>
                         {t("flights.detail.seat.hide")}
                       </button>
                     </>
                   ) : (
                     <>
                       <span className="muted">{t("flights.detail.seat.hidden")}</span>{sentenceGap()}
-                      <button type="button" className="link-btn" onClick={() => setShowTicket(true)}>
+                      <button type="button" className="link-btn link-btn--after" onClick={() => setShowTicket(true)}>
                         {t("flights.detail.seat.show")}
                       </button>
                     </>

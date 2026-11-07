@@ -2573,6 +2573,12 @@ a.btn--primary {
   height: 16px;
 }
 
+/* A button that follows text in the same line: Chinese has no space between sentences, so the gap is drawn here. */
+:root:lang(zh-CN) .link-btn--after,
+:root:lang(zh-TW) .link-btn--after {
+  margin-inline-start: 0.6em;
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;

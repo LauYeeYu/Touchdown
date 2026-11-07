@@ -391,7 +391,7 @@ export function ImportPage() {
         {source.format === "sheet" && columns && (
           <p className="form-sub">
             {t("import.columns.summary", { how: columns.how, used: columns.choice.fields.filter((f) => f !== "ignore").length, unused: columns.choice.fields.filter((f) => f === "ignore").length })}{sentenceGap()}
-            <button type="button" className="link-btn" onClick={() => setChoosingColumns(true)}>
+            <button type="button" className="link-btn link-btn--after" onClick={() => setChoosingColumns(true)}>
               {t("import.columns.change")}
             </button>
           </p>

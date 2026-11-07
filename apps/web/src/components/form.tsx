@@ -208,7 +208,7 @@ export function LiveryQuestion({ worn, onUse }: { worn: WornLivery; onUse: () =>
   return (
     <>
       {tx("ui.livery.question", { name: worn.name, date: dayMonthYear(worn.on) }, { b: (text) => <b>{text}</b> })}{sentenceGap()}
-      <button type="button" className="link-btn" onClick={onUse} aria-label={t("ui.livery.useLabel", { name: worn.name })}>
+      <button type="button" className="link-btn link-btn--after" onClick={onUse} aria-label={t("ui.livery.useLabel", { name: worn.name })}>
         {t("ui.livery.use")}
       </button>
     </>
