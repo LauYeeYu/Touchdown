@@ -13,6 +13,7 @@
   "globe.reset": "复位并显示全部",
   "globe.hint": "拖动旋转 · {zoom, select, full {滚动或双指捏合} other {双指捏合或按住Ctrl滚动}}缩放{opens, select, both { · 点击航线或机场即可打开} airport { · 点击机场即可打开} route { · 点击航线即可打开} other {}}",
   "airport.tip": "此时间段内{count, plural, other {#个航班}} · 点击打开机场页面",
+  "airport.role": "{role, select, from {出发} to {到达} other {出发和到达}} · 点击打开机场页面",
   "airport.label": "{name}：{count, plural, other {#个航班}}。打开机场页面",
   "airport.open": "{code}：打开机场页面",
   "spot.label": "{label}。打开机场页面"

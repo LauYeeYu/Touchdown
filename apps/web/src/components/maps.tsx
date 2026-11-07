@@ -228,6 +228,13 @@ function centralMeridian(routes: LonLat[][], points: LonLat[]): number {
 }
 
 /** Points along a route, what is drawn solid and dashed alike, for framing, centring and pointing. */
+/** The second line of an airport's tooltip: its part in the one flight shown, else how many flights the map shows there. */
+export function airportTip(flights: MapFlight[], id: string, count: number): string {
+  const [only] = flights;
+  if (flights.length === 1 && only) return t("maps.airport.role", { role: only.fromId === only.toId ? "both" : only.fromId === id ? "from" : "to" });
+  return t("maps.airport.tip", { count });
+}
+
 export function routeSamplesOf(f: MapFlight): LonLat[] {
   const out: LonLat[] = [];
   for (const part of [...f.line, ...(f.gaps ?? [])]) {
@@ -469,7 +476,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         const dot = el(apG, "circle", { class: "airport", "data-code": code, cx: xy[0], cy: xy[1], r: 4 });
         // A larger invisible target, so the small dot is easy to point at and tap.
         const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 11, tabindex: 0, role: "link", "aria-label": t("maps.airport.label", { name: v.name, count: v.n }) });
-        const tip = `<strong>${esc(v.name)} (${esc(code)})</strong><br><span class="muted">${esc(t("maps.airport.tip", { count: v.n }))}</span>`;
+        const tip = `<strong>${esc(v.name)} (${esc(code)})</strong><br><span class="muted">${esc(airportTip(flights, v.id, v.n))}</span>`;
         hit.addEventListener("pointerenter", (ev) => {
           dot.classList.add("is-hover");
           showTip(tip, ev.clientX, ev.clientY);

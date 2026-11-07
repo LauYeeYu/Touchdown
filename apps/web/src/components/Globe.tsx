@@ -9,7 +9,7 @@ import { feature } from "topojson-client";
 import type { FeatureCollection } from "geojson";
 import world from "world-atlas/countries-110m.json";
 import { t } from "@touchdown/i18n";
-import { ARRIVE_MS, routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
+import { airportTip, ARRIVE_MS, routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
 import { TrackLoading } from "../lib/trackLoading.tsx";
@@ -583,7 +583,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
                 ? h.f.tip
                 : h.kind === "spot"
                   ? h.s.tip
-                  : `<strong>${escHtml(h.a.name)} (${escHtml(h.a.code)})</strong><br><span class="muted">${escHtml(t("maps.airport.tip", { count: h.a.flights }))}</span>`;
+                  : `<strong>${escHtml(h.a.name)} (${escHtml(h.a.code)})</strong><br><span class="muted">${escHtml(airportTip(data.current.flights, h.a.id, h.a.flights))}</span>`;
         showTip(tip, e.clientX, e.clientY);
       } else hideTip();
     };

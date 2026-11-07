@@ -2194,6 +2194,7 @@ export interface MessageArgs {
   "maps.globe.reset": {};
   "maps.globe.hint": { opens: "choice"; zoom: "choice" };
   "maps.airport.tip": { count: "number" };
+  "maps.airport.role": { role: "choice" };
   "maps.airport.label": { count: "number"; name: "text" };
   "maps.airport.open": { code: "text" };
   "maps.spot.label": { label: "text" };

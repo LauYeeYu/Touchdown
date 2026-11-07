@@ -13,6 +13,7 @@
   "globe.reset": "Zurückdrehen und alles zeigen",
   "globe.hint": "Ziehen zum Drehen · {zoom, select, full {Scrollen oder zwei Finger} other {zwei Finger oder Strg + Scrollen}} zum Zoomen{opens, select, both { · Strecke oder Flughafen zum Öffnen anklicken} airport { · Flughafen zum Öffnen anklicken} route { · Strecke zum Öffnen anklicken} other {}}",
   "airport.tip": "{count, plural, one {# Flug in diesem Zeitraum} other {# Flüge in diesem Zeitraum}} · Klick öffnet die Flughafenseite",
+  "airport.role": "{role, select, from {Abflug} to {Ankunft} other {Abflug und Ankunft}} · Klick öffnet die Flughafenseite",
   "airport.label": "{name}: {count, plural, one {# Flug} other {# Flüge}}. Flughafenseite öffnen",
   "airport.open": "{code}: Flughafenseite öffnen",
   "spot.label": "{label}. Flughafenseite öffnen"
