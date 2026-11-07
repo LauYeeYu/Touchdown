@@ -2365,6 +2365,11 @@ main {
     border-top: 1px solid var(--rule);
   }
 
+  /* A last cell alone in its row takes the whole row, so the line above it runs across. */
+  .time:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
   .time__clock {
     font-size: 1.5rem;
   }
