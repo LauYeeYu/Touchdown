@@ -85,6 +85,9 @@ export function namesIn(labels: Labels, english: string | null, place: Labels = 
   return out;
 }
 
+/** A city as Chinese writes it in a line: 上海, not 上海市 (a name of two characters keeps it: 沙市). */
+const cityWord = (name: string | undefined) => name?.replace(/^(.{2,})市$/u, "$1");
+
 /** Words that do not tell one airline, airport or place from another. */
 const AIRLINE_WORDS = new Set(["air", "airline", "airlines", "airways", "aviation", "aviacion", "aviacao", "aero", "aerea", "aereas", "aereo", "aereos", "aerolinea", "aerolineas", "aerovias", "lineas", "linhas", "linee", "transportes", "compania", "compagnie", "express", "cargo", "the", "of", "de", "del", "do", "da", "la", "ltd", "limited", "inc", "co", "company", "corporation", "sa", "s", "a", "llc", "gmbh", "ag", "jsc", "pjsc", "plc", "pt", "pvt", "group"]);
 const AIRPORT_WORDS = new Set(["airport", "international", "intl", "regional", "municipal", "county", "national", "domestic", "air", "airfield", "aerodrome", "field", "base", "airbase", "station", "naval", "force", "army", "military", "the", "of", "de", "da", "do", "del", "la", "le", "el", "and"]);
@@ -197,7 +200,7 @@ async function main() {
     const served = new Set(candidates.flatMap((item) => [...(placesOf.get(item) ?? [])]));
     const plausible = (city: string) => likeness(englishOf(cities.get(city) ?? {}) ?? "", ourCity, PLACE_WORDS)[0]! >= 0.5;
     for (const tag of TAGS) {
-      const placeIn = (city: string) => namesIn(cities.get(city) ?? {}, englishOf(cities.get(city) ?? {}))[tag];
+      const placeIn = (city: string) => cityWord(namesIn(cities.get(city) ?? {}, englishOf(cities.get(city) ?? {}))[tag]);
       // Each item's name and place: our table's place, of those the item serves, else of those another of the items
       // serves (an airport that moved, an air base with no place of its own), else the one the item serves with a name.
       const shown = new Map(
