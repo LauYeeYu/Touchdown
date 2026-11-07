@@ -30,7 +30,37 @@ export function looksLikeOperatorName(raw: string | null | undefined): boolean {
  * ("Shanghai (Minhang)", "Foggia (FG)", "Gqeberha (Port Elizabeth)") or after a comma ("Manchester, Greater
  * Manchester", "Honolulu, Oahu"). The table keeps them for search.
  */
-export function cityName(a: Pick<Airport, "city"> | null | undefined): string | null {
+/**
+ * The reference data's names in the interface's language, for showing only (docs/13, "Names in other languages"): by
+ * airport id its name and the place it serves, by operator id its name. Matching, search by code and imports keep the
+ * data's own names, in English, and the log stores ids. Null: the data's own names.
+ */
+export interface RefNames {
+  airports: Record<string, [string | null, string | null]>;
+  operators: Record<string, string>;
+}
+
+let shownNames: RefNames | null = null;
+
+/** Show the reference data's names in a language from now on, or as the data has them (null). */
+export function showRefNames(names: RefNames | null): void {
+  shownNames = names;
+}
+
+/** An airport's name as shown: in the interface's language where there is one. */
+export function airportName(a: Pick<Airport, "id" | "name">): string {
+  return shownNames?.airports[a.id]?.[0] ?? a.name;
+}
+
+/** An airline's or other operator's name as shown: in the interface's language where there is one. */
+export function operatorName(o: Pick<Operator, "id" | "name">): string {
+  return shownNames?.operators[o.id] ?? o.name;
+}
+
+/** The place an airport serves, as shown: in the interface's language where there is a name in it, else the data's. */
+export function cityName(a: (Pick<Airport, "city"> & { id?: string }) | null | undefined): string | null {
+  const shown = a?.id ? shownNames?.airports[a.id]?.[1] : null;
+  if (shown) return shown;
   return a?.city?.replace(/\s*\(.*\)\s*$/, "").replace(/,.*$/, "").replace(/\s+/g, " ").trim() || null;
 }
 

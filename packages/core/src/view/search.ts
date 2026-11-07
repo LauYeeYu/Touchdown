@@ -2,7 +2,7 @@
 // registration, airline or type, or a route between two airports. "SHA-PEK", "Shanghai - Beijing" and "SHA PEK" find
 // the route either way, "SHA > PEK" and "SHA to PEK" only that way.
 
-import type { RefIndex } from "../ref/index.ts";
+import { airportName, cityName, type RefIndex } from "../ref/index.ts";
 import { airlineLabel } from "./format.ts";
 import type { FlightView } from "./views.ts";
 
@@ -43,8 +43,11 @@ function airportTerm(term: string, ref: RefIndex): Side {
     if (!a) return false;
     const codes = [a.iata, a.icao].filter((c): c is string => !!c).map(squash);
     if (isCode) return codes.includes(t);
-    const city = squash(a.city ?? "");
-    return codes.some((c) => c.startsWith(t)) || city.startsWith(t) || (t.length >= 3 && (city.includes(t) || squash(a.name).includes(t)));
+    // The data's names, in English, and the names shown in the interface's language (docs/13): either finds it.
+    const cities = [squash(a.city ?? ""), squash(cityName(a) ?? "")].filter(Boolean);
+    const names = [squash(a.name), squash(airportName(a))];
+    const long = t.length >= 3 || /[\u4e00-\u9fff]/.test(t);
+    return codes.some((c) => c.startsWith(t)) || cities.some((c) => c.startsWith(t)) || (long && (cities.some((c) => c.includes(t)) || names.some((n) => n.includes(t))));
   };
   return (id, raw) => {
     if (id) {
@@ -72,6 +75,6 @@ export function flightSearch(q: string, ref: RefIndex): (v: FlightView) => boole
     }
     const a = ref.airport(f.fromAirportId);
     const b = ref.airport(f.toAirportId);
-    return squash([f.flightNumber, v.fromCode, v.toCode, a?.icao, b?.icao, a?.city, b?.city, f.registration, airlineLabel(f.airlineId, ref), f.typeCode].join("|")).includes(needle);
+    return squash([f.flightNumber, v.fromCode, v.toCode, a?.icao, b?.icao, a?.city, b?.city, cityName(a), cityName(b), f.registration, ref.operator(f.airlineId)?.name, airlineLabel(f.airlineId, ref), f.typeCode].join("|")).includes(needle);
   };
 }

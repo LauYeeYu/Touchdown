@@ -11,5 +11,6 @@
   "dateTime": "{time} {day} · {offset}",
   "timeOffset": "{time} · {offset}",
   "isoWithWeekday": "{weekday} {date}",
-  "momentShort": "{day}, {time}"
+  "momentShort": "{day}, {time}",
+  "nameWithCode": "{name}\u00a0({code})"
 }

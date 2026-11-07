@@ -5,6 +5,7 @@
 
 import type { Airport, RefIndex } from "../ref/index.ts";
 import type { Settings } from "../schema/tables.ts";
+import { t } from "@touchdown/i18n";
 import { shortAirport } from "./format.ts";
 
 export type CodeStyle = NonNullable<Settings["codeDisplay"]>;
@@ -35,8 +36,8 @@ export function airportWithCode(id: string | null | undefined, ref: RefIndex, ra
   const a = ref.airport(id);
   if (!a) return raw ?? "";
   const code = textCode(a, null, style);
-  // A non-breaking space keeps the code with its name when a line wraps.
-  return code ? `${shortAirport(a.id, ref)} (${code})` : shortAirport(a.id, ref);
+  // A non-breaking space keeps the code with its name when a line wraps. Chinese sets it in its own brackets.
+  return code ? t("format.nameWithCode", { name: shortAirport(a.id, ref), code }) : shortAirport(a.id, ref);
 }
 
 /** A route key from the statistics ("AMS-LHR", codes in alphabetical order) in the user's codes. */

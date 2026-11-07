@@ -1,8 +1,8 @@
 // Display formatting. Stored date-times carry their local wall-clock time and offset, so times are shown
 // from the stored text, never converted through the viewer's time zone.
 
-import { getDateStyle, locale, numberFormat, t, tDynamic, type DateStyle } from "@touchdown/i18n";
-import { cityName, type RefIndex } from "../ref/index.ts";
+import { getDateStyle, has, locale, numberFormat, t, tDynamic, type DateStyle } from "@touchdown/i18n";
+import { airportName, cityName, operatorName, type RefIndex } from "../ref/index.ts";
 import { parseDateTime } from "../time/index.ts";
 import { formatModel } from "../normalise/model.ts";
 import type { Settings } from "../schema/tables.ts";
@@ -135,7 +135,8 @@ export function airportLabel(id: string | null | undefined, ref: RefIndex, style
 }
 
 export function airlineLabel(id: string | null | undefined, ref: RefIndex): string {
-  return ref.operator(id)?.name ?? "";
+  const o = ref.operator(id);
+  return o ? operatorName(o) : "";
 }
 
 export function airlineCode(id: string | null | undefined, ref: RefIndex, style: Settings["codeDisplay"] = "iata"): string {
@@ -162,6 +163,8 @@ function placeWords(s: string): Set<string> {
 export function shortAirport(id: string | null | undefined, ref: RefIndex): string {
   const a = ref.airport(id);
   if (!a) return "";
+  const shown = airportName(a);
+  if (shown !== a.name) return shortShown(shown, cityName(a));
   const name = a.name.replace(/\s+(International\s+)?Airport$/i, "").replace(/\s+International$/i, "");
   const city = cityName(a) ?? "";
   if (!city || name.includes(city)) return name;
@@ -169,22 +172,55 @@ export function shortAirport(id: string | null | undefined, ref: RefIndex): stri
   return [...placeWords(city)].some((w) => named.has(w)) ? name : `${city} ${name}`;
 }
 
+/**
+ * A name in the interface's language made short, as `shortAirport` makes an English one: without "机场" or
+ * "Flughafen", a person's name by its last part ("约翰·F·肯尼迪" is 肯尼迪), and the place first when the name does not
+ * give it: 伦敦希思罗, 纽约肯尼迪, "Frankfurt Main".
+ */
+function shortShown(name: string, city: string | null): string {
+  let short = name.replace(/(国际|國際)?(机场|機場|空港)$/, "").replace(/^Flughafen\s+/, "").replace(/\s+(Airport|Flughafen)$/, "").trim() || name;
+  if (short.includes("·")) short = short.split("·").pop()!.replace(/(将军|將軍)$/, "");
+  if (!city) return short;
+  if (/[\u4e00-\u9fff]/.test(short)) {
+    const place = city.replace(/[市县縣郡区區州]$/, "");
+    return short.includes(place) || place.includes(short) ? short : `${place}${short}`;
+  }
+  const named = placeWords(short);
+  return [...placeWords(city)].some((w) => named.has(w)) ? short : `${city} ${short}`;
+}
+
 export function cityOf(id: string | null | undefined, ref: RefIndex): string {
   const a = ref.airport(id);
-  return cityName(a) ?? a?.name ?? "";
+  return cityName(a) ?? (a ? airportName(a) : "");
 }
 
 /** Maker and name, "Boeing 737-800", the same for every maker (a name that already starts with its maker is not doubled). */
 export function typeName(typeCode: string | null | undefined, ref: RefIndex): string {
   const t = ref.type(typeCode);
   if (!t) return typeCode ?? "";
-  if (!t.manufacturer || t.name.toLowerCase().startsWith(t.manufacturer.toLowerCase())) return t.name;
-  return `${t.manufacturer} ${t.name}`;
+  if (!t.manufacturer || t.name.toLowerCase().startsWith(t.manufacturer.toLowerCase())) return shownMaker(t.name, t.manufacturer);
+  return shownMaker(`${t.manufacturer} ${t.name}`, t.manufacturer);
 }
 
 export function modelLabel(model: string | null | undefined, typeCode: string | null | undefined, ref: RefIndex, style: Settings["modelNaming"] = "standard"): string {
   if (!model) return typeName(typeCode, ref);
-  return formatModel(model, ref.manufacturerOf(typeCode), (style ?? "standard") as "standard" | "compact");
+  const maker = ref.manufacturerOf(typeCode);
+  return shownMaker(formatModel(model, maker, (style ?? "standard") as "standard" | "compact"), maker);
+}
+
+/**
+ * A type's or model's name with its maker in the interface's language, where the language has its own name for it
+ * (`labels.maker.*`: Boeing is 波音 in Chinese). The model stays as written. Chinese leaves no space after its own
+ * name: the page draws the gap before the model (text-autospace).
+ */
+function shownMaker(text: string, maker: string | null | undefined): string {
+  if (!maker || !text.toLowerCase().startsWith(maker.toLowerCase())) return text;
+  const key = `labels.maker.${maker.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+  if (!has(key)) return text;
+  const shown = tDynamic(key);
+  if (shown === maker) return text;
+  const rest = text.slice(maker.length);
+  return /[\u4e00-\u9fff]$/.test(shown) ? shown + rest.trimStart() : shown + rest;
 }
 
 /**
