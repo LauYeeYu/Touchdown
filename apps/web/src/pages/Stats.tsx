@@ -103,6 +103,7 @@ export function Stats() {
 
   return (
     <div className="page">
+      <h1 className="form-title title--phone">{t("shell.nav.stats")}</h1>
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
       </div>

@@ -107,6 +107,7 @@ export function Flights() {
 
   return (
     <div className="page">
+      {views.length > 0 && <h1 className="form-title title--phone">{t("shell.nav.flights")}</h1>}
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
         {!shared && (
@@ -118,7 +119,6 @@ export function Flights() {
       </div>
       {views.length ? (
         <>
-          <h1 className="visually-hidden">{t("shell.nav.flights")}</h1>
           <dl className="facts">
             <Fact label={t("stats.flights.flights")} value={nf.format(views.length)} detail={fs.distanceKm.value > 0 ? distance(fs.distanceKm.value, unit) : undefined} />
             {fs.minutes.value > 0 && <Fact label={t("home.facts.time")} value={<Duration min={fs.minutes.value} pad={false} />} detail={t("home.facts.timeDetail", { count: views.length - fs.minutes.leftOut })} />}

@@ -83,10 +83,10 @@ export function AircraftList() {
 
   return (
     <div className="page">
+      {views.length > 0 && <h1 className="form-title title--phone">{t("shell.nav.aircraft")}</h1>}
       <div className="view-top" />
       {views.length ? (
         <>
-          <h1 className="visually-hidden">{t("shell.nav.aircraft")}</h1>
           <dl className="facts">
             {/* A shared whole log leaves out how aircraft are matched (lib/voice.tsx). */}
             <Fact label={t("stats.flights.aircraft")} value={nf.format(views.length)} detail={voice.kind === "you" ? (provisional ? t("stats.aircraft.provisional", { count: provisional }) : t("stats.aircraft.confirmed")) : undefined} />

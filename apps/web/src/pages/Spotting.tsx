@@ -71,6 +71,7 @@ export function Spotting() {
 
   return (
     <div className="page">
+      {sightings.length > 0 && <h1 className="form-title title--phone">{t("shell.nav.spotting")}</h1>}
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
         {!shared && (
@@ -82,7 +83,7 @@ export function Spotting() {
           </span>
         )}
       </div>
-      {sightings.length ? <h1 className="visually-hidden">{t("shell.nav.spotting")}</h1> : <h1 className="lead">{headline(t("spotting.empty", { period: year === "all" ? "all" : "year", voice: voice.kind, year }))}</h1>}
+      {sightings.length === 0 && <h1 className="lead">{headline(t("spotting.empty", { period: year === "all" ? "all" : "year", voice: voice.kind, year }))}</h1>}
       {sightings.length > 0 && (
         <dl className="facts facts--three">
           <Fact
