@@ -10,7 +10,7 @@ import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, CABIN_LABEL, countryName, dateOnly, dayMonthYear, distance, nf, oneDecimal, PHASE_LABEL, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, dateOnly, dayMonthYear, distance, familyName, makerName, nf, oneDecimal, PHASE_LABEL, typeName, typeWithCode } from "../lib/format.ts";
 import { Link } from "../lib/link.tsx";
 import { airportWithCode, routeCodes } from "../lib/codes.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -96,8 +96,8 @@ export function Stats() {
 
   const op = (id: string) => airlineLabel(id, ref) || id;
   const ap = (id: string) => airportWithCode(id, ref) || id;
-  const ty = (code: string) => `${typeName(code, ref)} (${code})`;
-  const fam = (id: string) => ref.family(id)?.name ?? id;
+  const ty = (code: string) => typeWithCode(code, ref);
+  const fam = (id: string) => familyName(id, ref);
   const flightCount = (n: number) => t("common.count.flights", { count: n });
   const aircraftCount = (n: number) => t("common.count.aircraft", { count: n });
 
@@ -161,7 +161,7 @@ export function Stats() {
             <Ranked title={t("stats.flights.airports")} t={fs.airportVisits} label={ap} count={(n) => t("stats.flights.visits", { count: n })} missing="airport" />
             <Ranked title={t("stats.flights.types")} t={fs.byType} label={ty} count={flightCount} missing="type" />
             <Ranked title={t("stats.flights.families")} t={fs.byFamily} label={fam} count={flightCount} missing="type" />
-            <Ranked title={t("stats.flights.manufacturers")} t={fs.byManufacturer} label={(k) => k} count={flightCount} missing="type" />
+            <Ranked title={t("stats.flights.manufacturers")} t={fs.byManufacturer} label={makerName} count={flightCount} missing="type" />
             <Ranked title={t("stats.flights.seatPosition")} t={fs.seatPositions} label={seatPositionLabel} count={flightCount} missing="seat position" />
             <Ranked title={t("stats.flights.cabin")} t={fs.cabinClasses} label={(k) => CABIN_LABEL[k] ?? k} count={flightCount} missing="cabin" />
           </div>
@@ -278,7 +278,7 @@ export function Stats() {
             <Ranked title={t("stats.sightings.airlines")} t={ss.byAirline} label={op} count={aircraftCount} color="var(--spotted)" missing="airline" />
             <Ranked title={t("stats.sightings.families")} t={ss.byFamily} label={fam} count={aircraftCount} color="var(--spotted)" missing="type" />
             <Ranked title={t("stats.sightings.types")} t={ss.byType} label={ty} count={aircraftCount} color="var(--spotted)" missing="type" />
-            <Ranked title={t("stats.sightings.manufacturers")} t={ss.byManufacturer} label={(k) => k} count={aircraftCount} color="var(--spotted)" missing="type" />
+            <Ranked title={t("stats.sightings.manufacturers")} t={ss.byManufacturer} label={makerName} count={aircraftCount} color="var(--spotted)" missing="type" />
             <Ranked title={t("stats.sightings.locations")} t={ss.byLocation} label={ap} count={aircraftCount} color="var(--spotted)" missing="location" />
             <Ranked title={t("stats.sightings.regCountries")} t={ss.byRegistrationCountry} label={countryName} count={aircraftCount} color="var(--spotted)" missing="registration" />
             <Ranked title={t("stats.sightings.phase")} t={ss.byPhase} label={(k) => PHASE_LABEL[k] ?? k} count={(n) => t("common.count.sightings", { count: n })} color="var(--spotted)" missing="phase" />

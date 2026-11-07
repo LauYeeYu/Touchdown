@@ -2137,6 +2137,8 @@ export interface MessageArgs {
   "labels.trackSource.aeroapi": {};
   "labels.trackSource.gpx": {};
   "labels.trackSource.other": {};
+  "labels.type.family": { name: "text" };
+  "labels.type.wing": { name: "text"; wing: "choice" };
   "labels.maker.boeing": {};
   "labels.maker.airbus": {};
   "labels.maker.embraer": {};

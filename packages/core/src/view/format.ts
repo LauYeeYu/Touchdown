@@ -198,8 +198,33 @@ export function cityOf(id: string | null | undefined, ref: RefIndex): string {
 export function typeName(typeCode: string | null | undefined, ref: RefIndex): string {
   const t = ref.type(typeCode);
   if (!t) return typeCode ?? "";
-  if (!t.manufacturer || t.name.toLowerCase().startsWith(t.manufacturer.toLowerCase())) return shownMaker(t.name, t.manufacturer);
-  return shownMaker(`${t.manufacturer} ${t.name}`, t.manufacturer);
+  const name = shownWing(t.name);
+  if (!t.manufacturer || name.toLowerCase().startsWith(t.manufacturer.toLowerCase())) return shownMaker(name, t.manufacturer);
+  return shownMaker(`${t.manufacturer} ${name}`, t.manufacturer);
+}
+
+/** A type's name with its code: "Boeing 737-900 (B739)", in Chinese "波音737-900（B739）". */
+export function typeWithCode(code: string, ref: RefIndex): string {
+  return t("format.nameWithCode", { name: typeName(code, ref), code });
+}
+
+/** A family's name in the interface's language: "Airbus A320 family", in Chinese "空客A320系列". */
+export function familyName(id: string | null | undefined, ref: RefIndex): string {
+  const f = id ? ref.family(id) : null;
+  if (!f) return id ?? "";
+  const m = /\s+family$/i.exec(f.name);
+  return shownMaker(m ? t("labels.type.family", { name: f.name.slice(0, m.index) }) : f.name, f.manufacturer);
+}
+
+/** A maker's name in the interface's language: Boeing is 波音 in Chinese. */
+export function makerName(name: string): string {
+  return shownMaker(name, name);
+}
+
+/** The wing a type's name tells apart in English ("E175 (short wing)"), in the interface's language. */
+function shownWing(name: string): string {
+  const m = /\s*\((long|short) wing\)$/.exec(name);
+  return m ? t("labels.type.wing", { name: name.slice(0, m.index), wing: m[1]! }) : name;
 }
 
 export function modelLabel(model: string | null | undefined, typeCode: string | null | undefined, ref: RefIndex, style: Settings["modelNaming"] = "standard"): string {

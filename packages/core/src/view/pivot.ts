@@ -5,7 +5,7 @@ import { has, labelled, series, tDynamic } from "@touchdown/i18n";
 import { DIMENSIONS, type PivotFilter } from "../stats/index.ts";
 import type { RefIndex } from "../ref/index.ts";
 import { airportWithCode, routeCodes, type CodeStyle } from "./codes.ts";
-import { airlineLabel, CABIN_LABEL, countryName, monthNames, PHASE_LABEL, typeName } from "./format.ts";
+import { airlineLabel, CABIN_LABEL, countryName, familyName, makerName, monthNames, PHASE_LABEL, typeWithCode } from "./format.ts";
 
 /** "British Airways", "London Heathrow (LHR)", "Airbus A320neo (A20N)", "March", "09:00". */
 export function pivotValueLabel(dimId: string, key: string, ref: RefIndex, codes: CodeStyle = "iata"): string {
@@ -19,9 +19,11 @@ export function pivotValueLabel(dimId: string, key: string, ref: RefIndex, codes
     case "route":
       return routeCodes(key, ref, " ⇄ ", codes);
     case "type":
-      return `${typeName(key, ref)} (${key})`;
+      return typeWithCode(key, ref);
     case "family":
-      return ref.family(key)?.name ?? key;
+      return familyName(key, ref);
+    case "manufacturer":
+      return makerName(key);
     case "regCountry":
       return countryName(key);
     case "phase":

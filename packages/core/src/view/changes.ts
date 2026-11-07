@@ -18,7 +18,7 @@ import type { Row, Settings, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { airportWithCode, type CodeStyle } from "./codes.ts";
 import { filtersText, seatPositionLabel } from "./pivot.ts";
-import { airlineLabel, CABIN_LABEL, dateTimeLabel, FIELD_LABEL, dayMonthYear, distance, durShort, modelLabel, nf, PHASE_LABEL, REASON_LABEL, TAG_LABEL, TRACK_SOURCE, typeName } from "./format.ts";
+import { airlineLabel, CABIN_LABEL, dateTimeLabel, FIELD_LABEL, dayMonthYear, distance, durShort, familyName, modelLabel, nf, PHASE_LABEL, REASON_LABEL, TAG_LABEL, TRACK_SOURCE, typeName, typeWithCode } from "./format.ts";
 
 export interface PlannedLine {
   field: string;
@@ -70,7 +70,7 @@ type Show = (r: Record<string, unknown>, x: Ctx) => string;
 type ShowLine = [string, MessageKey, Show];
 const text = (k: string): Show => (r) => (r[k] === null || r[k] === undefined ? "" : String(r[k]));
 const time = (k: string): Show => (r) => dateTimeLabel(r[k] as string | null);
-const typeText: Show = (r, x) => (r.typeCode ? `${typeName(r.typeCode as string, x.ref)} (${r.typeCode as string})` : ((r.typeCodeRaw as string) ?? ""));
+const typeText: Show = (r, x) => (r.typeCode ? typeWithCode(r.typeCode as string, x.ref) : ((r.typeCodeRaw as string) ?? ""));
 const capital = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : "");
 /** "Written off": an aircraft's status as a word. A status with no message is shown as stored, in words. */
 const statusText = (s: string) => (has(`view.airframeStatus.${s}`) ? tDynamic(`view.airframeStatus.${s}`) : capital(s.replace(/_/g, " ")));
@@ -363,10 +363,10 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
           break;
         }
         case "family": {
-          p.title = `${typeName(c.designator, ref)} (${c.designator})`;
+          p.title = typeWithCode(c.designator, ref);
           const now = shown.all("family_overrides").find((x) => x.designator === c.designator)?.familyId ?? ref.types.get(c.designator)?.familyId ?? null;
           const after = c.familyId ?? ref.types.get(c.designator)?.familyId ?? null;
-          p.lines.push({ field: "family", label: t("changes.field.family"), before: (now && ref.family(now)?.name) ?? now ?? "", after: (after && ref.family(after)?.name) ?? after ?? "", private: false });
+          p.lines.push({ field: "family", label: t("changes.field.family"), before: now ? familyName(now, ref) : "", after: after ? familyName(after, ref) : "", private: false });
           break;
         }
         case "view":

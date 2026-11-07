@@ -74,6 +74,8 @@
   "trackSource.aeroapi": "FlightAware",
   "trackSource.gpx": "GPX文件",
   "trackSource.other": "KML文件",
+  "type.family": "{name}系列",
+  "type.wing": "{name}（{wing, select, long {长翼版} other {短翼版}}）",
   "maker.boeing": "波音",
   "maker.airbus": "空客",
   "maker.embraer": "巴航工业",

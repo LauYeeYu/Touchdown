@@ -74,6 +74,8 @@
   "trackSource.aeroapi": "FlightAware",
   "trackSource.gpx": "einer GPX-Datei",
   "trackSource.other": "einer KML-Datei",
+  "type.family": "{name}-Familie",
+  "type.wing": "{name} ({wing, select, long {lange Flügel} other {kurze Flügel}})",
   "maker.boeing": "Boeing",
   "maker.airbus": "Airbus",
   "maker.embraer": "Embraer",

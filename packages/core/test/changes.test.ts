@@ -155,7 +155,7 @@ describe("a change file's review", () => {
     expect(plan.changes[0]).toMatchObject({ action: "Edit", title: "BA9001 · 14 Mar 2025 · LHR → JFK", status: "pending" });
     expect(plan.changes[0]!.lines.map((l) => [l.label, l.before, l.after])).toEqual([
       ["Seat", "12A", "14A"],
-      ["Type", "Boeing 777-300ER (B77W)", "QQQQ (QQQQ)"],
+      ["Type", "Boeing 777-300ER\u00a0(B77W)", "QQQQ\u00a0(QQQQ)"],
       ["Ticket number", "recorded", "changed"],
     ]);
     expect(JSON.stringify(plan)).not.toContain("0019990000001");

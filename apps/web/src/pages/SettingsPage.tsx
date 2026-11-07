@@ -12,7 +12,7 @@ import { chooseStorage, placeName, type StorageKind } from "../data/connection.t
 import { account } from "../data/account.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle, SignInCancelled } from "../data/google.ts";
-import { momentLabel } from "../lib/format.ts";
+import { familyName, momentLabel } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { Field, Segmented, TextInput } from "../components/form.tsx";
@@ -594,7 +594,7 @@ export function SettingsPage() {
             <li key={o.id} className="history-row">
               <span>
                 <b>{o.designator}</b>
-                <small>{t("settings.families.in", { family: ref.family(o.familyId)?.name ?? o.familyId ?? "" })}</small>
+                <small>{t("settings.families.in", { family: familyName(o.familyId, ref) })}</small>
               </span>
               <button
                 type="button"
