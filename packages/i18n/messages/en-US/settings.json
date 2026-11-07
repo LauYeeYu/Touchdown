@@ -1,3 +1,4 @@
 {
-  "display.distance.km": "Kilometers"
+  "display.distance.km": "Kilometers",
+  "reference.source.airportsData": "airportsdata by Mike Borsetti (github.com/mborsetti/airportsdata), MIT license"
 }

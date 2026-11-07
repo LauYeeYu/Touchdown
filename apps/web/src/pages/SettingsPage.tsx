@@ -5,7 +5,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
 import { dateOnly, myFr24Flights } from "@touchdown/core/view";
-import { dateStyles, LOCALES, sentenceGap, t, type DateStyle } from "@touchdown/i18n";
+import { dateStyles, LOCALES, sentenceGap, t, type DateStyle, type MessageKey } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, placeName, type StorageKind } from "../data/connection.ts";
@@ -307,6 +307,20 @@ function takeReloadedAt() {
   }
   return reloadedAt;
 }
+
+/** A reference data source, named in the interface's language. The data keeps the English attribution. */
+const SOURCES: [string, MessageKey][] = [
+  ["OurAirports", "settings.reference.source.ourAirports"],
+  ["airportsdata", "settings.reference.source.airportsData"],
+  ["Mictronics", "settings.reference.source.mictronics"],
+  ["Virtual Radar Server", "settings.reference.source.vrs"],
+  ["Wikidata", "settings.reference.source.wikidata"],
+  ["Touchdown", "settings.reference.source.touchdown"],
+];
+const sourceLabel = (source: string) => {
+  const key = SOURCES.find(([name]) => source.startsWith(name))?.[1];
+  return key ? t(key) : source;
+};
 
 export function SettingsPage() {
   const { app } = useApp();
@@ -636,7 +650,7 @@ export function SettingsPage() {
       <p className="form-sub">{t("settings.reference.intro", { built: refVersion ? "yes" : "no", version: refVersion })}</p>
       <ul className="sources">
         {sources.map((x) => (
-          <li key={x}>{x}</li>
+          <li key={x}>{sourceLabel(x)}</li>
         ))}
         <li>{t("settings.reference.credits")}</li>
       </ul>

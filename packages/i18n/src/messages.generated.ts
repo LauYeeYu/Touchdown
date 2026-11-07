@@ -2453,6 +2453,12 @@ export interface MessageArgs {
   "settings.reference.title": {};
   "settings.reference.intro": { built: "choice"; version: "text" };
   "settings.reference.credits": {};
+  "settings.reference.source.ourAirports": {};
+  "settings.reference.source.airportsData": {};
+  "settings.reference.source.mictronics": {};
+  "settings.reference.source.vrs": {};
+  "settings.reference.source.wikidata": {};
+  "settings.reference.source.touchdown": {};
   "settings.shares.line": { "<link>": "tag"; count: "number" };
   "settings.shares.lineLoading": { "<link>": "tag" };
   "settings.cli.login.title": {};
