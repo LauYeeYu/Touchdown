@@ -1,14 +1,14 @@
 // Settings (docs/31-ui.md): account and, for the owner, people (docs/33), display, sync mode (docs/32), data
 // (backup, restore, CSV, delete), family overrides, sources. The agent check's settings belong to the CLI on each computer (docs/22).
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
 import { dateOnly, myFr24Flights } from "@touchdown/core/view";
-import { dateStyles, LOCALES, t, type DateStyle } from "@touchdown/i18n";
+import { dateStyles, LOCALES, sentenceGap, t, type DateStyle } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
-import { chooseStorage, type StorageKind } from "../data/connection.ts";
+import { chooseStorage, placeName, type StorageKind } from "../data/connection.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle, SignInCancelled } from "../data/google.ts";
 import { momentLabel } from "../lib/format.ts";
@@ -44,7 +44,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
   const sync = useSyncInfo(app);
   const notHere = sync ? app.tracksNotHere() : 0;
   const conflicts = app.conflicts().length;
-  const place = c && c.mode !== "local" ? c.name : null;
+  const place = c && c.mode !== "local" ? placeName(c) : null;
   const choosing = chosen === "private" && (current !== "private" || moving);
 
   useEffect(() => {
@@ -82,13 +82,13 @@ function WhereTheLogLives({ app }: { app: AppData }) {
     if (!picked) return;
     const { connection } = picked;
     const hasLog = app.store.count("flights") + app.store.count("sightings") > 0;
-    if (hasLog && picked.holdsLog && !window.confirm(t("settings.connect.merge", { place: connection.name }))) return;
+    if (hasLog && picked.holdsLog && !window.confirm(t("settings.connect.merge", { place: placeName(connection) }))) return;
     setBusy(true);
     await app.connect(connection);
     setBusy(false);
     setMoving(false);
     const info = app.getSyncInfo();
-    toast(info?.state === "failed" ? t("settings.connect.syncFailed", { place: connection.name }) : t("settings.connect.done", { left: place && place !== connection.name ? "yes" : "no", place: connection.name, old: place ?? "" }));
+    toast(info?.state === "failed" ? t("settings.connect.syncFailed", { place: placeName(connection) }) : t("settings.connect.done", { left: place && place !== placeName(connection) ? "yes" : "no", place: placeName(connection), old: place ?? "" }));
   };
 
   const toLocal = async () => {
@@ -198,7 +198,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               <Icon name="refresh-cw" />
               <span>
                 {t("settings.sync.syncing", { reading: sync.tables ? "no" : "yes", place: sync.place })}
-                {sync.tracks && ` ${t("settings.sync.tracks", { done: sync.tracks.done, total: sync.tracks.total })}`}
+                {sync.tracks && `${sentenceGap()}${t("settings.sync.tracks", { done: sync.tracks.done, total: sync.tracks.total })}`}
               </span>
             </p>
           )}
@@ -207,7 +207,7 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               <Icon name="circle-check" />
               <span>
                 {t("settings.sync.synced", { dated: sync.lastAt ? "yes" : "no", place: sync.place, at: sync.lastAt ? momentLabel(sync.lastAt) : "" })}
-                {sync.waiting > 0 && ` ${t("settings.sync.waiting", { count: sync.waiting })}`}
+                {sync.waiting > 0 && `${sentenceGap()}${t("settings.sync.waiting", { count: sync.waiting })}`}
               </span>
             </p>
           )}
@@ -285,8 +285,58 @@ function WhereTheLogLives({ app }: { app: AppData }) {
 /** myFR24's import page, where the file goes (Settings › Import there). */
 const MYFR24_IMPORT = "https://my.flightradar24.com/settings/import";
 
+/**
+ * Where the language choice was on the screen when a new language reloaded the page: it opens with the choice in the
+ * same place, so it can be changed back at once. The page above it may be taller or shorter in the new language.
+ */
+const RELOADED_AT = "touchdown.languageChoiceAt";
+
+/** Read once a page load (React runs an effect twice in development), and dropped once the page is in place. */
+let reloadedAt: { top: number; until: number } | null | undefined;
+function takeReloadedAt() {
+  if (reloadedAt === undefined) {
+    let at: string | null = null;
+    try {
+      at = sessionStorage.getItem(RELOADED_AT);
+      sessionStorage.removeItem(RELOADED_AT);
+    } catch {
+      // Storage blocked: the page opens at the top.
+    }
+    reloadedAt = at === null ? null : { top: Number(at), until: performance.now() + 3000 };
+  }
+  return reloadedAt;
+}
+
 export function SettingsPage() {
   const { app } = useApp();
+  const languageChoice = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const at = takeReloadedAt();
+    if (!at) return;
+    // The page settles over its first seconds (the router's own scroll restoration, notes and parts that load after and
+    // change the height above the choice): each frame until then the choice is put back in place, unless the reader
+    // scrolls first.
+    let frame = 0;
+    const events = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+    const stop = () => {
+      cancelAnimationFrame(frame);
+      events.forEach((e) => window.removeEventListener(e, done));
+    };
+    const done = () => {
+      reloadedAt = null;
+      stop();
+    };
+    const hold = () => {
+      const choice = languageChoice.current;
+      const off = choice ? choice.getBoundingClientRect().top - at.top : 0;
+      if (Math.abs(off) > 1) window.scrollTo({ top: window.scrollY + off, behavior: "instant" });
+      if (performance.now() < at.until) frame = requestAnimationFrame(hold);
+      else done();
+    };
+    for (const e of events) window.addEventListener(e, done, { passive: true });
+    frame = requestAnimationFrame(hold);
+    return stop;
+  }, []);
   const { store, ref } = app;
   const s = app.settings();
   const [includePrivate, setIncludePrivate] = useState(false);
@@ -320,6 +370,12 @@ export function SettingsPage() {
   const chooseLanguage = async (v: string | null) => {
     set({ language: v && v !== "browser" ? v : null });
     await app.flushNow();
+    try {
+      const choice = languageChoice.current;
+      if (choice) sessionStorage.setItem(RELOADED_AT, String(Math.round(choice.getBoundingClientRect().top)));
+    } catch {
+      // Storage blocked: the page opens at the top after the reload.
+    }
     location.reload();
   };
   const today = todayIn();
@@ -374,12 +430,14 @@ export function SettingsPage() {
         </Field>
         {Object.keys(LOCALES).length > 1 && (
           <Field label={t("settings.display.language")}>
-            <Segmented
-              label={t("settings.display.language")}
-              value={language}
-              onChange={(v) => void chooseLanguage(v)}
-              options={[{ value: "browser", label: t("settings.display.language.browser") }, ...Object.entries(LOCALES).map(([tag, l]) => ({ value: tag, label: l.name }))]}
-            />
+            <div ref={languageChoice}>
+              <Select
+                label={t("settings.display.language")}
+                value={language}
+                onChange={(v) => void chooseLanguage(v)}
+                options={[{ value: "browser", label: t("settings.display.language.browser") }, ...Object.entries(LOCALES).map(([tag, l]) => ({ value: tag, label: l.name }))]}
+              />
+            </div>
           </Field>
         )}
         <Field label={t("settings.display.dates")}>
@@ -408,8 +466,8 @@ export function SettingsPage() {
         <Icon name="hard-drive" />
         <span>
           {t("settings.data.holds", { copy: app.connection && app.connection.mode !== "local" ? "yes" : "no", flights: t("common.count.flights", { count: store.count("flights") }), sightings: t("common.count.sightings", { count: store.count("sightings") }), aircraft: t("common.count.aircraft", { count: store.count("airframes") }) })}
-          {kept === true && ` ${t("settings.data.kept")}`}
-          {kept === false && ` ${t("settings.data.mayClear")}`}
+          {kept === true && `${sentenceGap()}${t("settings.data.kept")}`}
+          {kept === false && `${sentenceGap()}${t("settings.data.mayClear")}`}
         </span>
       </p>
       {/* Each way to take the log out, or bring a backup in, is one item: its name, the options its buttons follow, then
@@ -511,7 +569,7 @@ export function SettingsPage() {
           type="button"
           className="btn btn--danger btn--small"
           onClick={async () => {
-            const place = app.connection && app.connection.mode !== "local" ? app.connection.name : null;
+            const place = app.connection && app.connection.mode !== "local" ? placeName(app.connection) : null;
             if (!window.confirm(t("settings.delete.confirm", { synced: place !== null ? "yes" : "no", place: place ?? "" }))) return;
             const word = t("settings.delete.word");
             if (window.prompt(t("settings.delete.type", { word })) !== word) return;
