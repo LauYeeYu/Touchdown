@@ -583,7 +583,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
                 ? h.f.tip
                 : h.kind === "spot"
                   ? h.s.tip
-                  : `<strong>${escHtml(h.a.name)} (${escHtml(h.a.code)})</strong><br><span class="muted">${escHtml(airportTip(data.current.flights, h.a.id, h.a.flights))}</span>`;
+                  : `<strong>${escHtml(t("format.nameWithCode", { name: h.a.name, code: h.a.code }))}</strong><br><span class="muted">${escHtml(airportTip(data.current.flights, h.a.id, h.a.flights))}</span>`;
         showTip(tip, e.clientX, e.clientY);
       } else hideTip();
     };

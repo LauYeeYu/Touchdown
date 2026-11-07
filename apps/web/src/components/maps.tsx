@@ -476,7 +476,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         const dot = el(apG, "circle", { class: "airport", "data-code": code, cx: xy[0], cy: xy[1], r: 4 });
         // A larger invisible target, so the small dot is easy to point at and tap.
         const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 11, tabindex: 0, role: "link", "aria-label": t("maps.airport.label", { name: v.name, count: v.n }) });
-        const tip = `<strong>${esc(v.name)} (${esc(code)})</strong><br><span class="muted">${esc(airportTip(flights, v.id, v.n))}</span>`;
+        const tip = `<strong>${esc(t("format.nameWithCode", { name: v.name, code }))}</strong><br><span class="muted">${esc(airportTip(flights, v.id, v.n))}</span>`;
         hit.addEventListener("pointerenter", (ev) => {
           dot.classList.add("is-hover");
           showTip(tip, ev.clientX, ev.clientY);
