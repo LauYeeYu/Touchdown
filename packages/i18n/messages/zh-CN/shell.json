@@ -81,7 +81,7 @@
   "note.loadIt": "加载",
   "foot.synced": "日志通过{place}同步，此浏览器中保存有一份副本。",
   "foot.local": "日志保存在此浏览器中，可在设置中导出备份。",
-  "foot.credits": "机场：OurAirports（公有领域）和airportsdata（MIT）。航空公司：Wikidata（CC0）和Mictronics飞机数据库（ODC-By）。飞机资料：OpenSky Network飞机数据库和adsbdb（数据来自PlaneBase）。地图：Natural Earth（公有领域），经由world-atlas。飞机照片来自<link>planespotters.net</link>，每张照片均注明出处。图标：Lucide（ISC）。字体：Source Sans 3（SIL Open Font License）。",
+  "foot.credits": "机场：OurAirports（公有领域）和airportsdata（MIT）。航空公司：Wikidata（CC0）和Mictronics飞机数据库（ODC-By）。其他语言的名称：Wikidata（CC0）。飞机资料：OpenSky Network飞机数据库和adsbdb（数据来自PlaneBase）。地图：Natural Earth（公有领域），经由world-atlas。飞机照片来自<link>planespotters.net</link>，每张照片均注明出处。图标：Lucide（ISC）。字体：Source Sans 3（SIL Open Font License）。",
   "foot.privacy": "隐私政策",
   "foot.terms": "服务条款",
   "firstRun.title": "同步模式",

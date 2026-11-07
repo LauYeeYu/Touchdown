@@ -6,9 +6,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./names": "./src/names.ts",
     "./data/*": "./data/*"
   },
   "scripts": {
-    "build-data": "tsx scripts/build.ts"
+    "build-data": "tsx scripts/build.ts",
+    "build-names": "tsx scripts/names.ts"
+  },
+  "devDependencies": {
+    "opencc-js": "^1.4.2"
   }
 }

@@ -31,6 +31,20 @@ Built by `packages/refdata` and shipped with the web app as versioned JSON. Rebu
 
 Attribution for ODC-By and ODbL sources is shown on an About page and in exports that contain derived data.
 
+### Names in other languages
+
+Built (G12, [31](31-ui.md), "Language"): airports, the places they serve and airlines are shown in the interface's language where Wikidata has a name in it. `npm run build-names -w @touchdown/refdata` (`scripts/names.ts`, after `build-data`) asks Wikidata (CC0) for the labels of every airport with an ICAO or IATA code (P239, P238), of the place it serves (P931), and of every airline with an ICAO code (P230), and writes `data/names/<tag>.json`.
+
+| Part | Rule |
+|---|---|
+| Matching | An airport by ICAO, else IATA, an ICAO match first (an IATA code can pass from a closed airport to another). An airline by ICAO, and only when Wikidata's English name is the same company's (`sameAirline`), since ICAO codes pass between airlines over the years. |
+| zh-CN | The `zh-cn`, `zh-hans`, `zh-sg` or `zh` label, in Simplified characters. |
+| zh-TW | The `zh-tw` or `zh-hant` label, else `zh-hk`, else the Simplified one converted with Taiwan's wording (OpenCC, used only when the data is built, never shipped). Some converted names may differ from Taiwan's official ones. |
+| de-DE | The `de` label, kept only where it differs from the English name. |
+| Chinese names | Kept only when written in Chinese characters. |
+| Makers of aircraft types | Not from Wikidata: the makers with a name of their own in the language are messages (`labels.maker.*`: Boeing is 波音, Airbus 空客 and 空中巴士). The model stays as written. |
+| In the app | Loaded only when the language is chosen (`@touchdown/refdata/names`), before the first page is drawn. Shown only: matching, imports and search by code keep the data's English names, the log stores ids, and search finds a place by either name. A name not in the file is shown in English. The CLI and the myFR24 export stay in English. |
+
 ## Airframe index
 
 Facts about individual airframes. Too large to ship whole with the app (hundreds of thousands of rows), so it is built into a sharded static index and fetched on demand.

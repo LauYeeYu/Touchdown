@@ -81,7 +81,7 @@
   "note.loadIt": "載入",
   "foot.synced": "日誌透過{place}同步，此瀏覽器也存有一份副本。",
   "foot.local": "日誌儲存在此瀏覽器中。請從「設定」匯出備份。",
-  "foot.credits": "機場：OurAirports（公共領域）和airportsdata（MIT）。航空公司：Wikidata（CC0）和Mictronics飛機資料庫（ODC-By）。飛機資料：OpenSky Network飛機資料庫和adsbdb（資料來自PlaneBase）。地圖：Natural Earth（公共領域），透過world-atlas取得。飛機照片來自<link>planespotters.net</link>，每張照片都註明攝影者。圖示：Lucide（ISC）。字型：Source Sans 3（SIL Open Font License）。",
+  "foot.credits": "機場：OurAirports（公共領域）和airportsdata（MIT）。航空公司：Wikidata（CC0）和Mictronics飛機資料庫（ODC-By）。其他語言的名稱：Wikidata（CC0）。飛機資料：OpenSky Network飛機資料庫和adsbdb（資料來自PlaneBase）。地圖：Natural Earth（公共領域），透過world-atlas取得。飛機照片來自<link>planespotters.net</link>，每張照片都註明攝影者。圖示：Lucide（ISC）。字型：Source Sans 3（SIL Open Font License）。",
   "foot.privacy": "隱私權政策",
   "foot.terms": "服務條款",
   "firstRun.title": "同步模式",

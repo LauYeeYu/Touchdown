@@ -93,3 +93,4 @@ Setup and day-to-day use for people are in `README.md`. `./touchdown <command>` 
 | `npm run preview -w @touchdown/web` | Serve the build at http://127.0.0.1:4173 with the hosted site's headers (`packages/server/src/headers.ts`), to try its Content Security Policy. |
 | (GitHub Actions) | `.github/workflows/deploy.yml` tests, type-checks and builds every push to `master`, and deploys the Worker (`apps/web/wrangler.jsonc`, `apps/web/worker/`) with `wrangler` while the repository variable `DEPLOY` is `on`. Do not deploy by hand. |
 | `npm run build-data -w @touchdown/refdata` | Rebuild the reference tables in `packages/refdata/data/`. |
+| `npm run build-names -w @touchdown/refdata` | After `build-data`: rebuild the names of airports, their places and airlines in the interface's other languages from Wikidata (`packages/refdata/data/names/`, docs/13, "Names in other languages"). |

@@ -28,7 +28,7 @@
   "tracks.about": "記錄的軌跡會在日誌其他內容之後讀取。航班的軌跡讀取完成前，地圖會先顯示大圓航線。",
   "tracks.progress": "軌跡{done, number}/{total, number}",
   "foot.about": "分享自Touchdown，一個記錄航班和飛機的日誌。內容唯讀，與擁有者日誌目前的內容一致。",
-  "foot.credits": "機場：OurAirports（公共領域）和airportsdata（MIT）。航空公司：Wikidata（CC0）和Mictronics飛機資料庫（ODC-By）。飛機資料：OpenSky Network飛機資料庫和adsbdb（資料來自PlaneBase）。地圖：Natural Earth（公共領域），透過world-atlas取得。飛機照片來自<link>planespotters.net</link>，每張照片都註明攝影者。圖示：Lucide（ISC）。字型：Source Sans 3（SIL Open Font License）。",
+  "foot.credits": "機場：OurAirports（公共領域）和airportsdata（MIT）。航空公司：Wikidata（CC0）和Mictronics飛機資料庫（ODC-By）。其他語言的名稱：Wikidata（CC0）。飛機資料：OpenSky Network飛機資料庫和adsbdb（資料來自PlaneBase）。地圖：Natural Earth（公共領域），透過world-atlas取得。飛機照片來自<link>planespotters.net</link>，每張照片都註明攝影者。圖示：Lucide（ISC）。字型：Source Sans 3（SIL Open Font License）。",
   "foot.privacy": "隱私權政策",
   "foot.terms": "服務條款",
   "sighting.notInLink": "這筆拍攝紀錄不在這個連結中。",
