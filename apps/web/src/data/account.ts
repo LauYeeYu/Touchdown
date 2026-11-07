@@ -13,6 +13,8 @@ export interface Me {
   /** When the password was set or last changed. */
   passwordChangedAt: string | null;
   google: string | null;
+  /** The interface's language chosen in Settings, kept with the account for share links (docs/33); null for none. */
+  language: string | null;
   /** `id` names a session for signing it out; `cli` marks the command line's. */
   sessions: { id: string; device: string; cli: boolean; createdAt: string; lastUsedAt: string; current: boolean }[];
 }
@@ -98,6 +100,7 @@ export const account = {
   me: () => call<Me>("GET", "/auth/me"),
   google: () => call<{ google: boolean }>("GET", "/auth/site").then((s) => s.google),
   rename: (name: string) => call("POST", "/auth/name", { name }),
+  setLanguage: (language: string | null) => call("POST", "/auth/language", { language }),
   async changePassword(email: string, current: string | null, next: string) {
     const id = await site();
     return call("POST", "/auth/password", { key: current === null ? undefined : await passwordKey(current, email, id), newKey: await passwordKey(next, email, id) });

@@ -17,7 +17,7 @@ export interface Database {
   batch(statements: Statement[]): Promise<void>;
 }
 
-export const SERVER_SCHEMA_VERSION = 4;
+export const SERVER_SCHEMA_VERSION = 5;
 
 /** The server's tables. Removing a row never relies on cascades: the code deletes dependent rows itself. */
 const TABLES = [
@@ -34,7 +34,8 @@ const TABLES = [
     createdAt TEXT NOT NULL,
     lastSeenAt TEXT,
     failedSignins INTEGER NOT NULL DEFAULT 0,
-    lockedUntil TEXT
+    lockedUntil TEXT,
+    language TEXT
   )`,
   `CREATE TABLE IF NOT EXISTS password_credentials (
     accountId TEXT PRIMARY KEY,
@@ -151,6 +152,17 @@ const MIGRATIONS: { to: number; run: (db: Database) => Promise<void> }[] = [
         await db.first("SELECT kind FROM sessions LIMIT 1");
       } catch {
         await db.run("ALTER TABLE sessions ADD COLUMN kind TEXT");
+      }
+    },
+  },
+  {
+    // The interface's language the account chose, so a share link opens in it on any browser (docs/33). NULL: none.
+    to: 5,
+    run: async (db) => {
+      try {
+        await db.first("SELECT language FROM accounts LIMIT 1");
+      } catch {
+        await db.run("ALTER TABLE accounts ADD COLUMN language TEXT");
       }
     },
   },

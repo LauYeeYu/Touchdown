@@ -106,12 +106,13 @@ All under `/auth/` (built):
 | `POST /auth/join` | Invitation token, name, email, password key. |
 | `POST /auth/reset` | Reset token, new password key. |
 | `POST /auth/setup` | Setup secret, name, email, password key. |
-| `GET /auth/me` | The signed-in account: name, email, role, sign-in methods (with when the password was last changed), and its sessions (an id, the device, whether it is the command line's). |
+| `GET /auth/me` | The signed-in account: name, email, role, the interface's language it chose, sign-in methods (with when the password was last changed), and its sessions (an id, the device, whether it is the command line's). |
 | `POST /auth/signout`, `POST /auth/signout-others` | End this session, or the others. |
 | `POST /auth/sessions/end` | End one of the account's sessions, by its id from `/auth/me` (the hash of its token, which does not open it). |
 | `POST /auth/cli/approve` | The browser allows the command line: a one-time code for its PKCE challenge ("The command line"). |
 | `POST /auth/cli/token` | The command line's code and verifier; returns its session token. |
 | `POST /auth/name`, `POST /auth/password`, `POST /auth/email`, `DELETE /auth/google` | Account changes. |
+| `POST /auth/language` | The interface's language chosen in Settings (a language tag, or null for none), kept with the account so a share link opens in it on any browser where its owner is signed in. The web app sends it when the language is chosen, and when the log's language differs from the account's (chosen on another device). Not open to the command line. |
 | `GET /auth/people`, `POST /auth/invites`, `DELETE /auth/invites/<id>`, `DELETE /auth/people/<id>`, `POST /auth/people/<id>/reset` | Owner only. |
 
 ## Server tables
@@ -121,7 +122,7 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packa
 | Table | Columns |
 |---|---|
 | `site` | `id` (the random site id for password salts), `createdAt`, `schemaVersion` |
-| `accounts` | `id`, `email` (unique, lower case), `name`, `role` (`owner`, `member`), `createdAt`, `lastSeenAt`, `failedSignins`, `lockedUntil` |
+| `accounts` | `id`, `email` (unique, lower case), `name`, `role` (`owner`, `member`), `createdAt`, `lastSeenAt`, `failedSignins`, `lockedUntil`, `language` (the interface's language chosen, or null; server schema version 5) |
 | `password_credentials` | `accountId`, `salt`, `hash`, `updatedAt` |
 | `google_identities` | `accountId`, `sub` (unique), `email`, `linkedAt` |
 | `sessions` | `tokenHash`, `accountId`, `createdAt`, `lastUsedAt`, `expiresAt`, `device`, `kind` (`cli` for the command line) |

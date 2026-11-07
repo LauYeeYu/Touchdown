@@ -2299,6 +2299,7 @@ export interface MessageArgs {
   "server.error.notForCli": {};
   "server.error.email": {};
   "server.error.name": {};
+  "server.error.language": {};
   "server.error.passwordUnread": {};
   "server.error.linkInvalid": {};
   "server.error.tooLarge": {};

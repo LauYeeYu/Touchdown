@@ -4,6 +4,7 @@
   "error.notForCli": "The command line cannot do this. Use the web app.",
   "error.email": "Enter a valid email address.",
   "error.name": "Enter a name of up to 80 characters.",
+  "error.language": "Not a language tag.",
   "error.passwordUnread": "The password could not be read. Reload the page and try again.",
   "error.linkInvalid": "This link is not valid.",
   "error.tooLarge": "Too large.",

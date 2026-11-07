@@ -36,10 +36,11 @@ function read(key: string): string | null {
 /**
  * Choose the interface's language and date format before the first page is drawn: those the log chose, as this
  * browser last saw them, else the best of the browser's languages and its own way of writing dates. Sets the page's
- * `lang`. Once the log is open, `followLog` puts the log's own choice in place.
+ * `lang`. Once the log is open, `followLog` puts the log's own choice in place. `preferred` goes first: the share page's
+ * viewer's own account's language.
  */
-export async function startLanguage(): Promise<void> {
-  const saved = read(SAVED_LANGUAGE);
+export async function startLanguage(preferred: string | null = null): Promise<void> {
+  const saved = preferred && preferred in LOCALES ? preferred : read(SAVED_LANGUAGE);
   const wanted = saved && saved in LOCALES ? (saved as Locale) : matchLocale(navigator.languages ?? [navigator.language]);
   if (wanted !== locale()) await setLocale(wanted);
   setDateStyle(read(SAVED_DATES) ?? "language");

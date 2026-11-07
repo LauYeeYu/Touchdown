@@ -75,6 +75,8 @@ interface Account {
   lastSeenAt: string | null;
   failedSignins: number;
   lockedUntil: string | null;
+  /** The interface's language chosen in the web app, a BCP 47 tag; null for none (the browser's then). */
+  language: string | null;
 }
 
 interface Session {
@@ -165,6 +167,13 @@ function name(v: unknown): string {
   const n = typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
   if (!n || n.length > 80) throw new Fail(400, t("server.error.name"));
   return n;
+}
+
+/** A language tag as the web app sends it ("zh-TW"), or null for none. */
+function language(v: unknown): string | null {
+  if (v === null) return null;
+  if (typeof v !== "string" || v.length > 20 || !/^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(v)) throw new Fail(400, t("server.error.language"));
+  return v;
 }
 
 function key(v: unknown): string {
@@ -439,6 +448,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
         id: a.id,
         name: a.name,
         email: a.email,
+        language: a.language ?? null,
         role: a.role,
         password: !!pw,
         passwordChangedAt: pw?.updatedAt ?? null,
@@ -447,6 +457,14 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
         sessions: sessions.map((x) => ({ id: x.tokenHash, device: x.device, cli: x.kind === "cli", createdAt: x.createdAt, lastUsedAt: x.lastUsedAt, current: x.tokenHash === me.tokenHash })),
       }),
     );
+  }
+
+  // The language chosen in the web app's Settings, kept with the account so a share link opens in it (docs/33).
+  if (method === "POST" && path === "/auth/language") {
+    const me = signedIn();
+    const b = await body(request);
+    await s.db.run("UPDATE accounts SET language = ? WHERE id = ?", [language(b.language), me.account.id]);
+    return withRenewal(json(200, { ok: true }));
   }
 
   if (method === "POST" && path === "/auth/name") {

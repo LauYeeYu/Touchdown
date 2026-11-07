@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { createRootRoute, createRoute, createRouter, redirect, RouterProvider } from "@tanstack/react-router";
 import "./styles/app.css";
 import { AppData, type OpenStep } from "./data/app.ts";
-import { lastAccount, whoAmI } from "./data/account.ts";
+import { account, lastAccount, whoAmI } from "./data/account.ts";
 import { db, openAccountDb } from "./data/db.ts";
 import { tabsFor } from "./data/tabs.ts";
 import { standardConnection } from "./data/connection.ts";
@@ -195,12 +195,25 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     const choice = () => ({ language: opened.settings().language, dateFormat: opened.settings().dateFormat });
     let followed = JSON.stringify(choice());
     await followLog(choice(), true);
+    // The account keeps the log's language too, so a share link opens in it in any browser the user is signed in on
+    // (docs/33). It is told when it differs: at opening, and when a choice made on another device arrives.
+    let told = typeof me === "object" ? (me.language ?? null) : undefined;
+    const tellAccount = () => {
+      const language = opened.settings().language ?? null;
+      if (told === undefined || language === told) return;
+      told = language;
+      void account.setLanguage(language).catch(() => (told = null));
+    };
+    tellAccount();
     // Airports', places' and airlines' names in that language too (docs/13, "Names in other languages").
     // Names that cannot be loaded (an old cached app, a network error) leave the data's own: the app still opens.
     showRefNames(await loadRefNames(locale()).catch(() => null));
     opened.subscribe(() => {
       const now = JSON.stringify(choice());
-      if (now !== followed) void followLog(choice());
+      if (now !== followed) {
+        void followLog(choice());
+        tellAccount();
+      }
       followed = now;
     });
     report({ at: PREPARED, text: t("shell.opening.showing") });

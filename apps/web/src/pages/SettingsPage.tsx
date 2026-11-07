@@ -9,6 +9,7 @@ import { dateStyles, LOCALES, sentenceGap, t, type DateStyle } from "@touchdown/
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
 import { chooseStorage, placeName, type StorageKind } from "../data/connection.ts";
+import { account } from "../data/account.ts";
 import { canUseFolders } from "../data/folder.ts";
 import { loadGoogle, SignInCancelled } from "../data/google.ts";
 import { momentLabel } from "../lib/format.ts";
@@ -368,8 +369,11 @@ export function SettingsPage() {
   const dateStyle: DateStyle = dateStyles().includes(s.dateFormat ?? "language") ? (s.dateFormat ?? "language") : "language";
   const language = s.language && s.language in LOCALES ? s.language : "browser";
   const chooseLanguage = async (v: string | null) => {
-    set({ language: v && v !== "browser" ? v : null });
+    const language = v && v !== "browser" ? v : null;
+    set({ language });
     await app.flushNow();
+    // Kept with the account too, for share links (docs/33); signed out or offline, the log has it.
+    await account.setLanguage(language).catch(() => undefined);
     try {
       const choice = languageChoice.current;
       if (choice) sessionStorage.setItem(RELOADED_AT, String(Math.round(choice.getBoundingClientRect().top)));

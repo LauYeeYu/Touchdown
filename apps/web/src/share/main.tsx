@@ -109,8 +109,22 @@ function Shared({ data }: { data: Extract<Loaded, { state: "ok" }>["data"] }) {
   );
 }
 
+/**
+ * The language of the viewer's own account, when they are signed in to this site (docs/31-ui.md, "Language"): it goes
+ * before this browser's languages, so a link opens in the language they chose wherever they open it. Never the
+ * owner's: a link is shown in its viewer's language.
+ */
+async function accountLanguage(): Promise<string | null> {
+  try {
+    const res = await fetch("/auth/me", { credentials: "same-origin" });
+    return res.ok ? (((await res.json()) as { language?: string | null }).language ?? null) : null;
+  } catch {
+    return null; // Offline, or not this site's own server: this browser's languages decide.
+  }
+}
+
 void (async () => {
-  await startLanguage();
+  await startLanguage(await accountLanguage());
   showRefNames(await loadRefNames(locale()).catch(() => null));
   createRoot(document.getElementById("root")!).render(
     <StrictMode>

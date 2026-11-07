@@ -369,6 +369,7 @@ describe("the command line", () => {
     expect((await asCli(s, token, "GET", "/api/storage")).status).toBe(200);
     expect((await asCli(s, token, "GET", "/auth/people")).status).toBe(403);
     expect((await asCli(s, token, "POST", "/auth/name", { name: "Someone" })).status).toBe(403);
+    expect((await asCli(s, token, "POST", "/auth/language", { language: "de-DE" })).status).toBe(403);
     expect((await asCli(s, token, "POST", "/auth/cli/approve", { challenge: challengeOf(VERIFIER) })).status).toBe(403);
     expect((await asCli(s, token, "POST", "/api/storage/terms", { version: 2 })).status).toBe(403);
     expect((await asCli(s, token, "GET", "/settings")).status).toBe(401);
@@ -563,6 +564,17 @@ describe("Standard mode's storage key", () => {
     expect((await connect()).location).toBe("/settings?storage-error=unavailable");
   });
 
+  it("keeps the language the account chose, for share links", async () => {
+    const { s, owner } = await withOwner();
+    expect((await call(s, owner, "GET", "/auth/me")).json).toMatchObject({ language: null });
+    expect((await call(s, owner, "POST", "/auth/language", { language: "zh-TW" })).status).toBe(200);
+    expect((await call(s, owner, "GET", "/auth/me")).json).toMatchObject({ language: "zh-TW" });
+    expect((await call(s, owner, "POST", "/auth/language", { language: "Klingon please" })).status).toBe(400);
+    expect((await call(s, owner, "POST", "/auth/language", { language: null })).status).toBe(200);
+    expect((await call(s, owner, "GET", "/auth/me")).json).toMatchObject({ language: null });
+    expect((await call(s, { cookie: null }, "POST", "/auth/language", { language: "de-DE" })).status).toBe(401);
+  });
+
   it("upgrades a database made by the first version of the server", async () => {
     const db = sqliteFile(":memory:");
     await db.batch([
@@ -570,12 +582,14 @@ describe("Standard mode's storage key", () => {
       { sql: "INSERT INTO site VALUES ('old-site', '2026-10-24T00:00:00Z', 1)" },
       { sql: "CREATE TABLE google_logins (stateHash TEXT PRIMARY KEY, nonce TEXT NOT NULL, verifier TEXT NOT NULL, next TEXT, invite TEXT, name TEXT, linkAccountId TEXT, expiresAt TEXT NOT NULL)" },
       { sql: "CREATE TABLE sessions (tokenHash TEXT PRIMARY KEY, accountId TEXT NOT NULL, createdAt TEXT NOT NULL, lastUsedAt TEXT NOT NULL, expiresAt TEXT NOT NULL, device TEXT)" },
+      { sql: "CREATE TABLE accounts (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, role TEXT NOT NULL, createdAt TEXT NOT NULL, lastSeenAt TEXT, failedSignins INTEGER NOT NULL DEFAULT 0, lockedUntil TEXT)" },
     ]);
     const s: Server = { db, config: { origins: [SITE] }, assets: { fetch: async () => new Response("") } };
     expect((await call(s, { cookie: null }, "GET", "/auth/site")).json.siteId).toBe("old-site");
-    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 4 });
+    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 5 });
     await expect(db.first("SELECT subject FROM shares LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT purpose FROM google_logins LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT kind FROM sessions LIMIT 1")).resolves.toBeNull();
+    await expect(db.first("SELECT language FROM accounts LIMIT 1")).resolves.toBeNull();
   });
 });

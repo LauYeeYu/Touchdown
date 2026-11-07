@@ -18,6 +18,7 @@ The server runs on Cloudflare and keeps these, per account, in its database:
 | What | Why |
 |---|---|
 | Name and email address | To show who you are, and to sign you in. |
+| The interface's language you chose in Settings, if you chose one | So a share link opens in your language in any browser where you are signed in. |
 | Whether you are the owner or a member | The owner invites and removes people. |
 | A hash of your password key | To check your password. Your browser turns the password into a key before sending it. The password itself never leaves your browser, and the server stores only a hash of the key. |
 | Your Google account id and Google email address, if you sign in with Google, or connect Google Drive in Standard mode (that Google account then also signs you in) | To recognise your Google account. |
