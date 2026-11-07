@@ -5,9 +5,10 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
-import { t } from "@touchdown/i18n";
+import { locale, t } from "@touchdown/i18n";
+import { loadRefNames } from "@touchdown/refdata/names";
 import "../styles/app.css";
-import { validateWithoutEval } from "@touchdown/core";
+import { showRefNames, validateWithoutEval } from "@touchdown/core";
 import type { ShareContent } from "@touchdown/core/share";
 import { AppContext } from "../data/context.tsx";
 import { setCodeStyle } from "../lib/codes.ts";
@@ -108,10 +109,12 @@ function Shared({ data }: { data: Extract<Loaded, { state: "ok" }>["data"] }) {
   );
 }
 
-void startLanguage().then(() =>
+void (async () => {
+  await startLanguage();
+  showRefNames(await loadRefNames(locale()).catch(() => null));
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <SharePage />
     </StrictMode>,
-  ),
-);
+  );
+})();

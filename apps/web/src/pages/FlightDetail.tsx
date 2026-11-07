@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { Link, useReachable } from "../lib/link.tsx";
 import { extensionPercent, routeExtension } from "@touchdown/core/view";
-import { cityName, daysBetween, fitTrackFile, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
+import { airportName, cityName, daysBetween, fitTrackFile, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
@@ -302,12 +302,12 @@ export function FlightDetail() {
           <p className="route-hero__place">
             {A ? (
               <Link className="route-hero__city route-hero__link" to="/airports/$id" params={{ id: A.id }}>
-                {cityName(A) ?? A.name}
+                {cityName(A) ?? airportName(A)}
               </Link>
             ) : (
               <span className="route-hero__city">{f.fromRaw ?? t("flights.detail.hero.unknown")}</span>
             )}
-            {A && <span className="route-hero__name">{A.name}</span>}
+            {A && <span className="route-hero__name">{airportName(A)}</span>}
             {secondaryCode(A) && (
               <span className="route-hero__icao">
                 <span className="route-hero__sep">{"\u00a0· "}</span>
@@ -337,12 +337,12 @@ export function FlightDetail() {
           <p className="route-hero__place">
             {B ? (
               <Link className="route-hero__city route-hero__link" to="/airports/$id" params={{ id: B.id }}>
-                {cityName(B) ?? B.name}
+                {cityName(B) ?? airportName(B)}
               </Link>
             ) : (
               <span className="route-hero__city">{f.toRaw ?? t("flights.detail.hero.unknown")}</span>
             )}
-            {B && <span className="route-hero__name">{B.name}</span>}
+            {B && <span className="route-hero__name">{airportName(B)}</span>}
             {secondaryCode(B) && (
               <span className="route-hero__icao">
                 <span className="route-hero__sep">{"\u00a0· "}</span>
@@ -430,7 +430,7 @@ export function FlightDetail() {
             built: built ? "yes" : "no",
             year: built ?? "",
             landing: B ? landing : "none",
-            city: B ? (cityName(B) ?? B.name) : "",
+            city: B ? (cityName(B) ?? airportName(B)) : "",
             landingPart: f.landingAt ? partOfDay(f.landingAt) : "",
             days: landDays,
           },

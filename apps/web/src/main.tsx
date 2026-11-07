@@ -33,8 +33,9 @@ import { Guide } from "./pages/Guide.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
 import { airportParams, slugParams, setSlugData } from "./lib/slugs.ts";
 import { setCodeStyle } from "./lib/codes.ts";
-import { toUtcIso, validateWithoutEval } from "@touchdown/core";
-import { t } from "@touchdown/i18n";
+import { showRefNames, toUtcIso, validateWithoutEval } from "@touchdown/core";
+import { locale, t } from "@touchdown/i18n";
+import { loadRefNames } from "@touchdown/refdata/names";
 import { followLog, startLanguage } from "./lib/i18n.tsx";
 
 // The hosted site's security policy forbids eval (docs/30).
@@ -194,6 +195,9 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     const choice = () => ({ language: opened.settings().language, dateFormat: opened.settings().dateFormat });
     let followed = JSON.stringify(choice());
     await followLog(choice(), true);
+    // Airports', places' and airlines' names in that language too (docs/13, "Names in other languages").
+    // Names that cannot be loaded (an old cached app, a network error) leave the data's own: the app still opens.
+    showRefNames(await loadRefNames(locale()).catch(() => null));
     opened.subscribe(() => {
       const now = JSON.stringify(choice());
       if (now !== followed) void followLog(choice());

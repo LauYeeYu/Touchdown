@@ -2,7 +2,7 @@
 // the date next to the time (requirement G8).
 
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { cityName, type Airport, type Operator, type RefIndex, type WornLivery } from "@touchdown/core";
+import { airportName, cityName, operatorName, type Airport, type Operator, type RefIndex, type WornLivery } from "@touchdown/core";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { dayMonthYear } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
@@ -34,16 +34,17 @@ export function searchAirports(ref: RefIndex, q: string, limit = 8): Airport[] {
   const scored: { a: Airport; s: number }[] = [];
   for (const a of ref.airports.values()) {
     if (a === exact) continue;
-    const city = normal(a.city ?? "");
-    const name = normal(a.name);
+    // The data's names, in English, and the names shown in the interface's language: either finds it.
+    const cities = [normal(a.city ?? ""), normal(cityName(a) ?? "")].filter(Boolean);
+    const names = [normal(a.name), normal(airportName(a))];
     let s = 0;
     if (a.iata && normal(a.iata).startsWith(t)) s = 3;
     else if (a.icao && normal(a.icao).startsWith(t)) s = 3;
-    else if (city.startsWith(t)) s = 2;
-    else if (name.includes(t) || city.includes(t)) s = 1;
+    else if (cities.some((c) => c.startsWith(t))) s = 2;
+    else if (names.some((n) => n.includes(t)) || cities.some((c) => c.includes(t))) s = 1;
     if (s) scored.push({ a, s: s + (a.iata ? 0.5 : 0) });
   }
-  scored.sort((x, y) => y.s - x.s || (x.a.city ?? x.a.name).localeCompare(y.a.city ?? y.a.name));
+  scored.sort((x, y) => y.s - x.s || (cityName(x.a) ?? airportName(x.a)).localeCompare(cityName(y.a) ?? airportName(y.a)));
   return [...out, ...scored.slice(0, limit - out.length).map((x) => x.a)];
 }
 
@@ -55,14 +56,14 @@ export function searchOperators(ref: RefIndex, q: string, limit = 8): Operator[]
   const scored: { o: Operator; s: number }[] = [];
   for (const o of ref.operators.values()) {
     if (o === exact) continue;
-    const name = normal(o.name);
+    const names = [normal(o.name), normal(operatorName(o))];
     let s = 0;
     if ((o.iata && normal(o.iata) === t) || (o.icao && normal(o.icao) === t)) s = 4;
-    else if (name.startsWith(t)) s = 2;
-    else if (name.includes(t)) s = 1;
+    else if (names.some((n) => n.startsWith(t))) s = 2;
+    else if (names.some((n) => n.includes(t))) s = 1;
     if (s) scored.push({ o, s: s + (o.iata ? 0.5 : 0) + (o.validTo ? -1 : 0) });
   }
-  scored.sort((x, y) => y.s - x.s || x.o.name.localeCompare(y.o.name));
+  scored.sort((x, y) => y.s - x.s || operatorName(x.o).localeCompare(operatorName(y.o)));
   return [...out, ...scored.slice(0, limit - out.length).map((x) => x.o)];
 }
 
@@ -156,14 +157,14 @@ export function Picker({ value, onChange, options, placeholder, label, resolved,
 
 export function airportOptions(ref: RefIndex) {
   return (q: string) =>
-    searchAirports(ref, q).map((a) => ({ value: a.iata ?? a.icao ?? a.id, label: cityName(a) ? `${cityName(a)} · ${a.name}` : a.name, detail: [a.iata, a.icao, a.country].filter(Boolean).join(" · ") }));
+    searchAirports(ref, q).map((a) => ({ value: a.iata ?? a.icao ?? a.id, label: cityName(a) ? `${cityName(a)} · ${airportName(a)}` : airportName(a), detail: [a.iata, a.icao, a.country].filter(Boolean).join(" · ") }));
 }
 
 export function operatorOptions(ref: RefIndex, prefer: "iata" | "icao") {
   return (q: string) =>
     searchOperators(ref, q).map((o) => ({
       value: (prefer === "icao" ? (o.icao ?? o.iata) : (o.iata ?? o.icao)) ?? o.name,
-      label: o.name,
+      label: operatorName(o),
       detail: [o.iata, o.icao, o.country, o.validTo ? t("ui.form.until", { year: o.validTo.slice(0, 4) }) : null].filter(Boolean).join(" · "),
     }));
 }

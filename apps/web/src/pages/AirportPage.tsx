@@ -5,7 +5,7 @@ import { useMemo, type ReactNode } from "react";
 import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
-import { cityName } from "@touchdown/core";
+import { airportName, cityName } from "@touchdown/core";
 import { airportSummary } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { usePeriod } from "../lib/period.ts";
@@ -107,9 +107,9 @@ export function AirportPage() {
       <div className="airport-hero">
         <h1 className="route-hero__code">{code}</h1>
         <p className="route-hero__place">
-          <span className="route-hero__city">{cityName(ap) ?? ap.name}</span>
+          <span className="route-hero__city">{cityName(ap) ?? airportName(ap)}</span>
           <span className="route-hero__name">
-            {ap.name}
+            {airportName(ap)}
             {ap.country ? ` · ${countryName(ap.country)}` : ""}
           </span>
           {other && (
