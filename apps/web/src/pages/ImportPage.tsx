@@ -34,7 +34,7 @@ import {
   type SheetData,
   type SheetMapping,
 } from "@touchdown/core";
-import { list, t } from "@touchdown/i18n";
+import { inSentence, inSourceLanguage, list, sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { ColumnMapping, type ColumnChoice } from "../components/ColumnMapping.tsx";
 import { savedMapping, saveMapping } from "../data/mappings.ts";
@@ -88,7 +88,8 @@ export function ImportPage() {
   const { app, version } = useApp();
   // The file as read, prepared, and its batch id for the agent check (from its bytes, so the same file read again
   // fits a result).
-  const [base, setBase] = useState<{ source: ParsedSource; batchId: string; asRead: Prepared } | null>(null);
+  // `reread` reads the file again, for the agent check's request in UK English (null for a file from the inbox).
+  const [base, setBase] = useState<{ source: ParsedSource; batchId: string; asRead: Prepared; reread: (() => ParsedSource) | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [decisions, setDecisions] = useState<Map<number, CommitDecision>>(new Map());
@@ -131,9 +132,9 @@ export function ImportPage() {
   const batches = useMemo(() => app.store.all("import_batches").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")), [app, version]);
 
   /** Opens a parsed file for review. `inbox` names the spotting session it came from, if it did. */
-  const open = async (source: ParsedSource, bytes: Uint8Array, inbox: string | null = null) => {
+  const open = async (source: ParsedSource, bytes: Uint8Array, inbox: string | null = null, reread: (() => ParsedSource) | null = null) => {
     const p = prepare(app, source);
-    setBase({ source, batchId: await checkBatchId(bytes), asRead: p });
+    setBase({ source, batchId: await checkBatchId(bytes), asRead: p, reread });
     setOrigin(inbox);
     setAgent(null);
     setChoices(new Map());
@@ -147,7 +148,8 @@ export function ImportPage() {
     saveMapping(headerSignature(columns.sheet.header), columns.choice);
     setChoosingColumns(false);
     setColumns({ ...columns, how: "set" });
-    await open(readMapped(columns.sheet, columns.choice, columns.fileName, app.ref), columns.bytes);
+    const reread = () => readMapped(columns.sheet, columns.choice, columns.fileName, app.ref);
+    await open(reread(), columns.bytes, null, reread);
   };
 
   const openSession = (w: WaitingSession) => {
@@ -182,6 +184,7 @@ export function ImportPage() {
       const buf = new Uint8Array(await file.arrayBuffer());
       const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
       let source: ParsedSource | null = null;
+      let reread: (() => ParsedSource) | null = null;
       setColumns(null);
       if (file.name.toLowerCase().endsWith(".json")) {
         const inbox = readJsonFile(buf, file.name, app);
@@ -202,7 +205,12 @@ export function ImportPage() {
           return;
         } else sheets = [readCsv(new TextDecoder("utf-8").decode(buf), file.name)];
         const fr24 = sheets.find((s) => isFr24Export(s.header));
-        if (fr24) source = parseSource(fr24, file.name, app.ref);
+        if (fr24) {
+          const sheet = fr24;
+          source = parseSource(sheet, file.name, app.ref);
+          // Read once already, so it reads again.
+          reread = () => parseSource(sheet, file.name, app.ref)!;
+        }
         else {
           // Any other layout: the first sheet (tab) whose columns hold enough, else the first with rows, for the user to map.
           const guesses = sheets.filter((s) => s.rows.length).map((sheet) => ({ sheet, guess: guessMapping(sheet, app.ref) }));
@@ -221,11 +229,12 @@ export function ImportPage() {
             setChoosingColumns(true);
             return;
           }
-          source = readMapped(pick.sheet, choice, file.name, app.ref);
+          reread = () => readMapped(pick.sheet, choice, file.name, app.ref);
+          source = reread();
         }
       }
       if (!source) return;
-      await open(source, buf);
+      await open(source, buf, null, reread);
     } catch (e) {
       setError(t("import.file.unreadable", { name: file.name, error: (e as Error).message }));
     } finally {
@@ -377,11 +386,11 @@ export function ImportPage() {
         <h1 className="form-title">{t("import.review.title", { name: source.fileName })}</h1>
         <p className="lead lead--flight">
           {t("import.review.lead", { format: source.format, rows: source.rowsRead, fresh: counts.new, update: counts.update, conflict: counts.conflict, identical: counts.identical })}
-          {counts.duplicate > 0 && ` ${t("import.review.duplicates", { count: counts.duplicate })}`}
+          {counts.duplicate > 0 && `${sentenceGap()}${t("import.review.duplicates", { count: counts.duplicate })}`}
         </p>
         {source.format === "sheet" && columns && (
           <p className="form-sub">
-            {t("import.columns.summary", { how: columns.how, used: columns.choice.fields.filter((f) => f !== "ignore").length, unused: columns.choice.fields.filter((f) => f === "ignore").length })}{" "}
+            {t("import.columns.summary", { how: columns.how, used: columns.choice.fields.filter((f) => f !== "ignore").length, unused: columns.choice.fields.filter((f) => f === "ignore").length })}{sentenceGap()}
             <button type="button" className="link-btn" onClick={() => setChoosingColumns(true)}>
               {t("import.columns.change")}
             </button>
@@ -398,12 +407,17 @@ export function ImportPage() {
           batchId={base.batchId}
           ref={app.ref}
           request={() =>
-            buildCheckRequest(base.source, app.ref, {
-              batchId: base.batchId,
-              findings: new Map([...asRead.findings].map(([i, list]) => [i, list.map((f) => f.message)])),
-              // The CLI adds its own rules and leaves notes out unless it is set to send them.
-              rules: [],
-              includeNotes: true,
+            // In UK English, as the agent's instructions are (docs/22): the file is read and checked again in it.
+            inSourceLanguage(() => {
+              const source = base.reread?.() ?? base.source;
+              const read = base.reread ? prepare(app, source) : asRead;
+              return buildCheckRequest(source, app.ref, {
+                batchId: base.batchId,
+                findings: new Map([...read.findings].map(([i, list]) => [i, list.map((f) => f.message)])),
+                // The CLI adds its own rules and leaves notes out unless it is set to send them.
+                rules: [],
+                includeNotes: true,
+              });
             })
           }
           result={agent}
@@ -468,7 +482,7 @@ export function ImportPage() {
                 </div>
                 {m.kind === "duplicate" && m.duplicateOf !== null && (
                   <p className="review-row__fills">
-                    {t("import.review.duplicateOf", { row: matches[m.duplicateOf]!.candidate.sourceRow })}{" "}
+                    {t("import.review.duplicateOf", { row: matches[m.duplicateOf]!.candidate.sourceRow })}{sentenceGap()}
                     <label className="check">
                       <input type="checkbox" checked={!!d.keepSeparate} onChange={(e) => setDecision(i, { keepSeparate: e.target.checked })} />
                       {t("import.review.keepSeparate")}
@@ -478,10 +492,10 @@ export function ImportPage() {
                 {m.corrections.length > 0 && (
                   <p className="review-row__fills">
                     {t("import.review.corrections", {
-                      fields: list(m.corrections.map((x) => FIELD_LABEL[x.field]?.toLowerCase() ?? x.field)),
+                      fields: list(m.corrections.map((x) => (FIELD_LABEL[x.field] ? inSentence(FIELD_LABEL[x.field]!) : x.field))),
                       changes: m.corrections.map((x) => `${show(x.field, x.existing)} → ${show(x.field, x.incoming)}`).join(", "),
                       reason: m.corrections[0]!.reason,
-                    })}{" "}
+                    })}{sentenceGap()}
                     <label className="check">
                       <input
                         type="checkbox"
