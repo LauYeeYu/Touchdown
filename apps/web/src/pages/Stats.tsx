@@ -3,7 +3,7 @@
 
 import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { ageLeftOutText, ageText, aircraftAges, ageTodayNote, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, seatPositionLabel, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
 import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
@@ -175,7 +175,7 @@ export function Stats() {
                   <HelpTip
                     label={t("stats.extension.about")}
                     text={`${t("stats.extension.help")}${
-                      !extension.wait && extension.flights.length < flights.length ? ` ${t("stats.extension.shownFor", { shown: extension.flights.length, count: flights.length })}` : ""
+                      !extension.wait && extension.flights.length < flights.length ? `${sentenceGap()}${t("stats.extension.shownFor", { shown: extension.flights.length, count: flights.length })}` : ""
                     }`}
                   />
                 </span>
@@ -537,7 +537,7 @@ function ExtensionWaiting({ wait }: { wait: TrackWait }) {
 
 /** What the section measures, and for how many of the period's flights. */
 function ageHelp(ages: AircraftAges, flights: number): string {
-  const shown = ages.whenFlown.length < flights ? ` ${t("stats.age.shownFor", { shown: ages.whenFlown.length, count: flights })}` : "";
+  const shown = ages.whenFlown.length < flights ? `${sentenceGap()}${t("stats.age.shownFor", { shown: ages.whenFlown.length, count: flights })}` : "";
   return `${t("stats.age.help", { note: ageTodayNote() })}${shown}`;
 }
 

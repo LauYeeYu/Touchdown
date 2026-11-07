@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from "react";
 import type { ChangeStatus, InboxChange } from "@touchdown/core";
-import { t } from "@touchdown/i18n";
+import { inSentence, sentenceGap, t } from "@touchdown/i18n";
 import { planChanges, takeByDefault, type PlannedChange, type PlannedLine } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { codeStyle } from "../lib/codes.ts";
@@ -71,10 +71,10 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
           <Icon name="arrow-left" /> {t("import.chooseAnother")}
         </button>
       </nav>
-      <h1 className="form-title">{t("import.review.title", { name: label.charAt(0).toLowerCase() + label.slice(1) })}</h1>
+      <h1 className="form-title">{t("import.review.title", { name: inSentence(label) })}</h1>
       <p className="lead lead--flight">
         {t("import.changes.lead", { count: plan.changes.length, made: madeBy ? "yes" : "no", command: madeBy ?? "", partial: plan.open < plan.changes.length ? "yes" : "no", open: plan.open, nothing })}
-        {changedSince > 0 && ` ${t("import.changes.changedSince", { count: changedSince })}`}
+        {changedSince > 0 && `${sentenceGap()}${t("import.changes.changedSince", { count: changedSince })}`}
       </p>
       <ul className="changes">
         {plan.changes.map((p) => {
@@ -91,7 +91,7 @@ export function ChangeReview({ fileName, label, madeBy, changes, fromInbox, onBa
                   <Icon name={p.status === "changed" ? "triangle-alert" : "info"} />
                   <span>
                     {p.note}
-                    {p.status === "changed" && ` ${t("import.changes.tickAnyway")}`}
+                    {p.status === "changed" && `${sentenceGap()}${t("import.changes.tickAnyway")}`}
                   </span>
                 </p>
               )}

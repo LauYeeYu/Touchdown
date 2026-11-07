@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { Link, useReachable } from "../lib/link.tsx";
 import { extensionPercent, routeExtension } from "@touchdown/core/view";
 import { cityName, daysBetween, fitTrackFile, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
@@ -444,10 +444,10 @@ export function FlightDetail() {
         )}
         {onThis.length > 1 && (
           <>
-            {" "}
+            {sentenceGap()}
             {tx("flights.detail.flownOn", { voice: voice.kind, name: who, count: onThis.length })}
           </>
-        )}{" "}
+        )}{sentenceGap()}
         {spotted[0] && (
           <span className="phrase phrase--spotted" {...phraseProps}>
             {tx("flights.detail.photographed", {
@@ -686,14 +686,14 @@ export function FlightDetail() {
                     <span className="muted">{t("flights.detail.seat.notRecorded")}</span>
                   ) : showTicket ? (
                     <>
-                      {ticketNumber}{" "}
+                      {ticketNumber}{sentenceGap()}
                       <button type="button" className="link-btn" onClick={() => setShowTicket(false)}>
                         {t("flights.detail.seat.hide")}
                       </button>
                     </>
                   ) : (
                     <>
-                      <span className="muted">{t("flights.detail.seat.hidden")}</span>{" "}
+                      <span className="muted">{t("flights.detail.seat.hidden")}</span>{sentenceGap()}
                       <button type="button" className="link-btn" onClick={() => setShowTicket(true)}>
                         {t("flights.detail.seat.show")}
                       </button>

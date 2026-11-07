@@ -1,7 +1,7 @@
 // One flight in a list (Flights, airport pages, the statistics' list of flights).
 
 import type { ReactNode } from "react";
-import { t } from "@touchdown/i18n";
+import { t, wordGap } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { useApp } from "../data/context.tsx";
 import type { FlightView } from "../lib/views.ts";
@@ -55,7 +55,9 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
         <span className="row__date">
           {v.day ? (
             <>
-              <b>{dateOnly(v.day)}</b> {dateOnly(v.day, { weekday: "short" })}
+              <b>{dateOnly(v.day)}</b>
+              {wordGap()}
+              {dateOnly(v.day, { weekday: "short" })}
             </>
           ) : (
             <b>{t("flights.noDate")}</b>

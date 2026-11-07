@@ -4,7 +4,7 @@
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { flightDay, looksLikeOperatorName, PHASES, todayIn, type SightingValues } from "@touchdown/core";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { draftFindings } from "../data/draft.ts";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
@@ -127,9 +127,9 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
           <div className="known">
             <Icon name="info" />
             <p>
-              {tx("spotting.sighting.known.aircraft", { type: known.typeCode ? typeName(known.typeCode, ref) : t("spotting.sighting.known.noType"), withAirline: known.operatorId ? "yes" : "no", airline: known.operatorId ? airlineLabel(known.operatorId, ref) : "" }, { b: (text) => <b>{text}</b> })}{" "}
-              {others.length > 0 && `${t("spotting.sighting.known.seen", { count: others.length, date: others[0]!.seenOn ? dayMonthYear(others[0]!.seenOn) : t("spotting.sighting.known.unknownDate") })} `}
-              {known.flights.length > 0 && `${t("spotting.sighting.known.flown", { dates: known.flights.map((f) => (flightDay(f) ? dayMonthYear(flightDay(f)!) : t("spotting.sighting.known.unknownDate"))).join(", ") })} `}
+              {tx("spotting.sighting.known.aircraft", { type: known.typeCode ? typeName(known.typeCode, ref) : t("spotting.sighting.known.noType"), withAirline: known.operatorId ? "yes" : "no", airline: known.operatorId ? airlineLabel(known.operatorId, ref) : "" }, { b: (text) => <b>{text}</b> })}{sentenceGap()}
+              {others.length > 0 && `${t("spotting.sighting.known.seen", { count: others.length, date: others[0]!.seenOn ? dayMonthYear(others[0]!.seenOn) : t("spotting.sighting.known.unknownDate") })}${sentenceGap()}`}
+              {known.flights.length > 0 && `${t("spotting.sighting.known.flown", { dates: known.flights.map((f) => (flightDay(f) ? dayMonthYear(flightDay(f)!) : t("spotting.sighting.known.unknownDate"))).join(", ") })}${sentenceGap()}`}
               {known.specialLivery && !d.specialLivery.trim() && <LiveryQuestion worn={known.specialLivery} onUse={() => set("specialLivery", known.specialLivery!.name)} />}
             </p>
           </div>

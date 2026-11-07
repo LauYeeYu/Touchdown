@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { recordTitle } from "@touchdown/core/view";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { linkFor, loadShares, shares, useShares, type ShareLink } from "../data/shares.ts";
 import { codeStyle } from "../lib/codes.ts";
@@ -104,7 +104,7 @@ export function SharedLinks() {
       <div className="view-top" />
       <h1 className="form-title">{t("sharing.title")}</h1>
       <p className="form-sub">
-        {links.length ? `${t("sharing.count", { count: links.length })} ` : ""}
+        {links.length ? `${t("sharing.count", { count: links.length })}${sentenceGap()}` : ""}
         {t("sharing.intro")}
       </p>
       {list?.storage === "broken" && (

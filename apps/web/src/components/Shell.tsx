@@ -10,7 +10,7 @@ import { recordsText, sessionPhrase, useInboxWatcher, useWaitingSessions } from 
 import { LAST_BACKUP, LAST_CHANGE, metaNumber } from "../data/connection.ts";
 import type { SyncInfo } from "../data/sync.ts";
 import { backupZip, todayIn } from "@touchdown/core";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { download } from "../lib/download.ts";
 import { dayMonthYear, momentLabel, momentShort, nf } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
@@ -43,8 +43,8 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, 
   if (!sync) return { text: saving === "saving" ? t("shell.sync.saving") : t("shell.sync.savedHere"), title: t("shell.sync.localTitle"), icon: "hard-drive", bad: false };
   const place = sync.place;
   // The tooltip says when the copy is not whole yet: the tables not read, or tracks still to come.
-  const toCome = !sync.tables ? ` ${t("shell.sync.notRead", { place })}` : notHere > 0 && !sync.tracks ? ` ${tracksToComeText(notHere, place)}` : "";
-  const last = `${sync.lastAt ? ` ${t("shell.sync.lastSynced", { moment: momentLabel(sync.lastAt) })}` : ""}${toCome}`;
+  const toCome = !sync.tables ? `${sentenceGap()}${t("shell.sync.notRead", { place })}` : notHere > 0 && !sync.tracks ? `${sentenceGap()}${tracksToComeText(notHere, place)}` : "";
+  const last = `${sync.lastAt ? `${sentenceGap()}${t("shell.sync.lastSynced", { moment: momentLabel(sync.lastAt) })}` : ""}${toCome}`;
   // Each state has its own icon: below 1180px wide the icon is all the header shows.
   const drive = sync.adapter === "gdrive";
   switch (sync.state) {
@@ -281,10 +281,10 @@ export function Shell() {
             </button>
           }
         >
-          {!sync.tables && `${t("shell.sync.notRead", { place: sync.place })} `}
+          {!sync.tables && `${t("shell.sync.notRead", { place: sync.place })}${sentenceGap()}`}
           {sync.mode === "standard" ? (sync.error ?? t("shell.sync.cannotReach", { place: sync.place })) : sync.adapter === "gdrive" ? t("shell.sync.signInTitle", { place: sync.place }) : t("shell.sync.permissionTitle", { place: sync.place })}
-          {sync.tables && ` ${t("shell.note.untilThen")}`}
-          {sync.tables && notHere > 0 && ` ${t("shell.note.tracksNotHere", { count: notHere })}`}
+          {sync.tables && `${sentenceGap()}${t("shell.note.untilThen")}`}
+          {sync.tables && notHere > 0 && `${sentenceGap()}${t("shell.note.tracksNotHere", { count: notHere })}`}
           {sync.mode !== "standard" && sync.error && ` ${sync.error}`}
         </NoteBar>
       )}

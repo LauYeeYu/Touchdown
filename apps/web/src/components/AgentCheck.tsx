@@ -4,7 +4,7 @@
 
 import { useRef, useState } from "react";
 import { readCheckResult, type AgentField, type AgentRecordResult, type CheckRequest, type CheckResultFile, type RefIndex } from "@touchdown/core";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { SOURCE_REPOSITORY } from "../config.ts";
 import { Icon } from "../lib/icons.tsx";
 import { download } from "../lib/download.ts";
@@ -133,7 +133,7 @@ export function AgentCheckPanel({ batchId, request, ref, result, counts, onResul
         </p>
         {(result.rejected.length > 0 || failed > 0) && (
           <p className="agent-panel__note">
-            {result.rejected.length > 0 && `${t("import.agent.rejected", { count: result.rejected.length })} `}
+            {result.rejected.length > 0 && `${t("import.agent.rejected", { count: result.rejected.length })}${sentenceGap()}`}
             {failed > 0 && t("import.agent.failed", { count: failed })}
           </p>
         )}

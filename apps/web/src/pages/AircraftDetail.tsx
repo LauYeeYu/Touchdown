@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { t } from "@touchdown/i18n";
+import { inSentence, sentenceGap, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightDay, isValidDate, liveryName, liveryNames, pastedFactsFor, phasesOf, sameLivery, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
@@ -296,7 +296,7 @@ export function AircraftDetail() {
             <p className="status-line">
               <Icon name="external-link" />
               <span>
-                {t("aircraft.detail.lookUp")}{" "}
+                {t("aircraft.detail.lookUp")}{sentenceGap()}
                 {links.map((l, i) => (
                   <span key={l.href}>
                     {i > 0 && " · "}
@@ -431,7 +431,7 @@ export function AircraftDetail() {
 }
 
 /** A sighting's statuses on their own line: "Taking off, taxiing". */
-const phaseList = (phases: string[]) => phases.map((p, i) => (i ? (PHASE_LABEL[p] ?? p).toLowerCase() : (PHASE_LABEL[p] ?? p))).join(", ");
+const phaseList = (phases: string[]) => phases.map((p, i) => (i ? inSentence(PHASE_LABEL[p] ?? p) : (PHASE_LABEL[p] ?? p))).join(", ");
 
 /** A timeline record in a special livery: its name on a line under the record. */
 function LiveryNote({ name }: { name: string }) {

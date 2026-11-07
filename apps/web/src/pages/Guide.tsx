@@ -4,7 +4,7 @@
 // glance. The diagrams repeat the text, so screen readers skip them.
 
 import { useId, type ReactNode } from "react";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { Icon, type IconName } from "../lib/icons.tsx";
 import { useApp } from "../data/context.tsx";
@@ -32,7 +32,7 @@ export function Guide() {
       <Step title={t("guide.myfr24.title")} figure={<MyFr24Figure />}>
         <ol className="guide__steps">
           <li>
-            {t("guide.myfr24.export")}{" "}
+            {t("guide.myfr24.export")}{sentenceGap()}
             <a href="https://my.flightradar24.com/settings/export" target="_blank" rel="noopener">
               {t("guide.myfr24.exportLink")}
               <Icon name="external-link" />

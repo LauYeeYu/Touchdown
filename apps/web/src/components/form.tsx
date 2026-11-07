@@ -3,7 +3,7 @@
 
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { cityName, type Airport, type Operator, type RefIndex, type WornLivery } from "@touchdown/core";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { dayMonthYear } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
 
@@ -206,7 +206,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
 export function LiveryQuestion({ worn, onUse }: { worn: WornLivery; onUse: () => void }) {
   return (
     <>
-      {tx("ui.livery.question", { name: worn.name, date: dayMonthYear(worn.on) }, { b: (text) => <b>{text}</b> })}{" "}
+      {tx("ui.livery.question", { name: worn.name, date: dayMonthYear(worn.on) }, { b: (text) => <b>{text}</b> })}{sentenceGap()}
       <button type="button" className="link-btn" onClick={onUse} aria-label={t("ui.livery.useLabel", { name: worn.name })}>
         {t("ui.livery.use")}
       </button>

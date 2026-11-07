@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { ShareKind } from "@touchdown/core/share";
-import { t } from "@touchdown/i18n";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { account } from "../data/account.ts";
 import { useApp } from "../data/context.tsx";
 import { linkFor, shares, TermsNeeded, useShares, type ShareLink } from "../data/shares.ts";
@@ -91,7 +91,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
   }, [kind]);
   const titled = kind === "log" && owner && (
     <>
-      {" "}
+      {sentenceGap()}
       {tx("sharing.dialog.owner", { owner: <bdi>{owner}</bdi> })}
     </>
   );
