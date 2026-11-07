@@ -118,7 +118,7 @@ export interface MessageArgs {
   "aircraft.detail.typeUnknown": {};
   "aircraft.detail.lead": { comma: "choice"; first: "text"; flights: "number"; flownLivery: "text"; has: "choice"; hasReg: "choice"; owner: "text"; reg: "text"; sightings: "number"; spottedLivery: "text"; voice: "choice" };
   "aircraft.detail.lead.livery": { count: "number"; form: "choice"; name: "text" };
-  "aircraft.detail.lead.first": { date: "text"; dated: "choice"; flight: "text"; kind: "choice"; place: "text" };
+  "aircraft.detail.lead.first": { date: "text"; dated: "choice"; flight: "text"; kind: "choice"; only: "choice"; place: "text" };
   "aircraft.detail.timeline": {};
   "aircraft.detail.noDate": {};
   "aircraft.detail.flew": { flight: "text"; from: "text"; to: "text" };

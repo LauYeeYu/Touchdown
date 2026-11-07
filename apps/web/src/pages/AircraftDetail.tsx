@@ -113,10 +113,12 @@ export function AircraftDetail() {
 
   const mergeCandidates = mergeQ.trim().length >= 2 ? views.filter((x) => x.airframe.id !== a.id && (x.registration ?? "").toUpperCase().replace(/-/g, "").includes(mergeQ.trim().toUpperCase().replace(/-/g, ""))).slice(0, 6) : [];
 
-  // The first record, after the counts: ", first on 9 June 2025 at …".
+  // The first record, after the counts: ", first on 9 June 2025 at …" (", on …" when it is the only one).
   const firstClause = t("aircraft.detail.lead.first", {
     kind: first?.kind === "sighting" ? (first.s.airportId ? "sighting" : "none") : first?.kind === "flight" ? (first.f.flightNumber == null ? "unnumbered" : "flight") : "none",
     dated: first?.date ? "yes" : "no",
+    // With one record, it is not the first of several.
+    only: v.flights.length + v.sightings.length === 1 ? "yes" : "no",
     date: first?.date ? dateOnly(first.date, { day: "numeric", month: "long", year: "numeric" }) : "",
     place: first?.kind === "sighting" && first.s.airportId ? airportWithCode(first.s.airportId, ref) : "",
     flight: first?.kind === "flight" ? (first.f.flightNumber ?? "") : "",
