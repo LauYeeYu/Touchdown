@@ -25,7 +25,7 @@ const modes = (): Option<Mode>[] => [
 ];
 
 const storages = (): Option<StorageKind>[] => [
-  { value: "gdrive", icon: "cloud", name: "Google Drive", line: t("settings.storage.gdrive.line") },
+  { value: "gdrive", icon: "cloud", name: t("data.googleDrive"), line: t("settings.storage.gdrive.line") },
   { value: "localfs", icon: "folder", name: t("settings.storage.localfs.name"), line: t("settings.storage.localfs.line") },
 ];
 

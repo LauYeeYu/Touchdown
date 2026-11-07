@@ -1307,6 +1307,7 @@ export interface MessageArgs {
   "core.agent.result.malformed": { problem: "text" };
   "data.request.failed": { status: "text" };
   "data.connection.googleDrive": { account: "text" };
+  "data.googleDrive": {};
   "data.google.notLoaded": {};
   "data.google.loadFailed": {};
   "data.google.signInAgain": {};

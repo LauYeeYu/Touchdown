@@ -170,11 +170,11 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
         opened = await AppData.open(tabs, (s, n) => s === "log" && n !== undefined && step(t("shell.opening.preparing", { count: n })));
       }
     }
-    const where = () => (opened.connection?.mode !== "local" && opened.connection?.adapter === "localfs" ? opened.connection.name : "Google Drive");
+    const where = () => (opened.connection?.mode !== "local" && opened.connection?.adapter === "localfs" ? opened.connection.name : t("data.googleDrive"));
     // Standard (docs/32): back from connecting Google Drive, or a browser that has not chosen yet, or one syncing the
     // same Google Drive in Private, follows the account's Standard connection by itself.
     let stopCreep = () => {};
-    if (typeof me === "object") await followStandard(opened, writer, () => (stopCreep = creep(PREPARED - 0.02, t("shell.opening.from", { place: "Google Drive" }))));
+    if (typeof me === "object") await followStandard(opened, writer, () => (stopCreep = creep(PREPARED - 0.02, t("shell.opening.from", { place: t("data.googleDrive") }))));
     stopCreep();
     // A browser that held a log before the data modes existed keeps it here: Local (docs/32).
     if (writer && !opened.connection && (opened.store.count("flights") || opened.store.count("sightings"))) await opened.connect({ mode: "local", since: toUtcIso(Date.now()) });

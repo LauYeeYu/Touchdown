@@ -1,6 +1,7 @@
 {
   "request.failed": "Something went wrong ({status}).",
   "connection.googleDrive": "Google Drive ({account})",
+  "googleDrive": "Google Drive",
   "google.notLoaded": "Google sign-in did not load.",
   "google.loadFailed": "Google sign-in could not be loaded. Check the connection and try again.",
   "google.signInAgain": "Sign in to Google again to sync.",
