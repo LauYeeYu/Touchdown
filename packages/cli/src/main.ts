@@ -4,7 +4,7 @@
 // airframes, runs the checks and prints findings and summary statistics. Without --out, import puts each file in the
 // inbox for review (importfile.ts). Private fields (ticket number, booking reference) are never printed.
 
-import { matchLocale, setLocale, t, tDynamic } from "@touchdown/i18n/cli";
+import { t, tDynamic } from "@touchdown/i18n/cli";
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
@@ -274,15 +274,9 @@ async function airframesIntoLog(args: string[], lookup: LookupArgs) {
   return writeChanges(log, "airframes", changes, c, lookupSummary(report));
 }
 
-/** The terminal's languages, from the environment: "en_GB.UTF-8" is en-GB. "C" and "POSIX" name none. */
-function terminalLanguages(): string[] {
-  return [process.env.LC_ALL, process.env.LC_MESSAGES, process.env.LANG]
-    .map((v) => v?.split(/[.@]/)[0]?.replace("_", "-"))
-    .filter((v): v is string => !!v && v !== "C" && v !== "POSIX");
-}
-
+// The CLI stays in UK English, whatever the terminal's language (docs/31-ui.md, "Language"): its own messages are not
+// translated, and in another language the core package's would be, mixing two languages in one report.
 async function main(argv: string[]) {
-  await setLocale(matchLocale(terminalLanguages()));
   const [cmd, ...all] = argv;
   if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
     const topic = all[0];
