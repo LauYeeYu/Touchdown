@@ -6,6 +6,7 @@
   "errors.googleTaken": "This Google account already has an account here. Sign in instead.",
   "errors.emailTaken": "An account with this Google address exists already. Sign in instead.",
   "errors.invite": "This invitation is no longer valid. Ask the owner for a new one.",
+  "errors.suspended": "This account is suspended. Ask the person who invited you.",
   "errors.status": "Something went wrong ({status}). Try again.",
   "errors.offline": "The site could not be reached. Check the connection and try again.",
   "errors.notInvitation": "This link is not an invitation.",

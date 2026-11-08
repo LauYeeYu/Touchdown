@@ -1,6 +1,6 @@
 # Touchdown terms of service
 
-Effective 29 October 2026.
+Effective 7 November 2026.
 
 These terms cover the Touchdown website run from this repository by its owner. By using it you agree to them.
 
@@ -13,7 +13,7 @@ These terms cover the Touchdown website run from this repository by its owner. B
 ## Your account
 
 - You need an invitation from the owner. Keep your password to yourself. You are responsible for what is done with your account.
-- The owner may remove an account at any time, for example when it is misused.
+- The owner may suspend or remove an account at any time, for example when it is misused. A suspended account cannot sign in and its links do not open, until the owner reinstates it.
 
 ## Your data
 

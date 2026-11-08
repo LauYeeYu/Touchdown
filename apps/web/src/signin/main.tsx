@@ -34,6 +34,7 @@ function errorText(code: string): string | null {
     "google-taken": t("signin.errors.googleTaken"),
     "email-taken": t("signin.errors.emailTaken"),
     invite: t("signin.errors.invite"),
+    suspended: t("signin.errors.suspended"),
   };
   return errors[code] ?? null;
 }

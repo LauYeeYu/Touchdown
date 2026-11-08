@@ -17,7 +17,7 @@ export interface Database {
   batch(statements: Statement[]): Promise<void>;
 }
 
-export const SERVER_SCHEMA_VERSION = 5;
+export const SERVER_SCHEMA_VERSION = 6;
 
 /** The server's tables. Removing a row never relies on cascades: the code deletes dependent rows itself. */
 const TABLES = [
@@ -35,7 +35,8 @@ const TABLES = [
     lastSeenAt TEXT,
     failedSignins INTEGER NOT NULL DEFAULT 0,
     lockedUntil TEXT,
-    language TEXT
+    language TEXT,
+    suspendedAt TEXT
   )`,
   `CREATE TABLE IF NOT EXISTS password_credentials (
     accountId TEXT PRIMARY KEY,
@@ -163,6 +164,17 @@ const MIGRATIONS: { to: number; run: (db: Database) => Promise<void> }[] = [
         await db.first("SELECT language FROM accounts LIMIT 1");
       } catch {
         await db.run("ALTER TABLE accounts ADD COLUMN language TEXT");
+      }
+    },
+  },
+  {
+    // A suspended account cannot sign in, and its links stop, but everything of it is kept (docs/33). NULL: not.
+    to: 6,
+    run: async (db) => {
+      try {
+        await db.first("SELECT suspendedAt FROM accounts LIMIT 1");
+      } catch {
+        await db.run("ALTER TABLE accounts ADD COLUMN suspendedAt TEXT");
       }
     },
   },

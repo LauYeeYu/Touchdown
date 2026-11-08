@@ -48,5 +48,6 @@
   "device.browserOn": "{system}上的{browser}",
   "device.cli": "{system}上的命令列",
   "serve.notFound": "找不到",
-  "serve.error": "伺服器錯誤"
+  "serve.error": "伺服器錯誤",
+  "error.suspended": "這個帳戶已被暫停。請聯絡邀請你的人。"
 }

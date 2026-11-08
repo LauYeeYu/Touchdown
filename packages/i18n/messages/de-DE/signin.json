@@ -6,6 +6,7 @@
   "errors.googleTaken": "Zu diesem Google-Konto gibt es hier schon ein Konto. Melde dich stattdessen an.",
   "errors.emailTaken": "Ein Konto mit dieser Google-Adresse gibt es schon. Melde dich stattdessen an.",
   "errors.invite": "Diese Einladung ist nicht mehr gültig. Bitte den Inhaber der Website um eine neue.",
+  "errors.suspended": "Dieses Konto ist gesperrt. Frag die Person, die dich eingeladen hat.",
   "errors.status": "Etwas ist schiefgelaufen ({status}). Versuche es noch einmal.",
   "errors.offline": "Die Website war nicht erreichbar. Prüfe die Verbindung und versuche es noch einmal.",
   "errors.notInvitation": "Dieser Link ist keine Einladung.",

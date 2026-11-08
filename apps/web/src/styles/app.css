@@ -4915,6 +4915,12 @@ a.wordmark {
   white-space: nowrap;
 }
 
+/* A suspended member in Settings › People, after their name. */
+.member-suspended {
+  margin-inline-start: 8px;
+  vertical-align: 1px;
+}
+
 .pill--livery {
   background: var(--spotted-wash);
   color: var(--spotted-ink);

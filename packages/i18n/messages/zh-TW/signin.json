@@ -6,6 +6,7 @@
   "errors.googleTaken": "這個Google帳戶已有本網站的帳戶。請直接登入。",
   "errors.emailTaken": "已有帳戶使用這個Google電子郵件地址。請直接登入。",
   "errors.invite": "這個邀請已失效，請向站長索取新的邀請。",
+  "errors.suspended": "這個帳戶已被暫停。請聯絡邀請你的人。",
   "errors.status": "發生錯誤（{status}），請再試一次。",
   "errors.offline": "無法連上網站。請檢查網路連線後再試一次。",
   "errors.notInvitation": "這不是邀請連結。",

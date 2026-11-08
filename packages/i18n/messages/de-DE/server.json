@@ -48,5 +48,6 @@
   "device.browserOn": "{browser} unter {system}",
   "device.cli": "Befehlszeile unter {system}",
   "serve.notFound": "Nicht gefunden",
-  "serve.error": "Serverfehler"
+  "serve.error": "Serverfehler",
+  "error.suspended": "Dieses Konto ist gesperrt. Wende dich an die Person, die dich eingeladen hat."
 }

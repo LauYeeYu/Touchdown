@@ -173,7 +173,8 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
   if (tooMany(request, now)) return json(429, { error: t("server.share.tooMany") }, { "Retry-After": "60" });
   const m = url.pathname.match(/^\/p\/([^/]+)(?:\/(content|tracks))?\/?$/);
   const id = m?.[1] && SHARE_ID.test(m[1]) ? m[1] : null;
-  const share = id ? await s.db.first<ShareRow & { ownerName: string }>("SELECT shares.*, accounts.name AS ownerName FROM shares JOIN accounts ON accounts.id = shares.accountId WHERE shares.id = ?", [id]) : null;
+  // A suspended owner's links answer as stopped ones do, and work again when the owner is reinstated (docs/33).
+  const share = id ? await s.db.first<ShareRow & { ownerName: string }>("SELECT shares.*, accounts.name AS ownerName FROM shares JOIN accounts ON accounts.id = shares.accountId WHERE shares.id = ? AND accounts.suspendedAt IS NULL", [id]) : null;
 
   if (!m?.[2]) {
     // The page itself: the share page's own build, the same for every link, which then asks for the content. Asked for

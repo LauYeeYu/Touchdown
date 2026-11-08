@@ -48,5 +48,6 @@
   "device.browserOn": "{system}上的{browser}",
   "device.cli": "{system}上的命令行",
   "serve.notFound": "未找到",
-  "serve.error": "服务器错误"
+  "serve.error": "服务器错误",
+  "error.suspended": "这个账户已被暂停。请联系邀请你的人。"
 }

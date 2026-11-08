@@ -254,6 +254,35 @@ describe("the owner's people", () => {
     expect((await call(s, owner, "DELETE", `/auth/people/${ownerId}`)).status).toBe(400);
   });
 
+  it("suspends someone, keeping their account to reinstate it", async () => {
+    const { s, owner } = await withOwner();
+    const t = await invite(s, owner);
+    const sam: Jar = { cookie: null };
+    await call(s, sam, "POST", "/auth/join", { invite: t, name: "Sam", email: "sam@example.org", key: keyOf("sam") });
+    const samId = ((await call(s, owner, "GET", "/auth/people")).json.people as { id: string; name: string }[]).find((p) => p.name === "Sam")!.id;
+    const reset = String((await call(s, owner, "POST", `/auth/people/${samId}/reset`)).json.link).split("/reset/")[1]!;
+
+    expect((await call(s, owner, "POST", `/auth/people/${samId}/suspend`)).status).toBe(200);
+    // Signed out everywhere, no way back in, and the reset link gone.
+    expect((await call(s, sam, "GET", "/auth/me")).status).toBe(401);
+    const refused = await call(s, { cookie: null }, "POST", "/auth/signin", { email: "sam@example.org", key: keyOf("sam") });
+    expect(refused.status).toBe(403);
+    expect(refused.json.error).toContain("suspended");
+    expect((await call(s, { cookie: null }, "POST", "/auth/reset", { token: reset, key: keyOf("new") })).status).not.toBe(200);
+    const listed = (await call(s, owner, "GET", "/auth/people")).json.people as { name: string; suspendedAt: string | null }[];
+    expect(listed.find((p) => p.name === "Sam")?.suspendedAt).toBe("2026-10-24T09:00:00Z");
+    expect(listed.find((p) => p.name === "Owner")?.suspendedAt).toBeNull();
+
+    // Reinstated, the same account signs in again.
+    expect((await call(s, owner, "POST", `/auth/people/${samId}/reinstate`)).status).toBe(200);
+    expect((await call(s, sam, "POST", "/auth/signin", { email: "sam@example.org", key: keyOf("sam") })).status).toBe(200);
+    expect((await call(s, sam, "GET", "/auth/me")).json.name).toBe("Sam");
+    // Only the owner suspends, and not themselves.
+    expect((await call(s, sam, "POST", `/auth/people/${samId}/suspend`)).status).toBe(403);
+    const ownerId = (await call(s, owner, "GET", "/auth/me")).json.id as string;
+    expect((await call(s, owner, "POST", `/auth/people/${ownerId}/suspend`)).status).toBe(400);
+  });
+
   it("changes the email address only with the current password, and not to one in use", async () => {
     const { s, owner } = await withOwner();
     const t = await invite(s, owner);
@@ -596,10 +625,11 @@ describe("Standard mode's storage key", () => {
     ]);
     const s: Server = { db, config: { origins: [SITE] }, assets: { fetch: async () => new Response("") } };
     expect((await call(s, { cookie: null }, "GET", "/auth/site")).json.siteId).toBe("old-site");
-    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 5 });
+    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 6 });
     await expect(db.first("SELECT subject FROM shares LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT purpose FROM google_logins LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT kind FROM sessions LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT language FROM accounts LIMIT 1")).resolves.toBeNull();
+    await expect(db.first("SELECT suspendedAt FROM accounts LIMIT 1")).resolves.toBeNull();
   });
 });

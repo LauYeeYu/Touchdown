@@ -73,7 +73,13 @@
   "members.name": "{role, select, owner {{name} (owner)} other {{name}}}",
   "members.details": "{email} · {methods, select, both {password and Google} password {password} google {Google} other {no sign-in method}} · last signed in {when}",
   "members.resetLink": "Reset link",
-  "members.removeConfirm": "Remove {name}? Their account and sign-ins end at once. Their log stays in their own storage.",
+  "members.removeConfirm": "Remove {name}? Their account, sign-ins and share links end at once, for good. Their log stays in their own storage. To keep them for later, suspend them instead.",
   "members.removed": "{name} was removed.",
+  "members.suspend": "Suspend",
+  "members.reinstate": "Reinstate",
+  "members.suspendedTag": "Suspended",
+  "members.suspendConfirm": "Suspend {name}? They are signed out everywhere and cannot sign in, and their share links stop. Their account, storage connection and links are kept, so you can reinstate them.",
+  "members.suspended": "{name} is suspended.",
+  "members.reinstated": "{name} can sign in again, and their links work again.",
   "members.resetNote": "For {name} to set a new password. Works once, until {until}. Setting it signs them out everywhere."
 }

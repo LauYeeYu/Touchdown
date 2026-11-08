@@ -402,13 +402,44 @@ function PeopleSection({ me }: { me: Me }) {
           <li key={p.id} className="history-row">
             <span>
               {t("account.members.name", { name: p.name, role: p.role })}
+              {p.suspendedAt && <span className="pill member-suspended">{t("account.members.suspendedTag")}</span>}
               <small>{t("account.members.details", { email: p.email, methods: p.password && p.google ? "both" : p.password ? "password" : p.google ? "google" : "none", when: when(p.lastSeenAt) })}</small>
             </span>
             {p.id !== me.id && (
               <div className="button-row button-row--tight">
-                <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.resetLink(p.id).then((link) => setReset({ link, name: p.name }), (e: unknown) => toast(message(e)))}>
-                  {t("account.members.resetLink")}
-                </button>
+                {!p.suspendedAt && (
+                  <button type="button" className="btn btn--quiet btn--small" onClick={() => void account.resetLink(p.id).then((link) => setReset({ link, name: p.name }), (e: unknown) => toast(message(e)))}>
+                    {t("account.members.resetLink")}
+                  </button>
+                )}
+                {p.suspendedAt ? (
+                  <button
+                    type="button"
+                    className="btn btn--quiet btn--small"
+                    onClick={() =>
+                      void account.reinstate(p.id).then(() => {
+                        toast(t("account.members.reinstated", { name: p.name }));
+                        load();
+                      }, (e: unknown) => toast(message(e)))
+                    }
+                  >
+                    {t("account.members.reinstate")}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn--quiet btn--small"
+                    onClick={() => {
+                      if (!window.confirm(t("account.members.suspendConfirm", { name: p.name }))) return;
+                      void account.suspend(p.id).then(() => {
+                        toast(t("account.members.suspended", { name: p.name }));
+                        load();
+                      }, (e: unknown) => toast(message(e)));
+                    }}
+                  >
+                    {t("account.members.suspend")}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn--quiet btn--small btn--danger"

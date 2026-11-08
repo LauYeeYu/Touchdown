@@ -301,7 +301,7 @@ Protection (Proposed):
 - **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.
 - **Handling.** A token is decrypted only inside the request that needs it. It is never logged and never returned to a browser or the command line; they get short-lived access made with it.
 - **Who can reach the database.** Only the server, and the operator through the hosting account (Cloudflare) or the machine. The operator holds both the database and the secret, and the terms say so.
-- **Removed users.** Removing someone in Settings → People deletes their account and these rows (Q-USER-REMOVAL).
+- **Suspended and removed users.** Suspending someone in Settings → People keeps these rows, and their links open as links that do not exist until they are reinstated. Removing someone deletes their account and these rows ([33](33-accounts-and-sign-in.md), "Suspending and removing", Q-USER-REMOVAL).
 
 ## Private mode
 

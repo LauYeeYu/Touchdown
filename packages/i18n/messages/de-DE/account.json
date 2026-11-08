@@ -73,7 +73,13 @@
   "members.name": "{role, select, owner {{name} (Inhaber)} other {{name}}}",
   "members.details": "{email} · {methods, select, both {Passwort und Google} password {Passwort} google {Google} other {keine Anmeldemethode}} · zuletzt angemeldet: {when}",
   "members.resetLink": "Link zum Zurücksetzen",
-  "members.removeConfirm": "{name} entfernen? Konto und Anmeldungen enden sofort. Das Logbuch bleibt im Speicher von {name}.",
+  "members.removeConfirm": "{name} entfernen? Konto, Anmeldungen und Freigabelinks enden sofort und endgültig. Das Logbuch bleibt im Speicher von {name}. Um alles für später zu behalten, sperre {name} stattdessen.",
   "members.removed": "{name} wurde entfernt.",
+  "members.suspend": "Sperren",
+  "members.reinstate": "Entsperren",
+  "members.suspendedTag": "Gesperrt",
+  "members.suspendConfirm": "{name} sperren? {name} wird überall abgemeldet und kann sich nicht mehr anmelden, und die Freigabelinks funktionieren nicht mehr. Konto, Speicherverbindung und Links bleiben erhalten, sodass du {name} wieder entsperren kannst.",
+  "members.suspended": "{name} ist gesperrt.",
+  "members.reinstated": "{name} kann sich wieder anmelden, und die Links funktionieren wieder.",
   "members.resetNote": "Damit legt {name} ein neues Passwort fest. Einmal nutzbar bis {until}. Danach ist {name} überall abgemeldet."
 }

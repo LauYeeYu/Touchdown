@@ -28,6 +28,8 @@ export interface Person {
   google: string | null;
   createdAt: string;
   lastSeenAt: string | null;
+  /** When the owner suspended them: they cannot sign in, and their links stop, until reinstated. */
+  suspendedAt: string | null;
 }
 
 export interface OpenInvite {
@@ -118,4 +120,6 @@ export const account = {
   withdraw: (id: string) => call("DELETE", `/auth/invites/${encodeURIComponent(id)}`),
   resetLink: (id: string) => call<Link>("POST", `/auth/people/${encodeURIComponent(id)}/reset`),
   remove: (id: string) => call("DELETE", `/auth/people/${encodeURIComponent(id)}`),
+  suspend: (id: string) => call("POST", `/auth/people/${encodeURIComponent(id)}/suspend`),
+  reinstate: (id: string) => call("POST", `/auth/people/${encodeURIComponent(id)}/reinstate`),
 };

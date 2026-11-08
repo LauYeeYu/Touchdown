@@ -133,6 +133,7 @@ filler, no exclamation marks.
 | sign in, sign out | anmelden, abmelden | 登录, 退出登录 | 登入, 登出 |
 | account | Konto | 账户 | 帳戶 |
 | invite, member | einladen, Mitglied | 邀请, 成员 | 邀請, 成員 |
+| suspend, reinstate (a member), suspended | sperren, entsperren, gesperrt | 暂停, 恢复, 已暂停 | 暫停, 恢復, 已暫停 |
 | the site's owner, who invites people | Inhaber | 站长 | 站長 |
 | the person who shared a link | Person, die den Link geteilt hat | 分享者 | 分享者 |
 | settings | Einstellungen | 设置 | 設定 |

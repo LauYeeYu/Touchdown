@@ -78,6 +78,12 @@ export interface MessageArgs {
   "account.members.resetLink": {};
   "account.members.removeConfirm": { name: "text" };
   "account.members.removed": { name: "text" };
+  "account.members.suspend": {};
+  "account.members.reinstate": {};
+  "account.members.suspendedTag": {};
+  "account.members.suspendConfirm": { name: "text" };
+  "account.members.suspended": { name: "text" };
+  "account.members.reinstated": { name: "text" };
   "account.members.resetNote": { name: "text"; until: "text" };
   "aircraft.noRegistration": {};
   "aircraft.liveryName": { name: "text" };
@@ -2377,6 +2383,7 @@ export interface MessageArgs {
   "server.device.cli": { system: "text" };
   "server.serve.notFound": {};
   "server.serve.error": {};
+  "server.error.suspended": {};
   "settings.syncMode": {};
   "settings.mode.standard.name": {};
   "settings.mode.standard.tag": {};
@@ -2728,6 +2735,7 @@ export interface MessageArgs {
   "signin.errors.googleTaken": {};
   "signin.errors.emailTaken": {};
   "signin.errors.invite": {};
+  "signin.errors.suspended": {};
   "signin.errors.status": { status: "text" };
   "signin.errors.offline": {};
   "signin.errors.notInvitation": {};

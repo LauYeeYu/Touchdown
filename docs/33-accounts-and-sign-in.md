@@ -37,7 +37,17 @@ These pages are a small separate bundle with its own build (`vite.signin.config.
 - With the link comes a message to send with it, with "Copy message" (built, `apps/web/src/lib/invitation.ts`): what Touchdown is, the link and when it ends, and one line pointing to the README for adding records from a computer with the command line or an agent. The command line's steps stay in the README, so the message is short for someone who only uses the site.
 - The token is 128 random bits. The server stores only its hash.
 - People lists the members (name, email, how they sign in, when they last signed in) and the open invitations, which can be withdrawn.
-- **Removing someone** deletes their account, sign-in methods and sessions at once, and their Standard-mode rows ([32](32-modes-and-sharing.md), Q-USER-REMOVAL). Their log stays in their own storage.
+
+## Suspending and removing
+
+Decided, built (Q-USER-REMOVAL):
+
+| Action | Does | Undone by |
+|---|---|---|
+| **Suspend** | Ends their sessions, the command line's sign-ins under way and their open reset links at once. Signing in is refused, with a password, with Google or from the command line, and their share links open as links that do not exist. Their account, sign-in methods, Standard-mode rows and links are kept. People shows them with "Suspended". | **Reinstate**: they sign in again as before, and their links open again. |
+| **Remove** | Deletes their account, sign-in methods and sessions at once, and their Standard-mode rows: the key to their storage, their acceptance of the terms, their share links and the links' previews ([32](32-modes-and-sharing.md)). | Nothing. A new invitation makes a new account. |
+
+Either way their log stays in their own storage. The owner cannot suspend or remove themselves.
 
 ## Passwords
 
@@ -113,7 +123,9 @@ All under `/auth/` (built):
 | `POST /auth/cli/token` | The command line's code and verifier; returns its session token. |
 | `POST /auth/name`, `POST /auth/password`, `POST /auth/email`, `DELETE /auth/google` | Account changes. |
 | `POST /auth/language` | The interface's language chosen in Settings (a language tag, or null for none), kept with the account so a share link opens in it on any browser where its owner is signed in. The web app sends it when the language is chosen, and when the log's language differs from the account's (chosen on another device). Not open to the command line. |
-| `GET /auth/people`, `POST /auth/invites`, `DELETE /auth/invites/<id>`, `DELETE /auth/people/<id>`, `POST /auth/people/<id>/reset` | Owner only. |
+| `GET /auth/people`, `POST /auth/invites`, `DELETE /auth/invites/<id>`, `DELETE /auth/people/<id>`, `POST /auth/people/<id>/reset`, `POST /auth/people/<id>/suspend`, `POST /auth/people/<id>/reinstate` | Owner only. |
+
+Errors come as `{ "error": "…" }` in the request's language: the first of the `Accept-Language` header's languages that the interface has, else UK English (Q-I18N). The language the account chose in Settings is not used, so an error before signing in reads the same as one after.
 
 ## Server tables
 
@@ -122,7 +134,7 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packa
 | Table | Columns |
 |---|---|
 | `site` | `id` (the random site id for password salts), `createdAt`, `schemaVersion` |
-| `accounts` | `id`, `email` (unique, lower case), `name`, `role` (`owner`, `member`), `createdAt`, `lastSeenAt`, `failedSignins`, `lockedUntil`, `language` (the interface's language chosen, or null; server schema version 5) |
+| `accounts` | `id`, `email` (unique, lower case), `name`, `role` (`owner`, `member`), `createdAt`, `lastSeenAt`, `failedSignins`, `lockedUntil`, `language` (the interface's language chosen, or null; server schema version 5), `suspendedAt` (when the owner suspended it, or null; version 6) |
 | `password_credentials` | `accountId`, `salt`, `hash`, `updatedAt` |
 | `google_identities` | `accountId`, `sub` (unique), `email`, `linkedAt` |
 | `sessions` | `tokenHash`, `accountId`, `createdAt`, `lastUsedAt`, `expiresAt`, `device`, `kind` (`cli` for the command line) |

@@ -73,7 +73,13 @@
   "members.name": "{role, select, owner {{name}（站长）} other {{name}}}",
   "members.details": "{email} · {methods, select, both {密码和Google登录} password {密码登录} google {Google登录} other {无登录方式}} · 上次登录：{when}",
   "members.resetLink": "重置链接",
-  "members.removeConfirm": "要移除{name}吗？对方的账户会立即停用，所有登录随即失效。对方的日志仍保留在自己的存储空间中。",
+  "members.removeConfirm": "要移除{name}吗？对方的账户、登录和分享链接会立即删除，无法恢复。对方的日志仍保留在自己的存储空间中。如果以后还要恢复，请改为暂停。",
   "members.removed": "已移除{name}。",
+  "members.suspend": "暂停",
+  "members.reinstate": "恢复",
+  "members.suspendedTag": "已暂停",
+  "members.suspendConfirm": "要暂停{name}吗？对方会在所有设备上退出登录且无法再登录，分享链接也会失效。账户、存储连接和链接都会保留，之后可以恢复。",
+  "members.suspended": "已暂停{name}。",
+  "members.reinstated": "{name}可以重新登录了，分享链接也已恢复。",
   "members.resetNote": "供{name}设置新密码。仅可使用一次，有效期至\u2060{until}。设置后，对方会在所有设备上退出登录。"
 }

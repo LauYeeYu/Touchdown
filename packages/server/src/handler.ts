@@ -78,6 +78,8 @@ interface Account {
   lockedUntil: string | null;
   /** The interface's language chosen in the web app, a BCP 47 tag; null for none (the browser's then). */
   language: string | null;
+  /** When the owner suspended the account: it cannot sign in, and its links stop, until reinstated. */
+  suspendedAt: string | null;
 }
 
 interface Session {
@@ -277,7 +279,8 @@ async function currentSession(request: Request, s: Server, now: number): Promise
     `SELECT a.*, s.lastUsedAt, s.expiresAt, s.kind FROM sessions s JOIN accounts a ON a.id = s.accountId WHERE s.tokenHash = ?`,
     [tokenHash],
   );
-  if (!row) return null;
+  // A suspended account's sessions end when it is suspended. One made at that moment ends here.
+  if (!row || row.suspendedAt) return null;
   // A command line's token works only as a bearer token, a browser's only as its cookie.
   const cli = row.kind === "cli";
   if (cli !== !!bearer) return null;
@@ -299,18 +302,24 @@ async function currentSession(request: Request, s: Server, now: number): Promise
   return { account, tokenHash, cli, renewed };
 }
 
-/** A new session for the account; returns the Set-Cookie value. */
+/** Whether an account is suspended (docs/33, "Suspending and removing"). */
+async function suspended(s: Server, accountId: string): Promise<boolean> {
+  return !!(await s.db.first<{ suspendedAt: string | null }>("SELECT suspendedAt FROM accounts WHERE id = ?", [accountId]))?.suspendedAt;
+}
+
+/** A new session for the account; returns the Set-Cookie value. A suspended account gets none. */
 async function startSession(s: Server, accountId: string, request: Request, now: number): Promise<string> {
-  const t = randomToken();
+  if (await suspended(s, accountId)) throw new Fail(403, t("server.error.suspended"));
+  const token = randomToken();
   const nowIso = toUtcIso(now);
   await s.db.batch([
     {
       sql: "INSERT INTO sessions (tokenHash, accountId, createdAt, lastUsedAt, expiresAt, device) VALUES (?, ?, ?, ?, ?, ?)",
-      params: [await hashToken(t), accountId, nowIso, nowIso, toUtcIso(now + SESSION_DAYS * DAY), deviceLabel(request.headers.get("User-Agent"))],
+      params: [await hashToken(token), accountId, nowIso, nowIso, toUtcIso(now + SESSION_DAYS * DAY), deviceLabel(request.headers.get("User-Agent"))],
     },
     { sql: "UPDATE accounts SET lastSeenAt = ?, failedSignins = 0, lockedUntil = NULL WHERE id = ?", params: [nowIso, accountId] },
   ]);
-  return sessionCookie(t, s, SESSION_DAYS * 86_400);
+  return sessionCookie(token, s, SESSION_DAYS * 86_400);
 }
 
 // ---------- /auth/ ----------
@@ -585,6 +594,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     }
 
     if (!owner) return go("/signin?error=google-no-account");
+    if (await suspended(s, owner.accountId)) return go("/signin?error=suspended");
     return go(safeNext(login.next), await startSession(s, owner.accountId, request, now));
   }
 
@@ -610,7 +620,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     );
     return withRenewal(
       json(200, {
-        people: people.map((p) => ({ id: p.id, name: p.name, email: p.email, role: p.role, password: !!p.hasPassword, google: p.googleEmail, createdAt: p.createdAt, lastSeenAt: p.lastSeenAt })),
+        people: people.map((p) => ({ id: p.id, name: p.name, email: p.email, role: p.role, password: !!p.hasPassword, google: p.googleEmail, createdAt: p.createdAt, lastSeenAt: p.lastSeenAt, suspendedAt: p.suspendedAt })),
         invites,
       }),
     );
@@ -641,6 +651,26 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
     return withRenewal(json(200, await makeInvite(s, url, "reset", acc.id, null, me.account.id, now, RESET_HOURS * 3_600_000)));
   }
 
+  // Suspending keeps everything of the account (its storage key, terms and links) but lets it do nothing: its sessions
+  // and open reset links end, it cannot sign in, and its links answer as stopped ones do. Reinstating undoes it.
+  const personSuspend = path.match(/^\/auth\/people\/([^/]+)\/(suspend|reinstate)$/);
+  if (method === "POST" && personSuspend) {
+    const me = owner();
+    const id = personSuspend[1]!;
+    if (id === me.account.id) throw new Fail(400, t("server.error.ownerStays"));
+    if (!(await s.db.first("SELECT id FROM accounts WHERE id = ?", [id]))) throw new Fail(404, t("server.error.noPerson"));
+    if (personSuspend[2] === "reinstate") await s.db.run("UPDATE accounts SET suspendedAt = NULL WHERE id = ?", [id]);
+    else {
+      await s.db.batch([
+        { sql: "UPDATE accounts SET suspendedAt = ? WHERE id = ?", params: [nowIso, id] },
+        { sql: "DELETE FROM sessions WHERE accountId = ?", params: [id] },
+        { sql: "DELETE FROM cli_logins WHERE accountId = ?", params: [id] },
+        { sql: "DELETE FROM invites WHERE purpose = 'reset' AND accountId = ? AND usedAt IS NULL", params: [id] },
+      ]);
+    }
+    return withRenewal(json(200, { ok: true }));
+  }
+
   const personDelete = path.match(/^\/auth\/people\/([^/]+)$/);
   if (method === "DELETE" && personDelete) {
     const me = owner();
@@ -669,8 +699,9 @@ async function cliToken(request: Request, s: Server, now: number): Promise<Respo
   await s.db.run("DELETE FROM cli_logins WHERE codeHash = ?", [codeHash]);
   const nowIso = toUtcIso(now);
   if (!row || row.expiresAt <= nowIso || !sameString(b64url(await sha256(verifier)), row.challenge)) throw new Fail(400, t("server.error.cliSigninExpired"));
-  const a = await s.db.first<{ name: string; email: string }>("SELECT name, email FROM accounts WHERE id = ?", [row.accountId]);
+  const a = await s.db.first<{ name: string; email: string; suspendedAt: string | null }>("SELECT name, email, suspendedAt FROM accounts WHERE id = ?", [row.accountId]);
   if (!a) throw new Fail(400, t("server.error.accountGone"));
+  if (a.suspendedAt) throw new Fail(403, t("server.error.suspended"));
   const session = randomToken();
   await s.db.batch([
     {

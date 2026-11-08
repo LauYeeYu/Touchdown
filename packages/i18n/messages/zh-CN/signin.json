@@ -6,6 +6,7 @@
   "errors.googleTaken": "这个Google账户已经注册过本站，请直接登录。",
   "errors.emailTaken": "已有账户使用这个Google邮箱，请直接登录。",
   "errors.invite": "这个邀请已失效，请向站长索取新的邀请。",
+  "errors.suspended": "这个账户已被暂停。请联系邀请你的人。",
   "errors.status": "出错了（{status}），请重试。",
   "errors.offline": "无法连接网站，请检查网络后重试。",
   "errors.notInvitation": "这不是邀请链接。",

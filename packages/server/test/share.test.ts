@@ -189,6 +189,17 @@ describe("making share links", () => {
     expect((await call(t.s, t.owner, "GET", "/api/shares")).json.shares).toEqual([]);
   });
 
+
+  it("stops a suspended owner's links, and opens them again when reinstated", async () => {
+    const t = await site();
+    const made = await make(t, { kind: "flight", subject: t.shared.id });
+    await t.s.db.run("UPDATE accounts SET suspendedAt = ?", ["2026-10-24T09:00:00Z"]);
+    expect((await open(t.s, `/p/${made.json.id}`)).status).toBe(404);
+    expect((await open(t.s, `/p/${made.json.id}/content`)).json).toEqual({ error: "not-found" });
+    await t.s.db.run("UPDATE accounts SET suspendedAt = NULL");
+    expect((await open(t.s, `/p/${made.json.id}/content`)).status).toBe(200);
+  });
+
   it("stops every link when the owner leaves Standard", async () => {
     const t = await site();
     const made = await make(t, { kind: "flight", subject: t.shared.id });

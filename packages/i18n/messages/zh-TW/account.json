@@ -73,7 +73,13 @@
   "members.name": "{role, select, owner {{name}（站長）} other {{name}}}",
   "members.details": "{email} · {methods, select, both {密碼和Google登入} password {密碼登入} google {Google登入} other {沒有登入方式}} · 上次登入：{when}",
   "members.resetLink": "重設連結",
-  "members.removeConfirm": "要移除{name}嗎？對方的帳戶會立即停用，所有登入也隨即失效。對方的日誌仍保留在自己的儲存空間中。",
+  "members.removeConfirm": "要移除{name}嗎？對方的帳戶、登入和分享連結會立即刪除，無法恢復。對方的日誌仍保留在自己的儲存空間中。如果之後還要恢復，請改為暫停。",
   "members.removed": "已移除{name}。",
+  "members.suspend": "暫停",
+  "members.reinstate": "恢復",
+  "members.suspendedTag": "已暫停",
+  "members.suspendConfirm": "要暫停{name}嗎？對方會在所有裝置上登出且無法再登入，分享連結也會失效。帳戶、儲存空間連線和連結都會保留，之後可以恢復。",
+  "members.suspended": "已暫停{name}。",
+  "members.reinstated": "{name}可以重新登入了，分享連結也已恢復。",
   "members.resetNote": "讓{name}設定新密碼。限用一次，有效期限至\u2060{until}。設定後，對方會在所有裝置上登出。"
 }
