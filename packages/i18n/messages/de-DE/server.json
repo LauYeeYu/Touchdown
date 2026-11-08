@@ -49,5 +49,6 @@
   "device.cli": "Befehlszeile unter {system}",
   "serve.notFound": "Nicht gefunden",
   "serve.error": "Serverfehler",
-  "error.suspended": "Dieses Konto ist gesperrt. Wende dich an die Person, die dich eingeladen hat."
+  "error.suspended": "Dieses Konto ist gesperrt. Wende dich an die Person, die dich eingeladen hat.",
+  "share.badPreview": "Keine Vorschau: Nötig sind ein Titel und ein PNG-Bild von höchstens 600 KB."
 }

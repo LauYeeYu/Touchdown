@@ -8,7 +8,7 @@ This policy covers the Touchdown website run from this repository by its owner, 
 
 - Your flight and spotting log is not kept on Touchdown's server. It is in your browser and, if you choose, in your own storage (your Google Drive or a directory on your computer).
 - The server keeps only what it needs to sign you in: your name, email address, a hash of your password key, your Google account id if you sign in with Google or connect Google Drive in Standard mode, and your sign-in sessions. In Standard mode, if you choose it, it also keeps an encrypted key to your Google Drive.
-- In Standard mode you can share links to a flight, a sighting, an aircraft or your whole log. Anyone with a link can open it. The server reads what the link shows from your Google Drive when it is opened, and keeps only the link itself and how often it was opened (see Share links).
+- In Standard mode you can share links to a flight, a sighting, an aircraft or your whole log. Anyone with a link can open it. The server reads what the link shows from your Google Drive when it is opened, and keeps only the link itself, how often it was opened and a preview of it for chat apps (see Share links).
 - Touchdown never sees your password, sells nothing and shows no ads. It counts page views with Cloudflare Web Analytics, which sets no cookies and does not identify you (see Analytics).
 
 ## What the server keeps
@@ -28,6 +28,7 @@ The server runs on Cloudflare and keeps these, per account, in its database:
 | A Google sign-in under way: random values that tie it to your browser, and where to go afterwards | To finish signing in with Google. Deleted when used, and kept 10 minutes at most. |
 | Standard mode only: an encrypted key to your Google Drive, the Google account it belongs to, the id of your Touchdown directory in it, when it was made and last used, and whether it still works | So your browsers can sync without signing in to Google every hour, and your links can be opened (see Standard mode). |
 | Standard mode only: your share links. For each, a random id, what it shows (a flight, a sighting or an aircraft by its id in your log, or the whole log), when it was made, and how often and when it was last opened | To open your links, and to show you how they are used. Who opened a link is not kept. |
+| Standard mode only: a preview of each link, which your browser makes: a title (such as "XY401: London to New York", or for a whole log your name), a line under it (such as the date, the aircraft type and the distance) and a picture of its map | So a chat app or a site the address is pasted into shows what the link opens. Deleted with the link. |
 | Standard mode only: the version of its terms you accepted, and when | To ask you again when the terms change. |
 
 The server does not keep your IP address, and it keeps no request logs. Cloudflare, which hosts the site, handles your requests under its own [privacy policy](https://www.cloudflare.com/privacypolicy/).
@@ -36,7 +37,7 @@ The owner can see the list of members: names, email addresses, how each signs in
 
 ## Your log
 
-- **Standard mode:** your log is kept in your browser and synced through a Touchdown directory in your Google Drive, with access the server gives your browser (see Standard mode). The server does not keep your log. When someone opens one of your links, it reads the part the link shows (see Share links).
+- **Standard mode:** your log is kept in your browser and synced through a Touchdown directory in your Google Drive, with access the server gives your browser (see Standard mode). The server does not keep your log, only each link's preview. When someone opens one of your links, it reads the part the link shows (see Share links).
 - **Private mode:** your log is kept in your browser and synced through your own storage: a Touchdown directory in your Google Drive, or a directory on your computer. The server never receives it.
 - **Local mode:** your log is kept only in your browser.
 - **Daily copies:** in Standard and Private mode, your browser also keeps copies of your whole log in your Touchdown directory (`backups/`), on days it changed: the log as it was at the end of each of the last 7 days, 8 weeks and 12 months, and of each year before. They hold everything the log does, ticket numbers and booking references included. They stay in your storage, and the server does not read them. You can delete them there.
@@ -72,7 +73,8 @@ In Standard mode you can share a link to a flight, a sighting, an aircraft or yo
 - **Who can open a link:** anyone who has its address, without signing in, until you stop it. The address is random and cannot be guessed from the record.
 - **What it shows:** that page, read-only, with the notes and photo links on it. Never a ticket number or booking reference, never an entry you deleted, and nothing else from your log. A whole-log link shows every flight, sighting and aircraft, and your name as your account has it, in its title and sentences ("Sam's log", "Sam has flown 12 flights").
 - **How it works:** when the link is opened, the server reads the files the link needs from your Touchdown directory with the key above, picks out what the link shows and sends only that. It keeps the result in Cloudflare's cache for up to a day, under the version of the files it came from, so the next opening is quicker. Your log itself stays in your Google Drive.
-- **What is recorded:** how many times a link was opened and when last. Not who opened it.
+- **Preview:** when you make a link, your browser makes its preview: a title, a line under it and a picture of its map, from what the link shows. The server keeps it with the link and puts it in the page, so a chat app or a site the address is pasted into shows it. Anyone who sees the address sees the preview, as they could open the link. Your browser makes it again once a day after syncing, when what the link shows has changed. It is deleted with the link.
+- **What is recorded:** how many times a link was opened and when last. Not who opened it. A chat app reading the preview is not counted.
 - **The page:** a link's page is not indexed by search engines, tells the next site nothing about where it was opened, and has no analytics. Other than a whole log's pages, it names nobody: a link to a flight, a sighting or an aircraft does not say whose log it is. The browser of the person opening it contacts planespotters.net for aircraft photos, as yours does. It sets no cookies. While it is open, it keeps where each page was scrolled, the page's choices (such as the year shown) and the photos it found in that tab's session storage, which goes when the tab is closed.
 
 ## Other services your browser contacts
@@ -98,7 +100,7 @@ Touchdown sets one cookie to keep you signed in (`td_session`), and a short-live
 
 ## Keeping and deleting
 
-- Your account is kept until the owner removes it. Ask the owner if you want it removed. Removing it deletes your account, your sign-in methods, your sessions, any Standard mode key and your share links from the server at once.
+- Your account is kept until the owner removes it. Ask the owner if you want it removed. Removing it deletes your account, your sign-in methods, your sessions, any Standard mode key and your share links with their previews from the server at once. The owner can also suspend your account: your sessions end, you cannot sign in and your links do not open, but everything is kept until the owner reinstates the account or removes it.
 - A share link is kept until you stop it, leave Standard mode or your account is removed.
 - Your log in your own storage is yours to keep or delete there.
 - Settings → "Delete all data in this browser" removes the browser's copy. Signing out removes it too in Private mode, once everything has synced.

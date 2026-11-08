@@ -17,10 +17,10 @@ import { TrackLoadingNote, useTracksLoading } from "../lib/trackLoading.tsx";
 const MIN_LON = 24;
 const MIN_LAT = 14;
 
-type LonLat = [number, number];
+export type LonLat = [number, number];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const LAND = feature(world as any, (world as any).objects.countries) as unknown as FeatureCollection;
+export const LAND = feature(world as any, (world as any).objects.countries) as unknown as FeatureCollection;
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 export interface MapFlight {
@@ -179,7 +179,7 @@ function el<K extends keyof SVGElementTagNameMap>(parent: Element, tag: K, attrs
 }
 
 /** Centre of a set of places on the sphere, and whether they all fit on one hemisphere. */
-function globeCentre(pts: LonLat[]) {
+export function globeCentre(pts: LonLat[]) {
   const rad = Math.PI / 180;
   let x = 0;
   let y = 0;
@@ -198,7 +198,7 @@ function globeCentre(pts: LonLat[]) {
  * equal choices as far as possible from every airport and track point. With routes all round the globe some
  * route has to be cut; this cuts the fewest.
  */
-function centralMeridian(routes: LonLat[][], points: LonLat[]): number {
+export function centralMeridian(routes: LonLat[][], points: LonLat[]): number {
   if (!routes.length && !points.length) return 10;
   const rel = (lon: number, edge: number) => (((lon - edge) % 360) + 360) % 360;
   let bestEdge = 0;

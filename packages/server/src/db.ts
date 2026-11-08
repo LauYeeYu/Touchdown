@@ -130,6 +130,15 @@ const TABLES = [
     lastOpenedAt TEXT
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS shares_thing ON shares (accountId, kind, subject)`,
+  // A link's preview for chat apps (docs/32, "Previews"): made by the owner's browser, deleted with the link.
+  `CREATE TABLE IF NOT EXISTS share_previews (
+    shareId TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    image TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+  )`,
 ];
 
 /** Changes to tables made by an older version, by the version that brings them. New tables need none. */

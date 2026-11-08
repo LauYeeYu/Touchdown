@@ -189,9 +189,10 @@ function token(v: unknown): string {
   return v;
 }
 
-export async function body(request: Request): Promise<Record<string, unknown>> {
+/** A request's JSON object, of at most `limit` characters: 10,000, enough for every request but a link's preview. */
+export async function body(request: Request, limit = 10_000): Promise<Record<string, unknown>> {
   const text = await request.text();
-  if (text.length > 10_000) throw new Fail(413, t("server.error.tooLarge"));
+  if (text.length > limit) throw new Fail(413, t("server.error.tooLarge"));
   try {
     const v = JSON.parse(text || "{}") as unknown;
     if (v && typeof v === "object" && !Array.isArray(v)) return v as Record<string, unknown>;
@@ -750,6 +751,7 @@ async function removeAccount(s: Server, id: string) {
     { sql: "DELETE FROM invites WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM storage_connections WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM consents WHERE accountId = ?", params: [id] },
+    { sql: "DELETE FROM share_previews WHERE shareId IN (SELECT id FROM shares WHERE accountId = ?)", params: [id] },
     { sql: "DELETE FROM shares WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM accounts WHERE id = ?", params: [id] },
   ]);
@@ -836,7 +838,8 @@ async function dropStorageKey(s: Server, accountId: string) {
   await s.db.batch([
     { sql: "DELETE FROM storage_connections WHERE accountId = ?", params: [accountId] },
     { sql: "DELETE FROM consents WHERE accountId = ?", params: [accountId] },
-    // Leaving Standard stops every link at once (docs/32, "Changing mode").
+    // Leaving Standard stops every link at once (docs/32, "Changing mode"), and their previews go with them.
+    { sql: "DELETE FROM share_previews WHERE shareId IN (SELECT id FROM shares WHERE accountId = ?)", params: [accountId] },
     { sql: "DELETE FROM shares WHERE accountId = ?", params: [accountId] },
   ]);
 }

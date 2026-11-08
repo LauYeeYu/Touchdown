@@ -44,5 +44,9 @@
   "links.made": "建立於\u2060{date}",
   "links.gone": "開啟後會顯示已不再分享",
   "links.more": "{title}的更多選項",
-  "links.open": "開啟連結"
+  "links.open": "開啟連結",
+  "preview.flight": "{named, select, yes {{flight}：{from}至{to}} other {{from}至{to}}}",
+  "preview.seen": "{dated, select, yes {{date}\u2060在{place}拍到} other {在{place}拍到}}",
+  "preview.log": "\u2068{owner}\u2069的日誌",
+  "preview.logUnnamed": "分享的日誌"
 }

@@ -227,6 +227,8 @@ Decided, built. The `/api/shares` requests need a browser's session (not the com
 | `GET /p/<id>` | The viewer page, without a session. |
 | `GET /p/<id>/content` | The link's content, without a session. |
 | `GET /p/<id>/tracks?flights=<id>,…` | The recorded tracks of up to 15 of the link's flights, without a session. A flight the link does not show, or one without a track, is left out. The server reads the track files 6 at a time and keeps the answer whole, under the versions of its files ([Costs and limits](#costs-and-limits)). |
+| `PUT /api/shares/<id>/preview` | Keep the link's preview: its title, a line under it, a PNG of its map and the fingerprint of what it shows ([Previews](#previews)). |
+| `GET /p/<id>/preview.png` | The link's preview picture, without a session. |
 
 ### The public page
 
@@ -234,7 +236,7 @@ Decided (U3): `/p/<id>` is the only route with user content outside the sign-in;
 
 Decided (changed), built (`apps/web/src/share/`):
 - **The app's pages, not the app.** A page with its own build (`share.html`, `vite.share.config.ts`), as the sign-in pages have, that shows the app's own pages (`src/pages`) over the link's content: a read-only stand-in for the app's data (`src/share/data.ts`, `readOnly`), and the app's routes at `#` addresses (`src/share/router.tsx`). It never opens the app's database and never syncs. Its files are served from `/share-files/`, which holds code, styles, fonts, the world map and the reference data, no user content, and opens without a session as `/signin-files/` does.
-- **Its requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the content, and `GET /p/<id>/tracks?flights=…` the recorded tracks. No other API.
+- **Its requests.** `GET /p/<id>` gives the page (or the not-found page), `GET /p/<id>/content` the content, `GET /p/<id>/tracks?flights=…` the recorded tracks, and `GET /p/<id>/preview.png` the picture of its preview for chat apps. No other API.
 - **Always the whole page.** The page is the same file for every link, sent with the link's own status (404 for one that does not exist), so the server asks the static files for it without the browser's `If-None-Match`: their 304 has no body, and passed on as a 200 it left the browser an empty page that only a forced reload replaced.
 - **Recovering in the page.** A request that gets no answer in time is given up (45 s for the content, 60 s for a request of tracks). The content is asked again twice after a server or network error or no answer, 1 s and then 3 s later. A link that still cannot be opened, or one that is busy, says so with **Try again**, which opens it again without reloading the page. Tracks that fail are asked again once, in halves.
 - **Tracks.** Read from the moment the link's content is in, alongside the reference data, as the app's sync reads them: newest flights first, 10 a request and 6 requests at a time, each request's tracks drawn as they arrive. A request the server could not answer is asked again once, in two halves. The loading screen waits for them for at most 3 seconds after the rest is ready, so a link usually opens with its maps and route extension whole. Past that the page opens, and until a flight's track is in, its maps draw the great circle, Statistics keeps Route extension's place, and the masthead counts them ("Tracks 12 of 40").
@@ -242,8 +244,25 @@ Decided (changed), built (`apps/web/src/share/`):
 - **The visitor's browser.** Nothing is kept beyond the tab: where each page was scrolled, the page's choices (such as the year shown) and the photos found, in session storage. No database, no local storage, no cookies.
 - **Footer.** "Shared from Touchdown, a log of flights and aircraft. Read only, and as it is now in its owner's log.", the data credits, the privacy policy and the terms.
 - **No analytics.** The share page carries no page-view counting, so people who open a link are not counted by anyone but the link's own count: its HTML is sent with `Cache-Control: no-transform`, so Cloudflare adds no script, and its Content Security Policy would block one anyway.
-- **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and a Content Security Policy of its own (`SHARE_CSP` in `packages/server/src/headers.ts`): its own files and planespotters.net, no Google and no Cloudflare Web Analytics. Link previews in chat apps get a plain title ("Shared from Touchdown") and nothing from the log (Q-SHARE-PREVIEW).
+- **Headers.** `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and a Content Security Policy of its own (`SHARE_CSP` in `packages/server/src/headers.ts`): its own files and planespotters.net, no Google and no Cloudflare Web Analytics.
 - **The gate.** The server lets `/p/*` and `/share-files/*` through without a session; every other address still needs one ([33](33-accounts-and-sign-in.md)).
+
+### Previews
+
+Decided (changed), built (Q-SHARE-PREVIEW): a link pasted into a chat app shows a preview of what it opens, a title, a line under it and a picture of its map. First proposed as a plain "Shared from Touchdown" that revealed nothing.
+
+| Kind | Title | Line under it | Picture |
+|---|---|---|---|
+| Flight | "XY401: London to New York" (by its registration when it has no number) | Its date, the aircraft type and the distance flown | Its route, as its map draws it |
+| Sighting | Registration and type | "Seen at Frankfurt, 14 Mar 2026" | A dot at the airport |
+| Aircraft | Registration and type | The flights on it and the sightings of it | Its flights, and the airports where it was seen |
+| Whole log | "Alex's log" | Flights, distance flown and aircraft | Every flight, and the spotting places sized by the aircraft seen |
+
+- **Made in the owner's browser.** The server never reads the log for a preview: the browser makes it from its copy, in the owner's language and distance unit, and sends it (`apps/web/src/lib/preview.ts`). The picture is the figure export's ([23](23-tracks-and-maps.md), "Export: figure", `apps/web/src/lib/figure.ts`) at 1200 × 630 pixels, in the light theme, without words but the logo.
+- **When.** When the link is made, and once a day after sync, in Standard mode with every recorded track in the browser, for each link whose fingerprint has changed: a flight edited, a track added, the log grown. The fingerprint is a hash of the words and of what the map draws.
+- **Kept with the link.** In `share_previews`, at most 600 KB of PNG and 160 and 400 characters of words. Stopping the link, leaving Standard and removing the account delete it. A link without one opens as before, with the page's plain title.
+- **On the page.** The server puts the preview in `/p/<id>`'s head as Open Graph tags (`og:title`, `og:description`, `og:image`) and as the page's title, and serves the picture at `/p/<id>/preview.png`, cached for an hour, its address changing with the fingerprint. A chat app that reads the page is not counted as an opening: the count is of the content's requests.
+- **What it reveals.** Anyone who sees the pasted address sees the preview, as they could open the link. Nothing beyond what the link shows.
 
 ### Managing links
 
@@ -291,11 +310,12 @@ Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Sta
 | `storage_connections` | `id`, `accountId`, `backend`, `format`, `location`, `externalAccount`, `scope`, `tokenCiphertext`, `tokenIv`, `tokenKeyId`, `tokenFormat`, `status` (`ok`, `broken`), `statusAt`, `createdAt`, `lastUsedAt` |
 | `consents` | `accountId`, `termsVersion`, `acceptedAt` |
 | `shares` | `id`, `accountId`, `kind` (`flight`, `sighting`, `aircraft`, `log`), `subject` (the record's id; empty for `log`), `anchor` (an aircraft link's flight or sighting, as `flights/<id>` or `sightings/<id>`), `createdAt`, `timesOpened`, `lastOpenedAt` |
+| `share_previews` | `shareId`, `title`, `description`, `image` (the PNG, base64), `fingerprint`, `updatedAt` ([Previews](#previews), server schema version 6) |
 | `meta` | `schemaVersion` |
 
-Not stored on the server: the log or any part of it (a link's row names its record only by id; the server's cache of a link's content lives in the Worker's cache, not the database, and expires on its own), access tokens, who opened a link, and request contents.
+Not stored on the server: the log or any part of it, but a link's preview, its words and picture, which the owner's browser sends (a link's row names its record only by id; the server's cache of a link's content lives in the Worker's cache, not the database, and expires on its own), access tokens, who opened a link, and request contents.
 
-Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data), `consents` and `shares` (server schema version 4).
+Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data), `consents` and `shares` (server schema version 4), `share_previews` (version 6).
 
 Protection (Proposed):
 - **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.

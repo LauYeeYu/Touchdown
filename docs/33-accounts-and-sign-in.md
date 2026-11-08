@@ -143,7 +143,7 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packa
 
 | `google_logins` | `stateHash`, `nonce`, `verifier`, `next`, `invite`, `name`, `linkAccountId`, `expiresAt`, `purpose` (`signin` or `storage`, for Standard): Google sign-ins under way |
 
-Standard mode's tables (`storage_connections`, `consents`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added them and `google_logins.purpose`, version 3 `sessions.kind` and `cli_logins`, and the server upgrades an older database when it starts.
+Standard mode's tables (`storage_connections`, `consents`, `shares`, `share_previews`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added the first two and `google_logins.purpose`, version 3 `sessions.kind` and `cli_logins`, version 6 `accounts.suspendedAt` and `share_previews`, and the server upgrades an older database when it starts.
 
 Never stored: passwords, Google's tokens, IP addresses, request contents. No request logs.
 

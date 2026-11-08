@@ -16,6 +16,8 @@ export interface ShareLink {
   createdAt: string;
   timesOpened: number;
   lastOpenedAt: string | null;
+  /** The fingerprint of the preview the server keeps for it (lib/preview.ts); null for none yet. */
+  previewFingerprint: string | null;
 }
 
 export interface SharesState {
@@ -33,7 +35,7 @@ export class TermsNeeded extends Error {
   }
 }
 
-async function request<T>(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<T> {
+async function request<T>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; terms?: number };
   if (res.status === 409 && typeof data.terms === "number") throw new TermsNeeded(data.terms, data.error ?? t("data.shares.termsNeeded"));
@@ -60,6 +62,9 @@ export function loadShares(): Promise<void> {
     });
   return loading;
 }
+
+/** The links as last read, or null before they are. */
+export const sharesNow = (): SharesState | null => state;
 
 /** The owner's links, loaded when first asked for in Standard mode; null until then, or in other modes. */
 export function useShares(standard: boolean): SharesState | null {
@@ -88,6 +93,12 @@ export const shares = {
     state = { links: [link, ...(state?.links ?? []).filter((l) => l.id !== link.id)], storage: state?.storage ?? "ok" };
     changed();
     return link;
+  },
+  /** Keep a link's preview (lib/preview.ts): its words, a PNG of its map, base64, and their fingerprint. */
+  async setPreview(id: string, preview: { title: string; description: string; image: string; fingerprint: string }): Promise<void> {
+    await request("PUT", `/api/shares/${encodeURIComponent(id)}/preview`, preview);
+    if (state) state = { ...state, links: state.links.map((l) => (l.id === id ? { ...l, previewFingerprint: preview.fingerprint } : l)) };
+    changed();
   },
   async stop(id: string): Promise<void> {
     await request("DELETE", `/api/shares/${encodeURIComponent(id)}`);

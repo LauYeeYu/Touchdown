@@ -189,6 +189,38 @@ describe("making share links", () => {
     expect((await call(t.s, t.owner, "GET", "/api/shares")).json.shares).toEqual([]);
   });
 
+  it("shows a preview the owner's browser made to chat apps, and drops it with the link", async () => {
+    const t = await site();
+    t.s.assets = { fetch: async () => new Response("<html><head><title>Touchdown</title></head><body></body></html>", { headers: { "Content-Type": "text/html" } }) };
+    const made = await make(t, { kind: "flight", subject: t.shared.id });
+    const id = made.json.id as string;
+    // Without a preview, the page as built.
+    expect((await open(t.s, `/p/${id}`)).text).not.toContain("og:image");
+    expect((await open(t.s, `/p/${id}/preview.png`)).status).toBe(404);
+
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+    const put = (body: Record<string, unknown>) => call(t.s, t.owner, "PUT", `/api/shares/${id}/preview`, body);
+    expect((await put({ title: "XY401: London to New York", description: "14 Mar 2026", image: "bm90IGEgcG5n", fingerprint: "0a1b2c3d" })).status).toBe(400);
+    expect((await put({ title: "XY401: London to New York", description: "14 Mar 2026 · <b>", image: png, fingerprint: "0a1b2c3d" })).status).toBe(200);
+    // A real picture is tens of kilobytes, up to 600 KB. Larger is refused.
+    const sized = (n: number) => Buffer.concat([Buffer.from(png, "base64"), Buffer.alloc(n)]).toString("base64");
+    expect((await put({ title: "XY401: London to New York", image: sized(590_000), fingerprint: "0a1b2c3d" })).status).toBe(200);
+    expect([400, 413]).toContain((await put({ title: "XY401: London to New York", image: sized(610_000), fingerprint: "0a1b2c3d" })).status);
+    expect((await put({ title: "XY401: London to New York", description: "14 Mar 2026 · <b>", image: png, fingerprint: "0a1b2c3d" })).status).toBe(200);
+    const page = await open(t.s, `/p/${id}`);
+    expect(page.text).toContain(`<meta property="og:title" content="XY401: London to New York">`);
+    expect(page.text).toContain("14 Mar 2026 · &lt;b&gt;");
+    expect(page.text).toContain(`/p/${id}/preview.png?v=0a1b2c3d`);
+    expect(page.text).toContain("<title>XY401: London to New York</title>");
+    const image = await open(t.s, `/p/${id}/preview.png`);
+    expect(image.res.headers.get("Content-Type")).toBe("image/png");
+    // Opening the preview is not counted as opening the link.
+    expect((await call(t.s, t.owner, "GET", "/api/shares")).json.shares).toMatchObject([{ previewFingerprint: "0a1b2c3d", timesOpened: 0 }]);
+
+    await call(t.s, t.owner, "DELETE", `/api/shares/${id}`);
+    expect(await t.s.db.first("SELECT shareId FROM share_previews")).toBeNull();
+    expect((await open(t.s, `/p/${id}/preview.png`)).status).toBe(404);
+  });
 
   it("stops a suspended owner's links, and opens them again when reinstated", async () => {
     const t = await site();

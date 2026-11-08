@@ -39,7 +39,16 @@ interface ShareRow {
   createdAt: string;
   timesOpened: number;
   lastOpenedAt: string | null;
+  /** The fingerprint of its preview, when it has one (share_previews). */
+  previewFingerprint?: string | null;
 }
+
+/** A preview's image: a PNG of at most this many bytes, its words at most this long (docs/32, "Previews"). */
+const PREVIEW_BYTES = 600_000;
+const PREVIEW_TITLE = 160;
+const PREVIEW_TEXT = 400;
+const FINGERPRINT = /^[0-9a-f]{8,64}$/;
+const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 /** 128 random bits, base64url: 22 characters. */
 const SHARE_ID = /^[A-Za-z0-9_-]{22}$/;
@@ -55,7 +64,13 @@ const shareJson = (s: Server, url: URL, r: ShareRow) => ({
   createdAt: r.createdAt,
   timesOpened: r.timesOpened,
   lastOpenedAt: r.lastOpenedAt,
+  previewFingerprint: r.previewFingerprint ?? null,
 });
+
+const bytesOf = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+/** Text for an HTML attribute. */
+const attr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // ---------- the owner's requests ----------
 
@@ -67,7 +82,10 @@ export async function shareApi(request: Request, s: Server, url: URL, now: numbe
   const nowIso = toUtcIso(now);
 
   if (method === "GET" && path === "/api/shares") {
-    const rows = await s.db.all<ShareRow>("SELECT * FROM shares WHERE accountId = ? ORDER BY createdAt DESC", [accountId]);
+    const rows = await s.db.all<ShareRow>(
+      "SELECT shares.*, share_previews.fingerprint AS previewFingerprint FROM shares LEFT JOIN share_previews ON share_previews.shareId = shares.id WHERE shares.accountId = ? ORDER BY shares.createdAt DESC",
+      [accountId],
+    );
     const conn = await s.db.first<{ status: string }>("SELECT status FROM storage_connections WHERE accountId = ?", [accountId]);
     return json(200, { shares: rows.map((r) => shareJson(s, url, r)), storage: conn?.status ?? null });
   }
@@ -101,13 +119,40 @@ export async function shareApi(request: Request, s: Server, url: URL, now: numbe
   }
 
   if (method === "DELETE" && path === "/api/shares") {
+    await s.db.run("DELETE FROM share_previews WHERE shareId IN (SELECT id FROM shares WHERE accountId = ?)", [accountId]);
     const n = await s.db.run("DELETE FROM shares WHERE accountId = ?", [accountId]);
     return json(200, { stopped: n });
   }
 
   const one = path.match(/^\/api\/shares\/([A-Za-z0-9_-]{22})$/);
   if (one && method === "DELETE") {
-    await s.db.run("DELETE FROM shares WHERE id = ? AND accountId = ?", [one[1]!, accountId]);
+    await s.db.batch([
+      { sql: "DELETE FROM share_previews WHERE shareId = ? AND shareId IN (SELECT id FROM shares WHERE accountId = ?)", params: [one[1]!, accountId] },
+      { sql: "DELETE FROM shares WHERE id = ? AND accountId = ?", params: [one[1]!, accountId] },
+    ]);
+    return json(200, { ok: true });
+  }
+
+  // A link's preview, made by the owner's browser: its words and a PNG of its map (docs/32, "Previews").
+  const preview = path.match(/^\/api\/shares\/([A-Za-z0-9_-]{22})\/preview$/);
+  if (preview && method === "PUT") {
+    if (!(await s.db.first("SELECT id FROM shares WHERE id = ? AND accountId = ?", [preview[1]!, accountId]))) throw new Fail(404, t("server.error.notFound"));
+    // The picture in base64 and the words, with room for JSON's escapes.
+    const b = await body(request, Math.ceil(PREVIEW_BYTES / 3) * 4 + 4 * (PREVIEW_TITLE + PREVIEW_TEXT) + 1_000);
+    const title = typeof b.title === "string" ? b.title.trim().slice(0, PREVIEW_TITLE) : "";
+    const description = typeof b.description === "string" ? b.description.trim().slice(0, PREVIEW_TEXT) : "";
+    const fingerprint = typeof b.fingerprint === "string" && FINGERPRINT.test(b.fingerprint) ? b.fingerprint : null;
+    let image: Uint8Array | null = null;
+    try {
+      image = typeof b.image === "string" && b.image.length <= (PREVIEW_BYTES * 4) / 3 + 4 ? bytesOf(b.image) : null;
+    } catch {
+      image = null;
+    }
+    if (!title || !fingerprint || !image || image.length > PREVIEW_BYTES || PNG.some((byte, i) => image![i] !== byte)) throw new Fail(400, t("server.share.badPreview"));
+    await s.db.run(
+      "INSERT INTO share_previews (shareId, title, description, image, fingerprint, updatedAt) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (shareId) DO UPDATE SET title = excluded.title, description = excluded.description, image = excluded.image, fingerprint = excluded.fingerprint, updatedAt = excluded.updatedAt",
+      [preview[1]!, title, description, b.image as string, fingerprint, nowIso],
+    );
     return json(200, { ok: true });
   }
 
@@ -171,7 +216,7 @@ async function inTurn<T>(items: T[], n: number, work: (item: T) => Promise<void>
 export async function sharePage(request: Request, s: Server, url: URL, now: number, shareFiles: string): Promise<Response> {
   if (request.method !== "GET" && request.method !== "HEAD") return json(405, { error: t("server.share.notAllowed") });
   if (tooMany(request, now)) return json(429, { error: t("server.share.tooMany") }, { "Retry-After": "60" });
-  const m = url.pathname.match(/^\/p\/([^/]+)(?:\/(content|tracks))?\/?$/);
+  const m = url.pathname.match(/^\/p\/([^/]+)(?:\/(content|tracks|preview\.png))?\/?$/);
   const id = m?.[1] && SHARE_ID.test(m[1]) ? m[1] : null;
   // A suspended owner's links answer as stopped ones do, and work again when the owner is reinstated (docs/33).
   const share = id ? await s.db.first<ShareRow & { ownerName: string }>("SELECT shares.*, accounts.name AS ownerName FROM shares JOIN accounts ON accounts.id = shares.accountId WHERE shares.id = ? AND accounts.suspendedAt IS NULL", [id]) : null;
@@ -183,9 +228,32 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
     const headers = new Headers(request.headers);
     for (const h of ["If-None-Match", "If-Modified-Since"]) headers.delete(h);
     const page = await s.assets.fetch(new Request(new URL(`${shareFiles}share.html`, url), { headers }));
-    return new Response(page.body, { status: share ? 200 : 404, headers: page.headers });
+    const preview = share ? await s.db.first<{ title: string; description: string; fingerprint: string }>("SELECT title, description, fingerprint FROM share_previews WHERE shareId = ?", [share.id]) : null;
+    if (!share || !preview || !page.ok) return new Response(page.body, { status: share ? 200 : 404, headers: page.headers });
+    // The link's preview for chat apps, which read it from the page's head (Open Graph): its words and its picture.
+    const image = `${siteOrigin(s, url)}/p/${share.id}/preview.png?v=${preview.fingerprint}`;
+    const tags = [
+      `<meta property="og:type" content="website">`,
+      `<meta property="og:site_name" content="Touchdown">`,
+      `<meta property="og:url" content="${attr(`${siteOrigin(s, url)}/p/${share.id}`)}">`,
+      `<meta property="og:title" content="${attr(preview.title)}">`,
+      preview.description ? `<meta property="og:description" content="${attr(preview.description)}">` : "",
+      `<meta property="og:image" content="${attr(image)}">`,
+      `<meta property="og:image:width" content="1200">`,
+      `<meta property="og:image:height" content="630">`,
+      `<meta name="twitter:card" content="summary_large_image">`,
+    ].join("");
+    const html = (await page.text()).replace(/<title>[^<]*<\/title>/, `<title>${attr(preview.title)}</title>`).replace("</head>", `${tags}</head>`);
+    const out = new Headers(page.headers);
+    for (const h of ["Content-Length", "ETag", "Content-Encoding"]) out.delete(h);
+    return new Response(html, { status: 200, headers: out });
   }
   if (!share) return NOT_FOUND();
+  if (m[2] === "preview.png") {
+    const row = await s.db.first<{ image: string }>("SELECT image FROM share_previews WHERE shareId = ?", [share.id]);
+    if (!row) return NOT_FOUND();
+    return new Response(bytesOf(row.image), { status: 200, headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=3600" } });
+  }
   const flights = m[2] === "tracks" ? [...new Set((url.searchParams.get("flights") ?? "").split(",").filter(Boolean))] : [];
   if (m[2] === "tracks" && (!flights.length || flights.length > TRACKS_AT_ONCE || !flights.every((f) => RECORD_ID.test(f)))) return json(400, { error: t("server.share.tracksAtOnce", { max: TRACKS_AT_ONCE }) });
 

@@ -15,9 +15,11 @@ import { momentLabel } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "./overlay.tsx";
+import { sendPreview } from "../lib/preview.ts";
 import { StandardTerms, TERMS_VERSION } from "./StandardTerms.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 
 /** How often a link was opened: "Opened 3 times, last 29 Oct 2026, 14:05 UTC+1", "Not opened yet". */
 export function openedText(l: ShareLink): string {
@@ -74,6 +76,7 @@ export function ShareLogButton() {
 }
 
 export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: ShareKind; subject: string | null; anchor?: string | null; onClose: () => void }) {
+  const { app } = useApp();
   const dialog = useRef<HTMLDialogElement>(null);
   const list = useShares(true);
   const link = linkFor(list, kind, subject);
@@ -100,7 +103,9 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
     setBusy(true);
     setProblem(null);
     try {
-      await shares.make(kind, subject, anchor);
+      const link = await shares.make(kind, subject, anchor);
+      // Its preview for chat apps, drawn here (lib/preview.ts). The link works without one.
+      if (!link.previewFingerprint) void sendPreview(app, link).catch((e: unknown) => console.warn("The link's preview was not made:", e));
     } catch (e) {
       if (e instanceof TermsNeeded) setTerms(true);
       else setProblem(message(e));

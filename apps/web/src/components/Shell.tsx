@@ -15,6 +15,7 @@ import { download } from "../lib/download.ts";
 import { dayMonthYear, momentLabel, momentShort, nf } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
 import { useSyncInfo } from "./ModeChoice.tsx";
+import { refreshPreviews } from "../lib/preview.ts";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
@@ -181,6 +182,19 @@ export function Shell() {
 
   const sync = useSyncInfo(app);
   const local = app.connection?.mode === "local";
+  // Once a day after sync in Standard mode, the previews of links that show something else now (lib/preview.ts).
+  const notHereYet = sync ? app.tracksNotHere() : 0;
+  useEffect(() => {
+    if (app.connection?.mode !== "standard" || sync?.state !== "synced" || notHereYet || app.readOnly) return;
+    const today = todayIn();
+    try {
+      if (localStorage.getItem("td-previews") === today) return;
+      localStorage.setItem("td-previews", today);
+    } catch {
+      return;
+    }
+    void refreshPreviews(app).catch((e: unknown) => console.warn("Link previews were not refreshed:", e));
+  }, [app, sync?.state, notHereYet]);
   const backupDue = useBackupDue(local, app.connection?.since ?? null, version);
   const [backupLater, setBackupLater] = useState(false);
   const notHere = sync ? app.tracksNotHere() : 0;

@@ -73,6 +73,7 @@ export function Guide() {
         <p>{t("guide.sharing.how")}</p>
         <ul className="guide__points">
           <li>{t("guide.sharing.anyone")}</li>
+          <li>{t("guide.sharing.preview")}</li>
           <li>{t("guide.sharing.private")}</li>
         </ul>
       </Step>
@@ -332,6 +333,10 @@ function ShareFigure() {
         <span>
           <Icon name="lock" />
           {t("guide.sharing.figure.private")}
+        </span>
+        <span>
+          <Icon name="map" />
+          {t("guide.sharing.figure.preview")}
         </span>
         <span>
           <Icon name="cloud" />

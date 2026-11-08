@@ -49,5 +49,6 @@
   "device.cli": "{system}上的命令列",
   "serve.notFound": "找不到",
   "serve.error": "伺服器錯誤",
-  "error.suspended": "這個帳戶已被暫停。請聯絡邀請你的人。"
+  "error.suspended": "這個帳戶已被暫停。請聯絡邀請你的人。",
+  "share.badPreview": "不是有效的預覽：需要標題和一張600 KB以內的PNG圖片。"
 }

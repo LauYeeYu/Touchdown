@@ -44,5 +44,9 @@
   "links.made": "Erstellt am {date}",
   "links.gone": "laut Link nicht mehr geteilt",
   "links.more": "Mehr zu {title}",
-  "links.open": "Link öffnen"
+  "links.open": "Link öffnen",
+  "preview.flight": "{named, select, yes {{flight}: {from} nach {to}} other {{from} nach {to}}}",
+  "preview.seen": "{dated, select, yes {Gesehen in {place} am {date}} other {Gesehen in {place}}}",
+  "preview.log": "Logbuch von \u2068{owner}\u2069",
+  "preview.logUnnamed": "Ein geteiltes Logbuch"
 }

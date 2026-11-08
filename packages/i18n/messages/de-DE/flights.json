@@ -11,6 +11,7 @@
   "legend.noneRecorded": "Großkreise: keine aufgezeichneten Flugwege für diese Flüge",
   "legend.notRecorded": "Nicht aufgezeichnet",
   "legend.globe": "Auf dem Globus erkunden",
+  "figure.failed": "Das Bild konnte nicht erstellt werden. Versuch es noch einmal.",
   "map.label": "Karte mit {count, plural, one {#\u00a0Flug} other {#\u00a0Flügen}}{filtered, select, yes {, davon {shown} passend zu Suche und Filtern} other {}}",
   "filters.search": "Flüge durchsuchen",
   "filters.placeholder": "Flugnummer, Strecke, Flughafen, Kennzeichen oder Typ",

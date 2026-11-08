@@ -11,6 +11,12 @@
         ],
         "createdAt": "2026-10-18T04:54:39.804Z",
         "reason": "user confirmed: the owner chose to keep #FAF8F1 (their gallery site's page ground) over white"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "source sans 3 variable",
+        "createdAt": "2026-11-08T03:59:49.883Z",
+        "reason": "Claude: the family name @fontsource-variable registers for Source Sans 3, the typeface DESIGN.md names; app.css --sans uses it"
       }
     ]
   }

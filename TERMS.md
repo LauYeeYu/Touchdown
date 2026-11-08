@@ -20,7 +20,7 @@ These terms cover the Touchdown website run from this repository by its owner. B
 - Your log is yours. It is kept in your browser and in storage you choose. The [privacy policy](PRIVACY.md) says what the server keeps.
 - You are responsible for your own storage and for keeping backups. In Local mode the browser holds the only copy.
 - Do not enter other people's personal data unless you may.
-- In Standard mode you can share links. Anyone who has a link can open it, without signing in, until you stop it, and it shows the notes and photo links on that page. Share only what you are happy for others to see, and stop a link on the Shared links page when it should no longer work.
+- In Standard mode you can share links. Anyone who has a link can open it, without signing in, until you stop it, and it shows the notes and photo links on that page. Pasted into a chat app, its address shows a preview: a title, a line under it and a picture of its map. Share only what you are happy for others to see, and stop a link on the Shared links page when it should no longer work.
 
 ## Use
 

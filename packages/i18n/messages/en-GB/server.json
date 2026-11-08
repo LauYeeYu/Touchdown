@@ -49,5 +49,6 @@
   "device.cli": "Command line on {system}",
   "serve.notFound": "Not found",
   "serve.error": "Server error",
-  "error.suspended": "This account is suspended. Ask the person who invited you."
+  "error.suspended": "This account is suspended. Ask the person who invited you.",
+  "share.badPreview": "Not a preview: a title and a PNG image of up to 600 KB are needed."
 }

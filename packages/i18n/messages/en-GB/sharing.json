@@ -44,5 +44,9 @@
   "links.made": "Made {date}",
   "links.gone": "the link says it is no longer shared",
   "links.more": "More for {title}",
-  "links.open": "Open the link"
+  "links.open": "Open the link",
+  "preview.flight": "{named, select, yes {{flight}: {from} to {to}} other {{from} to {to}}}",
+  "preview.seen": "{dated, select, yes {Seen at {place} on {date}} other {Seen at {place}}}",
+  "preview.log": "\u2068{owner}\u2069’s log",
+  "preview.logUnnamed": "A shared log"
 }

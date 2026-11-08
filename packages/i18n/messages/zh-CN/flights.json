@@ -11,6 +11,7 @@
   "legend.noneRecorded": "大圆航线（都没有轨迹）",
   "legend.notRecorded": "无记录",
   "legend.globe": "打开3D地球",
+  "figure.failed": "无法生成图片。请重试。",
   "map.label": "{count, plural, other {#个航班}}的地图{filtered, select, yes {，其中{shown}个符合搜索和筛选条件} other {}}",
   "filters.search": "搜索航班",
   "filters.placeholder": "航班号、航线、机场、注册号或机型",

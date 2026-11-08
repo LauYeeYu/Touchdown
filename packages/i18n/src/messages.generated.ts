@@ -1471,6 +1471,7 @@ export interface MessageArgs {
   "flights.legend.noneRecorded": {};
   "flights.legend.notRecorded": {};
   "flights.legend.globe": {};
+  "flights.figure.failed": {};
   "flights.map.label": { count: "number"; filtered: "choice"; shown: "text" };
   "flights.filters.search": {};
   "flights.filters.placeholder": {};
@@ -1674,6 +1675,7 @@ export interface MessageArgs {
   "guide.sharing.title": {};
   "guide.sharing.how": {};
   "guide.sharing.anyone": {};
+  "guide.sharing.preview": {};
   "guide.sharing.private": {};
   "guide.sharing.figure.record": {};
   "guide.sharing.figure.record.sub": {};
@@ -1681,6 +1683,7 @@ export interface MessageArgs {
   "guide.sharing.figure.page": {};
   "guide.sharing.figure.page.sub": {};
   "guide.sharing.figure.private": {};
+  "guide.sharing.figure.preview": {};
   "guide.sharing.figure.mode": {};
   "guide.export.title": {};
   "guide.export.text": { "<link>": "tag" };
@@ -2384,6 +2387,7 @@ export interface MessageArgs {
   "server.serve.notFound": {};
   "server.serve.error": {};
   "server.error.suspended": {};
+  "server.share.badPreview": {};
   "settings.syncMode": {};
   "settings.mode.standard.name": {};
   "settings.mode.standard.tag": {};
@@ -2620,6 +2624,10 @@ export interface MessageArgs {
   "sharing.links.gone": {};
   "sharing.links.more": { title: "text" };
   "sharing.links.open": {};
+  "sharing.preview.flight": { flight: "text"; from: "text"; named: "choice"; to: "text" };
+  "sharing.preview.seen": { date: "text"; dated: "choice"; place: "text" };
+  "sharing.preview.log": { owner: "text" };
+  "sharing.preview.logUnnamed": {};
   "shell.notFound.what": {};
   "shell.notFound.home": {};
   "shell.emptyLog.notRead": { place: "text" };
