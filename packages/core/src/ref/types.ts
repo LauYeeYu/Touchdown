@@ -2,7 +2,7 @@
 // packages/refdata builds them; the app reads them with the user's *_overrides applied on top.
 
 export interface Airport {
-  id: string; // ap_<icao lower>, or ap_<ourairports ident lower> when there is no ICAO code
+  id: string; // ap_<icao lower>, or ap_<ourairports ident lower> when there is no ICAO code; the user's own: a ULID
   icao: string | null;
   iata: string | null;
   name: string;
@@ -93,6 +93,37 @@ export function rowsToObjects<T>(file: RefTableFile): T[] {
     file.columns.forEach((c, i) => (out[c] = row[i] ?? null));
     return out as T;
   });
+}
+
+/**
+ * The user's own airport (an airport_overrides row) in the reference shape. Null while it lacks a position or a time
+ * zone, which every airport needs (distances, maps, local times).
+ */
+export function airportFromOverride(row: {
+  id: string;
+  icao: string | null;
+  iata: string | null;
+  name: string | null;
+  city: string | null;
+  country: string | null;
+  lat: number | null;
+  lon: number | null;
+  elevationFt: number | null;
+  tz: string | null;
+}): Airport | null {
+  if (row.lat === null || row.lon === null || !row.tz) return null;
+  return {
+    id: row.id,
+    icao: row.icao,
+    iata: row.iata,
+    name: row.name ?? row.icao ?? row.iata ?? row.id,
+    city: row.city,
+    country: row.country ?? "",
+    lat: row.lat,
+    lon: row.lon,
+    elevationFt: row.elevationFt,
+    tz: row.tz,
+  };
 }
 
 /** The user's own operator (an operator_overrides row) in the reference shape. */

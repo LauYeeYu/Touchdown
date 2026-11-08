@@ -68,6 +68,7 @@
   "dateFuture": "{label}：{date}\u2060是未来的日期。只记录已飞过的航班和过去的拍摄记录。",
   "beforeFirstFlight": "{label}的日期早于飞机首飞（{date}）。",
   "airportKnown": "{label}：无法识别机场代码{code}。",
+  "airportNotLinked": "{label}：保存这条记录时还无法识别机场代码{code}。",
   "airportSame": "{label}的出发和到达机场都是{airport}。",
   "operatorKnown": "{label}：无法识别航空公司代码{code}。",
   "flightNumberFormat": "{flightNumber}不是有效的航班号（应为航空公司代码加1–4位数字）。",

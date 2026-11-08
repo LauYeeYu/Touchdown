@@ -175,8 +175,10 @@ describe("airfields", () => {
   });
 
   it("include small airfields that private flights use", async () => {
-    expect(ref.airports.find((a) => a.icao === "EGLM")).toBeUndefined();
-    expect((await loadAirfields()).find((a) => a.icao === "EGLM")).toMatchObject({ id: "ap_eglm", country: "GB", tz: "Europe/London" });
+    const index = new RefIndex(ref);
+    expect(index.airportByCode("EGLM")).toBeNull();
+    index.addReferenceAirports(await loadAirfields());
+    expect(index.airportByCode("EGLM")).toMatchObject({ id: "ap_eglm", country: "GB", tz: "Europe/London" });
   });
 });
 

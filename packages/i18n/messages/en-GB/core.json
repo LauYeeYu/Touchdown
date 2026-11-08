@@ -37,6 +37,8 @@
   "facts.now": "now",
   "facts.gone": "the aircraft is no longer in the log",
   "edit.namedOperator": "Added {name} as an operator and linked {count, plural, one {{count} entry} other {{count} entries}} to it.",
+  "edit.ownAirport": "{count, plural, =0 {Saved {code}.} one {Saved {code} and linked {count} entry to it.} other {Saved {code} and linked {count} entries to it.}}",
+  "edit.linkedAirport": "Linked {count, plural, one {{count} entry} other {{count} entries}} to {code}.",
   "backup.noManifest": "No manifest.json: this is not a Touchdown backup.",
   "backup.notManifest": "The manifest is not a Touchdown manifest.",
   "backup.newer": "The backup uses schema version {version}, and this app understands only up to {supported}. Reload the app to update it.",

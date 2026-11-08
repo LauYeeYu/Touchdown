@@ -6,6 +6,7 @@ export * from "./time/index.ts";
 export * from "./geo/index.ts";
 export * from "./ids.ts";
 export * from "./ref/index.ts";
+export * from "./airports.ts";
 export * from "./normalise/index.ts";
 export * from "./normalise/record.ts";
 export * from "./store.ts";

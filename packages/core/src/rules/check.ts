@@ -2,7 +2,7 @@
 // lookup service and arrive in phase 4.
 
 import { inSentence, locale, series, t, tDynamic } from "@touchdown/i18n";
-import { looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
+import { airportName, looksLikeOperatorName, type RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Finding, RecordRef, Severity, SuggestedFix } from "./types.ts";
@@ -82,6 +82,21 @@ function flightLabel(f: Flight): string {
   const date = f.scheduledDate ?? flightDay(f);
   if (f.flightNumber && date) return t("rules.label.flight", { flightNumber: f.flightNumber, date });
   return f.flightNumber || date || t("rules.label.thisFlight");
+}
+
+/**
+ * An airport code as typed with no airport linked. A code known now was saved before its airport was (a small
+ * airfield, or one the user added since): the fix links every record with it.
+ */
+function checkAirportCode(out: Collector, r: RecordRef, field: string, raw: string | null, linked: boolean, ref: RefIndex, label: string) {
+  if (!raw || linked) return;
+  const known = ref.airportByCode(raw);
+  if (!known) {
+    out.add("V-AIRPORT-KNOWN", "error", [r], [field], t("rules.airportKnown", { label, code: raw }), [raw]);
+    return;
+  }
+  const value = t("format.nameWithCode", { name: airportName(known), code: known.icao ?? known.iata ?? raw });
+  out.add("V-AIRPORT-KNOWN", "error", [r], [field], t("rules.airportNotLinked", { label, code: raw }), [raw], [{ ...r, field, value: known.id, airportCode: raw, label: t("rules.fix.use", { value }) }]);
 }
 
 /** For a company's name in the airline field ("Hyundai"): add it as the user's own operator. */
@@ -172,8 +187,8 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
 
   const from = ref.airport(f.fromAirportId);
   const to = ref.airport(f.toAirportId);
-  if (f.fromRaw && !from) out.add("V-AIRPORT-KNOWN", "error", [r], ["fromAirportId"], t("rules.airportKnown", { label, code: f.fromRaw }), [f.fromRaw]);
-  if (f.toRaw && !to) out.add("V-AIRPORT-KNOWN", "error", [r], ["toAirportId"], t("rules.airportKnown", { label, code: f.toRaw }), [f.toRaw]);
+  checkAirportCode(out, r, "fromAirportId", f.fromRaw, !!from, ref, label);
+  checkAirportCode(out, r, "toAirportId", f.toRaw, !!to, ref, label);
   if (from && to && from.id === to.id && !f.divertedToAirportId) {
     out.add("V-AIRPORT-SAME", "warning", [r], ["fromAirportId", "toAirportId"], t("rules.airportSame", { label, airport: from.iata ?? from.icao ?? "" }), [from.id]);
   }
@@ -312,7 +327,7 @@ function checkSighting(out: Collector, s: Sighting, ref: RefIndex, today: string
   if (s.seenAt && s.seenOn && localDateOf(s.seenAt) !== s.seenOn) {
     out.add("V-TIMES-ORDER", "error", [r], ["seenAt"], t("rules.seenAt", { label, time: s.seenAt, date: s.seenOn }), [s.seenAt, s.seenOn]);
   }
-  if (s.airportRaw && !ref.airport(s.airportId)) out.add("V-AIRPORT-KNOWN", "error", [r], ["airportId"], t("rules.airportKnown", { label, code: s.airportRaw }), [s.airportRaw]);
+  checkAirportCode(out, r, "airportId", s.airportRaw, !!ref.airport(s.airportId), ref, label);
   const op = ref.operator(s.operatorId);
   if (s.operatorRaw && !op) out.add("V-OPERATOR-KNOWN", "error", [r], ["operatorId"], t("rules.operatorKnown", { label, code: s.operatorRaw }), [s.operatorRaw], namedOperatorFix(r, "operatorId", s.operatorRaw));
   checkAircraftFields(out, r, s, ref, op && op.kind !== "private" ? op.country : null, label);

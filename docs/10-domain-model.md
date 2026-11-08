@@ -114,7 +114,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `kind` | enum | `airline` | `airline`, `cargo`, `charter`, `business`, `private`, `government`, `military`, `manufacturer`, `lessor`, `other`. "Private Owner" maps to a generic `private` operator. |
 | `validFrom`, `validTo` | date | | |
 
-**airports**
+**airports**, and **airfields** with the same columns (small airfields with an ICAO code, loaded only when a record needs one: [13](13-reference-data.md), "Airports")
 
 | Column | Type | Example | Notes |
 |--------|------|---------|-------|
@@ -295,6 +295,8 @@ The values of `storageBackend` and `storageAdapter` come from one registry in co
 **saved_view_filters**: `viewId` (ref saved_views), `dimension` (text), `operator` (enum `eq`, `in`, `between`), `value` (text). One row a value, written with `in`: the rows of one dimension keep a record with any of their values, and the dimensions all hold ([24](24-statistics.md), "Custom view"). `eq` is read the same way; `between` is not used yet.
 
 **airport_overrides**, **operator_overrides**, **aircraft_type_overrides**: the same columns as the reference tables, plus system columns.
+
+An **airport_overrides** row is an airport of the user's own ([31](31-ui.md), "Airports of your own"): its id is a ULID, its code is in `icao` (four letters or digits) or `iata` (three), and it is used only with a position and a time zone. It comes before the reference tables, with the same code too. One code is one row: adding a code the user has an airport for changes that one, and two devices that add the same code end with one ([12](12-storage-and-sync.md), "Settling what two devices made").
 
 ## Schema versions
 

@@ -37,6 +37,8 @@
   "facts.now": "现在",
   "facts.gone": "这架飞机已不在日志中",
   "edit.namedOperator": "已将{name}添加为运营方，并关联了{count, plural, other {{count}条记录}}。",
+  "edit.ownAirport": "{count, plural, =0 {已保存{code}。} other {已保存{code}，并关联了{count}条记录。}}",
+  "edit.linkedAirport": "已将{count, plural, other {{count}条记录}}关联到{code}。",
   "backup.noManifest": "没有manifest.json：这不是Touchdown备份。",
   "backup.notManifest": "这不是Touchdown的manifest。",
   "backup.newer": "这个备份的数据结构版本是{version}，而当前应用最高只支持{supported}。重新加载应用即可更新。",

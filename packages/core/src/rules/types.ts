@@ -22,6 +22,11 @@ export interface SuggestedFix {
    * operator (`value` is unused). For an airline field holding a company's name ("Hyundai").
    */
   operatorName?: string;
+  /**
+   * Set `field` to `value` (an airport's id) on every flight and sighting that has this airport code as typed and no
+   * known airport: records saved before their airport was known.
+   */
+  airportCode?: string;
 }
 
 export interface Finding {

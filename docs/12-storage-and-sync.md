@@ -139,6 +139,7 @@ Sync merges versions of one row. Some rows mean the same thing but were made twi
 | An aircraft for a registration new to the log | One aircraft (the smallest id), with every record linked to it ([11](11-aircraft-identity.md), "Identity key"). |
 | Two aircraft with one serial number | One aircraft (a confirmed one, else the smallest id); facts the other had and this one lacks are taken, and a fact the user set differently on each is listed. |
 | The user's own operator (named in the airline field, or one code) | One operator; every flight, sighting and operator period points at it. A field set differently on each is listed. |
+| The user's own airport (one code) | One airport; every flight and sighting points at it. A field set differently on each is listed. |
 | A type moved to a family | The later choice stays; a different one is listed. |
 | A finding accepted ("This looks right") | One acceptance, with both notes. Reopening reopens every acceptance of the finding. |
 | The same tag, photo link, registration or operator period, provenance, identifier, view filter | One row. |

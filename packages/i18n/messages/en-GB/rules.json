@@ -68,6 +68,7 @@
   "dateFuture": "{label}: {date} is in the future. Only flown flights and past sightings are logged.",
   "beforeFirstFlight": "{label} is dated before the aircraft's first flight ({date}).",
   "airportKnown": "{label}: airport code {code} is not known.",
+  "airportNotLinked": "{label}: airport code {code} was not known when the entry was saved.",
   "airportSame": "{label} departs from and arrives at {airport}.",
   "operatorKnown": "{label}: airline code {code} is not known.",
   "flightNumberFormat": "{flightNumber} is not a flight number (airline code + 1–4 digits).",

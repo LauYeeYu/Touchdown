@@ -14,6 +14,7 @@ import {
   resolveConflict,
   rowKey,
   saveFlight,
+  saveOwnAirport,
   saveSighting,
   Store,
   TABLES,
@@ -104,6 +105,26 @@ describe("settling what two devices made side by side", () => {
     const [op] = log.all("operator_overrides");
     expect(log.all("operator_overrides")).toHaveLength(1);
     expect([log.get("flights", f.id)?.airlineId, log.get("flights", g.id)?.airlineId]).toEqual([op!.id, op!.id]);
+    expect(openConflicts(log)).toEqual([]);
+  });
+
+  it("makes one of the user's own airport added on both, and points every record at it", () => {
+    const { a, b, together } = twoDevices();
+    const strip = { code: "XFRM", name: "Example Farm Strip", city: null, country: "GB", lat: 51.6, lon: -1.2, tz: "Europe/London" };
+    const f = saveFlight(a, ref(), { scheduledDate: "2026-03-14", fromRaw: "XFRM", toRaw: "LHR" }).row;
+    const g = saveSighting(b, ref(), { seenOn: "2026-03-15", airportRaw: "XFRM", registrationRaw: "G-ABCD" }).row;
+    saveOwnAirport(a, ref(), strip);
+    saveOwnAirport(b, ref(), { ...strip, city: "Exampleton" });
+    const log = together();
+    expect(log.all("airport_overrides")).toHaveLength(2);
+
+    const index = ref();
+    reconcile(log, index, NOW);
+    const [ap] = log.all("airport_overrides");
+    expect(log.all("airport_overrides")).toHaveLength(1);
+    expect(ap).toMatchObject({ icao: "XFRM", city: "Exampleton" });
+    expect([log.get("flights", f.id)?.fromAirportId, log.get("sightings", g.id)?.airportId]).toEqual([ap!.id, ap!.id]);
+    expect(index.airportByCode("XFRM")?.id).toBe(ap!.id);
     expect(openConflicts(log)).toEqual([]);
   });
 

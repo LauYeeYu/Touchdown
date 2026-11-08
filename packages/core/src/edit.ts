@@ -4,7 +4,7 @@
 // and links records to airframes again; the result of that linking is returned, for the checks that use it.
 
 import { t } from "@touchdown/i18n";
-import { operatorFromOverride, type RefIndex } from "./ref/index.ts";
+import { airportFromOverride, operatorFromOverride, type RefIndex } from "./ref/index.ts";
 import { TABLES, type FlightValues, type Row, type Settings, type SightingValues, type TableName } from "./schema/tables.ts";
 import type { Store } from "./store.ts";
 import type { Finding, SuggestedFix } from "./rules/types.ts";
@@ -219,11 +219,81 @@ export function addNamedOperator(store: Store, ref: RefIndex, name: string, opts
   });
 }
 
+/** An airport the user adds or changes: the code typed in records, and what every airport needs. */
+export interface OwnAirportValues {
+  code: string;
+  name: string;
+  city: string | null;
+  country: string | null;
+  lat: number;
+  lon: number;
+  tz: string;
+}
+
+const codeKey = (s: string | null | undefined) => (s ?? "").trim().toUpperCase();
+
+/**
+ * Link every flight and sighting that has one of these codes as typed and no known airport to an airport. Returns how
+ * many records it changed.
+ */
+function linkAirportRecords(store: Store, ref: RefIndex, codes: (string | null | undefined)[], airportId: string, opts: EditOptions): number {
+  const keys = new Set(codes.map(codeKey).filter(Boolean));
+  let linked = 0;
+  for (const f of store.all("flights")) {
+    const patch: Partial<FlightValues> = {};
+    if (keys.has(codeKey(f.fromRaw)) && !ref.airport(f.fromAirportId)) patch.fromAirportId = airportId;
+    if (keys.has(codeKey(f.toRaw)) && !ref.airport(f.toAirportId)) patch.toAirportId = airportId;
+    if (!Object.keys(patch).length) continue;
+    keepHistory(store, "flights", f.id, opts);
+    store.update("flights", f.id, patch);
+    linked++;
+  }
+  for (const s of store.all("sightings")) {
+    if (!keys.has(codeKey(s.airportRaw)) || ref.airport(s.airportId)) continue;
+    keepHistory(store, "sightings", s.id, opts);
+    store.update("sightings", s.id, { airportId });
+    linked++;
+  }
+  return linked;
+}
+
+/**
+ * Add an airport of the user's own, or change one (`id`), and link every flight and sighting that has its code as
+ * typed (or `raw`, what the record that asked for it has) and no known airport. A code the user has an airport for
+ * already changes that one. A four-character code is an ICAO code, three letters an IATA code.
+ */
+export function saveOwnAirport(store: Store, ref: RefIndex, v: OwnAirportValues, opts: EditOptions & { id?: string; raw?: string } = {}): { row: Row<"airport_overrides">; linked: number; message: string } {
+  const code = codeKey(v.code);
+  const values = {
+    icao: code.length === 4 ? code : null,
+    iata: code.length === 3 ? code : null,
+    name: v.name.trim(),
+    city: v.city?.trim() || null,
+    country: v.country || null,
+    lat: v.lat,
+    lon: v.lon,
+    tz: v.tz,
+  };
+  return store.batch(() => {
+    const same = store.all("airport_overrides").find((a) => codeKey(a.icao ?? a.iata) === code);
+    const id = opts.id && store.get("airport_overrides", opts.id) ? opts.id : same?.id;
+    const row = id ? store.update("airport_overrides", id, values) : store.insert("airport_overrides", values);
+    ref.addOwnAirport(airportFromOverride(row)!);
+    const linked = linkAirportRecords(store, ref, [code, opts.raw], row.id, opts);
+    return { row, linked, message: t("core.edit.ownAirport", { code, count: linked }) };
+  });
+}
+
 /** Apply a suggested fix; `message` says what it did when that was more than the one record. */
 export function applyFix(store: Store, ref: RefIndex, fix: SuggestedFix, opts: EditOptions = {}): { message: string | null; resolved: ResolveResult } {
   if (fix.operatorName) {
     const r = addNamedOperator(store, ref, fix.operatorName, opts);
     return { message: r.message, resolved: r.resolved };
+  }
+  if (fix.airportCode && typeof fix.value === "string") {
+    const airportId = fix.value;
+    const linked = store.batch(() => linkAirportRecords(store, ref, [fix.airportCode], airportId, opts));
+    return { message: t("core.edit.linkedAirport", { code: codeKey(fix.airportCode), count: linked }), resolved: resolveAirframes(store, ref) };
   }
   return store.batch(() => {
     keepHistory(store, fix.table, fix.id, opts);
@@ -370,9 +440,13 @@ export function removeView(store: Store, id: string) {
   });
 }
 
-/** The user's own operators and family choices, for the reference index (RefIndex.setUserOverrides). */
+/** The user's own airports, operators and family choices, for the reference index (RefIndex.setUserOverrides). */
 export function refOverridesOf(store: Store) {
   return {
+    airports: store
+      .all("airport_overrides")
+      .map((a) => airportFromOverride(a))
+      .filter((a) => a !== null),
     operators: store.all("operator_overrides").map((o) => operatorFromOverride(o)),
     familyOverrides: store
       .all("family_overrides")

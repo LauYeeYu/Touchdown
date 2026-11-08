@@ -1,9 +1,9 @@
 // Settling what two devices made side by side (docs/12, "Settling what two devices made"). Sync merges versions of
 // one row; this settles rows that mean the same thing but were made twice, once on each device before either saw the
-// other's: the same file imported on both, an operator or a family choice added on both, a finding accepted on both,
-// a tag added on both, two tracks for one flight. Every device settles them the same way (the earlier or the smaller
-// id stays), so the result syncs without new conflicts. Nothing is dropped: what is kept takes the other's values
-// where it has none, and a value set differently on each is listed for the user (conflicts.ts).
+// other's: the same file imported on both, an operator, an airport or a family choice added on both, a finding
+// accepted on both, a tag added on both, two tracks for one flight. Every device settles them the same way (the
+// earlier or the smaller id stays), so the result syncs without new conflicts. Nothing is dropped: what is kept takes
+// the other's values where it has none, and a value set differently on each is listed for the user (conflicts.ts).
 
 import { conflictMatters, listConflict } from "./conflicts.ts";
 import { toUtcIso } from "./time/index.ts";
@@ -125,6 +125,18 @@ function operatorsAddedTwice(store: Store, now: number, report: ReconcileReport)
       // A name written in other capitals or spacing is the same name: the first spelling stays.
       const sameName = norm(String(into!.name ?? "")) === norm(String(from.name ?? ""));
       fold(store, "operator_overrides", into!, from, now, fields("operator_overrides").filter((f) => !(sameName && f === "name")));
+      report.merged++;
+    }
+  }
+}
+
+/** The user's own airport added on two devices (by code): one stays, and every record points at it. */
+function airportsAddedTwice(store: Store, now: number, report: ReconcileReport) {
+  const key = (a: Values) => (a.icao ? `icao:${String(a.icao).toUpperCase()}` : a.iata ? `iata:${String(a.iata).toUpperCase()}` : null);
+  for (const [into, ...rest] of groupsOf(store, "airport_overrides", key)) {
+    for (const from of rest) {
+      repoint(store, [["flights", "fromAirportId"], ["flights", "toAirportId"], ["flights", "divertedToAirportId"], ["sightings", "airportId"]], String(from.id), String(into!.id));
+      fold(store, "airport_overrides", into!, from, now, fields("airport_overrides"));
       report.merged++;
     }
   }
@@ -288,6 +300,7 @@ export function reconcile(store: Store, ref: RefIndex, now: number = Date.now())
     settleOlder(store);
     sameFileImportedTwice(store, report);
     operatorsAddedTwice(store, now, report);
+    airportsAddedTwice(store, now, report);
     familiesChosenTwice(store, now, report);
     findingsAcceptedTwice(store, report);
     childrenAddedTwice(store, now, report);

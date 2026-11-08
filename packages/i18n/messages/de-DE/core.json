@@ -37,6 +37,8 @@
   "facts.now": "heute",
   "facts.gone": "das Flugzeug ist nicht mehr im Logbuch",
   "edit.namedOperator": "{name} als Betreiber hinzugefügt und {count, plural, one {{count} Eintrag} other {{count} Einträge}} damit verknüpft.",
+  "edit.ownAirport": "{count, plural, =0 {{code} gespeichert.} one {{code} gespeichert und {count} Eintrag damit verknüpft.} other {{code} gespeichert und {count} Einträge damit verknüpft.}}",
+  "edit.linkedAirport": "{count, plural, one {{count} Eintrag} other {{count} Einträge}} mit {code} verknüpft.",
   "backup.noManifest": "Keine manifest.json: Das ist keine Touchdown-Sicherung.",
   "backup.notManifest": "Das Manifest ist kein Touchdown-Manifest.",
   "backup.newer": "Die Sicherung nutzt Schemaversion {version}, diese App kennt nur Versionen bis {supported}. Lade die App neu, um sie zu aktualisieren.",

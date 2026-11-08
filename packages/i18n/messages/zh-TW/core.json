@@ -37,6 +37,8 @@
   "facts.now": "現在",
   "facts.gone": "這架飛機已不在日誌中",
   "edit.namedOperator": "已將{name}新增為營運方，並關聯了{count, plural, other {{count}筆紀錄}}。",
+  "edit.ownAirport": "{count, plural, =0 {已儲存{code}。} other {已儲存{code}，並關聯了{count}筆紀錄。}}",
+  "edit.linkedAirport": "已將{count, plural, other {{count}筆紀錄}}關聯到{code}。",
   "backup.noManifest": "沒有manifest.json：這不是Touchdown備份。",
   "backup.notManifest": "這不是Touchdown的manifest。",
   "backup.newer": "這個備份的資料結構版本是{version}，但此應用程式只支援到{supported}。請重新載入應用程式來更新。",

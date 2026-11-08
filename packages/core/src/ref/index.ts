@@ -83,10 +83,13 @@ export class RefIndex {
   private familyOverride = new Map<string, string>();
   private prefixes: (RegistrationPrefix & { re: RegExp; bare: string; dashAt: number })[] = [];
   private referenceOperators: Operator[];
+  private referenceAirports: Airport[];
+  private ownAirports = new Set<string>();
 
   constructor(tables: RefTables, overrides: RefOverrides = {}) {
     this.referenceOperators = tables.operators;
-    for (const a of [...tables.airports, ...(overrides.airports ?? [])]) this.addAirport(a);
+    this.referenceAirports = [...tables.airports];
+    this.setAirports(overrides.airports ?? []);
     for (const o of [...tables.operators, ...(overrides.operators ?? [])]) this.addOperator(o);
     for (const t of [...tables.aircraftTypes, ...(overrides.aircraftTypes ?? [])]) this.types.set(t.designator, t);
     for (const f of tables.families) this.families.set(f.id, f);
@@ -99,6 +102,37 @@ export class RefIndex {
     this.prefixes = tables.registrationPrefixes
       .map((p) => ({ ...p, re: new RegExp(p.pattern), bare: p.prefix.replace(/-/g, ""), dashAt: p.prefix.indexOf("-") }))
       .sort((a, b) => b.bare.length - a.bare.length);
+  }
+
+  /** The reference airports, then the user's own on top. */
+  private setAirports(own: Airport[]) {
+    this.airports.clear();
+    this.airportsByIata.clear();
+    this.airportsByIcao.clear();
+    this.ownAirports.clear();
+    for (const a of this.referenceAirports) this.addAirport(a);
+    for (const a of own) this.addOwnAirport(a);
+  }
+
+  /**
+   * Add reference airports loaded after the index was built: the small airfields, which the app loads only when a
+   * record needs one (docs/13, "Airports"). The user's own airports stay on top.
+   */
+  addReferenceAirports(list: readonly Airport[]) {
+    const own = [...this.ownAirports].map((id) => this.airports.get(id)!);
+    this.referenceAirports.push(...list);
+    this.setAirports(own);
+  }
+
+  /** Add or replace an airport of the user's own (an airport_overrides row). Later lookups find it by its codes. */
+  addOwnAirport(a: Airport) {
+    this.addAirport(a);
+    this.ownAirports.add(a.id);
+  }
+
+  /** Whether an airport is one the user added, not one from the reference data. */
+  isOwnAirport(id: string | null | undefined): boolean {
+    return !!id && this.ownAirports.has(id);
   }
 
   private addAirport(a: Airport) {
@@ -126,10 +160,11 @@ export class RefIndex {
   }
 
   /**
-   * Replace the user's own operators and family choices with the ones the log holds now. They change after the
-   * index is built: by sync (a browser signed in again starts empty and the log arrives later) and by edits.
+   * Replace the user's own airports, operators and family choices with the ones the log holds now. They change after
+   * the index is built: by sync (a browser signed in again starts empty and the log arrives later) and by edits.
    */
-  setUserOverrides(overrides: Pick<RefOverrides, "operators" | "familyOverrides">) {
+  setUserOverrides(overrides: Pick<RefOverrides, "airports" | "operators" | "familyOverrides">) {
+    this.setAirports(overrides.airports ?? []);
     this.operators.clear();
     this.operatorsByIata.clear();
     this.operatorsByIcao.clear();

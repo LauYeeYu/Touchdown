@@ -1262,6 +1262,8 @@ export interface MessageArgs {
   "core.facts.now": {};
   "core.facts.gone": {};
   "core.edit.namedOperator": { count: "number"; name: "text" };
+  "core.edit.ownAirport": { code: "text"; count: "number" };
+  "core.edit.linkedAirport": { code: "text"; count: "number" };
   "core.backup.noManifest": {};
   "core.backup.notManifest": {};
   "core.backup.newer": { supported: "text"; version: "text" };
@@ -2268,6 +2270,7 @@ export interface MessageArgs {
   "rules.dateFuture": { date: "text"; label: "text" };
   "rules.beforeFirstFlight": { date: "text"; label: "text" };
   "rules.airportKnown": { code: "text"; label: "text" };
+  "rules.airportNotLinked": { code: "text"; label: "text" };
   "rules.airportSame": { airport: "text"; label: "text" };
   "rules.operatorKnown": { code: "text"; label: "text" };
   "rules.flightNumberFormat": { flightNumber: "text" };

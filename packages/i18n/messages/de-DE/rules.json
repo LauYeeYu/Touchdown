@@ -68,6 +68,7 @@
   "dateFuture": "{label}: {date} liegt in der Zukunft. Erfasst werden nur geflogene Flüge und vergangene Sichtungen.",
   "beforeFirstFlight": "{label} liegt vor dem Erstflug des Flugzeugs ({date}).",
   "airportKnown": "{label}: Flughafencode {code} ist unbekannt.",
+  "airportNotLinked": "{label}: Flughafencode {code} war beim Speichern des Eintrags noch unbekannt.",
   "airportSame": "{label}: Abflug- und Zielflughafen sind beide {airport}.",
   "operatorKnown": "{label}: Airline-Code {code} ist unbekannt.",
   "flightNumberFormat": "{flightNumber} ist keine Flugnummer (Airline-Code + 1–4 Ziffern).",
