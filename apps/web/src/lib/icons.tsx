@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: ISC AND Apache-2.0
 // Icons: Lucide (ISC licence), plus "great-circle" drawn in the same stroke. Paths are static strings.
 
 const ICONS = {
