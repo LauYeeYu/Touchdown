@@ -2772,6 +2772,37 @@ a.btn--primary {
   color: var(--ink-2);
 }
 
+/* The daily copies in the user's storage (CopiesDialog): a row for each, its date and its buttons, hairlines between,
+   the list scrolling inside the card when it is long. */
+.copies {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: min(26rem, 55vh);
+  overflow-y: auto;
+  border-top: 1px solid var(--rule);
+}
+
+.copies__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.copies__day {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.copies__actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* Adding or changing an airport of the user's own (AirportDialog): the share dialog's card, wide enough for two
    fields a row, one on phones. */
 .airport-dialog {

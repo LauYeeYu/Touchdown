@@ -82,7 +82,7 @@
   "sharing.figure.private": "不含票號和訂位代號",
   "sharing.figure.mode": "標準模式",
   "export.title": "匯出日誌",
-  "export.text": "在<link>設定</link>的「資料」中，可以備份所有內容、把單一表格匯出成CSV、匯出到Google試算表（每個表格一個分頁），或產生可匯入myFR24的航班檔案。",
+  "export.text": "在<link>設定</link>的「資料」中，可以備份所有內容、把單一表格匯出成CSV、匯出到Google試算表（每個表格一個分頁），或產生可匯入myFR24的航班檔案。在標準和私密模式下，Touchdown還會在你的儲存空間中保存日誌的每日副本，也列在那裡。",
   "export.figure.settings": "設定 › 資料",
   "export.figure.backup": "備份",
   "export.figure.backup.sub": "所有表格，打包成.zip",

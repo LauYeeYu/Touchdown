@@ -82,7 +82,7 @@
   "sharing.figure.private": "Ticket numbers and booking references stay out",
   "sharing.figure.mode": "Standard mode",
   "export.title": "Taking your log elsewhere",
-  "export.text": "<link>Settings</link>, under Data, makes a backup of everything, each table as CSV, a Google Sheet with a tab for each table, and a file of your flights for myFR24's import.",
+  "export.text": "<link>Settings</link>, under Data, makes a backup of everything, each table as CSV, a Google Sheet with a tab for each table, and a file of your flights for myFR24's import. In Standard and Private mode, Touchdown also keeps daily copies of your log in your storage, listed there too.",
   "export.figure.settings": "Settings › Data",
   "export.figure.backup": "Backup",
   "export.figure.backup.sub": "every table, as a .zip",

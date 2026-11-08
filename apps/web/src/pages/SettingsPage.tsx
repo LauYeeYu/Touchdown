@@ -4,7 +4,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { backupZip, readBackup, tableCsv, tableRows, todayIn, toUtcIso, writeXlsx, type Settings, type XlsxCell } from "@touchdown/core";
-import { dateOnly, myFr24Flights } from "@touchdown/core/view";
+import { dateOnly, dayMonthYear, myFr24Flights } from "@touchdown/core/view";
 import { dateStyles, LOCALES, sentenceGap, t, type DateStyle, type MessageKey } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { useApp } from "../data/context.tsx";
@@ -20,6 +20,8 @@ import { LocalWarning, ModeChoice, STORAGE_BUTTON, STORAGE_NOTE, StorageChoice, 
 import { toast } from "../components/overlay.tsx";
 import { Select } from "../components/Select.tsx";
 import { MyFr24Dialog } from "../components/MyFr24Dialog.tsx";
+import { CopiesDialog } from "../components/CopiesDialog.tsx";
+import type { StorageCopies } from "../data/sync.ts";
 import { AccountSection } from "../components/AccountSettings.tsx";
 import { clause, tracksToComeText } from "../components/Shell.tsx";
 import { download } from "../lib/download.ts";
@@ -356,6 +358,22 @@ export function SettingsPage() {
   const s = app.settings();
   const [includePrivate, setIncludePrivate] = useState(false);
   const [choosingFr24, setChoosingFr24] = useState(false);
+  // The daily copies in the storage (docs/12, "Daily copies"): how many, the newest, and the dialog listing them.
+  const syncState = useSyncInfo(app)?.state;
+  const [copies, setCopies] = useState<{ count: number; latest: string | null } | null>(null);
+  const [showCopies, setShowCopies] = useState<StorageCopies | null>(null);
+  useEffect(() => {
+    const c = app.sync?.copies();
+    if (!c || syncState !== "synced") return;
+    let live = true;
+    c.list().then(
+      (list) => live && setCopies({ count: list.length, latest: list[0]?.day ?? null }),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [app, syncState]);
   const [sheet, setSheet] = useState<{ busy: boolean; made: MadeSheet | null }>({ busy: false, made: null });
   const [designator, setDesignator] = useState("");
   const [family, setFamily] = useState("");
@@ -400,8 +418,8 @@ export function SettingsPage() {
   const families = [...ref.families.values()].sort((a, b) => a.name.localeCompare(b.name));
   const overrides = store.all("family_overrides");
 
-  const restore = async (file: File) => {
-    const back = readBackup(new Uint8Array(await file.arrayBuffer()));
+  const restore = async (data: Uint8Array) => {
+    const back = readBackup(data);
     if (back.problems.length) {
       window.alert(t("settings.restore.problems", { problems: back.problems.slice(0, 8).join("\n") }));
       return;
@@ -514,11 +532,31 @@ export function SettingsPage() {
                 className="visually-hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) void restore(f);
+                  if (f) void f.arrayBuffer().then((b) => restore(new Uint8Array(b)));
                   e.target.value = "";
                 }}
               />
             </label>
+            {app.sync?.copies() && (
+              <>
+                <button type="button" className="btn btn--quiet btn--small" onClick={() => setShowCopies(app.sync?.copies() ?? null)}>
+                  <Icon name="clock" />
+                  {t("settings.copies.button")}
+                </button>
+                {copies && <span className="data-item__state">{t("settings.copies.state", { count: copies.count, place: app.sync.info.place, latest: copies.latest ? dayMonthYear(copies.latest) : "" })}</span>}
+              </>
+            )}
+            {showCopies && (
+              <CopiesDialog
+                copies={showCopies}
+                place={app.sync?.info.place ?? ""}
+                onRestore={(data) => {
+                  setShowCopies(null);
+                  void restore(data);
+                }}
+                onClose={() => setShowCopies(null)}
+              />
+            )}
             {import.meta.env.DEV && (
               <button
                 type="button"

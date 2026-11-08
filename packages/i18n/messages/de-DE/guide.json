@@ -82,7 +82,7 @@
   "sharing.figure.private": "Ticketnummern und Buchungscodes bleiben außen vor",
   "sharing.figure.mode": "Modus Standard",
   "export.title": "Dein Logbuch mitnehmen",
-  "export.text": "In den <link>Einstellungen</link> unter „Daten“ gibt es eine Sicherung von allem, jede Tabelle als CSV, eine Google-Tabelle mit einem Tabellenblatt pro Tabelle und eine Datei deiner Flüge für den myFR24-Import.",
+  "export.text": "In den <link>Einstellungen</link> unter „Daten“ gibt es eine Sicherung von allem, jede Tabelle als CSV, eine Google-Tabelle mit einem Tabellenblatt pro Tabelle und eine Datei deiner Flüge für den myFR24-Import. Im Standard- und im Privat-Modus legt Touchdown außerdem tägliche Kopien deines Logbuchs in deinem Speicher ab, die dort ebenfalls aufgeführt sind.",
   "export.figure.settings": "Einstellungen › Daten",
   "export.figure.backup": "Sicherung",
   "export.figure.backup.sub": "alle Tabellen als .zip",

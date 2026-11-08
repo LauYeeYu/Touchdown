@@ -2447,6 +2447,18 @@ export interface MessageArgs {
   "settings.data.includePrivate": {};
   "settings.restore.problems": { problems: "text" };
   "settings.restore.confirm": { count: "number"; synced: "choice" };
+  "settings.copies.button": {};
+  "settings.copies.state": { count: "number"; latest: "text"; place: "text" };
+  "settings.copies.title": {};
+  "settings.copies.intro": { place: "text" };
+  "settings.copies.reading": {};
+  "settings.copies.none": {};
+  "settings.copies.failed": { problem: "text" };
+  "settings.copies.gone": {};
+  "settings.copies.download": {};
+  "settings.copies.restore": {};
+  "settings.copies.downloadLabel": { date: "text" };
+  "settings.copies.restoreLabel": { date: "text" };
   "settings.dev.loadConfirm": {};
   "settings.dev.noBackup": {};
   "settings.dev.load": {};
