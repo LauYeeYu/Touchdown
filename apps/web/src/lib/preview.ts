@@ -11,7 +11,7 @@ import { loadShares, shares, sharesNow, type ShareLink } from "../data/shares.ts
 import type { MapFlight } from "../components/maps.tsx";
 import { cityOf, distance, shortAirport, typeName } from "./format.ts";
 import { mapFlights, mapSpots } from "./mapdata.ts";
-import { figurePng, type FigureSpot } from "./figure.ts";
+import { figurePng, type FigureContent, type FigureSpot } from "./figure.ts";
 
 export interface PreviewInput {
   title: string;
@@ -25,7 +25,7 @@ export interface PreviewInput {
 const join = (parts: (string | null | undefined | false)[]) => parts.filter(Boolean).join(" · ");
 
 /** What a link's preview shows, from the log in this browser; null when the record is not here (any more). */
-export async function previewInput(app: AppData, link: ShareLink): Promise<PreviewInput | null> {
+export async function previewInput(app: AppData, link: Pick<ShareLink, "kind" | "subject">): Promise<PreviewInput | null> {
   const { store, ref } = app;
   const unit = app.settings().distanceUnit ?? "km";
   const all = sortedFlights(store, ref);
@@ -105,3 +105,14 @@ export async function refreshPreviews(app: AppData): Promise<number> {
 
 /** The flights on a figure for a flight's own page: as its map draws them. */
 export const flightFigure = (app: AppData, f: Flight) => mapFlights(sortedFlights(app.store, app.ref).filter((v) => v.f.id === f.id), app.ref, app.settings().distanceUnit ?? "km", new Set(), app.store);
+
+/**
+ * What a share link shows, as an image's content: its preview's map, its title and the line under it, for the share
+ * dialog's "Download an image" where the page has no image of its own (a sighting, an aircraft, the whole log).
+ */
+export async function shareFigure(app: AppData, link: Pick<ShareLink, "kind" | "subject">): Promise<{ content: FigureContent; name: (ext: string) => string } | null> {
+  const p = await previewInput(app, link);
+  if (!p) return null;
+  const slug = p.title.replace(/[\\/:*?"<>|·]+/g, " ").trim().replace(/\s+/g, "-");
+  return { content: { flights: p.flights, spots: p.spots, title: p.title, subtitle: p.description }, name: (ext) => `touchdown-${slug}.${ext}` };
+}

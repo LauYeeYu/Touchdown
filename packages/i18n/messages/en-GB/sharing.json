@@ -18,6 +18,7 @@
   "making": "Making the link…",
   "create": "Create link",
   "all": "All shared links",
+  "image": "Download an image",
   "terms.accept": "Accept",
   "stop.button": "Stop sharing",
   "stop.confirm": "{kind, select, flight {Stop sharing this flight?} sighting {Stop sharing this sighting?} aircraft {Stop sharing this aircraft?} other {Stop sharing your whole log?}} The link stops working at once, for everyone who has it.",

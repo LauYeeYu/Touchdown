@@ -2615,6 +2615,7 @@ export interface MessageArgs {
   "sharing.making": {};
   "sharing.create": {};
   "sharing.all": {};
+  "sharing.image": {};
   "sharing.terms.accept": {};
   "sharing.stop.button": {};
   "sharing.stop.confirm": { kind: "choice" };

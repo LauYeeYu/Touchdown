@@ -18,6 +18,7 @@
   "making": "正在生成链接…",
   "create": "生成链接",
   "all": "所有分享链接",
+  "image": "下载图片",
   "terms.accept": "接受",
   "stop.button": "停止分享",
   "stop.confirm": "{kind, select, flight {要停止分享这个航班吗？} sighting {要停止分享这条拍摄记录吗？} aircraft {要停止分享这架飞机吗？} other {要停止分享整个日志吗？}}链接会立即对所有人失效。",

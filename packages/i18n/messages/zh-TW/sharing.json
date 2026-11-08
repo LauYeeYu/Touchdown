@@ -18,6 +18,7 @@
   "making": "正在建立連結…",
   "create": "建立連結",
   "all": "所有分享連結",
+  "image": "下載圖片",
   "terms.accept": "接受",
   "stop.button": "停止分享",
   "stop.confirm": "{kind, select, flight {要停止分享這個航班嗎？} sighting {要停止分享這筆拍攝紀錄嗎？} aircraft {要停止分享這架飛機嗎？} other {要停止分享整個日誌嗎？}}連結會立即失效，所有拿到連結的人都無法再開啟。",

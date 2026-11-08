@@ -18,6 +18,7 @@
   "making": "Link wird erstellt…",
   "create": "Link erstellen",
   "all": "Alle Freigabelinks",
+  "image": "Bild herunterladen",
   "terms.accept": "Akzeptieren",
   "stop.button": "Teilen beenden",
   "stop.confirm": "{kind, select, flight {Diesen Flug nicht mehr teilen?} sighting {Diese Sichtung nicht mehr teilen?} aircraft {Dieses Flugzeug nicht mehr teilen?} other {Dein ganzes Logbuch nicht mehr teilen?}} Der Link funktioniert dann sofort für niemanden mehr.",

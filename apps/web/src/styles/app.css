@@ -2866,6 +2866,45 @@ a.btn--primary {
   color: var(--ink-2);
 }
 
+/* Under the buttons: "All shared links" and "Download an image", on one line, apart, their words level. */
+.share-dialog__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  margin-top: 14px;
+}
+
+.share-dialog__links .share-dialog__all {
+  margin-top: 0;
+}
+
+/* A button that reads as the link beside it: underlined as the app's links are, the download icon before its words. */
+.share-dialog__image {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 1px;
+  cursor: pointer;
+}
+
+.share-dialog__image .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.share-dialog__image:hover {
+  color: var(--ink);
+}
+
 /* The daily copies in the user's storage (CopiesDialog): a row for each, its date and its buttons, hairlines between,
    the list scrolling inside the card when it is long. */
 .copies {

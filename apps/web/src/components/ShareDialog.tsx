@@ -15,12 +15,22 @@ import { momentLabel } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "./overlay.tsx";
-import { sendPreview } from "../lib/preview.ts";
+import { sendPreview, shareFigure } from "../lib/preview.ts";
+import type { FigureContent } from "../lib/figure.ts";
+import { FigureDialog } from "./FigureDialog.tsx";
 import { StandardTerms, TERMS_VERSION } from "./StandardTerms.tsx";
 import { useBackdropClose } from "../lib/dialog.ts";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/**
+ * The image the share dialog's "Download an image" makes: the page's own, with its statistics, where it has one (a
+ * flight's), else what the link shows (lib/preview.ts, shareFigure).
+ */
+export interface ShareImage {
+  content: () => FigureContent;
+  name: (ext: string) => string;
+}
 
 /** How often a link was opened: "Opened 3 times, last 29 Oct 2026, 14:05 UTC+1", "Not opened yet". */
 export function openedText(l: ShareLink): string {
@@ -37,7 +47,7 @@ export function copyLink(url: string) {
 }
 
 /** Share on a record's page: in Standard mode only, and "Shared" once the thing has a link. */
-export function ShareButton({ kind, subject, anchor = null }: { kind: Exclude<ShareKind, "log">; subject: string; anchor?: string | null }) {
+export function ShareButton({ kind, subject, anchor = null, image }: { kind: Exclude<ShareKind, "log">; subject: string; anchor?: string | null; image?: ShareImage }) {
   const { app } = useApp();
   const on = app.connection?.mode === "standard";
   const list = useShares(on);
@@ -50,7 +60,7 @@ export function ShareButton({ kind, subject, anchor = null }: { kind: Exclude<Sh
         <Icon name={link ? "link" : "share-2"} />
         {link ? t("sharing.button.shared") : t("sharing.button.share")}
       </button>
-      {open && <ShareDialog kind={kind} subject={subject} anchor={anchor} onClose={() => setOpen(false)} />}
+      {open && <ShareDialog kind={kind} subject={subject} anchor={anchor} image={image} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -76,7 +86,7 @@ export function ShareLogButton() {
   );
 }
 
-export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: ShareKind; subject: string | null; anchor?: string | null; onClose: () => void }) {
+export function ShareDialog({ kind, subject, anchor = null, image, onClose }: { kind: ShareKind; subject: string | null; anchor?: string | null; image?: ShareImage; onClose: () => void }) {
   const { app } = useApp();
   const dialog = useRef<HTMLDialogElement>(null);
   const backdrop = useBackdropClose(() => dialog.current?.close());
@@ -88,6 +98,14 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
   const [termsProblem, setTermsProblem] = useState<string | null>(null);
   // A whole log's pages name the account's owner, so the dialog says so: left out if the name cannot be read.
   const [owner, setOwner] = useState<string | null>(null);
+  // The image dialog over this one, from "Download an image"; this dialog stays under it.
+  const [figure, setFigure] = useState<{ content: FigureContent; name: (ext: string) => string } | null>(null);
+  const openImage = async () => {
+    if (image) return setFigure({ content: image.content(), name: image.name });
+    const made = await shareFigure(app, { kind, subject }).catch(() => null);
+    if (made) setFigure(made);
+    else toast(t("flights.figure.failed"));
+  };
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -192,9 +210,16 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
           {link ? t("common.done") : t("common.cancel")}
         </button>
       </div>
-      <Link className="share-dialog__all" to="/shares" onClick={onClose}>
-        {t("sharing.all")}
-      </Link>
+      <div className="share-dialog__links">
+        <Link className="share-dialog__all" to="/shares" onClick={onClose}>
+          {t("sharing.all")}
+        </Link>
+        <button type="button" className="share-dialog__all share-dialog__image" aria-haspopup="dialog" onClick={() => void openImage()}>
+          <Icon name="download" />
+          {t("sharing.image")}
+        </button>
+      </div>
+      {figure && <FigureDialog content={figure.content} fileName={figure.name} onClose={() => setFigure(null)} />}
       <StandardTerms
         open={terms}
         busy={busy}
