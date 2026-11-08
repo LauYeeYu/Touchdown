@@ -2765,6 +2765,66 @@ a.btn--primary {
   margin-top: 18px;
 }
 
+/* Download an image (components/FigureDialog.tsx): the image as it will be saved, then its choices in one row. */
+.figure-dialog {
+  width: min(48rem, calc(100vw - 32px));
+}
+
+.figure-preview {
+  display: grid;
+  place-items: center;
+  height: min(46vh, 430px);
+  margin: 4px 0 18px;
+  border-radius: 14px;
+  background: var(--surface-low);
+}
+
+/* The image on the panel: a hairline keeps a light image apart from a light panel, a dark one from a dark one. */
+.figure-preview__image {
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--rule-strong);
+}
+
+.figure-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px 24px;
+}
+
+.figure-option {
+  display: grid;
+  gap: 6px;
+}
+
+.figure-option__label {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+/* The checkbox sits on the controls' line, its box centred on them. */
+.figure-option--check {
+  display: inline-flex;
+  align-self: flex-end;
+  min-height: 38px;
+}
+
+/* The theme's two segments as tall as the selects beside them. */
+.figure-option .segmented .seg {
+  min-height: 38px;
+}
+
+.figure-hint {
+  margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+  .figure-preview {
+    height: min(36vh, 300px);
+  }
+}
+
 .share-dialog__all {
   display: inline-block;
   margin-top: 14px;
@@ -6916,6 +6976,11 @@ a.wordmark {
   cursor: pointer;
 }
 
+/* Two pills together at the row's end (Flights: Image… and Explore on a globe), 8px apart. */
+.legend__action + .legend__action {
+  margin-left: -12px;
+}
+
 .legend__action:hover {
   background: var(--surface-highest);
 }
@@ -7098,7 +7163,8 @@ a.wordmark {
 
 
 @media (max-width: 720px) {
-  .legend__action {
+  .legend__action,
+  .legend__action + .legend__action {
     margin-left: 0;
   }
 

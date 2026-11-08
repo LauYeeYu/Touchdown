@@ -1,6 +1,6 @@
 // Home: the period in one sentence, the main stats, and the period's map; then context below.
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
 import { flightName, flightStats, flownDistances, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
@@ -12,7 +12,7 @@ import { ShareLogButton } from "../components/ShareDialog.tsx";
 import { usePeriod, inPeriod } from "../lib/period.ts";
 import { sessionsOf, sortedFlights, flownAndPhotographed } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, cityOf, dateOnly, dayShort, distance, durLong, monthNames, typeName } from "../lib/format.ts";
+import { airlineLabel, cityOf, dateOnly, dayShort, distance, durLong, durShort, monthNames, nf, typeName } from "../lib/format.ts";
 import { ArrowGlyph, Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -25,6 +25,8 @@ import { Disclosure } from "../components/Disclosure.tsx";
 import { Fact, Keep } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
 import { headline, tx } from "../lib/i18n.tsx";
+import { FigureDialog } from "../components/FigureDialog.tsx";
+import type { FigureContent } from "../lib/figure.ts";
 
 export function Home() {
   const { app, version } = useApp();
@@ -33,6 +35,8 @@ export function Home() {
   const { year, setYear, years, thisYear } = usePeriod(store, version);
   const unit = app.settings().distanceUnit ?? "km";
   const { focus, bind } = usePhrases();
+  // The image dialog's content, taken when it opens (components/FigureDialog.tsx).
+  const [figure, setFigure] = useState<FigureContent | null>(null);
 
   const d = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
@@ -100,12 +104,45 @@ export function Home() {
     </Phrase>
   );
 
-  const facts: [string, React.ReactNode, React.ReactNode][] = [];
-  if (longest?.km) facts.push([t("home.facts.longest"), `${longest.fromCode} → ${longest.toCode}`, [distance(longest.km, unit), flightName(longest.f)].filter(Boolean).join(" · ")]);
-  if (fs.minutes.value) facts.push([t("home.facts.time"), <Duration min={fs.minutes.value} pad={false} />, t("home.facts.timeDetail", { count: views.length - fs.minutes.leftOut })]);
-  if (topAirline) facts.push([t("home.facts.airline", { count: fs.byAirline.top.length }), <Keep text={list(fs.byAirline.top.map((id) => airlineLabel(id, ref)))} />, t("common.count.flights", { count: topAirline.count })]);
-  if (topFrame && topFrame.count > 1 && topFrameFlight) facts.push([t("home.facts.aircraft"), topFrameFlight.f.registration ?? "", `${t("common.count.flights", { count: topFrame.count })} · ${typeName(topFrameFlight.f.typeCode, ref)}`]);
-  if (topSpotType) facts.push([t("home.facts.type"), <Keep text={typeName(topSpotType.key, ref)} />, t("common.count.aircraft", { count: topSpotType.count })]);
+  // Each figure as the page shows it and as plain text for an image's statistics.
+  const facts: { label: string; value: ReactNode; text: string; detail: string }[] = [];
+  if (longest?.km) {
+    const route = `${longest.fromCode} → ${longest.toCode}`;
+    facts.push({ label: t("home.facts.longest"), value: route, text: route, detail: [distance(longest.km, unit), flightName(longest.f)].filter(Boolean).join(" · ") });
+  }
+  if (fs.minutes.value) facts.push({ label: t("home.facts.time"), value: <Duration min={fs.minutes.value} pad={false} />, text: durShort(fs.minutes.value), detail: t("home.facts.timeDetail", { count: views.length - fs.minutes.leftOut }) });
+  if (topAirline) {
+    const names = list(fs.byAirline.top.map((id) => airlineLabel(id, ref)));
+    facts.push({ label: t("home.facts.airline", { count: fs.byAirline.top.length }), value: <Keep text={names} />, text: names, detail: t("common.count.flights", { count: topAirline.count }) });
+  }
+  if (topFrame && topFrame.count > 1 && topFrameFlight) {
+    const reg = topFrameFlight.f.registration ?? "";
+    facts.push({ label: t("home.facts.aircraft"), value: reg, text: reg, detail: `${t("common.count.flights", { count: topFrame.count })} · ${typeName(topFrameFlight.f.typeCode, ref)}` });
+  }
+  if (topSpotType) {
+    const type = typeName(topSpotType.key, ref);
+    facts.push({ label: t("home.facts.type"), value: <Keep text={type} />, text: type, detail: t("common.count.aircraft", { count: topSpotType.count }) });
+  }
+
+  /**
+   * The period's map as an image (components/FigureDialog.tsx): its flights and its spotting places, how many and how
+   * far, and as statistics the flights, the aircraft spotted and the figures above the map.
+   */
+  const figureContent = (): FigureContent => {
+    const km = fs.distanceKm.value;
+    const stats = [
+      views.length ? { label: t("stats.flights.flights"), value: nf.format(views.length), detail: km > 0 ? distance(km, unit) : undefined } : null,
+      ss.aircraft.value ? { label: t("spotting.facts.aircraft"), value: nf.format(ss.aircraft.value), detail: t("home.figure.places", { count: d.spots.length }) } : null,
+      ...facts.map((x) => ({ label: x.label, value: x.text, detail: x.detail })),
+    ];
+    return {
+      flights: d.marks,
+      spots: d.spots.map((sp) => ({ at: sp.at, code: sp.code, aircraft: sp.aircraft })),
+      title: t("home.figure.title", { period: year === "all" ? "all" : "year", year }),
+      subtitle: [views.length ? t("common.count.flights", { count: views.length }) : null, km > 0 ? distance(km, unit) : null, ss.aircraft.value ? t("home.figure.spotted", { count: ss.aircraft.value }) : null].filter(Boolean).join(" · "),
+      stats: stats.filter((x) => x !== null),
+    };
+  };
 
   return (
     <div className="page">
@@ -151,8 +188,8 @@ export function Home() {
 
       {facts.length > 0 && (
         <dl className="facts">
-          {facts.map(([label, value, detail]) => (
-            <Fact key={label} label={label} value={value} detail={detail} />
+          {facts.map((x) => (
+            <Fact key={x.label} label={x.label} value={x.value} detail={x.detail} />
           ))}
         </dl>
       )}
@@ -177,6 +214,14 @@ export function Home() {
             <span className="swatch-dot swatch-dot--ink" />
             {t("home.map.airports")}
           </span>
+          {/* A share link's page shows the log, read only: its images are its owner's to make. */}
+          {!app.readOnly && (
+            <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
+              <Icon name="download" />
+              {t("flights.legend.image")}
+            </button>
+          )}
+          {figure && <FigureDialog content={figure} fileName={(ext) => `touchdown-${year === "all" ? "all" : year}.${ext}`} onClose={() => setFigure(null)} />}
           <Link className="legend__action" to="/stats">
             <Icon name="globe" />
             {t("home.map.globe")}

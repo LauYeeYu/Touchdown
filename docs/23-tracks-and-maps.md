@@ -137,10 +137,23 @@ Where it shows: a flight's page (the times strip's last cell, with how much furt
 | Lines | colour by airline, year, type, or one colour; recorded tracks drawn as recorded, others as great circles |
 | Labels | airport codes (IATA/ICAO/none), title, date range, totals (flights, distance) |
 | Size | 1920×1080, 1080×1080, 1080×1920, A4/A3 at 300 dpi, custom |
-| Format | PNG, SVG |
+| Format | PNG, JPEG, WebP, SVG, PDF |
 | Privacy | never shows private fields; option to hide flight numbers and exact dates |
 
 Rendered with d3-geo on canvas (PNG) or as SVG. No map tiles in exports, so there are no tile licensing limits.
+
+Built (`apps/web/src/lib/figure.ts`, `components/FigureDialog.tsx`), from a flight's page, Flights and Home ("Image"): a dialog with a preview of the image as it will be saved, drawn again on every change, and its choices, kept in the browser for the next image.
+
+| Choice | Built |
+|--------|-------|
+| Scope | One flight; the flights Flights shows, its period with its search and filters; or Home's period, its flights and its spotting places, blue dots sized by the aircraft seen as on Home's map. The whole log with the period "All time". |
+| Format | PNG, JPEG, WebP (where the browser can write it), SVG (shapes and text, the typeface's Latin files inside so it looks the same on any computer), PDF (one page holding the image as a JPEG, the page the image's size at its resolution: A4 or A3 for the print sizes). |
+| Size | Landscape 1920×1080, square 1080×1080, portrait 1080×1920, A4 and A3 landscape at 300 dpi (3508×2480, 4961×3508). The words are laid out for a picture 1200 wide and grow with it, a fifth larger on a square or upright one. |
+| Theme | Light or dark, the page's to start with: the app's map colours, whatever the page shows now. |
+| Statistics | Off to start with. On, figures under the map, as the page shows them, in as few rows as fit with the figures shared evenly between them: for a flight its takeoff and landing, time in the air, distance flown (with the great circle), route extension and aircraft; for Flights the flights and their distance, time in the air, longest flight, most flown route and airline; for Home the flights, the aircraft spotted and the figures above its map. Never a private field. |
+| Logo | Always: the top bar's mark and name, at the end of the title's line, or at the bottom right without a title. |
+
+The map: Natural Earth at 1:50m (finer than the app's maps, loaded the first time an image is made), the countries' borders in the paper colour. A globe turned to the routes when everything lies within 60° of its centre (a still picture squeezes what is near a globe's edge). Otherwise Equal Earth around them, moved to cover the room the routes leave, or in an upright picture a disc centred on them (azimuthal equal-area, as on phones). At least a region around a short flight. Recorded tracks are drawn as recorded and their gaps dotted, the rest as great circles, in one colour, thinner and lighter as there are more (over 12, over 60). Airport codes while there are at most 10 places, each right of its dot, else left of it, and left out where both would cover another or the words. A title and a line of totals. The same drawing at 1200×630, without the words but the logo, is a share link's preview ([32](32-modes-and-sharing.md), "Previews"). Not yet: other projections, colours by airline, year or type, a custom size, and hiding flight numbers and dates.
 
 ## Export: video
 

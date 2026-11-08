@@ -11,7 +11,7 @@ import { routeCodes } from "../lib/codes.ts";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights, type FlightView } from "../lib/views.ts";
 import { mapFlights, trackIndex, trackInfo } from "../lib/mapdata.ts";
-import { airlineLabel, dateOnly, distance, monthNames, nf } from "../lib/format.ts";
+import { airlineLabel, dateOnly, distance, durShort, monthNames, nf } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -23,6 +23,8 @@ import { Select } from "../components/Select.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
+import { FigureDialog } from "../components/FigureDialog.tsx";
+import type { FigureContent } from "../lib/figure.ts";
 import { headline } from "../lib/i18n.tsx";
 
 type Highlight = { kind: "id" | "route"; key: string } | null;
@@ -40,6 +42,8 @@ export function Flights() {
   const [airline, setAirline] = useViewState("airline", "");
   const [recordedOnly, setRecordedOnly] = useViewState("recordedOnly", false);
   const [hover, setHover] = useState<Highlight>(null);
+  // The image dialog's content, taken when it opens (components/FigureDialog.tsx).
+  const [figure, setFigure] = useState<FigureContent | null>(null);
   const { focus, bind } = usePhrases();
 
   const data = useMemo(() => {
@@ -70,6 +74,34 @@ export function Flights() {
   // The map draws the whole period, so a search or a filter never moves it: the flights left out turn grey.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const marks = useMemo(() => mapFlights(views, ref, unit, new Set(), store), [data, unit]);
+  /**
+   * The flights shown, on a map as an image (components/FigureDialog.tsx): the period, how many and how far, and as
+   * statistics the figures this page shows above its map, for the flights shown.
+   */
+  const figureContent = (): FigureContent => {
+    const st = flightStats(
+      shown.map((v) => v.f),
+      { ref, airframes: new Map(store.all("airframes").map((a) => [a.id, a])), flown: flownDistances(store, ref) },
+    );
+    const km = st.distanceKm.value;
+    const far = st.longestByDistance ? shown.find((v) => v.f.id === st.longestByDistance!.id) : undefined;
+    const route = st.byRoute.items[0];
+    const company = st.byAirline.items[0];
+    const [a, b] = route ? routeCodes(route.key, ref, " ").split(" ") : [];
+    const stats = [
+      { label: t("stats.flights.flights"), value: nf.format(shown.length), detail: km > 0 ? distance(km, unit) : undefined },
+      st.minutes.value > 0 ? { label: t("home.facts.time"), value: durShort(st.minutes.value), detail: t("home.facts.timeDetail", { count: shown.length - st.minutes.leftOut }) } : null,
+      far?.km ? { label: t("home.facts.longest"), value: `${far.fromCode} → ${far.toCode}`, detail: [distance(far.km, unit), flightName(far.f)].filter(Boolean).join(" · ") } : null,
+      route && route.count > 1 ? { label: t("flights.facts.topRoute"), value: `${a} ⇄ ${b}`, detail: t("common.count.times", { count: route.count }) } : null,
+      company ? { label: t("home.facts.airline", { count: st.byAirline.top.length }), value: list(st.byAirline.top.map((id) => airlineLabel(id, ref))), detail: t("common.count.flights", { count: company.count }) } : null,
+    ];
+    return {
+      flights: marks.filter((m) => shownIds.has(m.id)),
+      title: t("flights.figure.title", { period: year === "all" ? "all" : "year", year }),
+      subtitle: [t("common.count.flights", { count: shown.length }), km > 0 && distance(km, unit)].filter(Boolean).join(" · "),
+      stats: stats.filter((x) => x !== null),
+    };
+  };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const muted = useMemo(() => (shown.length < views.length ? new Set(views.filter((v) => !shownIds.has(v.f.id)).map((v) => v.f.id)) : null), [shownKey, data]);
   const hasGaps = marks.some((m) => m.gaps?.length && shownIds.has(m.id));
@@ -166,6 +198,14 @@ export function Flights() {
               {t("flights.legend.notRecorded")}
             </span>
           )}
+          {/* A share link's page shows the log, read only: its images are its owner's to make. */}
+          {!shared && (
+            <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
+              <Icon name="download" />
+              {t("flights.legend.image")}
+            </button>
+          )}
+          {figure && <FigureDialog content={figure} fileName={(ext) => `touchdown-flights-${year === "all" ? "all" : year}.${ext}`} onClose={() => setFigure(null)} />}
           <Link className="legend__action" to="/stats">
             <Icon name="globe" />
             {t("flights.legend.globe")}
