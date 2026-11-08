@@ -5,7 +5,7 @@
 // imported it leaves the inbox, and so does a file whose records are all in the log and whose changes are all done.
 
 import { useEffect, useSyncExternalStore } from "react";
-import { changeStatus, matchCandidates, readInbox, type InboxChange, type ParsedSource } from "@touchdown/core";
+import { changeStatus, matchCandidates, readInbox, sourceNeedsMoreAirports, type InboxChange, type ParsedSource } from "@touchdown/core";
 import { list, t } from "@touchdown/i18n";
 import { dayMonthYear } from "../lib/format.ts";
 import type { AppData } from "./app.ts";
@@ -87,8 +87,13 @@ async function count(app: AppData): Promise<void> {
   const next: WaitingSession[] = [];
   for (const [name, f] of files) {
     // A file that does not read (from another version of Touchdown) is left for next time.
-    const r = readInbox(f.json, name, app.ref);
+    let r = readInbox(f.json, name, app.ref);
     if ("error" in r) continue;
+    // An airport the tables loaded so far lack: read again with the small airfields (docs/13, "Airports").
+    if (!app.airfieldsLoaded && sourceNeedsMoreAirports(r.source, app.ref) && (await app.loadAirfields())) {
+      const again = readInbox(f.json, name, app.ref);
+      if (!("error" in again)) r = again;
+    }
     const open = matchCandidates(app.store, r.source.candidates).filter((m) => m.kind === "new" || m.kind === "update" || m.kind === "conflict");
     // A change still to do, or one whose record was changed since (the user decides): without copying the log.
     const changing = r.changes.filter((c) => {

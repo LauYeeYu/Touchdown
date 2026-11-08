@@ -2,7 +2,7 @@
 // sent, in a store of their own, behind the part of the app's data the pages read. Nothing here writes: the pages
 // leave out what changes the log when `readOnly` is set, and the store is never saved or synced.
 
-import { phasesOf, refOverridesOf, RefIndex, settingsOf, Store, tagsOf, type Finding, type Row, type Settings, type TableName } from "@touchdown/core";
+import { logNeedsMoreAirports, phasesOf, refOverridesOf, RefIndex, settingsOf, Store, tagsOf, type Finding, type Row, type Settings, type TableName } from "@touchdown/core";
 import type { ShareContent } from "@touchdown/core/share";
 import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
@@ -227,6 +227,11 @@ export async function loadShare(report: (at: number, text: string) => void = () 
   const reader = new TrackReader(id, store);
   const { loadRefTables } = await import("@touchdown/refdata");
   const ref = new RefIndex(loadRefTables(), refOverridesOf(store));
+  // A record at a small airfield: those are loaded only when needed (docs/13, "Airports").
+  if (logNeedsMoreAirports(store, ref)) {
+    const { loadAirfields } = await import("@touchdown/refdata/airfields");
+    ref.addReferenceAirports(await loadAirfields().catch(() => []));
+  }
   const data = new ShareData(id, content, store, ref, reader);
   // The page waits a little for the recorded tracks, so its maps and route extension open whole. A large log or a slow
   // connection opens without them after TRACKS_AT_OPEN_MS, and the pages say they are still loading.

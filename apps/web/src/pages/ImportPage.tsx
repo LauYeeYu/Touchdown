@@ -181,6 +181,9 @@ export function ImportPage() {
     setChangesMade(null);
     setBusy(true);
     try {
+      // A file is read with the small airfields (docs/13, "Airports"), so a column of their codes is recognised and
+      // a flight from one gets its airport and local times.
+      await app.loadAirfields();
       const buf = new Uint8Array(await file.arrayBuffer());
       const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
       let source: ParsedSource | null = null;

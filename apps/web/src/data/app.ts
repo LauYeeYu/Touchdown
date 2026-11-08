@@ -15,8 +15,9 @@ import {
   settleOlder,
   reconcile,
   resolveConflict,
-  operatorFromOverride,
+  logNeedsMoreAirports,
   RefIndex,
+  refOverridesOf,
   reopenFinding,
   resolveAirframes,
   rowKey,
@@ -193,9 +194,11 @@ export class AppData {
         }
         write = true;
       }
-      // The user's own operators and family choices reach the reference index as they change, by sync too:
+      // The user's own airports, operators and family choices reach the reference index as they change, by sync too:
       // a browser signed in again starts empty, and they arrive after the index was built.
-      if (changes.some((c) => c.table === "operator_overrides" || c.table === "family_overrides")) this.refreshUserOverrides();
+      if (changes.some((c) => c.table === "airport_overrides" || c.table === "operator_overrides" || c.table === "family_overrides")) this.refreshUserOverrides();
+      // Records from another device may be at a small airfield, which this tab has not loaded yet.
+      if (!this.airfields && changes.some((c) => c.origin === "sync" && (c.table === "flights" || c.table === "sightings")) && logNeedsMoreAirports(this.store, this.ref)) void this.loadAirfields();
       // Rows from another device: settle what both made side by side (core reconcile.ts), once the sync has finished.
       if (changes.some((c) => c.origin === "sync")) this.scheduleReconcile();
       if (write) this.scheduleFlush();
@@ -259,7 +262,9 @@ export class AppData {
         // Left for the writing tab, which reports it.
       }
     }
-    const app = new AppData(store, new RefIndex(tables, AppData.overridesFrom(store)), tabs, (meta[0]?.value as Connection | undefined) ?? null, meta[1]?.value ?? null, outbox);
+    const app = new AppData(store, new RefIndex(tables, refOverridesOf(store)), tabs, (meta[0]?.value as Connection | undefined) ?? null, meta[1]?.value ?? null, outbox);
+    // A log with a record at a small airfield opens with the airfields loaded, so its pages are whole at once.
+    if (logNeedsMoreAirports(store, app.ref)) await app.loadAirfields();
     // Read with the rows, so it says whether these rows hold the storage's tables.
     app.tablesAtOpen = hasTables((meta[2]?.value as SyncState | undefined) ?? null);
     // Statuses a log from an older version keeps in a sighting's phase or notes become its phases, and a flight's ticket
@@ -270,19 +275,34 @@ export class AppData {
     return app;
   }
 
-  /** Set the reference index's own operators and family choices to the ones the log holds now. */
+  /** Set the reference index's own airports, operators and family choices to the ones the log holds now. */
   refreshUserOverrides() {
-    this.ref.setUserOverrides(AppData.overridesFrom(this.store));
+    this.ref.setUserOverrides(refOverridesOf(this.store));
   }
 
-  private static overridesFrom(store: Store) {
-    return {
-      operators: store.all("operator_overrides").map((o) => operatorFromOverride(o)),
-      familyOverrides: store
-        .all("family_overrides")
-        .filter((o) => o.designator && o.familyId)
-        .map((o) => ({ designator: o.designator!, familyId: o.familyId! })),
-    };
+  private airfields: Promise<boolean> | null = null;
+  /** Whether the small airfields are in the reference index (docs/13, "Airports"). */
+  airfieldsLoaded = false;
+
+  /**
+   * Load the small airfields into the reference index, once: when a record or a typed code names an airport the
+   * tables shipped with the app do not have. False when they could not be loaded (offline before the app kept them).
+   */
+  loadAirfields(): Promise<boolean> {
+    this.airfields ??= import("@touchdown/refdata/airfields")
+      .then(({ loadAirfields }) => loadAirfields())
+      .then((list) => {
+        this.ref.addReferenceAirports(list);
+        this.airfieldsLoaded = true;
+        this.notify();
+        return true;
+      })
+      .catch((e: unknown) => {
+        console.warn("The small airfields did not load:", e);
+        this.airfields = null;
+        return false;
+      });
+    return this.airfields;
   }
 
   // ---------- subscription ----------
