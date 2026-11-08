@@ -7,7 +7,9 @@ import { FILE_TABLES, checkTableFile, manifestFor, stringifyTableFile, tableFile
 import { privateIndex } from "./private.ts";
 import { allColumns } from "./schema/columns.ts";
 import { PRIVATE_FIELDS, SCHEMA_NAME, SCHEMA_VERSION, TABLES, type TableName } from "./schema/tables.ts";
-import type { Store } from "./store.ts";
+import { rowVersion, type Store } from "./store.ts";
+import { fnv1a } from "./ids.ts";
+import { addDays } from "./time/index.ts";
 
 export function backupZip(store: Store): Uint8Array {
   const files: Record<string, Uint8Array> = {
@@ -21,6 +23,85 @@ export function backupZip(store: Store): Uint8Array {
   for (const r of points.rows) byTrack.set(String(r.trackId), [...(byTrack.get(String(r.trackId)) ?? []), r]);
   for (const [trackId, rows] of byTrack) files[`Touchdown/tracks/${trackId}.json`] = strToU8(stringifyTableFile({ ...points, rows }));
   return zipSync(files, { level: 6 });
+}
+
+// ---------- daily copies (docs/12, "Daily copies") ----------
+
+/**
+ * The points in time the daily copies keep the log at: the end of each of the last 7 days, of the last 8 weeks, of
+ * the last 12 months, and of every year before.
+ */
+export const DAILY_COPIES = { days: 7, weeks: 8, months: 12 } as const;
+
+const COPY_NAME = /^touchdown-backup-(\d{4}-\d{2}-\d{2})-([0-9a-f]{8})\.zip$/;
+
+/** A daily copy's file name: the day it was made and the fingerprint of the log it holds. */
+export function dailyCopyName(day: string, fingerprint: string): string {
+  return `touchdown-backup-${day}-${fingerprint}.zip`;
+}
+
+/** The day and fingerprint of a daily copy's file name, or null for any other file. */
+export function parseDailyCopyName(name: string): { day: string; fingerprint: string } | null {
+  const m = COPY_NAME.exec(name);
+  return m ? { day: m[1]!, fingerprint: m[2]! } : null;
+}
+
+/**
+ * What the log holds, as eight hex digits: the same for the same rows (their versions, tombstones included) and
+ * recorded tracks, on any device. A copy is made only when it differs from the newest copy's.
+ */
+export function logFingerprint(store: Store): string {
+  const parts: string[] = [];
+  for (const table of FILE_TABLES) {
+    for (const r of store.allWithDeleted(table)) parts.push(`${table}:${String((r as { id?: unknown }).id)}:${rowVersion(r as Record<string, unknown>)}`);
+  }
+  const points = new Map<string, number>();
+  for (const p of store.all("track_points")) points.set(p.trackId, (points.get(p.trackId) ?? 0) + 1);
+  for (const [trackId, n] of points) parts.push(`points:${trackId}:${n}`);
+  return fnv1a(parts.sort().join("\n"));
+}
+
+/** The Sunday that ends a date's week (weeks start on Monday). */
+function weekEnd(day: string): string {
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+  const weekday = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+  return addDays(day, 6 - weekday);
+}
+
+/** The last day of the month `back` months before the date's. */
+function monthEnd(day: string, back: number): string {
+  const index = Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1 - back;
+  const next = `${Math.floor((index + 1) / 12)}-${String(((index + 1) % 12) + 1).padStart(2, "0")}-01`;
+  return addDays(next, -1);
+}
+
+/**
+ * The daily copies to keep on `today`, of the files given (other files are not copies and are left alone). Copies are
+ * made only on days the log changed, so none is kept for being a set number of days old: for each point in time
+ * (the end of each of the last 7 days, of the last 8 weeks, of the last 12 months and of every year before), the
+ * newest copy made on or before it is kept, which holds the log as it was then. Of two copies made on one day, the
+ * later name counts as the newer, so every device keeps the same ones. A copy dated after today is kept.
+ */
+export function dailyCopiesToKeep(names: string[], today: string): Set<string> {
+  const copies = names
+    .map((name) => ({ name, day: parseDailyCopyName(name)?.day }))
+    .filter((c): c is { name: string; day: string } => !!c.day)
+    .sort((a, b) => a.day.localeCompare(b.day) || a.name.localeCompare(b.name));
+  // A copy dated after today comes from a device whose clock is ahead: it waits until its day is past here too.
+  const keep = new Set(copies.filter((c) => c.day > today).map((c) => c.name));
+  const past = copies.filter((c) => c.day <= today);
+  if (!past.length) return keep;
+  const points = new Set<string>();
+  for (let i = 0; i < DAILY_COPIES.days; i++) points.add(addDays(today, -i));
+  for (let i = 0; i < DAILY_COPIES.weeks; i++) points.add(addDays(weekEnd(today), -7 * i));
+  for (let i = 0; i < DAILY_COPIES.months; i++) points.add(monthEnd(today, i));
+  for (let y = Number(past[0]!.day.slice(0, 4)); y <= Number(today.slice(0, 4)); y++) points.add(`${y}-12-31`);
+  for (const point of points) {
+    const at = point > today ? today : point;
+    const newest = past.findLast((c) => c.day <= at);
+    if (newest) keep.add(newest.name);
+  }
+  return keep;
 }
 
 export interface BackupContents {

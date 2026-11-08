@@ -187,7 +187,8 @@ Touchdown/
     edit-<date>-<time>.json   changes to records in the log, from `touchdown edit` (also delete-, aircraft-,
                               issues-, undo-, families-, settings-; 34), the same way
   backups/
-    <YYYY-MM-DD>/...       daily copy of manifest, tables and private, last 14 kept
+    touchdown-backup-<YYYY-MM-DD>-<fingerprint>.zip   a daily copy of the whole log, private data included, never
+                              read by a share link (below, "Daily copies")
 ```
 
 Table file format:
@@ -212,6 +213,19 @@ Table file format:
 Size check: 1,000 flights ≈ 1 MB; 10,000 sightings ≈ 5 MB. One file per table is fine at that size. If a table passes 10 MB, it is split by year (`sightings.2026.json`), listed in the manifest.
 
 Why a visible folder and not Drive's hidden `appDataFolder`: the user can see, download, and back up the files, and the companion CLI can read them through Google Drive for Desktop. The CLI reads the log and writes the inbox (and, with `touchdown review`, the rows of a file the user imports, through the sync engine, [34](34-command-line.md)) through the Drive API (`touchdown storage drive`, [21](21-import-export.md)) with the web app's own access, given by the site in Standard mode or handed over by the browser in Private mode ([33](33-accounts-and-sign-in.md), "The command line"): with `drive.file`, the web app does not see files another app, such as Drive for Desktop, created.
+
+### Daily copies
+
+Decided, built (`makeDailyCopy` in `packages/storage/src/backups.ts`, the keep rule in `packages/core/src/backup.ts`). The storage keeps copies of the log, so an earlier state can be brought back after a mistake or a bad import, and looked at months later.
+
+| Part | Rule |
+|---|---|
+| When | After the first sync of a day, by the tab that writes this browser's copy (the web app; the CLI makes none). So a copy holds the log as it was before that day's edits. A day on which the app is not opened gets none. Left for a later sync while some recorded track's positions are not in the browser yet, so a copy is never short of them. |
+| Only on change | Each copy's name ends with a fingerprint of the log it holds (`logFingerprint`: every row's version, tombstones included, and each track's number of positions). A copy is made only when the log's differs from the newest copy's, so days without changes make none. An empty log makes none. |
+| What | The same zip as Settings' "Export a backup": every table, private data and recorded tracks, restored the same way. About 650 KB for a log of a few hundred records with a few dozen tracks. |
+| Which are kept | Copies are made only on some days, so none is kept for being a set number of days old. The log is kept as it was at points in time: the end of each of the last 7 days, the end of each of the last 8 weeks (Sunday), the end of each of the last 12 months, and the end of every year before. For each point, the newest copy made on or before it is kept; the rest are removed. A copy dated after today (a device whose clock is ahead) is kept. Every device works out the same set from the file names. With changes every day, about 20 to 30 copies are kept; with fewer changes, fewer. |
+| Two devices | Both may make a copy on the same day; each point keeps one of them, by name, the same on every device. |
+| Seen in the app | Settings › Data › Backup: "Daily copies…" with how many there are and the newest, opening a list newest first, each to download or restore. Restoring works as restoring any backup ([31](31-ui.md), "Settings"): into a synced log, the storage's newer versions are kept and the entries it lacks come back. |
 
 ## File backend: SQLite file
 

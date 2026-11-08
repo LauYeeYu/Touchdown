@@ -7,7 +7,7 @@ import type { TableName } from "@touchdown/core";
 export type StoredRow = Record<string, unknown>;
 
 /** Files kept with the log. */
-export type FileArea = "inbox" | "checks" | "attachments";
+export type FileArea = "inbox" | "checks" | "attachments" | "backups";
 
 export interface FileInfo {
   /** The name within its folder. */

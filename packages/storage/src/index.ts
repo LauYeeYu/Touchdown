@@ -8,3 +8,4 @@ export * from "./drive.ts";
 export * from "./jsonTables.ts";
 export * from "./sync.ts";
 export * from "./merge.ts";
+export * from "./backups.ts";

@@ -1,6 +1,6 @@
 # Touchdown privacy policy
 
-Effective 4 November 2026.
+Effective 7 November 2026.
 
 This policy covers the Touchdown website run from this repository by its owner, for people the owner invites. It says what the site keeps about you, where your log is, and what Touchdown does with data from Google.
 
@@ -39,6 +39,7 @@ The owner can see the list of members: names, email addresses, how each signs in
 - **Standard mode:** your log is kept in your browser and synced through a Touchdown directory in your Google Drive, with access the server gives your browser (see Standard mode). The server does not keep your log. When someone opens one of your links, it reads the part the link shows (see Share links).
 - **Private mode:** your log is kept in your browser and synced through your own storage: a Touchdown directory in your Google Drive, or a directory on your computer. The server never receives it.
 - **Local mode:** your log is kept only in your browser.
+- **Daily copies:** in Standard and Private mode, your browser also keeps copies of your whole log in your Touchdown directory (`backups/`), on days it changed: the log as it was at the end of each of the last 7 days, 8 weeks and 12 months, and of each year before. They hold everything the log does, ticket numbers and booking references included. They stay in your storage, and the server does not read them. You can delete them there.
 - Each account has its own copy in the browser, so people who share a browser do not see each other's logs.
 
 ## Data from Google
@@ -60,7 +61,7 @@ Standard mode is offered only after you accept its terms, which say the same as 
 
 - **What the server keeps:** a key from Google (a refresh token) that opens the files Touchdown created in your Google Drive (the Touchdown directory), not your other files. With it, the server can open your whole log, including ticket numbers and booking references if you entered them. The person who runs the site could technically use the key.
 - **What it is used for:** to give your own browser short-lived access (an hour) for its sync, and, when someone opens one of your links, to read the part of your log that link shows. The server does not read, copy, analyse or keep your log for anything else.
-- **Private data apart:** ticket numbers and booking references are kept in their own files in your Touchdown directory (`private/`), which a link never reads.
+- **Private data apart:** ticket numbers and booking references are kept in their own files in your Touchdown directory (`private/`), and in the daily copies of your log there (`backups/`, see Your log). A link never reads either.
 - **How it is protected:** the key is encrypted with AES-256-GCM. The encryption key is a separate secret held with Cloudflare, not in the database. The key is never sent to a browser and never logged.
 - **Stopping:** switch to Private or Local in Settings. Your links stop at once, and the key is revoked with Google and deleted from the server, with your links and the record of the terms you accepted. Removing your account does the same. You can also remove Touchdown's access in your Google account.
 

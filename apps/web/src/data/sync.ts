@@ -3,9 +3,9 @@
 // returns, and every few minutes. Only the tab that writes the browser's copy syncs (tabs.ts); the others show its
 // sync and ask it to sync (TabSync).
 
-import { FILE_TABLES, SCHEMA_VERSION, settleOlder, ulid, type Store } from "@touchdown/core";
+import { FILE_TABLES, SCHEMA_VERSION, settleOlder, todayIn, ulid, type Store } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
-import { GoogleDrive, JsonTablesBackend, SchemaTooNewError, SignInNeeded, SyncEngine, tablePath, type FileAdapter, type QueuedRow, type SyncState, type SyncStateStore } from "@touchdown/storage";
+import { GoogleDrive, JsonTablesBackend, listDailyCopies, makeDailyCopy, SchemaTooNewError, SignInNeeded, SyncEngine, tablePath, type Backend, type FileAdapter, type QueuedRow, type SyncState, type SyncStateStore } from "@touchdown/storage";
 import { placeName, type StorageKind, type SyncedConnection } from "./connection.ts";
 import { db } from "./db.ts";
 import { folderAllowed, LocalFolder } from "./folder.ts";
@@ -53,6 +53,8 @@ export interface SyncHandle {
   run(): Promise<void>;
   /** The storage's inbox, while it may be used; null otherwise. */
   inbox(): StorageInbox | null;
+  /** The daily copies of the log in the storage, while it may be used; null otherwise. */
+  copies(): StorageCopies | null;
   stop(): void;
 }
 
@@ -61,6 +63,17 @@ const CONFIRM_MS = 1500;
 const EVERY_MS = 5 * 60_000;
 /** Set once every table file has been compared with this browser's copy since edits were saved with their queue. */
 export const SYNC_CHECKED = "syncCheckedAll";
+/** The day this browser last saw to the daily copy of the log (docs/12, "Daily copies"). */
+const DAILY_COPY = "dailyCopy";
+
+/** The daily copies of the log in the user's storage (docs/12, "Daily copies"), to download or restore. */
+export interface StorageCopies {
+  /** Newest first. */
+  list(): Promise<{ name: string; day: string }[]>;
+  read(name: string): Promise<Uint8Array | null>;
+}
+
+const copiesOf = (b: Backend): StorageCopies => ({ list: () => listDailyCopies(b), read: (name) => b.readFile("backups", name) });
 
 /** The inbox in the user's storage (docs/21): files from `touchdown spot` and `touchdown add` waiting for review. */
 export interface StorageInbox {
@@ -187,6 +200,8 @@ export class SyncController implements SyncHandle {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
   private beginning = false;
+  /** The day a daily copy was last seen to, in this tab. */
+  private copyDay: string | null = null;
   private readonly storage: Storage;
   private readonly isSynced = moment();
   private readonly tablesIn = moment();
@@ -371,8 +386,35 @@ export class SyncController implements SyncHandle {
       }
       this.set({ state: "synced", lastAt: Date.now(), waiting, problems: report.problems, error: null, tracks: null });
       this.isSynced.resolve();
+      void this.dailyCopy();
     } catch (e) {
       this.failed(e);
+    }
+  }
+
+  /**
+   * After the day's first sync, today's copy of the log in the storage, and the old ones thinned out (docs/12, "Daily
+   * copies"). Made from this copy just synced, so it holds the log as it was before the day's edits here. Left for a
+   * later sync while some recorded track's positions are not here yet, so a copy is never short of them.
+   */
+  private async dailyCopy() {
+    const today = todayIn();
+    const backend = this.backend;
+    if (!backend || this.copyDay === today) return;
+    this.copyDay = today;
+    try {
+      if ((await db.meta.get(DAILY_COPY))?.value === today) return;
+      const here = new Set(this.store.all("track_points").map((p) => p.trackId));
+      if (this.store.all("tracks").some((t) => !here.has(t.id))) {
+        this.copyDay = null;
+        return;
+      }
+      await makeDailyCopy(backend, this.store, today);
+      await db.meta.put({ key: DAILY_COPY, value: today });
+    } catch (e) {
+      // Tried again at the next sync.
+      this.copyDay = null;
+      console.warn("The daily copy of the log was not made:", e);
     }
   }
 
@@ -381,6 +423,12 @@ export class SyncController implements SyncHandle {
     // Without access, or without the network, the inbox cannot be read: the page shows nothing waiting until it can.
     if (!b || this.stopped || this.info.state === "permission" || this.info.state === "offline") return null;
     return inboxOf(b);
+  }
+
+  copies(): StorageCopies | null {
+    const b = this.backend;
+    if (!b || this.stopped || this.info.state === "permission" || this.info.state === "offline") return null;
+    return copiesOf(b);
   }
 
   stop() {
@@ -482,6 +530,12 @@ export class TabSync implements SyncHandle {
     if (this.stopped || this.info.state === "permission" || this.info.state === "offline") return null;
     this.backend ??= new JsonTablesBackend(this.storage.files, "tab");
     return inboxOf(this.backend);
+  }
+
+  copies(): StorageCopies | null {
+    if (this.stopped || this.info.state === "permission" || this.info.state === "offline") return null;
+    this.backend ??= new JsonTablesBackend(this.storage.files, "tab");
+    return copiesOf(this.backend);
   }
 
   /** This tab now writes the copy, or the page goes: requests still waiting end. */
