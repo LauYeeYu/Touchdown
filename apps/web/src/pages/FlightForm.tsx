@@ -156,7 +156,15 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
     navigate({ to: "/flights/$id", params: { id: row.id } });
   };
 
-  const tzHint = (tz: string | undefined, code: string) => (tz ? t("flightForm.hint.localTime", { code }) : t("flightForm.hint.chooseAirport"));
+  // A time typed for an airport with no known zone cannot be stored yet: said in the alert colour, not dropped unsaid.
+  const tzHint = (k: TimeKey, tz: string | undefined, code: string) =>
+    tz ? (
+      t("flightForm.hint.localTime", { code })
+    ) : d.times[k].time ? (
+      <span className="field__hint--bad">{t("flightForm.hint.notSaved", { typed: code ? "yes" : "no", code })}</span>
+    ) : (
+      t("flightForm.hint.chooseAirport")
+    );
   const known = (raw: string, name: string | undefined, kind: "airport" | "airline") => (!raw.trim() ? null : name ? name : t("flightForm.unknownCode", { kind }));
 
   return (
@@ -195,9 +203,9 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
         <h2 className="form-section">{t("flightForm.section.times")}</h2>
         <p className="form-sub">{t("flightForm.section.timesIntro")}</p>
         <div className="form-grid">
-          <DateTimeField label={t("flightForm.field.boarding")} {...dt(d, "boarding", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
-          <DateTimeField label={t("flightForm.field.takeoff")} {...dt(d, "takeoff", setTime)} hint={tzHint(from?.tz, textCode(from, d.fromRaw))} />
-          <DateTimeField label={t("flightForm.field.landing")} {...dt(d, "landing", setTime)} hint={tzHint(to?.tz, textCode(to, d.toRaw))} />
+          <DateTimeField label={t("flightForm.field.boarding")} {...dt(d, "boarding", setTime)} hint={tzHint("boarding", from?.tz, textCode(from, d.fromRaw))} />
+          <DateTimeField label={t("flightForm.field.takeoff")} {...dt(d, "takeoff", setTime)} hint={tzHint("takeoff", from?.tz, textCode(from, d.fromRaw))} />
+          <DateTimeField label={t("flightForm.field.landing")} {...dt(d, "landing", setTime)} hint={tzHint("landing", to?.tz, textCode(to, d.toRaw))} />
         </div>
 
         {findings.length > 0 && (

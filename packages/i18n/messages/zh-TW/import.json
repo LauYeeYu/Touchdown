@@ -55,6 +55,7 @@
   "review.title": "檢查{name}",
   "review.lead": "{format, select, fr24_csv {my.flightradar24.com匯出檔} sheet {試算表} other {收件匣中的檔案}}共{rows, plural, other {#列}}：{fresh, plural, other {#筆新紀錄}}，{update, plural, other {#筆可補齊空缺}}，{conflict, plural, other {#筆與日誌不一致}}，{identical}筆已存在。",
   "review.duplicates": "{count, plural, other {有#列重複記錄了當天在同一地點已拍到的飛機，會合併到第一列。}}",
+  "review.unknownAirports": "Touchdown沒有{codes}的資料。新增{count, plural, other {機場}}之前，那裡的時間不會匯入。",
   "review.fromAdd": "已由{command}對照日誌檢查。標示為來自查詢或AI助理的值，會連同來源一起儲存。",
   "review.fromSession": "在拍攝場次中填寫並檢查（{agent, select, none {未使用AI助理} other {使用{checker}}}）。來自查詢或AI助理的值會連同來源一起儲存。",
   "review.show": "篩選列",

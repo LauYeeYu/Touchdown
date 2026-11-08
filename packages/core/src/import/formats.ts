@@ -86,6 +86,8 @@ function parseFr24Row(raw: Record<string, string | null>, sourceRow: number, ref
       takeoff: raw["Dep time"],
       landing: raw["Arr time"],
       durationMin: parseDuration(raw["Duration"] ?? ""),
+      origin: from.second ?? from.first,
+      dest: to.second ?? to.first,
     });
     values = { ...values, takeoffAt: t.takeoffAt, landingAt: t.landingAt };
     issues.push(...t.issues);

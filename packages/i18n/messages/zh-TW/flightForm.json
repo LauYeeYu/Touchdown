@@ -35,6 +35,7 @@
   "hint.specialLivery": "只填真正的特殊塗裝和貼紙",
   "hint.localTime": "{code}的當地時間",
   "hint.chooseAirport": "請先選擇機場，時間才能連同UTC時差一起儲存",
+  "hint.notSaved": "{typed, select, yes {新增{code}機場後才會儲存} other {選擇機場後才會儲存}}",
   "placeholder.airport": "代碼、城市或名稱",
   "placeholder.airline": "代碼或名稱",
   "placeholder.designator": "{designator}（取自航班號碼）",

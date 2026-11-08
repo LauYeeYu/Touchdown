@@ -46,6 +46,8 @@
   "times.landing": "起飛時間{takeoff}加上時長{duration}，應在{landed}（{offset}）降落，但這一列寫的是{landing}。用降落時間{landing}減去時長，起飛時間應為{implied}。",
   "times.landingTwelve": "起飛時間{takeoff}加上時長{duration}，應在{landed}（{offset}）降落，但這一列寫的是{landing}。用降落時間{landing}減去時長，起飛時間應為{implied}，{takeoff}可能是12小時制的筆誤。",
   "times.boarding": "登機時間{boarding}晚於起飛時間{takeoff}。",
+  "times.unknownAirport": "Touchdown沒有{codes}的資料，因此{count, plural, other {#個時間}}未匯入。先新增{airports, plural, other {機場}}，再重新讀取檔案。",
+  "times.noAirport": "這一列沒有{side, select, from {出發} other {抵達}}機場，因此{count, plural, other {#個時間}}未匯入。",
   "match.afterMidnight": "航班在午夜後出發，登機時間是前一天晚上{clock}。",
   "inbox.notInbox": "不是Touchdown收件匣檔案",
   "inbox.otherVersion": "其他版本Touchdown的收件匣檔案",

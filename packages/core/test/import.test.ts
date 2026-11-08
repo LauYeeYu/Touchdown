@@ -33,6 +33,19 @@ describe("building date-times from clock times", () => {
     expect(t.issues[0]?.message).toContain("12-hour clock");
   });
 
+  it("says which times wait for an airport Touchdown does not know, instead of dropping them unsaid", () => {
+    const both = buildFlightTimes({ scheduledDate: "2025-03-14", originTz: null, destTz: "Europe/London", origin: "xfrm", dest: "LHR", takeoff: "10:00", landing: "11:05" });
+    expect([both.takeoffAt, both.landingAt]).toEqual([null, null]);
+    expect(both.issues).toEqual([{ ruleId: "V-AIRPORT-KNOWN", severity: "warning", field: "takeoffAt", message: "2 times are left out because Touchdown does not know XFRM. Add it as an airport, then read the file again." }]);
+    const landing = buildFlightTimes({ scheduledDate: "2025-03-14", originTz: "Europe/London", destTz: null, origin: "LHR", dest: "XFRM", takeoff: "10:00", landing: "11:05" });
+    expect(landing.takeoffAt).toBe("2025-03-14T10:00+00:00");
+    expect(landing.issues.map((x) => x.message)).toEqual(["One time is left out because Touchdown does not know XFRM. Add it as an airport, then read the file again."]);
+    const none = buildFlightTimes({ scheduledDate: "2025-03-14", originTz: null, destTz: null, takeoff: "10:00" });
+    expect(none.issues.map((x) => x.message)).toEqual(["One time is left out because the row gives no departure airport."]);
+    // No time given, nothing to say.
+    expect(buildFlightTimes({ scheduledDate: "2025-03-14", originTz: null, destTz: null, origin: "XFRM" }).issues).toEqual([]);
+  });
+
   it("places the landing after takeoff when there is no duration", () => {
     const t = buildFlightTimes({ scheduledDate: "2025-03-14", originTz: "America/Los_Angeles", destTz: "America/New_York", takeoff: "22:00", landing: "06:10" });
     expect(t.landingAt).toBe("2025-03-15T06:10-04:00");

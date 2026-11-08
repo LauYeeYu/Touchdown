@@ -55,6 +55,7 @@
   "review.title": "{name} prüfen",
   "review.lead": "{format, select, fr24_csv {Ein Export von my.flightradar24.com} sheet {Eine Tabelle} other {Eine Datei aus dem Eingang}} mit {rows, plural, one {#\u00a0Zeile} other {#\u00a0Zeilen}}: {fresh, plural, one {#\u00a0neuer Eintrag} other {#\u00a0neue Einträge}}, {update, plural, one {#\u00a0Eintrag, der Lücken füllt} other {#\u00a0Einträge, die Lücken füllen}}, {conflict, plural, one {#\u00a0Eintrag, der von deinem Logbuch abweicht} other {#\u00a0Einträge, die von deinem Logbuch abweichen}} und {identical} schon vorhanden.",
   "review.duplicates": "{count, plural, one {#\u00a0Zeile wiederholt ein Flugzeug, das am selben Tag am selben Ort schon gesehen wurde. Sie wird mit der ersten Zeile zusammengeführt.} other {#\u00a0Zeilen wiederholen ein Flugzeug, das am selben Tag am selben Ort schon gesehen wurde. Sie werden mit der ersten Zeile zusammengeführt.}}",
+  "review.unknownAirports": "{count, plural, one {Touchdown kennt {codes} nicht. Zeiten dort fehlen, bis er als Flughafen hinzugefügt ist.} other {Touchdown kennt {codes} nicht. Zeiten dort fehlen, bis sie als Flughäfen hinzugefügt sind.}}",
   "review.fromAdd": "Von {command} mit deinem Logbuch abgeglichen. Als Abfrage- oder Agentenergebnis markierte Werte werden mit ihrer Quelle gespeichert.",
   "review.fromSession": "In einer Spotting-Session ergänzt und geprüft ({agent, select, none {ohne Agenten} other {mit {checker}}}). Werte aus einer Abfrage oder vom Agenten werden mit ihrer Quelle gespeichert.",
   "review.show": "Zeilen anzeigen",

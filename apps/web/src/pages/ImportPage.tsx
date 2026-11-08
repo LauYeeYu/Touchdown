@@ -38,7 +38,8 @@ import { inSentence, inSourceLanguage, list, sentenceGap, series, t } from "@tou
 import { useApp } from "../data/context.tsx";
 import { ColumnMapping, type ColumnChoice } from "../components/ColumnMapping.tsx";
 import { savedMapping, saveMapping } from "../data/mappings.ts";
-import { discardSession, madeBy, markImported, recordsText, sessionLabel, useWaitingSessions, type WaitingSession } from "../data/inbox.ts";
+import { discardSession, madeBy, markImported, readWaitingAgain, recordsText, sessionLabel, useWaitingSessions, type WaitingSession } from "../data/inbox.ts";
+import { AirportDialog } from "../components/AirportDialog.tsx";
 import type { AppData } from "../data/app.ts";
 import { dayMonthYear, FIELD_LABEL, momentShort } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -89,7 +90,9 @@ export function ImportPage() {
   // The file as read, prepared, and its batch id for the agent check (from its bytes, so the same file read again
   // fits a result).
   // `reread` reads the file again, for the agent check's request in UK English (null for a file from the inbox).
-  const [base, setBase] = useState<{ source: ParsedSource; batchId: string; asRead: Prepared; reread: (() => ParsedSource) | null } | null>(null);
+  // `again` reads the file again with the reference data as it is now, after an airport is added in the review.
+  const [base, setBase] = useState<{ source: ParsedSource; batchId: string; asRead: Prepared; reread: (() => ParsedSource) | null; bytes: Uint8Array; inbox: string | null; again: (() => ParsedSource | null) | null } | null>(null);
+  const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [decisions, setDecisions] = useState<Map<number, CommitDecision>>(new Map());
@@ -132,9 +135,9 @@ export function ImportPage() {
   const batches = useMemo(() => app.store.all("import_batches").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")), [app, version]);
 
   /** Opens a parsed file for review. `inbox` names the spotting session it came from, if it did. */
-  const open = async (source: ParsedSource, bytes: Uint8Array, inbox: string | null = null, reread: (() => ParsedSource) | null = null) => {
+  const open = async (source: ParsedSource, bytes: Uint8Array, inbox: string | null = null, reread: (() => ParsedSource) | null = null, again: (() => ParsedSource | null) | null = reread) => {
     const p = prepare(app, source);
-    setBase({ source, batchId: await checkBatchId(bytes), asRead: p, reread });
+    setBase({ source, batchId: await checkBatchId(bytes), asRead: p, reread, bytes, inbox, again });
     setOrigin(inbox);
     setAgent(null);
     setChoices(new Map());
@@ -162,7 +165,7 @@ export function ImportPage() {
       setChangeFile({ name: w.name, changes: w.changes, inbox: w.name });
       return;
     }
-    void open(w.source, new TextEncoder().encode(`${w.name}@${w.modified}`), w.name);
+    void open(w.source, new TextEncoder().encode(`${w.name}@${w.modified}`), w.name, null, () => readWaitingAgain(app, w.name));
   };
 
   // "Review and import" in the bar: open the session named in the address, once the inbox has been read.
@@ -188,6 +191,7 @@ export function ImportPage() {
       const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
       let source: ParsedSource | null = null;
       let reread: (() => ParsedSource) | null = null;
+      let again: (() => ParsedSource | null) | null = null;
       setColumns(null);
       if (file.name.toLowerCase().endsWith(".json")) {
         const inbox = readJsonFile(buf, file.name, app);
@@ -200,6 +204,10 @@ export function ImportPage() {
           return;
         }
         source = inbox.source;
+        again = () => {
+          const r = readJsonFile(buf, file.name, app);
+          return "error" in r ? null : r.source;
+        };
       } else {
         let sheets: SheetData[];
         if (file.name.toLowerCase().endsWith(".xlsx")) sheets = readXlsx(buf);
@@ -237,7 +245,7 @@ export function ImportPage() {
         }
       }
       if (!source) return;
-      await open(source, buf, null, reread);
+      await open(source, buf, null, reread, again ?? reread);
     } catch (e) {
       setError(t("import.file.unreadable", { name: file.name, error: (e as Error).message }));
     } finally {
@@ -369,6 +377,19 @@ export function ImportPage() {
         else next.delete(choiceKey(recordId, field));
         return next;
       });
+    // Airport codes in the file that no table has: their flights' times wait for them (core buildFlightTimes).
+    const unknownAirports = [
+      ...new Set(
+        source.candidates.flatMap((c) => {
+          const v = c.values as { fromAirportId?: string | null; fromRaw?: string | null; toAirportId?: string | null; toRaw?: string | null; airportId?: string | null; airportRaw?: string | null };
+          return [[v.fromAirportId, v.fromRaw], [v.toAirportId, v.toRaw], [v.airportId, v.airportRaw]].flatMap(([id, raw]) => (!id && raw?.trim() && !app.ref.airportByCode(raw) ? [raw.trim().toUpperCase()] : []));
+        }),
+      ),
+    ].sort();
+    const addedAirport = () => {
+      const again = base.again?.();
+      if (again) void open(again, base.bytes, base.inbox, base.reread, base.again);
+    };
     const skipped = [...decisions.values()].filter((d) => d.skip).length;
     const toImport = matches.filter((m, i) => (m.kind !== "identical" || agentFields.has(i)) && !decisions.get(i)?.skip).length;
 
@@ -399,6 +420,18 @@ export function ImportPage() {
             </button>
           </p>
         )}
+        {unknownAirports.length > 0 && (
+          <p className="form-sub">
+            {t("import.review.unknownAirports", { count: unknownAirports.length, codes: list(unknownAirports) })}
+            {app.airfieldsLoaded &&
+              unknownAirports.slice(0, 6).map((code) => (
+                <button key={code} type="button" className="link-btn field__action" onClick={() => setAdding(code)}>
+                  {t("issues.finding.addAirport", { code })}
+                </button>
+              ))}
+          </p>
+        )}
+        {adding && <AirportDialog raw={adding} onClose={() => setAdding(null)} onSaved={addedAirport} />}
         {source.format === "touchdown_inbox" ? (
           <p className="form-sub">
             {source.fileName.startsWith("add-")

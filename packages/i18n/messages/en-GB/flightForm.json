@@ -35,6 +35,7 @@
   "hint.specialLivery": "Only real special liveries and stickers",
   "hint.localTime": "Local time at {code}",
   "hint.chooseAirport": "Choose the airport first, so the time is stored with its UTC offset",
+  "hint.notSaved": "{typed, select, yes {Not saved until {code} is added as an airport} other {Not saved until the airport is chosen}}",
   "placeholder.airport": "Code, city or name",
   "placeholder.airline": "Code or name",
   "placeholder.designator": "{designator} (from the flight number)",

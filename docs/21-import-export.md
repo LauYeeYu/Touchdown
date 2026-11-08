@@ -110,6 +110,7 @@ Spreadsheets and the myFR24 export store a date and separate clock times. Touchd
    - If none of these is available and the takeoff clock time is between 00:00 and 03:59, keep the same day and raise V-DAY-ROLLOVER as a question for the user.
 3. Landing: takeoff instant + Duration, expressed in the destination's time zone. Its clock time must match the row's landing time within 2 minutes; otherwise the row is a conflict.
 4. Boarding and other times: date + clock time in the relevant airport's zone, moved by a day if needed to keep V-TIMES-ORDER true.
+5. An airport Touchdown does not know has no zone, so its clock times cannot become date-times. They are left out, never stored without an offset, and the row says so (a warning: "2 times are left out because Touchdown does not know XFRM. Add it as an airport, then read the file again."). A landing waits for the departure airport too, since it is worked out from the takeoff. The Import page names the file's unknown airports above the rows, each with "Add … as an airport…", and reads the file again once one is added, so its times are built (Decided, built). A file from the inbox is read again the same way.
 
 When matching rows against other sources (tracks, FR24 lists, the other spreadsheet), compare instants, and allow the scheduled date to differ from the takeoff date by one day.
 

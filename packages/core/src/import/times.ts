@@ -1,7 +1,7 @@
 // Building date-times from a date and separate clock times (docs/21-import-export.md,
 // "Building date-times from clock times").
 
-import { t } from "@touchdown/i18n";
+import { list, t } from "@touchdown/i18n";
 import { formatOffset, parseClock, parseDateTime, toZoned, zonedInstants, addDays } from "../time/index.ts";
 import type { ImportIssue } from "./candidate.ts";
 
@@ -13,6 +13,9 @@ export interface ClockInputs {
   takeoff?: string | null;
   landing?: string | null;
   durationMin?: number | null;
+  /** The airports as the row gives them, for saying which one a time waits for. */
+  origin?: string | null;
+  dest?: string | null;
 }
 
 export interface BuiltTimes {
@@ -61,6 +64,17 @@ export function buildFlightTimes(x: ClockInputs): BuiltTimes {
   const boardingClock = x.boarding && parseClock(x.boarding) ? x.boarding : null;
   const takeoffClock = x.takeoff && parseClock(x.takeoff) ? x.takeoff : null;
   const landingClock = x.landing && parseClock(x.landing) ? x.landing : null;
+
+  // A clock time needs its airport's zone to be a time: without it the time is left out, and the review says so. A
+  // landing is worked out from the takeoff, so it waits for the departure airport too.
+  const lost = !x.originTz ? [boardingClock, takeoffClock, landingClock].filter(Boolean).length : !x.destTz && landingClock ? 1 : 0;
+  if (lost) {
+    const sides = [!x.originTz && (boardingClock || takeoffClock || landingClock) ? "from" : null, !x.destTz && landingClock ? "to" : null].filter((s) => s !== null);
+    const codes = sides.map((s) => (s === "from" ? x.origin : x.dest)?.trim().toUpperCase() ?? "");
+    const field = x.originTz ? "landingAt" : "takeoffAt";
+    if (codes.every(Boolean)) issues.push({ ruleId: "V-AIRPORT-KNOWN", severity: "warning", field, message: t("importer.times.unknownAirport", { count: lost, codes: list([...new Set(codes)]), airports: new Set(codes).size }) });
+    else issues.push({ ruleId: "V-INCOMPLETE", severity: "warning", field, message: t("importer.times.noAirport", { count: lost, side: codes[0] ? "to" : "from" }) });
+  }
 
   // A clock time can happen twice on the day the clocks go back (zonedInstants); the other times decide
   // which one, else the earlier is taken.

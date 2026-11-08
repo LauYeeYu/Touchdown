@@ -35,6 +35,7 @@
   "hint.specialLivery": "Nur echte Sonderlackierungen und Aufkleber",
   "hint.localTime": "Ortszeit in {code}",
   "hint.chooseAirport": "Wähle zuerst den Flughafen, damit die Zeit mit ihrem UTC-Offset gespeichert wird",
+  "hint.notSaved": "{typed, select, yes {Wird erst gespeichert, wenn {code} als Flughafen hinzugefügt ist} other {Wird erst gespeichert, wenn der Flughafen gewählt ist}}",
   "placeholder.airport": "Code, Stadt oder Name",
   "placeholder.airline": "Code oder Name",
   "placeholder.designator": "{designator} (aus der Flugnummer)",

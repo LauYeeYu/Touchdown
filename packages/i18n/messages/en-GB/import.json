@@ -55,6 +55,7 @@
   "review.title": "Review {name}",
   "review.lead": "{format, select, fr24_csv {A my.flightradar24.com export} sheet {A spreadsheet} other {A file from the inbox}} with {rows, plural, one {#\u00a0row} other {#\u00a0rows}}: {fresh, plural, one {#\u00a0new record} other {#\u00a0new records}}, {update, plural, one {#\u00a0record that fills} other {#\u00a0records that fill}} gaps, {conflict, plural, one {#\u00a0record that disagrees} other {#\u00a0records that disagree}} with your log, and {identical} already there.",
   "review.duplicates": "{count, plural, one {#\u00a0row repeats an aircraft already seen at the same place that day. It is merged into the first row.} other {#\u00a0rows repeat an aircraft already seen at the same place that day. They are merged into the first row.}}",
+  "review.unknownAirports": "{count, plural, one {Touchdown does not know {codes}, so times there are left out until it is added as an airport.} other {Touchdown does not know {codes}, so times there are left out until they are added as airports.}}",
   "review.fromAdd": "Checked against your log by {command}. Values marked as coming from a lookup or an agent are saved with their source.",
   "review.fromSession": "Filled and checked in a spotting session ({agent, select, none {without an agent} other {with {checker}}}). Values from a lookup or the agent are saved with their source.",
   "review.show": "Show rows",

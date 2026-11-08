@@ -46,6 +46,8 @@
   "times.landing": "Start {takeoff} plus Dauer {duration} ergibt eine Landung um {landed} ({offset}), aber in der Zeile steht {landing}. Landung {landing} minus Dauer ergibt Start {implied}.",
   "times.landingTwelve": "Start {takeoff} plus Dauer {duration} ergibt eine Landung um {landed} ({offset}), aber in der Zeile steht {landing}. Landung {landing} minus Dauer ergibt Start {implied}, also sieht {takeoff} nach einem Versehen bei der 12-Stunden-Zeit aus.",
   "times.boarding": "Boarding {boarding} liegt nach dem Start {takeoff}.",
+  "times.unknownAirport": "{count, plural, one {Eine Zeit fehlt} other {# Zeiten fehlen}}, weil Touchdown {codes} nicht kennt. Füge {airports, plural, one {ihn als Flughafen} other {sie als Flughäfen}} hinzu und lies die Datei erneut ein.",
+  "times.noAirport": "{count, plural, one {Eine Zeit fehlt} other {# Zeiten fehlen}}, weil die Zeile keinen {side, select, from {Abflughafen} other {Zielflughafen}} angibt.",
   "match.afterMidnight": "Der Flug startete nach Mitternacht: Das Boarding war am Vorabend um {clock}.",
   "inbox.notInbox": "keine Touchdown-Eingangsdatei",
   "inbox.otherVersion": "eine Eingangsdatei aus einer anderen Touchdown-Version",

@@ -439,6 +439,8 @@ function flightRow(get: Get, raw: Record<string, string | null>, sourceRow: numb
       takeoff: clockText(get("takeoff")),
       landing: clockText(get("landing")),
       durationMin: parseDuration(get("duration") ?? ""),
+      origin: values.fromRaw,
+      dest: values.toRaw,
     });
     values = { ...values, boardingAt: t.boardingAt, takeoffAt: t.takeoffAt, landingAt: t.landingAt };
     issues.push(...t.issues);

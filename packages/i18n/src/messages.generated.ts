@@ -1434,6 +1434,7 @@ export interface MessageArgs {
   "flightForm.hint.specialLivery": {};
   "flightForm.hint.localTime": { code: "text" };
   "flightForm.hint.chooseAirport": {};
+  "flightForm.hint.notSaved": { code: "text"; typed: "choice" };
   "flightForm.placeholder.airport": {};
   "flightForm.placeholder.airline": {};
   "flightForm.placeholder.designator": { designator: "text" };
@@ -1782,6 +1783,7 @@ export interface MessageArgs {
   "import.review.title": { name: "text" };
   "import.review.lead": { conflict: "number"; format: "choice"; fresh: "number"; identical: "text"; rows: "number"; update: "number" };
   "import.review.duplicates": { count: "number" };
+  "import.review.unknownAirports": { codes: "text"; count: "number" };
   "import.review.fromAdd": { command: "text" };
   "import.review.fromSession": { agent: "choice"; checker: "text" };
   "import.review.show": {};
@@ -1915,6 +1917,8 @@ export interface MessageArgs {
   "importer.times.landing": { duration: "text"; implied: "text"; landed: "text"; landing: "text"; offset: "text"; takeoff: "text" };
   "importer.times.landingTwelve": { duration: "text"; implied: "text"; landed: "text"; landing: "text"; offset: "text"; takeoff: "text" };
   "importer.times.boarding": { boarding: "text"; takeoff: "text" };
+  "importer.times.unknownAirport": { airports: "number"; codes: "text"; count: "number" };
+  "importer.times.noAirport": { count: "number"; side: "choice" };
   "importer.match.afterMidnight": { clock: "text" };
   "importer.inbox.notInbox": {};
   "importer.inbox.otherVersion": {};

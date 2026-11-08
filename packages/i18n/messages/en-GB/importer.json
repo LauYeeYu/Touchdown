@@ -46,6 +46,8 @@
   "times.landing": "Takeoff {takeoff} plus duration {duration} lands at {landed} ({offset}), but the row says {landing}. Landing {landing} minus the duration gives takeoff {implied}.",
   "times.landingTwelve": "Takeoff {takeoff} plus duration {duration} lands at {landed} ({offset}), but the row says {landing}. Landing {landing} minus the duration gives takeoff {implied}, so {takeoff} looks like a 12-hour clock slip.",
   "times.boarding": "Boarding {boarding} is after takeoff {takeoff}.",
+  "times.unknownAirport": "{count, plural, one {One time is} other {# times are}} left out because Touchdown does not know {codes}. Add {airports, plural, one {it as an airport} other {them as airports}}, then read the file again.",
+  "times.noAirport": "{count, plural, one {One time is} other {# times are}} left out because the row gives no {side, select, from {departure} other {arrival}} airport.",
   "match.afterMidnight": "The flight left after midnight: boarding was at {clock} the evening before.",
   "inbox.notInbox": "not a Touchdown inbox file",
   "inbox.otherVersion": "an inbox file from another version of Touchdown",

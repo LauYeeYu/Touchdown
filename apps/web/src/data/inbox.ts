@@ -114,6 +114,13 @@ async function count(app: AppData): Promise<void> {
   for (const l of listeners) l();
 }
 
+/** A waiting file read again with the reference data as it is now (an airport added since), or null if it is gone. */
+export function readWaitingAgain(app: AppData, name: string): ParsedSource | null {
+  const f = files.get(name);
+  const r = f ? readInbox(f.json, name, app.ref) : null;
+  return r && !("error" in r) ? r.source : null;
+}
+
 /** Reads the inbox again. */
 export function refreshInbox(app: AppData): Promise<void> {
   running ??= readFiles(app)
