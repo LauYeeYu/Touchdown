@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attachTrack, checkAll, normaliseFlight, normaliseSighting, resolveAirframes, type FlightValues, type SightingValues, type TrackPointInput } from "../src/index.ts";
+import { attachTrack, checkAll, flightName, normaliseFlight, normaliseSighting, resolveAirframes, type FlightValues, type SightingValues, type TrackPointInput } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 const TODAY = "2026-10-01";
@@ -43,6 +43,20 @@ const ids = (fs: { ruleId: string }[]) => fs.map((f) => f.ruleId);
 describe("field rules: a clean record passes", () => {
   it("raises nothing for the clean flight and sighting", () => {
     expect(ids(run([goodFlight], [goodSighting]).findings)).toEqual([]);
+  });
+});
+
+describe("a private flight", () => {
+  it("may have its registration as its callsign, and is named by it in labels", () => {
+    const own = { ...goodFlight, flightNumber: null, airlineRaw: null, registrationRaw: "N3001X" };
+    const { findings, store } = run([{ ...own, flightNumber: "N3001X" }, { ...own, scheduledDate: "2025-04-03", boardingAt: null, takeoffAt: null, landingAt: null }]);
+    expect(ids(findings)).not.toContain("V-FLIGHTNO-FORMAT");
+    expect(ids(run([{ ...own, registrationRaw: "G-ABCD", flightNumber: "gabcd" }]).findings)).not.toContain("V-FLIGHTNO-FORMAT");
+    // Another aircraft's registration is no callsign of this one.
+    expect(ids(run([{ ...own, registrationRaw: "G-ABCD", flightNumber: "GABCE" }]).findings)).toContain("V-FLIGHTNO-FORMAT");
+    expect(flightName(store.all("flights")[1]!)).toBe("N3001X");
+    expect(ids(run([{ ...own, flightNumber: "DELTA" }]).findings)).toContain("V-FLIGHTNO-FORMAT");
+    expect(flightName({ flightNumber: null, registration: null })).toBeNull();
   });
 });
 

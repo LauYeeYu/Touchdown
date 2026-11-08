@@ -7,7 +7,7 @@ import type { Airframe, Flight, Sighting, Track } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import type { Finding, RecordRef, Severity, SuggestedFix } from "./types.ts";
 import { fnv1a } from "../ids.ts";
-import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, greatCircleKm, nextLegOf } from "../derive.ts";
+import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, flightName, greatCircleKm, nextLegOf } from "../derive.ts";
 import { normaliseRegistration, registrationMatchForm } from "../normalise/registration.ts";
 import { liveryAround } from "../livery.ts";
 import { privateIndex, type FlightPrivateValues } from "../private.ts";
@@ -80,8 +80,9 @@ const FLIGHT_TIME_FIELDS = ["boardingAt", "departureAt", "takeoffAt", "landingAt
 
 function flightLabel(f: Flight): string {
   const date = f.scheduledDate ?? flightDay(f);
-  if (f.flightNumber && date) return t("rules.label.flight", { flightNumber: f.flightNumber, date });
-  return f.flightNumber || date || t("rules.label.thisFlight");
+  const name = flightName(f);
+  if (name && date) return t("rules.label.flight", { flightNumber: name, date });
+  return name || date || t("rules.label.thisFlight");
 }
 
 /**
@@ -198,8 +199,11 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
 
   if (f.flightNumber) {
     const p = parseFlightNumber(f.flightNumber);
-    if (!p) out.add("V-FLIGHTNO-FORMAT", "warning", [r], ["flightNumber"], t("rules.flightNumberFormat", { flightNumber: f.flightNumber }), [f.flightNumber]);
-    else if (airline && p.designator !== airline.iata && p.designator !== airline.icao) {
+    // A private flight's callsign is usually its aircraft's registration ("GABCD" for G-ABCD): no mistake.
+    const compact = (v: string) => v.replace(/[\s-]+/g, "").toUpperCase();
+    const callsign = !p && !!f.registration && compact(f.flightNumber) === compact(f.registration);
+    if (!p && !callsign) out.add("V-FLIGHTNO-FORMAT", "warning", [r], ["flightNumber"], t("rules.flightNumberFormat", { flightNumber: f.flightNumber }), [f.flightNumber]);
+    else if (p && airline && p.designator !== airline.iata && p.designator !== airline.icao) {
       out.add("V-FLIGHTNO-AIRLINE", "warning", [r], ["flightNumber", "airlineId"], t("rules.flightNumberAirline", { flightNumber: f.flightNumber, airline: airline.name, codes: [airline.iata, airline.icao].filter(Boolean).join(" / ") }), [f.flightNumber, airline.id]);
     }
   }

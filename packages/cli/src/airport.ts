@@ -1,7 +1,7 @@
 // `touchdown airport CODE` (docs/34, "Reading"): an airport's page: how often the user left from it, landed at it
 // and changed planes there, the flights, and the aircraft photographed there.
 
-import { cityName, todayIn } from "@touchdown/core";
+import { cityName, flightName, todayIn } from "@touchdown/core";
 import { airlineLabel, airportSummary, airportWithCode, countryName, primaryCode, secondaryCode, shortAirport } from "@touchdown/core/view";
 import { list, t } from "@touchdown/i18n/cli";
 import { aircraftLabel, airportJson, duration, flightJson } from "./shape.ts";
@@ -66,7 +66,7 @@ export async function airportCommand(args: string[]) {
   console.log(sentences.length ? sentences.join(" ") : t("cliRead.airport.nothing", { airport: name, year }));
 
   if (s.here.length) {
-    const rows = [...s.here].reverse().map((v) => [v.day ?? "", `${v.fromCode} → ${v.toCode}`, v.f.flightNumber ?? "", airlineLabel(v.f.airlineId, log.ref) || v.f.airlineRaw || "", [aircraftLabel(log, v.f.typeCode, null), v.f.registration].filter(Boolean).join(" · "), duration(v.min), s.transitIds.has(v.f.id) ? t("cliRead.airport.transit") : ""]);
+    const rows = [...s.here].reverse().map((v) => [v.day ?? "", `${v.fromCode} → ${v.toCode}`, flightName(v.f) ?? "", airlineLabel(v.f.airlineId, log.ref) || v.f.airlineRaw || "", [aircraftLabel(log, v.f.typeCode, null), v.f.registration].filter(Boolean).join(" · "), duration(v.min), s.transitIds.has(v.f.id) ? t("cliRead.airport.transit") : ""]);
     const head = [{ head: t("cliRead.column.date") }, { head: t("cliRead.column.route") }, { head: t("cliRead.column.flight") }, { head: t("cliRead.column.airline") }, { head: t("cliRead.column.aircraft"), flex: true }, { head: t("cliRead.column.time"), align: "right" as const }, { head: "" }];
     for (const line of section(t("cliRead.airport.flights", { count: s.here.length }), table(head, rows))) console.log(line);
   }

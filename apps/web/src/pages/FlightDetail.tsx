@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { Link, useReachable } from "../lib/link.tsx";
 import { extensionPercent, routeExtension } from "@touchdown/core/view";
-import { airportName, cityName, daysBetween, fitTrackFile, flightDay, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
+import { airportName, cityName, daysBetween, fitTrackFile, flightDay, flightName, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
@@ -151,8 +151,8 @@ export function FlightDetail() {
       .all("track_points")
       .filter((p) => p.trackId === trackRow.id)
       .map((p) => ({ t: p.t, lat: p.lat, lon: p.lon, altitudeFt: p.altitudeFt, groundSpeedKt: p.groundSpeedKt, headingDeg: p.headingDeg }));
-    const title = [f.flightNumber ?? t("flights.flight"), `${v.fromCode} → ${v.toCode}`, v.day ? dayMonthYear(v.day) : null].filter(Boolean).join(" · ");
-    const name = trackFileName(f.flightNumber, A.iata ?? A.icao ?? v.fromCode, B.iata ?? B.icao ?? v.toCode, v.day, "kml");
+    const title = [flightName(f) ?? t("flights.flight"), `${v.fromCode} → ${v.toCode}`, v.day ? dayMonthYear(v.day) : null].filter(Boolean).join(" · ");
+    const name = trackFileName(flightName(f), A.iata ?? A.icao ?? v.fromCode, B.iata ?? B.icao ?? v.toCode, v.day, "kml");
     download(name, trackKml(points, { title, source: trackRow.attribution }), "application/vnd.google-earth.kml+xml");
   };
   const pickedPanel = picked && (
@@ -282,12 +282,12 @@ export function FlightDetail() {
           {prev && (
             <Link to="/flights/$id" params={{ id: prev.f.id }} title={t("flights.detail.previous")}>
               <Icon name="arrow-left" />
-              {prev.f.flightNumber ?? `${prev.fromCode} → ${prev.toCode}`}
+              {flightName(prev.f) ?? `${prev.fromCode} → ${prev.toCode}`}
             </Link>
           )}
           {next && (
             <Link to="/flights/$id" params={{ id: next.f.id }} title={t("flights.detail.next")}>
-              {next.f.flightNumber ?? `${next.fromCode} → ${next.toCode}`}
+              {flightName(next.f) ?? `${next.fromCode} → ${next.toCode}`}
               <Icon name="arrow-right" />
             </Link>
           )}
@@ -296,7 +296,7 @@ export function FlightDetail() {
 
       <div className="route-hero">
         <div className="route-hero__end">
-          <h1 className="route-hero__code" aria-label={t("flights.detail.hero.from", { flight: f.flightNumber ?? t("flights.flight"), known: heroFrom ? "yes" : "no", airport: heroFrom })}>
+          <h1 className="route-hero__code" aria-label={t("flights.detail.hero.from", { flight: flightName(f) ?? t("flights.flight"), known: heroFrom ? "yes" : "no", airport: heroFrom })}>
             {primaryCode(A, f.fromRaw)}
           </h1>
           <p className="route-hero__place">
@@ -355,7 +355,7 @@ export function FlightDetail() {
       <div className="flight-date-row">
         <p className="flight-date">
           <b>{day ? dayLong(day) : t("flights.detail.noDate")}</b>
-          {f.flightNumber && ` · ${f.flightNumber}`}
+          {flightName(f) && ` · ${flightName(f)}`}
           {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
         </p>
         {shared ? (
@@ -730,7 +730,7 @@ export function FlightDetail() {
           <Link className="prev" to="/flights/$id" params={{ id: prev.f.id }}>
             <small>{t("flights.detail.previous")}</small>
             <span>
-              {prev.f.flightNumber ?? t("flights.flight")} · {prev.fromCode} → {prev.toCode}
+              {flightName(prev.f) ?? t("flights.flight")} · {prev.fromCode} → {prev.toCode}
             </span>
           </Link>
         ) : (
@@ -740,7 +740,7 @@ export function FlightDetail() {
           <Link className="next" to="/flights/$id" params={{ id: next.f.id }}>
             <small>{t("flights.detail.next")}</small>
             <span>
-              {next.f.flightNumber ?? t("flights.flight")} · {next.fromCode} → {next.toCode}
+              {flightName(next.f) ?? t("flights.flight")} · {next.fromCode} → {next.toCode}
             </span>
           </Link>
         )}
@@ -750,5 +750,5 @@ export function FlightDetail() {
 }
 
 export function flightTitle(f: Flight): string {
-  return [f.flightNumber, flightDay(f)].filter(Boolean).join(" · ");
+  return [flightName(f), flightDay(f)].filter(Boolean).join(" · ");
 }

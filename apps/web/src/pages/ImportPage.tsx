@@ -57,7 +57,7 @@ const prepare = (app: AppData, source: ParsedSource): Prepared => prepareImport(
 function label(c: Candidate): { title: string; sub: string } {
   if (c.table === "flights") {
     const v = c.values;
-    return { title: [v.flightNumber, v.scheduledDate && dayMonthYear(v.scheduledDate)].filter(Boolean).join(" · ") || t("import.fallback.flight"), sub: [v.fromRaw, v.toRaw].filter(Boolean).join(" → ") + (v.registration ? ` · ${v.registration}` : "") + (v.typeCode ? ` · ${v.typeCode}` : "") };
+    return { title: [v.flightNumber ?? v.registration, v.scheduledDate && dayMonthYear(v.scheduledDate)].filter(Boolean).join(" · ") || t("import.fallback.flight"), sub: [v.fromRaw, v.toRaw].filter(Boolean).join(" → ") + (v.registration ? ` · ${v.registration}` : "") + (v.typeCode ? ` · ${v.typeCode}` : "") };
   }
   const v = c.values;
   return { title: [v.registration, v.seenOn && dayMonthYear(v.seenOn)].filter(Boolean).join(" · ") || t("import.fallback.sighting"), sub: [v.airportRaw, v.operatorRaw, v.typeCode].filter(Boolean).join(" · ") };

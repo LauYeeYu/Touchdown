@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { list, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
-import { flightStats, todayIn } from "@touchdown/core";
+import { flightName, flightStats, todayIn } from "@touchdown/core";
 import { flightSearch, flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { routeCodes } from "../lib/codes.ts";
@@ -130,7 +130,7 @@ export function Flights() {
                     {longest.fromCode} → {longest.toCode}
                   </span>
                 }
-                detail={[distance(longest.km, unit), longest.f.flightNumber].filter(Boolean).join(" · ")}
+                detail={[distance(longest.km, unit), flightName(longest.f)].filter(Boolean).join(" · ")}
               />
             )}
             {topRoute && topRoute.count > 1 && (

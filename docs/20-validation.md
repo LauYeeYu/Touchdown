@@ -37,7 +37,7 @@ Severity:
 | V-TYPE-KNOWN | typeCode | Exists in the ICAO type list. | error | Suggest from model string. |
 | V-MODEL-TYPE | model, typeCode | Model matches one of the type's `modelPatterns` (e.g. `A321-271NX` → A21N). | warning | Suggest typeCode from model, or model naming fix. |
 | V-MODEL-PARSE | model | Can be parsed into the standard form from any accepted style (`B777-322ER`, `777-322(ER)`, `Boeing 777-322ER`). | warning | Store the parsed standard form. |
-| V-FLIGHTNO-FORMAT | flightNumber | 2–3 character airline designator + 1–4 digits + optional letter. | warning | Uppercase, remove spaces. |
+| V-FLIGHTNO-FORMAT | flightNumber | 2–3 character airline designator + 1–4 digits + optional letter, or the aircraft's own registration (a private flight's callsign: "GABCD" or "G-ABCD" on G-ABCD). | warning | Uppercase, remove spaces. |
 | V-FLIGHTNO-AIRLINE | flightNumber, airline | Designator prefix matches the airline's IATA or ICAO code. | warning | Fill airline from flight number. |
 | V-SEAT-FORMAT | seat | 1–3 digits + one letter. | warning | Uppercase. |
 | V-TIMES-ORDER | flight times | boarding ≤ departure ≤ takeoff < landing ≤ arrival, compared as instants. | error | |

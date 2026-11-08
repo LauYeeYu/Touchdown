@@ -1,6 +1,7 @@
 // One flight in a list (Flights, airport pages, the statistics' list of flights).
 
 import type { ReactNode } from "react";
+import { flightName } from "@touchdown/core";
 import { t, wordGap } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { useApp } from "../data/context.tsx";
@@ -81,7 +82,7 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
           </span>
         </span>
         <span className="row__cell row__flight">
-          <b>{v.f.flightNumber ?? "—"}</b>
+          <b>{flightName(v.f) ?? "—"}</b>
           {airlineLabel(v.f.airlineId, ref) || v.f.airlineRaw}
         </span>
         <TypeCell code={v.f.typeCode} second={v.f.registration} className="row__aircraft" />

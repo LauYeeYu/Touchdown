@@ -2,7 +2,7 @@
 // figures and ranked lists for a period, or a pivot as in its Custom view. The numbers come from the core package,
 // so they are the web app's.
 
-import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightStats, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
+import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightName, flightStats, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
 import { ageLeftOutText, ageTodayNote, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
 import { list, t, tDynamic } from "@touchdown/i18n/cli";
 import { noDimension, whereFilters, wrongDataset } from "./where.ts";
@@ -157,7 +157,7 @@ export async function statsCommand(args: string[]) {
   const topFrame = fs.byAirframe.items[0];
   const topFrameFlight = topFrame ? views.find((v) => v.f.airframeId === topFrame.key) : undefined;
   const facts: [string, string, string | null][] = [];
-  if (longest?.km) facts.push([t("cliRead.stats.fact.longest"), `${longest.fromCode} → ${longest.toCode}`, [dist(longest.km), longest.f.flightNumber].filter(Boolean).join(" · ")]);
+  if (longest?.km) facts.push([t("cliRead.stats.fact.longest"), `${longest.fromCode} → ${longest.toCode}`, [dist(longest.km), flightName(longest.f)].filter(Boolean).join(" · ")]);
   if (fs.minutes.value) facts.push([t("cliRead.stats.fact.timeInAir"), durShort(fs.minutes.value), t("cliRead.stats.fact.acrossFlights", { count: views.length - fs.minutes.leftOut })]);
   if (fs.byAirline.items[0]) facts.push([t("cliRead.stats.fact.topAirlines", { count: fs.byAirline.top.length }), list(fs.byAirline.top.map((id) => airlineLabel(id, ref))), t("common.count.flights", { count: fs.byAirline.items[0].count })]);
   if (topFrame && topFrame.count > 1 && topFrameFlight) facts.push([t("cliRead.stats.fact.topAircraft"), topFrameFlight.f.registration ?? "", `${t("common.count.flights", { count: topFrame.count })} · ${typeName(topFrameFlight.f.typeCode, ref)}`]);
@@ -174,7 +174,7 @@ export async function statsCommand(args: string[]) {
     averageDays: averageAge(ages.whenFlown),
     whenFlown: whenFlown.map((r) => {
       const f = flightOf.get(r.flightId);
-      return { flightId: r.flightId, flightNumber: f?.flightNumber ?? null, day: r.day, airframeId: r.airframeId, registration: f?.registration ?? null, typeCode: f?.typeCode ?? null, days: r.days, age: ageText(r.days) };
+      return { flightId: r.flightId, flightNumber: f ? flightName(f) : null, day: r.day, airframeId: r.airframeId, registration: f?.registration ?? null, typeCode: f?.typeCode ?? null, days: r.days, age: ageText(r.days) };
     }),
     whenFlownMore: ages.whenFlown.length - whenFlown.length,
     // For an aircraft retired or written off, the time since its first flight is not its age in service.

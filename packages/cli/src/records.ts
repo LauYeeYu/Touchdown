@@ -1,7 +1,7 @@
 // `touchdown flights`, `flight`, `sightings` and `sessions` (docs/34, "Reading"): the Flights and Spotting pages and a
 // flight's page, in the terminal or as JSON.
 
-import { arrivalAirportId, phasesOf, type Flight, type Sighting } from "@touchdown/core";
+import { arrivalAirportId, flightName, phasesOf, type Flight, type Sighting } from "@touchdown/core";
 import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, extensionPercent, flightSearch, inPeriod, PHASE_LABEL, REASON_LABEL, routeExtension, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n/cli";
 import { aircraftLabel, airportJson, duration, findingJson, findingsOf, flightJson, openFindings, sightingJson, timeLabel, trackOf } from "./shape.ts";
@@ -109,7 +109,7 @@ export async function flightsCommand(args: string[]) {
   const rows = shown.map((v) => [
     v.day ?? "",
     route(v),
-    v.f.flightNumber ?? "",
+    flightName(v.f) ?? "",
     airlineLabel(v.f.airlineId, log.ref) || v.f.airlineRaw || "",
     [aircraftLabel(log, v.f.typeCode, null), v.f.registration].filter(Boolean).join(" · "),
     duration(v.min),
@@ -154,7 +154,7 @@ export async function flightCommand(args: string[]) {
   const ext = routeExtension(log.store, log.ref, f);
   const priv = privateFields(log, f);
   const arrival = f.divertedToAirportId ?? f.toAirportId;
-  console.log(bold([f.flightNumber, route(v), v.day && plain(dayLong(v.day))].filter(Boolean).join(" · ")));
+  console.log(bold([flightName(f), route(v), v.day && plain(dayLong(v.day))].filter(Boolean).join(" · ")));
   for (const line of fields([
     [t("cliRead.flight.field.airline"), airlineLabel(f.airlineId, log.ref) || f.airlineRaw],
     [t("cliRead.flight.field.operatedBy"), f.operatingAirlineId ? airlineLabel(f.operatingAirlineId, log.ref) : null],

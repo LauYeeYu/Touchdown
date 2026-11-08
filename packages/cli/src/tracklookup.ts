@@ -9,6 +9,7 @@ import { t } from "@touchdown/i18n/cli";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
+  flightName,
   ADSBLOL_ATTRIBUTION,
   addDays,
   flightDay,
@@ -49,7 +50,7 @@ function readMisses(): Record<string, Miss> {
   }
 }
 
-const nameOf = (f: Flight) => `${f.flightNumber ?? t("cliWrite.tracks.aFlight")}${flightDay(f) ? `@${flightDay(f)}` : ""}`;
+const nameOf = (f: Flight) => `${flightName(f) ?? t("cliWrite.tracks.aFlight")}${flightDay(f) ? `@${flightDay(f)}` : ""}`;
 
 /** The aircraft's hex code on the flight's day: the log's, the US N-number's, else OpenSky's for the registration. */
 function hexFor(store: Store, f: Flight, openSky: Map<string, OpenSkyRow[]> | null): string | null {

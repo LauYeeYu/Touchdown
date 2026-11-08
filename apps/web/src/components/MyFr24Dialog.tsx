@@ -3,7 +3,7 @@
 // sent and closes the dialog.
 
 import { useEffect, useRef, useState } from "react";
-import { arrivalAirportId, flightDay, todayIn, type Flight, type Settings } from "@touchdown/core";
+import { arrivalAirportId, flightDay, flightName, todayIn, type Flight, type Settings } from "@touchdown/core";
 import { airportLabel, dayMonthYear, momentDay, myFr24Csv, myFr24Flights, myFr24States, type MyFr24State } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
@@ -21,7 +21,7 @@ function MyFr24Row({ flight: f, state, codes }: { flight: Flight; state: MyFr24S
   return (
     <>
       <span className="pick__date">{day ? dayMonthYear(day) : t("settings.myfr24.noDate")}</span>
-      <span className="pick__flight">{f.flightNumber ?? "—"}</span>
+      <span className="pick__flight">{flightName(f) ?? "—"}</span>
       <span className="pick__route">
         {from} → {to}
       </span>

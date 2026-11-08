@@ -3,7 +3,7 @@
 import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
-import { flightStats, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
+import { flightName, flightStats, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
 import { list, sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -101,7 +101,7 @@ export function Home() {
   );
 
   const facts: [string, React.ReactNode, React.ReactNode][] = [];
-  if (longest?.km) facts.push([t("home.facts.longest"), `${longest.fromCode} → ${longest.toCode}`, [distance(longest.km, unit), longest.f.flightNumber].filter(Boolean).join(" · ")]);
+  if (longest?.km) facts.push([t("home.facts.longest"), `${longest.fromCode} → ${longest.toCode}`, [distance(longest.km, unit), flightName(longest.f)].filter(Boolean).join(" · ")]);
   if (fs.minutes.value) facts.push([t("home.facts.time"), <Duration min={fs.minutes.value} pad={false} />, t("home.facts.timeDetail", { count: views.length - fs.minutes.leftOut })]);
   if (topAirline) facts.push([t("home.facts.airline", { count: fs.byAirline.top.length }), <Keep text={list(fs.byAirline.top.map((id) => airlineLabel(id, ref)))} />, t("common.count.flights", { count: topAirline.count })]);
   if (topFrame && topFrame.count > 1 && topFrameFlight) facts.push([t("home.facts.aircraft"), topFrameFlight.f.registration ?? "", `${t("common.count.flights", { count: topFrame.count })} · ${typeName(topFrameFlight.f.typeCode, ref)}`]);
@@ -209,7 +209,7 @@ export function Home() {
                 </h3>
                 <p className="recent__line">
                   {last.day && <b>{dayShort(last.day)}</b>} · {t("home.recent.route", { from: cityOf(last.f.fromAirportId, ref), to: cityOf(last.f.toAirportId, ref) })}
-                  {last.f.flightNumber && ` · ${last.f.flightNumber}`}
+                  {flightName(last.f) && ` · ${flightName(last.f)}`}
                   {last.f.airlineId && ` · ${airlineLabel(last.f.airlineId, ref)}`}
                 </p>
                 <ul className="facts-inline">
@@ -307,7 +307,7 @@ export function Home() {
                     <li>
                       <span className="dot dot--flown" />
                       {t("home.both.flew", { date: flight.scheduledDate ? dateOnly(flight.scheduledDate) : "" })}
-                      {flight.flightNumber && ` · ${flight.flightNumber}`}
+                      {flightName(flight) && ` · ${flightName(flight)}`}
                     </li>
                     <li>
                       <span className="dot dot--spotted" />

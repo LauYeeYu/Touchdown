@@ -4,7 +4,7 @@
 // Private values (ticket numbers, booking references) are shown only when the caller asks: the terminal never does.
 
 import { has, series, t, tDynamic, type MessageKey } from "@touchdown/i18n";
-import { flightDay } from "../derive.ts";
+import { flightDay, flightName } from "../derive.ts";
 import { refOverridesOf, tagsOf, viewFilters } from "../edit.ts";
 import { phasesOf } from "../phases.ts";
 import { withPrivate } from "../private.ts";
@@ -203,7 +203,7 @@ export function recordTitle(store: Store, ref: RefIndex, table: "flights" | "sig
   if (table === "flights") {
     const f = r as Row<"flights">;
     const day = flightDay(f) ?? f.scheduledDate;
-    return [f.flightNumber ?? t("changes.title.flight"), day && dayMonthYear(day), `${code(f.fromAirportId, f.fromRaw)} → ${code(f.divertedToAirportId ?? f.toAirportId, f.toRaw)}`].filter(Boolean).join(" · ");
+    return [flightName(f) ?? t("changes.title.flight"), day && dayMonthYear(day), `${code(f.fromAirportId, f.fromRaw)} → ${code(f.divertedToAirportId ?? f.toAirportId, f.toRaw)}`].filter(Boolean).join(" · ");
   }
   const s = r as Row<"sightings">;
   const at = s.airportId || s.airportRaw ? code(s.airportId, s.airportRaw) : "";

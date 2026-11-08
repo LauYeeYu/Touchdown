@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { inSentence, list, t } from "@touchdown/i18n";
-import { flightDay, PRIVATE_FIELDS, RULES, type Finding, type RecordRef, type Row, type TableName } from "@touchdown/core";
+import { flightDay, flightName, PRIVATE_FIELDS, RULES, type Finding, type RecordRef, type Row, type TableName } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import type { AppData } from "../data/app.ts";
 import { dayMonthYear, FIELD_LABEL, momentLabel } from "../lib/format.ts";
@@ -26,7 +26,7 @@ function RecordLink({ r, app }: { r: RecordRef; app: AppData }) {
     const d = flightDay(f);
     return (
       <Link to="/flights/$id" params={{ id: r.id }}>
-        {d ? t("issues.record.dated", { name: f.flightNumber ?? t("issues.record.flight"), date: dayMonthYear(d) }) : (f.flightNumber ?? t("issues.record.flight"))}
+        {d ? t("issues.record.dated", { name: flightName(f) ?? t("issues.record.flight"), date: dayMonthYear(d) }) : (flightName(f) ?? t("issues.record.flight"))}
       </Link>
     );
   }

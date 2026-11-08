@@ -5,7 +5,7 @@ import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { ageLeftOutText, ageText, aircraftAges, ageTodayNote, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, seatPositionLabel, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
-import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightStats, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
+import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightName, flightStats, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
@@ -378,7 +378,7 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
                 <tr key={e.flightId}>
                   <td>
                     <Link to="/flights/$id" params={{ id: e.flightId }}>
-                      {v?.f.flightNumber ?? t("stats.column.flight")}
+                      {(v && flightName(v.f)) ?? t("stats.column.flight")}
                     </Link>
                     {v?.day && <span className="muted"> · {dateOnly(v.day, { day: "numeric", month: "short", year: "numeric" })}</span>}
                     {v && <span className="extension-sub">{`${v.fromCode} → ${v.toCode}`}</span>}
@@ -599,7 +599,7 @@ function AgeWhenFlownTable({ rows, views, reference }: { rows: AgeWhenFlown[]; v
                 <tr key={r.flightId}>
                   <td>
                     <Link to="/flights/$id" params={{ id: r.flightId }}>
-                      {f?.flightNumber ?? t("stats.column.flight")}
+                      {(f && flightName(f)) ?? t("stats.column.flight")}
                     </Link>
                     <span className="muted"> · {dayMonthYear(r.day)}</span>
                     <span className="extension-sub">{[f?.registration, type].filter(Boolean).join(" · ")}</span>

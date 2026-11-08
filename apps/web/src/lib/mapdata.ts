@@ -1,6 +1,6 @@
 // Turning flights and sightings into map marks.
 
-import { haversineKm, simplifyTrack, type RefIndex, type Settings, type Sighting, type Store } from "@touchdown/core";
+import { flightName, haversineKm, simplifyTrack, type RefIndex, type Settings, type Sighting, type Store } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import type { MapFlight, MapSpot } from "../components/maps.tsx";
 import { esc } from "../components/overlay.tsx";
@@ -82,7 +82,7 @@ export function mapFlights(views: FlightView[], ref: RefIndex, unit: Settings["d
       toName: shortAirport(b.id, ref),
       route: v.route ?? "",
       both: !!v.f.airframeId && bothAirframes.has(v.f.airframeId),
-      tip: `<strong>${esc(v.f.flightNumber ?? t("data.map.flight"))} · ${esc(v.fromCode)} → ${esc(v.toCode)}</strong><br><span class="muted">${v.day ? `${dayShort(v.day)} ${v.day.slice(0, 4)}` : t("data.map.noDate")}${v.km ? ` · ${distance(v.km, unit)}` : ""}</span>`,
+      tip: `<strong>${esc(flightName(v.f) ?? t("data.map.flight"))} · ${esc(v.fromCode)} → ${esc(v.toCode)}</strong><br><span class="muted">${v.day ? `${dayShort(v.day)} ${v.day.slice(0, 4)}` : t("data.map.noDate")}${v.km ? ` · ${distance(v.km, unit)}` : ""}</span>`,
       ...overviewTrack(tracks.get(v.f.id), [a.lon, a.lat], [b.lon, b.lat], trackPoints),
       pending: recorded.has(v.f.id) && !tracks.has(v.f.id),
     });

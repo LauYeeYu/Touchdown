@@ -11,6 +11,14 @@ export function flightDay(f: Pick<Flight, "takeoffAt" | "departureAt" | "schedul
 }
 
 /** Destination for distance and maps: the diversion airport when there was one. */
+/**
+ * What names a flight in lists and headings: its flight number, else its registration, which is what a private
+ * flight's callsign usually is.
+ */
+export function flightName(f: Pick<Flight, "flightNumber" | "registration">): string | null {
+  return f.flightNumber ?? f.registration ?? null;
+}
+
 export function arrivalAirportId(f: Pick<Flight, "toAirportId" | "divertedToAirportId">): string | null {
   return f.divertedToAirportId ?? f.toAirportId ?? null;
 }
