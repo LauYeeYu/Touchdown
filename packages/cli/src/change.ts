@@ -32,6 +32,7 @@ import {
   type Store,
   viewProblem,
   pastedFactsFor,
+  flownDistances,
   phaseIndex,
   viewFilters,
 } from "@touchdown/core";
@@ -489,7 +490,7 @@ export async function viewsCommand(args: string[]) {
     measure: (c.values.get("--measure") ?? "records") as SavedView["measure"],
   };
   if (view.dataset === "flights" || view.dataset === "sightings") {
-    const ctx = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store) };
+    const ctx = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store), flown: flownDistances(log.store, log.ref) };
     const filters = whereFilters(log, ctx, view.dataset, c.lists.get("--where") ?? []);
     if ("error" in filters) return fail(c.json, filters.error);
     if (filters.length) view.filters = filters;

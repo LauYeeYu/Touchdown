@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { Link, useReachable } from "../lib/link.tsx";
 import { extensionPercent, routeExtension } from "@touchdown/core/view";
-import { airportName, cityName, daysBetween, fitTrackFile, flightDay, flightName, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
+import { airportName, cityName, daysBetween, fitTrackFile, flightDay, flightName, greatCircleKm, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
 import { useApp } from "../data/context.tsx";
 import { sortedFlights } from "../lib/views.ts";
@@ -21,6 +21,7 @@ import { GlobePanel } from "../components/GlobePanel.tsx";
 import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { AltitudeChart } from "../components/charts.tsx";
 import { Duration } from "../components/Duration.tsx";
+import { HelpTip } from "../components/HelpTip.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
@@ -215,6 +216,9 @@ export function FlightDetail() {
       : [];
   // The distance flown beyond the great circle, once its track's positions are in this browser.
   const extension = track ? routeExtension(store, ref, f) : null;
+  // What the flight's distance is: entered, flown along its track, or the great circle (core flightDistanceKm).
+  const distanceBasis = f.distanceKmOverride !== null && f.distanceKmOverride !== undefined ? "entered" : v.flown ? "track" : "greatCircle";
+  const greatCircle = greatCircleKm(f, ref);
   const t0 = altitude[0]?.t ?? 0;
   const fromOffset = f.takeoffAt ? parseDateTime(f.takeoffAt)!.offsetMin : 0;
 
@@ -489,7 +493,7 @@ export function FlightDetail() {
       {pickedPanel}
       {routeMap}
 
-      {(f.boardingAt || f.takeoffAt || f.landingAt || extension) && (
+      {(f.boardingAt || f.takeoffAt || f.landingAt || v.km !== null || extension) && (
         <div className="times">
           {f.boardingAt && <TimeCell label={t("flights.detail.time.boarding")} dt={f.boardingAt} />}
           {f.takeoffAt && (
@@ -520,14 +524,28 @@ export function FlightDetail() {
               <p className="time__clock">
                 <Duration min={v.min} />
               </p>
-              <p className="time__date">{v.km !== null ? t("flights.detail.time.greatCircle", { distance: distance(v.km, unit) }) : ""}</p>
+            </div>
+          )}
+          {v.km !== null && (
+            <div className="time">
+              <p className="time__label">
+                {t("flights.detail.distance.label", { basis: distanceBasis })}
+                {distanceBasis === "track" && v.flown?.minimum && <HelpTip label={t("flights.detail.distance.about")} text={t("flights.detail.distance.minimum")} />}
+              </p>
+              <p className="time__clock">{distance(v.km, unit)}</p>
+              <p className="time__date">
+                {distanceBasis === "track" ? (greatCircle !== null ? t("flights.detail.time.greatCircle", { distance: distance(greatCircle, unit) }) : "") : t("flights.detail.distance.basis", { basis: distanceBasis })}
+              </p>
             </div>
           )}
           {extension && (
-            <div className="time" title={t("flights.detail.extension.title", { minimum: extension.minimum ? "yes" : "no" })}>
-              <p className="time__label">{t("flights.detail.extension.label")}</p>
-              <p className="time__clock">{t("flights.detail.extension.value", { minimum: extension.minimum ? "yes" : "no", percent: extensionPercent(extension.percent) })}</p>
-              <p className="time__date">{t("flights.detail.extension.detail", { flown: distance(extension.flownKm, unit), greatCircle: distance(extension.greatCircleKm, unit) })}</p>
+            <div className="time">
+              <p className="time__label">
+                {t("flights.detail.extension.label")}
+                <HelpTip label={t("stats.extension.about")} text={t("flights.detail.extension.title", { minimum: extension.minimum ? "yes" : "no" })} />
+              </p>
+              <p className="time__clock">{extensionPercent(extension.percent)}</p>
+              <p className="time__date">{t("flights.detail.extension.detail", { extra: distance(extension.extraKm, unit) })}</p>
             </div>
           )}
         </div>

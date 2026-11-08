@@ -41,7 +41,7 @@ Metric definitions for flights, sightings, and both together (requirements G3, P
 |---------|-----------|
 | Records | Count of flights or sightings. |
 | Aircraft | Count of distinct `airframeId` (records without one are left out). |
-| Distance | Sum of `distanceKm` (flights). |
+| Distance | Sum of each flight's distance (flights): the one the user entered, else the distance flown along its recorded track, else the great circle ([23](23-tracks-and-maps.md), "Distance"). |
 | Time | Sum of `durationMin` (flights). |
 | Airports | Count of distinct airports. |
 | First seen / last seen | Min / max date. |
@@ -93,7 +93,7 @@ Saved views: the user can save a custom view (dimensions, measure, filters) unde
 | Metric | Definition | Needs |
 |--------|-----------|-------|
 | Flights | records | — |
-| Distance | sum of `distanceKm`; also shown as times around the Earth (÷ 40,075) | from, to |
+| Distance | sum of each flight's distance (entered, else flown along its track, else the great circle); also shown as times around the Earth (÷ 40,075) | from, to |
 | Flight time | sum of `durationMin` (takeoff to landing, as in the user's sheet and Flightradar24) | times or duration |
 | Airports | distinct airports in `from` ∪ `to` | from, to |
 | Countries | distinct airport countries | from, to |

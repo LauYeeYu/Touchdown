@@ -19,7 +19,7 @@ Built commands are marked; the rest are Proposed. `REF` names a record: its id, 
 
 ### Reading
 
-Built, all of them. What they show is worked out by the code the web app's pages use (`@touchdown/core/view` and the statistics in the core package), so the figures and labels are the same, in the codes, distance unit and model names the log's settings choose. Lists default to all years; `stats` and `airport` open on this year when it has records, else the latest, as the pages do. Exit status 0 shown, 1 no such record (several are listed with their ids), 2 a wrong option or a log that cannot be read.
+Built, all of them. What they show is worked out by the code the web app's pages use (`@touchdown/core/view` and the statistics in the core package), so the figures and labels are the same, in the codes, distance unit and model names the log's settings choose. Lists default to all years; `stats` and `airport` open on this year when it has records, else the latest, as the pages do. `flights`, `stats` and `airport` also read the recorded tracks' positions from the storage, so each flight's distance is the one flown along its track, as in the web app ([23](23-tracks-and-maps.md), "Distance"); the other reading commands leave them out, which keeps them quick. Exit status 0 shown, 1 no such record (several are listed with their ids), 2 a wrong option or a log that cannot be read.
 
 | In the web app | Command | Shows |
 |---|---|---|

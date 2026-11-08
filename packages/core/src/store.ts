@@ -61,6 +61,8 @@ export class Store {
   private tables = new Map<TableName, Map<string, Row<TableName>>>();
   private listeners = new Set<Listener>();
   private pending: Change[] | null = null;
+  /** How many times each table has changed, for values worked out from it and kept until it changes again. */
+  private revisions = new Map<TableName, number>();
   readonly deviceId: string;
   private now: () => number;
   private validate: boolean;
@@ -74,6 +76,15 @@ export class Store {
 
   private map<N extends TableName>(table: N): Map<string, Row<N>> {
     return this.tables.get(table) as unknown as Map<string, Row<N>>;
+  }
+
+  /** A number that changes whenever the table does: rows loaded, written, merged or removed. */
+  revision(table: TableName): number {
+    return this.revisions.get(table) ?? 0;
+  }
+
+  private touch(table: TableName) {
+    this.revisions.set(table, this.revision(table) + 1);
   }
 
   /** Live rows (tombstones left out). */
@@ -181,6 +192,7 @@ export class Store {
 
   /** Put rows exactly as given (loading from storage, sync merges). Validated, not re-stamped. */
   load<N extends TableName>(table: N, rows: Row<N>[]): void {
+    if (rows.length) this.touch(table);
     for (const row of rows) {
       const full = completeRow(TABLES[table], row as Record<string, unknown>) as Row<N>;
       if (this.validate) {
@@ -193,6 +205,7 @@ export class Store {
 
   /** Put rows from the user's storage (or another tab) exactly as given and tell listeners, marked as coming from there. */
   applyRemote<N extends TableName>(table: N, rows: Row<N>[], origin: Origin = "sync"): void {
+    if (rows.length) this.touch(table);
     const changes: Change[] = [];
     for (const row of rows) {
       const full = completeRow(TABLES[table], row as Record<string, unknown>) as Row<N>;
@@ -210,6 +223,7 @@ export class Store {
 
   /** Add rows exactly as given and tell listeners (track points, which carry no system columns). */
   putRaw<N extends TableName>(table: N, rows: Row<N>[], origin?: Origin): void {
+    if (rows.length) this.touch(table);
     const changes: Change[] = [];
     for (const row of rows) {
       const full = completeRow(TABLES[table], row as Record<string, unknown>) as Row<N>;
@@ -227,6 +241,7 @@ export class Store {
 
   /** Remove rows outright (track points are replaced with their track; they have no tombstones). */
   purge(table: TableName, keys: string[], origin?: Origin): void {
+    if (keys.length) this.touch(table);
     const changes: Change[] = [];
     for (const k of keys) {
       const before = this.map(table).get(k);
@@ -250,6 +265,7 @@ export class Store {
     }
     const id = rowKey(table, after as Record<string, unknown>);
     this.map(table).set(id, after);
+    this.touch(table);
     const change = { table, id, before, after } as Change;
     if (this.pending) this.pending.push(change);
     else this.emit([change]);

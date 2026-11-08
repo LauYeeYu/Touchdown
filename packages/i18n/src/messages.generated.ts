@@ -1542,10 +1542,13 @@ export interface MessageArgs {
   "flights.detail.time.plusDays": { count: "number" };
   "flights.detail.time.inAir": {};
   "flights.detail.time.greatCircle": { distance: "text" };
+  "flights.detail.distance.label": { basis: "choice" };
+  "flights.detail.distance.basis": { basis: "choice" };
+  "flights.detail.distance.about": {};
+  "flights.detail.distance.minimum": {};
   "flights.detail.extension.title": { minimum: "choice" };
   "flights.detail.extension.label": {};
-  "flights.detail.extension.value": { minimum: "choice"; percent: "text" };
-  "flights.detail.extension.detail": { flown: "text"; greatCircle: "text" };
+  "flights.detail.extension.detail": { extra: "text" };
   "flights.detail.altitude.title": {};
   "flights.detail.altitude.clock": { code: "text"; time: "text" };
   "flights.detail.aircraft.title": {};

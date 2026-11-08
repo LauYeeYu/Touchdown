@@ -55,7 +55,7 @@
   "add.figure.session": "Spotting-Session",
   "add.figure.session.sub": "Tag und Flughafen einmal, dann Kennzeichen",
   "tracks.title": "Aufgezeichnete Flugwege",
-  "tracks.greatCircle": "Ein Flug wird als Großkreis zwischen seinen Flughäfen gezeichnet, bis er einen aufgezeichneten Flugweg hat.",
+  "tracks.greatCircle": "Ein Flug wird als Großkreis zwischen seinen Flughäfen gezeichnet und gemessen, bis er einen aufgezeichneten Flugweg hat. Dann ist seine Entfernung die geflogene.",
   "tracks.fr24": "Mit einem Flightradar24-Abo lädst du den Flugweg eines Flugs als CSV oder KML herunter und fügst ihn auf der Seite des Flugs unter „Flugweg hinzufügen“ hinzu.",
   "tracks.missing": "Die Seite „Flüge“ listet die Flüge ohne Flugweg auf, als Datei für jemanden, der die Flugwege finden kann.",
   "tracks.figure.track": "Aufgezeichneter Flugweg",

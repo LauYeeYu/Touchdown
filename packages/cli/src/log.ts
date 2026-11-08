@@ -32,10 +32,10 @@ export function readBackupLog(file: string, ref: RefIndex): LoadedLog {
 }
 
 /** The log: from `file` when given, else from the chosen storage, else from the default backup when there is one. */
-export async function loadLog(ref: RefIndex, opts: { file?: string; storage: OpenedStorage | null }): Promise<LoadedLog> {
+export async function loadLog(ref: RefIndex, opts: { file?: string; storage: OpenedStorage | null; tracks?: boolean }): Promise<LoadedLog> {
   if (opts.file) return readBackupLog(opts.file, ref);
   if (opts.storage) {
-    const { store, problems } = await readLog(opts.storage, ref);
+    const { store, problems } = await readLog(opts.storage, ref, { tracks: opts.tracks });
     return { store, from: t("cliWrite.log.yourLogIn", { place: opts.storage.name }), problems };
   }
   if (existsSync(DEFAULT_LOG)) return readBackupLog(DEFAULT_LOG, ref);

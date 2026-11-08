@@ -55,7 +55,7 @@
   "add.figure.session": "拍攝場次",
   "add.figure.session.sub": "日期和機場只填一次，再填註冊號",
   "tracks.title": "飛行軌跡",
-  "tracks.greatCircle": "航班加入軌跡之前，會以兩個機場之間的大圓航線繪製。",
+  "tracks.greatCircle": "航班加入軌跡之前，會以兩個機場之間的大圓航線繪製並計算距離。加入軌跡後，距離以實際飛行計算。",
   "tracks.fr24": "如果你訂閱了Flightradar24，可以把航班軌跡下載成CSV或KML，再到航班頁面的「加入軌跡」加入。",
   "tracks.missing": "「航班」頁面可以把沒有軌跡的航班匯出成一個檔案，傳給能找到軌跡的人。",
   "tracks.figure.track": "實際軌跡",

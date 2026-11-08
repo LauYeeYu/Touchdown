@@ -11,7 +11,7 @@ Flight paths: great circles, recorded tracks, and exported figures and videos (r
 
 ## Recorded tracks
 
-A recorded track replaces the great circle in maps and exports. Its own distance is stored on the Track (`tracks.distanceKm`) and shown next to the great-circle distance.
+A recorded track replaces the great circle in maps and exports, and in the flight's distance (below, "Distance"). The file's own distance is stored on the Track (`tracks.distanceKm`) and shown when the track is added.
 
 A track has gaps where nothing was received: the stretch from the departure to its first point, from its last point to the arrival, and inside it wherever nothing came for over 10 minutes and 100 km (stored tracks keep a point every few minutes at most, so only a gap is that long; oceans, Central Asia, China). Maps draw the recorded stretches solid and the gaps as great circles in grey dots (see "Maps in the app").
 
@@ -86,6 +86,17 @@ Decided, built. A flight's Track menu has "Download as KML" once its points are 
 
 Failures are findings, not silent drops.
 
+### Distance
+
+Decided, built (`packages/core/src/flown.ts`, the same in the web app, the share page and the CLI). A flight's distance is the one the user entered (`distanceKmOverride`), else the distance flown along its recorded track, else the great circle. Every figure uses it: a flight's page, the lists, Home, the Flights page's tiles, Statistics' totals, longest and shortest flights and years, the custom view, the speed check (V-DURATION-SPEED) and the CLI. A flight that lands where it took off (a lesson, a pleasure flight) has a distance only from its track: its great circle is 0.
+
+| Part | Rule |
+|------|------|
+| Distance flown | Along the airborne positions, from the first to the last, joined to the two airports. A position is airborne at 60 kt or more over the ground, or, without a speed, above the ground: taxiing is not part of the route. |
+| A stretch not recorded | A gap (nothing received for over 10 minutes and 100 km), or the stretch to an airport the track stops short of (over 30 km away), counts as a straight line, the shortest it could have been, so the distance is a minimum. The flight's page says so with a "?" beside the distance, not with "at least" in the figure. |
+| Not here yet | Until a track's positions are in the browser (sync on a new device, a share page past its wait), its flight counts the great circle. The CLI's `flights`, `stats` and `airport` read the positions from the storage for it, as `backup` does. |
+| Shown | A flight's page has a Distance cell in its times strip: "Distance flown" over the great circle when it comes from the track, else "Distance" over "Great circle" or "As entered". |
+
 ### Route extension
 
 Decided, built (`packages/core/src/view/extension.ts`, the same in the web app and the CLI). The distance a flight flew beyond the great circle between its airports, in the term air navigation uses (EUROCONTROL's horizontal flight efficiency is measured as route extension).
@@ -93,13 +104,13 @@ Decided, built (`packages/core/src/view/extension.ts`, the same in the web app a
 | Part | Rule |
 |------|------|
 | Which flights | Those with a recorded track whose positions are in the store. |
-| Distance flown | Along the airborne positions, from the first to the last, joined to the two airports. A position is airborne at 60 kt or more over the ground, or, without a speed, above the ground: taxiing is not part of the route. |
+| Distance flown | As the flight's distance (above, "Distance"). |
 | Against | The great circle between the departure airport and the airport landed at (a diversion's). Not the user's distance override. |
 | Shown | The extra distance, flown − great circle, and the same as a percentage of the great circle: "+8%", "+4.9%" (one decimal below 10%), "under +0.1%". |
-| A stretch not recorded | A gap (nothing received for over 10 minutes and 100 km), or the stretch to an airport the track stops short of (over 30 km away), counts as the great circle, the shortest it could have been, so the figure is a minimum: "at least +4.9%". |
+| A stretch not recorded | A gap (nothing received for over 10 minutes and 100 km), or the stretch to an airport the track stops short of (over 30 km away), counts as the great circle, the shortest it could have been, so the figure is a minimum. The flight's page explains that behind the "?" beside "Route extension"; Statistics' tables mark the row "at least +4.9%". |
 | By route | Routes as the Routes ranking keys them (both ways as one), with two or more such flights: their extra distance together against their great circles together. |
 
-Where it shows: a flight's page (the times strip's last cell, with the distance flown and the great circle), Statistics' Flights tab (the most indirect flights, by route) and `touchdown flight` (a line, and `routeExtension` in its JSON; the flight's track is read from the storage for it).
+Where it shows: a flight's page (the times strip's last cell, with how much further than the great circle it flew), Statistics' Flights tab (the most indirect flights, by route) and `touchdown flight` (a line, and `routeExtension` in its JSON; the flight's track is read from the storage for it).
 
 ## Maps in the app
 

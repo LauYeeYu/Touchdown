@@ -2,7 +2,7 @@
 // figures and ranked lists for a period, or a pivot as in its Custom view. The numbers come from the core package,
 // so they are the web app's.
 
-import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightName, flightStats, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
+import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightName, flightStats, flownDistances, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
 import { ageLeftOutText, ageTodayNote, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
 import { list, t, tDynamic } from "@touchdown/i18n/cli";
 import { noDimension, whereFilters, wrongDataset } from "./where.ts";
@@ -86,11 +86,12 @@ export async function statsCommand(args: string[]) {
   const topText = a.values.get("--top");
   const top = topText === undefined ? 8 : topText === "all" ? 0 : Number(topText);
   if (!Number.isInteger(top) || top < 0) return fail(json, t("cliRead.stats.topInvalid"));
-  const log = await openOrFail(json, a.values.get("--log"));
+  // With the tracks' positions, so distances are the ones flown, as the web app shows them.
+  const log = await openOrFail(json, a.values.get("--log"), { tracks: true });
   const year = periodOf(log.store, a.values.get("--year"), "default");
   if (typeof year !== "string") return fail(json, year.error);
   const c: Ctx = { log, top };
-  const ctx: StatsContext = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store) };
+  const ctx: StatsContext = { ref: log.ref, airframes: new Map(log.store.all("airframes").map((x) => [x.id, x])), phases: phaseIndex(log.store), flown: flownDistances(log.store, log.ref) };
   const viewName = a.values.get("--view");
   if (viewName !== undefined) {
     if (["--by", "--cols", "--of", "--measure"].some((o) => a.values.has(o)) || a.lists.has("--where")) return fail(json, t("cliRead.stats.viewAlone"));

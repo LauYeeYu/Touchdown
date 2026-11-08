@@ -23,7 +23,8 @@ ${t("cliRead.airport.exit")}`;
 export async function airportCommand(args: string[]) {
   const a = argsOrHelp(args, { values: ["--year"] }, airportHelp(), [1, 1]);
   const json = a.flags.has("--json");
-  const log = await openOrFail(json, a.values.get("--log"));
+  // With the tracks' positions, so distances are the ones flown, as the web app shows them.
+  const log = await openOrFail(json, a.values.get("--log"), { tracks: true });
   const ap = findAirport(log.ref, a.positional[0]!);
   if (!ap) return fail(json, t("cliRead.find.airport.notCode", { text: a.positional[0]! }), EXIT.notFound);
   const year = periodOf(log.store, a.values.get("--year"), "default");

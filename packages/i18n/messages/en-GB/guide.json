@@ -55,7 +55,7 @@
   "add.figure.session": "Spotting session",
   "add.figure.session.sub": "Day and airport once, then registrations",
   "tracks.title": "Recorded tracks",
-  "tracks.greatCircle": "A flight is drawn as the great circle between its airports until it has a recorded track.",
+  "tracks.greatCircle": "A flight is drawn, and measured, as the great circle between its airports until it has a recorded track. Then its distance is the one flown.",
   "tracks.fr24": "With a Flightradar24 subscription, download a flight's track as CSV or KML and add it on the flight's page, under Add track.",
   "tracks.missing": "The Flights page lists the flights without one, as a file to send to someone who can find them.",
   "tracks.figure.track": "Recorded track",

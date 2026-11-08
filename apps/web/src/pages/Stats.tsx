@@ -5,7 +5,7 @@ import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { ageLeftOutText, ageText, aircraftAges, ageTodayNote, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, seatPositionLabel, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
-import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightName, flightStats, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
+import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightName, flightStats, flownDistances, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { inPeriod, usePeriod } from "../lib/period.ts";
 import { sortedFlights } from "../lib/views.ts";
@@ -52,7 +52,7 @@ export function Stats() {
 
   const data = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-    const ctx: StatsContext = { ref, airframes, phases: phaseIndex(store) };
+    const ctx: StatsContext = { ref, airframes, phases: phaseIndex(store), flown: flownDistances(store, ref) };
     const flights = store.all("flights").filter((f) => inPeriod(flightDay(f), year));
     const sightings = store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
     const before: Sighting[] = year === "all" ? [] : store.all("sightings").filter((s) => s.seenOn && s.seenOn < `${year}-01-01`);

@@ -85,6 +85,8 @@ export class RefIndex {
   private referenceOperators: Operator[];
   private referenceAirports: Airport[];
   private ownAirports = new Set<string>();
+  /** Changes whenever the airports do (loaded later, the user's own added or changed), for values worked out from them. */
+  airportsRevision = 0;
 
   constructor(tables: RefTables, overrides: RefOverrides = {}) {
     this.referenceOperators = tables.operators;
@@ -106,6 +108,7 @@ export class RefIndex {
 
   /** The reference airports, then the user's own on top. */
   private setAirports(own: Airport[]) {
+    this.airportsRevision++;
     this.airports.clear();
     this.airportsByIata.clear();
     this.airportsByIcao.clear();
@@ -126,6 +129,7 @@ export class RefIndex {
 
   /** Add or replace an airport of the user's own (an airport_overrides row). Later lookups find it by its codes. */
   addOwnAirport(a: Airport) {
+    this.airportsRevision++;
     this.addAirport(a);
     this.ownAirports.add(a.id);
   }

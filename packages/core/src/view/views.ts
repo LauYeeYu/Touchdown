@@ -1,6 +1,7 @@
 // Data shaped for the pages and the CLI, derived from the stored rows. Nothing here is stored.
 
 import { flightDay, flightDistanceKm, flightDurationMin, routeKey } from "../derive.ts";
+import { flownDistances, type FlownDistance } from "../flown.ts";
 import type { RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -10,20 +11,24 @@ import { textCode, type CodeStyle } from "./codes.ts";
 export interface FlightView {
   f: Flight;
   day: string | null;
+  /** The flight's distance: entered, else flown along its track, else the great circle (flightDistanceKm). */
   km: number | null;
+  /** Its distance along its recorded track, when the track's positions are here. */
+  flown: FlownDistance | null;
   min: number | null;
   route: string | null;
   fromCode: string;
   toCode: string;
 }
 
-export function viewFlight(f: Flight, ref: RefIndex, style: CodeStyle = "iata"): FlightView {
+export function viewFlight(f: Flight, ref: RefIndex, style: CodeStyle = "iata", flown?: ReadonlyMap<string, FlownDistance>): FlightView {
   const from = ref.airport(f.fromAirportId);
   const to = ref.airport(f.divertedToAirportId ?? f.toAirportId);
   return {
     f,
     day: flightDay(f),
-    km: flightDistanceKm(f, ref),
+    km: flightDistanceKm(f, ref, flown),
+    flown: flown?.get(f.id) ?? null,
     min: flightDurationMin(f),
     route: routeKey(f, ref),
     // As text, in the user's codes ("LHR", "EGLL" or "LHR/EGLL"); large type and maps use primaryCode.
@@ -34,9 +39,10 @@ export function viewFlight(f: Flight, ref: RefIndex, style: CodeStyle = "iata"):
 
 /** Flights in time order (by takeoff instant where known, else flight day). */
 export function sortedFlights(store: Store, ref: RefIndex, style: CodeStyle = "iata"): FlightView[] {
+  const flown = flownDistances(store, ref);
   return store
     .all("flights")
-    .map((f) => viewFlight(f, ref, style))
+    .map((f) => viewFlight(f, ref, style, flown))
     .sort((a, b) => (a.f.takeoffAt && b.f.takeoffAt ? Date.parse(a.f.takeoffAt) - Date.parse(b.f.takeoffAt) : (a.day ?? "").localeCompare(b.day ?? "")) || a.f.id.localeCompare(b.f.id));
 }
 

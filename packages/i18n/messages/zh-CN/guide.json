@@ -55,7 +55,7 @@
   "add.figure.session": "拍摄场次",
   "add.figure.session.sub": "日期和机场填一次，再逐个输入注册号",
   "tracks.title": "飞行轨迹",
-  "tracks.greatCircle": "没有轨迹时，航班按两个机场之间的大圆航线绘制。",
+  "tracks.greatCircle": "没有轨迹时，航班按两个机场之间的大圆航线绘制和计算距离。加入轨迹后，距离按实际飞行计算。",
   "tracks.fr24": "如果你订阅了Flightradar24，可以把航班轨迹下载为CSV或KML，再到航班页面的“添加轨迹”中添加。",
   "tracks.missing": "航班页面可以把没有轨迹的航班导出成一个文件，发给能找到轨迹的人。",
   "tracks.figure.track": "实际轨迹",

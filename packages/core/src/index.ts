@@ -17,6 +17,7 @@ export * from "./phases.ts";
 export * from "./private.ts";
 export * from "./share.ts";
 export * from "./derive.ts";
+export * from "./flown.ts";
 export * from "./livery.ts";
 export * from "./identity/resolve.ts";
 export * from "./identity/facts.ts";

@@ -15,6 +15,7 @@ import {
   checkAll,
   matchTrackLegs,
   parseTrackCsv,
+  flownDistances,
   phaseIndex,
   type TrackPointInput,
   combinedStats,
@@ -496,7 +497,7 @@ const leftOut = (n: number) => t("cliWrite.build.leftOut", { count: n });
 
 function printStats(store: Store, ref: RefIndex) {
   const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-  const ctx = { ref, airframes, phases: phaseIndex(store) };
+  const ctx = { ref, airframes, phases: phaseIndex(store), flown: flownDistances(store, ref) };
   const flights = store.all("flights");
   const sightings = store.all("sightings");
   const opCode = (id: string) => {

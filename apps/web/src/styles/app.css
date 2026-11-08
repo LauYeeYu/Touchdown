@@ -1975,7 +1975,7 @@ main {
   margin-top: 16px;
 }
 
-/* As many equal columns as there are cells: boarding, takeoff, landing, time in the air, route extension. */
+/* As many equal columns as there are cells: boarding, takeoff, landing, time in the air, distance, route extension. */
 .times {
   display: grid;
   grid-auto-flow: column;
@@ -1998,6 +1998,19 @@ main {
   margin: 0;
   font-size: 0.8125rem;
   color: var(--ink-3);
+}
+
+/* A question mark beside a cell's label (a distance that is a minimum, route extension), sized to the label's line
+   so the labels stay level across the strip. */
+.time__label .help-tip {
+  width: 22px;
+  height: 22px;
+  margin: -6px 0 -6px 2px;
+}
+
+.time__label .help-tip .icon {
+  width: 15px;
+  height: 15px;
 }
 
 .time__clock {

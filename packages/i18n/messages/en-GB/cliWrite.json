@@ -521,7 +521,7 @@
   "build.leftOut": "[{count} left out]",
   "build.flights.title": "Flights summary",
   "build.flights.count": "Flights: {count}",
-  "build.flights.distance": "Distance: {km} km (great circle)",
+  "build.flights.distance": "Distance: {km} km (along the recorded tracks where there are any, else the great circle)",
   "build.flights.time": "Time (takeoff to landing): {time}",
   "build.flights.counts": "Airports {airports}, countries {countries}, airlines {airlines}, routes {routes}, types {types}",
   "build.aircraft": "Aircraft: {airframes} airframes ({provisional} provisional)",

@@ -1,5 +1,6 @@
 // Values derived from stored fields, never stored themselves (docs/10-domain-model.md, flights "Derived").
 
+import type { FlownDistance } from "./flown.ts";
 import type { RefIndex } from "./ref/index.ts";
 import type { Flight, Sighting } from "./schema/tables.ts";
 import { haversineKm } from "./geo/index.ts";
@@ -10,7 +11,6 @@ export function flightDay(f: Pick<Flight, "takeoffAt" | "departureAt" | "schedul
   return localDateOf(f.takeoffAt) ?? localDateOf(f.departureAt) ?? f.scheduledDate ?? null;
 }
 
-/** Destination for distance and maps: the diversion airport when there was one. */
 /**
  * What names a flight in lists and headings: its flight number, else its registration, which is what a private
  * flight's callsign usually is.
@@ -19,6 +19,7 @@ export function flightName(f: Pick<Flight, "flightNumber" | "registration">): st
   return f.flightNumber ?? f.registration ?? null;
 }
 
+/** Destination for distance and maps: the diversion airport when there was one. */
 export function arrivalAirportId(f: Pick<Flight, "toAirportId" | "divertedToAirportId">): string | null {
   return f.divertedToAirportId ?? f.toAirportId ?? null;
 }
@@ -44,9 +45,12 @@ export function greatCircleKm(f: Flight, ref: RefIndex): number | null {
   return haversineKm(a, b);
 }
 
-/** Distance in km: the user's override, else the great-circle distance. */
-export function flightDistanceKm(f: Flight, ref: RefIndex): number | null {
-  return f.distanceKmOverride ?? greatCircleKm(f, ref);
+/**
+ * Distance in km: the user's override, else the distance flown along the flight's recorded track (from
+ * `flownDistances`, when its positions are in the store), else the great-circle distance.
+ */
+export function flightDistanceKm(f: Flight, ref: RefIndex, flown?: ReadonlyMap<string, FlownDistance>): number | null {
+  return f.distanceKmOverride ?? flown?.get(f.id)?.km ?? greatCircleKm(f, ref);
 }
 
 /** Flight time in minutes, takeoff to landing: the user's override, else computed from the instants. */

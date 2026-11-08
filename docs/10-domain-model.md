@@ -180,7 +180,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 
 **flight_private**: a flight's private data, kept in the `private/` folder apart from the tables a share link reads ([32](32-modes-and-sharing.md), "Private data"). One row per flight, its id the flight's id. `flightId` (ref flights), `ticketNumber` (text; 13 digits + `/coupon`), `bookingRef` (text; PNR). Both private.
 
-Derived, not stored: manufacturer and family (from type), route, distance (unless overridden), duration (unless overridden), and the **flight day** (local date of `takeoffAt`, else `departureAt`, else `scheduledDate`; used for stats, calendars, and ordering).
+Derived, not stored: manufacturer and family (from type), route, distance (unless overridden: the distance flown along the recorded track when its positions are here, else the great circle; [23](23-tracks-and-maps.md), "Distance"), duration (unless overridden), and the **flight day** (local date of `takeoffAt`, else `departureAt`, else `scheduledDate`; used for stats, calendars, and ordering).
 
 ### sightings
 

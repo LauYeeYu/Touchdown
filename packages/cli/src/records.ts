@@ -81,7 +81,8 @@ const trackWord = (log: OpenedLog, f: Flight) => {
 export async function flightsCommand(args: string[]) {
   const a = argsOrHelp(args, { values: ["--year", "--airline", "--airport", "--type", "--search"], flags: ["--recorded"] }, flightsHelp());
   const json = a.flags.has("--json");
-  const log = await openOrFail(json, a.values.get("--log"));
+  // With the tracks' positions, so each flight's distance is the one flown, as the web app shows it.
+  const log = await openOrFail(json, a.values.get("--log"), { tracks: true });
   const year = periodOf(log.store, a.values.get("--year"), "all");
   if (typeof year !== "string") return fail(json, year.error);
   const airline = airlineOf(log, json, a.values.get("--airline"));

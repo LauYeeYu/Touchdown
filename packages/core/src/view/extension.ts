@@ -1,18 +1,18 @@
 // Route extension: the distance a flight flew beyond the great circle between its airports, along its recorded
-// track (docs/23-tracks-and-maps.md, "Route extension"). The same in the web app (a flight's page, Statistics) and the
-// CLI. Nothing here is stored.
+// track (docs/23-tracks-and-maps.md, "Route extension"), from the distance flown (flown.ts). The same in the web app
+// (a flight's page, Statistics) and the CLI. Nothing here is stored.
 
 import { locale, t } from "@touchdown/i18n";
 import { arrivalAirportId, routeKey } from "../derive.ts";
+import { flownDistances } from "../flown.ts";
 import { haversineKm } from "../geo/index.ts";
 import type { RefIndex } from "../ref/index.ts";
-import type { Flight, TrackPoint } from "../schema/tables.ts";
+import type { Flight } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
-import { trackDistanceKm } from "../tracks.ts";
 
 export interface RouteExtension {
   flightId: string;
-  /** The airborne path, from the first position to the last, joined to the two airports, km. */
+  /** The distance flown along the track (flown.ts), km. */
   flownKm: number;
   /** Between the two airports, km. */
   greatCircleKm: number;
@@ -27,52 +27,23 @@ export interface RouteExtension {
   minimum: boolean;
 }
 
-/** On the ground below this speed: taxiing is not part of the route. Without a speed, above the ground is airborne. */
-const AIRBORNE_KT = 60;
-/** As the maps split a track: nothing received for over 10 minutes and 100 km is a gap. */
-const GAP_S = 10 * 60;
-const GAP_KM = 100;
-/** A track that starts or ends further than this from its airport stops short of it. */
-const AIRPORT_KM = 30;
-
-const airborne = (p: TrackPoint) => (p.groundSpeedKt !== null && p.groundSpeedKt !== undefined ? p.groundSpeedKt >= AIRBORNE_KT : (p.altitudeFt ?? 0) > 0);
-
-function extensionOf(f: Flight, points: TrackPoint[], ref: RefIndex): RouteExtension | null {
-  const a = ref.airport(f.fromAirportId);
-  const b = ref.airport(arrivalAirportId(f));
-  if (!a || !b || points.length < 2) return null;
-  const greatCircleKm = haversineKm(a, b);
-  if (greatCircleKm < 1) return null;
-  let first = points.findIndex(airborne);
-  let last = points.findLastIndex(airborne);
-  if (first < 0 || last <= first) [first, last] = [0, points.length - 1];
-  const path = points.slice(first, last + 1);
-  const flownKm = haversineKm(a, path[0]!) + trackDistanceKm(path) + haversineKm(path[path.length - 1]!, b);
-  const short = haversineKm(a, points[0]!) > AIRPORT_KM || haversineKm(points[points.length - 1]!, b) > AIRPORT_KM;
-  const minimum = short || path.some((p, i) => i > 0 && p.t - path[i - 1]!.t > GAP_S && haversineKm(path[i - 1]!, p) > GAP_KM);
-  const extraKm = Math.max(0, flownKm - greatCircleKm);
-  return { flightId: f.id, flownKm, greatCircleKm, extraKm, percent: (extraKm / greatCircleKm) * 100, minimum };
-}
-
 /**
  * Each flight's route extension, by flight id, for the flights given (else every flight) that have a recorded track
- * whose positions are in this store. A stretch the track does not record counts as the great circle, a minimum.
+ * whose positions are in this store, and two airports at least a kilometre apart. A stretch the track does not record
+ * counts as the great circle, a minimum.
  */
 export function routeExtensions(store: Store, ref: RefIndex, flights?: Flight[]): Map<string, RouteExtension> {
-  const wanted = flights ? new Set(flights.map((f) => f.id)) : null;
-  const tracks = new Map(store.all("tracks").filter((t) => !wanted || wanted.has(t.flightId)).map((t) => [t.id, t]));
-  const points = new Map<string, TrackPoint[]>();
-  for (const p of store.all("track_points")) {
-    if (!tracks.has(p.trackId)) continue;
-    const list = points.get(p.trackId);
-    if (list) list.push(p);
-    else points.set(p.trackId, [p]);
-  }
+  const flown = flownDistances(store, ref);
   const out = new Map<string, RouteExtension>();
-  for (const [id, t] of tracks) {
-    const f = store.get("flights", t.flightId);
-    const e = f && extensionOf(f, (points.get(id) ?? []).sort((x, y) => x.seq - y.seq), ref);
-    if (e) out.set(f.id, e);
+  for (const f of flights ?? store.all("flights")) {
+    const d = flown.get(f.id);
+    const a = ref.airport(f.fromAirportId);
+    const b = ref.airport(arrivalAirportId(f));
+    if (!d || !a || !b) continue;
+    const greatCircleKm = haversineKm(a, b);
+    if (greatCircleKm < 1) continue;
+    const extraKm = Math.max(0, d.km - greatCircleKm);
+    out.set(f.id, { flightId: f.id, flownKm: d.km, greatCircleKm, extraKm, percent: (extraKm / greatCircleKm) * 100, minimum: d.minimum });
   }
   return out;
 }

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { list, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
-import { flightName, flightStats, todayIn } from "@touchdown/core";
+import { flightName, flightStats, flownDistances, todayIn } from "@touchdown/core";
 import { flightSearch, flightsWithoutTrack, missingTracksCsv } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { routeCodes } from "../lib/codes.ts";
@@ -45,7 +45,7 @@ export function Flights() {
   const data = useMemo(() => {
     const views = sortedFlights(store, ref).filter((v) => inPeriod(v.day, year));
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-    const fs = flightStats(views.map((v) => v.f), { ref, airframes });
+    const fs = flightStats(views.map((v) => v.f), { ref, airframes, flown: flownDistances(store, ref) });
     const tracks = trackIndex(store);
     const trackMeta = trackInfo(store);
     const review = new Set(app.findings().filter((f) => f.severity !== "info").flatMap((f) => f.records.filter((r) => r.table === "flights").map((r) => r.id)));

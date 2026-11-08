@@ -14,6 +14,7 @@ import { privateIndex, type FlightPrivateValues } from "../private.ts";
 import { isSeatFormat, parseFlightNumber } from "../normalise/flight.ts";
 import { addDays, daysBetween, formatOffset, instant, localDateOf, offsetAt, parseDateTime, todayIn, zonedDateTime } from "../time/index.ts";
 import { trackRouteProblem, trackTimeProblem } from "../tracks.ts";
+import { flownDistances, type FlownDistance } from "../flown.ts";
 
 export const FIRST_POWERED_FLIGHT = "1903-12-17";
 
@@ -120,7 +121,8 @@ export function checkAll(store: Store, ref: RefIndex, opts: CheckOptions = {}): 
   const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
   const tracks = new Map(store.all("tracks").map((t) => [t.flightId, t]));
 
-  for (const f of flights) checkFlight(out, f, ref, today, airframes, tracks.get(f.id) ?? null);
+  const flown = flownDistances(store, ref);
+  for (const f of flights) checkFlight(out, f, ref, today, airframes, tracks.get(f.id) ?? null, flown);
   for (const s of sightings) checkSighting(out, s, ref, today, airframes);
   checkCross(out, flights, sightings, airframes, ref, opts, privateIndex(store));
   return out.findings;
@@ -180,7 +182,7 @@ function checkFirstFlight(out: Collector, r: RecordRef, date: string | null, air
 
 // ---------- flights ----------
 
-function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, airframes: Map<string, Airframe>, track: Track | null) {
+function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, airframes: Map<string, Airframe>, track: Track | null, flown: ReadonlyMap<string, FlownDistance>) {
   const r = F(f.id);
   const label = flightLabel(f);
   const day = flightDay(f);
@@ -278,7 +280,7 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     const away = trackRouteProblem(track, f, ref);
     if (away) out.add("V-TRACK-ROUTE", "warning", [r], ["fromAirportId", "toAirportId"], t("rules.trackRoute", { label, problem: inSentence(away) }), [f.fromAirportId, arrivalAirportId(f), track.id]);
   }
-  const km = flightDistanceKm(f, ref);
+  const km = flightDistanceKm(f, ref, flown);
   const min = flightDurationMin(f);
   if (km && min) {
     const kmh = km / (min / 60);

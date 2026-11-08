@@ -5,6 +5,7 @@ import { t } from "@touchdown/i18n";
 import type { RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import { arrivalAirportId, flightDay, flightDistanceKm, flightDurationMin, routeKey } from "../derive.ts";
+import type { FlownDistance } from "../flown.ts";
 import { normaliseRegistration } from "../normalise/registration.ts";
 import { parseDateTime } from "../time/index.ts";
 
@@ -60,6 +61,8 @@ function distinctCount<T>(items: T[], key: (t: T) => string | null): Measured {
 
 export interface StatsContext {
   ref: RefIndex;
+  /** Each flight's distance along its recorded track (flownDistances); without it, distances are great circles. */
+  flown?: ReadonlyMap<string, FlownDistance>;
   airframes: Map<string, Airframe>;
   /** Each sighting's statuses (phaseIndex); without it, a sighting's `phase` alone. */
   phases?: Map<string, string[]>;
@@ -125,7 +128,7 @@ export interface FlightStats {
 
 export function flightStats(flights: Flight[], ctx: StatsContext): FlightStats {
   const { ref } = ctx;
-  const km = flights.map((f) => ({ f, v: flightDistanceKm(f, ref) }));
+  const km = flights.map((f) => ({ f, v: flightDistanceKm(f, ref, ctx.flown) }));
   const min = flights.map((f) => ({ f, v: flightDurationMin(f) }));
   const withKm = km.filter((x): x is { f: Flight; v: number } => x.v !== null);
   const withMin = min.filter((x): x is { f: Flight; v: number } => x.v !== null);
@@ -156,7 +159,7 @@ export function flightStats(flights: Flight[], ctx: StatsContext): FlightStats {
     if (!day) continue;
     const y = years.get(day.slice(0, 4)) ?? { flights: 0, distanceKm: 0, minutes: 0 };
     y.flights++;
-    y.distanceKm += flightDistanceKm(f, ref) ?? 0;
+    y.distanceKm += flightDistanceKm(f, ref, ctx.flown) ?? 0;
     y.minutes += flightDurationMin(f) ?? 0;
     years.set(day.slice(0, 4), y);
     perMonth[Number(day.slice(5, 7)) - 1]!++;
@@ -433,7 +436,7 @@ export function pivot(
       case "aircraft":
         return new Set(list.map((r) => r.airframeId).filter(Boolean)).size;
       case "distance":
-        return list.reduce((s, r) => s + (dataset === "flights" ? (flightDistanceKm(r as Flight, ctx.ref) ?? 0) : 0), 0);
+        return list.reduce((s, r) => s + (dataset === "flights" ? (flightDistanceKm(r as Flight, ctx.ref, ctx.flown) ?? 0) : 0), 0);
       case "time":
         return list.reduce((s, r) => s + (dataset === "flights" ? (flightDurationMin(r as Flight) ?? 0) : 0), 0);
     }

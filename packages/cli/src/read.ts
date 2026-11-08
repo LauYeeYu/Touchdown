@@ -99,11 +99,12 @@ export interface OpenedLog {
 /**
  * The log, read-only: from --log, else the chosen storage, else the default backup. The user's own operators and
  * family choices apply, and the log's settings say how codes, distances and models are shown, as in the web app.
+ * `tracks`: read the recorded tracks' positions from the storage too, for the distances flown (a backup holds them).
  */
-export async function openLog(file?: string): Promise<OpenedLog> {
+export async function openLog(file?: string, opts: { tracks?: boolean } = {}): Promise<OpenedLog> {
   const ref = new RefIndex(refTables());
   const storage = file ? null : await chosenStorage();
-  const log = await loadLog(ref, { file: file ? userPath(file) : undefined, storage });
+  const log = await loadLog(ref, { file: file ? userPath(file) : undefined, storage, tracks: opts.tracks });
   if (!log.store) throw new Error(t("cliRead.log.none"));
   const store = log.store;
   ref.setUserOverrides(refOverridesOf(store));
@@ -114,9 +115,9 @@ export async function openLog(file?: string): Promise<OpenedLog> {
 }
 
 /** The log, or the reason it cannot be read, and stop. */
-export async function openOrFail(json: boolean, file?: string): Promise<OpenedLog> {
+export async function openOrFail(json: boolean, file?: string, opts: { tracks?: boolean } = {}): Promise<OpenedLog> {
   try {
-    return await openLog(file);
+    return await openLog(file, opts);
   } catch (e) {
     return fail(json, (e as Error).message);
   }
