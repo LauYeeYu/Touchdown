@@ -11,6 +11,7 @@ import { download } from "../lib/download.ts";
 import { Icon } from "../lib/icons.tsx";
 import { toast } from "./overlay.tsx";
 import { PickAll, PickList, pickHint } from "./PickList.tsx";
+import { useBackdropClose } from "../lib/dialog.ts";
 
 /** A flight in the list: its day, number and route, and whether myFR24 has it already. */
 function MyFr24Row({ flight: f, state, codes }: { flight: Flight; state: MyFr24State | undefined; codes: Settings["codeDisplay"] }) {
@@ -34,6 +35,7 @@ export function MyFr24Dialog({ onClose }: { onClose: () => void }) {
   const { app } = useApp();
   const { store, ref } = app;
   const dialog = useRef<HTMLDialogElement>(null);
+  const backdrop = useBackdropClose(() => dialog.current?.close());
   const all = myFr24Flights(store);
   const states = myFr24States(store);
   const [chosen, setChosen] = useState<Set<string>>(() => new Set(myFr24Flights(store, true).map((f) => f.id)));
@@ -50,7 +52,7 @@ export function MyFr24Dialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <dialog ref={dialog} className="share-dialog pick-dialog" aria-labelledby="myfr24-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={dialog} className="share-dialog pick-dialog" {...backdrop} aria-labelledby="myfr24-title" onClose={onClose} onCancel={onClose}>
       <h2 id="myfr24-title" className="share-dialog__title">
         {t("settings.myfr24.dialog.title")}
       </h2>

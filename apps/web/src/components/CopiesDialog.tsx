@@ -7,9 +7,11 @@ import { t } from "@touchdown/i18n";
 import type { StorageCopies } from "../data/sync.ts";
 import { download } from "../lib/download.ts";
 import { Icon } from "../lib/icons.tsx";
+import { useBackdropClose } from "../lib/dialog.ts";
 
 export function CopiesDialog({ copies, place, onRestore, onClose }: { copies: StorageCopies; place: string; onRestore: (data: Uint8Array) => void; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const backdrop = useBackdropClose(() => dialog.current?.close());
   const [list, setList] = useState<{ name: string; day: string }[] | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export function CopiesDialog({ copies, place, onRestore, onClose }: { copies: St
   };
 
   return (
-    <dialog ref={dialog} className="share-dialog copies-dialog" aria-labelledby="copies-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={dialog} className="share-dialog copies-dialog" {...backdrop} aria-labelledby="copies-title" onClose={onClose} onCancel={onClose}>
       <h2 id="copies-title" className="share-dialog__title">
         {t("settings.copies.title")}
       </h2>

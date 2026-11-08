@@ -12,6 +12,7 @@ import { Icon } from "../lib/icons.tsx";
 import { Field, TextInput } from "./form.tsx";
 import { toast } from "./overlay.tsx";
 import { Select } from "./Select.tsx";
+import { useBackdropClose } from "../lib/dialog.ts";
 
 const CODE = /^[A-Z0-9]{3,4}$/;
 
@@ -27,6 +28,7 @@ export function AirportDialog({ raw = "", airport, onClose, onSaved }: { raw?: s
   const { app } = useApp();
   const { ref } = app;
   const dialog = useRef<HTMLDialogElement>(null);
+  const backdrop = useBackdropClose(() => dialog.current?.close());
   const [code, setCode] = useState(airport ? (airport.icao ?? airport.iata ?? "") : codeFrom(raw));
   const [name, setName] = useState(airport?.name ?? "");
   const [city, setCity] = useState(airport?.city ?? "");
@@ -101,7 +103,7 @@ export function AirportDialog({ raw = "", airport, onClose, onSaved }: { raw?: s
   };
 
   return createPortal(
-    <dialog ref={dialog} className="share-dialog airport-dialog" aria-labelledby="airport-dialog-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={dialog} className="share-dialog airport-dialog" {...backdrop} aria-labelledby="airport-dialog-title" onClose={onClose} onCancel={onClose}>
       <h2 id="airport-dialog-title" className="share-dialog__title">
         {airport ? t("airport.own.title.edit") : t("airport.own.title.add")}
       </h2>

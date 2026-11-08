@@ -10,6 +10,7 @@ import { canEncode, drawFigure, figureFile, FIGURE_FORMATS, FIGURE_SIZES, pageTh
 import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
+import { useBackdropClose } from "../lib/dialog.ts";
 
 interface Choice {
   format: FigureFormat;
@@ -39,6 +40,7 @@ function stored(): Choice {
 
 export function FigureDialog({ content, fileName, onClose }: { content: FigureContent; fileName: (ext: string) => string; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const backdrop = useBackdropClose(() => dialog.current?.close());
   const holder = useRef<HTMLDivElement>(null);
   const [choice, setChoice] = useState<Choice>(stored);
   const [ready, setReady] = useState(false);
@@ -116,7 +118,7 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
 
   const formats = (Object.keys(FIGURE_FORMATS) as FigureFormat[]).filter((f) => f !== "webp" || webp);
   return (
-    <dialog ref={dialog} className="share-dialog figure-dialog" aria-labelledby="figure-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={dialog} className="share-dialog figure-dialog" {...backdrop} aria-labelledby="figure-title" onClose={onClose} onCancel={onClose}>
       <h2 id="figure-title" className="share-dialog__title">
         {t("flights.figure.dialog.title")}
       </h2>

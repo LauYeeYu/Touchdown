@@ -17,6 +17,7 @@ import { Icon } from "../lib/icons.tsx";
 import { toast } from "./overlay.tsx";
 import { sendPreview } from "../lib/preview.ts";
 import { StandardTerms, TERMS_VERSION } from "./StandardTerms.tsx";
+import { useBackdropClose } from "../lib/dialog.ts";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -78,6 +79,7 @@ export function ShareLogButton() {
 export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: ShareKind; subject: string | null; anchor?: string | null; onClose: () => void }) {
   const { app } = useApp();
   const dialog = useRef<HTMLDialogElement>(null);
+  const backdrop = useBackdropClose(() => dialog.current?.close());
   const list = useShares(true);
   const link = linkFor(list, kind, subject);
   const [busy, setBusy] = useState(false);
@@ -132,6 +134,7 @@ export function ShareDialog({ kind, subject, anchor = null, onClose }: { kind: S
       ref={dialog}
       className="share-dialog"
       aria-labelledby="share-title"
+      {...backdrop}
       // React passes the terms dialog's close up to this one: only this dialog's own closes it.
       onClose={(e) => e.target === e.currentTarget && onClose()}
       onCancel={(e) => e.target === e.currentTarget && onClose()}

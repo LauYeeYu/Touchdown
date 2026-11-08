@@ -6,6 +6,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { t } from "@touchdown/i18n";
 import { tx } from "../lib/i18n.tsx";
+import { useBackdropClose } from "../lib/dialog.ts";
 
 export const TERMS_VERSION = 2;
 
@@ -30,6 +31,9 @@ export function StandardTerms({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const body = useRef<HTMLDivElement>(null);
+  const backdrop = useBackdropClose(() => {
+    if (!busy) onDecline();
+  });
   useEffect(() => {
     const d = dialog.current;
     if (!d) return;
@@ -47,7 +51,8 @@ export function StandardTerms({
       ref={dialog}
       className="terms-dialog"
       aria-labelledby="terms-title"
-      // Escape is "Not now".
+      // Escape and the backdrop are "Not now".
+      {...backdrop}
       onCancel={(e) => {
         e.preventDefault();
         if (!busy) onDecline();
