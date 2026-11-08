@@ -365,9 +365,11 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
       let vb: [number, number, number, number];
       if (m === "world") {
         proj.fitWidth(width, { type: "Sphere" });
+        // The routes' latitudes and 12° more, but no further than 58°S and 82°N, which leave out Antarctica and the
+        // Arctic Ocean. A route that goes past them (Santiago to Sydney reaches 62°S) moves the edge, 6° beyond it.
         const [[, south], [, north]] = geoms.length ? geoBounds(fc) : [[0, -40], [0, 70]];
-        const top = proj([centre, Math.min(82, north + 12)])![1];
-        const bottom = proj([centre, Math.max(-58, south - 12)])![1];
+        const top = proj([centre, Math.min(90, Math.max(Math.min(82, north + 12), north + 6))])![1];
+        const bottom = proj([centre, Math.max(-90, Math.min(Math.max(-58, south - 12), south - 6))])![1];
         vb = [0, top, width, bottom - top];
       } else {
         const pad = 28;

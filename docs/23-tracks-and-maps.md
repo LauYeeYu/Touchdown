@@ -103,7 +103,7 @@ Where it shows: a flight's page (the times strip's last cell, with the distance 
 
 ## Maps in the app
 
-- Desktop overview maps: Equal Earth, full width, cropped to the latitudes the period covers. The central meridian is chosen so the map's edge falls in the widest band of longitudes with no flights or spots, so routes such as trans-Pacific ones are never cut.
+- Desktop overview maps: Equal Earth, full width, cropped to the latitudes the period covers and 12° more, no further than 58°S and 82°N (Antarctica and the Arctic Ocean stay out). A route that goes past those (Santiago to Sydney reaches 62°S) moves that edge to 6° beyond it, so no route is cut. The central meridian is chosen so the map's edge falls in the widest band of longitudes with no flights or spots, so routes such as trans-Pacific ones are never cut.
 - Phone overview maps: a disc centred on the period's routes (an orthographic globe when they fit on one hemisphere, an azimuthal equal-area disc otherwise), cropped to the routes, so the map stays about as tall as it is wide instead of a thin world strip.
 - Flight maps: an orthographic globe centred on the route.
 - The interactive globe (Statistics, and the Map / Globe switch on flight and airport pages, [31](31-ui.md)): a canvas orthographic globe that can be turned and zoomed. A one-flight globe draws the whole recorded track; overview globes draw tracks cut to 400 points.
