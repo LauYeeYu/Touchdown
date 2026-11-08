@@ -31,7 +31,7 @@ import {
   type ParsedSource,
   type RejectedAnswer,
 } from "@touchdown/core";
-import { loadRefTables } from "@touchdown/refdata";
+import { refTables } from "./reftables.ts";
 import { findAgent, runAgent, type Agent } from "./agents.ts";
 import { readSheetFile } from "./columns.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
@@ -405,7 +405,7 @@ export async function runCheck(agent: Agent, ref: RefIndex, request: CheckReques
 
 export async function checkCommand(args: string[]): Promise<void> {
   const o = options(args);
-  const ref = new RefIndex(loadRefTables());
+  const ref = new RefIndex(refTables());
   // Chosen at the terminal the first time and remembered; --agent for one run. A dry run needs none.
   let agent: Agent | null = null;
   if (!o.dryRun) {

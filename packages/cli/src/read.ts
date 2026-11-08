@@ -19,7 +19,7 @@ import {
 } from "@touchdown/core";
 import { yearsIn, type CodeStyle } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n/cli";
-import { loadRefTables } from "@touchdown/refdata";
+import { refTables } from "./reftables.ts";
 import { loadLog } from "./log.ts";
 import { userPath } from "./paths.ts";
 import { chosenStorage, type OpenedStorage } from "./storage.ts";
@@ -101,7 +101,7 @@ export interface OpenedLog {
  * family choices apply, and the log's settings say how codes, distances and models are shown, as in the web app.
  */
 export async function openLog(file?: string): Promise<OpenedLog> {
-  const ref = new RefIndex(loadRefTables());
+  const ref = new RefIndex(refTables());
   const storage = file ? null : await chosenStorage();
   const log = await loadLog(ref, { file: file ? userPath(file) : undefined, storage });
   if (!log.store) throw new Error(t("cliRead.log.none"));

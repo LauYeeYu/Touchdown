@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { backupZip, RefIndex, tableCsv, todayIn, type TableName } from "@touchdown/core";
 import { missingTracksCsv, myFr24Csv, myFr24Flights } from "@touchdown/core/view";
-import { loadRefTables } from "@touchdown/refdata";
+import { refTables } from "./reftables.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, printJson } from "./read.ts";
 import { chosenStorage, readLog } from "./storage.ts";
@@ -54,7 +54,7 @@ export async function backupCommand(args: string[]) {
   if (!json) console.error(dim(t("cli.readingLog", { place: storage.name })));
   let read;
   try {
-    read = await readLog(storage, new RefIndex(loadRefTables()), { tracks: true });
+    read = await readLog(storage, new RefIndex(refTables()), { tracks: true });
   } catch (e) {
     return fail(json, (e as Error).message);
   }

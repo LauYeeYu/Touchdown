@@ -49,7 +49,7 @@ import {
   type SightingCandidate,
   type WornLivery,
 } from "@touchdown/core";
-import { loadRefTables } from "@touchdown/refdata";
+import { refTables } from "./reftables.ts";
 import { findAgent, runAgent, type Agent } from "./agents.ts";
 import { readSheetFile } from "./columns.ts";
 import { findingsOf, PROMPT_FILE, recordSelfTest, selfTest, selfTestPassed, TIMEOUT_MS } from "./check.ts";
@@ -201,7 +201,7 @@ const questionsOn =
 
 export async function spotCommand(args: string[]): Promise<void> {
   const o = options(args);
-  const ref = new RefIndex(loadRefTables());
+  const ref = new RefIndex(refTables());
   const today = todayIn();
   const settings: SpotSettings = { date: today };
   if (o.settings.length) {

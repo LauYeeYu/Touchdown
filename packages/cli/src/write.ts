@@ -10,7 +10,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { reconcile, RefIndex, refOverridesOf, SCHEMA_VERSION, settleOlder, Store, type TableName } from "@touchdown/core";
 import { SyncEngine, type SyncState, type SyncStateStore } from "@touchdown/storage";
-import { loadRefTables } from "@touchdown/refdata";
+import { refTables } from "./reftables.ts";
 import { privatePath } from "./paths.ts";
 import { cliDeviceId } from "./settings.ts";
 import { chosenStorage, type OpenedStorage } from "./storage.ts";
@@ -88,7 +88,7 @@ export async function openForWriting(say: (line: string) => void = () => {}, sto
   say(t("cli.readingLog", { place: s.name }));
   // Values an older version left in a row are moved once the log is read, before anything is sent, as in the web app.
   const report = await engine.sync({ full: true, settle: () => settleOlder(store) });
-  const ref = new RefIndex(loadRefTables());
+  const ref = new RefIndex(refTables());
   ref.setUserOverrides(refOverridesOf(store));
   // What two devices made side by side is settled here as in the web app, and sent with the review.
   reconcile(store, ref);

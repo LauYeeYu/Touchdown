@@ -38,7 +38,7 @@ import {
   type Tally,
 } from "@touchdown/core";
 import { nf } from "@touchdown/core/view";
-import { loadRefTables } from "@touchdown/refdata";
+import { refTables } from "./reftables.ts";
 import { writeJsonTables } from "./jsontables.ts";
 import { readSheets } from "./sheets.ts";
 import { checkCommand, checkHelp } from "./check.ts";
@@ -292,9 +292,9 @@ async function main(argv: string[]) {
   if (cmd === "agent") return agentCommand(all);
   if (cmd === "login") return loginCommand(all, (l) => console.log(dim(l)));
   if (cmd === "logout") return logoutCommand();
-  if (cmd === "storage") return storageCommand(all, new RefIndex(loadRefTables()));
-  if (cmd === "add") return addCommand(all, new RefIndex(loadRefTables()));
-  if (cmd === "inbox") return inboxCommand(all, new RefIndex(loadRefTables()));
+  if (cmd === "storage") return storageCommand(all, new RefIndex(refTables()));
+  if (cmd === "add") return addCommand(all, new RefIndex(refTables()));
+  if (cmd === "inbox") return inboxCommand(all, new RefIndex(refTables()));
   if (cmd === "flights") return flightsCommand(all);
   if (cmd === "flight") return flightCommand(all);
   if (cmd === "sightings") return sightingsCommand(all);
@@ -316,7 +316,7 @@ async function main(argv: string[]) {
   if (cmd === "export") return exportCommand(all);
   if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd]!(), 0);
   // Without --out, import puts the files in the inbox for review (docs/34); with it, it builds a backup.
-  if (cmd === "import" && !all.includes("--out")) return importCommand(all, new RefIndex(loadRefTables()), importHelp());
+  if (cmd === "import" && !all.includes("--out")) return importCommand(all, new RefIndex(refTables()), importHelp());
   const { lookup, rest } = lookupArgs(all);
   if (cmd === "airframes") return airframesCommand(rest, lookup);
   const files: string[] = [];
@@ -339,7 +339,7 @@ async function main(argv: string[]) {
   }
   if (!files.length) usage(importHelp());
 
-  const ref = new RefIndex(loadRefTables());
+  const ref = new RefIndex(refTables());
   const store = new Store({ deviceId: "cli" });
 
   for (const file of files) {
@@ -421,7 +421,7 @@ async function airframesCommand(args: string[], lookup: LookupArgs) {
     else files.push(userPath(args[i]!));
   }
   if (files.length !== 1 || !files[0]!.endsWith(".zip")) usage(airframesHelp());
-  const ref = new RefIndex(loadRefTables());
+  const ref = new RefIndex(refTables());
   const store = new Store({ deviceId: "cli" });
   const backup = readBackup(new Uint8Array(readFileSync(files[0]!)));
   if (backup.problems.length) {
