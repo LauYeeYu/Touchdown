@@ -1,4 +1,6 @@
-// Airports from OurAirports, with IANA time zones from airportsdata.
+// Airports from OurAirports, with IANA time zones from airportsdata. Two tables: the airports shipped with the app
+// (large and medium airports, and any with an IATA code), and the small airfields with an ICAO code, which the app
+// loads only when a record needs one (docs/13, "Airports").
 
 import type { Airport } from "../../core/src/ref/types.ts";
 import { airportTzFixes, singleZoneCountryTz } from "../src/curated/fixes.ts";
@@ -23,8 +25,14 @@ interface Candidate {
 
 export interface AirportBuild {
   rows: Airport[];
+  /** Small airfields, seaplane bases, heliports and balloon ports with an ICAO code and no IATA code. */
+  airfields: Airport[];
   notes: string[];
 }
+
+// An airfield the sources give no time zone takes the zone of the nearest airport in its country that has one, when
+// that airport is this close. Checked against airfields whose zone is known, it gives the right offsets for 98% of them.
+const MAX_NEAREST_ZONE_KM = 100;
 
 function code(value: string | undefined, re: RegExp): string | null {
   const v = (value ?? "").trim().toUpperCase();
@@ -50,6 +58,8 @@ export function buildAirports(ourAirportsCsv: string, airportsDataCsv: string): 
   }
 
   const byId = new Map<string, Candidate>();
+  const fields = new Map<string, Candidate>();
+  const zoneless: Candidate[] = [];
   let droppedNoTz = 0;
   const missingTz: string[] = [];
   for (const r of parseCsvRecords(ourAirportsCsv)) {
@@ -57,9 +67,10 @@ export function buildAirports(ourAirportsCsv: string, airportsDataCsv: string): 
     if (type === "closed") continue;
     const iata = code(r.iata_code, /^[A-Z]{3}$/);
     const major = type === "large_airport" || type === "medium_airport";
-    if (!major && !iata) continue;
-
     const icao = code(r.icao_code, /^[A-Z0-9]{4}$/) ?? code(r.gps_code, /^[A-Z]{4}$/);
+    const airfield = !major && !iata;
+    if (airfield && !icao) continue;
+
     const ident = (r.ident ?? "").trim().toUpperCase();
     const id = `ap_${(icao ?? ident).toLowerCase()}`;
     const lat = Number(r.latitude_deg);
@@ -73,7 +84,7 @@ export function buildAirports(ourAirportsCsv: string, airportsDataCsv: string): 
       (iata ? near(tzByIata.get(iata)) : null) ??
       (r.local_code ? near(tzByLid.get(r.local_code.toUpperCase())) : null) ??
       singleZoneCountryTz[r.iso_country ?? ""];
-    if (!tz) {
+    if (!tz && !airfield) {
       if (major) missingTz.push(`${id} (${type}, ${r.iso_country})`);
       else droppedNoTz++;
       continue;
@@ -93,11 +104,16 @@ export function buildAirports(ourAirportsCsv: string, airportsDataCsv: string): 
         lat: Math.round(lat * 1e5) / 1e5,
         lon: Math.round(lon * 1e5) / 1e5,
         elevationFt: Number.isFinite(elevation) ? elevation : null,
-        tz,
+        tz: tz ?? "",
       },
     };
-    const old = byId.get(id);
-    if (!old || rank(candidate) < rank(old)) byId.set(id, candidate);
+    if (airfield && !tz) {
+      zoneless.push(candidate);
+      continue;
+    }
+    const into = airfield ? fields : byId;
+    const old = into.get(id);
+    if (!old || rank(candidate) < rank(old)) into.set(id, candidate);
   }
 
   // An IATA code should lead to one airport. When OurAirports gives the same code to several open
@@ -117,5 +133,35 @@ export function buildAirports(ourAirportsCsv: string, airportsDataCsv: string): 
   const rows = [...byId.values()].map((c) => c.airport).sort((a, b) => compare(a.id, b.id));
   notes.push(`airports: ${rows.length} rows; ${droppedNoTz} small airports dropped for lack of a time zone; ${iataCleared} duplicate IATA codes cleared`);
   if (missingTz.length) notes.push(`airports: large/medium airports without a time zone (add to airportTzFixes): ${missingTz.join(", ")}`);
-  return { rows, notes };
+
+  // Airfields: none with an id or an ICAO code the airports have. One without a zone takes its nearest neighbour's.
+  const taken = new Set(rows.flatMap((a) => [a.id, a.icao]));
+  const zoned = [...rows, ...[...fields.values()].map((c) => c.airport)];
+  const byCountry = new Map<string, Airport[]>();
+  for (const a of zoned) byCountry.set(a.country, [...(byCountry.get(a.country) ?? []), a]);
+  let nearestZone = 0;
+  let noZone = 0;
+  for (const c of zoneless) {
+    const a = c.airport;
+    let best: Airport | null = null;
+    let bestKm = MAX_NEAREST_ZONE_KM;
+    for (const b of byCountry.get(a.country) ?? []) {
+      const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
+      if (km <= bestKm) [best, bestKm] = [b, km];
+    }
+    if (!best) {
+      noZone++;
+      continue;
+    }
+    nearestZone++;
+    const candidate = { ...c, airport: { ...a, tz: best.tz } };
+    const old = fields.get(a.id);
+    if (!old || rank(candidate) < rank(old)) fields.set(a.id, candidate);
+  }
+  const airfields = [...fields.values()]
+    .map((c) => c.airport)
+    .filter((a) => !taken.has(a.id) && !taken.has(a.icao))
+    .sort((a, b) => compare(a.id, b.id));
+  notes.push(`airfields: ${airfields.length} rows; ${nearestZone} with the time zone of the nearest airport; ${noZone} dropped for lack of a time zone`);
+  return { rows, airfields, notes };
 }

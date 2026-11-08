@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { RefTableFile, RegistrationPrefix } from "../../core/src/ref/types.ts";
 import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
+import { loadAirfields } from "../src/airfields.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
+import airfieldsFile from "../data/airfields.json" with { type: "json" };
 import operatorsFile from "../data/operators.json" with { type: "json" };
 import aircraftTypesFile from "../data/aircraft_types.json" with { type: "json" };
 import familiesFile from "../data/families.json" with { type: "json" };
@@ -13,6 +15,7 @@ const ref = loadRefTables();
 
 const expectedColumns: [RefTableFile, string, string[]][] = [
   [airportsFile, "airports", ["id", "icao", "iata", "name", "city", "country", "lat", "lon", "elevationFt", "tz"]],
+  [airfieldsFile, "airfields", ["id", "icao", "iata", "name", "city", "country", "lat", "lon", "elevationFt", "tz"]],
   [operatorsFile, "operators", ["id", "icao", "iata", "name", "callsign", "country", "kind", "validFrom", "validTo"]],
   [aircraftTypesFile, "aircraft_types", ["designator", "manufacturer", "name", "familyId", "engineType", "engineCount", "wtc"]],
   [familiesFile, "families", ["id", "name", "manufacturer"]],
@@ -147,6 +150,33 @@ describe("airports", () => {
     expect(lhr).toMatchObject({ id: "ap_egll", icao: "EGLL", country: "GB", tz: "Europe/London" });
     expect(lhr!.lat).toBeCloseTo(51.47, 1);
     for (const a of ref.airports) expect(Number.isFinite(a.lat) && Number.isFinite(a.lon), a.id).toBe(true);
+  });
+});
+
+describe("airfields", () => {
+  it("have an ICAO code, no IATA code and a valid time zone", async () => {
+    const fields = await loadAirfields();
+    expect(fields.length).toBeGreaterThan(5000);
+    const zones = new Set(fields.map((a) => a.tz));
+    for (const tz of zones) expect(() => new Intl.DateTimeFormat(undefined, { timeZone: tz }), tz).not.toThrow();
+    for (const a of fields) {
+      expect(a.icao, a.id).toMatch(/^[A-Z0-9]{4}$/);
+      expect(a.id).toBe(`ap_${a.icao!.toLowerCase()}`);
+      expect(a.iata).toBeNull();
+      expect(Number.isFinite(a.lat) && Number.isFinite(a.lon), a.id).toBe(true);
+    }
+  });
+
+  it("share no id or ICAO code with the airports", async () => {
+    const fields = await loadAirfields();
+    const taken = new Set(ref.airports.flatMap((a) => [a.id, a.icao]));
+    expect(fields.filter((a) => taken.has(a.id) || taken.has(a.icao)).map((a) => a.id)).toEqual([]);
+    expect(new Set(fields.map((a) => a.icao)).size).toBe(fields.length);
+  });
+
+  it("include small airfields that private flights use", async () => {
+    expect(ref.airports.find((a) => a.icao === "EGLM")).toBeUndefined();
+    expect((await loadAirfields()).find((a) => a.icao === "EGLM")).toMatchObject({ id: "ap_eglm", country: "GB", tz: "Europe/London" });
   });
 });
 

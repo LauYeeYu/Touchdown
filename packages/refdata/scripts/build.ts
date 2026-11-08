@@ -85,6 +85,7 @@ async function main() {
   const airports = buildAirports(ourAirports, airportsData);
   notes.push(...airports.notes);
   writeTable("airports", version, [ATTRIBUTION.ourAirports, ATTRIBUTION.airportsData, ATTRIBUTION.touchdown], columns.airports, airports.rows);
+  writeTable("airfields", version, [ATTRIBUTION.ourAirports, ATTRIBUTION.airportsData, ATTRIBUTION.touchdown], columns.airports, airports.airfields);
 
   const operators = buildOperators(mictronics.get("operators.json")!.toString("utf8"), wikidata, vrsAirlines);
   notes.push(...operators.notes);
