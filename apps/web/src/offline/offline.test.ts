@@ -49,6 +49,12 @@ describe("the files the offline worker keeps", () => {
     expect(offlineFiles(build()).files).toEqual(["/assets/index-abc.js", "/boot.css", "/index.html"]);
   });
 
+  it("leaves out the Chinese type's files, which a page loads by the characters it shows", () => {
+    const files = offlineFiles(build({ "assets/noto-sans-sc-12-wght-normal-Ab12.woff2": "x", "assets/noto-sans-tc-3-wght-normal-Cd34.woff2": "x", "assets/source-sans-3-latin-wght-normal-Ef56.woff2": "x" })).files;
+    expect(files).toContain("/assets/source-sans-3-latin-wght-normal-Ef56.woff2");
+    expect(files.filter((f) => f.includes("noto-sans"))).toEqual([]);
+  });
+
   it("gets a new version when a file changes, and keeps it otherwise", () => {
     const a = offlineFiles(build()).version;
     rmSync(dir, { recursive: true, force: true });

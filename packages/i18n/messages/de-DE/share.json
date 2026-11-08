@@ -28,7 +28,7 @@
   "tracks.about": "Aufgezeichnete Flugwege werden nach dem Rest des Logbuchs gelesen. Bis der Flugweg eines Flugs da ist, zeigt seine Karte den Großkreis.",
   "tracks.progress": "Flugwege {done, number} von {total, number}",
   "foot.about": "Geteilt aus Touchdown, einem Logbuch für Flüge und Flugzeuge. Nur zum Lesen, auf dem aktuellen Stand des Logbuchs.",
-  "foot.credits": "Flughäfen: OurAirports (gemeinfrei) und airportsdata (MIT). Airlines: Wikidata (CC0) und die Flugzeugdatenbank von Mictronics (ODC-By). Namen in anderen Sprachen: Wikidata (CC0). Flugzeugdaten: die Flugzeugdatenbank des OpenSky Network und adsbdb (Daten von PlaneBase). Karte: Natural Earth (gemeinfrei) über world-atlas. Flugzeugfotos von <link>planespotters.net</link>, Urheber bei jedem Foto genannt. Icons: Lucide (ISC). Schrift: Source Sans 3 (SIL Open Font License).",
+  "foot.credits": "Flughäfen: OurAirports (gemeinfrei) und airportsdata (MIT). Airlines: Wikidata (CC0) und die Flugzeugdatenbank von Mictronics (ODC-By). Namen in anderen Sprachen: Wikidata (CC0). Flugzeugdaten: die Flugzeugdatenbank des OpenSky Network und adsbdb (Daten von PlaneBase). Karte: Natural Earth (gemeinfrei) über world-atlas. Flugzeugfotos von <link>planespotters.net</link>, Urheber bei jedem Foto genannt. Icons: Lucide (ISC). Schriften: Source Sans 3 und für Chinesisch Source Han Sans als Noto Sans SC und TC (SIL Open Font License).",
   "foot.privacy": "Datenschutzerklärung",
   "foot.terms": "Nutzungsbedingungen",
   "sighting.notInLink": "Diese Sichtung ist nicht in diesem Link.",

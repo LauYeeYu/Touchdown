@@ -81,7 +81,7 @@
   "note.loadIt": "Load it",
   "foot.synced": "Your log syncs through {place}, and this browser holds a copy.",
   "foot.local": "Your log is stored in this browser. Export a backup from Settings.",
-  "foot.credits": "Airports: OurAirports (public domain) and airportsdata (MIT). Airlines: Wikidata (CC0) and the Mictronics aircraft database (ODC-By). Names in other languages: Wikidata (CC0). Aircraft facts: the OpenSky Network aircraft database and adsbdb (data from PlaneBase). Map: Natural Earth (public domain) via world-atlas. Aircraft photos from <link>planespotters.net</link>, credited on each photo. Icons: Lucide (ISC). Typeface: Source Sans 3 (SIL Open Font License).",
+  "foot.credits": "Airports: OurAirports (public domain) and airportsdata (MIT). Airlines: Wikidata (CC0) and the Mictronics aircraft database (ODC-By). Names in other languages: Wikidata (CC0). Aircraft facts: the OpenSky Network aircraft database and adsbdb (data from PlaneBase). Map: Natural Earth (public domain) via world-atlas. Aircraft photos from <link>planespotters.net</link>, credited on each photo. Icons: Lucide (ISC). Typefaces: Source Sans 3 and, for Chinese, Source Han Sans as Noto Sans SC and TC (SIL Open Font License).",
   "foot.privacy": "Privacy policy",
   "foot.terms": "Terms of service",
   "firstRun.title": "Sync mode",

@@ -116,7 +116,7 @@
   "families.none": "Choose",
   "reference.title": "Reference data",
   "reference.intro": "{built, select, yes {Airports, airlines and aircraft types, built {version}. Sources:} other {Airports, airlines and aircraft types. Sources:}}",
-  "reference.credits": "Map: Natural Earth (public domain) via world-atlas. Icons: Lucide (ISC). Typeface: Source Sans 3 (SIL Open Font License). Reference photos: planespotters.net, credited on each photo.",
+  "reference.credits": "Map: Natural Earth (public domain) via world-atlas. Icons: Lucide (ISC). Typefaces: Source Sans 3 and, for Chinese, Source Han Sans as Noto Sans SC and TC (SIL Open Font License). Reference photos: planespotters.net, credited on each photo.",
   "reference.source.ourAirports": "OurAirports (ourairports.com), public domain",
   "reference.source.airportsData": "airportsdata by Mike Borsetti (github.com/mborsetti/airportsdata), MIT licence",
   "reference.source.mictronics": "Mictronics aircraft database (github.com/Mictronics/aircraft-database), Open Data Commons Attribution License (ODC-By)",

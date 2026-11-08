@@ -81,7 +81,7 @@
   "note.loadIt": "Laden",
   "foot.synced": "Dein Logbuch wird über {place} synchronisiert, und dieser Browser hat eine Kopie.",
   "foot.local": "Dein Logbuch ist in diesem Browser gespeichert. Exportiere eine Sicherung in den Einstellungen.",
-  "foot.credits": "Flughäfen: OurAirports (gemeinfrei) und airportsdata (MIT). Airlines: Wikidata (CC0) und die Flugzeugdatenbank von Mictronics (ODC-By). Namen in anderen Sprachen: Wikidata (CC0). Flugzeugdaten: die Flugzeugdatenbank des OpenSky Network und adsbdb (Daten von PlaneBase). Karte: Natural Earth (gemeinfrei) über world-atlas. Flugzeugfotos von <link>planespotters.net</link>, Urheber bei jedem Foto genannt. Icons: Lucide (ISC). Schrift: Source Sans 3 (SIL Open Font License).",
+  "foot.credits": "Flughäfen: OurAirports (gemeinfrei) und airportsdata (MIT). Airlines: Wikidata (CC0) und die Flugzeugdatenbank von Mictronics (ODC-By). Namen in anderen Sprachen: Wikidata (CC0). Flugzeugdaten: die Flugzeugdatenbank des OpenSky Network und adsbdb (Daten von PlaneBase). Karte: Natural Earth (gemeinfrei) über world-atlas. Flugzeugfotos von <link>planespotters.net</link>, Urheber bei jedem Foto genannt. Icons: Lucide (ISC). Schriften: Source Sans 3 und für Chinesisch Source Han Sans als Noto Sans SC und TC (SIL Open Font License).",
   "foot.privacy": "Datenschutzerklärung",
   "foot.terms": "Nutzungsbedingungen",
   "firstRun.title": "Synchronisierungsmodus",

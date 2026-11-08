@@ -11,6 +11,8 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.3.1",
+    "@fontsource-variable/noto-sans-tc": "^5.3.1",
     "@fontsource-variable/source-sans-3": "^5.3.1",
     "@tanstack/react-router": "^1.170.45",
     "@touchdown/core": "*",

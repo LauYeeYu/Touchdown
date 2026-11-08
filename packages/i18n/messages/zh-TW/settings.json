@@ -116,7 +116,7 @@
   "families.none": "請選擇",
   "reference.title": "參考資料",
   "reference.intro": "{built, select, yes {機場、航空公司和機型資料，更新於\u2060{version}。來源：} other {機場、航空公司和機型資料。來源：}}",
-  "reference.credits": "地圖：Natural Earth（公共領域），透過world-atlas取得。圖示：Lucide（ISC）。字型：Source Sans 3（SIL Open Font License）。飛機照片：planespotters.net，每張照片都註明出處。",
+  "reference.credits": "地圖：Natural Earth（公共領域），透過world-atlas取得。圖示：Lucide（ISC）。字型：Source Sans 3和中文的思源黑體（Source Han Sans，以Noto Sans SC和TC發布），皆為SIL Open Font License。飛機照片：planespotters.net，每張照片都註明出處。",
   "reference.source.ourAirports": "OurAirports（ourairports.com），公有領域",
   "reference.source.airportsData": "airportsdata，作者Mike Borsetti（github.com/mborsetti/airportsdata），MIT授權條款",
   "reference.source.mictronics": "Mictronics飛機資料庫（github.com/Mictronics/aircraft-database），開放資料共享姓名標示授權條款（ODC-By）",

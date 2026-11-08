@@ -1,6 +1,39 @@
 /* Source Sans 3 (SIL Open Font License), served with the app: one variable file per script, each loaded only when
-   a page has its characters (DESIGN.md, "Typography"). */
+   a page has its characters (DESIGN.md, "Typography"). Chinese in Source Han Sans, as Google publishes it (Noto Sans
+   SC and TC, the same type, SIL Open Font License), cut into files of about 45 KB by character, so a page loads only
+   the files of the characters it shows. */
 @import "@fontsource-variable/source-sans-3";
+@import "@fontsource-variable/noto-sans-sc";
+@import "@fontsource-variable/noto-sans-tc";
+
+/* Source Sans 3 again for Chinese pages, its line set for Chinese: Chinese characters stand higher on the baseline
+   than Latin capitals (their middle 0.38 of the size above it, against 0.33), and the baseline is placed by Source
+   Sans 3's ascent and descent (102% and 40%), which centre a line 0.31 above it. So a Chinese word sat high beside an
+   icon or in a pill. These overrides keep the line as tall (142%) and centre it 0.36 above the baseline, between the
+   two, so Chinese and Latin both sit in the middle. The same files: only the line's metrics differ. */
+@font-face {
+  font-family: "Source Sans 3 Han";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("../../../../node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  ascent-override: 107%;
+  descent-override: 35%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Source Sans 3 Han";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("../../../../node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF;
+  ascent-override: 107%;
+  descent-override: 35%;
+  line-gap-override: 0%;
+}
 
 :root {
   color-scheme: light;
@@ -67,8 +100,9 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Chinese is not in Source Sans 3: its characters come from the system's Chinese face for the script of the page's
-   language (Simplified or Traditional), while Latin letters and figures stay in Source Sans 3. Between Chinese and Latin
+/* Chinese is not in Source Sans 3: its characters come from Source Han Sans for the script of the page's language
+   (Simplified or Traditional; the system's Chinese face until its files are in, and offline when they never were),
+   while Latin letters and figures stay in Source Sans 3. Between Chinese and Latin
    letters or figures the browser puts a narrow gap (an eighth of a character, text-autospace), so the Chinese messages
    carry no typed space there: a space is wider than the gap Chinese type wants, and values put into a sentence (codes,
    numbers, names) get the gap too. A browser without text-autospace sets them close, as much Chinese text is. */
@@ -78,11 +112,11 @@
 }
 
 :root:lang(zh-CN) {
-  --sans: "Source Sans 3 Variable", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --sans: "Source Sans 3 Han", "Noto Sans SC Variable", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root:lang(zh-TW) {
-  --sans: "Source Sans 3 Variable", "PingFang TC", "Noto Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+  --sans: "Source Sans 3 Han", "Noto Sans TC Variable", "PingFang TC", "Noto Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

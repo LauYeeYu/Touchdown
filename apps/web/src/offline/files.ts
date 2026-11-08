@@ -1,12 +1,14 @@
 // The files the service worker keeps (docs/30, "Offline"): the app's built files, read from the build's folder after
 // the app is built (vite.sw.config.ts). Source maps, the sign-in pages' files and the share page's are left out: the
-// sign-in pages and share links need the server anyway.
+// sign-in pages and share links need the server anyway. So are Source Han Sans's files (noto-sans-sc and -tc, some
+// 200 files and 9 MB): a Chinese page loads the few its characters need, the browser keeps those, and offline the
+// system's Chinese face stands in for the rest.
 
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
-const LEFT_OUT = /^(signin-files|share-files)\/|\.map$|^sw\.js$/;
+const LEFT_OUT = /^(signin-files|share-files)\/|\.map$|^sw\.js$|\/noto-sans-(sc|tc)-[^/]*\.woff2$/;
 
 /** The app's files as addresses from the site's root, and a version that changes when any of them changes. */
 export function offlineFiles(dist: string): { files: string[]; version: string } {

@@ -116,7 +116,7 @@
   "families.none": "Auswählen",
   "reference.title": "Referenzdaten",
   "reference.intro": "{built, select, yes {Flughäfen, Airlines und Flugzeugtypen, Stand {version}. Quellen:} other {Flughäfen, Airlines und Flugzeugtypen. Quellen:}}",
-  "reference.credits": "Karte: Natural Earth (gemeinfrei) über world-atlas. Icons: Lucide (ISC). Schrift: Source Sans 3 (SIL Open Font License). Referenzfotos: planespotters.net, Urheber bei jedem Foto genannt.",
+  "reference.credits": "Karte: Natural Earth (gemeinfrei) über world-atlas. Icons: Lucide (ISC). Schriften: Source Sans 3 und für Chinesisch Source Han Sans als Noto Sans SC und TC (SIL Open Font License). Referenzfotos: planespotters.net, Urheber bei jedem Foto genannt.",
   "reference.source.ourAirports": "OurAirports (ourairports.com), gemeinfrei",
   "reference.source.airportsData": "airportsdata von Mike Borsetti (github.com/mborsetti/airportsdata), MIT-Lizenz",
   "reference.source.mictronics": "Mictronics-Flugzeugdatenbank (github.com/Mictronics/aircraft-database), Open Data Commons Attribution License (ODC-By)",
