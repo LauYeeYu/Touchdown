@@ -10,7 +10,8 @@ import { useApp } from "../data/context.tsx";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
 import { typeName, airlineLabel, PHASE_LABEL, shortAirport } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
-import { airportOptions, Field, LiveryQuestion, Picker } from "../components/form.tsx";
+import { Field, LiveryQuestion } from "../components/form.tsx";
+import { AirportField } from "../components/AirportField.tsx";
 import { toast } from "../components/overlay.tsx";
 import { Select } from "../components/Select.tsx";
 import { tx } from "../lib/i18n.tsx";
@@ -131,9 +132,7 @@ export function SessionAdd() {
         <Field label={t("spotting.field.date")}>
           <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label={t("spotting.field.location")}>
-          <Picker label={t("spotting.field.location")} value={airport} onChange={setAirport} options={airportOptions(ref)} placeholder={t("spotting.field.locationPlaceholder")} resolved={airport.trim() ? (ap ? shortAirport(ap.id, ref) : t("spotting.field.unknownAirport")) : null} invalid={!!airport.trim() && !ap} />
-        </Field>
+        <AirportField label={t("spotting.field.location")} value={airport} onChange={setAirport} airport={ap} shown={ap ? shortAirport(ap.id, ref) : ""} unknown={t("spotting.field.unknownAirport")} placeholder={t("spotting.field.locationPlaceholder")} />
         <Field label={t("spotting.session.phaseForNew")}>
           <Select<Phase | ""> label={t("spotting.session.phaseForNew")} value={phase} onChange={setPhase} options={[{ value: "", label: t("spotting.session.notRecorded") }, ...PHASES.map((p) => ({ value: p, label: PHASE_LABEL[p] ?? "" }))]} />
         </Field>

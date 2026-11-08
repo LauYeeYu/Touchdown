@@ -106,7 +106,8 @@ Known limits:
 - The server answers in UK English: picking the request's language needs a `t()` bound to one language per request.
 - The privacy policy and the terms (`PRIVACY.md`, `TERMS.md`) are in English.
 - Names from the reference data (cities, airports, airlines) are shown in the language where Wikidata has a name in
-  it, else in English (docs/13, "Names in other languages"). Aircraft types keep their model as written, with the maker
+  it, else in English (docs/13, "Names in other languages"). The small airfields and the airports a user adds keep
+  the names they have. Aircraft types keep their model as written, with the maker
   in the language where it has its own name (`labels.maker.*`).
 
 ## What stays in code

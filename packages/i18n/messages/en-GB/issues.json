@@ -44,5 +44,6 @@
   "conflict.useOtherLabel": "Use the other {field}",
   "finding.fixed": "Fixed. The raw value you typed is kept.",
   "finding.accepted": "Accepted. It comes back if these values change.",
-  "finding.right": "This is right"
+  "finding.right": "This is right",
+  "finding.addAirport": "Add {code} as an airport…"
 }

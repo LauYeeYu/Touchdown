@@ -20,8 +20,8 @@ Built by `packages/refdata` and shipped with the web app as versioned JSON. Rebu
 
 | Dataset | Source | Licence | Fields used | Notes |
 |---------|--------|---------|-------------|-------|
-| Airports | [OurAirports](https://ourairports.com/data/) `airports.csv` | Public domain | ident, type, name, lat/lon, elevation, iso_country, municipality, icao_code, iata_code | Keep `large_airport`, `medium_airport`, and any airport with an IATA code or used in the user's data. |
-| Airport time zones | [airportsdata](https://github.com/mborsetti/airportsdata) | MIT | icao, iata, tz | Joined to OurAirports by ICAO, then IATA. Fallback: compute from lat/lon with timezone-boundary-builder (ODbL). |
+| Airports | [OurAirports](https://ourairports.com/data/) `airports.csv` | Public domain | ident, type, name, lat/lon, elevation, iso_country, municipality, icao_code, iata_code | Two tables (below, "Airports"): `airports` (`large_airport`, `medium_airport`, and any airport with an IATA code) and `airfields` (the other open airfields, seaplane bases, heliports and balloon ports with an ICAO code). |
+| Airport time zones | [airportsdata](https://github.com/mborsetti/airportsdata) | MIT | icao, iata, lid, tz | Joined to OurAirports by ICAO, then IATA, then the FAA identifier, within 100 km; else the country's zone where it has one. An airfield with neither takes the zone of the nearest airport in its country that has one, within 100 km, and is left out beyond. |
 | Airlines | [Wikidata](https://www.wikidata.org/) (P230 ICAO, P229 IATA, P576 dissolved) | CC0 | codes, name, country, dissolved date | Best open source for validity dates. |
 | Airlines (fill gaps) | [VRS standing-data](https://github.com/vradarserver/standing-data) airlines; [Mictronics](https://github.com/Mictronics/aircraft-database) operators.json | CC0; ODC-By | name, ICAO, IATA, callsign, country | |
 | Aircraft types | VRS standing-data `model-type` | CC0 | ICAO designator, manufacturer, model, engines, wake category | ICAO's own Doc 8643 data is copyrighted and paid; not used. |
@@ -30,6 +30,19 @@ Built by `packages/refdata` and shipped with the web app as versioned JSON. Rebu
 | Registration prefixes | Our own table, from ICAO nationality marks | Ours | prefix, country, pattern | |
 
 Attribution for ODC-By and ODbL sources is shown on an About page and in exports that contain derived data.
+
+### Airports
+
+Built. Private flights, lessons and pleasure flights use small airfields, which most airport lists leave out. The airports are two tables, built from the same sources by `scripts/airports.ts`:
+
+| Table | Rows | In the app |
+|---|---|---|
+| `airports` | Large and medium airports, and any airport with an IATA code (about 9,000). | Shipped with the app and loaded with it. |
+| `airfields` | The other open airfields, seaplane bases, heliports and balloon ports that have an ICAO code (OurAirports' `icao_code`, or a `gps_code` of four letters) and no IATA code, and whose id and code no airport has (about 13,000, 1.4 MB). Their id is `ap_<icao>`, as an airport's. | Loaded only when needed (`@touchdown/refdata/airfields`): when the log has a record whose airport code or id the airports do not have, when a code or a name typed in an airport field matches none of them, and before a file is read on the Import page or from the inbox. Then kept for the session. The share page loads them when a link's records need them. The CLI always reads both. |
+
+An airfield's zone, where no source gives one, is the nearest airport's in its country (`MAX_NEAREST_ZONE_KM`): checked against airfields whose zone is known, it gives the right UTC offsets for 98% of them (99% within 25 km). A wrong one can be put right with an airport of the user's own under the same code, which comes first. Airfields have no names in other languages.
+
+An airport in neither table is added by the user (`airport_overrides`, [10](10-domain-model.md); [31](31-ui.md), "Airports of your own"): a code, a name, a place, a country, a position and a time zone. It comes before the reference data, with the same code too. Records saved before their airport was known (an import from before the airfields, or a code added later) are linked by a fix ([20](20-validation.md), V-AIRPORT-KNOWN).
 
 ### Names in other languages
 

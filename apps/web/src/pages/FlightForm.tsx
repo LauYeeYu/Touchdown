@@ -10,7 +10,8 @@ import { textCode } from "../lib/codes.ts";
 import { draftFindings } from "../data/draft.ts";
 import { CABIN_LABEL, REASON_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
-import { airportOptions, DateTimeField, Field, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
+import { DateTimeField, Field, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
+import { AirportField } from "../components/AirportField.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
 import { Select } from "../components/Select.tsx";
@@ -175,12 +176,8 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
           <Field label={t("flightForm.field.scheduledDate")} hint={t("flightForm.hint.scheduledDate")}>
             <input className="input" type="date" value={d.scheduledDate} onChange={(e) => set("scheduledDate", e.target.value)} />
           </Field>
-          <Field label={t("flightForm.field.from")}>
-            <Picker label={t("flightForm.field.from")} value={d.fromRaw} onChange={(v) => set("fromRaw", v)} options={airportOptions(ref)} placeholder={t("flightForm.placeholder.airport")} resolved={known(d.fromRaw, from ? `${cityName(from) ?? ""} ${from.name}`.trim() : undefined, "airport")} invalid={!!d.fromRaw.trim() && !from} />
-          </Field>
-          <Field label={t("flightForm.field.to")}>
-            <Picker label={t("flightForm.field.to")} value={d.toRaw} onChange={(v) => set("toRaw", v)} options={airportOptions(ref)} placeholder={t("flightForm.placeholder.airport")} resolved={known(d.toRaw, to ? `${cityName(to) ?? ""} ${to.name}`.trim() : undefined, "airport")} invalid={!!d.toRaw.trim() && !to} />
-          </Field>
+          <AirportField label={t("flightForm.field.from")} value={d.fromRaw} onChange={(v) => set("fromRaw", v)} airport={from} shown={from ? `${cityName(from) ?? ""} ${from.name}`.trim() : ""} unknown={t("flightForm.unknownCode", { kind: "airport" })} placeholder={t("flightForm.placeholder.airport")} />
+          <AirportField label={t("flightForm.field.to")} value={d.toRaw} onChange={(v) => set("toRaw", v)} airport={to} shown={to ? `${cityName(to) ?? ""} ${to.name}`.trim() : ""} unknown={t("flightForm.unknownCode", { kind: "airport" })} placeholder={t("flightForm.placeholder.airport")} />
           <Field label={t("flightForm.field.airline")}>
             <Picker label={t("flightForm.field.airline")} value={d.airlineRaw} onChange={(v) => set("airlineRaw", v)} options={operatorOptions(ref, settings.codeDisplay === "icao" ? "icao" : "iata")} placeholder={designator ? t("flightForm.placeholder.designator", { designator }) : t("flightForm.placeholder.airline")} resolved={airlineRaw && !airline && looksLikeOperatorName(airlineRaw) ? t("flightForm.operator") : known(airlineRaw, airline?.name, "airline")} invalid={!!airlineRaw && !airline && !looksLikeOperatorName(airlineRaw)} />
           </Field>

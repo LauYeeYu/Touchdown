@@ -44,5 +44,6 @@
   "conflict.useOtherLabel": "使用另一個{field}",
   "finding.fixed": "已修正，並保留你輸入的原始值。",
   "finding.accepted": "已接受。這些數值改變時會再次出現。",
-  "finding.right": "確認無誤"
+  "finding.right": "確認無誤",
+  "finding.addAirport": "將{code}新增為機場…"
 }

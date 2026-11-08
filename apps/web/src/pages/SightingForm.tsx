@@ -10,7 +10,8 @@ import { draftFindings } from "../data/draft.ts";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
 import { airlineLabel, dayMonthYear, PHASE_LABEL, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
-import { airportOptions, Field, LiveryQuestion, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
+import { Field, LiveryQuestion, operatorOptions, Picker, Segmented, TextInput } from "../components/form.tsx";
+import { AirportField } from "../components/AirportField.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
 import { linkFor, useShares } from "../data/shares.ts";
 import { FindingList } from "../components/Findings.tsx";
@@ -118,9 +119,7 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
           <Field label={t("spotting.field.date")}>
             <input className="input" type="date" value={d.seenOn} onChange={(e) => set("seenOn", e.target.value)} />
           </Field>
-          <Field label={t("spotting.field.location")}>
-            <Picker label={t("spotting.field.location")} value={d.airportRaw} onChange={(v) => set("airportRaw", v)} options={airportOptions(ref)} placeholder={t("spotting.field.locationPlaceholder")} resolved={d.airportRaw.trim() ? (airport ? shortAirport(airport.id, ref) : t("spotting.field.unknownAirport")) : null} invalid={!!d.airportRaw.trim() && !airport} />
-          </Field>
+          <AirportField label={t("spotting.field.location")} value={d.airportRaw} onChange={(v) => set("airportRaw", v)} airport={airport} shown={airport ? shortAirport(airport.id, ref) : ""} unknown={t("spotting.field.unknownAirport")} placeholder={t("spotting.field.locationPlaceholder")} />
         </div>
 
         {known && (

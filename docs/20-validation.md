@@ -31,7 +31,7 @@ Severity:
 |----|-----------|-------|----------|----------|
 | V-REG-FORMAT | registration | Matches a known national prefix pattern. | warning | Add/remove dash, uppercase. |
 | V-DATE-SANE | date | Not before 1903; not in the future (only flown flights are logged). | error | |
-| V-AIRPORT-KNOWN | from, to, location | Code resolves to one airport (IATA or ICAO). | error | Case fix. Suggest closest match. |
+| V-AIRPORT-KNOWN | from, to, location | Code resolves to one airport (IATA or ICAO, any case), among the airports, the small airfields and the user's own ([13](13-reference-data.md), "Airports"). | error | A code known now but not linked (saved before its airport was known): "Use White Waltham Airfield (EGLM)", which links every record with that code (built). A code no table has: in the web app, "Add EGLM as an airport…" opens the form for an airport of the user's own ([31](31-ui.md), "Airports of your own"; built). |
 | V-AIRPORT-SAME | flight | `from` ≠ `to` (unless the user marks it as a return-to-gate or local flight). | warning | |
 | V-OPERATOR-KNOWN | airline, operator | Code resolves (IATA or ICAO, case-insensitive), or the name of an airline or of an operator of the user's own. `AAl` → `AAL`. | error | Case fix. A company's name that is no airline ("Example Motors"): "Add … as an operator", which links every record with that name. Imports and saving in the app add such a name by themselves (built). |
 | V-TYPE-KNOWN | typeCode | Exists in the ICAO type list. | error | Suggest from model string. |

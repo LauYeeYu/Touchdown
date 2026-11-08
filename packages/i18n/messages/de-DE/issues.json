@@ -44,5 +44,6 @@
   "conflict.useOtherLabel": "{field} aus der anderen Änderung übernehmen",
   "finding.fixed": "Behoben. Der ursprünglich eingegebene Wert bleibt erhalten.",
   "finding.accepted": "Akzeptiert. Der Hinweis kommt zurück, wenn sich diese Werte ändern.",
-  "finding.right": "Das stimmt"
+  "finding.right": "Das stimmt",
+  "finding.addAirport": "{code} als Flughafen hinzufügen…"
 }

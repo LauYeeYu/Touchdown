@@ -1,7 +1,7 @@
 // One airport: how often the user left from it, landed at it and changed planes there, the flights, and the
 // aircraft photographed there. Opened from an airport or a spotting location on any map.
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
@@ -21,6 +21,7 @@ import { Fig } from "../components/Phrase.tsx";
 import { FlightRow } from "../components/FlightRow.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { NotFound } from "./NotFound.tsx";
+import { AirportDialog } from "../components/AirportDialog.tsx";
 import { TypeCell } from "../components/TypeCell.tsx";
 import { Fact } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
@@ -40,6 +41,7 @@ export function AirportPage() {
   const unit = app.settings().distanceUnit ?? "km";
   const ap = ref.airport(id);
   const mapStyle = useMapStyle();
+  const [editing, setEditing] = useState(false);
 
   const data = useMemo(() => {
     const review = new Set(app.findings().filter((f) => f.severity !== "info").flatMap((f) => f.records.filter((r) => r.table === "flights").map((r) => r.id)));
@@ -120,6 +122,17 @@ export function AirportPage() {
           )}
         </p>
       </div>
+      {ref.isOwnAirport(ap.id) && (
+        <p className="airport-own">
+          {t("airport.own.note")}
+          {!shared && (
+            <button type="button" className="link-btn field__action" onClick={() => setEditing(true)}>
+              {t("common.edit")}
+            </button>
+          )}
+        </p>
+      )}
+      {editing && <AirportDialog airport={ap} onClose={() => setEditing(false)} />}
       <div className="view-top view-top--airport">
         <PeriodControl year={year} years={years} onChange={setYear} />
       </div>

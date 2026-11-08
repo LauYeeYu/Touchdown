@@ -23,6 +23,7 @@ import {
   rowKey,
   rowVersion,
   saveFlight,
+  saveOwnAirport,
   saveSighting,
   saveSightings,
   setFamily,
@@ -45,6 +46,7 @@ import {
   type Finding,
   type FlightValues,
   type Match,
+  type OwnAirportValues,
   type ParsedSource,
   type RefTables,
   type ResolveResult,
@@ -835,6 +837,13 @@ export class AppData {
   /** Move every record of `from` to `into` and remove `from` (docs/11, "Merge airframes"). */
   mergeAirframes(into: string, from: string) {
     this.keep(mergeAirframes(this.store, this.ref, into, from).resolved);
+  }
+
+  /** Add an airport of the user's own, or change one, and link the records with its code; returns what it did. */
+  saveOwnAirport(values: OwnAirportValues, opts: { id?: string; raw?: string } = {}): string {
+    const r = saveOwnAirport(this.store, this.ref, values, opts);
+    this.resolve();
+    return r.message;
   }
 
   /** Apply a suggested fix; returns what to tell the user when it did more than the one record. */
