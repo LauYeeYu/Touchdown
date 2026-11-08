@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import OpenCC from "opencc-js";
+import { nameFixes, type NameFixes } from "../src/curated/name-fixes.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SPARQL = "https://query.wikidata.org/sparql";
@@ -144,7 +145,46 @@ interface Table {
   rows: unknown[][];
 }
 
+interface Names {
+  airports: Record<string, [string | null, string | null]>;
+  operators: Record<string, string>;
+}
+
+/** One language's names with the curated corrections (src/curated/name-fixes.ts) applied. */
+export function applyNameFixes(tag: string, names: Names, fixes: NameFixes = nameFixes): Names {
+  const fix = fixes[tag as keyof NameFixes];
+  const airports = { ...names.airports };
+  const operators = { ...names.operators };
+  for (const [id, v] of Object.entries(fix?.airports ?? {})) {
+    if (v) airports[id] = v;
+    else delete airports[id];
+  }
+  for (const [id, v] of Object.entries(fix?.operators ?? {})) {
+    if (v) operators[id] = v;
+    else delete operators[id];
+  }
+  return { airports, operators };
+}
+
+/** Write one language's file, its names sorted by id. */
+function writeNames(tag: string, names: Names, built: string) {
+  const fixed = applyNameFixes(tag, names);
+  const sorted = { airports: Object.fromEntries(Object.entries(fixed.airports).sort(([a], [b]) => a.localeCompare(b))), operators: Object.fromEntries(Object.entries(fixed.operators).sort(([a], [b]) => a.localeCompare(b))) };
+  const file = { language: tag, source: "Wikidata (wikidata.org), CC0", built, ...sorted };
+  writeFileSync(join(root, `data/names/${tag}.json`), JSON.stringify(file) + "\n");
+  console.log(`${tag}: ${Object.keys(fixed.airports).length} airports, ${Object.keys(fixed.operators).length} airlines`);
+}
+
+/** `--fixes-only`: the corrections applied to the files as they are, without asking Wikidata again. */
+function fixesOnly() {
+  for (const tag of TAGS) {
+    const file = JSON.parse(readFileSync(join(root, `data/names/${tag}.json`), "utf8")) as Names & { built: string };
+    writeNames(tag, file, file.built);
+  }
+}
+
 async function main() {
+  if (process.argv.includes("--fixes-only")) return fixesOnly();
   const airports = JSON.parse(readFileSync(join(root, "data/airports.json"), "utf8")) as Table;
   const operators = JSON.parse(readFileSync(join(root, "data/operators.json"), "utf8")) as Table;
   const col = (t: Table, name: string) => {
@@ -175,7 +215,7 @@ async function main() {
     for (const [k, v] of await labelsWhere(`VALUES ?item { ${values} }`)) cities.set(k, v);
   }
 
-  const out: Record<"zh-CN" | "zh-TW" | "de-DE", { airports: Record<string, [string | null, string | null]>; operators: Record<string, string> }> = {
+  const out: Record<"zh-CN" | "zh-TW" | "de-DE", Names> = {
     "zh-CN": { airports: {}, operators: {} },
     "zh-TW": { airports: {}, operators: {} },
     "de-DE": { airports: {}, operators: {} },
@@ -249,12 +289,7 @@ async function main() {
   console.log(`${airlines.size} airlines matched on Wikidata`);
 
   mkdirSync(join(root, "data/names"), { recursive: true });
-  for (const [tag, names] of Object.entries(out)) {
-    const sorted = { airports: Object.fromEntries(Object.entries(names.airports).sort(([a], [b]) => a.localeCompare(b))), operators: Object.fromEntries(Object.entries(names.operators).sort(([a], [b]) => a.localeCompare(b))) };
-    const file = { language: tag, source: "Wikidata (wikidata.org), CC0", built: new Date().toISOString().slice(0, 10), ...sorted };
-    writeFileSync(join(root, `data/names/${tag}.json`), JSON.stringify(file) + "\n");
-    console.log(`${tag}: ${Object.keys(names.airports).length} airports, ${Object.keys(names.operators).length} airlines`);
-  }
+  for (const [tag, names] of Object.entries(out)) writeNames(tag, names, new Date().toISOString().slice(0, 10));
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();

@@ -58,6 +58,7 @@ Built (G12, [31](31-ui.md), "Language"): airports, the places they serve and air
 | zh-TW | The `zh-tw` or `zh-hant` label, else `zh-hk`, else the Simplified one converted with Taiwan's wording (OpenCC, used only when the data is built, never shipped). Some converted names may differ from Taiwan's official ones. |
 | de-DE | The `de` label, kept only where it differs from the English name. |
 | Chinese names | Kept only when written in Chinese characters. |
+| Corrections | A name Wikidata has wrong (Andes Líneas Aéreas labelled with Austral's Chinese name) is put right, or dropped so the English name shows, from `src/curated/name-fixes.ts`, by the row's id. The build applies them, and `npm run build-names -w @touchdown/refdata -- --fixes-only` applies them to the files as they are, without asking Wikidata again. |
 | Makers of aircraft types | Not from Wikidata: the makers with a name of their own in the language are messages (`labels.maker.*`: Boeing is 波音, Airbus 空客 and 空中巴士). The model stays as written. |
 | In the app | Loaded only when the language is chosen (`@touchdown/refdata/names`), before the first page is drawn. Shown only: matching, imports and search by code keep the data's English names, the log stores ids, and search finds a place by either name. A name not in the file is shown in English. The CLI and the myFR24 export stay in English. |
 

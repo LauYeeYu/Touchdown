@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { best, namesIn, sameAirline } from "../scripts/names.ts";
+import { applyNameFixes, best, namesIn, sameAirline } from "../scripts/names.ts";
 import { loadRefNames } from "../src/names.ts";
 
 describe("names in other languages", () => {
@@ -43,6 +43,15 @@ describe("names in other languages", () => {
     // Of those named alike, the one wanted, here one with a Chinese name.
     const chinese = (item: string) => (labels.get(item) && "zh" in labels.get(item)! ? 1 : 0);
     expect(best(items, labels, "Harbourton Airport", airports, chinese)).toBe(items[1]);
+  });
+
+  it("puts right a name Wikidata has wrong, or drops it", async () => {
+    const names = { airports: { ap_xaaa: ["Wrong", "Place"] as [string, string], ap_xbbb: ["Kept", null] as [string, null] }, operators: { op_xa: "Wrong", op_xb: "Kept" } };
+    const fixes = { "zh-CN": { airports: { ap_xaaa: null }, operators: { op_xa: "Right" } } };
+    expect(applyNameFixes("zh-CN", names, fixes)).toEqual({ airports: { ap_xbbb: ["Kept", null] }, operators: { op_xa: "Right", op_xb: "Kept" } });
+    expect(applyNameFixes("de-DE", names, fixes)).toEqual(names);
+    // As built: Andes Líneas Aéreas, whose Chinese label on Wikidata is another airline's.
+    expect((await loadRefNames("zh-CN"))!.operators.op_ans).toBe("安第斯航空");
   });
 
   it("loads a language's names, and none for English", async () => {
