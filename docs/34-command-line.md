@@ -13,6 +13,17 @@
 | For agents too | Every command an agent would run takes `--json` and has documented exit statuses, so an agent can run it, read the answer and go on: the reading and changing commands, `add`, `import`, `inbox`, `review`, `backup`, `airframes`, and `storage` and `agent` when they show the settings. `spot`, `check` and `login` are for a person at a terminal (an agent adds records with `add`). `export` prints CSV. Reports never include the log's private fields. (Decided, built) |
 | Private fields | Ticket numbers and booking references can be added, changed and removed from the CLI, but it never shows them. (Decided, Q-CLI-PRIVATE) How, below in "Private fields". |
 
+## Language
+
+Decided, built (`packages/cli/src/language.ts`, Q-I18N): the CLI speaks the system's language, as other command-line tools do, not a setting of Touchdown's.
+
+| | |
+|---|---|
+| Which | The first of these the interface has: `LANGUAGE`'s list (GNU), then `LC_ALL`, else `LC_MESSAGES`, else `LANG`. On Windows, which has none of them, the system's locale. `zh_TW.UTF-8` and `zh_HK` read as Traditional Chinese, `de_AT` as German. A locale of `C` or `POSIX`, none at all, or a language the interface does not have get UK English. |
+| What | Every message, help texts included, in `packages/i18n/messages/<language>/cli*.json`. Commands, flags, field names, the words `spot` reads (`at`, `today`, the phases) and file formats stay in English. A month given to `--where` is read in the interface's language or as a number. |
+| Chinese | A space goes between Chinese characters and Latin letters, digits, a command (`./touchdown`) or an option (`--yes`), as the web pages draw it with CSS: a terminal does not. Added to what is printed for people, outside colour codes, never to `--json` output. |
+| `--json` | Keys and values as stored, in every language. The words in it (findings' messages, labels) are in the CLI's language. |
+
 ## Commands
 
 Built commands are marked; the rest are Proposed. `REF` names a record: its id, or for a flight `XY123@2025-04-02`, for a sighting `G-ABCD@EGLL@2025-03-15`, for an aircraft its registration (on a date with `@DATE` when it was reused).

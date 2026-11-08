@@ -125,6 +125,16 @@ describe("signing in", () => {
     expect((await call(s, jar, "GET", "/api/lookup")).status).toBe(404);
   });
 
+  it("answers in the browser's language, else in UK English", async () => {
+    const { s } = await withOwner();
+    const wrongIn = async (language?: string) => (await call(s, { cookie: null }, "POST", "/auth/signin", { email: "owner@example.org", key: keyOf("not it") }, language ? { "Accept-Language": language } : {})).json.error;
+    expect(await wrongIn()).toBe("Wrong email or password.");
+    expect(await wrongIn("de-CH,de;q=0.9,en;q=0.8")).toBe("E-Mail-Adresse oder Passwort falsch.");
+    expect(await wrongIn("zh-HK,zh;q=0.9")).toBe("電子郵件地址或密碼錯誤。");
+    expect(await wrongIn("zh-CN")).toBe("邮箱地址或密码错误。");
+    expect(await wrongIn("fr-FR,fr;q=0.9")).toBe("Wrong email or password.");
+  });
+
   it("makes each try wait after five wrong passwords", async () => {
     const { s, tick } = await withOwner();
     const jar: Jar = { cookie: null };

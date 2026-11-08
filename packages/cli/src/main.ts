@@ -5,6 +5,7 @@
 // inbox for review (importfile.ts). Private fields (ticket number, booking reference) are never printed.
 
 import { t, tDynamic } from "@touchdown/i18n/cli";
+import { useSystemLanguage } from "./language.ts";
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
@@ -278,6 +279,8 @@ async function airframesIntoLog(args: string[], lookup: LookupArgs) {
 // The CLI stays in UK English, whatever the terminal's language (docs/31-ui.md, "Language"): its own messages are not
 // translated, and in another language the core package's would be, mixing two languages in one report.
 async function main(argv: string[]) {
+  // In the system's language (language.ts), before the first message.
+  await useSystemLanguage(argv);
   const [cmd, ...all] = argv;
   if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
     const topic = all[0];

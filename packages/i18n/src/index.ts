@@ -24,7 +24,7 @@ const translation = async (module: Promise<{ default: Catalog }>): Promise<Catal
  * The languages the interface can be shown in, by BCP 47 tag: the name each gives itself, its messages, and the other
  * regional ways its speakers write dates, offered beside its own and ISO 8601 (`dateStyles`). A translation is loaded
  * only when it is chosen. A message it lacks is shown in UK English: en-US has only the messages spelt differently.
- * The CLI and the server stay in UK English (Q-I18N).
+ * The CLI's and the server's own files are added by those programs (`addTranslations`).
  */
 export const LOCALES = {
   "en-GB": { name: "English (UK)", dates: ["en-US"], load: async (): Promise<Catalog> => EN_GB },
@@ -62,6 +62,27 @@ const SOURCE: Catalog = { ...EN_GB };
 let current: { locale: Locale; catalog: Catalog } = { locale: SOURCE_LOCALE, catalog: EN_GB };
 let dateStyle: DateStyle = "language";
 let parsed = new Map<string, MessageNode[]>();
+/** A program's own files in each language (`addTranslations`): the CLI's and the server's. */
+const programs: Partial<Record<Locale, () => Promise<Catalog>>>[] = [];
+/**
+ * For a program answering many people at once (the server): every language loaded, and the language of the request
+ * being answered (`useRequestLocale`). Unset, messages are in the language set with `setLocale`.
+ */
+let requestLocale: (() => Locale | undefined) | null = null;
+const loaded = new Map<Locale, { catalog: Catalog; parsed: Map<string, MessageNode[]> }>();
+
+/** The language, its messages and their parsed forms, for the message being made now. */
+function now(): { locale: Locale; catalog: Catalog; parsed: Map<string, MessageNode[]> } {
+  const asked = requestLocale?.();
+  const other = asked && asked !== current.locale ? loaded.get(asked) : undefined;
+  return other ? { locale: asked!, ...other } : { ...current, parsed };
+}
+
+/** A language's messages: the shared files, and those of the program running (`addTranslations`). */
+async function catalogFor(locale: Locale): Promise<Catalog> {
+  const parts = await Promise.all([LOCALES[locale].load(), ...programs.map((p) => p[locale]?.() ?? Promise.resolve({}))]);
+  return Object.assign({}, ...parts) as Catalog;
+}
 /** The source language's parsed messages, kept apart for `inSourceLanguage`. */
 const parsedSource = new Map<string, MessageNode[]>();
 const warned = new Set<string>();
@@ -74,12 +95,12 @@ function warn(what: string) {
 
 /** The language messages, dates and numbers are shown in. */
 export function locale(): Locale {
-  return current.locale;
+  return now().locale;
 }
 
 /** Show the interface in `locale`, from now on. Pages already drawn keep their words, so the web app reloads after. */
 export async function setLocale(locale: Locale): Promise<void> {
-  const catalog = await LOCALES[locale].load();
+  const catalog = await catalogFor(locale);
   current = { locale, catalog };
   parsed.clear();
   if (!dateStyles().includes(dateStyle)) dateStyle = "language";
@@ -94,7 +115,7 @@ export type DateStyle = "language" | "iso" | (string & {});
 
 /** The date styles the current language offers, its own first. */
 export function dateStyles(): DateStyle[] {
-  return ["language", ...LOCALES[current.locale].dates, "iso"];
+  return ["language", ...LOCALES[now().locale].dates, "iso"];
 }
 
 export function getDateStyle(): DateStyle {
@@ -108,15 +129,46 @@ export function setDateStyle(style: DateStyle): void {
 
 /** The locale dates are written in, or "iso". */
 export function dateLocale(): string {
-  return dateStyle === "language" ? current.locale : dateStyle;
+  return dateStyle === "language" || requestLocale ? now().locale : dateStyle;
 }
 
 /**
  * Add a program's own messages in the source language: the CLI's and the server's (`./cli`, `./server`), which the
- * web pages do not load. A translation of them would be added the same way, by language.
+ * web pages do not load. Their translations are added with `addTranslations`.
  */
 export function addMessages(part: Catalog): void {
   Object.assign(SOURCE, part);
+}
+
+/** Add a program's own messages in other languages, each loaded when its language is chosen. */
+export function addTranslations(part: Partial<Record<Locale, () => Promise<Catalog>>>): void {
+  programs.push(part);
+}
+
+/**
+ * Load every language, then make each message in the language `which` gives for the request being answered (the
+ * server keeps it per request, in its async context), else in the one set with `setLocale`.
+ */
+export async function useRequestLocale(which: () => Locale | undefined): Promise<void> {
+  for (const l of Object.keys(LOCALES) as Locale[]) if (!loaded.has(l)) loaded.set(l, { catalog: await catalogFor(l), parsed: new Map() });
+  requestLocale = which;
+}
+
+/**
+ * The best of the interface's languages for an Accept-Language header ("de-CH,de;q=0.9,en;q=0.8"), in its order of
+ * preference. With none of them, UK English.
+ */
+export function localeOfHeader(header: string | null | undefined): Locale {
+  const asked = (header ?? "")
+    .split(",")
+    .map((part, i) => {
+      const [tag, ...params] = part.trim().split(";");
+      const q = Number(params.find((p) => p.trim().startsWith("q="))?.trim().slice(2) ?? 1);
+      return { tag: tag!.trim(), q: Number.isFinite(q) ? q : 0, i };
+    })
+    .filter((x) => x.tag && x.tag !== "*" && x.q > 0)
+    .sort((a, b) => b.q - a.q || a.i - b.i);
+  return matchLocale(asked.map((x) => x.tag));
 }
 
 /**
@@ -125,14 +177,15 @@ export function addMessages(part: Catalog): void {
  * English (docs/22). The log itself holds values and codes, not words, so it reads the same in every language.
  */
 export function inSourceLanguage<T>(make: () => T): T {
-  const was = { current, dateStyle, parsed };
+  const was = { current, dateStyle, parsed, requestLocale };
   current = { locale: SOURCE_LOCALE, catalog: EN_GB };
   dateStyle = "language";
   parsed = parsedSource;
+  requestLocale = null;
   try {
     return make();
   } finally {
-    ({ current, dateStyle, parsed } = was);
+    ({ current, dateStyle, parsed, requestLocale } = was);
   }
 }
 
@@ -163,7 +216,7 @@ export function matchLocale(requested: readonly string[]): Locale {
  * as wide as a character and leaves its own room.
  */
 export function sentenceGap(): string {
-  return current.locale.startsWith("zh") ? "" : " ";
+  return now().locale.startsWith("zh") ? "" : " ";
 }
 
 /**
@@ -171,7 +224,7 @@ export function sentenceGap(): string {
  * Chinese, where the page draws its own narrow gap between Chinese and Latin letters (CSS text-autospace).
  */
 export function wordGap(): string {
-  return current.locale.startsWith("zh") ? "" : " ";
+  return now().locale.startsWith("zh") ? "" : " ";
 }
 
 /**
@@ -180,21 +233,22 @@ export function wordGap(): string {
  * nouns, and Chinese has none.
  */
 export function inSentence(label: string): string {
-  return current.locale.startsWith("en") && /^\p{Lu}\p{Ll}/u.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label;
+  return now().locale.startsWith("en") && /^\p{Lu}\p{Ll}/u.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label;
 }
 
-function source(key: string): string | undefined {
+function source(key: string, catalog = now().catalog): string | undefined {
   const dot = key.indexOf(".");
   if (dot < 0) return undefined;
   const ns = key.slice(0, dot);
   const name = key.slice(dot + 1);
-  return current.catalog[ns]?.[name] ?? SOURCE[ns]?.[name];
+  return catalog[ns]?.[name] ?? SOURCE[ns]?.[name];
 }
 
 function nodes(key: string): MessageNode[] | null {
+  const { catalog, parsed } = now();
   let n = parsed.get(key);
   if (n) return n;
-  const text = source(key);
+  const text = source(key, catalog);
   if (text === undefined) {
     warn(`no message "${key}"`);
     return null;
@@ -212,7 +266,7 @@ function nodes(key: string): MessageNode[] | null {
 function format<R>(key: string, values: Record<string, unknown> | undefined, tags?: Record<string, (parts: (string | R)[]) => R>): (string | R)[] {
   const n = nodes(key);
   if (!n) return [key];
-  return formatNodes<R>(n, { locale: current.locale, values: values ?? {}, ...(tags ? { tags } : {}), missing: (name) => warn(`"${key}" has no value for ${name}`) });
+  return formatNodes<R>(n, { locale: now().locale, values: values ?? {}, ...(tags ? { tags } : {}), missing: (name) => warn(`"${key}" has no value for ${name}`) });
 }
 
 /** A message as plain text. A tag in it gives its text. */
@@ -240,15 +294,15 @@ export function rich<K extends MessageKey, R>(key: K, ...[params, tags]: RichRes
 
 /** Values set side by side with no "and": "a, b, c", in Chinese "a、b、c". */
 export function series(items: readonly string[]): string {
-  return items.join(current.locale.startsWith("zh") ? "、" : ", ");
+  return items.join(now().locale.startsWith("zh") ? "、" : ", ");
 }
 
 /** A label before its value in a line: "Airline: Lufthansa", in Chinese "航空公司：汉莎航空". */
 export function labelled(label: string, value: string): string {
-  return current.locale.startsWith("zh") ? `${label}：${value}` : `${label}: ${value}`;
+  return now().locale.startsWith("zh") ? `${label}：${value}` : `${label}: ${value}`;
 }
 
 /** A list in the language's words: "a, b and c" (conjunction), "a, b or c" (disjunction), "a, b, c" (unit). */
 export function list(items: readonly string[], type: "conjunction" | "disjunction" | "unit" = "conjunction"): string {
-  return new Intl.ListFormat(current.locale, { style: "long", type }).format(items);
+  return new Intl.ListFormat(now().locale, { style: "long", type }).format(items);
 }

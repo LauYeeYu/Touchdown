@@ -1,0 +1,6 @@
+{
+  "drive.cancelled": "Google Drive access was not given: canceled in the browser.",
+  "site.cancelled": "Not signed in: canceled in the browser.",
+  "site.page.cancelled.title": "Canceled",
+  "spot.tips.text": "words Touchdown did not recognize (\"{text}\") {agent, select, yes {go to the agent when you save, which puts them in a field such as special livery, or keeps them as notes.} other {are kept as notes.}}"
+}

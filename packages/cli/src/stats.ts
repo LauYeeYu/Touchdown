@@ -4,7 +4,7 @@
 
 import { combinedStats, DIMENSIONS, EARTH_CIRCUMFERENCE_KM, filterRecords, flightName, flightStats, flownDistances, phaseIndex, pivot, sightingStats, todayIn, viewFilters, type Dataset, type Flight, type Measure, type Measured, type PivotFilter, type Sighting, type StatsContext, type Tally } from "@touchdown/core";
 import { ageLeftOutText, ageTodayNote, ageText, aircraftAges, airlineLabel, averageAge, byAge, distance, durShort, filtersText, flownAndPhotographed, inPeriod, nf, outOfService, pivotValueLabel, sortedFlights, STATUS_WORD, typeName, yearsIn } from "@touchdown/core/view";
-import { list, t, tDynamic } from "@touchdown/i18n/cli";
+import { inSentence, list, t, tDynamic } from "@touchdown/i18n/cli";
 import { noDimension, whereFilters, wrongDataset } from "./where.ts";
 import { savedViewNamed, viewsCommand } from "./change.ts";
 import { argsOrHelp, EXIT, fail, openOrFail, optionLines, periodOf, plain, printJson, readFrom, readOptions, section, table, usage, type OpenedLog } from "./read.ts";
@@ -393,13 +393,13 @@ function pivotTable(c: Ctx, ctx: StatsContext, json: boolean, year: string, valu
   const totalHead = colDim ? t("cliRead.stats.pivot.total") : t("cliRead.stats.pivot.measure", { measure: measure === "records" ? dataset : measure });
   const head = [{ head: rowDim.label, flex: true }, ...cols.map((k) => ({ head: keyLabel(log, colDim!.id, k), align: "right" as const })), { head: totalHead, align: "right" as const }];
   const body = rows.map((k) => [keyLabel(log, rowDim.id, k), ...cols.map((col) => (cell(k, col) ? fmt(cell(k, col)) : "")), fmt(r.rowTotals.get(k) ?? 0)]);
-  const by = { dataset, rows: rowDim.label.toLowerCase(), year };
-  const title = colDim ? t("cliRead.stats.pivot.titleColumns", { ...by, columns: colDim.label.toLowerCase() }) : t("cliRead.stats.pivot.title", by);
+  const by = { dataset, rows: inSentence(rowDim.label), year };
+  const title = colDim ? t("cliRead.stats.pivot.titleColumns", { ...by, columns: inSentence(colDim.label) }) : t("cliRead.stats.pivot.title", by);
   console.log(bold(viewName !== null ? t("cliRead.stats.pivot.view", { view: viewName, title }) : title));
   if (filters.length) console.log(dim(t("cliRead.stats.pivot.only", { filters: plain(filtersText(filters, log.ref, log.codes)), counted: nf.format(records.length), total: inYear.length, dataset })));
   console.log("");
   for (const line of table(head, body)) console.log(line);
   if (r.rows.length > rows.length) console.log(dim(more(r.rows.length - rows.length)));
-  if (r.leftOut) console.log(dim(colDim ? t("cliRead.stats.pivot.leftOutEither", { count: r.leftOut, rows: rowDim.label.toLowerCase(), columns: colDim.label.toLowerCase() }) : t("cliRead.stats.pivot.leftOut", { count: r.leftOut, rows: rowDim.label.toLowerCase() })));
+  if (r.leftOut) console.log(dim(colDim ? t("cliRead.stats.pivot.leftOutEither", { count: r.leftOut, rows: inSentence(rowDim.label), columns: inSentence(colDim.label) }) : t("cliRead.stats.pivot.leftOut", { count: r.leftOut, rows: inSentence(rowDim.label) })));
   console.log(dim(readFrom(log)));
 }

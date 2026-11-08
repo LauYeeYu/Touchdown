@@ -3,7 +3,7 @@
 
 import { DIMENSIONS, dimensionValues, type Dataset, type PivotFilter, type StatsContext } from "@touchdown/core";
 import { monthNames, pivotValueLabel } from "@touchdown/core/view";
-import { list, t } from "@touchdown/i18n/cli";
+import { inSentence, list, t } from "@touchdown/i18n/cli";
 import { plain, type OpenedLog } from "./read.ts";
 
 /** A dimension named by --by, --cols or --where that does not exist, with the ones that do. */
@@ -68,7 +68,7 @@ export function whereFilters(log: OpenedLog, ctx: StatsContext, dataset: Dataset
       const key = matchValue(log, id, raw, known);
       if (!key) {
         const some = known.slice(0, 6).map((k) => plain(pivotValueLabel(id, k, log.ref, log.codes)));
-        const params = { dimension: dim.label.toLowerCase(), value: raw, dataset };
+        const params = { dimension: inSentence(dim.label), value: raw, dataset };
         return { error: some.length ? t("cliRead.where.noValueSome", { ...params, some: some.join(", ") }) : t("cliRead.where.noValue", params) };
       }
       if (!values.includes(key)) values.push(key);

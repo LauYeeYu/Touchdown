@@ -83,15 +83,12 @@ describe("message files", () => {
     }
   });
 
-  it("are translated for the web pages, in full, but en-US, which has only the messages spelt differently", () => {
-    const web = flat(new Map(Object.entries(EN_GB)));
+  it("are translated in full, the CLI's and the server's too, but en-US, which has only the messages spelt differently", () => {
+    const src = flat(source);
     for (const tag of translationTags()) {
-      const files = readSource(join(MESSAGES, tag));
-      // The CLI and the server stay in UK English (docs/31-ui.md, "Language").
-      expect([...files.keys()].filter((ns) => !(ns in EN_GB)), `${tag}: files the web pages do not load`).toEqual([]);
-      const translated = flat(files);
-      if (tag === "en-US") for (const [key, text] of translated) expect(text, `${tag}: ${key} is as in UK English`).not.toBe(web.get(key));
-      else expect([...web.keys()].filter((key) => !translated.has(key)), `${tag}: not translated`).toEqual([]);
+      const translated = flat(readSource(join(MESSAGES, tag)));
+      if (tag === "en-US") for (const [key, text] of translated) expect(text, `${tag}: ${key} is as in UK English`).not.toBe(src.get(key));
+      else expect([...src.keys()].filter((key) => !translated.has(key)), `${tag}: not translated`).toEqual([]);
       for (const [key, text] of translated) expect(/[;；]/.test(text), `${tag}: ${key} has a semicolon`).toBe(false);
     }
   });

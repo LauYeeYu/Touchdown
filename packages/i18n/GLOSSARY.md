@@ -23,6 +23,18 @@ filler, no exclamation marks.
   Code, Codex, IATA, ICAO, GPX, KML, CSV, JSON. Google Drive takes Google's own name in each language.
 - Keep labels short: buttons, the choices of a setting and table headings sit in narrow places, on phones too.
 
+## The CLI
+
+- Help texts are laid out in columns. Keep each column where it starts, counting a Chinese character as two columns,
+  and pad a translated label so the text after it still lines up. Wrap prose under 118 characters.
+- What the user types stays in English: commands, options and their values, field names, `y` in `[y/N]`, and the
+  words `spot` reads (`at`, `on`, `today`, `yesterday`, the phases, `help`, `quit`). A month given to `--where` is
+  read in the interface's language or as a number (`month=3`).
+- German: "Usage:" is "Aufruf:". `{from}` and an inbox's `{place}` are dative phrases ("deinem Logbuch in …"), put
+  after "aus", "mit" or "in".
+- Chinese: no typed space between Chinese and Latin text, as on the pages. The CLI adds the gaps itself before it
+  prints (`autospace` in `packages/cli/src/language.ts`), before a command (`./touchdown`) or an option (`--yes`) too.
+
 ## de-DE
 
 - Address the user as `du`, lower case (`du`, `dein`), never `Sie`.
@@ -136,3 +148,5 @@ filler, no exclamation marks.
 | modes: Standard, Private, Local | Standard, Privat, Lokal | 标准, 私密, 本地 | 標準, 私密, 本機 |
 | agent (Claude Code or Codex checking an import) | Agent | AI助手 | AI助理 |
 | command line | Befehlszeile | 命令行 | 命令列 |
+| the web app (in the CLI's messages) | Web-App | 网页版 | 網頁版 |
+| terminal | Terminal | 终端 | 終端機 |

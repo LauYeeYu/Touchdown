@@ -2,7 +2,8 @@
 // sign-in pages, and the /auth/ requests for accounts, sessions and invitations. Standard web Request and Response
 // only, so the same code runs in a Cloudflare Worker and in Node.
 
-import { t } from "@touchdown/i18n/server";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { localeOfHeader, t, useRequestLocale, type Locale } from "@touchdown/i18n/server";
 import { b64url, hashToken, newSalt, openToken, passwordHash, randomToken, sameString, sealToken, sha256, TOKEN_RE } from "./crypto.ts";
 import { siteId, type Database } from "./db.ts";
 import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
@@ -208,7 +209,18 @@ export function deviceLabel(ua: string | null): string {
 
 // ---------- the handler ----------
 
+/** The language of the request being answered: its Accept-Language, not a setting (docs/33, "Language"). */
+const requestLanguage = new AsyncLocalStorage<Locale>();
+let languages: Promise<void> | null = null;
+
 export async function handle(request: Request, s: Server): Promise<Response> {
+  // Every language's messages, loaded once; each request's are made in its own.
+  languages ??= useRequestLocale(() => requestLanguage.getStore());
+  await languages;
+  return requestLanguage.run(localeOfHeader(request.headers.get("Accept-Language")), () => answer(request, s));
+}
+
+async function answer(request: Request, s: Server): Promise<Response> {
   const now = (s.now ?? Date.now)();
   const url = new URL(request.url);
   const path = url.pathname;

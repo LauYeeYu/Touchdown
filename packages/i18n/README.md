@@ -88,22 +88,29 @@ A non-breaking space is written `\u00a0` in the JSON, so it can be seen: `"#\u00
 
 ## Translating
 
-A language is a directory of the web pages' files under its tag (`messages/de-DE/flights.json`), listed in `LOCALES`
-with the name it gives itself and the other regional date formats its speakers use. `npm run messages` formats its
-files and writes `src/translations/<tag>.generated.ts`, which loads them when the language is chosen. Tests check that
-each translated message takes the same arguments and tags as the source, that de-DE, zh-CN and zh-TW have every message
-the web pages show, and that en-US has only the messages spelt differently: the rest come from UK English. Each
+A language is a directory of files under its tag (`messages/de-DE/flights.json`), listed in `LOCALES` with the name it
+gives itself and the other regional date formats its speakers use. `npm run messages` formats its files and writes
+three modules for it: `src/translations/<tag>.generated.ts` with the web pages' files, which loads them when the
+language is chosen, and `<tag>.cli.generated.ts` and `<tag>.server.generated.ts` with the CLI's and the server's,
+which only `@touchdown/i18n/cli` and `@touchdown/i18n/server` load (`addTranslations`), so the web pages never carry
+them. Tests check that each translated message takes the same arguments and tags as the source, that de-DE, zh-CN and
+zh-TW have every message, and that en-US has only the messages spelt differently: the rest come from UK English. Each
 language's notes (how it addresses the user, punctuation, spacing) and the words for Touchdown's terms are in
 `GLOSSARY.md`.
 
-The CLI's and the server's files are not translated (Q-I18N). The CLI stays in UK English whatever the terminal's
-language, so a report never mixes two languages.
+The CLI and the server follow the locale, not a setting (Q-I18N). The CLI reads the system's (`LC_ALL`, `LC_MESSAGES`,
+`LANG`, `LANGUAGE`, `packages/cli/src/language.ts`, docs/34, "Language") before its first message. The server answers
+each request in the first of its `Accept-Language` languages that the interface has (`localeOfHeader`): its handler
+binds the language to the request (`useRequestLocale`, with `AsyncLocalStorage`), so `t()` there reads the request's
+language and two requests at once never share one.
 
 Known limits:
 
 - A few stored texts stay in the language they were written in: the credit of a recorded track, the device names of
   sessions, the reason an airframe lookup gives (`notBeforeLabel`, saved in inbox files).
-- The server answers in UK English: picking the request's language needs a `t()` bound to one language per request.
+- The CLI's help texts are laid out in columns: a translation keeps the columns aligned by display width (a Chinese
+  character takes two). In Chinese the CLI adds the gaps between Chinese and Latin text itself, as a terminal draws
+  none (`autospace`), so the files need none.
 - The privacy policy and the terms (`PRIVACY.md`, `TERMS.md`) are in English.
 - Names from the reference data (cities, airports, airlines) are shown in the language where Wikidata has a name in
   it, else in English (docs/13, "Names in other languages"). The small airfields and the airports a user adds keep
