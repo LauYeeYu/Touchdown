@@ -1,9 +1,25 @@
-# Touchdown
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/icon-dark.svg">
+    <img src="docs/images/icon-light.svg" alt="" width="96" height="96">
+  </picture>
+</p>
 
-A personal log of the flights you have flown on and the aircraft you have photographed, with statistics like my.flightradar24.com and Flighty.
+<h1 align="center">Touchdown</h1>
+
+<p align="center">A personal log of the flights you have flown on and the aircraft you have photographed, with statistics like my.flightradar24.com and Flighty.</p>
 
 - **The web app** holds your log: flights, spotting, aircraft, statistics, maps and imports. The hosted site has its own sign-in, and only invited people get an account. Your log is kept in your browser and synced through storage you own: Google Drive in Standard or Private mode, a folder in Private mode, or this browser only in Local mode ([docs/32](docs/32-modes-and-sharing.md)).
 - **The command-line tools** (`./touchdown`) run on your computer. They log spotting by typing, add flights and sightings given as JSON (by you or an agent), look registrations up, have Claude Code or Codex check your records, and build backups.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/preview-dark.png">
+    <img src="docs/images/preview-light.png" alt="Touchdown's Home page: the year in one sentence, its figures, and a map of the year's flights and spotting places" width="880">
+  </picture>
+  <br>
+  <sub>Home, with a made-up log.</sub>
+</p>
 
 ## Set up
 
