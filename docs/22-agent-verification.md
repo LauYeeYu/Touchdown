@@ -40,6 +40,7 @@ Decided, built. No agent is used unless the user chooses one:
 - Without a terminal and without a saved choice, the command stops and says how to choose.
 - The agent runs on the user's computer, never on the website, so its settings belong to the CLI on each computer and are kept in `data/private/touchdown-cli.json`, not in the log: which agent, whether notes are sent (`touchdown agent notes on|off`, off at first; `--notes` for one run), and the user's rules (`touchdown agent rules`). Each computer can use a different agent. (Decided, built; schema version 4 removed them from the log)
 - The website has no agent settings. The command the Import page shows names no agent, so the CLI's choice on that computer applies. The request it saves carries every row's notes; the CLI leaves them out unless it is set to send them.
+- Photos (Proposed, [25](25-photos.md), "The agent"): the agent can read the registration in the user's photos for `touchdown photos`, only once allowed (`touchdown agent photos on|off`, off at first; `--photos` for one run). It is sent small copies without their metadata, never the files themselves.
 
 ## Column help
 

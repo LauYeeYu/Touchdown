@@ -77,7 +77,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 |----|-------------|--------|--------|
 | P1 | Summary page: number of aircraft, airlines, plane families, type codes, special liveries; most frequent airline, family, type code. | Doc | Decided |
 | P2 | Flexible statistics beyond the summary, e.g. families by airline. | Doc | Decided |
-| P3 | Photo files stay in Google Photos. The app does not store or serve images. A link to the photo is optional. | Chat | Decided |
+| P3 | Optional: copies of the user's own photos are kept in the log's storage (Google Drive first), beside the log, and shown in the app and on share links. They come in as an export from the user's photo software (Lightroom first), and the agent reads the registration off each photo to match it to its sighting or flight. Backups hold the photos' rows, not their files. A full storage is reported in a dialog. Google Photos is no longer used once this is built ([25](25-photos.md)). First decided as: photo files stay in Google Photos, and the app does not store or serve images. | Chat | Decided (changed) |
 
 ## Flight history
 
@@ -90,7 +90,6 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 
 ## Out of scope (for now)
 
-- Hosting or serving photos.
 - Social features beyond share links: friend lists, feeds, public profiles (U2).
 - A native mobile app. The web app must work in Chrome on Android. iOS is not a target. (Decided)
 - Planned (future) flights. Only flights already flown are logged. (Decided)

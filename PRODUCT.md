@@ -45,13 +45,13 @@ Success: the owner retires their spreadsheets and trusts the numbers, because ev
 - Every precise time is stored as a date-time with UTC offset, never as a time alone.
 - Airlines and airports are stored and accepted as both IATA and ICAO codes.
 - Only flown flights are logged; no planned or future flights.
-- The app does not store or serve photos.
+- Photos are optional: copies of the user's own photos are kept in their storage, never on Touchdown's server, which only passes a shared record's photos to the link's visitors (`docs/25-photos.md`).
 - The hosted site is gated: only invited users who authenticate can reach the app or its API.
 - Ticket numbers and booking references are private fields, excluded from exports by default and never sent to the lookup service or the agent check.
 - Agent verification is advisory only: no tools, no network, user approves every suggestion.
 - my.flightradar24.com has no API; import and export are manual CSV files.
 - Full requirements and decisions: `docs/00-requirements.md` through `docs/40-roadmap.md`.
-- Open: who hosts later server database backends (Q-SERVER-DB); whether to use the Google Photos Picker (Q-PHOTO-PICKER). See `docs/90-open-questions.md`.
+- Open: who hosts later server database backends (Q-SERVER-DB). See `docs/90-open-questions.md`.
 
 ## Brand Commitments
 

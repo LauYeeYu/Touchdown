@@ -95,6 +95,7 @@ interface FileAdapter {                                         // used by file 
 - Server backends implement them with SQL: `pull` selects rows with `updated_at` after the cursor; `push` uses conditional writes (`UPDATE … WHERE id = ? AND rev = ?`) so the database itself detects conflicts.
 - File areas (`inbox`, `checks`, `attachments`) are folders in file backends and a files table (or the provider's file storage) in server backends, so the CLI's inbox and the agent check hand-off work the same on every backend. (Proposed)
 - Validation runs on both sides of every backend: rows that do not match the schema are rejected, never stored.
+- A full storage (Proposed, [25](25-photos.md), "Full storage"): every backend reports a write refused for lack of space as one error, `storage_full` (Google Drive's 403 `storageQuotaExceeded`, a local directory's full disk), so the app opens one dialog and sync waits, whatever the backend. Photos add a `photos` file area.
 
 ## Sync algorithm
 
@@ -186,6 +187,10 @@ Touchdown/
     add-<date>-<time>.json    flights and sightings from `touchdown add` (21), the same way
     edit-<date>-<time>.json   changes to records in the log, from `touchdown edit` (also delete-, aircraft-,
                               issues-, undo-, families-, settings-; 34), the same way
+    photos-<date>-<time>.json photos from `touchdown photos` and their matches (Proposed, 25), the same way
+  photos/                  (Proposed, 25) only when the user adds photos; never listed or read by sync
+    <photoId>-<hash>.jpg       a photo's display copy, its name changing with its content
+    <photoId>-<hash>.thumb.jpg its thumbnail
   backups/
     touchdown-backup-<YYYY-MM-DD>-<fingerprint>.zip   a daily copy of the whole log, private data included, never
                               read by a share link (below, "Daily copies")
@@ -222,7 +227,7 @@ Decided, built (`makeDailyCopy` in `packages/storage/src/backups.ts`, the keep r
 |---|---|
 | When | After the first sync of a day, by the tab that writes this browser's copy (the web app; the CLI makes none). So a copy holds the log as it was before that day's edits. A day on which the app is not opened gets none. Left for a later sync while some recorded track's positions are not in the browser yet, so a copy is never short of them. |
 | Only on change | Each copy's name ends with a fingerprint of the log it holds (`logFingerprint`: every row's version, tombstones included, and each track's number of positions). A copy is made only when the log's differs from the newest copy's, so days without changes make none. An empty log makes none. |
-| What | The same zip as Settings' "Export a backup": every table, private data and recorded tracks, restored the same way. About 650 KB for a log of a few hundred records with a few dozen tracks. |
+| What | The same zip as Settings' "Export a backup": every table, private data and recorded tracks, restored the same way. About 650 KB for a log of a few hundred records with a few dozen tracks. Photos' rows, not their files (Decided, [25](25-photos.md), "Backups"). |
 | Which are kept | Copies are made only on some days, so none is kept for being a set number of days old. The log is kept as it was at points in time: the end of each of the last 7 days, the end of each of the last 8 weeks (Sunday), the end of each of the last 12 months, and the end of every year before. For each point, the newest copy made on or before it is kept; the rest are removed. A copy dated after today (a device whose clock is ahead) is kept. Every device works out the same set from the file names. With changes every day, about 20 to 30 copies are kept; with fewer changes, fewer. |
 | Two devices | Both may make a copy on the same day; each point keeps one of them, by name, the same on every device. |
 | Seen in the app | Settings › Data › Backup: "Daily copies…" with how many there are and the newest, opening a list newest first, each to download or restore. Restoring works as restoring any backup ([31](31-ui.md), "Settings"): into a synced log, the storage's newer versions are kept and the entries it lacks come back. |

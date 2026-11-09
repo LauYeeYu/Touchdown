@@ -21,6 +21,7 @@ Docs are numbered from low level to high level. Each one depends only on lower n
 | 22 | [Agent verification](22-agent-verification.md) | Logic | Claude Code / Codex check through the companion CLI; threat model. |
 | 23 | [Tracks and maps](23-tracks-and-maps.md) | Logic | Great circles, recorded tracks, figure and video export. |
 | 24 | [Statistics](24-statistics.md) | Logic | Metric definitions, pivots. |
+| 25 | [Photos](25-photos.md) | Logic | The user's own photos, optional: kept in their storage, brought in from the photo software's export and matched by the CLI and the agent, shown in the app and on links; backups and a full storage. |
 | 30 | [Architecture](30-architecture.md) | System | Components, tech stack, repo layout, security, cost. |
 | 31 | [UI](31-ui.md) | System | Pages and flows. |
 | 32 | [Data modes and sharing](32-modes-and-sharing.md) | System | Standard, Private and Local modes, the terms, share links, what the server stores. |

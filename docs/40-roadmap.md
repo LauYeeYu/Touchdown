@@ -82,13 +82,24 @@ The order puts the riskiest part first: the data model and identity rules are te
   - A review stopped halfway is finished by the next command, with nothing lost or written twice.
   - Ticket numbers and booking references can be added, changed and removed from the CLI, and no command prints one or sends one to the agent (test with a canary value).
 
+## Phase 10: Photos
+
+- Deliver ([25](25-photos.md), in its build order): a full storage reported in a dialog for every write; the `photos` table and the storage's `photos/` directory, with photos shown in the app; `touchdown photos DIR` over an export from the photo software, matching by the photos' words, then by the agent; photos on share links; later, adding photos in the web app. Optional: nothing changes for a user who adds no photos.
+- Needs: phase 3 (storage and sync), phase 8 (share links) for the photos on links, the agent of phase 5 for reading registrations.
+- Done when:
+  - A full storage, Google Drive's or a local directory's, opens the dialog at the first refused write, keeps every edit in the browser and sends them after Try again once there is space (scripted test with a backend that refuses writes).
+  - Exporting the same photos again adds no second copy, and an edited photo replaces its files.
+  - A log with thousands of photos opens and syncs as fast as without them: sync never lists `photos/` (test).
+  - A link sends only the photos of the records it shows, and a file not named by its content gets the same "not found" as a guessed one (tests over every kind).
+  - No copy carries the location or camera data, and no photo reaches the agent unless the user allowed it (tests).
+  - Backups and daily copies hold the photos' rows, not their files.
+
 ## Later (not scheduled)
 
 - Local bridge between the web app and the CLI.
 - AeroAPI flight lookup and "capture during flight".
 - Dropbox / OneDrive adapters.
 - Server backends: local SQLite file, Postgres / Supabase, Cloudflare D1 (Q-SERVER-DB).
-- Google Photos Picker to fill sighting date and time from a photo (no location available from Google).
 - Field-level merge for same-record conflicts.
 - Aircraft silhouettes (G11): a drawing for each family or type in the reference data, shown on aircraft and flight pages only once a person has checked it (Q-SILHOUETTE).
 - Translation (G12, Q-I18N). Built: the interface text is in message files (`packages/i18n`), UK English, with named arguments and plural forms. This covers the web app, the share and sign-in pages, the findings' messages from the core package, the CLI and the server. Dates, numbers and units follow the chosen language, and the date format is a choice of its own ([31](31-ui.md), "Language"). The web pages, the CLI and the server are also in American English, German, Simplified Chinese and Traditional Chinese for Taiwan: the web pages in the browser's language or the one chosen in Settings, the CLI in the system's ([34](34-command-line.md), "Language") and the server's errors in the request's.
