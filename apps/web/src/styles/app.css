@@ -7872,8 +7872,10 @@ button.select {
     color: var(--flown-ink);
   }
 
-  main {
-    padding-bottom: 120px;
+  /* The footer ends the page, so it, not the page above it, clears the bottom bar (78px tall, more over a phone's
+     home indicator): its last lines would otherwise scroll no higher than under the bar. */
+  .site-foot {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
 
   .masthead__tools {
