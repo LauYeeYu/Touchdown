@@ -29,6 +29,7 @@
   "tracks.progress": "轨迹{done, number}/{total, number}",
   "foot.about": "分享自航班和飞机日志Touchdown。内容只读，显示的是分享者日志的最新内容。",
   "foot.credits": "机场：OurAirports（公有领域）和airportsdata（MIT）。航空公司：Wikidata（CC0）和Mictronics飞机数据库（ODC-By）。其他语言的名称：Wikidata（CC0）。飞机资料：OpenSky Network飞机数据库和adsbdb（数据来自PlaneBase）。地图：Natural Earth（公有领域），经由world-atlas。飞机照片来自<link>planespotters.net</link>，每张照片均注明出处。图标：Lucide（ISC）。字体：Source Sans 3和中文的思源黑体（Source Han Sans，以Noto Sans SC和TC发布），均为SIL Open Font License。",
+  "foot.creditsShow": "数据与致谢",
   "foot.privacy": "隐私政策",
   "foot.terms": "服务条款",
   "sighting.notInLink": "这个链接中没有这条拍摄记录。",

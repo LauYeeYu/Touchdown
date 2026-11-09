@@ -2226,6 +2226,29 @@ main {
   color: var(--ink-3);
 }
 
+/* "Data and credits": a button in the footer's last line, underlined as the links beside it, with the credits
+   folded under the line until it is pressed. */
+.site-foot .site-foot__more {
+  gap: 2px;
+  color: var(--ink-3);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 1px;
+}
+
+.site-foot__more .icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 160ms ease-out;
+}
+
+.site-foot__more[aria-expanded="true"] .icon {
+  transform: rotate(180deg);
+}
+
+.site-foot .site-foot__credits {
+  margin: 8px 0 0;
+}
+
 .toast {
   position: fixed;
   left: 50%;
@@ -7876,6 +7899,11 @@ button.select {
      home indicator): its last lines would otherwise scroll no higher than under the bar. */
   .site-foot {
     padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  /* Opened, the credits are scrolled into view above the bar, not under it. */
+  .site-foot__credits {
+    scroll-margin-bottom: calc(96px + env(safe-area-inset-bottom));
   }
 
   .masthead__tools {

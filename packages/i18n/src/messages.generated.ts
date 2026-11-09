@@ -2581,6 +2581,7 @@ export interface MessageArgs {
   "share.tracks.progress": { done: "number"; total: "number" };
   "share.foot.about": {};
   "share.foot.credits": { "<link>": "tag" };
+  "share.foot.creditsShow": {};
   "share.foot.privacy": {};
   "share.foot.terms": {};
   "share.sighting.notInLink": {};
@@ -2730,6 +2731,7 @@ export interface MessageArgs {
   "shell.foot.synced": { place: "text" };
   "shell.foot.local": {};
   "shell.foot.credits": { "<link>": "tag" };
+  "shell.foot.creditsShow": {};
   "shell.foot.privacy": {};
   "shell.foot.terms": {};
   "shell.firstRun.title": {};

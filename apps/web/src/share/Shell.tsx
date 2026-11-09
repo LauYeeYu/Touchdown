@@ -10,6 +10,7 @@ import { Icon, type IconName } from "../lib/icons.tsx";
 import { Overlays } from "../components/overlay.tsx";
 import { StableLabel } from "../components/StableLabel.tsx";
 import { Wordmark } from "../components/Wordmark.tsx";
+import { FootCredits } from "../components/FootCredits.tsx";
 import type { ShareData } from "./data.ts";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { tx } from "../lib/i18n.tsx";
@@ -74,18 +75,21 @@ export function SiteFoot() {
     <footer className="site-foot">
       <div className="page">
         <p>{t("share.foot.about")}</p>
-        <p>
-          {tx("share.foot.credits", {}, {
+        <FootCredits
+          links={
+            <>
+              <a href="/privacy">{t("share.foot.privacy")}</a> · <a href="/terms">{t("share.foot.terms")}</a>
+            </>
+          }
+          label={t("share.foot.creditsShow")}
+          credits={tx("share.foot.credits", {}, {
             link: (text) => (
               <a href="https://www.planespotters.net/" rel="noopener" target="_blank">
                 {text}
               </a>
             ),
           })}
-        </p>
-        <p>
-          <a href="/privacy">{t("share.foot.privacy")}</a> · <a href="/terms">{t("share.foot.terms")}</a>
-        </p>
+        />
       </div>
     </footer>
   );

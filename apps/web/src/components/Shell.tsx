@@ -20,6 +20,7 @@ import { TrackLoading } from "../lib/trackLoading.tsx";
 import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
 import { Wordmark } from "./Wordmark.tsx";
+import { FootCredits } from "./FootCredits.tsx";
 
 const NAV: { to: string; label: () => string; icon: IconName; match: (p: string) => boolean }[] = [
   { to: "/", label: () => t("shell.nav.home"), icon: "house", match: (p) => p === "/" },
@@ -397,8 +398,14 @@ export function Shell() {
       <footer className="site-foot">
         <div className="page">
           <p>{sync ? t("shell.foot.synced", { place: sync.place }) : t("shell.foot.local")}</p>
-          <p>
-            {tx(
+          <FootCredits
+            links={
+              <>
+                <a href="/privacy">{t("shell.foot.privacy")}</a> · <a href="/terms">{t("shell.foot.terms")}</a>
+              </>
+            }
+            label={t("shell.foot.creditsShow")}
+            credits={tx(
               "shell.foot.credits",
               {},
               {
@@ -409,10 +416,7 @@ export function Shell() {
                 ),
               },
             )}
-          </p>
-          <p>
-            <a href="/privacy">{t("shell.foot.privacy")}</a> · <a href="/terms">{t("shell.foot.terms")}</a>
-          </p>
+          />
         </div>
       </footer>
       <Overlays />
