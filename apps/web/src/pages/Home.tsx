@@ -26,6 +26,9 @@ import { Fact, Keep } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
 import { headline, tx } from "../lib/i18n.tsx";
 import { FigureDialog } from "../components/FigureDialog.tsx";
+import { VideoDialog } from "../components/VideoDialogLazy.tsx";
+import { periodVideo } from "../lib/videoContent.ts";
+import type { VideoContent } from "../lib/video.ts";
 import type { FigureContent } from "../lib/figure.ts";
 
 export function Home() {
@@ -37,6 +40,7 @@ export function Home() {
   const { focus, bind } = usePhrases();
   // The image dialog's content, taken when it opens (components/FigureDialog.tsx).
   const [figure, setFigure] = useState<FigureContent | null>(null);
+  const [video, setVideo] = useState<VideoContent | null>(null);
 
   const d = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
@@ -222,6 +226,21 @@ export function Home() {
             </button>
           )}
           {figure && <FigureDialog content={figure} fileName={(ext) => `touchdown-${year === "all" ? "all" : year}.${ext}`} onClose={() => setFigure(null)} />}
+          {!app.readOnly && (views.length > 0 || d.sightings.length > 0) && (
+            <button
+              type="button"
+              className="legend__action"
+              aria-haspopup="dialog"
+              onClick={() => {
+                const words = figureContent();
+                setVideo(periodVideo(app, views, { title: words.title ?? "", stats: words.stats }, d.sightings));
+              }}
+            >
+              <Icon name="film" />
+              {t("flights.legend.video")}
+            </button>
+          )}
+          {video && <VideoDialog content={video} fileName={`touchdown-${year === "all" ? "all" : year}.mp4`} onClose={() => setVideo(null)} />}
           <Link className="legend__action" to="/stats">
             <Icon name="globe" />
             {t("home.map.globe")}

@@ -2882,6 +2882,147 @@ a.btn--primary {
   }
 }
 
+/* Download a video (components/VideoDialog.tsx): the image dialog's panel, the preview playing on it, and under the
+   preview its player: play or pause, the place in the video (a scrubber), and the time. */
+/* Wider than the image's, so its four choices fit on one line. */
+.video-dialog {
+  width: min(54rem, calc(100vw - 32px));
+}
+
+.video-preview {
+  grid-template-rows: auto auto;
+  place-items: stretch;
+  height: auto;
+  padding: 0 12px 6px;
+}
+
+/* The video's own shape, as high as the image dialog's panel allows: no empty band around a landscape video on a
+   phone. */
+.video-preview__stage {
+  display: grid;
+  place-items: center;
+  max-height: calc(min(46vh, 430px) - 36px);
+  min-height: 120px;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .video-preview__stage {
+    max-height: calc(min(40vh, 340px) - 36px);
+  }
+}
+
+.video-preview__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.video-preview__play {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+}
+
+.video-preview__play .icon {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.video-preview__time {
+  min-width: 8ch;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.video-preview__scrub {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.video-preview__scrub::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule-strong);
+}
+
+.video-preview__scrub::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--ink-2);
+  appearance: none;
+}
+
+.video-preview__scrub::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule-strong);
+}
+
+.video-preview__scrub::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-3);
+}
+
+.video-preview__scrub::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink-2);
+}
+
+.video-preview__scrub:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.video-preview__scrub:disabled,
+.video-preview__play:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* While the video is made: how far it has got, a bar in ink on the controls' surface, and the percentage. */
+.video-making {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.video-making__bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--surface-high);
+}
+
+.video-making__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ink-2);
+  transition: width 200ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-making__bar > span {
+    transition: none;
+  }
+}
+
 .share-dialog__all {
   display: inline-block;
   margin-top: 14px;

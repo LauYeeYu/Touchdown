@@ -23,6 +23,9 @@ import { AltitudeChart } from "../components/charts.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { HelpTip } from "../components/HelpTip.tsx";
 import { FigureDialog } from "../components/FigureDialog.tsx";
+import { VideoDialog } from "../components/VideoDialogLazy.tsx";
+import { flightVideo } from "../lib/videoContent.ts";
+import type { VideoContent } from "../lib/video.ts";
 import type { FigureContent } from "../lib/figure.ts";
 import { flightFigure } from "../lib/preview.ts";
 import { Credit, Photo } from "../components/Photo.tsx";
@@ -56,6 +59,7 @@ export function FlightDetail() {
   const [picked, setPicked] = useState<PickedTrack | null>(null);
   // The image dialog's content, taken when it opens, so its preview is not drawn again while it is open.
   const [figure, setFigure] = useState<FigureContent | null>(null);
+  const [video, setVideo] = useState<VideoContent | null>(null);
   const trackInput = useRef<HTMLInputElement>(null);
   const mapStyle = useMapStyle();
   const shareList = useShares(app.connection?.mode === "standard");
@@ -248,6 +252,11 @@ export function FlightDetail() {
       stats: stats.filter((x) => x !== null),
     };
   };
+  /** The flight as a video (components/VideoDialog.tsx): the image's title, line and statistics, the aircraft along its track. */
+  const videoContent = (): VideoContent => {
+    const words = figureContent();
+    return flightVideo(app, v, { title: words.title ?? "", subtitle: words.subtitle, stats: words.stats });
+  };
   const t0 = altitude[0]?.t ?? 0;
   const fromOffset = f.takeoffAt ? parseDateTime(f.takeoffAt)!.offsetMin : 0;
 
@@ -412,6 +421,13 @@ export function FlightDetail() {
               {t("flights.detail.figure.label")}
             </button>
             {figure && <FigureDialog content={figure} fileName={(ext) => trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, ext)} onClose={() => setFigure(null)} />}
+            {A && B && (
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => setVideo(videoContent())} aria-haspopup="dialog" title={t("flights.detail.video.title")}>
+                <Icon name="film" />
+                {t("flights.detail.video.label")}
+              </button>
+            )}
+            {video && <VideoDialog content={video} fileName={trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, "mp4")} onClose={() => setVideo(null)} />}
             {trackRow ? (
               <MenuButton
                 className="btn btn--quiet btn--small"
