@@ -76,24 +76,24 @@ const MIN_SPAN = 8;
 const GLOBE_REACH = Math.PI / 3;
 
 /** At most this many places get their codes written: more would cover each other and the routes. */
-const MAX_LABELS = 10;
+export const MAX_LABELS = 10;
 
 /** The app's map colours (app.css), for each theme: a figure looks the same whatever the page's theme is now. */
-const COLOURS = {
+export const COLOURS = {
   light: { paper: "#faf8f1", sphere: "#f4f1e8", land: "#e6e0d1", landEdge: "#f6f3eb", grid: "rgba(31, 29, 26, 0.05)", flown: "#c48400", spotted: "#4559a9", gap: "#bdb5a3", ink: "#1f1d1a", ink2: "#534e46", ink3: "#6e685e" },
   dark: { paper: "#171613", sphere: "#1d1c19", land: "#2a2823", landEdge: "#171613", grid: "rgba(241, 238, 230, 0.06)", flown: "#c48400", spotted: "#788ce0", gap: "#5b574d", ink: "#f1eee6", ink2: "#c8c2b5", ink3: "#a19b8e" },
 };
-type Colours = (typeof COLOURS)["light"];
+export type Colours = (typeof COLOURS)["light"];
 
 /** The page's typeface and, for Chinese, the system's Chinese face after it (app.css `--sans`). */
-const sans = () => getComputedStyle(document.documentElement).getPropertyValue("--sans").trim() || "system-ui, sans-serif";
+export const sans = () => getComputedStyle(document.documentElement).getPropertyValue("--sans").trim() || "system-ui, sans-serif";
 
 /**
  * Words as a page sets them: a narrow gap (a hair space, about an eighth of a character) between Chinese characters
  * and Latin letters or figures, which a page gets from CSS `text-autospace` and a canvas or SVG does not. A word joiner
  * (a date's "2026⁠年") keeps it out, as on the page.
  */
-const spaced = (text: string) => text.replace(/(\p{Script=Han})(?=[A-Za-z0-9])|([A-Za-z0-9])(?=\p{Script=Han})/gu, "$1$2\u200a");
+export const spaced = (text: string) => text.replace(/(\p{Script=Han})(?=[A-Za-z0-9])|([A-Za-z0-9])(?=\p{Script=Han})/gu, "$1$2\u200a");
 
 // ——— Land ———
 
@@ -119,6 +119,9 @@ export function loadLand(): Promise<FeatureCollection> {
   return fineLoading;
 }
 
+/** The land figures and videos draw: the fine one once loaded, else the app's own. */
+export const landNow = (): FeatureCollection => fine ?? LAND;
+
 /** Every word a figure writes, for the typeface's files its characters need. */
 function wordsOf(f: FigureContent): string {
   const stats = (f.stats ?? []).flatMap((x) => [x.label, x.value, x.detail ?? ""]);
@@ -130,7 +133,7 @@ function wordsOf(f: FigureContent): string {
  * The typeface's weights the figure draws with, with the files its words' characters need, loaded: a canvas does not
  * wait for them. Chinese comes in files of a few hundred characters each (app.css), so the words decide which.
  */
-async function loadFonts(words: string): Promise<void> {
+export async function loadFonts(words: string): Promise<void> {
   const stack = sans();
   await Promise.all(["400", "600", "700"].map((w) => document.fonts?.load(`${w} 24px ${stack}`, words || " ").catch(() => [])));
 }
@@ -174,7 +177,7 @@ interface Painter {
 }
 
 let measurer: CanvasRenderingContext2D | null = null;
-function measure(text: string, size: number, weight: number, letterSpacing = 0): number {
+export function measure(text: string, size: number, weight: number, letterSpacing = 0): number {
   measurer ??= document.createElement("canvas").getContext("2d")!;
   measurer.font = `${weight} ${size}px ${sans()}`;
   return measurer.measureText(spaced(text)).width + letterSpacing * [...text].length;
@@ -187,6 +190,35 @@ function airlinerTransform(): { tx: number; ty: number; deg: number; cx: number;
   return { tx: Number(tr?.[1] ?? 0), ty: Number(tr?.[2] ?? 0), deg: Number(ro?.[1] ?? 0), cx: Number(ro?.[2] ?? 0), cy: Number(ro?.[3] ?? 0) };
 }
 const GROUND_ENDS = /M([-\d.]+) ([-\d.]+)H([-\d.]+)/.exec(GROUND)!.slice(1).map(Number) as [number, number, number];
+
+/** The wordmark's mark on a canvas, the top left of its viewBox at x, y, `scale` pixels to a unit. */
+export function drawMark(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, ink: string, gold: string, halo: string) {
+  const a = airlinerTransform();
+  const [x1, gy, x2] = GROUND_ENDS;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.translate(-2, -6);
+  for (const [colour, width] of [[halo, 4.4], [gold, 2.4]] as const) {
+    ctx.beginPath();
+    ctx.moveTo(x1, gy);
+    ctx.lineTo(x2, gy);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  ctx.translate(a.tx, a.ty);
+  ctx.translate(a.cx, a.cy);
+  ctx.rotate((a.deg * Math.PI) / 180);
+  ctx.translate(-a.cx, -a.cy);
+  const plane = new Path2D(AIRLINER);
+  ctx.strokeStyle = halo;
+  ctx.lineWidth = 2;
+  ctx.stroke(plane);
+  ctx.fillStyle = ink;
+  ctx.fill(plane);
+  ctx.restore();
+}
 
 class CanvasPainter implements Painter {
   private path: ReturnType<typeof geoPath> | null = null;
@@ -253,32 +285,7 @@ class CanvasPainter implements Painter {
     ctx.textAlign = "left";
   }
   mark(x: number, y: number, scale: number, ink: string, gold: string, halo: string) {
-    const ctx = this.ctx;
-    const a = airlinerTransform();
-    const [x1, gy, x2] = GROUND_ENDS;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(scale, scale);
-    ctx.translate(-2, -6);
-    for (const [colour, width] of [[halo, 4.4], [gold, 2.4]] as const) {
-      ctx.beginPath();
-      ctx.moveTo(x1, gy);
-      ctx.lineTo(x2, gy);
-      ctx.strokeStyle = colour;
-      ctx.lineWidth = width;
-      ctx.stroke();
-    }
-    ctx.translate(a.tx, a.ty);
-    ctx.translate(a.cx, a.cy);
-    ctx.rotate((a.deg * Math.PI) / 180);
-    ctx.translate(-a.cx, -a.cy);
-    const plane = new Path2D(AIRLINER);
-    ctx.strokeStyle = halo;
-    ctx.lineWidth = 2;
-    ctx.stroke(plane);
-    ctx.fillStyle = ink;
-    ctx.fill(plane);
-    ctx.restore();
+    drawMark(this.ctx, x, y, scale, ink, gold, halo);
   }
 }
 
@@ -345,8 +352,8 @@ class SvgPainter implements Painter {
 
 // ——— Layout ———
 
-type Box = [number, number, number, number];
-const overlaps = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+export type Box = [number, number, number, number];
+export const overlaps = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
 
 /** The figure's places, each once: its flights' airports and its spots. */
 function placesOf(f: FigureContent): Map<string, FigureSpot> {
@@ -364,7 +371,7 @@ function placesOf(f: FigureContent): Map<string, FigureSpot> {
  * it. In an upright picture, where a flat world would be a strip, a disc centred on what is shown instead, as the
  * app's maps on phones draw it (azimuthal equal-area, DESIGN.md "Maps under 600px wide").
  */
-function projectionFor(f: Figure, area: [[number, number], [number, number]]): { proj: GeoProjection; globe: boolean } {
+export function projectionFor(f: Figure, area: [[number, number], [number, number]]): { proj: GeoProjection; globe: boolean } {
   const samples = f.flights.flatMap(routeSamplesOf);
   const points: LonLat[] = [...samples, ...f.flights.flatMap((x) => [x.from, x.to]), ...(f.spots ?? []).map((s) => s.at)];
   const geoms: Geometry[] = [...f.flights.map((x) => ({ type: "MultiLineString" as const, coordinates: [...x.line, ...(x.gaps ?? [])] })), ...(f.spots ?? []).map((s) => ({ type: "Point" as const, coordinates: s.at }))];
@@ -412,7 +419,7 @@ function projectionFor(f: Figure, area: [[number, number], [number, number]]): {
 }
 
 /** The statistics' type: a label, the figure and a line under it, as the pages' figures are set, smaller. */
-const STAT = { label: 18, value: 34, detail: 17, gap: 44, rowGap: 22 };
+export const STAT = { label: 18, value: 34, detail: 17, gap: 44, rowGap: 22 };
 
 /**
  * The statistics as a grid between `left` and `right`: as few rows as fit, the tiles shared evenly between them (seven
@@ -420,7 +427,7 @@ const STAT = { label: 18, value: 34, detail: 17, gap: 44, rowGap: 22 };
  * the pages' figures do, or when a tile is wider than its share each column is as wide as its widest tile, so the
  * figures line up down the rows.
  */
-function statTiles(stats: FigureStat[], u: number, left: number, right: number) {
+export function statTiles(stats: FigureStat[], u: number, left: number, right: number) {
   const room = right - left;
   const gap = STAT.gap * u;
   const widths = stats.map((s) => Math.min(460 * u, Math.max(measure(s.label, STAT.label * u, 600), measure(s.value, STAT.value * u, 700), s.detail ? measure(s.detail, STAT.detail * u, 400) : 0)));
