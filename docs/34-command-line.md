@@ -42,7 +42,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 | An airport | `airport CODE [--year Y]` | The airport page's facts and lists. |
 | Issues | `issues [--severity S] [--rule ID] [--accepted]` | Fields changed on two devices (values shown except private ones; choosing is on the Issues page for now), then open findings, grouped as on the Issues page, each with its id and suggested fixes; or the accepted ones. |
 | Import history | `imports` | The import batches, for `undo`. |
-| Maps and the globe | (none) | Figures and videos come with `touchdown render` in phase 6 ([23](23-tracks-and-maps.md)). |
+| Maps and the globe | (none) | Images and videos are made in the web app ([23](23-tracks-and-maps.md)); `touchdown render` for long videos is still to come (phase 6). |
 
 ### Changing
 

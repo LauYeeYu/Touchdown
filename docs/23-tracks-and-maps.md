@@ -158,20 +158,43 @@ The map: Natural Earth at 1:50m (finer than the app's maps, loaded the first tim
 
 ## Export: video
 
-| Mode | What it shows |
-|------|---------------|
-| Single flight | An aircraft marker moves along the track (or great circle). Optional readout of time, altitude, and speed when a recorded track exists. The view fits the route or follows the aircraft. |
-| Date range / year | Flights appear in date order, each line drawn from origin to destination. A date ticker and running totals (flights, distance, airports). |
-| All flights | Same as date range over the whole history. |
+Built (`apps/web/src/lib/video.ts`, `lib/videoPlan.ts`, `lib/mp4.ts`, `lib/videoContent.ts`, `components/VideoDialog.tsx`), in the browser: "Video" beside "Image" on a flight's page, on Flights and on Home, and on an aircraft's page for its flights; not on a share link's pages. Drawn as the images are (the same land, colours, type, title and logo), frame by frame. Nothing is sent anywhere.
+
+| Video | What it shows |
+|-------|---------------|
+| A flight | The aircraft seen from above moves along the recorded track, else the great circle, and leaves its line behind: recorded stretches in gold on a paper halo, what was not recorded in grey dots, the great circle in faint dots for reference. An orthographic globe: close on the departure while the aircraft waits at the gate, then turning and widening to the whole route as it climbs, which it then keeps. Under the map while it flies: time in the air, altitude, ground speed and distance flown, from the recorded positions (the distance scaled to the flight's distance, [Distance](#distance)). On landing, a ring at the arrival, the aircraft fades, and the flight's statistics (the image's) take the figures' place. Without a recorded track the statistics stay under the map throughout. |
+| A period: Flights (its year or all time, with its search and filters), Home (with its sightings), an aircraft's flights | The flights drawn one after another in date order, each from its departure to its arrival over about a second, brighter while drawn, then settling into the image's line. A date ticker under the title (the month, or the day for a period of a few weeks) and running totals under the map: flights, distance, time in the air, airports, and on Home the aircraft spotted, each spotting place's blue dot appearing on the day of its first sighting and growing with the aircraft seen there. The view starts on the first flights and widens as the flights reach further, ending on the image's framing. At the end the image's statistics replace the totals. |
+
+Timing (`lib/videoPlan.ts`):
+
+- The time between two flights' starts grows with the days between them, as the square root of the days up to four months: a quiet month passes quickly, and a trip's flights are drawn one after another with room to be followed. The ticker moves evenly from one flight's date to the next.
+- A period opens with 1.6 s on the first flight's region before anything is drawn, and ends with 15% of its length (3.8 to 7 s) to read the statistics. A flight waits 1.2 s at the gate and has 20% of its length (3 to 6 s) after landing.
+
+What keeps it pleasant to watch (Decided):
+
+| Common problem | What the video does |
+|---|---|
+| Judder, uneven frames | Each frame is drawn at its own time and encoded, not recorded from the screen, and every frame lasts exactly as long in the file. There is no MediaRecorder fallback: a screen recording drops frames whenever the page is busy. |
+| A view that sways, jumps or swings back | A period's view only widens, taking in each new place shortly before its flight is drawn. Each move starts and ends at rest, one at a time, longer the further it goes, and a zoom changes scale evenly about the point both views share, so what was shown stays on the screen. A flight's view moves once, then holds. |
+| Flickering words and figures | The ticker changes at most every 0.45 s, cross-fading. Figures keep their width (Source Sans 3's are tabular) and the columns are laid out from the widest values, so nothing shifts sideways. Codes beside dots fade in and out. |
+| Crawling dashes | Dots and dashes are placed on the ground, not on the screen, so they keep their place as the view moves. |
+| Flashes | None: a line's head has a soft glow and a landing a faint ring. |
+| Washed-out colours | The file records the colour space the encoder used (BT.709 primaries and matrix, sRGB's transfer, limited range), so players show the colours as drawn. |
+| A blank first frame | The first frame has the title, the map and the logo. |
+| Hidden places | A spotting place at an airport is always at least a ring wider than the airport's dot. |
+| Motion for someone who asked for less | With reduced motion the preview opens paused on its last frame. The file is as chosen. |
 
 | Option | Values |
 |--------|--------|
-| Length | 5–120 s; time scale computed from the length |
-| Frame rate | 30 or 60 fps |
-| Size | same presets as figures |
-| Format | MP4 (H.264) where the browser supports WebCodecs encoding; WebM otherwise |
+| Size | Landscape 1920×1080, square 1080×1080, portrait 1080×1920 |
+| Length | 10 to 120 s. A flight starts at 15 s, a period at 15, 30, 45 or 60 s by how many flights it has. Not kept: it depends on the video. |
+| Frames a second | 60 (to start with) or 30 |
+| Theme | Light or dark, the page's to start with |
+| Format | MP4: H.264 (High, else Main, else Baseline profile, at the level the size and rate need), else VP9 where the browser cannot write H.264 (some phones and Apple's apps may not play it). A browser without WebCodecs (`VideoEncoder`) is told it cannot make videos. |
 
-Rendering runs in the browser: frames are drawn on a canvas and encoded with WebCodecs plus an MP4 muxer, with MediaRecorder (WebM) as fallback. Long or 4K renders can run in the companion CLI instead (`touchdown render`, node canvas + ffmpeg), using the same drawing code from the core package.
+Size, frames a second and theme are kept in the browser for the next video. The MP4 is written by `lib/mp4.ts`: the index before the frames (fast start), a key frame every 2 seconds, about a tenth of a bit a pixel. In Chrome on a laptop a 30-second period at 1080p and 60 frames a second takes about 10 seconds to make. A flight's turning globe is drawn once for each still view and copied.
+
+Not yet: `touchdown render` in the CLI for long or 4K videos ([34](34-command-line.md)), a view that follows the aircraft, sound.
 
 ## Notes from testing the sources
 
