@@ -86,6 +86,7 @@
   "detail.merge.confirm": "要将{from}合并到{to}吗？{from}的{count, plural, other {#条记录}}会移到这架飞机。",
   "detail.merge.done": "已合并。",
   "detail.merge.button": "合并到这里",
+  "detail.video.title": "把它的航班下载为视频",
   "list.facts.flown": "乘坐过",
   "list.facts.alsoSpotted": "{count, plural, other {其中#架也拍摄过}}",
   "list.facts.spotted": "拍摄过"

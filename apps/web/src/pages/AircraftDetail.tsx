@@ -13,6 +13,10 @@ import { airlineLabel, dateOnly, dayMonthYear, modelLabel, PHASE_LABEL, typeName
 import { Icon } from "../lib/icons.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
+import { VideoDialog } from "../components/VideoDialogLazy.tsx";
+import { periodVideo } from "../lib/videoContent.ts";
+import type { VideoContent } from "../lib/video.ts";
+import { sortedFlights } from "@touchdown/core/view";
 import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { Field, TextInput } from "../components/form.tsx";
@@ -48,6 +52,8 @@ export function AircraftDetail() {
   const [ffd, setFfd] = useState("");
   const [mergeQ, setMergeQ] = useState("");
   const [paste, setPaste] = useState("");
+  // The video dialog's content, taken when it opens (components/VideoDialog.tsx).
+  const [video, setVideo] = useState<VideoContent | null>(null);
 
   // A share link leaves out what changes the log. Its sentence is about a whole log's owner by name, or on a link to
   // one record about nobody (lib/voice.tsx).
@@ -166,6 +172,20 @@ export function AircraftDetail() {
           </p>
           <div className="actions aircraft-hero__actions">
             <ShareButton kind="aircraft" subject={v.airframe.id} anchor={events[0] ? `${events[0].kind === "flight" ? "flights" : "sightings"}/${events[0].kind === "flight" ? events[0].f.id : events[0].s.id}` : null} />
+            {/* Its flights in the order they were flown, as a video: the owner's to make, as images are. */}
+            {!shared && v.flights.length > 0 && (
+              <button
+                type="button"
+                className="btn btn--quiet btn--small"
+                aria-haspopup="dialog"
+                title={t("aircraft.detail.video.title")}
+                onClick={() => setVideo(periodVideo(app, sortedFlights(store, ref).filter((x) => x.f.airframeId === a.id), { title: [reg, typeText].filter(Boolean).join(" · ") }))}
+              >
+                <Icon name="film" />
+                {t("flights.detail.video.label")}
+              </button>
+            )}
+            {video && <VideoDialog content={video} fileName={`touchdown-${reg.replace(/[^A-Za-z0-9-]+/g, "") || "aircraft"}.mp4`} onClose={() => setVideo(null)} />}
           </div>
           <p className="lead lead--flight">{sentence}</p>
         </div>

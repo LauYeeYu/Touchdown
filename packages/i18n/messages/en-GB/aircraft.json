@@ -86,6 +86,7 @@
   "detail.merge.confirm": "Merge {from} into {to}? Its {count, plural, one {#\u00a0record moves} other {#\u00a0records move}} to this aircraft.",
   "detail.merge.done": "Merged.",
   "detail.merge.button": "Merge here",
+  "detail.video.title": "Download its flights as a video",
   "list.facts.flown": "Flown on",
   "list.facts.alsoSpotted": "{count, plural, one {#\u00a0also spotted} other {#\u00a0also spotted}}",
   "list.facts.spotted": "Spotted"

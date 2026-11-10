@@ -86,6 +86,7 @@
   "detail.merge.confirm": "{from} mit {to} zusammenführen? {count, plural, one {#\u00a0Eintrag wird} other {#\u00a0Einträge werden}} zu diesem Flugzeug verschoben.",
   "detail.merge.done": "Zusammengeführt.",
   "detail.merge.button": "Hier zusammenführen",
+  "detail.video.title": "Seine Flüge als Video herunterladen",
   "list.facts.flown": "Mitgeflogen",
   "list.facts.alsoSpotted": "{count, plural, one {#\u00a0davon auch fotografiert} other {#\u00a0davon auch fotografiert}}",
   "list.facts.spotted": "Fotografiert"

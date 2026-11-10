@@ -172,6 +172,7 @@ export interface MessageArgs {
   "aircraft.detail.merge.confirm": { count: "number"; from: "text"; to: "text" };
   "aircraft.detail.merge.done": {};
   "aircraft.detail.merge.button": {};
+  "aircraft.detail.video.title": {};
   "aircraft.list.facts.flown": {};
   "aircraft.list.facts.alsoSpotted": { count: "number" };
   "aircraft.list.facts.spotted": {};

@@ -86,6 +86,7 @@
   "detail.merge.confirm": "要將{from}併入{to}嗎？{count, plural, other {#筆紀錄}}會移到這架飛機。",
   "detail.merge.done": "已合併。",
   "detail.merge.button": "合併到這裡",
+  "detail.video.title": "把它的航班下載為影片",
   "list.facts.flown": "搭乘過",
   "list.facts.alsoSpotted": "{count, plural, other {其中#架也拍攝過}}",
   "list.facts.spotted": "拍攝過"
