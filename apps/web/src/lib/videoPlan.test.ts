@@ -1,5 +1,6 @@
+import { geoDistance, geoInterpolate, geoOrthographic } from "d3-geo";
 import { describe, expect, it } from "vitest";
-import { camAt, camFor, dateClock, lerpCam, planMoves, ramped, smoother, tickerChanges, timeline, type Cam, type Rect } from "./videoPlan.ts";
+import { camAt, camFor, dateClock, lerpCam, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, type Cam, type Rect } from "./videoPlan.ts";
 
 const DAY = 86_400_000;
 const day = (n: number) => Date.UTC(2025, 0, 1) + n * DAY;
@@ -126,5 +127,74 @@ describe("a flat map's camera", () => {
     }
     expect(camAt(plan, 0)).toEqual(a);
     expect(camAt(plan, 100)).toEqual(c);
+  });
+});
+
+describe("a flight's globe camera", () => {
+  // A made-up long route far from its great circle: south-east first, across an ocean, then north-east.
+  const waypoints: [number, number][] = [[116, 40], [128, 34], [142, 33], [175, 40], [-160, 52], [-130, 55], [-95, 47], [-71, 42]];
+  const at: [number, number][] = [waypoints[0]!];
+  for (let i = 1; i < waypoints.length; i++) {
+    const gc = geoInterpolate(waypoints[i - 1]!, waypoints[i]!);
+    const steps = Math.ceil((geoDistance(waypoints[i - 1]!, waypoints[i]!) * 6371) / 25);
+    for (let k = 1; k <= steps; k++) at.push(gc(k / steps) as [number, number]);
+  }
+  const km = new Float64Array(at.length);
+  for (let i = 1; i < at.length; i++) km[i] = km[i - 1]! + geoDistance(at[i - 1]!, at[i]!) * 6371;
+  const total = km[at.length - 1]!;
+  const [width, height] = [1485, 480];
+  const flying = 10.8;
+  const [from, to] = [1.05, 1.2 + 0.45 * flying];
+  const near = Math.min(1100, 0.15 * total);
+  const cam = routeCamera({ at, km, width, height, near, reach: (t) => near + (total - near) * smoother((t - from) / (to - from)), from, to });
+  const aircraft = (t: number) => {
+    const s = ramped((t - 1.2) / flying) * total;
+    let i = 0;
+    while (i + 1 < at.length - 1 && km[i + 1]! <= s) i++;
+    return geoInterpolate(at[i]!, at[i + 1]!)(Math.min(1, (s - km[i]!) / Math.max(1e-9, km[i + 1]! - km[i]!))) as [number, number];
+  };
+  const screen = (t: number, p: [number, number]) => {
+    const v = cam.at(t);
+    const proj = geoOrthographic().rotate([-v.centre[0], -v.centre[1]]).scale(v.r).translate([width / 2 + v.off[0] * v.r, height / 2 + v.off[1] * v.r]);
+    return { xy: proj(p)!, front: geoDistance(p, v.centre) < Math.PI / 2 };
+  };
+  const frames = Array.from({ length: 15 * 60 }, (_, i) => i / 60);
+
+  it("keeps the aircraft in the view all the way, however far it strays from the great circle", () => {
+    for (const t of frames) {
+      const { xy, front } = screen(t, aircraft(t));
+      expect(front).toBe(true);
+      expect(xy[0]).toBeGreaterThan(0.03 * width);
+      expect(xy[0]).toBeLessThan(0.97 * width);
+      expect(xy[1]).toBeGreaterThan(0.03 * height);
+      expect(xy[1]).toBeLessThan(0.97 * height);
+    }
+  });
+
+  it("starts on the departure, ends on the whole route, and only widens between", () => {
+    const start = screen(0, at[0]!).xy;
+    expect(Math.abs(start[0] - width / 2)).toBeLessThan(0.1 * width);
+    expect(Math.abs(start[1] - height / 2)).toBeLessThan(0.1 * height);
+    for (const p of [at[0]!, at[at.length - 1]!]) {
+      const { xy } = screen(15, p);
+      expect(xy[0]).toBeGreaterThan(0);
+      expect(xy[0]).toBeLessThan(width);
+    }
+    for (let i = 1; i < frames.length; i++) expect(cam.at(frames[i]!).r).toBeLessThanOrEqual(cam.at(frames[i - 1]!).r * (1 + 1e-9));
+    expect(cam.at(0)).toEqual(cam.at(cam.moving[0]));
+    expect(cam.at(15)).toEqual(cam.at(cam.moving[1]));
+  });
+
+  it("moves the ground on the screen without a jerk", () => {
+    // A point on the ground: its speed on the screen changes a little from one frame to the next, never at once.
+    const p = at[Math.floor(at.length / 3)]!;
+    const pos = frames.map((t) => screen(t, p).xy);
+    const speed = pos.slice(1).map((q, i) => Math.hypot(q[0] - pos[i]![0], q[1] - pos[i]![1]));
+    const fastest = Math.max(...speed);
+    for (let i = 1; i < pos.length - 1; i++) {
+      const ax = pos[i + 1]![0] - 2 * pos[i]![0] + pos[i - 1]![0];
+      const ay = pos[i + 1]![1] - 2 * pos[i]![1] + pos[i - 1]![1];
+      expect(Math.hypot(ax, ay)).toBeLessThan(0.1 * fastest);
+    }
   });
 });

@@ -17,7 +17,7 @@ import type { MapFlight } from "../components/maps.tsx";
 import { COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, measure, overlaps, projectionFor, sans, spaced, STAT, statTiles, type Box, type Colours, type FigureStat, type FigureTheme } from "./figure.ts";
 import { dateOnly, distance, durShort, nf } from "./format.ts";
 import { AIRLINER_TOP, isGap, type TrackSample } from "./trackStatus.ts";
-import { camAt, camFor, clamp, dateClock, easeInOut, easeOut, planMoves, ramped, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
+import { camAt, camFor, clamp, dateClock, easeInOut, easeOut, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
 import { mp4, type Mp4Sample } from "./mp4.ts";
 
 type LonLat = [number, number];
@@ -944,48 +944,16 @@ function flightScene(content: VideoContent, o: VideoOptions): Scene {
   const aw = area[2] - area[0];
   const ah = area[3] - area[1];
 
-  // The view: an orthographic globe. At first close to the departure, then turning and widening to the whole route,
-  // which it then keeps. Never closer than about 180 km either side, so a short hop has its region around it.
-  const routeDeg = geoDistance(leg.from, leg.to) / RAD;
-  const centreEnd = (() => {
-    let x = 0;
-    let y = 0;
-    let z = 0;
-    for (const [lon, lat] of path.at) {
-      x += Math.cos(lat * RAD) * Math.cos(lon * RAD);
-      y += Math.cos(lat * RAD) * Math.sin(lon * RAD);
-      z += Math.sin(lat * RAD);
-    }
-    return [Math.atan2(y, x) / RAD, Math.atan2(z, Math.hypot(x, y)) / RAD] as LonLat;
-  })();
-  const minHalf = 1.6 * RAD;
-  const fit = (centre: LonLat) => {
-    const unitProj = geoOrthographic().rotate([-centre[0], -centre[1]]).scale(1).translate([0, 0]).clipAngle(90);
-    let box: Rect = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const p of path.at) {
-      if (geoDistance(p, centre) > Math.PI / 2) continue;
-      const xy = unitProj(p)!;
-      box = union(box, [xy[0], xy[1], xy[0], xy[1]]);
-    }
-    const pad = 0.1;
-    const r = Math.min((aw * (1 - 2 * pad)) / Math.max(1e-9, box[2] - box[0]), (ah * (1 - 2 * pad)) / Math.max(1e-9, box[3] - box[1]), aw / 2 / Math.sin(minHalf));
-    return { r, off: [-(box[0] + box[2]) / 2, -(box[1] + box[3]) / 2] as [number, number] };
-  };
-  const end = fit(centreEnd);
-  const startHalf = clamp(0.4 * routeDeg, 1.6, 12) * RAD;
-  const startR = Math.max(end.r, aw / 2 / Math.sin(startHalf));
+  // The view: an orthographic globe. At first the departure and its region, then widening along the route ahead of
+  // the aircraft, the way it actually flew, to the whole route, which it then keeps. Never closer than about 180 km
+  // either side, so a short hop has its region around it.
   const flying = Math.max(1, duration - HOLD - landedOf(duration));
   const moveFrom = HOLD - 0.15;
   const moveTo = HOLD + 0.45 * flying;
-  const between = geoInterpolate(leg.from, centreEnd);
-  const view = (time: number) => {
-    const e = smoother((time - moveFrom) / (moveTo - moveFrom));
-    const centre = between(e) as LonLat;
-    const r = startR * (end.r / startR) ** e;
-    return { centre, r, off: [end.off[0] * e, end.off[1] * e] as [number, number] };
-  };
+  const near = clamp(0.15 * path.total, 80, 1100);
+  const camera = routeCamera({ at: path.at, km: path.km, width: aw, height: ah, near, reach: (time) => near + (path.total - near) * smoother((time - moveFrom) / (moveTo - moveFrom)), from: moveFrom, to: moveTo });
   const projection = (time: number) => {
-    const v = view(time);
+    const v = camera.at(time);
     return {
       v,
       proj: geoOrthographic()
@@ -1035,7 +1003,7 @@ function flightScene(content: VideoContent, o: VideoOptions): Scene {
     ctx.lineJoin = "round";
     // The map under the route: the same for every frame while the view is still (at the gate, and once it shows the
     // whole route), so it is drawn once and copied, a frame then costing a few milliseconds instead of tens.
-    const still = time <= moveFrom ? "start" : time >= moveTo ? "end" : null;
+    const still = time <= camera.moving[0] ? "start" : time >= camera.moving[1] ? "end" : null;
     const m = ctx.getTransform();
     const key = still && `${still}|${ctx.canvas.width}x${ctx.canvas.height}|${m.a},${m.b},${m.c},${m.d},${m.e},${m.f}`;
     const kept = key ? bases.get(key) : undefined;

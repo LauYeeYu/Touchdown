@@ -1,7 +1,7 @@
 // The timing and the camera of a video of the map (docs/23-tracks-and-maps.md, "Export: video"), as plain numbers:
 // when each flight is drawn, which date the ticker shows, how the view moves. Nothing here draws. The rules keep the
-// motion calm: every move starts and stops at rest, the view only widens during a period, a zoom keeps in view what
-// was shown, and words change no faster than they can be read.
+// motion calm: every move starts and stops at rest, the view only widens, a zoom keeps in view what was shown, a
+// flight's aircraft stays in view, and words change no faster than they can be read.
 
 export const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
 
@@ -231,4 +231,165 @@ export function camAt(plan: { start: Cam; moves: Move[] }, t: number): Cam {
     cam = m.to;
   }
   return cam;
+}
+
+// ——— The camera of a flight's globe ———
+
+type LonLat = [number, number];
+type Vec = [number, number, number];
+
+const RAD = Math.PI / 180;
+const EARTH_KM = 6371;
+const vec = ([lon, lat]: LonLat): Vec => [Math.cos(lat * RAD) * Math.cos(lon * RAD), Math.cos(lat * RAD) * Math.sin(lon * RAD), Math.sin(lat * RAD)];
+const lonLat = (v: Vec): LonLat => [Math.atan2(v[1], v[0]) / RAD, Math.atan2(v[2], Math.hypot(v[0], v[1])) / RAD];
+const dot = (a: Vec, b: Vec) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const unit = (v: Vec): Vec | null => {
+  const n = Math.hypot(v[0], v[1], v[2]);
+  return n > 1e-12 ? [v[0] / n, v[1] / n, v[2] / n] : null;
+};
+/** East and north at a point, as an orthographic projection centred there lays them out (d3's, unturned). */
+const eastNorth = (c: Vec): [Vec, Vec] => {
+  const lon = Math.atan2(c[1], c[0]);
+  const e: Vec = [-Math.sin(lon), Math.cos(lon), 0];
+  return [e, [c[1] * e[2] - c[2] * e[1], c[2] * e[0] - c[0] * e[2], c[0] * e[1] - c[1] * e[0]]];
+};
+
+/** An orthographic view of the globe. */
+export interface GlobeView {
+  /** The point at the middle of the projection. */
+  centre: LonLat;
+  /** The globe's radius on the screen. */
+  r: number;
+  /** How far the drawing is moved from the middle of its area, in the globe's radii. */
+  off: [number, number];
+}
+
+export interface RouteCamera {
+  at(t: number): GlobeView;
+  /** The view is still before the first time and after the second. */
+  moving: [number, number];
+}
+
+/**
+ * The view of a flight's globe: at first the departure with `near` km either side of it (and up and down in the
+ * proportion of the view), then widening along the route as
+ * `reach(t)` km of it are to be shown, from `from` to `to` seconds, until it shows the whole route. Everything up to
+ * `reach(t)` along the route is in the view (`width` × `height`, with `pad` of room on each side), so an aircraft that
+ * has not gone further is too, however far its route strays from the great circle. The view only widens, and it is
+ * smoothed over a fraction of a second, so it does not jerk when another point of the route becomes the one at its edge.
+ */
+export function routeCamera(o: { at: LonLat[]; km: ArrayLike<number>; width: number; height: number; near: number; reach: (t: number) => number; from: number; to: number; pad?: number; minHalfDeg?: number }): RouteCamera {
+  const pad = o.pad ?? 0.1;
+  const most = o.width / 2 / Math.sin((o.minHalfDeg ?? 1.6) * RAD);
+  const n = o.at.length;
+  const v = o.at.map(vec);
+  const km = o.km;
+  const total = km[n - 1] ?? 0;
+  // The route's positions summed by the length of the route around each, up to each point: the middle of a stretch.
+  const sum: Vec[] = [[0, 0, 0]];
+  for (let i = 1; i < n; i++) {
+    const w = (km[i]! - km[i - 1]!) / 2;
+    const s = sum[i - 1]!;
+    sum.push([s[0] + w * (v[i - 1]![0] + v[i]![0]), s[1] + w * (v[i - 1]![1] + v[i]![1]), s[2] + w * (v[i - 1]![2] + v[i]![2])]);
+  }
+  const dep = v[0] ?? vec([0, 0]);
+  const [de, dn] = eastNorth(dep);
+  const ring = Array.from({ length: 24 }, (_, k) => [Math.cos((2 * Math.PI * k) / 24), Math.sin((2 * Math.PI * k) / 24)] as const);
+  const first = clamp(o.reach(o.from), 0, total);
+
+  /** The view showing the route up to `q` km, and the departure's surroundings: `near` at first, none at the end. */
+  const raw = (q: number): { c: Vec; r: number; off: [number, number] } => {
+    const x = clamp(q, 0, total);
+    const rho = total - first > 1e-9 ? o.near * clamp((total - x) / (total - first), 0, 1) : o.near;
+    let i = 0;
+    let hi = n - 1;
+    while (hi - i > 1) {
+      const mid = (i + hi) >> 1;
+      if (km[mid]! <= x) i = mid;
+      else hi = mid;
+    }
+    const span = n > 1 ? km[i + 1]! - km[i]! : 0;
+    const f = span > 0 ? clamp((x - km[i]!) / span, 0, 1) : 0;
+    const a = v[i] ?? dep;
+    const b = v[Math.min(n - 1, i + 1)] ?? a;
+    const head = unit([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]) ?? a;
+    const part = (span * f) / 2;
+    const s = sum[i] ?? sum[0]!;
+    const c = unit([s[0] + part * (a[0] + head[0]) + 2 * rho * dep[0], s[1] + part * (a[1] + head[1]) + 2 * rho * dep[1], s[2] + part * (a[2] + head[2]) + 2 * rho * dep[2]]) ?? dep;
+    const [e, no] = eastNorth(c);
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    const add = (p: Vec) => {
+      if (dot(p, c) <= 0) return;
+      const px = dot(p, e);
+      const py = -dot(p, no);
+      if (px < x0) x0 = px;
+      if (px > x1) x1 = px;
+      if (py < y0) y0 = py;
+      if (py > y1) y1 = py;
+    };
+    for (let k = 0; k <= i && k < n; k++) add(v[k]!);
+    add(head);
+    if (rho > 0) {
+      for (const [cx, sy] of ring) {
+        const east = cx * rho;
+        const north = (sy * rho * o.height) / o.width;
+        const ang = Math.hypot(east, north) / EARTH_KM;
+        const [ca, sa] = [Math.cos(ang), Math.sin(ang) / Math.max(1e-9, Math.hypot(east, north))];
+        add([dep[0] * ca + (de[0] * east + dn[0] * north) * sa, dep[1] * ca + (de[1] * east + dn[1] * north) * sa, dep[2] * ca + (de[2] * east + dn[2] * north) * sa]);
+      }
+    }
+    if (!Number.isFinite(x0)) return { c, r: most, off: [0, 0] };
+    const r = Math.min((o.width * (1 - 2 * pad)) / Math.max(1e-9, x1 - x0), (o.height * (1 - 2 * pad)) / Math.max(1e-9, y1 - y0), most);
+    return { c, r, off: [-(x0 + x1) / 2, -(y0 + y1) / 2] };
+  };
+
+  // Views every thirtieth of a second while it moves, the zoom kept from closing in again, then smoothed.
+  const sigma = 0.2;
+  const reachOut = 3 * sigma;
+  const t0 = o.from - reachOut;
+  const t1 = Math.max(o.to, o.from) + reachOut;
+  const count = Math.max(2, Math.min(1200, Math.ceil((t1 - t0) * 30) + 1));
+  const dt = (t1 - t0) / (count - 1);
+  const raws = Array.from({ length: count }, (_, k) => raw(o.reach(clamp(t0 + k * dt, o.from, o.to))));
+  for (let k = 1; k < count; k++) raws[k]!.r = Math.min(raws[k]!.r, raws[k - 1]!.r);
+  const wide = Math.ceil(reachOut / dt);
+  const weights = Array.from({ length: 2 * wide + 1 }, (_, j) => Math.exp(-(((j - wide) * dt) ** 2) / (2 * sigma * sigma)));
+  const keys = raws.map((_, k) => {
+    const c: Vec = [0, 0, 0];
+    let logR = 0;
+    const off: [number, number] = [0, 0];
+    let all = 0;
+    for (let j = -wide; j <= wide; j++) {
+      const q = raws[clamp(k + j, 0, count - 1)]!;
+      const w = weights[j + wide]!;
+      c[0] += w * q.c[0];
+      c[1] += w * q.c[1];
+      c[2] += w * q.c[2];
+      logR += w * Math.log(q.r);
+      off[0] += w * q.off[0];
+      off[1] += w * q.off[1];
+      all += w;
+    }
+    return { c: unit(c) ?? raws[k]!.c, r: Math.exp(logR / all), off: [off[0] / all, off[1] / all] as [number, number] };
+  });
+  const view = (k: { c: Vec; r: number; off: [number, number] }): GlobeView => ({ centre: lonLat(k.c), r: k.r, off: k.off });
+  const firstView = view(keys[0]!);
+  const lastView = view(keys[count - 1]!);
+  return {
+    moving: [t0, t1],
+    at(t) {
+      if (t <= t0) return firstView;
+      if (t >= t1) return lastView;
+      const x = (t - t0) / dt;
+      const k = Math.min(count - 2, Math.floor(x));
+      const s = x - k;
+      const a = keys[k]!;
+      const b = keys[k + 1]!;
+      const c = unit([a.c[0] + (b.c[0] - a.c[0]) * s, a.c[1] + (b.c[1] - a.c[1]) * s, a.c[2] + (b.c[2] - a.c[2]) * s]) ?? a.c;
+      return { centre: lonLat(c), r: a.r * (b.r / a.r) ** s, off: [a.off[0] + (b.off[0] - a.off[0]) * s, a.off[1] + (b.off[1] - a.off[1]) * s] };
+    },
+  };
 }
