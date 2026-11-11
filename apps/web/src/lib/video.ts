@@ -923,17 +923,19 @@ function flightScene(content: VideoContent, o: VideoOptions): Scene {
   const flownKm = leg.km ?? path.total;
   const feet = (ft: number) => t("data.track.feet", { ft });
   const knots = (kt: number) => t("data.track.knots", { kt });
+  // Height and speed only where they were recorded: across a stretch with no positions, a dash.
   const figures = (minutes: number | null, alt: number | null, speed: number | null, km: number): FigureStat[] =>
     [
       minutes !== null ? { label: t("home.facts.time"), value: durShort(Math.max(0, minutes)) } : null,
-      hasAlt ? { label: t("data.track.altitude"), value: feet(Math.max(0, Math.round((alt ?? 0) / 100) * 100)) } : null,
-      hasSpeed ? { label: t("data.track.groundSpeed"), value: knots(Math.max(0, Math.round(speed ?? 0))) } : null,
+      hasAlt ? { label: t("data.track.altitude"), value: alt === null ? "—" : feet(Math.max(0, Math.round(alt / 100) * 100)) } : null,
+      hasSpeed ? { label: t("data.track.groundSpeed"), value: speed === null ? "—" : knots(Math.max(0, Math.round(speed))) } : null,
       { label: t("flights.detail.distance.label", { basis: "track" }), value: dist(km, unit) },
     ].filter((x): x is FigureStat => x !== null);
   const readout = (s: number): FigureStat[] => {
     const a = along(path, s);
     const now = valueAt(path.time, a.i, a.f);
-    return figures(takeoff !== null ? ((now ?? takeoff) - takeoff) / 60 : null, valueAt(path.alt, a.i, a.f), valueAt(path.speed, a.i, a.f), (s / Math.max(1e-9, path.total)) * flownKm);
+    const unrecorded = path.gap[Math.min(a.i, path.gap.length - 1)] ?? true;
+    return figures(takeoff !== null ? ((now ?? takeoff) - takeoff) / 60 : null, unrecorded ? null : valueAt(path.alt, a.i, a.f), unrecorded ? null : valueAt(path.speed, a.i, a.f), (s / Math.max(1e-9, path.total)) * flownKm);
   };
   const lastTime = path.time[path.time.length - 1] ?? null;
   const widest = figures(takeoff !== null ? ((lastTime ?? takeoff) - takeoff) / 60 : null, Math.max(0, ...path.alt.map((x) => x ?? 0)), Math.max(0, ...path.speed.map((x) => x ?? 0)), flownKm);
