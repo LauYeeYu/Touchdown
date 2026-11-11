@@ -54,12 +54,13 @@ const DAY = 86_400_000;
 
 /**
  * When each event is drawn, in a span of the video (`span`, seconds). Events are in date order, `when` in ms (null when
- * undated: they come last, evenly). The time between two starts grows with the days between them, but slowly (the
- * square root of the days, up to four months), so a quiet month passes quickly and a trip's flights keep their order
- * with room to be seen: each gets at least `floor` seconds, and connecting flights are drawn one after the other.
- * `weight` (0 to 1, by distance) makes a long flight a little slower to draw than a short one.
+ * undated: they come last). The time is shared out by the events, not by the calendar: the time from one event to the
+ * next is the first one's share (`share`, 1 for a flight, less for a day of spotting), a little longer when weeks pass
+ * before the next (up to a month). So a busy month takes its time, a quiet half year passes in a moment, and a trip's
+ * flights keep their order with room to be seen: each gets at least `floor` seconds, and connecting flights are drawn
+ * one after the other. `weight` (0 to 1, by distance) makes a long flight a little slower to draw than a short one.
  */
-export function timeline(when: (number | null)[], weight: number[], span: [number, number]): Timeline {
+export function timeline(when: (number | null)[], weight: number[], span: [number, number], share: number[] = when.map(() => 1)): Timeline {
   const n = when.length;
   const [a, b] = span;
   const room = Math.max(0.5, b - a);
@@ -76,7 +77,7 @@ export function timeline(when: (number | null)[], weight: number[], span: [numbe
     const p = when[i - 1];
     const q = when[i];
     const days = p === null || p === undefined || q === null || q === undefined ? 7 : Math.max(0, (q - p) / DAY);
-    gaps.push(Math.sqrt(Math.min(days, 120)));
+    gaps.push(clamp(share[i - 1] ?? 1, 0.05, 1) * (0.6 + 0.4 * clamp(Math.log1p(days) / Math.log1p(30), 0, 1)));
   }
   const floor = Math.min(0.6 * base, (0.6 * spread) / (n - 1));
   const free = Math.max(0, spread - floor * (n - 1));

@@ -36,14 +36,28 @@ describe("a period's timeline", () => {
     expect(tl.to).toBeLessThanOrEqual(26 + 1e-9);
   });
 
-  it("gives a quiet stretch more time than a connection, but not in proportion", () => {
+  it("gives a connection room to be seen, and the time before a quiet stretch only a little more", () => {
     const gap = (i: number) => tl.slots[i + 1]!.start - tl.slots[i]!.start;
-    expect(gap(1)).toBeGreaterThan(gap(0));
-    expect(gap(3)).toBeGreaterThan(gap(1));
-    // 169 days against 29: much less than six times as long.
-    expect(gap(3) / gap(1)).toBeLessThan(3);
-    // A connection still gets room to be seen.
     expect(gap(0)).toBeGreaterThan(0.4);
+    expect(gap(1)).toBeGreaterThan(gap(0));
+    // 169 days against 29: about the same.
+    expect(gap(3) / gap(1)).toBeLessThan(1.1);
+  });
+
+  it("shares the time by events, so a busy month takes longer than a quiet half year", () => {
+    // Eight flights in March, then one in October and one in December.
+    const march = Array.from({ length: 8 }, (_, i) => day(59 + 3 * i));
+    const busy = timeline([...march, day(280), day(340)], Array(10).fill(0.5), [1.6, 40]);
+    const start = (i: number) => busy.slots[i]!.start;
+    expect(start(8) - start(0)).toBeGreaterThan(5 * (start(9) - start(8)));
+  });
+
+  it("gives a day of spotting less time than a flight", () => {
+    const when = [day(0), day(10), day(20), day(30)];
+    const mixed = timeline(when, [0, 0, 0, 0], [1.6, 20], [1, 0.5, 1, 1]);
+    const gap = (i: number) => mixed.slots[i + 1]!.start - mixed.slots[i]!.start;
+    expect(gap(1)).toBeLessThan(gap(0));
+    expect(gap(1)).toBeLessThan(gap(2));
   });
 
   it("moves the ticker's date forward evenly between flights, and never back", () => {

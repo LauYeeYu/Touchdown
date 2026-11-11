@@ -441,11 +441,12 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
   const [[sx0], [sx1]] = geoPath(proj).bounds({ type: "Sphere" });
   const wrap = Math.max(f.width * 0.25, (sx1 - sx0) / 2);
 
-  // The timeline: when each event is drawn.
+  // The timeline: when each event is drawn, the time shared by the events (a day of spotting half a flight's).
   const tl = timeline(
     events.map((e) => e.when),
     events.map((e) => (e.leg ? Math.sqrt(clamp((e.leg.km ?? 0) / 9000, 0, 1)) : 0)),
     [INTRO, Math.max(INTRO + 1, duration - outroOf(duration))],
+    events.map((e) => (e.leg ? 1 : 0.5)),
   );
   const slots = tl.slots.map((s, i) => (events[i]!.spot ? { start: s.start, duration: 0.45 } : s));
   const roomy = slots.length < 2 || (tl.to - tl.from) / slots.length > 0.55;
