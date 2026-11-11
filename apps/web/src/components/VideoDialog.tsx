@@ -126,6 +126,8 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
 
   // Drawing: a frame for every screen refresh while it plays, else the frame at the scrubber's place.
   const time = useRef(0);
+  const scrub = useRef<HTMLInputElement>(null);
+  const clockText = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const c = canvas.current;
     if (!scene || !c) return;
@@ -147,10 +149,15 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
       const s = ((now - start) / 1000) % scene.duration;
       time.current = s;
       paint(s);
-      // The scrubber moves a few times a second, not with every frame.
-      if (Math.floor(s * 4) !== shown) {
-        shown = Math.floor(s * 4);
-        setAt(s);
+      // The scrubber moves with every frame, set on the element itself rather than through a render; the time in
+      // words changes once a second.
+      const bar = scrub.current;
+      if (bar) bar.value = String(s);
+      if (Math.floor(s) !== shown) {
+        shown = Math.floor(s);
+        const words = `${clock(s)} / ${clock(scene.duration)}`;
+        bar?.setAttribute("aria-valuetext", words);
+        if (clockText.current) clockText.current.textContent = words;
       }
       frame = requestAnimationFrame(tick);
     };
@@ -215,6 +222,7 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
             <Icon name={playing ? "pause" : "play"} />
           </button>
           <input
+            ref={scrub}
             type="range"
             className="video-preview__scrub"
             min={0}
@@ -229,7 +237,7 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
               setAt(Number(e.target.value));
             }}
           />
-          <span className="video-preview__time">
+          <span ref={clockText} className="video-preview__time">
             {clock(place)} / {clock(duration)}
           </span>
         </div>
