@@ -1,7 +1,7 @@
 // The timing and the camera of a video of the map (docs/23-tracks-and-maps.md, "Export: video"), as plain numbers:
-// when each flight is drawn, which date the ticker shows, how the view moves. Nothing here draws. The rules keep the
-// motion calm: every move starts and stops at rest, the view only widens, a zoom keeps in view what was shown, a
-// flight's aircraft stays in view, and words change no faster than they can be read.
+// when each flight is drawn, when the date under the title changes, how the view moves. Nothing here draws. The
+// rules keep the motion calm: every move starts and stops at rest, the view only widens, a zoom keeps in view what was
+// shown, a flight's aircraft stays in view, and words change no faster than they can be read.
 
 export const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
 
@@ -90,26 +90,6 @@ export function timeline(when: (number | null)[], weight: number[], span: [numbe
   }
   const to = Math.max(...slots.map((s) => s.start + s.duration));
   return { slots, from: a, to };
-}
-
-/** The date (ms) the ticker stands at, at `t` seconds: moving evenly from one event's date to the next's. */
-export function dateClock(slots: Slot[], when: (number | null)[]): (t: number) => number | null {
-  const dated = slots.map((s, i) => ({ t: s.start, d: when[i] })).filter((x): x is { t: number; d: number } => x.d !== null && x.d !== undefined);
-  return (t) => {
-    if (!dated.length) return null;
-    if (t <= dated[0]!.t) return dated[0]!.d;
-    let lo = 0;
-    let hi = dated.length - 1;
-    if (t >= dated[hi]!.t) return dated[hi]!.d;
-    while (hi - lo > 1) {
-      const mid = (lo + hi) >> 1;
-      if (dated[mid]!.t <= t) lo = mid;
-      else hi = mid;
-    }
-    const p = dated[lo]!;
-    const q = dated[hi]!;
-    return q.t > p.t ? p.d + ((q.d - p.d) * (t - p.t)) / (q.t - p.t) : q.d;
-  };
 }
 
 /**

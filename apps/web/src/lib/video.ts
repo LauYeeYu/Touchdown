@@ -17,7 +17,7 @@ import type { MapFlight } from "../components/maps.tsx";
 import { COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, measure, overlaps, projectionFor, sans, spaced, STAT, statTiles, type Box, type Colours, type FigureStat, type FigureTheme } from "./figure.ts";
 import { dateOnly, distance, durShort, nf } from "./format.ts";
 import { AIRLINER_TOP, isGap, type TrackSample } from "./trackStatus.ts";
-import { camAt, camFor, clamp, dateClock, easeInOut, easeOut, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
+import { camAt, camFor, clamp, easeInOut, easeOut, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
 import { mp4, type Mp4Sample } from "./mp4.ts";
 
 type LonLat = [number, number];
@@ -392,11 +392,11 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
   const sightings = content.sightings ?? [];
 
   // Events in date order: each flight, and each day at a spotting place.
-  type Event = { when: number | null; leg?: VideoLeg; spot?: { placeId: string; at: LonLat; code: string; airframes: string[] } };
-  const spotDays = new Map<string, { when: number | null; placeId: string; at: LonLat; code: string; airframes: string[] }>();
+  type Event = { when: number | null; leg?: VideoLeg; spot?: { placeId: string; at: LonLat; code: string; day: string | null; airframes: string[] } };
+  const spotDays = new Map<string, { when: number | null; placeId: string; at: LonLat; code: string; day: string | null; airframes: string[] }>();
   for (const s of sightings) {
     const key = `${s.placeId}|${s.day ?? ""}`;
-    const e = spotDays.get(key) ?? { when: s.day ? Date.parse(`${s.day}T12:00:00Z`) : null, placeId: s.placeId, at: s.at, code: s.code, airframes: [] };
+    const e = spotDays.get(key) ?? { when: s.day ? Date.parse(`${s.day}T12:00:00Z`) : null, placeId: s.placeId, at: s.at, code: s.code, day: s.day, airframes: [] };
     e.airframes.push(s.airframe ?? `${key}|${e.airframes.length}`);
     spotDays.set(key, e);
   }
@@ -551,17 +551,23 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
     });
   }
 
-  // The ticker: the month (the day, for a period of a few weeks), never changing faster than it can be read.
+  // The date under the title: the month (the day, for a period of a few weeks) of what is being drawn, so a month with
+  // nothing in it is not named, changing at most about once a second.
   const dated = events.filter((e) => e.when !== null).map((e) => e.when!);
   const spanDays = dated.length ? (dated[dated.length - 1]! - dated[0]!) / 86_400_000 : 0;
-  const clock = dateClock(slots, events.map((e) => e.when));
-  const tickerText = (time: number) => {
-    const d = clock(time);
-    if (d === null) return "";
-    const ymd = new Date(d).toISOString().slice(0, 10);
-    return spanDays <= 45 ? dateOnly(ymd, { day: "numeric", month: "long", year: "numeric" }) : dateOnly(ymd, { month: "long", year: "numeric" });
+  const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const dateText = (ymd: string) => (spanDays <= 45 ? dateOnly(ymd, { day: "numeric", month: "long", year: "numeric" }) : dateOnly(ymd, { month: "long", year: "numeric" }));
+  const eventText: (string | null)[] = events.map((e) => {
+    const ymd = e.leg?.day ?? e.spot?.day ?? (e.when !== null ? dayOf(e.when) : null);
+    return ymd ? dateText(ymd) : null;
+  });
+  const firstText = eventText.find((x) => x !== null) ?? "";
+  const textAt = (time: number) => {
+    let shown = firstText;
+    for (let i = 0; i < events.length && slots[i]!.start <= time; i++) shown = eventText[i] ?? shown;
+    return shown;
   };
-  const ticker = dated.length ? tickerChanges(tickerText, 0, tl.to) : [];
+  const ticker = dated.length ? tickerChanges(textAt, 0, tl.to, 0.02, 0.9) : [];
 
   // Lines finished by a time, in the order they finish, gathered into one path so a route flown often is not darker.
   const finishing = events.map((e, i) => ({ i, end: slots[i]!.start + slots[i]!.duration })).filter((x) => plane[x.i]).sort((a, b) => a.end - b.end);
@@ -749,17 +755,18 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
       }
     }
 
-    // The title, the ticker under it, and the logo.
+    // The title, the date under it, and the logo.
     drawTop(ctx, f, content.title);
     if (ticker.length) {
       let k = 0;
       while (k + 1 < ticker.length && ticker[k + 1]!.t <= time) k++;
       const now = ticker[k]!;
-      const s = k > 0 ? smoother((time - now.t) / 0.32) : 1;
+      // The old date fades, then the new one rises a little into its place.
+      const s = k > 0 ? clamp((time - now.t) / 0.5, 0, 1) : 1;
       const y = 136 * u;
       const words = { size: 30 * u, weight: 600, fill: c.ink2, maxWidth: f.width - 128 * u };
-      if (s < 1) text(ctx, ticker[k - 1]!.text, 64 * u, y - 8 * u * s, { ...words, alpha: 1 - s });
-      text(ctx, now.text, 64 * u, y + 8 * u * (1 - s), { ...words, alpha: s });
+      if (s < 0.4) text(ctx, ticker[k - 1]!.text, 64 * u, y, { ...words, alpha: 1 - smoother(s / 0.4) });
+      text(ctx, now.text, 64 * u, y + 6 * u * (1 - easeOut((s - 0.35) / 0.65)), { ...words, alpha: smoother((s - 0.35) / 0.65) });
     }
 
     // The figures: counted as the flights are drawn, then the period's statistics.

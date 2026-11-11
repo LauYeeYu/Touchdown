@@ -1,6 +1,6 @@
 import { geoDistance, geoInterpolate, geoOrthographic } from "d3-geo";
 import { describe, expect, it } from "vitest";
-import { camAt, camFor, dateClock, lerpCam, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, type Cam, type Rect } from "./videoPlan.ts";
+import { camAt, camFor, lerpCam, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, type Cam, type Rect } from "./videoPlan.ts";
 
 const DAY = 86_400_000;
 const day = (n: number) => Date.UTC(2025, 0, 1) + n * DAY;
@@ -58,20 +58,6 @@ describe("a period's timeline", () => {
     const gap = (i: number) => mixed.slots[i + 1]!.start - mixed.slots[i]!.start;
     expect(gap(1)).toBeLessThan(gap(0));
     expect(gap(1)).toBeLessThan(gap(2));
-  });
-
-  it("moves the ticker's date forward evenly between flights, and never back", () => {
-    const clock = dateClock(tl.slots, when);
-    expect(clock(0)).toBe(when[0]);
-    expect(clock(tl.slots[2]!.start)).toBe(when[2]);
-    let last = 0;
-    for (let t = 0; t < 30; t += 0.05) {
-      const d = clock(t)!;
-      expect(d).toBeGreaterThanOrEqual(last);
-      last = d;
-    }
-    expect(clock(30)).toBe(when[5]);
-    expect(dateClock(tl.slots, when.map(() => null))(5)).toBeNull();
   });
 
   it("changes its words no faster than they can be read, and ends on the right ones", () => {
