@@ -37,7 +37,7 @@
   "video.length.option": "{seconds} seconds",
   "video.rate.label": "Frames a second",
   "video.rate.option": "{rate, select, smooth {60, smoother} other {30, a smaller file}}",
-  "video.hint": "{codec, select, avc {An MP4 file that phones, computers and chat apps play. It is made in this browser, and nothing is sent anywhere.} other {An MP4 file in VP9, as this browser cannot write H.264: some phones and Apple’s apps may not play it. It is made in this browser, and nothing is sent anywhere.}}",
+  "video.vp9": "An MP4 file in VP9, as this browser cannot write H.264: some phones and Apple’s apps may not play it.",
   "video.download": "Download MP4",
   "video.making": "Making the video… {percent, number}%",
   "video.stop": "Stop",

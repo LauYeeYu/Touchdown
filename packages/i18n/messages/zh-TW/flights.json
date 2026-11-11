@@ -37,7 +37,7 @@
   "video.length.option": "{seconds}秒",
   "video.rate.label": "每秒格數",
   "video.rate.option": "{rate, select, smooth {60，更流暢} other {30，檔案更小}}",
-  "video.hint": "{codec, select, avc {MP4檔案，手機、電腦和聊天應用程式都能播放。影片在此瀏覽器中產生，不會傳送到任何地方。} other {VP9編碼的MP4檔案，因為此瀏覽器無法寫入H.264，部分手機和Apple的應用程式可能無法播放。影片在此瀏覽器中產生，不會傳送到任何地方。}}",
+  "video.vp9": "VP9編碼的MP4檔案，因為此瀏覽器無法寫入H.264，部分手機和Apple的應用程式可能無法播放。",
   "video.download": "下載MP4",
   "video.making": "正在產生影片…{percent, number}%",
   "video.stop": "停止",

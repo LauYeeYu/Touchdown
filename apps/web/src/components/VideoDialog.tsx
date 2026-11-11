@@ -280,14 +280,13 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
           </div>
         </div>
       </div>
-      {codec === null ? (
+      {codec === null && (
         <p className="status-line status-line--error figure-hint" role="alert">
           <Icon name="circle-x" />
           <span>{t("flights.video.unsupported")}</span>
         </p>
-      ) : (
-        <p className="share-dialog__meta figure-hint">{codec ? t("flights.video.hint", { codec }) : " "}</p>
       )}
+      {codec === "vp9" && <p className="share-dialog__meta figure-hint">{t("flights.video.vp9")}</p>}
       {making !== null && (
         <div className="video-making" role="status">
           <span className="video-making__bar" aria-hidden="true">

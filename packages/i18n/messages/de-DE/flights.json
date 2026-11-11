@@ -37,7 +37,7 @@
   "video.length.option": "{seconds} Sekunden",
   "video.rate.label": "Bilder pro Sekunde",
   "video.rate.option": "{rate, select, smooth {60, flüssiger} other {30, kleinere Datei}}",
-  "video.hint": "{codec, select, avc {Eine MP4-Datei, die Handys, Computer und Chat-Apps abspielen. Sie entsteht in diesem Browser, und nichts wird irgendwohin gesendet.} other {Eine MP4-Datei in VP9, da dieser Browser kein H.264 schreiben kann: Manche Handys und Apples Apps spielen sie vielleicht nicht ab. Sie entsteht in diesem Browser, und nichts wird irgendwohin gesendet.}}",
+  "video.vp9": "Eine MP4-Datei in VP9, da dieser Browser kein H.264 schreiben kann: Manche Handys und Apples Apps spielen sie vielleicht nicht ab.",
   "video.download": "MP4 herunterladen",
   "video.making": "Video wird erstellt… {percent, number}\u00a0%",
   "video.stop": "Anhalten",
