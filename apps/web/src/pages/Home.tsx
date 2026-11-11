@@ -218,33 +218,36 @@ export function Home() {
             <span className="swatch-dot swatch-dot--ink" />
             {t("home.map.airports")}
           </span>
-          {/* A share link's page shows the log, read only: its images are its owner's to make. */}
-          {!app.readOnly && (
-            <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
-              <Icon name="download" />
-              {t("flights.legend.image")}
-            </button>
-          )}
-          {figure && <FigureDialog content={figure} fileName={(ext) => `touchdown-${year === "all" ? "all" : year}.${ext}`} onClose={() => setFigure(null)} />}
-          {!app.readOnly && (views.length > 0 || d.sightings.length > 0) && (
-            <button
-              type="button"
-              className="legend__action"
-              aria-haspopup="dialog"
-              onClick={() => {
-                const words = figureContent();
-                setVideo(periodVideo(app, views, { title: words.title ?? "", stats: words.stats }, d.sightings));
-              }}
-            >
-              <Icon name="film" />
-              {t("flights.legend.video")}
-            </button>
-          )}
-          {video && <VideoDialog content={video} fileName={`touchdown-${year === "all" ? "all" : year}.mp4`} onClose={() => setVideo(null)} />}
-          <Link className="legend__action" to="/stats">
-            <Icon name="globe" />
-            {t("home.map.globe")}
-          </Link>
+          {/* Image, Video and Explore on a globe keep together at the row's end, on their own line on a phone. */}
+          <div className="legend__actions">
+            {/* A share link's page shows the log, read only: its images are its owner's to make. */}
+            {!app.readOnly && (
+              <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
+                <Icon name="download" />
+                {t("flights.legend.image")}
+              </button>
+            )}
+            {figure && <FigureDialog content={figure} fileName={(ext) => `touchdown-${year === "all" ? "all" : year}.${ext}`} onClose={() => setFigure(null)} />}
+            {!app.readOnly && (views.length > 0 || d.sightings.length > 0) && (
+              <button
+                type="button"
+                className="legend__action"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  const words = figureContent();
+                  setVideo(periodVideo(app, views, { title: words.title ?? "", stats: words.stats }, d.sightings));
+                }}
+              >
+                <Icon name="film" />
+                {t("flights.legend.video")}
+              </button>
+            )}
+            {video && <VideoDialog content={video} fileName={`touchdown-${year === "all" ? "all" : year}.mp4`} onClose={() => setVideo(null)} />}
+            <Link className="legend__action" to="/stats">
+              <Icon name="globe" />
+              {t("home.map.globe")}
+            </Link>
+          </div>
         </div>
         <WorldMap
           flights={d.marks}

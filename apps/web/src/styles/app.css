@@ -7196,12 +7196,20 @@ a.wordmark {
 
 /* ---------- interactive globe ---------- */
 
+/* The pills at the end of a map's legend row (Home, Flights: Image, Video, Explore on a globe), 8px apart. They move
+   to the next line together, never one by one, and on a phone they take a line of their own. */
+.legend__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
 /* A link, or a button: a button loses the browser's two-tone border and its own font. */
 .legend__action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
   padding: 4px 12px;
   border: 0;
   border-radius: 999px;
@@ -7211,11 +7219,6 @@ a.wordmark {
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
-}
-
-/* Two pills together at the row's end (Flights: Image… and Explore on a globe), 8px apart. */
-.legend__action + .legend__action {
-  margin-left: -12px;
 }
 
 .legend__action:hover {
@@ -7400,8 +7403,9 @@ a.wordmark {
 
 
 @media (max-width: 720px) {
-  .legend__action,
-  .legend__action + .legend__action {
+  .legend__actions {
+    flex-basis: 100%;
+    margin-top: 6px;
     margin-left: 0;
   }
 
