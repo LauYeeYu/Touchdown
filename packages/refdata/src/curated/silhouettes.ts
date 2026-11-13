@@ -244,5 +244,94 @@ export function shapeOf(familyId: string | null | undefined, designator: string)
   if (!fam) return null;
   const own = fam.types?.[designator];
   const shape = own ? with_(fam.shape, own) : fam.shape;
-  return { ...shape, checked: fam.checked };
+  const sweep = typeSweep[designator] ?? (familyId ? familySweep[familyId] : undefined) ?? shape.sweep;
+  return { ...shape, ...(sweep !== undefined ? { sweep } : {}), checked: fam.checked };
 }
+
+/**
+ * Each family's wing sweep at a quarter of the chord, in degrees, for drawing a type whose figures give none (only a few
+ * spec tables do): without it a jet is drawn at 25°. From the family's English Wikipedia articles, as quoted, unless
+ * said otherwise. A type's own (`typeSweep`) goes first.
+ */
+export const familySweep: Record<string, number> = {
+  A320: 25, // Airbus A320 family: "Its wing sweep is 25 degrees."
+  A330: 30, // Airbus A330, specifications: "25% chord wingsweep: 30°".
+  A340: 30, // Airbus A340: "The wing is swept back at 30 degrees."
+  B707: 35, // Boeing 707: "The 707's wings are swept back at 35°."
+  B727: 32, // Tupolev Tu-154: "the Boeing 727 has a slightly smaller sweepback angle of 32°".
+  B747: 37.5, // Boeing 747: "Its wings have a high sweep angle of 37.5°."
+  B757: 25, // Boeing 757: "The wings are largely identical across all 757 variants, swept at 25 degrees."
+  B767: 31.5, // Boeing 767: "The wings are swept at 31.5 degrees."
+  B787: 32, // Boeing 787 Dreamliner, a planform's caption: "32° wing sweep".
+  DC8: 30, // Douglas DC-8: "30° wing sweep".
+  // Not stated in the DC-10's, the MD-11's or the TriStar's article: 35° is the figure their manufacturers publish, and their
+  // tips sit well behind the root, as drawn with it.
+  DC10: 35,
+  MD11: 35,
+  L1011: 35,
+  C5: 25, // Lockheed C-5 Galaxy: "wings that are swept 25°".
+  E145: 22.3, // Embraer ERJ family: "the quarter chord wing sweep increased to 22.3°".
+  "Embraer Legacy/Praetor": 27, // Embraer Legacy 450/500 and Praetor 500/600: "its 27° wing sweep".
+  Global: 35, // Bombardier Global Express: "a supercritical airfoil with a 35° wing sweep".
+  F28: 16, // Fokker F28 Fellowship, specifications: "16° sweep".
+  ARJ21: 25, // Comac C909, specifications: "Wing sweepback: 25 degrees".
+  Il96: 30, // Ilyushin Il-96, specifications: "30° sweep".
+  Tu154: 35, // Tupolev Tu-154: "a wing swept back at 35° at the quarter-chord line".
+  G500: 36, // Gulfstream G400/G500/G600: "based on the G650's wing design with the same 36° sweep".
+  G550: 27, // Gulfstream G650/G700/G800: "previous Gulfstream aircraft like the G550 with a sweep of 27 degrees".
+  G650: 36, // Gulfstream G650/G700/G800: "The G650 wing has a sweep of 36 degrees."
+  // The same article says the G700 has "the same 1,283 sqft wing", but "with its 33° wingsweep": the G650's 36° stated
+  // for the wing itself is taken.
+  G700: 36,
+  F900: 29.5, // Dassault Falcon 7X: its wing has "5° higher wing sweep than the 900 wing", which is 34.5°.
+  FA7X: 34.5, // Dassault Falcon 7X, a planform's caption: "the 34.5° wing sweep".
+  FA8X: 34.5, // The Falcon 7X's wing (Dassault Falcon 7X, as above).
+  Hawker: 20, // Hawker 800: "a 20° quarter chord wing sweep".
+  // Not stated in these families' articles: the quarter-chord sweep their manufacturers publish, rounded, so they are not
+  // drawn at the 25° a jet gets without one.
+  BAe146: 15,
+  F100: 17.5,
+  An124: 32,
+  An225: 32,
+  HondaJet: 5,
+  PC24: 5,
+  SF50: 0,
+  Phenom100: 0,
+  Learjet: 13,
+};
+
+/** A type's own sweep where it differs from its family's, as `familySweep`. */
+export const typeSweep: Record<string, number> = {
+  // Airbus A340, specifications: "29.7° sweep" for the -200 and -300, "31.1° sweep" for the -500 and -600.
+  A342: 29.7,
+  A343: 29.7,
+  A345: 31.1,
+  A346: 31.1,
+  E35L: 22.3, // The Legacy 600 has the ERJ 135's wing (Embraer ERJ family, as above).
+  GL7T: 35.3, // Bombardier Global 7500: "a 35.3° quarter chord wing sweep".
+  // Learjet 45: "The wing has 13 degrees of wing sweep." The 40, 70 and 75 have the 45's wing.
+  LJ40: 13,
+  LJ45: 13,
+  LJ70: 13,
+  LJ75: 13,
+  // Cessna CitationJet/M2, specifications: "Wing sweep: 0 degrees" for the M2 (CJ1), CJ2+ and CJ3+, 12.5 for the CJ4.
+  C525: 0,
+  C25M: 0,
+  C25A: 0,
+  C25B: 0,
+  C25C: 12.5,
+  // The Citation I, II, V, Excel and Mustang have straight wings, as their articles' planform photographs show. Their
+  // articles state no angle.
+  C500: 0,
+  C501: 0,
+  C510: 0,
+  C550: 0,
+  C551: 0,
+  C55B: 0,
+  C560: 0,
+  C56X: 0,
+  C680: 16.3, // Cessna Citation Sovereign: "16.3° wing sweep".
+  C68A: 16.3, // Cessna Citation Latitude, specifications: "16.3° sweep".
+  C700: 28, // Cessna Citation Longitude: "a new ~28° swept wing" (26.8° inboard, 28.6° outboard).
+  C750: 37, // Cessna Citation X: "37 degrees of sweepback at the quarter chord".
+};
