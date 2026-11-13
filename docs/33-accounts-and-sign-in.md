@@ -10,7 +10,7 @@ How people get into the hosted site (U3): the website signs them in itself, and 
 | Sign in with an email address and a password, or with Google. An account can have both. | Decided |
 | Only invited people get an account. The owner makes a single-use link and sends it themselves (chat, email); the site sends no email. | Decided |
 | The server runs on Cloudflare (a Worker with a D1 database) or on any machine (a Node server with a SQLite file), from one codebase. | Decided |
-| Someone who is not signed in sees only the sign-in pages, the privacy policy and the terms, and later a shared link's page `/p/<id>` with its own files under `/share-files/` ([32](32-modes-and-sharing.md), "The public page"). The app's own files need a session too. | Decided |
+| Someone who is not signed in sees only the sign-in pages, the privacy policy and the terms, a shared link's page `/p/<id>` with its own files under `/share-files/` ([32](32-modes-and-sharing.md), "The public page"), and the aircraft types pages with their own files under `/types-files/` ([31](31-ui.md), "Aircraft types"). The app's own files need a session too. | Decided |
 | Passwords are hashed in the browser before they are sent (see Passwords). | Decided |
 | Built: the server (`packages/server`), the sign-in pages (`apps/web/signin.html`, `src/signin/`), Settings → Account and People, the Cloudflare Worker and the Node server. | Built |
 
@@ -28,6 +28,7 @@ How people get into the hosted site (U3): the website signs them in itself, and 
 | `/reset/<token>` | A reset link from the owner: set a new password. |
 | `/setup` | The first account (the owner). Asks for the setup secret; answers "not found" once an owner exists. |
 | `/privacy`, `/terms` | The privacy policy and the terms of service: static pages built from `PRIVACY.md` and `TERMS.md` at the repository root (`apps/web/policies.ts`), so the files stay the only source. Google's consent screen links to them. |
+| `/types`, `/types/<code>`, `/types/compare` | The aircraft types pages ([31](31-ui.md), "Aircraft types"): one page, the same for everyone, answered before any session is looked up and marked so any cache may keep it (`public, no-cache`). Its script opens the app in its place for a signed-in browser, and the types over the reference data alone for anyone else. Their own build (`vite.types.config.ts`), served from `/types-files/`, holds the types pages and the type codes, families and figures, no other app code and no data. The app's files it opens for a member still need the session. Any other address under `/types/` meets the sign-in. |
 
 These pages are a small separate bundle with its own build (`vite.signin.config.ts`), served from `/signin-files/`. It holds no app code and no data. Anything else without a session: a page address goes to `/signin?next=<address>`, a file or `/api/*` request gets 401. An address whose decoded path holds `..`, a backslash or an escaped slash is refused before the gate looks at it, so a public path cannot lead to a private file.
 

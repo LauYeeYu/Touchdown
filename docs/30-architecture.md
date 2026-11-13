@@ -118,6 +118,10 @@ Worker "touchdown" (or the same server on any machine, 33)
      /p/<id>              a shared link's page and content, without a session; the only path with
                           user content outside the sign-in
      /share-files/*       the share page's own code and styles, without a session; no user content
+     /types, /types/<code>, /types/compare
+                          the aircraft types pages: one page the same for everyone, which opens
+                          the app for a signed-in browser (31)
+     /types-files/*       their own code, styles and type reference data, without a session
      D1                   accounts, sessions, invitations (33); Standard-mode storage keys
                           and link settings (32)
      /api/storage/*       Standard mode: terms, connecting Google Drive, short-lived access (32)
@@ -142,7 +146,7 @@ Worker "touchdown" (or the same server on any machine, 33)
 - Offline (Decided, built): a service worker, `/sw.js`, keeps the app's own files in the browser, so the app opens without a network. Source Han Sans's files are left out (some 200 files, 9 MB): a Chinese page loads the few its characters need, the browser's own cache keeps them, and offline the system's Chinese face stands in for any not loaded yet. The log itself is in the browser's database, and sync sends what changed once the network returns ([12](12-storage-and-sync.md), "Offline").
   - Built by `vite.sw.config.ts` after the app (`src/offline/`): the app's built files, without source maps and without the sign-in pages' or the share page's files, kept under a version made from their contents. `/sw.js` is served with `Cache-Control: no-cache` and checked on every visit.
   - Registered only once the app has opened signed in and online, so every file is fetched through the gate. A file that does not come back whole (signed out meanwhile, a redirect to the sign-in page) stops the install, and the worker before it stays. A new version takes over as soon as its files are in, and the old cache is removed, so a page opened offline is never older than one opened online.
-  - An app page is fetched from the network first, so online the gate decides as before. Only when the network cannot be reached is the cached page used. The sign-in pages, `/auth/`, `/api/`, share links (`/p/`, `/share-files/`), the privacy policy and terms, and `/cli/` are never served from the cache.
+  - An app page is fetched from the network first, so online the gate decides as before. Only when the network cannot be reached is the cached page used. The sign-in pages, `/auth/`, `/api/`, share links (`/p/`, `/share-files/`), the types pages' own files (`/types-files/`), the privacy policy and terms, and `/cli/` are never served from the cache. The types pages themselves are app pages here: offline, a member's browser opens them in the app.
   - Offline, the app opens the log of the account last signed in on this browser ([33](33-accounts-and-sign-in.md)); with none, it says to connect and sign in.
   - Signing out, or a session the server no longer knows (expired, or ended from another device), removes the worker, its cache and the remembered account, so the log no longer opens here without signing in.
 - Logs: Worker logs are off (`observability` disabled), because page addresses and lookups reveal which aircraft a user is interested in. When `/api/*` needs logs, they stay minimal (no request bodies, no client identifiers).

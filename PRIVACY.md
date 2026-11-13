@@ -1,6 +1,6 @@
 # Touchdown privacy policy
 
-Effective 7 November 2026.
+Effective 13 November 2026.
 
 This policy covers the Touchdown website run from this repository by its owner, for people the owner invites. It says what the site keeps about you, where your log is, and what Touchdown does with data from Google.
 
@@ -9,6 +9,7 @@ This policy covers the Touchdown website run from this repository by its owner, 
 - Your flight and spotting log is not kept on Touchdown's server. It is in your browser and, if you choose, in your own storage (your Google Drive or a directory on your computer).
 - The server keeps only what it needs to sign you in: your name, email address, a hash of your password key, your Google account id if you sign in with Google or connect Google Drive in Standard mode, and your sign-in sessions. In Standard mode, if you choose it, it also keeps an encrypted key to your Google Drive.
 - In Standard mode you can share links to a flight, a sighting, an aircraft or your whole log. Anyone with a link can open it. The server reads what the link shows from your Google Drive when it is opened, and keeps only the link itself, how often it was opened and a preview of it for chat apps (see Share links).
+- The aircraft types pages are open to anyone. They show figures and drawings of aircraft types and nothing from anyone's log (see Aircraft types pages).
 - Touchdown never sees your password, sells nothing and shows no ads. It counts page views with Cloudflare Web Analytics, which sets no cookies and does not identify you (see Analytics).
 
 ## What the server keeps
@@ -76,6 +77,10 @@ In Standard mode you can share a link to a flight, a sighting, an aircraft or yo
 - **Preview:** when you make a link, your browser makes its preview: a title, a line under it and a picture of its map, from what the link shows. The server keeps it with the link and puts it in the page, so a chat app or a site the address is pasted into shows it. Anyone who sees the address sees the preview, as they could open the link. Your browser makes it again once a day after syncing, when what the link shows has changed. It is deleted with the link.
 - **What is recorded:** how many times a link was opened and when last. Not who opened it. A chat app reading the preview is not counted.
 - **The page:** a link's page is not indexed by search engines, tells the next site nothing about where it was opened, and has no analytics. Other than a whole log's pages, it names nobody: a link to a flight, a sighting or an aircraft does not say whose log it is. The browser of the person opening it contacts planespotters.net for aircraft photos, as yours does. It sets no cookies. While it is open, it keeps where each page was scrolled, the page's choices (such as the year shown) and the photos it found in that tab's session storage, which goes when the tab is closed.
+
+## Aircraft types pages
+
+The pages at `/types`, `/types/<code>` and `/types/compare` open without an account. They show each aircraft type's figures from Wikipedia and Touchdown's drawings of them, and nothing about you or anyone's log. The page is the same for everyone. When it opens, your browser asks the site whether it is signed in. If it is, the page opens the app in its place, and the app shows the types with your log from your browser, as its other pages do. The pages are not indexed by search engines and set no cookies. Their views are counted as described under Analytics.
 
 ## Other services your browser contacts
 

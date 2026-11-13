@@ -1,6 +1,6 @@
 # Touchdown terms of service
 
-Effective 7 November 2026.
+Effective 13 November 2026.
 
 These terms cover the Touchdown website run from this repository by its owner. By using it you agree to them.
 
@@ -32,6 +32,10 @@ Do not:
 ## Opening a link someone shared
 
 A share link's page shows what the person who shared it chose to share. You can open it without an account. These terms' rules on use apply to you too.
+
+## Aircraft types pages
+
+The aircraft types pages can be opened without an account. Their figures come from Wikipedia and their drawings are made by Touchdown from those figures. Both are for interest and may be wrong or out of date. These terms' rules on use apply to you too.
 
 ## Other services
 
