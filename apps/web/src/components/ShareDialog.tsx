@@ -212,7 +212,7 @@ export function ShareDialog({ kind, subject, anchor = null, image, onClose }: { 
           {t("sharing.all")}
         </Link>
         <button type="button" className="share-dialog__all share-dialog__image" aria-haspopup="dialog" onClick={() => void openImage()}>
-          <Icon name="download" />
+          <Icon name="image" />
           {t("sharing.image")}
         </button>
       </div>

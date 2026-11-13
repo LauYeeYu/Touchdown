@@ -223,7 +223,7 @@ export function Home() {
             {/* A share link's page shows the log, read only: its images are its owner's to make. */}
             {!app.readOnly && (
               <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
-                <Icon name="download" />
+                <Icon name="image" />
                 {t("flights.legend.image")}
               </button>
             )}

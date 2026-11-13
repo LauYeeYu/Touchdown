@@ -207,7 +207,7 @@ export function Flights() {
             {/* A share link's page shows the log, read only: its images are its owner's to make. */}
             {!shared && (
               <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
-                <Icon name="download" />
+                <Icon name="image" />
                 {t("flights.legend.image")}
               </button>
             )}

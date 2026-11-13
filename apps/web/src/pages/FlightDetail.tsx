@@ -417,7 +417,7 @@ export function FlightDetail() {
             </Link>
             <ShareButton kind="flight" subject={f.id} image={{ content: figureContent, name: (ext) => trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, ext) }} />
             <button type="button" className="btn btn--quiet btn--small" onClick={() => setFigure(figureContent())} aria-haspopup="dialog" title={t("flights.detail.figure.title")}>
-              <Icon name="download" />
+              <Icon name="image" />
               {t("flights.detail.figure.label")}
             </button>
             {figure && <FigureDialog content={figure} fileName={(ext) => trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, ext)} onClose={() => setFigure(null)} />}
