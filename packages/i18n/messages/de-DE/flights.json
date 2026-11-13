@@ -22,6 +22,7 @@
   "figure.size.label": "Größe",
   "figure.size.option": "{size, select, landscape {Querformat} square {Quadratisch} portrait {Hochformat} a4 {A4 zum Drucken} other {A3 zum Drucken}}, {width} × {height}",
   "figure.stats.label": "Mit Statistik",
+  "figure.codes.label": "Flughafencodes",
   "figure.download": "{format} herunterladen",
   "figure.share": "Teilen",
   "figure.ready": "Das Bild ist bereit zum Teilen.",

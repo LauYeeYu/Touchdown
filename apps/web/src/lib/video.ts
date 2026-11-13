@@ -14,7 +14,7 @@ import type { Feature, FeatureCollection } from "geojson";
 import { haversineKm } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import type { MapFlight } from "../components/maps.tsx";
-import { COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, measure, overlaps, projectionFor, sans, spaced, STAT, statTiles, type Box, type Colours, type FigureStat, type FigureTheme } from "./figure.ts";
+import { CODE, COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, measure, overlaps, projectionFor, sans, spaced, STAT, statTiles, type Box, type Colours, type FigureStat, type FigureTheme } from "./figure.ts";
 import { dateOnly, distance, durShort, nf } from "./format.ts";
 import { AIRLINER_TOP, isGap, type TrackSample } from "./trackStatus.ts";
 import { camAt, camFor, clamp, easeInOut, easeOut, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
@@ -86,6 +86,19 @@ export interface VideoOptions {
   height: number;
   theme: FigureTheme;
   seconds: number;
+  /** A period's codes for every place that has room for one, smaller, when there are more than `MAX_LABELS` places. */
+  codes?: boolean;
+}
+
+/**
+ * How many places a period's video marks: its flights' airports and its spotting places. Past `MAX_LABELS`, their
+ * codes are written only when asked for.
+ */
+export function videoPlaceCount(content: VideoContent): number {
+  const ids = new Set<string>();
+  for (const l of content.legs) ids.add(l.fromId).add(l.toId);
+  for (const s of content.sightings ?? []) ids.add(s.placeId);
+  return ids.size;
 }
 
 export interface Scene {
@@ -230,11 +243,13 @@ function drawTileSwap(ctx: CanvasRenderingContext2D, f: Frame, a: { tiles: Tiles
   if (b) drawTiles(ctx, f, b.tiles, b.values, easeOut((s - 0.35) / 0.65), (1 - easeOut((s - 0.35) / 0.65)) * 10 * f.u);
 }
 
+type CodeType = (typeof CODE)["few"];
+
 /** A place's code beside its dot, right of it unless that covers something taken, else left, else nothing. */
-function placeLabel(f: Frame, code: string, x: number, y: number, dot: number, taken: Box[]): Box | null {
-  const size = 24 * f.u;
-  const half = 14 * f.u;
-  const gap = dot + 6 * f.u;
+function placeLabel(f: Frame, code: string, x: number, y: number, dot: number, taken: Box[], type: CodeType = CODE.few): Box | null {
+  const size = type.size * f.u;
+  const half = type.half * f.u;
+  const gap = dot + type.gap * f.u;
   const w = measure(code, size, 700);
   const right: Box = [x + gap, y - half, x + gap + w, y + half];
   const left: Box = [x - gap - w, y - half, x - gap, y + half];
@@ -242,8 +257,8 @@ function placeLabel(f: Frame, code: string, x: number, y: number, dot: number, t
   return free(right) ? right : free(left) ? left : null;
 }
 
-const drawCode = (ctx: CanvasRenderingContext2D, f: Frame, code: string, box: Box, y: number, alpha: number) =>
-  text(ctx, code, box[0], y + 0.35 * 24 * f.u, { size: 24 * f.u, weight: 700, fill: f.c.ink, halo: { colour: f.c.paper, width: 6 * f.u }, alpha });
+const drawCode = (ctx: CanvasRenderingContext2D, f: Frame, code: string, box: Box, y: number, alpha: number, type: CodeType = CODE.few) =>
+  text(ctx, code, box[0], y + 0.35 * type.size * f.u, { size: type.size * f.u, weight: 700, fill: f.c.ink, halo: { colour: f.c.paper, width: type.halo * f.u }, alpha });
 
 /** Distance in a figure, in the chosen unit. */
 const dist = (km: number, unit: VideoContent["unit"]) => distance(km, unit);
@@ -424,8 +439,11 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
   const bandTop = Math.min(totals?.top ?? f.height, summary?.top ?? f.height);
 
   // The final drawing: the image's projection, fitted between the title and the figures.
-  const labelled = placesAll.size + new Set(sightings.map((s) => s.placeId).filter((id) => !placesAll.has(id))).size <= MAX_LABELS;
-  const side = 64 * u + (labelled ? 72 * u : 0);
+  // Every place's code while there are few, large, or when asked for, smaller.
+  const few = videoPlaceCount(content) <= MAX_LABELS;
+  const labelled = few || !!o.codes;
+  const codeType = few ? CODE.few : CODE.many;
+  const side = 64 * u + (few ? 72 * u : 0);
   const area: Rect = [side, f.band + 20 * u, f.width - side, bandTop - 40 * u];
   const asFlights = legs.map((l) => ({ from: l.from, to: l.to, line: [l.points], gaps: [] }) as unknown as MapFlight);
   const spotMarks = [...spotDays.values()].map((s) => ({ at: s.at, code: s.code }));
@@ -490,7 +508,7 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
   });
   const mostSeen = Math.max(1, ...[...spots.values()].map((s) => s.steps[s.steps.length - 1]!.count));
   const airportIds = new Set(placesAll.keys());
-  const dotR = (labelled ? 7 : placesAll.size > 60 ? 3 : 4) * u;
+  const dotR = (few ? 7 : placesAll.size > 60 ? 3 : 4) * u;
   // A spotting place's dot, sized by the aircraft seen as the image sizes it, and at an airport at least a ring wider
   // than the airport's dot drawn over it, so a place with few aircraft does not vanish under it.
   const spotR = (n: number, id?: string) => Math.max((4 + 9 * Math.sqrt(n / mostSeen)) * u, id && airportIds.has(id) ? dotR + 3 * u : 0);
@@ -512,17 +530,22 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
   const camera = (time: number) => camAt(cams, time);
   const toScreen = (cam: Cam, x: number, y: number): [number, number] => [(x - cam.cx) * cam.k + (area[0] + area[2]) / 2, (y - cam.cy) * cam.k + (area[1] + area[3]) / 2];
 
-  // Codes: every place's, placed on the final drawing as the image places them, while there are few; else the codes
-  // of a flight drawn on its own for long enough to read them, for as long as it is drawn and a moment after.
+  // Codes: every place's, placed on the final drawing as the image places them, while there are few (the first
+  // reached first) or when asked for (the busiest first); else the codes of a flight drawn on its own for long enough
+  // to read them, for as long as it is drawn and a moment after.
   const hud: Box[] = [f.logo.box, [0, 0, f.width, f.band], [0, bandTop - 16 * u, f.width, f.height]];
   const dotBoxes: Box[] = [...places.values()].filter((p) => airportIds.has(p.id)).map((p) => [p.x - dotR, p.y - dotR, p.x + dotR, p.y + dotR]);
   if (labelled) {
     const taken = [...dotBoxes, ...hud];
-    for (const p of [...places.values()].sort((a, b) => a.shows - b.shows)) {
+    const busy = new Map<string, number>();
+    for (const l of legs) for (const id of [l.fromId, l.toId]) busy.set(id, (busy.get(id) ?? 0) + 1);
+    for (const s of sightings) busy.set(s.placeId, (busy.get(s.placeId) ?? 0) + 1);
+    const order = few ? (a: Place, b: Place) => a.shows - b.shows : (a: Place, b: Place) => (busy.get(b.id) ?? 0) - (busy.get(a.id) ?? 0) || a.shows - b.shows;
+    for (const p of [...places.values()].sort(order)) {
       if (!p.code || p.code === "?") continue;
       const sp = spots.get(p.id);
       const r = Math.max(airportIds.has(p.id) ? dotR : 0, sp ? spotR(sp.steps[sp.steps.length - 1]!.count, p.id) : 0);
-      p.label = placeLabel(f, p.code, p.x, p.y, r, taken);
+      p.label = placeLabel(f, p.code, p.x, p.y, r, taken, codeType);
       if (p.label) taken.push(p.label);
     }
   }
@@ -728,7 +751,7 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
       ctx.fillStyle = c.paper;
       ctx.fill();
       ctx.strokeStyle = c.ink;
-      ctx.lineWidth = (labelled ? 2.5 : 1.5) * u * px;
+      ctx.lineWidth = (few ? 2.5 : 1.5) * u * px;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
@@ -743,7 +766,7 @@ function periodScene(content: VideoContent, o: VideoOptions): Scene {
         const right = p.label[0] > fx;
         const dx = right ? p.label[0] - fx : fx - p.label[2];
         const w = p.label[2] - p.label[0];
-        drawCode(ctx, f, p.code, right ? [sx + dx, 0, sx + dx + w, 0] : [sx - dx - w, 0, sx - dx, 0], sy, easeOut((time - p.shows) / 0.4));
+        drawCode(ctx, f, p.code, right ? [sx + dx, 0, sx + dx + w, 0] : [sx - dx - w, 0, sx - dx, 0], sy, easeOut((time - p.shows) / 0.4), codeType);
       }
     } else {
       for (const q of passing) {

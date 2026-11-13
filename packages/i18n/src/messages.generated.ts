@@ -1483,6 +1483,7 @@ export interface MessageArgs {
   "flights.figure.size.label": {};
   "flights.figure.size.option": { height: "text"; size: "choice"; width: "text" };
   "flights.figure.stats.label": {};
+  "flights.figure.codes.label": {};
   "flights.figure.download": { format: "text" };
   "flights.figure.share": {};
   "flights.figure.ready": {};

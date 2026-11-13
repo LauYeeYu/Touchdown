@@ -1,12 +1,13 @@
 // Share or download a map as an image (docs/23-tracks-and-maps.md, "Export: figure"; docs/31-ui.md, "Image"): a
 // preview of the image as it will be saved, drawn again on every change, and its choices: the format, the size, light
-// or dark, and the statistics. The choices are kept in this browser for the next image. Share hands the file to the system's share sheet where the browser can, else it is downloaded. Opened from a
+// or dark, the statistics and, on a busy map, the airport codes. The choices are kept in this browser for the next
+// image. Share hands the file to the system's share sheet where the browser can, else it is downloaded. Opened from a
 // flight's page, Flights and Home; the page gives what the image shows (lib/figure.ts, FigureContent).
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
 import { canShareFile, download, shareFile } from "../lib/download.ts";
-import { canEncode, drawFigure, figureFile, FIGURE_FORMATS, FIGURE_SIZES, pageTheme, prepareFigure, type FigureContent, type FigureFormat, type FigureSize, type FigureTheme } from "../lib/figure.ts";
+import { canEncode, drawFigure, figureFile, FIGURE_FORMATS, FIGURE_SIZES, MAX_LABELS, pageTheme, placeCount, prepareFigure, type FigureContent, type FigureFormat, type FigureSize, type FigureTheme } from "../lib/figure.ts";
 import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
@@ -17,14 +18,15 @@ interface Choice {
   size: FigureSize;
   theme: FigureTheme;
   stats: boolean;
+  codes: boolean;
 }
 
 const KEY = "td-figure";
 const FORMAT_NAMES: Record<FigureFormat, string> = { png: "PNG", jpeg: "JPEG", webp: "WebP", svg: "SVG", pdf: "PDF" };
 
-/** The last choices made in this browser, else PNG, landscape, the page's theme and no statistics. */
+/** The last choices made in this browser, else PNG, landscape, the page's theme, no statistics and no codes. */
 function stored(): Choice {
-  const fallback: Choice = { format: "png", size: "landscape", theme: pageTheme(), stats: false };
+  const fallback: Choice = { format: "png", size: "landscape", theme: pageTheme(), stats: false, codes: false };
   try {
     const c = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Choice> | null;
     return {
@@ -32,6 +34,7 @@ function stored(): Choice {
       size: c?.size && c.size in FIGURE_SIZES ? c.size : fallback.size,
       theme: c?.theme === "light" || c?.theme === "dark" ? c.theme : fallback.theme,
       stats: typeof c?.stats === "boolean" ? c.stats : fallback.stats,
+      codes: typeof c?.codes === "boolean" ? c.codes : fallback.codes,
     };
   } catch {
     return fallback;
@@ -56,6 +59,7 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
   const sizeLabel = useId();
   const webp = useMemo(() => canEncode("image/webp"), []);
   const hasStats = !!content.stats?.length;
+  const busyMap = useMemo(() => placeCount(content) > MAX_LABELS, [content]);
   const format = choice.format === "webp" && !webp ? "png" : choice.format;
   const name = fileName(FIGURE_FORMATS[format].ext);
   const shareable = useMemo(() => canShareFile(name, FIGURE_FORMATS[format].type), [name, format]);
@@ -91,7 +95,8 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
     }
   };
   const withStats = choice.stats && hasStats;
-  const key = `${format}|${choice.size}|${choice.theme}|${withStats}`;
+  const withCodes = choice.codes && busyMap;
+  const key = `${format}|${choice.size}|${choice.theme}|${withStats}|${withCodes}`;
 
   // The preview: the image itself, drawn at the size it takes on the screen. Every size of it is laid out in
   // proportion to its width, so the preview is the saved image made smaller.
@@ -103,12 +108,12 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
     const w = Math.max(1, Math.floor(size.width * scale));
     const h = Math.max(1, Math.floor(size.height * scale));
     const dpr = window.devicePixelRatio || 1;
-    const canvas = drawFigure({ ...content, stats: withStats ? content.stats : undefined, width: w * dpr, height: h * dpr, theme: choice.theme });
+    const canvas = drawFigure({ ...content, stats: withStats ? content.stats : undefined, codes: withCodes, width: w * dpr, height: h * dpr, theme: choice.theme });
     canvas.className = "figure-preview__image";
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
     box.replaceChildren(canvas);
-  }, [ready, resized, choice.size, choice.theme, withStats, content]);
+  }, [ready, resized, choice.size, choice.theme, withStats, withCodes, content]);
 
   // Share or download the file, made for these choices unless it was made already. A file that took too long to make
   // for the press waits for another (`waiting`).
@@ -122,7 +127,7 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
       setBusy(how);
       try {
         const size = FIGURE_SIZES[choice.size];
-        made.current = { key, blob: await figureFile({ ...content, stats: withStats ? content.stats : undefined, width: size.width, height: size.height, theme: choice.theme }, format, size.dpi) };
+        made.current = { key, blob: await figureFile({ ...content, stats: withStats ? content.stats : undefined, codes: withCodes, width: size.width, height: size.height, theme: choice.theme }, format, size.dpi) };
       } catch (e) {
         setProblem(e instanceof Error ? e.message : t("flights.figure.failed"));
         return;
@@ -184,11 +189,21 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
             </button>
           </div>
         </div>
-        {hasStats && (
-          <label className="check figure-option figure-option--check">
-            <input type="checkbox" checked={choice.stats} onChange={(e) => set({ stats: e.target.checked })} />
-            {t("flights.figure.stats.label")}
-          </label>
+        {(hasStats || busyMap) && (
+          <div className="figure-option figure-checks">
+            {hasStats && (
+              <label className="check">
+                <input type="checkbox" checked={choice.stats} onChange={(e) => set({ stats: e.target.checked })} />
+                {t("flights.figure.stats.label")}
+              </label>
+            )}
+            {busyMap && (
+              <label className="check">
+                <input type="checkbox" checked={choice.codes} onChange={(e) => set({ codes: e.target.checked })} />
+                {t("flights.figure.codes.label")}
+              </label>
+            )}
+          </div>
         )}
       </div>
       <p className="share-dialog__meta figure-hint">{t("flights.figure.format.hint", { format })}</p>

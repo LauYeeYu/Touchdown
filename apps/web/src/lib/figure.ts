@@ -64,6 +64,8 @@ export interface Figure extends FigureContent {
   width: number;
   height: number;
   theme: FigureTheme;
+  /** Codes for every place that has room for one, smaller, when there are more than `MAX_LABELS` places. */
+  codes?: boolean;
 }
 
 /** The least a figure shows, in degrees, so a short flight or one place has its region around it. */
@@ -77,6 +79,15 @@ const GLOBE_REACH = Math.PI / 3;
 
 /** At most this many places get their codes written: more would cover each other and the routes. */
 export const MAX_LABELS = 10;
+
+/**
+ * The codes' type, in units of the picture's scale: large while there are few places, smaller when every place of a
+ * busy map is asked for (the "Airport codes" choice), so more of them fit between the others.
+ */
+export const CODE = {
+  few: { size: 24, half: 14, gap: 6, halo: 6 },
+  many: { size: 15, half: 9, gap: 4, halo: 4 },
+};
 
 /** The app's map colours (app.css), for each theme: a figure looks the same whatever the page's theme is now. */
 export const COLOURS = {
@@ -355,16 +366,28 @@ class SvgPainter implements Painter {
 export type Box = [number, number, number, number];
 export const overlaps = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
 
-/** The figure's places, each once: its flights' airports and its spots. */
-function placesOf(f: FigureContent): Map<string, FigureSpot> {
-  const places = new Map<string, FigureSpot>();
+/**
+ * The figure's places, each once: its flights' airports and its spots, each with how busy it is (the flights from and
+ * to it, and the aircraft seen there), which decides whose code is written first on a busy map.
+ */
+function placesOf(f: FigureContent): Map<string, FigureSpot & { busy: number }> {
+  const places = new Map<string, FigureSpot & { busy: number }>();
+  const add = (at: LonLat, code: string, n: number) => {
+    const key = `${at[0]},${at[1]}`;
+    const p = places.get(key);
+    if (p) p.busy += n;
+    else places.set(key, { at, code, busy: n });
+  };
   for (const x of f.flights) {
-    places.set(`${x.from[0]},${x.from[1]}`, { at: x.from, code: x.fromCode });
-    places.set(`${x.to[0]},${x.to[1]}`, { at: x.to, code: x.toCode });
+    add(x.from, x.fromCode, 1);
+    add(x.to, x.toCode, 1);
   }
-  for (const s of f.spots ?? []) places.set(`${s.at[0]},${s.at[1]}`, { at: s.at, code: s.code });
+  for (const s of f.spots ?? []) add(s.at, s.code, s.aircraft ?? 1);
   return places;
 }
+
+/** How many places a figure marks: past `MAX_LABELS`, its codes are written only when asked for. */
+export const placeCount = (f: FigureContent) => placesOf(f).size;
 
 /**
  * The projection: a globe centred on what is shown when it fits well within one hemisphere, else Equal Earth around
@@ -490,6 +513,7 @@ function lay(f: Figure, p: Painter, land: FeatureCollection) {
   const bottom = tiles ? statsTop - 40 * u : f.height - (f.title ? 48 : 56) * u;
   const places = [...placesOf(f).values()];
   const labelled = places.length <= MAX_LABELS;
+  const code = labelled ? CODE.few : f.codes ? CODE.many : null;
   const side = 64 * u + (labelled ? 72 * u : 0);
   const { proj, globe } = projectionFor(f, [[side, top], [f.width - side, bottom]]);
   p.use(proj);
@@ -509,9 +533,9 @@ function lay(f: Figure, p: Painter, land: FeatureCollection) {
   );
 
   // Spotting places: blue dots with a paper ring, sized by the aircraft seen (4 to 13 at the most seen), the larger
-  // under the smaller. Then airports: a dot each. Then the codes while there are few enough places to read them. A
-  // code goes right of its dot, else left of it, and is left out where both would cover another code, a dot or the
-  // words.
+  // under the smaller. Then airports: a dot each. Then the codes while there are few enough places to read them, or
+  // when asked for, smaller, the busiest places' first. A code goes right of its dot, else left of it, and is left out
+  // where both would cover another code, a dot or the words.
   const onImage = <T extends { at: LonLat }>(list: T[]) =>
     list.flatMap((pl) => {
       const xy = proj(pl.at);
@@ -523,10 +547,10 @@ function lay(f: Figure, p: Painter, land: FeatureCollection) {
   const airports = onImage([...placesOf({ flights: f.flights }).values()]);
   const r = (labelled ? 7 : places.length > 60 ? 3 : 4) * u;
   for (const pl of airports) p.circle(pl.xy[0], pl.xy[1], r, { fill: c.paper, stroke: c.ink, width: (labelled ? 2.5 : 1.5) * u });
-  if (labelled) {
-    const size = 24 * u;
-    const half = 14 * u;
-    const shown = onImage(places);
+  if (code) {
+    const size = code.size * u;
+    const half = code.half * u;
+    const shown = onImage(labelled ? places : [...places].sort((a, b) => b.busy - a.busy));
     // The radius of the place's own dot, the larger where an airport is also a spotting place.
     const same = (a: LonLat, b: LonLat) => a[0] === b[0] && a[1] === b[1];
     const dot = (at: LonLat) => Math.max(airports.some((a) => same(a.at, at)) ? r : 0, spots.find((sp) => same(sp.at, at))?.r ?? 0);
@@ -538,7 +562,7 @@ function lay(f: Figure, p: Painter, land: FeatureCollection) {
       [0, statsTop - 16 * u, f.width, f.height],
     ];
     for (const pl of shown) {
-      const gap = dot(pl.at) + 6 * u;
+      const gap = dot(pl.at) + code.gap * u;
       if (!pl.code || pl.code === "?") continue;
       const w = measure(pl.code, size, 700);
       const right: Box = [pl.xy[0] + gap, pl.xy[1] - half, pl.xy[0] + gap + w, pl.xy[1] + half];
@@ -547,7 +571,7 @@ function lay(f: Figure, p: Painter, land: FeatureCollection) {
       const box = free(right) ? right : free(left) ? left : null;
       if (!box) continue;
       taken.push(box);
-      p.text(pl.code, box[0], pl.xy[1] + 0.35 * size, { size, weight: 700, fill: c.ink, halo: { colour: c.paper, width: 6 * u } });
+      p.text(pl.code, box[0], pl.xy[1] + 0.35 * size, { size, weight: 700, fill: c.ink, halo: { colour: c.paper, width: code.halo * u } });
     }
   }
 

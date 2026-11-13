@@ -2860,10 +2860,18 @@ a.btn--primary {
   color: var(--ink-2);
 }
 
-/* The checkbox sits on the controls' line, its box centred on them. */
-.figure-option--check {
-  display: inline-flex;
+/* The checkboxes (Include statistics, Airport codes) one under the other, the last on the controls' line: a lone one
+   centred on them, two filling the label's height above it. */
+.figure-checks {
   align-self: flex-end;
+  gap: 2px;
+}
+
+.figure-checks .check {
+  min-height: 28px;
+}
+
+.figure-checks .check:only-child {
   min-height: 38px;
 }
 

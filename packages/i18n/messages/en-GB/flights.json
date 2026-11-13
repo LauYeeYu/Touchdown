@@ -22,6 +22,7 @@
   "figure.size.label": "Size",
   "figure.size.option": "{size, select, landscape {Landscape} square {Square} portrait {Portrait} a4 {A4 for print} other {A3 for print}}, {width} × {height}",
   "figure.stats.label": "Include statistics",
+  "figure.codes.label": "Airport codes",
   "figure.download": "Download {format}",
   "figure.share": "Share",
   "figure.ready": "The image is ready to share.",

@@ -1,13 +1,14 @@
 // Share or download a map as a video (docs/23-tracks-and-maps.md, "Export: video"; docs/31-ui.md, "Video"): a preview
 // that plays the video as it will be saved, with a scrubber, and its choices: the size, the length, the frame rate,
-// light or dark. The size, the frame rate and the theme are kept in this browser for the next video. Share hands the file to the system's share sheet where the browser can, else it is
+// light or dark and, on a busy map, the airport codes. The size, the frame rate, the theme and the codes are kept in
+// this browser for the next video. Share hands the file to the system's share sheet where the browser can, else it is
 // downloaded. Opened from a flight's page, Flights and Home; the page gives what the video shows (lib/videoContent.ts).
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
 import { canShareFile, download, shareFile } from "../lib/download.ts";
-import { pageTheme, type FigureTheme } from "../lib/figure.ts";
-import { chooseCodec, defaultSeconds, makeScene, makeVideo, prepareVideo, VideoUnsupported, VIDEO_RATES, VIDEO_SECONDS, VIDEO_SIZES, type Scene, type VideoCodec, type VideoContent, type VideoSize } from "../lib/video.ts";
+import { MAX_LABELS, pageTheme, type FigureTheme } from "../lib/figure.ts";
+import { chooseCodec, defaultSeconds, makeScene, makeVideo, prepareVideo, videoPlaceCount, VideoUnsupported, VIDEO_RATES, VIDEO_SECONDS, VIDEO_SIZES, type Scene, type VideoCodec, type VideoContent, type VideoSize } from "../lib/video.ts";
 import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
@@ -17,19 +18,21 @@ interface Choice {
   size: VideoSize;
   fps: number;
   theme: FigureTheme;
+  codes: boolean;
 }
 
 const KEY = "td-video";
 
-/** The last choices made in this browser, else landscape, 60 frames a second and the page's theme. */
+/** The last choices made in this browser, else landscape, 60 frames a second, the page's theme and no codes. */
 function stored(): Choice {
-  const fallback: Choice = { size: "landscape", fps: 60, theme: pageTheme() };
+  const fallback: Choice = { size: "landscape", fps: 60, theme: pageTheme(), codes: false };
   try {
     const c = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Choice> | null;
     return {
       size: c?.size && c.size in VIDEO_SIZES ? c.size : fallback.size,
       fps: c?.fps && (VIDEO_RATES as readonly number[]).includes(c.fps) ? c.fps : fallback.fps,
       theme: c?.theme === "light" || c?.theme === "dark" ? c.theme : fallback.theme,
+      codes: typeof c?.codes === "boolean" ? c.codes : fallback.codes,
     };
   } catch {
     return fallback;
@@ -60,7 +63,9 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
   const made = useRef<{ key: string; blob: Blob } | null>(null);
   // The choices of a video made but not shared: making takes longer than a press lets a page open the share sheet.
   const [waiting, setWaiting] = useState<string | null>(null);
-  const key = `${choice.size}|${choice.fps}|${choice.theme}|${seconds}`;
+  const busyMap = useMemo(() => content.kind === "period" && videoPlaceCount(content) > MAX_LABELS, [content]);
+  const withCodes = choice.codes && busyMap;
+  const key = `${choice.size}|${choice.fps}|${choice.theme}|${seconds}|${withCodes}`;
   const shareable = useMemo(() => canShareFile(fileName, "video/mp4"), [fileName]);
   const sizeLabel = useId();
   const lengthLabel = useId();
@@ -109,7 +114,7 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
   };
 
   // The scene at the size chosen; the preview draws it smaller, as the saved video made smaller.
-  const scene = useMemo<Scene | null>(() => (ready ? makeScene(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds }) : null), [ready, content, choice.size, choice.theme, seconds]);
+  const scene = useMemo<Scene | null>(() => (ready ? makeScene(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, codes: withCodes }) : null), [ready, content, choice.size, choice.theme, seconds, withCodes]);
 
   // The preview's canvas, sized to its room at the device's pixel ratio.
   useEffect(() => {
@@ -184,7 +189,7 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
       stop.current = ctrl;
       setMaking(0);
       try {
-        made.current = { key, blob: await makeVideo(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, fps: choice.fps }, (done) => setMaking(done), ctrl.signal) };
+        made.current = { key, blob: await makeVideo(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, fps: choice.fps, codes: withCodes }, (done) => setMaking(done), ctrl.signal) };
       } catch (e) {
         // Stopped on purpose says nothing. An encoder's own message is not for people: the dialog says what happened.
         if (!(e instanceof DOMException && e.name === "AbortError")) setProblem(e instanceof VideoUnsupported ? t("flights.video.unsupported") : t("flights.video.failed"));
@@ -301,6 +306,14 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
             </button>
           </div>
         </div>
+        {busyMap && (
+          <div className="figure-option figure-checks">
+            <label className="check">
+              <input type="checkbox" checked={choice.codes} disabled={making !== null} onChange={(e) => set({ codes: e.target.checked })} />
+              {t("flights.figure.codes.label")}
+            </label>
+          </div>
+        )}
       </div>
       {codec === null && (
         <p className="status-line status-line--error figure-hint" role="alert">

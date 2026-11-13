@@ -22,6 +22,7 @@
   "figure.size.label": "尺寸",
   "figure.size.option": "{size, select, landscape {横向} square {方形} portrait {纵向} a4 {A4打印} other {A3打印}}，{width} × {height}",
   "figure.stats.label": "包含统计数据",
+  "figure.codes.label": "机场代码",
   "figure.download": "下载{format}",
   "figure.share": "分享",
   "figure.ready": "图片已准备好，可以分享了。",
