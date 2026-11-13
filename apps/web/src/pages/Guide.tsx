@@ -339,6 +339,10 @@ function ShareFigure() {
           {t("guide.sharing.figure.preview")}
         </span>
         <span>
+          <Icon name="image" />
+          {t("guide.sharing.figure.files")}
+        </span>
+        <span>
           <Icon name="cloud" />
           {t("guide.sharing.figure.mode")}
         </span>

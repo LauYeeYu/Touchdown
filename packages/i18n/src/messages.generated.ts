@@ -1718,6 +1718,7 @@ export interface MessageArgs {
   "guide.sharing.figure.page.sub": {};
   "guide.sharing.figure.private": {};
   "guide.sharing.figure.preview": {};
+  "guide.sharing.figure.files": {};
   "guide.sharing.figure.mode": {};
   "guide.export.title": {};
   "guide.export.text": { "<link>": "tag" };
