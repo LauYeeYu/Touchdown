@@ -100,7 +100,7 @@
   "types.role.option": "{role, select, airliner {Verkehrsflugzeuge} business {Geschäftsreiseflugzeuge} light {Leichtflugzeuge} helicopter {Hubschrauber} military {Militär} other {Andere Luftfahrzeuge} all {Alle Rollen}}",
   "types.view": "Ansicht",
   "types.view.option": "{view, select, manufacturers {Hersteller} other {Liste}}",
-  "types.manufacturers.main": "Hersteller mit den meisten Typen",
+  "types.manufacturers.main": "Bekannte Hersteller",
   "types.manufacturers.all": "Alle Hersteller",
   "types.manufacturers.letters": "Hersteller nach Buchstaben",
   "types.manufacturer.families": "{count, plural, one {# Familie} other {# Familien}}",

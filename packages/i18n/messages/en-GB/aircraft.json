@@ -100,7 +100,7 @@
   "types.role.option": "{role, select, airliner {Airliners} business {Business aircraft} light {Light aircraft} helicopter {Helicopters} military {Military} other {Other aircraft} all {Every role}}",
   "types.view": "View",
   "types.view.option": "{view, select, manufacturers {Manufacturers} other {List}}",
-  "types.manufacturers.main": "Manufacturers with the most types",
+  "types.manufacturers.main": "Popular manufacturers",
   "types.manufacturers.all": "Every manufacturer",
   "types.manufacturers.letters": "Manufacturers by letter",
   "types.manufacturer.families": "{count, plural, one {# family} other {# families}}",

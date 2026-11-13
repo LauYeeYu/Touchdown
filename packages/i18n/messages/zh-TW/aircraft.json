@@ -100,7 +100,7 @@
   "types.role.option": "{role, select, airliner {客貨運飛機} business {公務機} light {輕型飛機} helicopter {直升機} military {軍用飛機} other {其他航空器} all {全部用途}}",
   "types.view": "檢視",
   "types.view.option": "{view, select, manufacturers {製造商} other {列表}}",
-  "types.manufacturers.main": "機型最多的製造商",
+  "types.manufacturers.main": "熱門製造商",
   "types.manufacturers.all": "全部製造商",
   "types.manufacturers.letters": "按字母查找製造商",
   "types.manufacturer.families": "{count, plural, other {#個系列}}",

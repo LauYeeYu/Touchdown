@@ -1,7 +1,7 @@
 // Aircraft types (docs/31-ui.md, "Aircraft types"), from the More menu: every ICAO type code, the curated families
-// grouped (docs/13, "Type figures"). It opens on the manufacturers: those with the most types as cards, then every manufacturer from
-// A to Z, each leading to its page. A search, or the list view, shows the types themselves by manufacturer, a few hundred at
-// a time as the page scrolls. "In your log" and a role narrow both.
+// grouped (docs/13, "Type figures"). It opens on the manufacturers: the airliners' best known as cards, then every one from
+// A to Z, each leading to its page. A search, or the list view, shows the types themselves by manufacturer, a few
+// hundred at a time as the page scrolls. "In your log" and a role narrow both.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TypeRole } from "@touchdown/core";
@@ -18,8 +18,8 @@ import { Silhouette } from "../components/Silhouette.tsx";
 import { TypeRow } from "../components/TypeRow.tsx";
 
 export const ROLES: TypeRole[] = ["airliner", "business", "light", "helicopter", "military", "other"];
-/** Manufacturers shown as cards: the ones with the most types. */
-const MAIN_MANUFACTURERS = 12;
+/** The manufacturers shown as cards, the airliners' best known, in alphabetical order: by their addresses. */
+const POPULAR = ["airbus", "boeing", "bombardier", "comac", "embraer", "lockheed", "mcdonnell-douglas"];
 /** Rows added each time the list's end comes into view. */
 const STEP = 200;
 
@@ -95,7 +95,7 @@ export function Types() {
   );
 }
 
-/** The manufacturers of the entries shown: the largest as cards with three of their types drawn, then every one from A to Z. */
+/** The manufacturers of the entries shown: the popular ones as cards with three of their types drawn, then every one A to Z. */
 function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufacturer[] }) {
   const { app } = useApp();
   const info = useTypeInfo();
@@ -110,7 +110,8 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
     }
     return [...by.values()];
   }, [entries, all]);
-  const main = [...manufacturers].sort((a, b) => b.codes - a.codes || a.manufacturer.name.localeCompare(b.manufacturer.name)).slice(0, MAIN_MANUFACTURERS);
+  // Those of them the filters leave any types of.
+  const main = POPULAR.map((slug) => manufacturers.find((m) => m.manufacturer.slug === slug)).filter((m) => m !== undefined);
   const letters = new Map<string, typeof manufacturers>();
   for (const m of manufacturers) letters.set(letterOf(m.manufacturer.name), [...(letters.get(letterOf(m.manufacturer.name)) ?? []), m]);
   // A card draws three of the manufacturer's types that have a drawing: the most logged, else the families with the most codes.

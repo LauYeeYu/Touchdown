@@ -100,7 +100,7 @@
   "types.role.option": "{role, select, airliner {客货运飞机} business {公务机} light {轻型飞机} helicopter {直升机} military {军用飞机} other {其他航空器} all {全部用途}}",
   "types.view": "视图",
   "types.view.option": "{view, select, manufacturers {制造商} other {列表}}",
-  "types.manufacturers.main": "机型最多的制造商",
+  "types.manufacturers.main": "热门制造商",
   "types.manufacturers.all": "全部制造商",
   "types.manufacturers.letters": "按字母查找制造商",
   "types.manufacturer.families": "{count, plural, other {#个系列}}",
