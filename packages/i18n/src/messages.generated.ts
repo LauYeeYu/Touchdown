@@ -176,12 +176,15 @@ export interface MessageArgs {
   "aircraft.list.facts.alsoSpotted": { count: "number" };
   "aircraft.list.facts.spotted": {};
   "aircraft.types.title": {};
-  "aircraft.types.lead": { codes: "number"; families: "number"; flown: "number"; seen: "number" };
-  "aircraft.types.lead.visitor": { codes: "number"; families: "number" };
   "aircraft.types.search": {};
   "aircraft.types.searchPlaceholder": {};
   "aircraft.types.show": {};
   "aircraft.types.show.option": { show: "choice" };
+  "aircraft.types.lead": { codes: "number"; families: "number"; flown: "number"; seen: "number" };
+  "aircraft.types.lead.visitor": { codes: "number"; families: "number" };
+  "aircraft.types.source.wikidata": {};
+  "aircraft.types.source.wikidataMore": {};
+  "aircraft.types.source.drawing": { checked: "choice" };
   "aircraft.types.compare": {};
   "aircraft.types.none": {};
   "aircraft.types.cols.family": {};
@@ -217,7 +220,6 @@ export interface MessageArgs {
   "aircraft.types.log.title": { count: "number" };
   "aircraft.types.source.figures": {};
   "aircraft.types.source.none": {};
-  "aircraft.types.source.drawing": { checked: "choice" };
   "aircraft.types.option": { code: "text"; name: "text" };
   "aircraft.types.compare.title": {};
   "aircraft.types.compare.first": {};

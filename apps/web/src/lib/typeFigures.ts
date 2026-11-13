@@ -2,10 +2,10 @@
 // value in the units the log uses where it has one (a range in its distance unit, a speed to match), and the difference
 // between two types, for a family's table and for Compare.
 
-import type { RefIndex, Settings, TypeSpecs } from "@touchdown/core";
+import type { RefIndex, Settings } from "@touchdown/core";
 import { locale, t } from "@touchdown/i18n";
 import { distance, nf } from "./format.ts";
-import type { TypeInfo } from "./typeInfo.ts";
+import type { TypeData, TypeInfo } from "./typeInfo.ts";
 
 const MINUS = "−";
 // Up to one or two decimals, in the interface's language, made once a language.
@@ -34,8 +34,8 @@ export interface TypeFigure {
   key: "length" | "span" | "height" | "mtow" | "range" | "seats" | "speed" | "area" | "sweep";
   label: string;
   /** The figure as a number to compare with another type's, in its stored unit. */
-  value: (s: TypeSpecs) => number | null;
-  text: (s: TypeSpecs) => string | null;
+  value: (s: TypeData) => number | null;
+  text: (s: TypeData) => string | null;
   /** The difference from another type's figure (`d`, `from` it), signed, in the figure's unit. */
   diff: (d: number, from: number) => string;
 }

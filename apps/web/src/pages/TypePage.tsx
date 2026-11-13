@@ -4,6 +4,7 @@
 // family's history, the log's aircraft of the type, and where the figures and the drawing come from.
 
 import { useMemo } from "react";
+import type { FamilyFacts } from "@touchdown/core";
 import { useParams } from "@tanstack/react-router";
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
@@ -40,7 +41,11 @@ export function TypePage() {
   const name = typeName(code, ref);
   const fam = ref.family(type.familyId);
   const specs = info?.specs(code) ?? null;
-  const facts = info?.facts(type.familyId) ?? null;
+  // The family's history from its article, else the type's own from Wikidata.
+  const familyFacts = info?.facts(type.familyId) ?? null;
+  const ownHistory = !familyFacts && !!specs && !!(specs.firstFlight || specs.introduced || specs.built !== null);
+  const facts: Pick<FamilyFacts, "firstFlight" | "introduced" | "built" | "builtAsOf" | "status"> | null =
+    familyFacts ?? (ownHistory ? { firstFlight: specs!.firstFlight, introduced: specs!.introduced, built: specs!.built, builtAsOf: null, status: null } : null);
   const planform = info?.planform(code, ref) ?? null;
   const drawing = drawingOf(code, info, ref);
   const rotor = planform?.shape.kind === "helicopter";
@@ -238,18 +243,27 @@ export function TypePage() {
       )}
 
       <p className="type-page__source">
-        {specs ? (
+        {specs?.wikipedia && (
           <>
             {t("aircraft.types.source.figures")}{" "}
-            <a href={`https://en.wikipedia.org/w/index.php?title=${encodeURIComponent(specs.article.replace(/ /g, "_"))}&oldid=${specs.revision}`} target="_blank" rel="noopener">
-              {specs.article}
+            <a href={`https://en.wikipedia.org/w/index.php?title=${encodeURIComponent(specs.wikipedia.article.replace(/ /g, "_"))}&oldid=${specs.wikipedia.revision}`} target="_blank" rel="noopener">
+              {specs.wikipedia.article}
             </a>
             {". "}
           </>
-        ) : (
-          `${t("aircraft.types.source.none")} `
         )}
-        {drawing && t("aircraft.types.source.drawing", { checked: drawing.checked ? "yes" : "no" })}
+        {/* Wikidata where the page shows something from it: figures Wikipedia lacks, or the type's own history. */}
+        {specs?.wikidata && (specs.wikidata.figures || ownHistory) && (
+          <>
+            {t(specs.wikipedia ? "aircraft.types.source.wikidataMore" : "aircraft.types.source.wikidata")}{" "}
+            <a href={`https://www.wikidata.org/w/index.php?title=${specs.wikidata.item}&oldid=${specs.wikidata.revision}`} target="_blank" rel="noopener">
+              {specs.wikidata.label ?? specs.wikidata.item}
+            </a>
+            {". "}
+          </>
+        )}
+        {!specs?.wikipedia && !specs?.wikidata && `${t("aircraft.types.source.none")} `}
+        {drawing && planform && t("aircraft.types.source.drawing", { checked: planform.generic ? "generic" : drawing.checked ? "yes" : "no" })}
       </p>
     </div>
   );
