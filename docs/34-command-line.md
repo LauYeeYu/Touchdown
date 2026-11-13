@@ -42,7 +42,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 | An airport | `airport CODE [--year Y]` | The airport page's facts and lists. |
 | Issues | `issues [--severity S] [--rule ID] [--accepted]` | Fields changed on two devices (values shown except private ones; choosing is on the Issues page for now), then open findings, grouped as on the Issues page, each with its id and suggested fixes; or the accepted ones. |
 | Import history | `imports` | The import batches, for `undo`. |
-| Maps and the globe | (none) | Images and videos are made in the web app ([23](23-tracks-and-maps.md)); `touchdown render` for long videos is still to come (phase 6). |
+| Maps and the globe | `render flight REF \| aircraft REF \| log [YEAR]` (built, [Videos](#videos)) | A video as Share › Video makes it, longer (up to 10 minutes) or larger (4K). Images are made in the web app ([23](23-tracks-and-maps.md)). |
 
 ### Changing
 
@@ -93,6 +93,25 @@ Ticket numbers and booking references (AGENTS.md, "Data and privacy"):
 | Removed | `edit REF --clear ticketNumber`; deleting a flight removes them with it. |
 
 An agent that writes the JSON for `add` or `edit` has seen what it writes; giving it a ticket number is the user's choice. The CLI adds nothing to what the agent sees.
+
+### Videos
+
+Decided, built (`packages/cli/src/render.ts`, `apps/web/src/render/main.ts`, `@touchdown/core/render`): `touchdown render flight REF | aircraft REF | log [YEAR]` makes the web app's video ([23](23-tracks-and-maps.md), "Export: video") of a flight, an aircraft's flights, or the log or a year of it with its sightings as Home shows it, with the same words, drawing and encoder, so it reads as one made in the app.
+
+| Choice | Values |
+|---|---|
+| `--size` | landscape (to start with), square or portrait, the app's sizes |
+| `--4k` | twice as wide and high: 3,840 × 2,160, 2,160 × 2,160 or 2,160 × 3,840 |
+| `--seconds` | 10 to 600. Without it, the length the app chooses. |
+| `--fps`, `--theme`, `--view`, `--codes` | As in the dialog: 60 or 30, light or dark, the whole route or following the aircraft, airport codes on a busy map |
+| `--out FILE`, `--force` | Where to write it. Without it, `data/private/videos/`, named as the app names its file. |
+| `--chrome PATH` | The Chrome to use, else where Chrome is usually installed, or `TOUCHDOWN_CHROME` |
+
+- **How.** The command builds the web app's render page with Vite (`apps/web/vite.render.config.ts`, into `data/private/cache/render/`), serves it and the job on 127.0.0.1 under a one-time path, and opens it in a headless Chrome with a profile of its own. The page asks for the job (the subject, the choices, the log's tables but the private ones, with the recorded positions the video draws), sets the log up as the app does (its language, else the command line's, date format and codes), makes the video with `encodeVideo` and posts each encoded frame. Nothing leaves the computer.
+- **Memory.** Each frame goes to a file as it comes. At the end the page sends the MP4's head (`mp4Head`, the index before the frames) and the command writes it, then the frames. A long or 4K video needs no more memory than a short one. Past 4 GB the index takes its 64-bit forms.
+- **Not the site.** The render page is never part of the site's build or deploy.
+- **Codecs.** H.264 where the Chrome can encode it (on a Mac, Chrome encodes H.264 in its hardware), else VP9, said so. A size and rate it cannot encode is refused with a message.
+- **Exit status.** 0 written, 1 REF not found, 2 a problem with the options, Chrome or the log. Ctrl-C stops Chrome and leaves no file.
 
 ## Change files
 

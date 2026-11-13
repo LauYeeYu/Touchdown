@@ -199,7 +199,7 @@ What keeps it pleasant to watch (Decided):
 
 Size, frames a second, theme, view and airport codes are kept in the browser for the next video. The MP4 is written by `lib/mp4.ts`: the index before the frames (fast start), a key frame every 2 seconds, about a tenth of a bit a pixel. In Chrome on a laptop a 30-second period at 1080p and 60 frames a second takes about 10 seconds to make. A flight's turning globe is drawn once for each still view and copied. Following the aircraft, the map changes every frame and is drawn each time, so the video takes about twice as long to make.
 
-Not yet: `touchdown render` in the CLI for long or 4K videos ([34](34-command-line.md)), sound.
+`touchdown render` makes the same videos from the command line, up to 10 minutes long and in 4K, in a headless Chrome with the app's own page ([34](34-command-line.md), "Videos"). Not yet: sound.
 
 ## Notes from testing the sources
 

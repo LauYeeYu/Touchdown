@@ -51,7 +51,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Deliver: track file upload (FR24 CSV/KML, GPX), adsb.lol matching and backfill, figure export, video export (browser), `touchdown render` for long videos.
 - Done when: any flight can take a track file the user adds (Flightradar24 first; built), the flights without one can be listed to ask someone for them (built), adsb.lol fills gaps only when asked (`touchdown tracks`, built); exports work for single flight, range/year, and all flights.
-- Built: figure export and video export in the browser, for a flight, a year or all time, Home's period with its sightings, and an aircraft's flights ([23](23-tracks-and-maps.md)). Left: `touchdown render`.
+- Built: figure export and video export in the browser, for a flight, a year or all time, Home's period with its sightings, and an aircraft's flights ([23](23-tracks-and-maps.md)). And `touchdown render`, the same videos from the command line, up to 10 minutes and in 4K ([34](34-command-line.md), "Videos").
 
 ## Phase 7: Depth and friends
 

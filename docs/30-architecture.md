@@ -52,7 +52,7 @@ packages/core/       schema (single source of truth) and generators, normalisati
                      identity resolver, validation rules, stats, importers/exporters, geo/time math
 packages/storage/    backend interface, sync engine, backends: json_tables, sqlite_file
                      (later: sqlite_local, postgres, d1), file adapters: gdrive, localfs, manual
-packages/cli/        companion CLI (check, later: serve, track, render)
+packages/cli/        companion CLI (check, spot, the log's reading and changing commands, render; later: serve)
 packages/i18n/       the interface's words: message files by language, t(), plural forms (G12)
 packages/refdata/    scripts that build reference JSON (airports, operators, types)
 services/lookup/     lookup service
@@ -77,7 +77,7 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 | Time zones | Temporal API (polyfill until browsers ship it) | Correct local-time and day-offset math. |
 | Interactive map | d3-geo on Natural Earth land (world-atlas), drawn as SVG | Decided by the approved prototype: a quiet world map with arcs and spots, no tiles, no API key, same drawing code as the exports. |
 | Export rendering | d3-geo + Natural Earth (public domain) on canvas/SVG | Full control of the output, no tile licensing issues in exported images and videos. |
-| Video encoding | WebCodecs in the browser (Chrome, Edge, Firefox, Safari), H.264 else VP9, written as MP4 by the app's own writer (`apps/web/src/lib/mp4.ts`); no MediaRecorder fallback, as a screen recording drops frames when the page is busy; later the CLI with ffmpeg for long renders | No server and no library: the writer is a few hundred lines and records the colour space and an even frame rate. |
+| Video encoding | WebCodecs in the browser (Chrome, Edge, Firefox, Safari), H.264 else VP9, written as MP4 by the app's own writer (`apps/web/src/lib/mp4.ts`); no MediaRecorder fallback, as a screen recording drops frames when the page is busy. `touchdown render` runs the same page in a headless Chrome for long or 4K videos and writes each frame to a file as it comes ([34](34-command-line.md), "Videos") | No server and no library: the writer is a few hundred lines and records the colour space and an even frame rate. |
 | Charts | d3 scales and hand-drawn SVG | The few charts (months, altitude, ranked lists) follow the prototype's mark rules exactly; a chart library would add weight without saving code. |
 | CSV | Papa Parse | Handles quoting, encodings, large files. |
 | Google auth (Google Drive adapter) | Google Identity Services token flow, scope `drive.file` | No backend needed for auth. |
