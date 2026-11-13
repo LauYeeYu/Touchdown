@@ -30,6 +30,7 @@ import { SharedLinks } from "./pages/SharedLinks.tsx";
 import { Types } from "./pages/Types.tsx";
 import { TypePage } from "./pages/TypePage.tsx";
 import { TypeCompare } from "./pages/TypeCompare.tsx";
+import { TypeManufacturer } from "./pages/TypeManufacturer.tsx";
 import { FirstRun } from "./pages/FirstRun.tsx";
 import { CliPage } from "./pages/CliPage.tsx";
 import { Guide } from "./pages/Guide.tsx";
@@ -70,6 +71,7 @@ const sharedLinks = createRoute({ getParentRoute: () => root, path: "/shares", c
 // Aircraft types, from the More menu (docs/31, "Aircraft types"): the list, a type's page by its code, and Compare.
 const types = createRoute({ getParentRoute: () => root, path: "/types", component: Types });
 const typeOne = createRoute({ getParentRoute: () => root, path: "/types/$code", component: TypePage });
+const typeMaker = createRoute({ getParentRoute: () => root, path: "/types/manufacturers/$manufacturer", component: TypeManufacturer });
 const typeCompare = createRoute({
   getParentRoute: () => root,
   path: "/types/compare",
@@ -78,7 +80,7 @@ const typeCompare = createRoute({
 });
 const guide = createRoute({ getParentRoute: () => root, path: "/guide", component: Guide });
 
-const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings, sharedLinks, types, typeCompare, typeOne, guide]);
+const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings, sharedLinks, types, typeCompare, typeMaker, typeOne, guide]);
 
 // Back returns to where the page was scrolled; a new page starts at the top.
 const router = createRouter({ routeTree, defaultPreload: false, scrollRestoration: true });

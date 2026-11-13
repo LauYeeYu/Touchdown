@@ -1,75 +1,66 @@
-// Aircraft types (docs/31-ui.md, "Aircraft types"), from the More menu: the reference data's families, by maker, each
-// with its silhouette (G11), its type codes, the span of its main figures (from Wikipedia, docs/13, "Type figures") and
-// how often the log has it, flown and seen. A family opens its most logged type's page.
+// Aircraft types (docs/31-ui.md, "Aircraft types"), from the More menu: every ICAO type code, the curated families
+// grouped (docs/13, "Type figures"). It opens on the manufacturers: those with the most types as cards, then every manufacturer from
+// A to Z, each leading to its page. A search, or the list view, shows the types themselves by manufacturer, a few hundred at
+// a time as the page scrolls. "In your log" and a role narrow both.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { TypeRole } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
-import { useApp } from "../data/context.tsx";
 import { Link } from "../lib/link.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { headline } from "../lib/i18n.tsx";
-import { nf } from "../lib/format.ts";
-import { familyTypes, metres, metresBetween, spanOf } from "../lib/typeFigures.ts";
-import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useVisitor } from "../lib/visitor.ts";
+import { useTypeInfo } from "../lib/typeInfo.ts";
+import { useApp } from "../data/context.tsx";
+import { fold, manufacturerSlug, useTypeCounts, useTypeEntries, type TypeEntry, type TypeManufacturer } from "../lib/typeEntries.ts";
+import { Select } from "../components/Select.tsx";
 import { Silhouette } from "../components/Silhouette.tsx";
+import { TypeRow } from "../components/TypeRow.tsx";
 
-/** How often the log has each type code: flights flown on it, sightings of it. */
-export function useTypeCounts() {
-  const { app, version } = useApp();
-  return useMemo(() => {
-    const flown = new Map<string, number>();
-    const seen = new Map<string, number>();
-    for (const f of app.store.all("flights")) if (f.typeCode) flown.set(f.typeCode, (flown.get(f.typeCode) ?? 0) + 1);
-    for (const s of app.store.all("sightings")) if (s.typeCode) seen.set(s.typeCode, (seen.get(s.typeCode) ?? 0) + 1);
-    return { flown, seen };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [app.store, version]);
-}
+export const ROLES: TypeRole[] = ["airliner", "business", "light", "helicopter", "military", "other"];
+/** Manufacturers shown as cards: the ones with the most types. */
+const MAIN_MANUFACTURERS = 12;
+/** Rows added each time the list's end comes into view. */
+const STEP = 200;
+
+/** A manufacturer's counts: "15 types · 2 families". */
+export const manufacturerCounts = (m: { codes: number; families: number }) =>
+  [t("aircraft.types.picker.count", { count: m.codes }), m.families > 0 && t("aircraft.types.manufacturer.families", { count: m.families })].filter(Boolean).join(" · ");
+
+/** The letter a manufacturer is filed under, without accents; a digit or a sign under #. */
+const letterOf = (name: string) => {
+  const c = name.normalize("NFKD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+  return /[A-Z]/.test(c) ? c : "#";
+};
 
 export function Types() {
-  const { app } = useApp();
-  const { ref } = app;
-  const info = useTypeInfo();
+  const { entries, manufacturers } = useTypeEntries();
   const counts = useTypeCounts();
-  // A visitor who is not signed in has no log: every family, and no counts.
+  // A visitor who is not signed in has no log: every type, and no counts.
   const visitor = useVisitor();
   const [q, setQ] = useState("");
+  // Every type to start with: "In your log" narrows it.
+  const [show, setShow] = useState<"log" | "all">("all");
+  const [role, setRole] = useState<TypeRole | "all">("all");
+  const [view, setView] = useState<"manufacturers" | "list">("manufacturers");
 
-  const families = useMemo(
-    () =>
-      [...ref.families.values()]
-        .map((fam) => {
-          const codes = familyTypes(ref, fam.id, info);
-          const flown = codes.reduce((n, c) => n + (counts.flown.get(c) ?? 0), 0);
-          const seen = codes.reduce((n, c) => n + (counts.seen.get(c) ?? 0), 0);
-          // The type a family opens: the one the log has most, else the first with figures, else the first. Its
-          // drawing is that type's, else the next most logged type's that has one.
-          const logged = [...codes].sort((a, b) => (counts.flown.get(b) ?? 0) + (counts.seen.get(b) ?? 0) - ((counts.flown.get(a) ?? 0) + (counts.seen.get(a) ?? 0)));
-          const main = (flown + seen > 0 ? logged[0] : codes.find((c) => info?.specs(c)?.lengthM)) ?? codes[0];
-          const drawn = [main, ...logged].find((c) => info?.planform(c, ref)) ?? main;
-          return { fam, codes, flown, seen, main, drawn };
-        })
-        .filter((x) => x.codes.length > 0),
-    [ref, counts, info],
+  const needle = fold(q.trim());
+  const shown = useMemo(
+    () => entries.filter((e) => (show === "all" || e.flown + e.seen > 0) && (role === "all" || e.roles.includes(role)) && (!needle || e.text.includes(needle))),
+    [entries, show, role, needle],
   );
-  const inLog = families.filter((x) => x.flown + x.seen > 0);
-  const [show, setShow] = useState<"log" | "all">(() => (inLog.length && !visitor ? "log" : "all"));
-  const flownTypes = new Set(families.flatMap((x) => x.codes.filter((c) => counts.flown.has(c)))).size;
-  const seenTypes = new Set(families.flatMap((x) => x.codes.filter((c) => counts.seen.has(c)))).size;
+  // A search lists the types it finds, whatever the view.
+  const listing = !!needle || view === "list";
 
-  const needle = q.trim().toLowerCase().replace(/[\s-]+/g, "");
-  const shown = families.filter((x) => (show === "all" || x.flown + x.seen > 0) && (!needle || [x.fam.name, x.fam.manufacturer, ...x.codes, ...x.codes.map((c) => ref.type(c)?.name ?? "")].join("|").toLowerCase().replace(/[\s-]+/g, "").includes(needle)));
-  const makers = [...new Set(shown.map((x) => x.fam.manufacturer))];
+  const codes = entries.reduce((n, e) => n + e.codes.length, 0);
+  const families = entries.filter((e) => e.family).length;
+  const flownTypes = [...counts.flown.keys()].filter((c) => entries.some((e) => e.codes.includes(c))).length;
+  const seenTypes = [...counts.seen.keys()].filter((c) => entries.some((e) => e.codes.includes(c))).length;
 
   return (
     <div className={`page types${visitor ? " types--visitor" : ""}`}>
       <h1 className="lead">
-        {headline(
-          visitor
-            ? t("aircraft.types.lead.visitor", { families: families.length, codes: families.reduce((n, x) => n + x.codes.length, 0) })
-            : t("aircraft.types.lead", { families: families.length, codes: families.reduce((n, x) => n + x.codes.length, 0), flown: flownTypes, seen: seenTypes }),
-        )}
+        {headline(visitor ? t("aircraft.types.lead.visitor", { families, codes }) : t("aircraft.types.lead", { families, codes, flown: flownTypes, seen: seenTypes }))}
       </h1>
       <div className="filters" role="search">
         <label className="search">
@@ -77,9 +68,17 @@ export function Types() {
           <Icon name="search" />
           <input className="input" type="search" placeholder={t("aircraft.types.searchPlaceholder")} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </label>
+        <div className="chips" role="radiogroup" aria-label={t("aircraft.types.view")}>
+          {(["manufacturers", "list"] as const).map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={(listing ? "list" : "manufacturers") === k} className="chip" onClick={() => setView(k)} disabled={!!needle}>
+              {t("aircraft.types.view.option", { view: k })}
+            </button>
+          ))}
+        </div>
+        <Select value={role} onChange={setRole} label={t("aircraft.types.role")} options={(["all", ...ROLES] as const).map((r) => ({ value: r, label: t("aircraft.types.role.option", { role: r }) }))} />
         {!visitor && (
           <div className="chips" role="radiogroup" aria-label={t("aircraft.types.show")}>
-            {(["log", "all"] as const).map((k) => (
+            {(["all", "log"] as const).map((k) => (
               <button key={k} type="button" role="radio" aria-checked={show === k} className="chip" onClick={() => setShow(k)}>
                 {t("aircraft.types.show.option", { show: k })}
               </button>
@@ -91,59 +90,146 @@ export function Types() {
           {t("aircraft.types.compare")}
         </Link>
       </div>
-      {!shown.length ? (
-        <p className="types__empty">{t("aircraft.types.none")}</p>
-      ) : (
-        <div className="cols type-row" aria-hidden="true">
-          <span />
-          <span>{t("aircraft.types.cols.family")}</span>
-          <span>{t("aircraft.types.cols.figures")}</span>
-          {!visitor && <span className="num">{t("aircraft.cols.flights")}</span>}
-          {!visitor && <span className="num">{t("aircraft.cols.sightings")}</span>}
+      {!shown.length ? <p className="types__empty">{t("aircraft.types.none")}</p> : listing ? <TypeList entries={shown} counts={!visitor} /> : <Manufacturers entries={shown} all={manufacturers} />}
+    </div>
+  );
+}
+
+/** The manufacturers of the entries shown: the largest as cards with three of their types drawn, then every one from A to Z. */
+function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufacturer[] }) {
+  const { app } = useApp();
+  const info = useTypeInfo();
+  const manufacturers = useMemo(() => {
+    const of = new Map(all.map((m) => [m.name, m]));
+    const by = new Map<string, { manufacturer: TypeManufacturer; entries: TypeEntry[]; codes: number; families: number }>();
+    for (const e of entries) {
+      const m = by.get(e.manufacturer) ?? by.set(e.manufacturer, { manufacturer: of.get(e.manufacturer)!, entries: [], codes: 0, families: 0 }).get(e.manufacturer)!;
+      m.entries.push(e);
+      m.codes += e.codes.length;
+      if (e.family) m.families++;
+    }
+    return [...by.values()];
+  }, [entries, all]);
+  const main = [...manufacturers].sort((a, b) => b.codes - a.codes || a.manufacturer.name.localeCompare(b.manufacturer.name)).slice(0, MAIN_MANUFACTURERS);
+  const letters = new Map<string, typeof manufacturers>();
+  for (const m of manufacturers) letters.set(letterOf(m.manufacturer.name), [...(letters.get(letterOf(m.manufacturer.name)) ?? []), m]);
+  // A card draws three of the manufacturer's types that have a drawing: the most logged, else the families with the most codes.
+  const drawn = (list: TypeEntry[]) =>
+    list
+      .filter((e) => info?.planform(e.drawn, app.ref))
+      .sort((a, b) => b.flown + b.seen - (a.flown + a.seen) || b.codes.length - a.codes.length)
+      .slice(0, 3);
+  const sortedLetters = [...letters.entries()].sort((a, b) => (a[0] === "#" ? 1 : b[0] === "#" ? -1 : a[0].localeCompare(b[0])));
+  return (
+    <>
+      <section className="section" aria-labelledby="manufacturers-main">
+        <div className="section__head">
+          <h2 className="section__title" id="manufacturers-main">
+            {t("aircraft.types.manufacturers.main")}
+          </h2>
         </div>
-      )}
-      {makers.map((maker) => (
-        <section key={maker} className="types__maker" aria-labelledby={`maker-${maker}`}>
-          <h2 className="types__maker-title" id={`maker-${maker}`}>
-            {maker}
+        <ul className="manufacturer-cards">
+          {main.map((m) => (
+            <li key={m.manufacturer.slug}>
+              <Link className="manufacturer-card" to="/types/manufacturers/$manufacturer" params={{ manufacturer: m.manufacturer.slug }}>
+                <span className="manufacturer-card__shapes" aria-hidden="true">
+                  {drawn(m.entries).map((e) => (
+                    <Silhouette key={e.key} code={e.drawn} size={44} />
+                  ))}
+                </span>
+                <b>{m.manufacturer.name}</b>
+                <span className="manufacturer-card__count">{manufacturerCounts(m)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="section" aria-labelledby="manufacturers-all">
+        <div className="section__head">
+          <h2 className="section__title" id="manufacturers-all">
+            {t("aircraft.types.manufacturers.all")}
+          </h2>
+        </div>
+        {/* A row of the letters, each leading to its manufacturers: the index is long. */}
+        <nav className="manufacturer-letters" aria-label={t("aircraft.types.manufacturers.letters")}>
+          {sortedLetters.map(([letter]) => (
+            <a key={letter} href={`#manufacturers-${letter}`}>
+              {letter}
+            </a>
+          ))}
+        </nav>
+        <div className="manufacturer-index">
+          {sortedLetters.map(([letter, list]) => (
+            <div key={letter} className="manufacturer-index__letter" id={`manufacturers-${letter}`}>
+              <h3>{letter}</h3>
+              <ul>
+                {list.map((m) => (
+                  <li key={m.manufacturer.slug}>
+                    <Link to="/types/manufacturers/$manufacturer" params={{ manufacturer: m.manufacturer.slug }}>
+                      {m.manufacturer.name}
+                    </Link>
+                    <span className="manufacturer-index__count tabular">{m.codes}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** The entries by manufacturer, a few hundred at a time: more come as the list's end scrolls into view. */
+function TypeList({ entries, counts }: { entries: TypeEntry[]; counts: boolean }) {
+  const [limit, setLimit] = useState(STEP);
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => setLimit(STEP), [entries]);
+  useEffect(() => {
+    const el = end.current;
+    if (!el) return;
+    const io = new IntersectionObserver((seen) => {
+      if (seen.some((s) => s.isIntersecting)) setLimit((l) => l + STEP);
+    }, { rootMargin: "800px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [limit, entries]);
+  const manufacturers: { name: string; entries: TypeEntry[] }[] = [];
+  for (const e of entries.slice(0, limit)) {
+    const last = manufacturers[manufacturers.length - 1];
+    if (last?.name === e.manufacturer) last.entries.push(e);
+    else manufacturers.push({ name: e.manufacturer, entries: [e] });
+  }
+  return (
+    <>
+      <div className="cols type-row" aria-hidden="true">
+        <span />
+        <span>{t("aircraft.types.cols.family")}</span>
+        <span>{t("aircraft.types.cols.figures")}</span>
+        {counts && <span className="num">{t("aircraft.cols.flights")}</span>}
+        {counts && <span className="num">{t("aircraft.cols.sightings")}</span>}
+      </div>
+      {manufacturers.map((m) => (
+        <section key={m.name} className="types__manufacturer" aria-label={m.name}>
+          <h2 className="types__manufacturer-title">
+            <Link to="/types/manufacturers/$manufacturer" params={{ manufacturer: manufacturerSlug(m.name) }}>
+              {m.name}
+            </Link>
           </h2>
           <ul className="rows">
-            {shown
-              .filter((x) => x.fam.manufacturer === maker)
-              .map(({ fam, codes, flown, seen, main, drawn }) => {
-                const specs = codes.map((c) => info?.specs(c) ?? null);
-                const length = spanOf(specs.map((s) => s?.lengthM ?? null), metres, metresBetween);
-                const seats = spanOf(specs.map((s) => s?.seatsTypical ?? s?.seatsMax ?? null), (n) => nf.format(n));
-                return (
-                  <li key={fam.id}>
-                    <Link className="row type-row" to="/types/$code" params={{ code: main! }}>
-                      <Silhouette code={drawn} size={52} className="type-row__shape" />
-                      <span className="type-row__name">
-                        <b>{fam.name}</b>
-                        <span className="type-row__codes">{codes.join(" · ")}</span>
-                      </span>
-                      <span className="type-row__figures">
-                        {[length && t("aircraft.types.row.length", { length }), seats && t("aircraft.types.row.seats", { seats })].filter(Boolean).join(" · ")}
-                      </span>
-                      {!visitor && (
-                        <span className="row__num tabular">
-                          {flown > 0 && <span className="dot dot--flown" />}
-                          {flown || "—"}
-                        </span>
-                      )}
-                      {!visitor && (
-                        <span className="row__num tabular">
-                          {seen > 0 && <span className="dot dot--spotted" />}
-                          {seen || "—"}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
+            {m.entries.map((e) => (
+              <TypeRow key={e.key} entry={e} counts={counts} />
+            ))}
           </ul>
         </section>
       ))}
-    </div>
+      {limit < entries.length && (
+        <div ref={end} className="types__more">
+          <button type="button" className="btn btn--quiet" onClick={() => setLimit((l) => l + STEP)}>
+            {t("aircraft.types.list.more")}
+          </button>
+        </div>
+      )}
+    </>
   );
 }

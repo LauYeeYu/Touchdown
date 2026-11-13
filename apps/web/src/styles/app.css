@@ -8229,11 +8229,11 @@ button.select {
 }
 
 /* The list: a heading per maker over its families, a row each with its silhouette fitted to a 52px square. */
-.types__maker {
+.types__manufacturer {
   margin-top: 28px;
 }
 
-.types__maker-title {
+.types__manufacturer-title {
   margin: 0;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--rule);
@@ -8245,6 +8245,29 @@ button.select {
 .type-row {
   grid-template-columns: 52px minmax(180px, 1.3fr) minmax(160px, 1fr) 64px 80px;
   align-items: center;
+}
+
+/* A manufacturer's page: its list below the sentence, with or without the role chips between. */
+.type-manufacturer > .rows {
+  margin-top: 24px;
+}
+
+/* A row without the log's columns: a visitor's, or on a manufacturer's page none of whose types the log has. */
+.type-row:not(:has(.row__num)):not(.cols) {
+  grid-template-columns: 52px minmax(180px, 1.3fr) minmax(160px, 1fr);
+}
+
+/* A manufacturer's page with no drawing among its types: no silhouette column. */
+.rows.type-rows--undrawn .type-row__shape {
+  display: none;
+}
+
+.rows.type-rows--undrawn .type-row {
+  grid-template-columns: minmax(180px, 1.3fr) minmax(160px, 1fr) 64px 80px;
+}
+
+.rows.type-rows--undrawn .type-row:not(:has(.row__num)) {
+  grid-template-columns: minmax(180px, 1.3fr) minmax(160px, 1fr);
 }
 
 /* A visitor's list has no log, so no flights and sightings columns. */
@@ -8498,6 +8521,156 @@ button.select {
   margin-top: 20px;
 }
 
+/* The manufacturers on Aircraft types: the largest as cards with three of their types drawn, then every one A to Z. */
+.manufacturer-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 600px) {
+  .manufacturer-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .manufacturer-card {
+    padding: 12px;
+  }
+
+  .manufacturer-card__shapes {
+    gap: 4px;
+  }
+}
+
+.manufacturer-card {
+  display: grid;
+  gap: 4px;
+  height: 100%;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  background: var(--surface-low);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 160ms var(--ease);
+}
+
+.manufacturer-card:hover {
+  background: var(--surface-mid);
+}
+
+.manufacturer-card b {
+  font-size: 1.0625rem;
+  font-weight: 650;
+}
+
+.manufacturer-card__shapes {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 48px;
+  margin-bottom: 8px;
+  color: var(--ink-2);
+}
+
+.manufacturer-card__count {
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.manufacturer-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.manufacturer-letters a {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.manufacturer-letters a:hover {
+  background: var(--state-hover);
+  color: var(--ink);
+}
+
+.manufacturer-index__letter {
+  scroll-margin-top: 88px;
+}
+
+.manufacturer-index {
+  columns: 4 220px;
+  column-gap: 32px;
+}
+
+.manufacturer-index__letter {
+  break-inside: avoid;
+  margin-bottom: 18px;
+}
+
+.manufacturer-index__letter h3 {
+  margin: 0 0 6px;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--ink-3);
+}
+
+.manufacturer-index__letter ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manufacturer-index__letter li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9375rem;
+}
+
+.manufacturer-index__letter a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.manufacturer-index__letter a:hover {
+  text-decoration: underline;
+}
+
+.manufacturer-index__count {
+  flex: none;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.types__manufacturer-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.types__manufacturer-title a:hover {
+  text-decoration: underline;
+}
+
+.types__more {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
 .type-compare__swatch {
   display: inline-block;
   width: 12px;
@@ -8583,8 +8756,17 @@ button.select {
     grid-template-columns: 44px minmax(0, 1fr) 44px 56px;
   }
 
-  .types--visitor .type-row {
+  .types--visitor .type-row,
+  .type-row:not(:has(.row__num)):not(.cols) {
     grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .rows.type-rows--undrawn .type-row {
+    grid-template-columns: minmax(0, 1fr) 44px 56px;
+  }
+
+  .rows.type-rows--undrawn .type-row:not(:has(.row__num)) {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .type-row__figures,

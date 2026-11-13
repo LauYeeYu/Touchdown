@@ -20,7 +20,7 @@ import { Fact } from "../components/Facts.tsx";
 import { drawingOf, Silhouette } from "../components/Silhouette.tsx";
 import { TypeDrawing } from "../components/TypeDrawing.tsx";
 import { NotFound } from "./NotFound.tsx";
-import { useTypeCounts } from "./Types.tsx";
+import { hasTypePage, useTypeCounts } from "../lib/typeEntries.ts";
 
 /** A date the infobox gives as a day, a month or a year, as the app writes dates. */
 const historyDate = (d: string) => (d.length === 10 ? dateOnly(d, { day: "numeric", month: "short", year: "numeric" }) : d.length === 7 ? dateOnly(`${d}-01`, { month: "long", year: "numeric" }) : d);
@@ -36,7 +36,7 @@ export function TypePage() {
   const unit = app.settings().distanceUnit ?? "km";
   const type = ref.type(code);
   const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode === code), [store, version, code]);
-  if (!type) return <NotFound />;
+  if (!type || !hasTypePage(ref, code)) return <NotFound />;
 
   const name = typeName(code, ref);
   const fam = ref.family(type.familyId);

@@ -182,6 +182,19 @@ export interface MessageArgs {
   "aircraft.types.show.option": { show: "choice" };
   "aircraft.types.lead": { codes: "number"; families: "number"; flown: "number"; seen: "number" };
   "aircraft.types.lead.visitor": { codes: "number"; families: "number" };
+  "aircraft.types.role": {};
+  "aircraft.types.role.option": { role: "choice" };
+  "aircraft.types.view": {};
+  "aircraft.types.view.option": { view: "choice" };
+  "aircraft.types.manufacturers.main": {};
+  "aircraft.types.manufacturers.all": {};
+  "aircraft.types.manufacturers.letters": {};
+  "aircraft.types.manufacturer.families": { count: "number" };
+  "aircraft.types.manufacturer.lead": { codes: "number"; families: "number" };
+  "aircraft.types.manufacturer.leadLog": { codes: "number"; families: "number"; flown: "number"; seen: "number" };
+  "aircraft.types.row.firstFlight": { year: "text" };
+  "aircraft.types.engines": { count: "number"; kind: "choice" };
+  "aircraft.types.list.more": {};
   "aircraft.types.source.wikidata": {};
   "aircraft.types.source.wikidataMore": {};
   "aircraft.types.source.drawing": { checked: "choice" };
@@ -228,6 +241,7 @@ export interface MessageArgs {
   "aircraft.types.compare.drawing": { first: "text"; second: "text" };
   "aircraft.types.compare.scale": {};
   "aircraft.types.compare.difference": {};
+  "aircraft.types.picker.count": { count: "number" };
   "aircraft.types.public.skip": {};
   "aircraft.types.public.signIn": {};
   "aircraft.types.public.about": {};

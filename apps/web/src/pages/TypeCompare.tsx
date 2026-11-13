@@ -13,7 +13,7 @@ import { typeFigures } from "../lib/typeFigures.ts";
 import { useTypeInfo, type TypeInfo } from "../lib/typeInfo.ts";
 import { drawingOf } from "../components/Silhouette.tsx";
 import { Select } from "../components/Select.tsx";
-import { useTypeCounts } from "./Types.tsx";
+import { hasTypePage, useTypeCounts } from "../lib/typeEntries.ts";
 
 /** The pair Compare starts with when the log has neither flights nor sightings. */
 const START = ["A320", "B738"];
@@ -38,7 +38,7 @@ export function TypeCompare() {
   const options = useMemo(
     () =>
       [...ref.types.values()]
-        .filter((x) => withFigures(info, x.designator))
+        .filter((x) => hasTypePage(ref, x.designator) && withFigures(info, x.designator))
         .map((x) => ({ value: x.designator, label: t("aircraft.types.option", { name: typeName(x.designator, ref), code: x.designator }) }))
         .sort((p, q) => p.label.localeCompare(q.label)),
     [ref, info],

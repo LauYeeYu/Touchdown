@@ -1,6 +1,7 @@
 // One aircraft: what it is, its registrations, and every time the user flew on it or photographed it.
 // Tools from docs/11-aircraft-identity.md: set the serial number, edit facts, merge two airframes.
 
+import { hasTypePage } from "../lib/typeEntries.ts";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { inSentence, sentenceGap, series, t } from "@touchdown/i18n";
@@ -165,7 +166,7 @@ export function AircraftDetail() {
           <h1 className="route-hero__code">{reg || t("aircraft.noRegistration")}</h1>
           <p className="flight-date">
             {/* The type's own page (Aircraft types), but not on a share link's pages, which have none. */}
-            {!shared && a.typeCode && ref.type(a.typeCode) ? (
+            {!shared && a.typeCode && hasTypePage(ref, a.typeCode) ? (
               <Link to="/types/$code" params={{ code: a.typeCode }} className="type-link">
                 <b>{typeText || t("aircraft.detail.typeUnknown")}</b>
               </Link>
