@@ -68,8 +68,8 @@ export const SHARE_FILES = "/share-files/";
  * everyone. Its script opens the app in its place for a signed-in visitor.
  */
 export const TYPES_FILES = "/types-files/";
-/** The types pages: the list, Compare, and a type by its code. */
-export const TYPES_PAGES = /^\/types(?:\/compare|\/[A-Za-z0-9]{1,8})?\/?$/;
+/** The types pages: the list, Compare, a type by its code, and a manufacturer's types by its name's slug. */
+export const TYPES_PAGES = /^\/types(?:\/compare|\/[A-Za-z0-9]{1,8}|\/manufacturers\/[a-z0-9-]{1,80})?\/?$/;
 const PUBLIC_PAGES = /^\/(signin|setup|join\/[^/]+|reset\/[^/]+)\/?$/;
 /** The privacy policy and the terms: static pages built from PRIVACY.md and TERMS.md, open to anyone. */
 const POLICY_PAGES = /^\/(privacy|terms)\/?$/;
