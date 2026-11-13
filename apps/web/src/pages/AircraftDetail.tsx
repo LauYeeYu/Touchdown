@@ -164,7 +164,14 @@ export function AircraftDetail() {
         <div>
           <h1 className="route-hero__code">{reg || t("aircraft.noRegistration")}</h1>
           <p className="flight-date">
-            <b>{typeText || t("aircraft.detail.typeUnknown")}</b>
+            {/* The type's own page (Aircraft types), but not on a share link's pages, which have none. */}
+            {!shared && a.typeCode && ref.type(a.typeCode) ? (
+              <Link to="/types/$code" params={{ code: a.typeCode }} className="type-link">
+                <b>{typeText || t("aircraft.detail.typeUnknown")}</b>
+              </Link>
+            ) : (
+              <b>{typeText || t("aircraft.detail.typeUnknown")}</b>
+            )}
             {v.operatorId && ` · ${airlineLabel(v.operatorId, ref)}`}
           </p>
           <div className="actions aircraft-hero__actions">

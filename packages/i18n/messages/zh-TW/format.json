@@ -12,5 +12,14 @@
   "timeOffset": "{time} · {offset}",
   "isoWithWeekday": "{date} {weekday}",
   "momentShort": "{day} {time}",
-  "nameWithCode": "{name}（{code}）"
+  "nameWithCode": "{name}（{code}）",
+  "measure.m": "{n}\u202f公\u2060尺",
+  "measure.t": "{n}\u202f公\u2060噸",
+  "measure.kg": "{n}\u202f公\u2060斤",
+  "measure.kmh": "{n}\u202f公\u2060里/小\u2060時",
+  "measure.mph": "{n}\u202f英\u2060里/小\u2060時",
+  "measure.kn": "{n}\u202f節",
+  "measure.mach": "{n, number}\u202f馬\u2060赫",
+  "measure.m2": "{n}\u202f平\u2060方\u2060公\u2060尺",
+  "measure.deg": "{n}°"
 }

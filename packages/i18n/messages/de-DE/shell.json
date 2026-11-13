@@ -27,6 +27,7 @@
   "more.import": "Import",
   "more.issues": "Hinweise",
   "more.shares": "Freigabelinks",
+  "more.types": "Flugzeugtypen",
   "more.settings": "Einstellungen",
   "more.guide": "Anleitung",
   "issues.label": "{count, plural, =0 {Hinweise} one {Hinweise: {count} Eintrag zu prüfen} other {Hinweise: {count} Einträge zu prüfen}}",

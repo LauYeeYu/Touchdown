@@ -27,6 +27,9 @@ import { ImportPage } from "./pages/ImportPage.tsx";
 import { Issues } from "./pages/Issues.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { SharedLinks } from "./pages/SharedLinks.tsx";
+import { Types } from "./pages/Types.tsx";
+import { TypePage } from "./pages/TypePage.tsx";
+import { TypeCompare } from "./pages/TypeCompare.tsx";
 import { FirstRun } from "./pages/FirstRun.tsx";
 import { CliPage } from "./pages/CliPage.tsx";
 import { Guide } from "./pages/Guide.tsx";
@@ -64,9 +67,18 @@ const importR = createRoute({ getParentRoute: () => root, path: "/import", compo
 const issues = createRoute({ getParentRoute: () => root, path: "/issues", component: Issues });
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: SettingsPage });
 const sharedLinks = createRoute({ getParentRoute: () => root, path: "/shares", component: SharedLinks });
+// Aircraft types, from the More menu (docs/31, "Aircraft types"): the list, a type's page by its code, and Compare.
+const types = createRoute({ getParentRoute: () => root, path: "/types", component: Types });
+const typeOne = createRoute({ getParentRoute: () => root, path: "/types/$code", component: TypePage });
+const typeCompare = createRoute({
+  getParentRoute: () => root,
+  path: "/types/compare",
+  component: TypeCompare,
+  validateSearch: (s: Record<string, unknown>): { a?: string; b?: string } => ({ ...(typeof s.a === "string" ? { a: s.a } : {}), ...(typeof s.b === "string" ? { b: s.b } : {}) }),
+});
 const guide = createRoute({ getParentRoute: () => root, path: "/guide", component: Guide });
 
-const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings, sharedLinks, guide]);
+const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings, sharedLinks, types, typeCompare, typeOne, guide]);
 
 // Back returns to where the page was scrolled; a new page starts at the top.
 const router = createRouter({ routeTree, defaultPreload: false, scrollRestoration: true });

@@ -27,6 +27,7 @@
   "more.import": "导入",
   "more.issues": "问题",
   "more.shares": "分享链接",
+  "more.types": "机型",
   "more.settings": "设置",
   "more.guide": "入门指南",
   "issues.label": "{count, plural, =0 {问题} other {问题：{count}条记录待检查}}",

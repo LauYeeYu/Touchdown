@@ -8213,3 +8213,413 @@ button.select {
   }
 }
 
+/* ---------- aircraft types (pages/Types.tsx, TypePage.tsx, TypeCompare.tsx; docs/31, "Aircraft types") ---------- */
+
+/* A type seen from above (components/Silhouette.tsx), in the text's ink: a quiet shape beside words, never a data colour. */
+.silhouette {
+  display: inline-block;
+  flex: none;
+  fill: currentColor;
+  color: var(--ink-2);
+}
+
+/* The list: a heading per maker over its families, a row each with its silhouette fitted to a 52px square. */
+.types__maker {
+  margin-top: 28px;
+}
+
+.types__maker-title {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.type-row {
+  grid-template-columns: 52px minmax(180px, 1.3fr) minmax(160px, 1fr) 64px 80px;
+  align-items: center;
+}
+
+/* A visitor's list has no log, so no flights and sightings columns. */
+.types--visitor .type-row {
+  grid-template-columns: 52px minmax(180px, 1.3fr) minmax(160px, 1fr);
+}
+
+.type-row__name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.type-row__name b {
+  font-weight: 600;
+}
+
+.type-row__codes {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-row__figures {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.type-row .row__num {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.types__empty {
+  margin-top: 28px;
+  color: var(--ink-2);
+}
+
+/* A type's page: its name, its codes, a sentence, then the measured drawing on a tonal panel like a map's. */
+.type-page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.type-page__name {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.type-page__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 8px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.type-page__code {
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-page__lead {
+  max-width: 40em;
+  margin: 18px 0 0;
+  font-size: 1.25rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.type-page__drawing,
+.type-compare__drawing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 28px 0 0;
+  padding: 24px 20px;
+  border-radius: 28px;
+  background: var(--surface-low);
+}
+
+.type-drawing {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  max-height: min(64vh, 600px);
+}
+
+.type-drawing__shape {
+  fill: var(--ink);
+}
+
+.type-drawing__dims {
+  stroke: var(--ink-3);
+  fill: var(--ink-2);
+}
+
+.type-drawing__dims text {
+  stroke: none;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-page__facts {
+  margin-top: 32px;
+}
+
+/* The family's type codes side by side: drawn to one scale on their tails' line, this one's column marked. */
+.type-family__intro {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.type-family {
+  table-layout: fixed;
+}
+
+.type-family__label-col {
+  width: 160px;
+}
+
+@media (max-width: 600px) {
+  .type-family__label-col {
+    width: 104px;
+  }
+}
+
+.type-family th,
+.type-family td {
+  padding: 10px 8px;
+  text-align: center;
+  vertical-align: top;
+}
+
+/* The figures' names, kept in view while a long family scrolls sideways, the corner above them too, so the codes and
+   their figures pass under them. */
+.type-family tbody th,
+.type-family thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding-left: 0;
+  text-align: left;
+  color: var(--ink-2);
+  background: var(--paper);
+}
+
+.type-family thead th {
+  padding-bottom: 14px;
+}
+
+.type-family__head {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+.type-family__head b {
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.type-family__head:hover b {
+  text-decoration: underline;
+}
+
+/* One scale for the family, the tails on one line. */
+.type-family__shape {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 92px;
+  margin-bottom: 8px;
+}
+
+.type-family__diff {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.type-family__engines {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.type-family__log {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+}
+
+.type-family__log > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.type-aircraft {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.type-aircraft li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.type-page__source {
+  max-width: 60em;
+  margin: 44px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.type-page__source a {
+  color: var(--ink-2);
+}
+
+/* Compare: two pickers, the two drawn over each other (the first a soft fill, the second its ink outline), then the
+   figures with a pair of bars each, the first's light and the second's in ink, as the drawing's. */
+.type-compare__pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 12px;
+  margin-top: 20px;
+}
+
+.type-compare__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.type-compare__swatch--a {
+  background: var(--surface-highest);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.type-compare__swatch--b {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.type-compare__drawing svg {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  max-height: min(62vh, 580px);
+}
+
+.type-compare__a {
+  fill: var(--ink);
+  opacity: 0.22;
+}
+
+.type-compare__b {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+
+.type-compare__b-inside {
+  fill: var(--surface-low);
+}
+
+.type-compare__drawing figcaption {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.type-compare__table {
+  margin-top: 28px;
+}
+
+.type-compare__table th[scope="col"] a {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.type-compare__table .type-compare__bars {
+  width: 30%;
+  vertical-align: middle;
+}
+
+.type-compare__bar {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.type-compare__bar + .type-compare__bar {
+  margin-top: 4px;
+}
+
+.type-compare__bar--a {
+  background: var(--surface-highest);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.type-compare__bar--b {
+  background: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .type-row {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 56px;
+  }
+
+  .types--visitor .type-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .type-row__figures,
+  .cols.type-row span:nth-child(3) {
+    display: none;
+  }
+
+  .type-page__name {
+    font-size: 1.75rem;
+  }
+
+  .type-page__head {
+    flex-direction: column;
+  }
+
+  .type-compare__bars {
+    display: none;
+  }
+}
+
+/* A type cell with its silhouette (components/TypeCell.tsx, the aircraft list): the shape fitted to 30px beside the
+   type's name and code, both lines beside it. */
+.type-cell--drawn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.type-cell--drawn .type-cell__text {
+  display: grid;
+  min-width: 0;
+}
+
+/* An aircraft's type on its page, leading to the type's page: the words as they were, underlined on hover. */
+.type-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.type-link:hover b {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

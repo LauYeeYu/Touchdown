@@ -150,7 +150,7 @@ export function AircraftList() {
                 {/* Phones hide the type column, so the type code moves under the registration. */}
                 {v.airframe.typeCode && <span className="row__cities row__type-phone">{v.airframe.typeCode}</span>}
               </span>
-              <TypeCell code={v.airframe.typeCode} />
+              <TypeCell code={v.airframe.typeCode} drawn />
               <span className="row__cell row__airline">{airlineLabel(v.operatorId, ref) || "—"}</span>
               <span className="row__num tabular">
                 {v.flights.length > 0 && <span className="dot dot--flown" />}

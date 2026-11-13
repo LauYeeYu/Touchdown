@@ -27,6 +27,7 @@
   "more.import": "匯入",
   "more.issues": "問題",
   "more.shares": "分享連結",
+  "more.types": "機型",
   "more.settings": "設定",
   "more.guide": "入門指南",
   "issues.label": "{count, plural, =0 {問題} other {問題：{count}筆紀錄待檢查}}",

@@ -256,6 +256,7 @@ export function Shell() {
                 { label: t("shell.more.issues"), icon: <Icon name="list-checks" />, onSelect: () => navigate({ to: "/issues" }) },
                 // Share links are a Standard-mode feature (docs/32).
                 ...(app.connection?.mode === "standard" ? [{ label: t("shell.more.shares"), icon: <Icon name="link" />, onSelect: () => navigate({ to: "/shares" }) }] : []),
+                { label: t("shell.more.types"), icon: <Icon name="plane" />, onSelect: () => navigate({ to: "/types" }) },
                 { label: t("shell.more.settings"), icon: <Icon name="settings" />, onSelect: () => navigate({ to: "/settings" }) },
                 { label: t("shell.more.guide"), icon: <Icon name="circle-help" />, onSelect: () => navigate({ to: "/guide" }) },
               ]}
