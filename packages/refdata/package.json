@@ -8,11 +8,13 @@
     ".": "./src/index.ts",
     "./names": "./src/names.ts",
     "./airfields": "./src/airfields.ts",
+    "./typeinfo": "./src/typeinfo.ts",
     "./data/*": "./data/*"
   },
   "scripts": {
     "build-data": "tsx scripts/build.ts",
-    "build-names": "tsx scripts/names.ts"
+    "build-names": "tsx scripts/names.ts",
+    "build-type-specs": "tsx scripts/type-specs.ts"
   },
   "devDependencies": {
     "opencc-js": "^1.4.2"
