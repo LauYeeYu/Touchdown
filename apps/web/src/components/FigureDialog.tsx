@@ -22,6 +22,9 @@ interface Choice {
 }
 
 const KEY = "td-figure";
+/** Milliseconds a file is made for before its button says so, and that it then says so for at least. */
+const SLOW = 400;
+const SHOWN = 800;
 const FORMAT_NAMES: Record<FigureFormat, string> = { png: "PNG", jpeg: "JPEG", webp: "WebP", svg: "SVG", pdf: "PDF" };
 
 /** The last choices made in this browser, else PNG, landscape, the page's theme, no statistics and no codes. */
@@ -48,8 +51,10 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
   const [choice, setChoice] = useState<Choice>(stored);
   const [ready, setReady] = useState(false);
   const [resized, setResized] = useState(0);
-  // The button being worked on, while the file is made or shared.
+  // The button being worked on, while a file takes long enough to make that the wait shows (`SLOW`).
   const [busy, setBusy] = useState<"share" | "download" | null>(null);
+  // Whether a file is being made, so a second press waits for it, without the buttons changing.
+  const working = useRef(false);
   const [problem, setProblem] = useState<string | null>(null);
   // The file last made and its choices, so a second press shares or downloads it without making it again.
   const made = useRef<{ key: string; blob: Blob } | null>(null);
@@ -117,14 +122,23 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
 
   // Share or download the file, made for these choices unless it was made already. A file that took too long to make
   // for the press waits for another (`waiting`).
-  // The button says it is making the image only while it does: the share sheet's own wait (until an app is picked, or
-  // the app has sent it) leaves the buttons as they were, so a sheet closed in a way the browser misses strands nothing.
+  // The button says it is making the image only while it does, and only once that has taken a moment: most files are
+  // made in a fraction of a second, which a changing button would only make flash. Once it says so, it does for long
+  // enough to read, while the file is already shared or saved. The share sheet's own wait (until an app is picked, or
+  // the app has sent it) leaves the buttons as they were, so a sheet closed in a way the browser misses strands
+  // nothing.
   const send = async (how: "share" | "download") => {
+    if (working.current) return;
     setProblem(null);
     setWaiting(null);
     const direct = made.current?.key === key;
     if (!direct) {
-      setBusy(how);
+      working.current = true;
+      let shownAt = 0;
+      const slow = window.setTimeout(() => {
+        shownAt = performance.now();
+        setBusy(how);
+      }, SLOW);
       try {
         const size = FIGURE_SIZES[choice.size];
         made.current = { key, blob: await figureFile({ ...content, stats: withStats ? content.stats : undefined, codes: withCodes, width: size.width, height: size.height, theme: choice.theme }, format, size.dpi) };
@@ -132,7 +146,11 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
         setProblem(e instanceof Error ? e.message : t("flights.figure.failed"));
         return;
       } finally {
-        setBusy(null);
+        window.clearTimeout(slow);
+        working.current = false;
+        const left = shownAt ? SHOWN - (performance.now() - shownAt) : 0;
+        if (left > 0) window.setTimeout(() => setBusy(null), left);
+        else setBusy(null);
       }
     }
     const blob = made.current!.blob;
