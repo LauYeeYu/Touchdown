@@ -64,7 +64,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { TypeRole, TypeWikidata } from "../../core/src/ref/types.ts";
 import { engineKinds, itemOverrides, roleClasses, rolePriority, valueOverrides } from "../src/curated/type-wikidata.ts";
-import { dataDir, packageDir, WIKI_USER_AGENT, writeTable } from "./lib.ts";
+import { dataDir, makerForms, norm, packageDir, WIKI_USER_AGENT, writeTable } from "./lib.ts";
 
 const ENDPOINT = "https://query.wikidata.org/sparql";
 const cacheDir = path.resolve(packageDir, "../../data/private/cache/wikidata");
@@ -288,37 +288,6 @@ async function loadPool(refresh: boolean): Promise<Map<string, Candidate>> {
 
 // ---------------------------------------------------------------------------------------------------------------
 // Names
-
-const ROMAN: Record<string, string> = { ii: "2", iii: "3", iv: "4", vi: "6", vii: "7", viii: "8", ix: "9" };
-
-/** A name compared without case, accents, spaces or punctuation, with Roman numerals as digits. */
-function norm(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/\b(ii|iii|iv|vi|vii|viii|ix)\b/g, (m) => ROMAN[m] ?? m)
-    .replace(/&/g, "and")
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]/g, "");
-}
-
-/** Words a company's name ends with that a model's name leaves out ("Sikorsky Aircraft Corporation" → "Sikorsky"). */
-const COMPANY_WORDS = new Set(
-  [
-    "aircraft", "aviation", "aviacion", "aerospace", "aeronautics", "aeronautical", "aeronautica", "aeronautique",
-    "airplane", "aeroplane", "aeroplanes", "airplanes", "flugzeugbau", "flugzeugwerke", "werke", "industries", "industry",
-    "corporation", "corp", "company", "co", "group", "limited", "ltd", "inc", "incorporated", "gmbh", "ag", "sa", "spa",
-    "srl", "sro", "as", "plc", "llc", "kg", "and", "works", "factory", "manufacturing", "engineering", "systems",
-    "helicopters", "helicopter", "design", "bureau", "international", "holdings", "the",
-  ],
-);
-
-function makerForms(maker: string): string[] {
-  const base = maker.replace(/\s*\(.*?\)\s*/g, " ").trim();
-  const words = base.split(/[\s,.]+/).filter(Boolean);
-  while (words.length > 1 && COMPANY_WORDS.has(norm(words[words.length - 1]!))) words.pop();
-  return [...new Set([norm(maker), norm(base), norm(words.join(" "))])].filter((s) => s.length >= 2);
-}
 
 /** Item ids by name key; `label`: the ids whose key comes from their label rather than an alias. */
 interface NameIndex {

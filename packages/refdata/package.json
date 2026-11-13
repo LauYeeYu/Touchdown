@@ -15,7 +15,8 @@
     "build-data": "tsx scripts/build.ts",
     "build-names": "tsx scripts/names.ts",
     "build-type-specs": "tsx scripts/type-specs.ts",
-    "build-type-wikidata": "tsx scripts/type-wikidata.ts"
+    "build-type-wikidata": "tsx scripts/type-wikidata.ts",
+    "build-type-wikipedia": "tsx scripts/type-wikipedia.ts"
   },
   "devDependencies": {
     "opencc-js": "^1.4.2"

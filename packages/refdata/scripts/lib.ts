@@ -126,6 +126,40 @@ export function writeTable<T>(table: string, version: string, sources: string[],
   return file;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Names of aircraft and their makers, as the type figures' builds compare them
+
+const ROMAN: Record<string, string> = { ii: "2", iii: "3", iv: "4", vi: "6", vii: "7", viii: "8", ix: "9" };
+
+/** A name compared without case, accents, spaces or punctuation, with Roman numerals as digits. */
+export function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\b(ii|iii|iv|vi|vii|viii|ix)\b/g, (m) => ROMAN[m] ?? m)
+    .replace(/&/g, "and")
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/** Words a company's name ends with that a model's name leaves out ("Sikorsky Aircraft Corporation" → "Sikorsky"). */
+const COMPANY_WORDS = new Set(
+  [
+    "aircraft", "aviation", "aviacion", "aerospace", "aeronautics", "aeronautical", "aeronautica", "aeronautique",
+    "airplane", "aeroplane", "aeroplanes", "airplanes", "flugzeugbau", "flugzeugwerke", "werke", "industries", "industry",
+    "corporation", "corp", "company", "co", "group", "limited", "ltd", "inc", "incorporated", "gmbh", "ag", "sa", "spa",
+    "srl", "sro", "as", "plc", "llc", "kg", "and", "works", "factory", "manufacturing", "engineering", "systems",
+    "helicopters", "helicopter", "design", "bureau", "international", "holdings", "the",
+  ],
+);
+
+export function makerForms(maker: string): string[] {
+  const base = maker.replace(/\s*\(.*?\)\s*/g, " ").trim();
+  const words = base.split(/[\s,.]+/).filter(Boolean);
+  while (words.length > 1 && COMPANY_WORDS.has(norm(words[words.length - 1]!))) words.pop();
+  return [...new Set([norm(maker), norm(base), norm(words.join(" "))])].filter((s) => s.length >= 2);
+}
+
 /** Simple string comparison that does not depend on the locale of the machine running the build. */
 export function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;

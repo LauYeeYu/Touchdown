@@ -112,6 +112,22 @@ export interface TypeWikidata {
   built: number | null;
 }
 
+/**
+ * A type's figures from the specifications template of its English Wikipedia article (docs/13-reference-data.md,
+ * "Type figures"), for the types that neither the curated figures nor Wikidata give a length and a span. Metric, null
+ * where the template states none. `article` and `revision` say where they were read.
+ */
+export interface TypeWikipedia {
+  designator: string;
+  article: string;
+  revision: number;
+  lengthM: number | null;
+  /** The wingspan; a helicopter's main rotor diameter. */
+  spanM: number | null;
+  heightM: number | null;
+  mtowKg: number | null;
+}
+
 /** A family's history from its main article's infobox. */
 export interface FamilyFacts {
   familyId: string;

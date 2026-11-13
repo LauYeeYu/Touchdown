@@ -10,9 +10,11 @@ import {
   type RefTableFile,
   type TypeSpecs,
   type TypeWikidata,
+  type TypeWikipedia,
 } from "../../core/src/ref/types.ts";
 import specs from "../data/type_specs.json" with { type: "json" };
 import wikidata from "../data/type_wikidata.json" with { type: "json" };
+import wikipedia from "../data/type_wikipedia.json" with { type: "json" };
 import facts from "../data/family_facts.json" with { type: "json" };
 import aircraftTypes from "../data/aircraft_types.json" with { type: "json" };
 import families from "../data/families.json" with { type: "json" };
@@ -33,6 +35,14 @@ export function loadTypeWikidata(): TypeWikidata[] {
 }
 
 /**
+ * The figures that the specifications template of a type code's English Wikipedia article states, for the codes that
+ * neither the curated figures nor Wikidata give a length and a span.
+ */
+export function loadTypeWikipedia(): TypeWikipedia[] {
+  return rowsToObjects(wikipedia as RefTableFile);
+}
+
+/**
  * The type codes and their families alone, for the public types pages (docs/31, "Aircraft types"), which need nothing
  * else of the reference data: the app has them with the rest (index.ts).
  */
@@ -49,3 +59,6 @@ export const typeSpecsSource = { sources: (specs as RefTableFile).sources, versi
 
 /** The Wikidata figures' attribution line and the date they were read. */
 export const typeWikidataSource = { sources: (wikidata as RefTableFile).sources, version: (wikidata as RefTableFile).version };
+
+/** The attribution line of the figures from the articles' specifications templates, and the date they were read. */
+export const typeWikipediaSource = { sources: (wikipedia as RefTableFile).sources, version: (wikipedia as RefTableFile).version };

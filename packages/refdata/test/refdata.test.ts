@@ -5,7 +5,7 @@ import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
 import { familyOrder } from "../src/curated/type-order.ts";
 import { familyShapes, genericShape } from "../src/curated/silhouettes.ts";
-import { loadTypeWikidata, typeWikidataSource } from "../src/typeinfo.ts";
+import { loadTypeSpecs, loadTypeWikidata, loadTypeWikipedia, typeWikidataSource, typeWikipediaSource } from "../src/typeinfo.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
 import airfieldsFile from "../data/airfields.json" with { type: "json" };
 import operatorsFile from "../data/operators.json" with { type: "json" };
@@ -14,6 +14,7 @@ import familiesFile from "../data/families.json" with { type: "json" };
 import modelPatternsFile from "../data/model_patterns.json" with { type: "json" };
 import registrationPrefixesFile from "../data/registration_prefixes.json" with { type: "json" };
 import typeWikidataFile from "../data/type_wikidata.json" with { type: "json" };
+import typeWikipediaFile from "../data/type_wikipedia.json" with { type: "json" };
 
 const ref = loadRefTables();
 
@@ -193,6 +194,63 @@ describe("type figures from Wikidata", () => {
         expect(d, r.designator).toMatch(date);
         expect(d >= "1900", `${r.designator} ${d}`).toBe(true);
       }
+    }
+  });
+});
+
+describe("type figures from Wikipedia's specifications", () => {
+  const rows = loadTypeWikipedia();
+  const types = new Map(ref.aircraftTypes.map((t, i) => [t.designator, { type: t, at: i }]));
+
+  it("has the expected header", () => {
+    const file = typeWikipediaFile as RefTableFile;
+    expect(file.table).toBe("type_wikipedia");
+    expect(file.version).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(file.sources).toEqual(["English Wikipedia (en.wikipedia.org), figures from articles' specifications, CC BY-SA"]);
+    expect(file.columns).toEqual(["designator", "article", "revision", "lengthM", "spanM", "heightM", "mtowKg"]);
+    for (const row of file.rows) expect(row).toHaveLength(file.columns.length);
+    expect(typeWikipediaSource.sources).toEqual(file.sources);
+  });
+
+  it("has rows only for type codes with a manufacturer, once each, in their order", () => {
+    expect(rows.length).toBeGreaterThan(500);
+    for (const r of rows) {
+      expect(types.has(r.designator), r.designator).toBe(true);
+      expect(types.get(r.designator)!.type.manufacturer, r.designator).not.toBe("");
+    }
+    const at = rows.map((r) => types.get(r.designator)!.at);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+    expect(new Set(at).size).toBe(at.length);
+  });
+
+  it("is only for the codes that the other figures leave without a length or a span", () => {
+    const specs = new Map(loadTypeSpecs().map((r) => [r.designator, r]));
+    const wikidata = new Map(loadTypeWikidata().map((r) => [r.designator, r]));
+    for (const r of rows) {
+      const length = specs.get(r.designator)?.lengthM ?? wikidata.get(r.designator)?.lengthM ?? null;
+      const span = specs.get(r.designator)?.spanM ?? wikidata.get(r.designator)?.spanM ?? null;
+      expect(length === null || span === null, r.designator).toBe(true);
+    }
+  });
+
+  it("names an article and its revision, and gives a length or a span", () => {
+    for (const r of rows) {
+      expect(r.article.length, r.designator).toBeGreaterThan(0);
+      expect(Number.isInteger(r.revision) && r.revision > 0, r.designator).toBe(true);
+      expect(r.lengthM !== null || r.spanM !== null, r.designator).toBe(true);
+    }
+  });
+
+  it("has figures within plausible ranges", () => {
+    const within = (v: number | null, lo: number, hi: number, what: string) => {
+      if (v !== null) expect(v >= lo && v <= hi, `${what} ${v}`).toBe(true);
+    };
+    for (const r of rows) {
+      within(r.lengthM, 1, 120, `${r.designator} length`);
+      within(r.spanM, 1, 120, `${r.designator} span`);
+      within(r.heightM, 0.5, 40, `${r.designator} height`);
+      within(r.mtowKg, 50, 700_000, `${r.designator} MTOW`);
+      if (r.lengthM !== null && r.spanM !== null) within(r.lengthM / r.spanM, 0.2, 3.5, `${r.designator} length/span`);
     }
   });
 });
