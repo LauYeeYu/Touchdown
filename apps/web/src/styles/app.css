@@ -8671,6 +8671,70 @@ button.select {
   padding: 24px 0;
 }
 
+/* Compare's type picker (components/TypePicker.tsx): a select's button over a panel with a search and steps. */
+.type-picker {
+  position: relative;
+  width: min(360px, 100%);
+}
+
+.type-picker__trigger {
+  width: 100%;
+}
+
+.type-picker__panel {
+  width: min(380px, calc(100vw - 32px));
+}
+
+.type-picker__list {
+  display: grid;
+  gap: 2px;
+  max-height: min(380px, 55vh);
+}
+
+.type-picker__item {
+  height: auto;
+  min-height: 38px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.type-picker__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.type-picker__code {
+  flex: none;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-picker__item[aria-current="true"] {
+  background: var(--selected-container);
+}
+
+.type-picker__heading {
+  margin: 8px 0 2px;
+  padding: 0 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.type-picker__heading:first-child {
+  margin-top: 0;
+}
+
+.type-picker__note {
+  margin: 6px 0 2px;
+  padding: 0 8px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
 .type-compare__swatch {
   display: inline-block;
   width: 12px;

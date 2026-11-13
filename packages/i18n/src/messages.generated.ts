@@ -242,6 +242,10 @@ export interface MessageArgs {
   "aircraft.types.compare.scale": {};
   "aircraft.types.compare.difference": {};
   "aircraft.types.picker.count": { count: "number" };
+  "aircraft.types.picker.more": { count: "number"; shown: "number" };
+  "aircraft.types.picker.inLog": {};
+  "aircraft.types.picker.manufacturers": {};
+  "aircraft.types.picker.back": {};
   "aircraft.types.public.skip": {};
   "aircraft.types.public.signIn": {};
   "aircraft.types.public.about": {};

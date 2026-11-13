@@ -12,7 +12,7 @@ import { typeName } from "../lib/format.ts";
 import { typeFigures } from "../lib/typeFigures.ts";
 import { useTypeInfo, type TypeInfo } from "../lib/typeInfo.ts";
 import { drawingOf } from "../components/Silhouette.tsx";
-import { Select } from "../components/Select.tsx";
+import { TypePicker } from "../components/TypePicker.tsx";
 import { hasTypePage, useTypeCounts } from "../lib/typeEntries.ts";
 
 /** The pair Compare starts with when the log has neither flights nor sightings. */
@@ -33,21 +33,14 @@ export function TypeCompare() {
   const counts = useTypeCounts();
   const unit = app.settings().distanceUnit ?? "km";
 
-  // Every type with figures, by name; the log's most flown and most seen to start with.
+  // Every type with figures; the log's most flown and most seen to start with.
   const hasFigures = (code: string) => withFigures(info, code);
-  const options = useMemo(
-    () =>
-      [...ref.types.values()]
-        .filter((x) => hasTypePage(ref, x.designator) && withFigures(info, x.designator))
-        .map((x) => ({ value: x.designator, label: t("aircraft.types.option", { name: typeName(x.designator, ref), code: x.designator }) }))
-        .sort((p, q) => p.label.localeCompare(q.label)),
-    [ref, info],
-  );
+  const codes = useMemo(() => [...ref.types.values()].map((x) => x.designator).filter((c) => hasTypePage(ref, c) && withFigures(info, c)), [ref, info]);
   const byCount = (m: Map<string, number>) => [...m.entries()].sort((p, q) => q[1] - p[1]).map(([c]) => c).filter(hasFigures);
   // Without a log to start from (a visitor's page, or an empty log), two airliners most people know.
   const known = START.filter((c) => withFigures(info, c));
-  const a = search.a && ref.type(search.a) ? search.a : (byCount(counts.flown)[0] ?? byCount(counts.seen)[0] ?? known[0] ?? options[0]?.value);
-  const b = search.b && ref.type(search.b) ? search.b : (byCount(counts.flown).find((c) => c !== a) ?? byCount(counts.seen).find((c) => c !== a) ?? known.find((c) => c !== a) ?? options.find((o) => o.value !== a)?.value);
+  const a = search.a && ref.type(search.a) ? search.a : (byCount(counts.flown)[0] ?? byCount(counts.seen)[0] ?? known[0] ?? codes[0]);
+  const b = search.b && ref.type(search.b) ? search.b : (byCount(counts.flown).find((c) => c !== a) ?? byCount(counts.seen).find((c) => c !== a) ?? known.find((c) => c !== a) ?? codes.find((c) => c !== a));
   const choose = (next: { a?: string; b?: string }) => void navigate({ to: "/types/compare", search: { a, b, ...next }, replace: true });
 
   const sa = info?.specs(a) ?? null;
@@ -74,23 +67,23 @@ export function TypeCompare() {
       </nav>
       <h1 className="type-page__name">{t("aircraft.types.compare.title")}</h1>
       <div className="type-compare__pick">
-        <label className="figure-option">
-          <span className="figure-option__label">
+        <div className="figure-option">
+          <span className="figure-option__label" id="compare-first">
             <span className="type-compare__swatch type-compare__swatch--a" />
             {t("aircraft.types.compare.first")}
           </span>
-          <Select value={a ?? ""} options={options} onChange={(v) => choose({ a: v })} label={t("aircraft.types.compare.first")} />
-        </label>
+          <TypePicker value={a} codes={codes} onChange={(v) => choose({ a: v })} labelledBy="compare-first" />
+        </div>
         <button type="button" className="icon-btn" aria-label={t("aircraft.types.compare.swap")} title={t("aircraft.types.compare.swap")} onClick={() => choose({ a: b, b: a })}>
           <Icon name="arrow-left-right" />
         </button>
-        <label className="figure-option">
-          <span className="figure-option__label">
+        <div className="figure-option">
+          <span className="figure-option__label" id="compare-second">
             <span className="type-compare__swatch type-compare__swatch--b" />
             {t("aircraft.types.compare.second")}
           </span>
-          <Select value={b ?? ""} options={options} onChange={(v) => choose({ b: v })} label={t("aircraft.types.compare.second")} />
-        </label>
+          <TypePicker value={b} codes={codes} onChange={(v) => choose({ b: v })} labelledBy="compare-second" />
+        </div>
       </div>
 
       {ext.length > 0 && (
