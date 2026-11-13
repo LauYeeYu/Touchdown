@@ -393,3 +393,44 @@ function smoothed(t0: number, t1: number, raw: (t: number) => RawView, adjust?: 
     },
   };
 }
+
+/**
+ * The view of a flight's globe that follows the aircraft: close on it all the way, with `half` km from the middle to
+ * the nearer edge of the view (`width` × `height`), the aircraft `ahead` km behind the middle once it has gone that far,
+ * so more of the way ahead shows. `progress(t)` is how far it has flown, in km. From `landed` it widens over `outFor`
+ * seconds to `end`, the whole route's view, which it keeps. Smoothed as the route's view is.
+ */
+export function followCamera(o: { at: LonLat[]; km: ArrayLike<number>; width: number; height: number; half: number; ahead: number; progress: (t: number) => number; from: number; landed: number; outFor: number; end: GlobeView }): RouteCamera {
+  const n = o.at.length;
+  const v = o.at.map(vec);
+  const km = o.km;
+  const total = km[n - 1] ?? 0;
+  const point = (q: number): Vec => {
+    const x = clamp(q, 0, total);
+    let i = 0;
+    let hi = n - 1;
+    while (hi - i > 1) {
+      const mid = (i + hi) >> 1;
+      if (km[mid]! <= x) i = mid;
+      else hi = mid;
+    }
+    const span = n > 1 ? km[i + 1]! - km[i]! : 0;
+    const f = span > 0 ? clamp((x - km[i]!) / span, 0, 1) : 0;
+    const a = v[i] ?? vec([0, 0]);
+    const b = v[Math.min(n - 1, i + 1)] ?? a;
+    return unit([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]) ?? a;
+  };
+  const close = Math.min(o.width, o.height) / 2 / Math.sin(clamp(o.half / EARTH_KM, 1e-4, Math.PI / 2));
+  const end = { c: vec(o.end.centre), r: o.end.r, off: o.end.off };
+  const raw = (t: number): RawView => {
+    const q = o.progress(t);
+    // The lead grows as the aircraft gets going, and shrinks to nothing at the arrival.
+    const follow: RawView = { c: point(q + o.ahead * smoother(q / Math.max(1e-9, o.ahead))), r: close, off: [0, 0] };
+    const s = smoother((t - o.landed) / Math.max(1e-9, o.outFor));
+    if (s <= 0) return follow;
+    if (s >= 1) return end;
+    const c = unit([follow.c[0] + (end.c[0] - follow.c[0]) * s, follow.c[1] + (end.c[1] - follow.c[1]) * s, follow.c[2] + (end.c[2] - follow.c[2]) * s]) ?? end.c;
+    return { c, r: follow.r * (end.r / follow.r) ** s, off: [end.off[0] * s, end.off[1] * s] };
+  };
+  return smoothed(o.from - REACH_OUT, o.landed + o.outFor + REACH_OUT, raw);
+}

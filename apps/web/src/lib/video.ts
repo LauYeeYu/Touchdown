@@ -17,7 +17,7 @@ import type { MapFlight } from "../components/maps.tsx";
 import { CODE, COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, measure, overlaps, projectionFor, sans, spaced, STAT, statTiles, WIDE, type Box, type Colours, type FigureStat, type FigureTheme } from "./figure.ts";
 import { dateOnly, distance, durShort, nf } from "./format.ts";
 import { AIRLINER_TOP, isGap, type TrackSample } from "./trackStatus.ts";
-import { camAt, camFor, clamp, easeInOut, easeOut, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
+import { camAt, camFor, clamp, easeInOut, easeOut, followCamera, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
 import { mp4, type Mp4Sample } from "./mp4.ts";
 
 type LonLat = [number, number];
@@ -88,7 +88,11 @@ export interface VideoOptions {
   seconds: number;
   /** A period's codes for every place that has room for one, smaller, when there are more than `MAX_LABELS` places. */
   codes?: boolean;
+  /** A flight's view: the whole route, widening to it as the aircraft flies (to start with), or close on the aircraft. */
+  view?: FlightView;
 }
+
+export type FlightView = "route" | "follow";
 
 /**
  * How many places a period's video marks: its flights' airports and its spotting places. Past `MAX_LABELS`, their
@@ -935,6 +939,8 @@ const GRATICULE = geoGraticule10();
 /** The steps of a flight video: a moment at the gate, and time after landing to read the flight's figures. */
 const HOLD = 1.2;
 const landedOf = (seconds: number) => clamp(seconds * 0.2, 3, 6);
+/** A following view's pace: each second, the ground under the aircraft moves this share of the way to the view's nearer edge. */
+const FOLLOW_PACE = 0.6;
 
 function flightScene(content: VideoContent, o: VideoOptions): Scene {
   const f = frameOf(o.width, o.height, o.theme);
@@ -977,14 +983,25 @@ function flightScene(content: VideoContent, o: VideoOptions): Scene {
   const aw = area[2] - area[0];
   const ah = area[3] - area[1];
 
+  // Where the aircraft is: still at the gate, then along the route at a steady speed with a gentle start and stop.
+  const flying = Math.max(1, duration - HOLD - landedOf(duration));
+  const progress = (time: number) => ramped((time - HOLD) / flying) * path.total;
+  const landedAt = HOLD + flying;
+
   // The view: an orthographic globe. At first the departure and its region, then widening along the route ahead of
   // the aircraft, the way it actually flew, to the whole route, which it then keeps. Never closer than about 180 km
   // either side, so a short hop has its region around it.
-  const flying = Math.max(1, duration - HOLD - landedOf(duration));
   const moveFrom = HOLD - 0.15;
   const moveTo = HOLD + 0.45 * flying;
   const near = clamp(0.15 * path.total, 80, 1100);
-  const camera = routeCamera({ at: path.at, km: path.km, width: aw, height: ah, near, reach: (time) => near + (path.total - near) * smoother((time - moveFrom) / (moveTo - moveFrom)), from: moveFrom, to: moveTo });
+  const route = routeCamera({ at: path.at, km: path.km, width: aw, height: ah, near, reach: (time) => near + (path.total - near) * smoother((time - moveFrom) / (moveTo - moveFrom)), from: moveFrom, to: moveTo });
+  // Or close on the aircraft all the way, as near as lets the ground under it move about 0.6 of the way to the view's
+  // nearer edge each second (at least 120 km to that edge), then widening to the whole route once it has landed.
+  const half = clamp(path.total / flying / FOLLOW_PACE, 120, 2500);
+  const camera =
+    o.view === "follow"
+      ? followCamera({ at: path.at, km: path.km, width: aw, height: ah, half, ahead: 0.35 * half, progress, from: HOLD, landed: landedAt + 0.4, outFor: clamp(0.45 * landedOf(duration), 1.2, 2.2), end: route.at(Infinity) })
+      : route;
   const projection = (time: number) => {
     const v = camera.at(time);
     return {
@@ -998,9 +1015,6 @@ function flightScene(content: VideoContent, o: VideoOptions): Scene {
     };
   };
 
-  // Where the aircraft is: still at the gate, then along the route at a steady speed with a gentle start and stop.
-  const progress = (time: number) => ramped((time - HOLD) / flying) * path.total;
-  const landedAt = HOLD + flying;
   const refDots = (() => {
     const n = clamp(Math.round(path.total / 25), 40, 220);
     const gc = geoInterpolate(leg.from, leg.to);

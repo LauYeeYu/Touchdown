@@ -1497,6 +1497,8 @@ export interface MessageArgs {
   "flights.video.length.option": { seconds: "text" };
   "flights.video.rate.label": {};
   "flights.video.rate.option": { rate: "choice" };
+  "flights.video.view.label": {};
+  "flights.video.view.option": { view: "choice" };
   "flights.video.vp9": {};
   "flights.video.download": {};
   "flights.video.share": {};

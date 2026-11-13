@@ -1,14 +1,15 @@
 // Share or download a map as a video (docs/23-tracks-and-maps.md, "Export: video"; docs/31-ui.md, "Video"): a preview
 // that plays the video as it will be saved, with a scrubber, and its choices: the size, the length, the frame rate,
-// light or dark and, on a busy map, the airport codes. The size, the frame rate, the theme and the codes are kept in
-// this browser for the next video. Share hands the file to the system's share sheet where the browser can, else it is
-// downloaded. Opened from a flight's page, Flights and Home; the page gives what the video shows (lib/videoContent.ts).
+// light or dark, for a flight the view (the whole route or close on the aircraft) and, on a busy map, the airport
+// codes. The size, the frame rate, the theme, the view and the codes are kept in this browser for the next video.
+// Share hands the file to the system's share sheet where the browser can, else it is downloaded. Opened from the Share
+// dialog (components/ShareDialog.tsx); the page gives what the video shows (lib/videoContent.ts).
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
 import { canShareFile, download, shareFile } from "../lib/download.ts";
 import { MAX_LABELS, pageTheme, type FigureTheme } from "../lib/figure.ts";
-import { chooseCodec, defaultSeconds, makeScene, makeVideo, prepareVideo, videoPlaceCount, VideoUnsupported, VIDEO_RATES, VIDEO_SECONDS, VIDEO_SIZES, type Scene, type VideoCodec, type VideoContent, type VideoSize } from "../lib/video.ts";
+import { chooseCodec, defaultSeconds, makeScene, makeVideo, prepareVideo, videoPlaceCount, VideoUnsupported, VIDEO_RATES, VIDEO_SECONDS, VIDEO_SIZES, type FlightView, type Scene, type VideoCodec, type VideoContent, type VideoSize } from "../lib/video.ts";
 import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
@@ -19,13 +20,14 @@ interface Choice {
   fps: number;
   theme: FigureTheme;
   codes: boolean;
+  view: FlightView;
 }
 
 const KEY = "td-video";
 
 /** The last choices made in this browser, else landscape, 60 frames a second, the page's theme and no codes. */
 function stored(): Choice {
-  const fallback: Choice = { size: "landscape", fps: 60, theme: pageTheme(), codes: false };
+  const fallback: Choice = { size: "landscape", fps: 60, theme: pageTheme(), codes: false, view: "route" };
   try {
     const c = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Choice> | null;
     return {
@@ -33,6 +35,7 @@ function stored(): Choice {
       fps: c?.fps && (VIDEO_RATES as readonly number[]).includes(c.fps) ? c.fps : fallback.fps,
       theme: c?.theme === "light" || c?.theme === "dark" ? c.theme : fallback.theme,
       codes: typeof c?.codes === "boolean" ? c.codes : fallback.codes,
+      view: c?.view === "follow" ? "follow" : fallback.view,
     };
   } catch {
     return fallback;
@@ -70,11 +73,14 @@ export function VideoDialog({ content, fileName, onClose, onSent }: { content: V
   const [waiting, setWaiting] = useState<string | null>(null);
   const busyMap = useMemo(() => content.kind === "period" && videoPlaceCount(content) > MAX_LABELS, [content]);
   const withCodes = choice.codes && busyMap;
-  const key = `${choice.size}|${choice.fps}|${choice.theme}|${seconds}|${withCodes}`;
+  // A flight's view: the whole route, or close on the aircraft.
+  const view: FlightView = content.kind === "flight" ? choice.view : "route";
+  const key = `${choice.size}|${choice.fps}|${choice.theme}|${seconds}|${withCodes}|${view}`;
   const shareable = useMemo(() => canShareFile(fileName, "video/mp4"), [fileName]);
   const sizeLabel = useId();
   const lengthLabel = useId();
   const rateLabel = useId();
+  const viewLabel = useId();
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -118,7 +124,7 @@ export function VideoDialog({ content, fileName, onClose, onSent }: { content: V
   };
 
   // The scene at the size chosen; the preview draws it smaller, as the saved video made smaller.
-  const scene = useMemo<Scene | null>(() => (ready ? makeScene(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, codes: withCodes }) : null), [ready, content, choice.size, choice.theme, seconds, withCodes]);
+  const scene = useMemo<Scene | null>(() => (ready ? makeScene(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, codes: withCodes, view }) : null), [ready, content, choice.size, choice.theme, seconds, withCodes, view]);
 
   // The preview's canvas, sized to its room at the device's pixel ratio.
   useEffect(() => {
@@ -193,7 +199,7 @@ export function VideoDialog({ content, fileName, onClose, onSent }: { content: V
       stop.current = ctrl;
       setMaking(0);
       try {
-        made.current = { key, blob: await makeVideo(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, fps: choice.fps, codes: withCodes }, (done) => setMaking(done), ctrl.signal) };
+        made.current = { key, blob: await makeVideo(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, fps: choice.fps, codes: withCodes, view }, (done) => setMaking(done), ctrl.signal) };
       } catch (e) {
         // Stopped on purpose says nothing. An encoder's own message is not for people: the dialog says what happened.
         if (!(e instanceof DOMException && e.name === "AbortError")) setProblem(e instanceof VideoUnsupported ? t("flights.video.unsupported") : t("flights.video.failed"));
@@ -314,6 +320,14 @@ export function VideoDialog({ content, fileName, onClose, onSent }: { content: V
             </button>
           </div>
         </div>
+        {content.kind === "flight" && (
+          <div className="figure-option">
+            <span className="figure-option__label" id={viewLabel}>
+              {t("flights.video.view.label")}
+            </span>
+            <Select<FlightView> value={choice.view} labelledBy={viewLabel} options={(["route", "follow"] as const).map((v) => ({ value: v, label: t("flights.video.view.option", { view: v }) }))} onChange={(v) => set({ view: v })} />
+          </div>
+        )}
         {busyMap && (
           <div className="figure-option figure-checks">
             <label className="check">

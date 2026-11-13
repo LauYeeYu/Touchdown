@@ -37,6 +37,8 @@
   "video.length.option": "{seconds} seconds",
   "video.rate.label": "Frames a second",
   "video.rate.option": "{rate, select, smooth {60, smoother} other {30, a smaller file}}",
+  "video.view.label": "View",
+  "video.view.option": "{view, select, follow {Follow the aircraft} other {Whole route}}",
   "video.vp9": "An MP4 file in VP9, as this browser cannot write H.264: some phones and Apple’s apps may not play it.",
   "video.download": "Download MP4",
   "video.share": "Share",

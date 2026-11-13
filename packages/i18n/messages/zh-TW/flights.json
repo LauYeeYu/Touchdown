@@ -37,6 +37,8 @@
   "video.length.option": "{seconds}秒",
   "video.rate.label": "每秒格數",
   "video.rate.option": "{rate, select, smooth {60，更流暢} other {30，檔案更小}}",
+  "video.view.label": "視角",
+  "video.view.option": "{view, select, follow {跟隨飛機} other {整條航線}}",
   "video.vp9": "VP9編碼的MP4檔案，因為此瀏覽器無法寫入H.264，部分手機和Apple的應用程式可能無法播放。",
   "video.download": "下載MP4",
   "video.share": "分享",

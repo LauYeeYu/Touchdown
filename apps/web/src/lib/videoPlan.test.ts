@@ -1,6 +1,6 @@
 import { geoDistance, geoInterpolate, geoOrthographic } from "d3-geo";
 import { describe, expect, it } from "vitest";
-import { camAt, camFor, lerpCam, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, type Cam, type Rect } from "./videoPlan.ts";
+import { camAt, camFor, followCamera, lerpCam, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, type Cam, type Rect } from "./videoPlan.ts";
 
 const DAY = 86_400_000;
 const day = (n: number) => Date.UTC(2025, 0, 1) + n * DAY;
@@ -196,5 +196,27 @@ describe("a flight's globe camera", () => {
       const ay = pos[i + 1]![1] - 2 * pos[i]![1] + pos[i - 1]![1];
       expect(Math.hypot(ax, ay)).toBeLessThan(0.1 * fastest);
     }
+  });
+
+  it("can follow the aircraft instead, keeping it near the middle, then widen to the whole route once landed", () => {
+    const half = 1500;
+    const landed = 1.2 + flying;
+    const follow = followCamera({ at, km, width, height, half, ahead: 0.35 * half, progress: (t) => ramped((t - 1.2) / flying) * total, from: 1.2, landed: landed + 0.4, outFor: 1.5, end: cam.at(Infinity) });
+    const near = (t: number, p: [number, number]) => {
+      const v = follow.at(t);
+      const proj = geoOrthographic().rotate([-v.centre[0], -v.centre[1]]).scale(v.r).translate([width / 2 + v.off[0] * v.r, height / 2 + v.off[1] * v.r]);
+      const xy = proj(p)!;
+      return Math.hypot(xy[0] - width / 2, xy[1] - height / 2) / (Math.min(width, height) / 2);
+    };
+    // Half a second after takeoff to half a second before landing: never more than half the way to the nearer edge.
+    for (const t of frames.filter((t) => t > 1.7 && t < landed - 0.5)) expect(near(t, aircraft(t))).toBeLessThan(0.5);
+    // Close: the view's nearer edge `half` km from the middle, much less than the whole route's view.
+    const edgeKm = (r: number) => Math.asin(Math.min(1, Math.min(width, height) / 2 / r)) * 6371;
+    expect(edgeKm(follow.at(5).r)).toBeCloseTo(half, -1);
+    expect(edgeKm(cam.at(15).r)).toBeGreaterThan(2 * half);
+    // Then the whole route's view, kept to the end.
+    const [a, b] = [follow.at(15), cam.at(15)];
+    for (const [x, y] of [[a.centre[0], b.centre[0]], [a.centre[1], b.centre[1]], [a.r, b.r], [a.off[0], b.off[0]], [a.off[1], b.off[1]]]) expect(x).toBeCloseTo(y!, 4);
+    expect(follow.moving[1]).toBeLessThan(15);
   });
 });
