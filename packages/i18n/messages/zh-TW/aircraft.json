@@ -111,6 +111,7 @@
   "types.list.more": "顯示更多機型",
   "types.source.wikidata": "數據來自維基數據：",
   "types.source.wikidataMore": "其他數據來自維基數據：",
+  "types.source.wikipediaMore": "其他數據來自維基百科：",
   "types.source.drawing": "{checked, select, yes {剪影由Touchdown根據這些數據繪製。} generic {剪影由Touchdown根據這些數據和同類飛機的常見外形繪製，並非這款飛機本身的外形。} other {剪影由Touchdown根據這些數據繪製，尚未與真實飛機核對。}}",
   "types.compare": "比較",
   "types.none": "沒有符合的機型。",

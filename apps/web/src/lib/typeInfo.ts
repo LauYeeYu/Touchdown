@@ -2,17 +2,19 @@
 // "Silhouettes"; @touchdown/refdata/typeinfo), loaded the first time a page needs them and kept for the tab.
 
 import { useEffect, useState } from "react";
-import type { FamilyFacts, RefIndex, SilhouetteShape, TypeRole, TypeSpecs, TypeWikidata } from "@touchdown/core";
+import type { FamilyFacts, RefIndex, SilhouetteShape, TypeRole, TypeSpecs, TypeWikidata, TypeWikipedia } from "@touchdown/core";
 import type { Planform } from "./silhouette.ts";
 
 /**
- * A type's figures: the curated ones from Wikipedia, with what they lack from Wikidata, and where they come from. A
- * type with neither has none.
+ * A type's figures: the curated ones from Wikipedia, with what they lack from Wikidata, then from the specifications
+ * of the type's own English Wikipedia article, and where they come from. A type with none of them has no figures.
  */
 export interface TypeData extends Omit<TypeSpecs, "article" | "revision"> {
   wikipedia: { article: string; revision: number } | null;
   /** Wikidata's item for the type, and whether it gave a figure the page shows (its only ones, or ones Wikipedia lacks). */
   wikidata: { item: string; revision: number; label: string | null; figures: boolean } | null;
+  /** The type's own article whose specifications gave a figure the other two lack. */
+  article: { title: string; revision: number } | null;
   role: TypeRole | null;
   /** The type's own history, from Wikidata: a page shows it when the type has no family's. */
   firstFlight: string | null;
@@ -39,20 +41,26 @@ export interface TypeInfo {
 
 /** The figures Wikidata may fill where Wikipedia's table gives none (the others Wikidata does not have). */
 const FROM_WIKIDATA = ["lengthM", "spanM", "heightM", "mtowKg", "rangeKm", "cruiseKmh", "seatsMax", "engines"] as const;
+/** The figures a type's own article's specifications may fill after both. */
+const FROM_ARTICLE = ["lengthM", "spanM", "heightM", "mtowKg"] as const;
 
-/** A type's figures from its curated row (`s`) and its Wikidata row (`w`): Wikipedia's first, Wikidata's where it has none. */
-export function mergeTypeData(code: string, s: TypeSpecs | undefined, w: TypeWikidata | undefined): TypeData | null {
-  if (!s && !w) return null;
+/**
+ * A type's figures from its curated row (`s`), its Wikidata row (`w`) and its own article's specifications (`a`):
+ * Wikipedia's curated ones first, Wikidata's where they have none, then the article's.
+ */
+export function mergeTypeData(code: string, s: TypeSpecs | undefined, w: TypeWikidata | undefined, a?: TypeWikipedia): TypeData | null {
+  if (!s && !w && !a) return null;
   const filled = FROM_WIKIDATA.filter((k) => (s?.[k] ?? null) === null && (w?.[k] ?? null) !== null);
+  const fromArticle = FROM_ARTICLE.filter((k) => (s?.[k] ?? w?.[k] ?? null) === null && (a?.[k] ?? null) !== null);
   return {
     designator: code,
-    lengthM: s?.lengthM ?? w?.lengthM ?? null,
-    spanM: s?.spanM ?? w?.spanM ?? null,
-    heightM: s?.heightM ?? w?.heightM ?? null,
+    lengthM: s?.lengthM ?? w?.lengthM ?? a?.lengthM ?? null,
+    spanM: s?.spanM ?? w?.spanM ?? a?.spanM ?? null,
+    heightM: s?.heightM ?? w?.heightM ?? a?.heightM ?? null,
     fuselageWidthM: s?.fuselageWidthM ?? null,
     wingAreaM2: s?.wingAreaM2 ?? null,
     sweepDeg: s?.sweepDeg ?? null,
-    mtowKg: s?.mtowKg ?? w?.mtowKg ?? null,
+    mtowKg: s?.mtowKg ?? w?.mtowKg ?? a?.mtowKg ?? null,
     rangeKm: s?.rangeKm ?? w?.rangeKm ?? null,
     cruiseKmh: s?.cruiseKmh ?? w?.cruiseKmh ?? null,
     cruiseMach: s?.cruiseMach ?? null,
@@ -61,6 +69,7 @@ export function mergeTypeData(code: string, s: TypeSpecs | undefined, w: TypeWik
     engines: s?.engines ?? w?.engines ?? null,
     wikipedia: s ? { article: s.article, revision: s.revision } : null,
     wikidata: w ? { item: w.item, revision: w.revision, label: w.label, figures: filled.length > 0 } : null,
+    article: a && fromArticle.length ? { title: a.article, revision: a.revision } : null,
     role: w?.role ?? null,
     firstFlight: w?.firstFlight ?? null,
     introduced: w?.introduced ?? null,
@@ -75,10 +84,11 @@ export function loadTypeInfo(): Promise<TypeInfo> {
   loading ??= import("@touchdown/refdata/typeinfo").then((m) => {
     const specs = new Map(m.loadTypeSpecs().map((s) => [s.designator, s]));
     const wikidata = new Map(m.loadTypeWikidata().map((w) => [w.designator, w]));
+    const articles = new Map(m.loadTypeWikipedia().map((a) => [a.designator, a]));
     const facts = new Map(m.loadFamilyFacts().map((f) => [f.familyId, f]));
     const merged = new Map<string, TypeData | null>();
     const data = (code: string) => {
-      if (!merged.has(code)) merged.set(code, mergeTypeData(code, specs.get(code), wikidata.get(code)));
+      if (!merged.has(code)) merged.set(code, mergeTypeData(code, specs.get(code), wikidata.get(code), articles.get(code)));
       return merged.get(code)!;
     };
     // A span or a length to draw with where a type has none: another code's on the same wing, or as long.

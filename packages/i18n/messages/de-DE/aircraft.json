@@ -111,6 +111,7 @@
   "types.list.more": "Weitere Typen zeigen",
   "types.source.wikidata": "Daten aus Wikidata:",
   "types.source.wikidataMore": "Weitere Daten aus Wikidata:",
+  "types.source.wikipediaMore": "Weitere Daten aus Wikipedia:",
   "types.source.drawing": "{checked, select, yes {Die Silhouette hat Touchdown nach diesen Daten gezeichnet.} generic {Die Silhouette hat Touchdown nach diesen Daten und der üblichen Form seiner Art gezeichnet, nicht nach der Form dieses Flugzeugs.} other {Die Silhouette hat Touchdown nach diesen Daten gezeichnet und noch nicht mit dem echten Flugzeug verglichen.}}",
   "types.compare": "Vergleichen",
   "types.none": "Keine Flugzeugtypen passen.",

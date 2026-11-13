@@ -197,6 +197,7 @@ export interface MessageArgs {
   "aircraft.types.list.more": {};
   "aircraft.types.source.wikidata": {};
   "aircraft.types.source.wikidataMore": {};
+  "aircraft.types.source.wikipediaMore": {};
   "aircraft.types.source.drawing": { checked: "choice" };
   "aircraft.types.compare": {};
   "aircraft.types.none": {};

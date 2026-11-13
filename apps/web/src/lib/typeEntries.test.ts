@@ -33,4 +33,13 @@ describe("a type's figures", () => {
     expect(mergeTypeData("X1", undefined, data)!.wikipedia).toBeNull();
     expect(mergeTypeData("X1", undefined, undefined)).toBeNull();
   });
+
+  it("take what both lack from the type's own article, and credit it only then", () => {
+    const article = { designator: "X1", article: "Made-up airliner", revision: 3, lengthM: 39, spanM: 33, heightM: 11, mtowKg: 60000 };
+    const all = mergeTypeData("X1", wiki, { ...data, spanM: null, heightM: null }, article)!;
+    expect([all.lengthM, all.spanM, all.heightM, all.mtowKg]).toEqual([40, 33, 11, 70000]);
+    expect(all.article).toEqual({ title: "Made-up airliner", revision: 3 });
+    expect(mergeTypeData("X1", wiki, data, article)!.article).toBeNull();
+    expect(mergeTypeData("X1", undefined, undefined, article)!.spanM).toBe(33);
+  });
 });

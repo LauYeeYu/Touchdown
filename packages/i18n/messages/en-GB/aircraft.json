@@ -111,6 +111,7 @@
   "types.list.more": "Show more types",
   "types.source.wikidata": "Figures from Wikidata:",
   "types.source.wikidataMore": "Other figures from Wikidata:",
+  "types.source.wikipediaMore": "Other figures from Wikipedia:",
   "types.source.drawing": "{checked, select, yes {The silhouette is drawn by Touchdown from these figures.} generic {The silhouette is drawn by Touchdown from these figures and the usual shape of its kind, not from this aircraft's own.} other {The silhouette is drawn by Touchdown from these figures, and not yet checked against the real aircraft.}}",
   "types.compare": "Compare",
   "types.none": "No aircraft types match.",
