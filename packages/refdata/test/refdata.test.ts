@@ -3,6 +3,7 @@ import type { RefTableFile, RegistrationPrefix } from "../../core/src/ref/types.
 import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
+import { familyOrder } from "../src/curated/type-order.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
 import airfieldsFile from "../data/airfields.json" with { type: "json" };
 import operatorsFile from "../data/operators.json" with { type: "json" };
@@ -126,6 +127,24 @@ describe("families and aircraft types", () => {
     const a21n = ref.aircraftTypes.find((t) => t.designator === "A21N");
     expect(a21n).toMatchObject({ manufacturer: "Airbus", name: "A321neo", engineType: "jet", engineCount: 2, wtc: "M" });
     expect(ref.aircraftTypes.find((t) => t.designator === "A388")?.wtc).toBe("J");
+  });
+});
+
+describe("type codes by generation, then model", () => {
+  const index = new RefIndex(ref);
+  const codesOf = (familyId: string) => [...index.types.values()].filter((x) => x.familyId === familyId).map((x) => x.designator);
+
+  it("lists every family with more than one code, each code once", () => {
+    for (const fam of index.families.values()) {
+      const codes = codesOf(fam.id);
+      if (codes.length < 2) continue;
+      expect(familyOrder[fam.id], fam.id).toBeDefined();
+      expect([...familyOrder[fam.id]!].sort(), fam.id).toEqual([...codes].sort());
+    }
+  });
+
+  it("names only families the reference data has", () => {
+    for (const id of Object.keys(familyOrder)) expect(index.families.has(id), id).toBe(true);
   });
 });
 

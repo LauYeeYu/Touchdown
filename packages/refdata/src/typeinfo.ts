@@ -9,6 +9,7 @@ import aircraftTypes from "../data/aircraft_types.json" with { type: "json" };
 import families from "../data/families.json" with { type: "json" };
 
 export { familyShapes, sameBody, sameWing, shapeOf } from "./curated/silhouettes.ts";
+export { familyOrder } from "./curated/type-order.ts";
 
 export function loadTypeSpecs(): TypeSpecs[] {
   return rowsToObjects(specs as RefTableFile);
