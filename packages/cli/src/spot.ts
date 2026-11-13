@@ -200,6 +200,17 @@ const questionsOn =
   };
 
 export async function spotCommand(args: string[]): Promise<void> {
+  // What must be closed when the session ends, however it ends (a dry run, a spreadsheet, typed lines): an open Chrome
+  // tab keeps the process running after the last line is printed.
+  const closing: (() => Promise<void>)[] = [];
+  try {
+    await spotSession(args, (close) => closing.push(close));
+  } finally {
+    for (const close of closing) await close();
+  }
+}
+
+async function spotSession(args: string[], atEnd: (close: () => Promise<void>) => void): Promise<void> {
   const o = options(args);
   const ref = new RefIndex(refTables());
   const today = todayIn();
@@ -270,6 +281,7 @@ export async function spotCommand(args: string[]): Promise<void> {
   const openSky = openSkyIndex((l) => console.log(dim(`  ${l}`)));
   const adsb = o.adsbdb ? adsbdb(ref, { cacheDir: CACHE, maxAgeDays: MAX_AGE_DAYS, delayMs: 1000, offline: o.offline }) : null;
   let fr24 = o.fr24 ? fr24Pages({ port: o.chromePort, delayMs: 10_000, cacheDir: CACHE, maxAgeDays: MAX_AGE_DAYS, offline: o.offline }) : null;
+  if (fr24) atEnd(fr24.close);
 
   /** What the sources say. `self` is the sighting's place, so a row already in the log does not vouch for itself; `quick` asks adsbdb only when OpenSky does not know the aircraft (a whole spreadsheet). */
   const lookUp = async (registration: string, date: string, opts: { self?: string | null; quick?: boolean } = {}): Promise<Evidence[]> => {
