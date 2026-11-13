@@ -12,7 +12,7 @@ import { chooseCodec, defaultSeconds, makeScene, makeVideo, prepareVideo, videoP
 import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
-import { useBackdropClose } from "../lib/dialog.ts";
+import { useModal } from "../lib/dialog.ts";
 
 interface Choice {
   size: VideoSize;
@@ -45,7 +45,8 @@ const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matche
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 export function VideoDialog({ content, fileName, onClose }: { content: VideoContent; fileName: string; onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  // Escape and the backdrop leave as Cancel does: a video being made stops when the dialog has gone (the effect below).
+  const { ref: dialog, close: leave, props: dialogProps } = useModal(onClose);
   const holder = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const [choice, setChoice] = useState<Choice>(stored);
@@ -70,7 +71,6 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
   const sizeLabel = useId();
   const lengthLabel = useId();
   const rateLabel = useId();
-  const backdrop = useBackdropClose(() => dialog.current?.close());
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -202,11 +202,11 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
     const blob = made.current!.blob;
     if (how === "download") {
       download(fileName, blob, "video/mp4");
-      return onClose();
+      return leave();
     }
     try {
       const sent = await shareFile(new File([blob], fileName, { type: "video/mp4" }), direct);
-      if (sent === "shared") return onClose();
+      if (sent === "shared") return leave();
       if (sent === "again") setWaiting(key);
     } catch {
       setProblem(t("flights.video.shareFailed"));
@@ -226,11 +226,11 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
   };
   const close = () => {
     stop.current?.abort();
-    onClose();
+    leave();
   };
 
   return (
-    <dialog ref={dialog} className="share-dialog figure-dialog video-dialog" {...backdrop} aria-labelledby="video-title" onClose={close} onCancel={close}>
+    <dialog ref={dialog} className="share-dialog figure-dialog video-dialog" {...dialogProps} aria-labelledby="video-title">
       <h2 id="video-title" className="share-dialog__title">
         {t("flights.video.dialog.title", { share: shareable ? "yes" : "no" })}
       </h2>

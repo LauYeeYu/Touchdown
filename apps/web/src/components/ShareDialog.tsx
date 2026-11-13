@@ -3,7 +3,7 @@
 // thing's link (one per thing) or shows the one it has, to copy, send or stop. A link is public: anyone with the
 // address can open it, without signing in, until it is stopped.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { ShareKind } from "@touchdown/core/share";
 import { sentenceGap, t } from "@touchdown/i18n";
@@ -19,7 +19,7 @@ import { sendPreview, shareFigure } from "../lib/preview.ts";
 import type { FigureContent } from "../lib/figure.ts";
 import { FigureDialog } from "./FigureDialog.tsx";
 import { StandardTerms, TERMS_VERSION } from "./StandardTerms.tsx";
-import { useBackdropClose } from "../lib/dialog.ts";
+import { useModal } from "../lib/dialog.ts";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -88,8 +88,8 @@ export function ShareLogButton() {
 
 export function ShareDialog({ kind, subject, anchor = null, image, onClose }: { kind: ShareKind; subject: string | null; anchor?: string | null; image?: ShareImage; onClose: () => void }) {
   const { app } = useApp();
-  const dialog = useRef<HTMLDialogElement>(null);
-  const backdrop = useBackdropClose(() => dialog.current?.close());
+  // The terms and the image dialog open over this one: their Escape and their closing are theirs (`useModal`).
+  const { ref: dialog, close, props: dialogProps } = useModal(onClose);
   const list = useShares(true);
   const link = linkFor(list, kind, subject);
   const [busy, setBusy] = useState(false);
@@ -138,7 +138,7 @@ export function ShareDialog({ kind, subject, anchor = null, image, onClose }: { 
     try {
       await shares.stop(l.id);
       toast(t("sharing.stop.done"));
-      onClose();
+      close();
     } catch (e) {
       setProblem(message(e));
       setBusy(false);
@@ -152,10 +152,7 @@ export function ShareDialog({ kind, subject, anchor = null, image, onClose }: { 
       ref={dialog}
       className="share-dialog"
       aria-labelledby="share-title"
-      {...backdrop}
-      // React passes the terms dialog's close up to this one: only this dialog's own closes it.
-      onClose={(e) => e.target === e.currentTarget && onClose()}
-      onCancel={(e) => e.target === e.currentTarget && onClose()}
+      {...dialogProps}
     >
       <h2 id="share-title" className="share-dialog__title">
         {title}
@@ -206,12 +203,12 @@ export function ShareDialog({ kind, subject, anchor = null, image, onClose }: { 
             {busy ? t("sharing.making") : t("sharing.create")}
           </button>
         )}
-        <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
+        <button type="button" className="btn btn--ghost btn--small" onClick={close}>
           {link ? t("common.done") : t("common.cancel")}
         </button>
       </div>
       <div className="share-dialog__links">
-        <Link className="share-dialog__all" to="/shares" onClick={onClose}>
+        <Link className="share-dialog__all" to="/shares" onClick={close}>
           {t("sharing.all")}
         </Link>
         <button type="button" className="share-dialog__all share-dialog__image" aria-haspopup="dialog" onClick={() => void openImage()}>

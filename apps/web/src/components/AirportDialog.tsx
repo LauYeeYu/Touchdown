@@ -2,7 +2,7 @@
 // own"): its code, name, place, country, position and time zone. The position sets the country and the time zone to
 // start from, those of the nearest known airport, until the user chooses them.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { airportName, haversineKm, nearestAirport, parsePosition, type Airport } from "@touchdown/core";
 import { locale, t } from "@touchdown/i18n";
@@ -12,7 +12,7 @@ import { Icon } from "../lib/icons.tsx";
 import { Field, TextInput } from "./form.tsx";
 import { toast } from "./overlay.tsx";
 import { Select } from "./Select.tsx";
-import { useBackdropClose } from "../lib/dialog.ts";
+import { useModal } from "../lib/dialog.ts";
 
 const CODE = /^[A-Z0-9]{3,4}$/;
 
@@ -27,8 +27,7 @@ const codeFrom = (raw: string) => (CODE.test(raw.trim().toUpperCase()) ? raw.tri
 export function AirportDialog({ raw = "", airport, onClose, onSaved }: { raw?: string; airport?: Airport; onClose: () => void; onSaved?: (code: string) => void }) {
   const { app } = useApp();
   const { ref } = app;
-  const dialog = useRef<HTMLDialogElement>(null);
-  const backdrop = useBackdropClose(() => dialog.current?.close());
+  const { ref: dialog, close, props: dialogProps } = useModal(onClose);
   const [code, setCode] = useState(airport ? (airport.icao ?? airport.iata ?? "") : codeFrom(raw));
   const [name, setName] = useState(airport?.name ?? "");
   const [city, setCity] = useState(airport?.city ?? "");
@@ -99,11 +98,11 @@ export function AirportDialog({ raw = "", airport, onClose, onSaved }: { raw?: s
     if (!ready) return;
     toast(app.saveOwnAirport({ code: upper, name, city, country, lat: pos.lat, lon: pos.lon, tz }, { id: airport?.id, raw }));
     onSaved?.(upper);
-    onClose();
+    close();
   };
 
   return createPortal(
-    <dialog ref={dialog} className="share-dialog airport-dialog" {...backdrop} aria-labelledby="airport-dialog-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={dialog} className="share-dialog airport-dialog" {...dialogProps} aria-labelledby="airport-dialog-title">
       <h2 id="airport-dialog-title" className="share-dialog__title">
         {airport ? t("airport.own.title.edit") : t("airport.own.title.add")}
       </h2>
@@ -161,7 +160,7 @@ export function AirportDialog({ raw = "", airport, onClose, onSaved }: { raw?: s
             <Icon name="check" />
             {t("common.save")}
           </button>
-          <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
+          <button type="button" className="btn btn--ghost btn--small" onClick={close}>
             {t("common.cancel")}
           </button>
         </div>

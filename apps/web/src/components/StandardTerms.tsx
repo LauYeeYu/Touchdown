@@ -6,7 +6,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { t } from "@touchdown/i18n";
 import { tx } from "../lib/i18n.tsx";
-import { useBackdropClose } from "../lib/dialog.ts";
+import { leave, useBackdropClose } from "../lib/dialog.ts";
 
 export const TERMS_VERSION = 2;
 
@@ -43,7 +43,7 @@ export function StandardTerms({
       body.current?.scrollTo(0, 0);
       body.current?.focus();
     }
-    if (!open && d.open) d.close();
+    if (!open && d.open) leave(d);
   }, [open]);
 
   return (

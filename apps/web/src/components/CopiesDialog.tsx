@@ -1,17 +1,16 @@
 // Settings › Data › Backup › Daily copies: the copies of the log Touchdown keeps in the user's storage (docs/12,
 // "Daily copies"), newest first, each to download or restore. The share dialog's card.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { dayMonthYear } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n";
 import type { StorageCopies } from "../data/sync.ts";
 import { download } from "../lib/download.ts";
 import { Icon } from "../lib/icons.tsx";
-import { useBackdropClose } from "../lib/dialog.ts";
+import { useModal } from "../lib/dialog.ts";
 
 export function CopiesDialog({ copies, place, onRestore, onClose }: { copies: StorageCopies; place: string; onRestore: (data: Uint8Array) => void; onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const backdrop = useBackdropClose(() => dialog.current?.close());
+  const { ref: dialog, close, props: dialogProps } = useModal(onClose);
   const [list, setList] = useState<{ name: string; day: string }[] | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,7 +36,7 @@ export function CopiesDialog({ copies, place, onRestore, onClose }: { copies: St
   };
 
   return (
-    <dialog ref={dialog} className="share-dialog copies-dialog" {...backdrop} aria-labelledby="copies-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={dialog} className="share-dialog copies-dialog" {...dialogProps} aria-labelledby="copies-title">
       <h2 id="copies-title" className="share-dialog__title">
         {t("settings.copies.title")}
       </h2>
@@ -83,7 +82,7 @@ export function CopiesDialog({ copies, place, onRestore, onClose }: { copies: St
         </ul>
       )}
       <div className="share-dialog__foot">
-        <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
+        <button type="button" className="btn btn--ghost btn--small" onClick={close}>
           {t("common.done")}
         </button>
       </div>

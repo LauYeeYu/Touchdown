@@ -11,7 +11,7 @@ import { canEncode, drawFigure, figureFile, FIGURE_FORMATS, FIGURE_SIZES, MAX_LA
 import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
-import { useBackdropClose } from "../lib/dialog.ts";
+import { useModal } from "../lib/dialog.ts";
 
 interface Choice {
   format: FigureFormat;
@@ -45,8 +45,7 @@ function stored(): Choice {
 }
 
 export function FigureDialog({ content, fileName, onClose }: { content: FigureContent; fileName: (ext: string) => string; onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const backdrop = useBackdropClose(() => dialog.current?.close());
+  const { ref: dialog, close, props: dialogProps } = useModal(onClose);
   const holder = useRef<HTMLDivElement>(null);
   const [choice, setChoice] = useState<Choice>(stored);
   const [ready, setReady] = useState(false);
@@ -156,11 +155,11 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
     const blob = made.current!.blob;
     if (how === "download") {
       download(name, blob, blob.type);
-      return onClose();
+      return close();
     }
     try {
       const sent = await shareFile(new File([blob], name, { type: blob.type }), direct);
-      if (sent === "shared") return onClose();
+      if (sent === "shared") return close();
       if (sent === "again") setWaiting(key);
     } catch {
       setProblem(t("flights.figure.shareFailed"));
@@ -169,7 +168,7 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
 
   const formats = (Object.keys(FIGURE_FORMATS) as FigureFormat[]).filter((f) => f !== "webp" || webp);
   return (
-    <dialog ref={dialog} className="share-dialog figure-dialog" {...backdrop} aria-labelledby="figure-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={dialog} className="share-dialog figure-dialog" {...dialogProps} aria-labelledby="figure-title">
       <h2 id="figure-title" className="share-dialog__title">
         {t("flights.figure.dialog.title", { share: shareable ? "yes" : "no" })}
       </h2>
@@ -248,7 +247,7 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
           <Icon name={busy === "download" ? "loader-circle" : "download"} />
           {busy === "download" ? t("flights.figure.making") : t("flights.figure.download", { format: FORMAT_NAMES[format] })}
         </button>
-        <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
+        <button type="button" className="btn btn--ghost btn--small" onClick={close}>
           {t("common.cancel")}
         </button>
       </div>

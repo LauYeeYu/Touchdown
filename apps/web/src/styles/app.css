@@ -2792,6 +2792,58 @@ a.btn--primary {
   background: rgba(23, 22, 19, 0.5);
 }
 
+/* Dialogs arriving and leaving (every card made from the Share dialog's, and the terms): the card fades in as it rises
+   12px into place from 98%, and the page dims under it, so the dialog does not pop. Leaving is quicker: both fade,
+   the card dropping back a little, before it closes (`leave` in lib/dialog.ts holds it for `LEAVE_MS`). Instant with
+   reduced motion. */
+.share-dialog,
+.terms-dialog {
+  transition:
+    opacity 200ms var(--ease),
+    transform 260ms var(--ease);
+}
+
+.share-dialog::backdrop,
+.terms-dialog::backdrop {
+  transition: opacity 220ms var(--ease);
+}
+
+@starting-style {
+  .share-dialog[open],
+  .terms-dialog[open] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  .share-dialog[open]::backdrop,
+  .terms-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.share-dialog[data-leaving],
+.terms-dialog[data-leaving] {
+  opacity: 0;
+  transform: translateY(6px) scale(0.99);
+  transition-duration: 160ms;
+  pointer-events: none;
+}
+
+.share-dialog[data-leaving]::backdrop,
+.terms-dialog[data-leaving]::backdrop {
+  opacity: 0;
+  transition-duration: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-dialog,
+  .terms-dialog,
+  .share-dialog::backdrop,
+  .terms-dialog::backdrop {
+    transition: none;
+  }
+}
+
 .share-dialog__title {
   margin: 0 0 10px;
   font-size: 1.25rem;
