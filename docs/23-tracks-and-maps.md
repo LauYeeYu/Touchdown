@@ -143,7 +143,7 @@ Where it shows: a flight's page (the times strip's last cell, with how much furt
 
 Rendered with d3-geo on canvas (PNG) or as SVG. No map tiles in exports, so there are no tile licensing limits.
 
-Built (`apps/web/src/lib/figure.ts`, `components/FigureDialog.tsx`), from a flight's page, Flights and Home ("Image"): a dialog with a preview of the image as it will be saved, drawn again on every change, and its choices, kept in the browser for the next image.
+Built (`apps/web/src/lib/figure.ts`, `components/FigureDialog.tsx`), from the Share dialog of a flight, a sighting, an aircraft, Flights and Home ("Image", [31](31-ui.md), "Share"): a dialog with a preview of the image as it will be saved, drawn again on every change, and its choices, kept in the browser for the next image.
 
 Share first (Decided, built): where the browser can hand a file of the chosen format to the system's share sheet (Web Share with files: phones, Safari, Chrome and Edge on most computers, not Firefox on a computer), the dialog is "Share an image" and its first button **Share** makes the file and opens the sheet, with **Download** beside it. Elsewhere it is "Download an image", with Download alone, as before. A browser lets a page open the sheet only for a moment after a press: a file that takes longer to make waits, the dialog says it is ready to share, and the next press of Share sends it without making it again (`lib/download.ts`, `shareFile`).
 
@@ -161,7 +161,7 @@ The map: Natural Earth at 1:50m (finer than the app's maps, loaded the first tim
 
 ## Export: video
 
-Built (`apps/web/src/lib/video.ts`, `lib/videoPlan.ts`, `lib/mp4.ts`, `lib/videoContent.ts`, `components/VideoDialog.tsx`), in the browser: "Video" beside "Image" on a flight's page, on Flights and on Home, and on an aircraft's page for its flights; not on a share link's pages. Drawn as the images are (the same land, colours, type, title and logo), frame by frame. Nothing is sent anywhere. Shared as the images are: where the browser can share an MP4, the dialog is "Share a video" with **Share** first and **Download MP4** beside it. Making a video takes longer than a press lets a page open the share sheet, so a video made for sharing says it is ready to share and the next press sends it; Download then saves the same file without making it again.
+Built (`apps/web/src/lib/video.ts`, `lib/videoPlan.ts`, `lib/mp4.ts`, `lib/videoContent.ts`, `components/VideoDialog.tsx`), in the browser: "Video" in the Share dialog of a flight, an aircraft (its flights), Flights and Home; not on a share link's pages. Drawn as the images are (the same land, colours, type, title and logo), frame by frame. Nothing is sent anywhere. Shared as the images are: where the browser can share an MP4, the dialog is "Share a video" with **Share** first and **Download MP4** beside it. Making a video takes longer than a press lets a page open the share sheet, so a video made for sharing says it is ready to share and the next press sends it; Download then saves the same file without making it again.
 
 | Video | What it shows |
 |-------|---------------|

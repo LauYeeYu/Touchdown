@@ -128,7 +128,7 @@ Decided (U6, Q-SHARE-SCOPE, changed): a link can show one flight or sighting, an
 
 Decided (Q-SHARE-AUDIENCE, changed): for now every link is public. Anyone who has the address can open it, without signing in. A link lasts until its owner stops it: there are no end dates. Choosing who can open a link (chosen invited users, every invited user) may come later ([Later](#later)).
 
-Decided: links are a Standard-mode feature. The server reads a link's file from the owner's storage with the owner's key, so a link works while the owner is offline. Private and Local show no Share button.
+Decided: links are a Standard-mode feature. The server reads a link's file from the owner's storage with the owner's key, so a link works while the owner is offline. In Private and Local the Share button still sends an image or a video, and its dialog says links need Standard mode ([Managing links](#managing-links)).
 
 #### What a link shows
 
@@ -139,7 +139,7 @@ Decided (changed), built. A link opens on the app's own pages, read-only ([The p
 | `flight` | A flight's page | The app's flight page: the sentence, the livery band, the map or globe with the recorded track, the times, the altitude, the seat and details, the aircraft card | The flight, its track and photo links, the aircraft's facts. Not the user's other flights on that aircraft. |
 | `sighting` | The sighting's page (its edit page today) | A sighting page made from the app's parts (the app has none): the aircraft's photo, registration, type, airline, place, day, statuses and livery | The sighting, its statuses, tags and photo links, the aircraft's facts |
 | `aircraft` | An aircraft's page | The app's aircraft page: the sentence, the livery band, the facts, the timeline; and the pages of the user's flights on it and sightings of it | The aircraft, its registration and operator periods, the user's flights on it with their tracks, and sightings of it |
-| `log` | Home's share icon, or Shared links ("Share your whole log") | The app's pages: Home (the sentence, facts, map and globe, the latest flight and session, month by month), Flights and Spotting with their search and filters, Aircraft, Statistics with its globe, and the flight, aircraft, airport and sighting pages they open, all inside the link | Every flight, sighting and aircraft and their child rows, and every recorded track |
+| `log` | Home's Share icon, or Shared links ("Share your whole log") | The app's pages: Home (the sentence, facts, map and globe, the latest flight and session, month by month), Flights and Spotting with their search and filters, Aircraft, Statistics with its globe, and the flight, aircraft, airport and sighting pages they open, all inside the link | Every flight, sighting and aircraft and their child rows, and every recorded track |
 
 Notes and photo links are shared with their records: the page shows them as the app does. There is no switch to leave them out. Of the settings, only the owner's display choices are sent (distance unit, code style, model naming), so the pages read as the owner's do. The viewer never receives private data, deleted entries, the rows' sync columns (`rev`, `updatedBy`, `versionVector`, …) or import bookkeeping (`sourceBatchId`, `sourceRow`), and nothing else that is not the log's records: the rest of the settings (where the log is stored, the home airport), imports, issues, checks, saved views, history, the inbox.
 
@@ -277,12 +277,12 @@ Decided, built (`apps/web/src/pages/SharedLinks.tsx`, `components/ShareDialog.ts
 - **Empty.** "No shared links. Share a flight, a sighting or an aircraft from its page, or your whole log from here."
 - **Other modes.** In Private and Local the page says links need Standard mode, with "Change in Settings".
 
-The Share button sits on the flight, sighting and aircraft pages, in Standard mode only, and reads "Shared" when the thing has a link. The dialog also has "Download an image", which opens the image export ([23](23-tracks-and-maps.md), "Export: figure") over it for what the link shows. The whole log's is an icon at the end of Home's period control, a link icon once the log is shared. Both open a dialog:
+Decided, built: Share is the one way to send something, a link, an image or a video ([31](31-ui.md), "Share"). The Share button sits on the flight, sighting and aircraft pages, in every mode but on a share link's pages, and reads "Shared" when the thing has a link. The whole log's is an icon at the end of Home's period control, a link icon once the log is shared. Flights has the same icon for the flights it shows, which have no link. The dialog has the link first in Standard mode, with "All shared links" beside its buttons, then "Image" and "Video", which open the image and video exports ([23](23-tracks-and-maps.md), "Export: figure", "Export: video") over it. In Private and Local the image and video come first, then "Share links need Standard mode…" with "Change in Settings". The link part of the dialog:
 
 | | The dialog |
 |---|---|
 | No link yet | "Share this flight". "Anyone with the link can see this flight, notes and photo links included. Ticket numbers and booking references are never shared." "Create link". |
-| A link | The address with Copy (and, on phones, the system's share sheet), how often it was opened, "Stop sharing", and "All shared links". |
+| A link | The address with Copy (and, on phones, the system's share sheet), how often it was opened, and "Stop sharing". |
 | Terms not accepted | Standard users who accepted version 1 accept version 2, which covers links, before their first link ([Terms](#terms)). |
 
 The CLI cannot manage links yet: its session reaches only `/auth/me`, sign-out and Standard's storage access ([33](33-accounts-and-sign-in.md), "The command line").
@@ -329,7 +329,7 @@ Protection (Proposed):
 As in [12](12-storage-and-sync.md):
 - **Connecting.** The browser connects to the storage itself: Google's sign-in popup, or a local folder through the browser (built). A Google token lasts an hour and stays in the browser until then; after that, sync waits until the user clicks "Sign in" ([12](12-storage-and-sync.md), "Google Drive details"). Not having to sign in again is one of the things Standard gives.
 - **Server.** It keeps nothing about the user.
-- **Sharing.** There are no Share buttons.
+- **Sharing.** Share sends an image or a video. Its dialog says links need Standard mode.
 - **CLI inbox.** It works as in [21](21-import-export.md).
 - **Command line and Google Drive.** The command line gets an hour's access from the browser, which posts it to the command line on the same computer; the server never sees it ([33](33-accounts-and-sign-in.md), "The command line"). In Standard mode the command line gets it from the server with its own session, as the browser does.
 
