@@ -155,7 +155,7 @@
   "types.compare.drawing": "{first} and {second} seen from above, to one scale",
   "types.compare.scale": "To one scale, noses together. The first filled, the second outlined.",
   "types.compare.difference": "Difference",
-  "types.picker.count": "{count, plural, one {# type} other {# types}}",
+  "types.count": "{count, plural, one {# type} other {# types}}",
   "types.picker.more": "The first {shown, number} of {count, number}. Type more of the name to narrow them.",
   "types.picker.inLog": "In your log",
   "types.picker.manufacturers": "Manufacturers",

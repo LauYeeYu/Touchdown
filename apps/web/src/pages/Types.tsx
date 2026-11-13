@@ -25,7 +25,7 @@ const STEP = 200;
 
 /** A manufacturer's counts: "15 types · 2 families". */
 export const manufacturerCounts = (m: { codes: number; families: number }) =>
-  [t("aircraft.types.picker.count", { count: m.codes }), m.families > 0 && t("aircraft.types.manufacturer.families", { count: m.families })].filter(Boolean).join(" · ");
+  [t("aircraft.types.count", { count: m.codes }), m.families > 0 && t("aircraft.types.manufacturer.families", { count: m.families })].filter(Boolean).join(" · ");
 
 /** The letter a manufacturer is filed under, without accents; a digit or a sign under #. */
 const letterOf = (name: string) => {

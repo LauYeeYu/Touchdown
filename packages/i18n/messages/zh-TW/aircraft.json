@@ -155,7 +155,7 @@
   "types.compare.drawing": "{first}和{second}的俯視圖，按同一比例",
   "types.compare.scale": "按同一比例，機頭對齊。第一種為實心，第二種為輪廓。",
   "types.compare.difference": "差別",
-  "types.picker.count": "{count, plural, other {#種}}",
+  "types.count": "{count, plural, other {#種}}",
   "types.picker.more": "顯示前{shown, number}種，共{count, number}種。輸入更多名稱可縮小範圍。",
   "types.picker.inLog": "日誌中",
   "types.picker.manufacturers": "製造商",

@@ -155,7 +155,7 @@
   "types.compare.drawing": "{first} und {second} von oben, im selben Maßstab",
   "types.compare.scale": "Im selben Maßstab, die Nasen auf gleicher Höhe. Der erste gefüllt, der zweite als Umriss.",
   "types.compare.difference": "Unterschied",
-  "types.picker.count": "{count, plural, one {# Typ} other {# Typen}}",
+  "types.count": "{count, plural, one {# Typ} other {# Typen}}",
   "types.picker.more": "Die ersten {shown, number} von {count, number}. Tippe mehr vom Namen, um sie einzugrenzen.",
   "types.picker.inLog": "In deinem Logbuch",
   "types.picker.manufacturers": "Hersteller",

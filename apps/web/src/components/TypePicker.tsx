@@ -142,7 +142,7 @@ export function TypePicker({ value, codes, onChange, labelledBy }: { value: stri
   const stepItem = (key: string, label: string, count: number, to: Step) => (
     <button key={key} type="button" className="menu__item type-picker__item" onClick={() => setStep(to)}>
       <span className="type-picker__name">{label}</span>
-      <span className="type-picker__code">{t("aircraft.types.picker.count", { count })}</span>
+      <span className="type-picker__code">{t("aircraft.types.count", { count })}</span>
       <Icon name="chevron-right" />
     </button>
   );
