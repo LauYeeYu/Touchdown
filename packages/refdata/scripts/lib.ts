@@ -10,6 +10,8 @@ export const cacheDir = path.join(packageDir, ".cache");
 export const dataDir = path.join(packageDir, "data");
 
 const USER_AGENT = "TouchdownRefdata/0.1 (reference data build for a personal aircraft log)";
+/** What the Wikimedia APIs (Wikipedia, Wikidata) are told the build is: their policy asks for a contact link. */
+export const WIKI_USER_AGENT = "TouchdownRefdata/0.1 (reference data build; https://github.com/LauYeeYu/Touchdown)";
 
 /**
  * Returns the cached copy of a source file, downloading it first when it is missing or when

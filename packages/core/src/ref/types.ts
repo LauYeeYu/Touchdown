@@ -81,6 +81,37 @@ export interface TypeSpecs {
   engines: string | null;
 }
 
+/** What a type is for, from its classes in Wikidata (docs/13-reference-data.md, "Type figures"). */
+export type TypeRole = "airliner" | "business" | "light" | "helicopter" | "military" | "other";
+
+/**
+ * A type's figures from Wikidata (docs/13-reference-data.md, "Type figures"), for the types without curated figures
+ * and to fill gaps in those. One item a designator, metric, null where the item states none. `item` and `revision`
+ * say where they were read.
+ */
+export interface TypeWikidata {
+  designator: string;
+  /** The item's id, as "Q6475". */
+  item: string;
+  revision: number;
+  /** The item's English label. */
+  label: string | null;
+  role: TypeRole | null;
+  lengthM: number | null;
+  /** The wingspan; a helicopter's main rotor diameter. */
+  spanM: number | null;
+  heightM: number | null;
+  mtowKg: number | null;
+  rangeKm: number | null;
+  cruiseKmh: number | null;
+  seatsMax: number | null;
+  engines: string | null;
+  /** YYYY-MM-DD, YYYY-MM or YYYY, as precise as the item states it. */
+  firstFlight: string | null;
+  introduced: string | null;
+  built: number | null;
+}
+
 /** A family's history from its main article's infobox. */
 export interface FamilyFacts {
   familyId: string;

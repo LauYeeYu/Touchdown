@@ -26,10 +26,9 @@ import {
   type Target,
   type TypeSpecValues,
 } from "../src/curated/type-specs.ts";
-import { compare, dataDir, packageDir, writeTable } from "./lib.ts";
+import { compare, dataDir, packageDir, WIKI_USER_AGENT as USER_AGENT, writeTable } from "./lib.ts";
 
 const API = "https://en.wikipedia.org/w/api.php";
-const USER_AGENT = "TouchdownRefdata/0.1 (reference data build; https://github.com/LauYeeYu/Touchdown)";
 const cacheDir = path.resolve(packageDir, "../../data/private/cache/wikipedia");
 const SOURCE = "English Wikipedia (figures), linked from each type's page";
 

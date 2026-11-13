@@ -1,9 +1,18 @@
-// The aircraft types' figures (from Wikipedia), their families' history and the shapes their silhouettes are drawn
-// with (docs/13-reference-data.md, "Type figures", "Silhouettes"). A module of its own, loaded the first time a page
-// needs it (the type pages, the aircraft list's silhouettes), so the app's first load does not carry it.
+// The aircraft types' figures (from Wikipedia and Wikidata), their families' history and the shapes their silhouettes
+// are drawn with (docs/13-reference-data.md, "Type figures", "Silhouettes"). A module of its own, loaded the first time
+// a page needs it (the type pages, the aircraft list's silhouettes), so the app's first load does not carry it.
 
-import { rowsToObjects, type AircraftType, type Family, type FamilyFacts, type RefTableFile, type TypeSpecs } from "../../core/src/ref/types.ts";
+import {
+  rowsToObjects,
+  type AircraftType,
+  type Family,
+  type FamilyFacts,
+  type RefTableFile,
+  type TypeSpecs,
+  type TypeWikidata,
+} from "../../core/src/ref/types.ts";
 import specs from "../data/type_specs.json" with { type: "json" };
+import wikidata from "../data/type_wikidata.json" with { type: "json" };
 import facts from "../data/family_facts.json" with { type: "json" };
 import aircraftTypes from "../data/aircraft_types.json" with { type: "json" };
 import families from "../data/families.json" with { type: "json" };
@@ -13,6 +22,14 @@ export { familyOrder } from "./curated/type-order.ts";
 
 export function loadTypeSpecs(): TypeSpecs[] {
   return rowsToObjects(specs as RefTableFile);
+}
+
+/**
+ * Every type code's figures from Wikidata, where an item could be matched: for the codes without curated figures, and
+ * to fill what the curated ones lack.
+ */
+export function loadTypeWikidata(): TypeWikidata[] {
+  return rowsToObjects(wikidata as RefTableFile);
 }
 
 /**
@@ -29,3 +46,6 @@ export function loadFamilyFacts(): FamilyFacts[] {
 
 /** The figures' attribution line and the date they were read. */
 export const typeSpecsSource = { sources: (specs as RefTableFile).sources, version: (specs as RefTableFile).version };
+
+/** The Wikidata figures' attribution line and the date they were read. */
+export const typeWikidataSource = { sources: (wikidata as RefTableFile).sources, version: (wikidata as RefTableFile).version };

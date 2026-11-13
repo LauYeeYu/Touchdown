@@ -4,6 +4,7 @@ import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
 import { familyOrder } from "../src/curated/type-order.ts";
+import { loadTypeWikidata, typeWikidataSource } from "../src/typeinfo.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
 import airfieldsFile from "../data/airfields.json" with { type: "json" };
 import operatorsFile from "../data/operators.json" with { type: "json" };
@@ -11,6 +12,7 @@ import aircraftTypesFile from "../data/aircraft_types.json" with { type: "json" 
 import familiesFile from "../data/families.json" with { type: "json" };
 import modelPatternsFile from "../data/model_patterns.json" with { type: "json" };
 import registrationPrefixesFile from "../data/registration_prefixes.json" with { type: "json" };
+import typeWikidataFile from "../data/type_wikidata.json" with { type: "json" };
 
 const ref = loadRefTables();
 
@@ -127,6 +129,70 @@ describe("families and aircraft types", () => {
     const a21n = ref.aircraftTypes.find((t) => t.designator === "A21N");
     expect(a21n).toMatchObject({ manufacturer: "Airbus", name: "A321neo", engineType: "jet", engineCount: 2, wtc: "M" });
     expect(ref.aircraftTypes.find((t) => t.designator === "A388")?.wtc).toBe("J");
+  });
+});
+
+describe("type figures from Wikidata", () => {
+  const rows = loadTypeWikidata();
+  const roles = ["airliner", "business", "light", "helicopter", "military", "other"];
+  const date = /^\d{4}(-\d{2}(-\d{2})?)?$/;
+
+  it("has the expected header", () => {
+    const file = typeWikidataFile as RefTableFile;
+    expect(file.table).toBe("type_wikidata");
+    expect(file.version).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(file.sources).toEqual(["Wikidata (wikidata.org), CC0"]);
+    expect(file.columns).toEqual([
+      "designator", "item", "revision", "label", "role", "lengthM", "spanM", "heightM", "mtowKg", "rangeKm", "cruiseKmh",
+      "seatsMax", "engines", "firstFlight", "introduced", "built",
+    ]);
+    for (const row of file.rows) expect(row).toHaveLength(file.columns.length);
+    expect(typeWikidataSource.sources).toEqual(file.sources);
+  });
+
+  it("has rows only for known designators, once each, in their order", () => {
+    const order = new Map(ref.aircraftTypes.map((t, i) => [t.designator, i]));
+    expect(rows.length).toBeGreaterThan(500);
+    for (const r of rows) expect(order.has(r.designator), r.designator).toBe(true);
+    const at = rows.map((r) => order.get(r.designator)!);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+    expect(new Set(at).size).toBe(at.length);
+  });
+
+  it("names an item and its revision, and a role from the set", () => {
+    for (const r of rows) {
+      expect(r.item, r.designator).toMatch(/^Q[1-9]\d*$/);
+      expect(Number.isInteger(r.revision) && r.revision > 0, r.designator).toBe(true);
+      if (r.role !== null) expect(roles, r.designator).toContain(r.role);
+    }
+  });
+
+  it("has figures within plausible ranges", () => {
+    const within = (v: number | null, lo: number, hi: number, what: string) => {
+      if (v !== null) expect(v >= lo && v <= hi, `${what} ${v}`).toBe(true);
+    };
+    for (const r of rows) {
+      within(r.lengthM, 1, 120, `${r.designator} length`);
+      within(r.spanM, 1, 120, `${r.designator} span`);
+      within(r.heightM, 0.5, 40, `${r.designator} height`);
+      within(r.mtowKg, 50, 700_000, `${r.designator} MTOW`);
+      within(r.rangeKm, 10, 45_000, `${r.designator} range`);
+      within(r.cruiseKmh, 30, 3_700, `${r.designator} cruise`);
+      within(r.seatsMax, 1, 1_000, `${r.designator} seats`);
+      within(r.built, 1, 200_000, `${r.designator} built`);
+      if (r.seatsMax !== null) expect(Number.isInteger(r.seatsMax), r.designator).toBe(true);
+      if (r.built !== null) expect(Number.isInteger(r.built), r.designator).toBe(true);
+    }
+  });
+
+  it("has dates as precise as known, from 1900", () => {
+    for (const r of rows) {
+      for (const d of [r.firstFlight, r.introduced]) {
+        if (d === null) continue;
+        expect(d, r.designator).toMatch(date);
+        expect(d >= "1900", `${r.designator} ${d}`).toBe(true);
+      }
+    }
   });
 });
 
