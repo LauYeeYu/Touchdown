@@ -12,7 +12,7 @@ import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, trackIndex } from "../lib/mapdata.ts";
 import { trackSamples } from "../lib/trackStatus.ts";
-import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, durShort, localDay, modelLabel, offsetLabel, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
@@ -26,6 +26,7 @@ import { flightVideo } from "../lib/videoContent.ts";
 import type { VideoContent } from "../lib/video.ts";
 import type { FigureContent } from "../lib/figure.ts";
 import { flightFigure } from "../lib/preview.ts";
+import { flightWords } from "../lib/figureWords.ts";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
@@ -224,29 +225,10 @@ export function FlightDetail() {
   const distanceBasis = f.distanceKmOverride !== null && f.distanceKmOverride !== undefined ? "entered" : v.flown ? "track" : "greatCircle";
   const greatCircle = greatCircleKm(f, ref);
   /**
-   * The flight's map as an image (components/FigureDialog.tsx): titled with its name and route, its day and distance
-   * under it, and as statistics the figures this page shows. Never a private field.
+   * The flight's map as an image (components/FigureDialog.tsx), with the words the page shows (lib/figureWords.ts):
+   * its name and route, its day and distance, and its figures. Never a private field.
    */
-  const figureContent = (): FigureContent => {
-    const when = (dt: string) => `${dayShort(localDay(dt)!)} · ${offsetLabel(dt)}`;
-    const airline = f.airlineId ? airlineLabel(f.airlineId, ref) : null;
-    const stats = [
-      f.takeoffAt ? { label: t("flights.detail.time.takeoff", { code: v.fromCode }), value: clock(f.takeoffAt), detail: when(f.takeoffAt) } : null,
-      f.landingAt ? { label: t("flights.detail.time.landing", { code: v.toCode }), value: clock(f.landingAt), detail: when(f.landingAt) } : null,
-      v.min !== null ? { label: t("flights.detail.time.inAir"), value: durShort(v.min) } : null,
-      v.km !== null
-        ? { label: t("flights.detail.distance.label", { basis: distanceBasis }), value: distance(v.km, unit), detail: distanceBasis === "track" && greatCircle !== null ? t("flights.detail.time.greatCircle", { distance: distance(greatCircle, unit) }) : undefined }
-        : null,
-      extension ? { label: t("flights.detail.extension.label"), value: extensionPercent(extension.percent), detail: t("flights.detail.extension.detail", { extra: distance(extension.extraKm, unit) }) } : null,
-      f.registration || f.typeCode || f.model ? { label: t("flights.figure.stat.aircraft"), value: f.registration ?? typeText, detail: [f.registration ? typeText : null, airline].filter(Boolean).join(" · ") || undefined } : null,
-    ];
-    return {
-      flights: flightFigure(app, f),
-      title: [flightName(f), `${v.fromCode} → ${v.toCode}`].filter(Boolean).join(" · "),
-      subtitle: [v.day && dayMonthYear(v.day), v.km !== null && distance(v.km, unit)].filter(Boolean).join(" · "),
-      stats: stats.filter((x) => x !== null),
-    };
-  };
+  const figureContent = (): FigureContent => ({ flights: flightFigure(app, f), ...flightWords({ store, ref, settings }, v) });
   /** The image's and the video's file name: the flight's name, route and day, as a track's. */
   const fileName = (ext: string) => trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, ext);
   /** The flight as a video (components/VideoDialog.tsx): the image's title, line and statistics, the aircraft along its track. */

@@ -3,16 +3,16 @@
 import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
-import { flightName, flightStats, flownDistances, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
-import { list, sentenceGap, t } from "@touchdown/i18n";
+import { flightName, todayIn } from "@touchdown/core";
+import { sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { BigCode } from "../components/BigCode.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
 import { usePeriod, inPeriod } from "../lib/period.ts";
-import { sessionsOf, sortedFlights, flownAndPhotographed } from "../lib/views.ts";
+import { sessionsOf, flownAndPhotographed } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, cityOf, dateOnly, dayShort, distance, durLong, durShort, monthNames, nf, typeName } from "../lib/format.ts";
+import { airlineLabel, cityOf, dateOnly, dayShort, distance, monthNames, typeName } from "../lib/format.ts";
 import { ArrowGlyph, Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -27,6 +27,7 @@ import { Name, voiceOf } from "../lib/voice.tsx";
 import { headline, tx } from "../lib/i18n.tsx";
 import { periodVideo } from "../lib/videoContent.ts";
 import type { FigureContent } from "../lib/figure.ts";
+import { periodFacts, periodOf, periodWords } from "../lib/figureWords.ts";
 
 export function Home() {
   const { app, version } = useApp();
@@ -37,19 +38,13 @@ export function Home() {
   const { focus, bind } = usePhrases();
 
   const d = useMemo(() => {
-    const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
-    const ctx = { ref, airframes, phases: phaseIndex(store), flown: flownDistances(store, ref) };
-    const views = sortedFlights(store, ref).filter((v) => inPeriod(v.day, year));
-    const sightings = store.all("sightings").filter((s) => inPeriod(s.seenOn, year));
-    const before: Sighting[] = year === "all" ? [] : store.all("sightings").filter((s) => s.seenOn && s.seenOn < `${year}-01-01`);
-    const fs = flightStats(views.map((v) => v.f), ctx);
-    const ss = sightingStats(sightings, ctx, before);
+    const p = periodOf({ store, ref, settings: app.settings() }, year);
     const sessions = sessionsOf(store).filter((s) => inPeriod(s.date, year));
     const both = flownAndPhotographed(store, year);
     const bothIds = new Set(both.map((b) => b.airframe.id));
-    const marks = mapFlights(views, ref, unit, bothIds, store);
-    const spots = mapSpots(sightings, ref, bothIds);
-    return { ctx, views, sightings, fs, ss, sessions, both, bothIds, marks, spots };
+    const marks = mapFlights(p.views, ref, unit, bothIds, store);
+    const spots = mapSpots(p.sightings, ref, bothIds);
+    return { ...p, sessions, both, bothIds, marks, spots };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, year, unit]);
 
@@ -73,11 +68,6 @@ export function Home() {
   const flownAircraft = fs.aircraft.value;
   const spotAirports = ss.airports.value;
 
-  const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
-  const topAirline = fs.byAirline.items[0];
-  const topFrame = fs.byAirframe.items[0];
-  const topFrameFlight = topFrame ? views.find((v) => v.f.airframeId === topFrame.key) : undefined;
-  const topSpotType = ss.byType.items[0];
   const last = views[views.length - 1];
   const lastSession = sessions[0];
   const futureFrom = year === thisYear ? Number(todayIn().slice(5, 7)) : null;
@@ -102,45 +92,20 @@ export function Home() {
     </Phrase>
   );
 
-  // Each figure as the page shows it and as plain text for an image's statistics.
-  const facts: { label: string; value: ReactNode; text: string; detail: string }[] = [];
-  if (longest?.km) {
-    const route = `${longest.fromCode} → ${longest.toCode}`;
-    facts.push({ label: t("home.facts.longest"), value: route, text: route, detail: [distance(longest.km, unit), flightName(longest.f)].filter(Boolean).join(" · ") });
-  }
-  if (fs.minutes.value) facts.push({ label: t("home.facts.time"), value: <Duration min={fs.minutes.value} pad={false} />, text: durShort(fs.minutes.value), detail: t("home.facts.timeDetail", { count: views.length - fs.minutes.leftOut }) });
-  if (topAirline) {
-    const names = list(fs.byAirline.top.map((id) => airlineLabel(id, ref)));
-    facts.push({ label: t("home.facts.airline", { count: fs.byAirline.top.length }), value: <Keep text={names} />, text: names, detail: t("common.count.flights", { count: topAirline.count }) });
-  }
-  if (topFrame && topFrame.count > 1 && topFrameFlight) {
-    const reg = topFrameFlight.f.registration ?? "";
-    facts.push({ label: t("home.facts.aircraft"), value: reg, text: reg, detail: `${t("common.count.flights", { count: topFrame.count })} · ${typeName(topFrameFlight.f.typeCode, ref)}` });
-  }
-  if (topSpotType) {
-    const type = typeName(topSpotType.key, ref);
-    facts.push({ label: t("home.facts.type"), value: <Keep text={type} />, text: type, detail: t("common.count.aircraft", { count: topSpotType.count }) });
-  }
+  // The figures above the map (lib/figureWords.ts), each value shown the page's way; an image's figures share them.
+  const logData = { store, ref, settings: app.settings() };
+  const facts = periodFacts(logData, d).map((x) => ({ ...x, value: x.kind === "time" ? <Duration min={x.minutes!} pad={false} /> : x.kind === "airline" || x.kind === "type" ? <Keep text={x.text} /> : x.text }));
 
   /**
-   * The period's map as an image (components/FigureDialog.tsx): its flights and its spotting places, how many and how
-   * far, and as statistics the flights, the aircraft spotted and the figures above the map.
+   * The period's map as an image (components/FigureDialog.tsx): its flights and its spotting places, with the words of
+   * lib/figureWords.ts, how many and how far, and as statistics the flights, the aircraft spotted and the figures above
+   * the map.
    */
-  const figureContent = (): FigureContent => {
-    const km = fs.distanceKm.value;
-    const stats = [
-      views.length ? { label: t("stats.flights.flights"), value: nf.format(views.length), detail: km > 0 ? distance(km, unit) : undefined } : null,
-      ss.aircraft.value ? { label: t("spotting.facts.aircraft"), value: nf.format(ss.aircraft.value), detail: t("home.figure.places", { count: d.spots.length }) } : null,
-      ...facts.map((x) => ({ label: x.label, value: x.text, detail: x.detail })),
-    ];
-    return {
-      flights: d.marks,
-      spots: d.spots.map((sp) => ({ at: sp.at, code: sp.code, aircraft: sp.aircraft })),
-      title: t("home.figure.title", { period: year === "all" ? "all" : "year", year }),
-      subtitle: [views.length ? t("common.count.flights", { count: views.length }) : null, km > 0 ? distance(km, unit) : null, ss.aircraft.value ? t("home.figure.spotted", { count: ss.aircraft.value }) : null].filter(Boolean).join(" · "),
-      stats: stats.filter((x) => x !== null),
-    };
-  };
+  const figureContent = (): FigureContent => ({
+    flights: d.marks,
+    spots: d.spots.map((sp) => ({ at: sp.at, code: sp.code, aircraft: sp.aircraft })),
+    ...periodWords(logData, year, d, d.spots.length, facts),
+  });
 
   return (
     <div className="page">

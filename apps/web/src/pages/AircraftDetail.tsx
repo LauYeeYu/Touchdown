@@ -14,6 +14,7 @@ import { Icon } from "../lib/icons.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
 import { periodVideo } from "../lib/videoContent.ts";
+import { aircraftWords } from "../lib/figureWords.ts";
 import { sortedFlights } from "@touchdown/core/view";
 import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
@@ -175,7 +176,7 @@ export function AircraftDetail() {
               video={
                 v.flights.length > 0
                   ? {
-                      content: () => periodVideo(app, sortedFlights(store, ref).filter((x) => x.f.airframeId === a.id), { title: [reg, typeText].filter(Boolean).join(" · ") }),
+                      content: () => periodVideo(app, sortedFlights(store, ref).filter((x) => x.f.airframeId === a.id), { title: aircraftWords({ store, ref, settings }, a.id)?.title ?? "" }),
                       name: `touchdown-${reg.replace(/[^A-Za-z0-9-]+/g, "") || "aircraft"}.mp4`,
                     }
                   : undefined
