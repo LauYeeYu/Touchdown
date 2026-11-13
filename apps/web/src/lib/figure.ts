@@ -546,11 +546,17 @@ function lay(f: Figure, p: Painter, land: FeatureCollection) {
       const xy = proj(pl.at);
       return xy && xy[0] >= 0 && xy[0] <= f.width && xy[1] >= 0 && xy[1] <= f.height ? [{ ...pl, xy }] : [];
     });
-  const most = Math.max(1, ...(f.spots ?? []).map((sp) => sp.aircraft ?? 1));
-  const spots = onImage([...(f.spots ?? [])].sort((a, b) => (b.aircraft ?? 1) - (a.aircraft ?? 1))).map((sp) => ({ ...sp, r: (4 + 9 * Math.sqrt((sp.aircraft ?? 1) / most)) * u }));
-  for (const sp of spots) p.circle(sp.xy[0], sp.xy[1], sp.r, { fill: c.spotted, stroke: c.paper, width: 2 * u });
+  // A spotting place at an airport is at least a ring wider than the airport's dot drawn over it, as in the video, so
+  // a place with few aircraft does not vanish under it.
   const airports = onImage([...placesOf({ flights: f.flights }).values()]);
   const r = (labelled ? 7 : places.length > 60 ? 3 : 4) * u;
+  const atAirport = new Set(airports.map((pl) => `${pl.at[0]},${pl.at[1]}`));
+  const most = Math.max(1, ...(f.spots ?? []).map((sp) => sp.aircraft ?? 1));
+  const spots = onImage([...(f.spots ?? [])].sort((a, b) => (b.aircraft ?? 1) - (a.aircraft ?? 1))).map((sp) => ({
+    ...sp,
+    r: Math.max((4 + 9 * Math.sqrt((sp.aircraft ?? 1) / most)) * u, atAirport.has(`${sp.at[0]},${sp.at[1]}`) ? r + 3 * u : 0),
+  }));
+  for (const sp of spots) p.circle(sp.xy[0], sp.xy[1], sp.r, { fill: c.spotted, stroke: c.paper, width: 2 * u });
   for (const pl of airports) p.circle(pl.xy[0], pl.xy[1], r, { fill: c.paper, stroke: c.ink, width: (labelled ? 2.5 : 1.5) * u });
   if (code) {
     const size = code.size * u;
