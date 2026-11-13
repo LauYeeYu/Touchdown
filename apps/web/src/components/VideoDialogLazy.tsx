@@ -7,7 +7,7 @@ import type { VideoContent } from "../lib/video.ts";
 
 const Dialog = lazy(() => import("./VideoDialog.tsx").then((m) => ({ default: m.VideoDialog })));
 
-export function VideoDialog(props: { content: VideoContent; fileName: string; onClose: () => void }) {
+export function VideoDialog(props: { content: VideoContent; fileName: string; onClose: () => void; onSent?: () => void }) {
   return (
     <Suspense fallback={null}>
       <Dialog {...props} />

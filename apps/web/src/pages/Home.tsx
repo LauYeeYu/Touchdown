@@ -1,6 +1,6 @@
 // Home: the period in one sentence, the main stats, and the period's map; then context below.
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
 import { flightName, flightStats, flownDistances, phaseIndex, sightingStats, todayIn, type Sighting } from "@touchdown/core";
@@ -8,7 +8,7 @@ import { list, sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { BigCode } from "../components/BigCode.tsx";
-import { ShareLogButton } from "../components/ShareDialog.tsx";
+import { ShareButton } from "../components/ShareDialog.tsx";
 import { usePeriod, inPeriod } from "../lib/period.ts";
 import { sessionsOf, sortedFlights, flownAndPhotographed } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
@@ -25,10 +25,7 @@ import { Disclosure } from "../components/Disclosure.tsx";
 import { Fact, Keep } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
 import { headline, tx } from "../lib/i18n.tsx";
-import { FigureDialog } from "../components/FigureDialog.tsx";
-import { VideoDialog } from "../components/VideoDialogLazy.tsx";
 import { periodVideo } from "../lib/videoContent.ts";
-import type { VideoContent } from "../lib/video.ts";
 import type { FigureContent } from "../lib/figure.ts";
 
 export function Home() {
@@ -38,9 +35,6 @@ export function Home() {
   const { year, setYear, years, thisYear } = usePeriod(store, version);
   const unit = app.settings().distanceUnit ?? "km";
   const { focus, bind } = usePhrases();
-  // The image dialog's content, taken when it opens (components/FigureDialog.tsx).
-  const [figure, setFigure] = useState<FigureContent | null>(null);
-  const [video, setVideo] = useState<VideoContent | null>(null);
 
   const d = useMemo(() => {
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
@@ -152,7 +146,24 @@ export function Home() {
     <div className="page">
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
-        <ShareLogButton />
+        {/* The whole log's link, and the image and the video of the period shown, which may be a year of it. */}
+        <ShareButton
+          icon
+          kind="log"
+          year={year === "all" ? null : year}
+          image={{ content: figureContent, name: (ext) => `touchdown-${year === "all" ? "all" : year}.${ext}` }}
+          video={
+            views.length > 0 || d.sightings.length > 0
+              ? {
+                  content: () => {
+                    const words = figureContent();
+                    return periodVideo(app, views, { title: words.title ?? "", stats: words.stats }, d.sightings);
+                  },
+                  name: `touchdown-${year === "all" ? "all" : year}.mp4`,
+                }
+              : undefined
+          }
+        />
       </div>
       <h1 className="lead">
         {headline(
@@ -218,31 +229,8 @@ export function Home() {
             <span className="swatch-dot swatch-dot--ink" />
             {t("home.map.airports")}
           </span>
-          {/* Image, Video and Explore on a globe keep together at the row's end, on their own line on a phone. */}
+          {/* Explore on a globe at the row's end, on its own line on a phone. */}
           <div className="legend__actions">
-            {/* A share link's page shows the log, read only: its images are its owner's to make. */}
-            {!app.readOnly && (
-              <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
-                <Icon name="image" />
-                {t("flights.legend.image")}
-              </button>
-            )}
-            {figure && <FigureDialog content={figure} fileName={(ext) => `touchdown-${year === "all" ? "all" : year}.${ext}`} onClose={() => setFigure(null)} />}
-            {!app.readOnly && (views.length > 0 || d.sightings.length > 0) && (
-              <button
-                type="button"
-                className="legend__action"
-                aria-haspopup="dialog"
-                onClick={() => {
-                  const words = figureContent();
-                  setVideo(periodVideo(app, views, { title: words.title ?? "", stats: words.stats }, d.sightings));
-                }}
-              >
-                <Icon name="film" />
-                {t("flights.legend.video")}
-              </button>
-            )}
-            {video && <VideoDialog content={video} fileName={`touchdown-${year === "all" ? "all" : year}.mp4`} onClose={() => setVideo(null)} />}
             <Link className="legend__action" to="/stats">
               <Icon name="globe" />
               {t("home.map.globe")}

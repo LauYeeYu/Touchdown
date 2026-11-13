@@ -44,7 +44,11 @@ const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matche
 /** "0:07", "1:30": a place in the video. */
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-export function VideoDialog({ content, fileName, onClose }: { content: VideoContent; fileName: string; onClose: () => void }) {
+/**
+ * `onSent` runs once the video was shared or downloaded, as the dialog leaves: the Share dialog under it leaves with
+ * it. Cancel, Escape and the backdrop run `onClose` only.
+ */
+export function VideoDialog({ content, fileName, onClose, onSent }: { content: VideoContent; fileName: string; onClose: () => void; onSent?: () => void }) {
   // Escape and the backdrop leave as Cancel does: a video being made stops when the dialog has gone (the effect below).
   const { ref: dialog, close: leave, props: dialogProps } = useModal(onClose);
   const holder = useRef<HTMLDivElement>(null);
@@ -202,11 +206,15 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
     const blob = made.current!.blob;
     if (how === "download") {
       download(fileName, blob, "video/mp4");
+      onSent?.();
       return leave();
     }
     try {
       const sent = await shareFile(new File([blob], fileName, { type: "video/mp4" }), direct);
-      if (sent === "shared") return leave();
+      if (sent === "shared") {
+        onSent?.();
+        return leave();
+      }
       if (sent === "again") setWaiting(key);
     } catch {
       setProblem(t("flights.video.shareFailed"));

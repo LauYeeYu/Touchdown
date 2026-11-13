@@ -172,7 +172,6 @@ export interface MessageArgs {
   "aircraft.detail.merge.confirm": { count: "number"; from: "text"; to: "text" };
   "aircraft.detail.merge.done": {};
   "aircraft.detail.merge.button": {};
-  "aircraft.detail.video.title": {};
   "aircraft.list.facts.flown": {};
   "aircraft.list.facts.alsoSpotted": { count: "number" };
   "aircraft.list.facts.spotted": {};
@@ -1472,7 +1471,6 @@ export interface MessageArgs {
   "flights.legend.noneRecorded": {};
   "flights.legend.notRecorded": {};
   "flights.legend.globe": {};
-  "flights.legend.image": {};
   "flights.figure.title": { period: "choice"; year: "text" };
   "flights.figure.failed": {};
   "flights.figure.dialog.title": { share: "choice" };
@@ -1490,9 +1488,6 @@ export interface MessageArgs {
   "flights.figure.shareFailed": {};
   "flights.figure.making": {};
   "flights.figure.stat.aircraft": {};
-  "flights.detail.figure.label": {};
-  "flights.detail.figure.title": {};
-  "flights.legend.video": {};
   "flights.video.dialog.title": { share: "choice" };
   "flights.video.preview": {};
   "flights.video.drawing": {};
@@ -1511,8 +1506,6 @@ export interface MessageArgs {
   "flights.video.stop": {};
   "flights.video.failed": {};
   "flights.video.unsupported": {};
-  "flights.detail.video.label": {};
-  "flights.detail.video.title": {};
   "flights.map.label": { count: "number"; filtered: "choice"; shown: "text" };
   "flights.filters.search": {};
   "flights.filters.placeholder": {};
@@ -2634,6 +2627,7 @@ export interface MessageArgs {
   "sharing.button.shared": {};
   "sharing.log.share": {};
   "sharing.log.shared": {};
+  "sharing.flights.share": {};
   "sharing.dialog.title": { kind: "choice" };
   "sharing.dialog.owner": { owner: "text" };
   "sharing.dialog.shared": {};
@@ -2642,7 +2636,10 @@ export interface MessageArgs {
   "sharing.making": {};
   "sharing.create": {};
   "sharing.all": {};
-  "sharing.image": {};
+  "sharing.section.link": {};
+  "sharing.section.files": { video: "choice" };
+  "sharing.file.image": { period: "choice"; year: "text" };
+  "sharing.file.video": { period: "choice"; year: "text" };
   "sharing.terms.accept": {};
   "sharing.stop.button": {};
   "sharing.stop.confirm": { kind: "choice" };

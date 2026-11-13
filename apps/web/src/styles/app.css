@@ -527,6 +527,14 @@ main {
   flex: none;
 }
 
+/* Flights' end of the period row: Share, then "Add flight" (not on phones). */
+.view-top__end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
 .period {
   position: relative;
   display: inline-block;
@@ -3083,50 +3091,48 @@ a.btn--primary {
   }
 }
 
-.share-dialog__all {
-  display: inline-block;
+/* Share's sections (components/ShareDialog.tsx): the link and the image or video, each under a small title, with a
+   hairline between them and the buttons of each in a row. */
+.share-section + .share-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.share-section__title {
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.share-section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 14px;
+}
+
+.share-section__title + .share-section__actions {
+  margin-top: 0;
+}
+
+/* "Change in Settings" and "All shared links": links among the dialog's words, smaller, in ink-2. */
+.share-dialog__all {
   font-size: 0.875rem;
   color: var(--ink-2);
 }
 
-/* Under the buttons: "All shared links" and "Download an image", on one line, apart, their words level. */
-.share-dialog__links {
+/* The link's buttons, then "All shared links" beside them where the row has room, else on the line under them. */
+.share-section__actions--link {
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.share-section__buttons {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 20px;
-  margin-top: 14px;
-}
-
-.share-dialog__links .share-dialog__all {
-  margin-top: 0;
-}
-
-/* A button that reads as the link beside it: underlined as the app's links are, the download icon before its words. */
-.share-dialog__image {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 0.875rem;
-  line-height: inherit;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 1px;
-  cursor: pointer;
-}
-
-.share-dialog__image .icon {
-  width: 15px;
-  height: 15px;
-}
-
-.share-dialog__image:hover {
-  color: var(--ink);
+  gap: 10px;
 }
 
 /* The daily copies in the user's storage (CopiesDialog): a row for each, its date and its buttons, hairlines between,
@@ -7256,8 +7262,8 @@ a.wordmark {
 
 /* ---------- interactive globe ---------- */
 
-/* The pills at the end of a map's legend row (Home, Flights: Image, Video, Explore on a globe), 8px apart. They move
-   to the next line together, never one by one, and on a phone they take a line of their own. */
+/* The pill at the end of a map's legend row (Home, Flights: Explore on a globe). On a phone it takes a line of its
+   own. */
 .legend__actions {
   display: flex;
   flex-wrap: wrap;

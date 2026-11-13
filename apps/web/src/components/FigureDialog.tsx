@@ -44,7 +44,11 @@ function stored(): Choice {
   }
 }
 
-export function FigureDialog({ content, fileName, onClose }: { content: FigureContent; fileName: (ext: string) => string; onClose: () => void }) {
+/**
+ * `onSent` runs once the file was shared or downloaded, as the dialog leaves: the Share dialog under it leaves with it.
+ * Cancel, Escape and the backdrop run `onClose` only.
+ */
+export function FigureDialog({ content, fileName, onClose, onSent }: { content: FigureContent; fileName: (ext: string) => string; onClose: () => void; onSent?: () => void }) {
   const { ref: dialog, close, props: dialogProps } = useModal(onClose);
   const holder = useRef<HTMLDivElement>(null);
   const [choice, setChoice] = useState<Choice>(stored);
@@ -155,11 +159,15 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
     const blob = made.current!.blob;
     if (how === "download") {
       download(name, blob, blob.type);
+      onSent?.();
       return close();
     }
     try {
       const sent = await shareFile(new File([blob], name, { type: blob.type }), direct);
-      if (sent === "shared") return close();
+      if (sent === "shared") {
+        onSent?.();
+        return close();
+      }
       if (sent === "again") setWaiting(key);
     } catch {
       setProblem(t("flights.figure.shareFailed"));

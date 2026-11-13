@@ -22,8 +22,6 @@ import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { AltitudeChart } from "../components/charts.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { HelpTip } from "../components/HelpTip.tsx";
-import { FigureDialog } from "../components/FigureDialog.tsx";
-import { VideoDialog } from "../components/VideoDialogLazy.tsx";
 import { flightVideo } from "../lib/videoContent.ts";
 import type { VideoContent } from "../lib/video.ts";
 import type { FigureContent } from "../lib/figure.ts";
@@ -57,9 +55,6 @@ export function FlightDetail() {
   const unit = settings.distanceUnit ?? "km";
   const [showTicket, setShowTicket] = useState(false);
   const [picked, setPicked] = useState<PickedTrack | null>(null);
-  // The image dialog's content, taken when it opens, so its preview is not drawn again while it is open.
-  const [figure, setFigure] = useState<FigureContent | null>(null);
-  const [video, setVideo] = useState<VideoContent | null>(null);
   const trackInput = useRef<HTMLInputElement>(null);
   const mapStyle = useMapStyle();
   const shareList = useShares(app.connection?.mode === "standard");
@@ -252,6 +247,8 @@ export function FlightDetail() {
       stats: stats.filter((x) => x !== null),
     };
   };
+  /** The image's and the video's file name: the flight's name, route and day, as a track's. */
+  const fileName = (ext: string) => trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, ext);
   /** The flight as a video (components/VideoDialog.tsx): the image's title, line and statistics, the aircraft along its track. */
   const videoContent = (): VideoContent => {
     const words = figureContent();
@@ -415,19 +412,8 @@ export function FlightDetail() {
               <Icon name="pencil" />
               {t("common.edit")}
             </Link>
-            <ShareButton kind="flight" subject={f.id} image={{ content: figureContent, name: (ext) => trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, ext) }} />
-            <button type="button" className="btn btn--quiet btn--small" onClick={() => setFigure(figureContent())} aria-haspopup="dialog" title={t("flights.detail.figure.title")}>
-              <Icon name="image" />
-              {t("flights.detail.figure.label")}
-            </button>
-            {figure && <FigureDialog content={figure} fileName={(ext) => trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, ext)} onClose={() => setFigure(null)} />}
-            {A && B && (
-              <button type="button" className="btn btn--quiet btn--small" onClick={() => setVideo(videoContent())} aria-haspopup="dialog" title={t("flights.detail.video.title")}>
-                <Icon name="film" />
-                {t("flights.detail.video.label")}
-              </button>
-            )}
-            {video && <VideoDialog content={video} fileName={trackFileName(flightName(f), A?.iata ?? A?.icao ?? v.fromCode, B?.iata ?? B?.icao ?? v.toCode, v.day, "mp4")} onClose={() => setVideo(null)} />}
+            {/* The link, the image and the video, in one dialog: the video where both airports are known. */}
+            <ShareButton kind="flight" subject={f.id} image={{ content: figureContent, name: fileName }} video={A && B ? { content: videoContent, name: fileName("mp4") } : undefined} />
             {trackRow ? (
               <MenuButton
                 className="btn btn--quiet btn--small"

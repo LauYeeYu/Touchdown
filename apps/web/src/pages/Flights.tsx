@@ -23,10 +23,8 @@ import { Select } from "../components/Select.tsx";
 import { Pager, usePaging } from "../components/Pager.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { download } from "../lib/download.ts";
-import { FigureDialog } from "../components/FigureDialog.tsx";
-import { VideoDialog } from "../components/VideoDialogLazy.tsx";
+import { ShareButton } from "../components/ShareDialog.tsx";
 import { periodVideo } from "../lib/videoContent.ts";
-import type { VideoContent } from "../lib/video.ts";
 import type { FigureContent } from "../lib/figure.ts";
 import { headline } from "../lib/i18n.tsx";
 
@@ -45,9 +43,6 @@ export function Flights() {
   const [airline, setAirline] = useViewState("airline", "");
   const [recordedOnly, setRecordedOnly] = useViewState("recordedOnly", false);
   const [hover, setHover] = useState<Highlight>(null);
-  // The image dialog's content, taken when it opens (components/FigureDialog.tsx).
-  const [figure, setFigure] = useState<FigureContent | null>(null);
-  const [video, setVideo] = useState<VideoContent | null>(null);
   const { focus, bind } = usePhrases();
 
   const data = useMemo(() => {
@@ -147,10 +142,29 @@ export function Flights() {
       <div className="view-top">
         <PeriodControl year={year} years={years} onChange={setYear} />
         {!shared && (
-          <Link className="btn btn--quiet hide-phone" to="/flights/new">
-            <Icon name="plus" />
-            {t("flights.add")}
-          </Link>
+          <div className="view-top__end">
+            {/* The flights shown, with the search and filters, as an image or a video: Flights has no link of its own. */}
+            <ShareButton
+              icon
+              kind="flights"
+              image={{ content: figureContent, name: (ext) => `touchdown-flights-${year === "all" ? "all" : year}.${ext}` }}
+              video={
+                shown.length > 0
+                  ? {
+                      content: () => {
+                        const words = figureContent();
+                        return periodVideo(app, shown, { title: words.title ?? "", stats: words.stats });
+                      },
+                      name: `touchdown-flights-${year === "all" ? "all" : year}.mp4`,
+                    }
+                  : undefined
+              }
+            />
+            <Link className="btn btn--quiet hide-phone" to="/flights/new">
+              <Icon name="plus" />
+              {t("flights.add")}
+            </Link>
+          </div>
         )}
       </div>
       {views.length ? (
@@ -202,31 +216,8 @@ export function Flights() {
               {t("flights.legend.notRecorded")}
             </span>
           )}
-          {/* Image, Video and Explore on a globe keep together at the row's end, on their own line on a phone. */}
+          {/* Explore on a globe at the row's end, on its own line on a phone. */}
           <div className="legend__actions">
-            {/* A share link's page shows the log, read only: its images are its owner's to make. */}
-            {!shared && (
-              <button type="button" className="legend__action" aria-haspopup="dialog" onClick={() => setFigure(figureContent())}>
-                <Icon name="image" />
-                {t("flights.legend.image")}
-              </button>
-            )}
-            {figure && <FigureDialog content={figure} fileName={(ext) => `touchdown-flights-${year === "all" ? "all" : year}.${ext}`} onClose={() => setFigure(null)} />}
-            {!shared && shown.length > 0 && (
-              <button
-                type="button"
-                className="legend__action"
-                aria-haspopup="dialog"
-                onClick={() => {
-                  const words = figureContent();
-                  setVideo(periodVideo(app, shown, { title: words.title ?? "", stats: words.stats }));
-                }}
-              >
-                <Icon name="film" />
-                {t("flights.legend.video")}
-              </button>
-            )}
-            {video && <VideoDialog content={video} fileName={`touchdown-flights-${year === "all" ? "all" : year}.mp4`} onClose={() => setVideo(null)} />}
             <Link className="legend__action" to="/stats">
               <Icon name="globe" />
               {t("flights.legend.globe")}
