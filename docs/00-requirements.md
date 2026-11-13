@@ -23,7 +23,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | G8 | Every precise time is recorded as a date-time (date + time + UTC offset), never as a time alone. Avoids filing a takeoff after midnight under the previous day. | Chat | Decided |
 | G9 | UK English spelling everywhere: interface copy, docs, and code comments (colour, organise, centre, licence as a noun). Third-party names keep their own spelling. | Chat | Decided |
 | G10 | Light and dark themes. The default follows the device; the user can pick light or dark. | Chat | Decided |
-| G11 | A silhouette of the aircraft's type, shown with the aircraft. A person checks every silhouette against the real aircraft before it is shown. Not scheduled. | Chat | Decided. Details Open (Q-SILHOUETTE) |
+| G11 | A silhouette of the aircraft's type, shown with the aircraft. A person checks every silhouette against the real aircraft. | Chat | Decided, built: drawn from each type's figures ([13](13-reference-data.md), "Silhouettes"), and shown to everyone once drawn. A type's page says when its family is not checked yet (Q-SILHOUETTE). (Changed: first, a drawing was shown only once checked.) |
 | G12 | The interface can be translated: its text is kept in message files, out of the code, so adding a language means translating those files. UK English (G9) is the source language. Dates are written the way the user chooses, apart from the language. | Chat | Decided. Built: the web pages, the CLI and the server in UK and American English, German, Simplified and Traditional Chinese, the CLI by the system's locale and the server by the request's (Q-I18N) |
 
 ## Users and storage

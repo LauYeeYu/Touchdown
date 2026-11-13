@@ -62,6 +62,29 @@ Built (G12, [31](31-ui.md), "Language"): airports, the places they serve and air
 | Makers of aircraft types | Not from Wikidata: the makers with a name of their own in the language are messages (`labels.maker.*`: Boeing is 波音, Airbus 空客 and 空中巴士). The model stays as written. |
 | In the app | Loaded only when the language is chosen (`@touchdown/refdata/names`), before the first page is drawn. Shown only: matching, imports and search by code keep the data's English names, the log stores ids, and search finds a place by either name. A name not in the file is shown in English. The CLI and the myFR24 export stay in English. |
 
+### Type figures
+
+Decided, built (`packages/refdata/scripts/type-specs.ts`, `src/curated/type-specs.ts`, `data/type_specs.json`, `data/family_facts.json`): each type code in a family ([10](10-domain-model.md), "Reference tables") has the figures its English Wikipedia article gives in its specifications: length, wingspan (a helicopter's main rotor diameter), height, fuselage width, wing area and sweep, maximum take-off weight, range, cruise speed, seats (typical and maximum) and engines. Each family has its first flight, entry into service, number built and status from its article's infobox.
+
+| Rule | |
+|---|---|
+| Figures, not prose | Only the figures are kept, with the article's title and revision, and each type's page links to that revision. No text is copied, so no share-alike text is in the app. |
+| Where | The article for each family's codes and which of its table's columns is which code are curated (`type-specs.ts`): one family can need several articles (the 737's four generations). A figure the table does not give but the article states elsewhere is an override there, with where it is in the article. |
+| Never guessed | A figure the article does not give stays empty. |
+| Units | Metric, as the article gives it where it gives both; shown in the log's distance unit for range and speed. |
+| When | Built when the reference data is, not read while the app runs: `npm run build-type-specs -w @touchdown/refdata` (`--refresh` asks for each article's latest revision), which keeps what it reads in `data/private/cache/wikipedia/`. |
+| Order | A family's codes are listed by generation, then model: the first generation first, and within a generation its models in order (A318, A319, A320, A321, then the A320neo's). The order is a curated list (`src/curated/type-order.ts`), as nothing in the tables says which generation a type code belongs to. A test checks each list has exactly its family's codes. |
+| In the app | Its own module (`@touchdown/refdata/typeinfo`), loaded the first time a page needs it: the type pages and the aircraft list's silhouettes ([31](31-ui.md), "Aircraft types"). |
+
+### Silhouettes
+
+Decided, built (G11, Q-SILHOUETTE; `apps/web/src/lib/silhouette.ts`, `packages/refdata/src/curated/silhouettes.ts`): every family's types are drawn from above by one generator, so they share one style and can be drawn to one scale. The figures give the length, span, fuselage width and sweep; the family's shape gives what they do not: where the wing's root sits along the fuselage, its root chord and taper, wingtips (winglets, sharklets, raked), where the engines are (on the wing, above it, beside the tail), the tailplane, propellers, or a helicopter's boom and rotor blades. A type whose wingtips or engines differ from its family's has its own (the 777-300ER's raked tips, the 747-8's). A type without length and span is not drawn.
+
+- **A sibling's span or length.** Where a type's article gives no span or no length, the drawing may take another code's on the same wing (`sameWing`: the 737-800 and 737-900) or of the same length (`sameBody`: the 747-200 and 747-400). The figures still show none, and the measured drawing marks only the dimensions the type's own figures give.
+
+- **Checked, and shown before.** A person compares each family's drawings with the real aircraft and marks the family `checked`. Every drawing shows on the site and to visitors from the start. Until its family is checked, a type's page says the drawing is not checked against the real aircraft yet. (Changed: first, only checked families' drawings showed.)
+- **No set taken.** No CC BY set of top views covers these families in one style. Single drawings under CC0 exist, each in its own style.
+
 ## Airframe index
 
 Facts about individual airframes. Too large to ship whole with the app (hundreds of thousands of rows), so it is built into a sharded static index and fetched on demand.
