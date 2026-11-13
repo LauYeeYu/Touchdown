@@ -1,7 +1,10 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { RefIndex } from "@touchdown/core";
 import { refTables } from "../../core/test/fixtures.ts";
-import { fr24Evidence, fr24Facts, monthOf } from "../src/providers/fr24.ts";
+import { fr24Evidence, fr24Facts, fr24Pages, hasSerial, monthOf } from "../src/providers/fr24.ts";
 
 const ref = new RefIndex(refTables);
 
@@ -55,5 +58,28 @@ describe("Flightradar24 aircraft page", () => {
     const e = fr24Evidence("G-ABCD", withAirline, ref, "https://www.flightradar24.com/data/aircraft/g-abcd")!;
     expect(e).toMatchObject({ source: "fr24", typeCode: "A21N", model: "A321-271NX", operator: "BAW", operatorName: "British Airways", asOf: "2026-10-01", note: "operated by Example Cityflyer (XC / XCF)" });
     expect(e.facts?.msn).toBe("099001");
+  });
+
+  it("keeps only pages with the serial number, and reads one kept without it again", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "touchdown-fr24-"));
+    try {
+      mkdirSync(join(dir, "fr24"));
+      const fresh = new Date().toISOString();
+      const withSerial = { ...page, fetchedAt: fresh };
+      // A plan without serial numbers shows a lock where the number would be: a page as such a plan reads it.
+      const without = { ...page, fetchedAt: fresh, rows: page.rows.filter(([k]) => !/^SERIAL/.test(k)).concat([["SERIAL NUMBER (MSN)", "-"]]) };
+      expect([hasSerial(withSerial), hasSerial(without)]).toEqual([true, false]);
+      writeFileSync(join(dir, "fr24", "N1001X.json"), JSON.stringify(withSerial));
+      writeFileSync(join(dir, "fr24", "N1002X.json"), JSON.stringify(without));
+      // No Chrome on this port: a page not taken from the cache is reported as needing it.
+      const pages = fr24Pages({ port: 1, delayMs: 0, cacheDir: dir, maxAgeDays: 90 });
+      expect(await pages.read("N1001X", "https://example.org/n1001x")).toEqual(withSerial);
+      expect(await pages.read("N1002X", "https://example.org/n1002x")).toHaveProperty("blocked");
+      // Offline, a page without the serial number is still better than nothing.
+      const offline = fr24Pages({ port: 1, delayMs: 0, cacheDir: dir, maxAgeDays: 90, offline: true });
+      expect(await offline.read("N1002X", "https://example.org/n1002x")).toEqual(without);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -168,7 +168,7 @@ When a source knows several airframes for a registration, the first that passes 
 | `--fr24` | Also use Flightradar24 through the user's Chrome (`--chrome-port`, default 9222; `--fr24-delay`, default 10 seconds). Only aircraft still without a serial number are visited. |
 | `--all` | Look up every aircraft, not only those with gaps. |
 | `--only REG,REG` / `--limit N` | Restrict the run. |
-| `--refresh` / `--offline` | Ask the sources again / use only cached answers. Answers are cached for 90 days in `data/private/cache/airframes/`. |
+| `--refresh` / `--offline` | Ask the sources again / use only cached answers. Answers are cached for 90 days in `data/private/cache/airframes/`, but a Flightradar24 page only with its serial number: a page without one (the signed-in plan may not show it) is read again next time, and one cached before is dropped. `--offline` still uses it. |
 | `--overwrite-imported` | Let lookups replace values imported from the user's sheet. |
 
 ## Flight lookups (flight number + date)

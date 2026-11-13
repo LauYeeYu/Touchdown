@@ -8,7 +8,7 @@
 // is never stored, and only rejects an answer when a record is more than a year before it.
 
 import { t } from "@touchdown/i18n/cli";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalMaker, modelFromSource, registrationMatchForm, type AirframeFacts, type Evidence, type RefIndex } from "@touchdown/core";
 import { ChromeTab } from "../chrome.ts";
@@ -120,7 +120,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export const fr24Url = (registration: string) => `https://www.flightradar24.com/data/aircraft/${encodeURIComponent(registration.toLowerCase())}`;
 
-/** Reads aircraft pages one at a time through the user's Chrome, with a pause between pages and a cache. */
+/**
+ * Whether a page is worth keeping: one with the serial number. FR24 shows it only when the signed-in plan includes
+ * it, so a page without one may be a plan's view, not FR24's whole answer, and is read again next time.
+ */
+export const hasSerial = (page: Pick<Fr24Page, "rows">) => page.rows.some(([k, v]) => /^SERIAL NUMBER/i.test(k) && !!v && v !== "-");
+
+/**
+ * Reads aircraft pages one at a time through the user's Chrome, with a pause between pages and a cache. Only a page
+ * with the serial number is kept: one without it is read again, and one kept before is dropped (`--offline` still
+ * uses it, having nothing else).
+ */
 export function fr24Pages(opts: Fr24Options) {
   let tab: ChromeTab | null = null;
   let last = 0;
@@ -129,7 +139,7 @@ export function fr24Pages(opts: Fr24Options) {
     const p = cachePath(reg);
     if (existsSync(p)) {
       const c = JSON.parse(readFileSync(p, "utf8")) as Fr24Page;
-      if (opts.offline || (!opts.refresh && Date.now() - Date.parse(c.fetchedAt) < opts.maxAgeDays * 86_400_000)) return c;
+      if (opts.offline || (!opts.refresh && hasSerial(c) && Date.now() - Date.parse(c.fetchedAt) < opts.maxAgeDays * 86_400_000)) return c;
     }
     if (opts.offline) return { blocked: t("cliWrite.providers.fr24.offline") };
     if (!tab) tab = await ChromeTab.open(opts.port);
@@ -141,8 +151,10 @@ export function fr24Pages(opts: Fr24Options) {
     const page = JSON.parse(await tab.evaluate<string>(READ_DETAILS)) as Omit<Fr24Page, "fetchedAt">;
     if (/just a moment|attention required|captcha/i.test(page.title)) return { blocked: t("cliWrite.providers.fr24.botCheck") };
     const out: Fr24Page = { ...page, fetchedAt: new Date().toISOString() };
-    mkdirSync(join(opts.cacheDir, "fr24"), { recursive: true });
-    writeFileSync(p, JSON.stringify(out));
+    if (hasSerial(out)) {
+      mkdirSync(join(opts.cacheDir, "fr24"), { recursive: true });
+      writeFileSync(p, JSON.stringify(out));
+    } else rmSync(p, { force: true });
     return out;
   };
   return {
