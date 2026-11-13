@@ -290,9 +290,9 @@ describe("a type without a family's shape", () => {
   });
 
   it("leaves the curated families' checks as they are", () => {
-    // A family checked is one a person compared with the real aircraft (G11): the helicopters are not yet.
+    // A family checked is one compared with the real aircraft (G11): the H145's one drawing cannot be both of its kinds.
     expect(familyShapes.A320!.checked).toBe(true);
-    expect(familyShapes.R44!.checked).toBe(false);
+    expect(familyShapes.H145!.checked).toBe(false);
   });
 });
 
