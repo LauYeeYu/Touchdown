@@ -18,7 +18,7 @@ import { CODE, COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, meas
 import { dateOnly, distance, durShort, nf } from "./format.ts";
 import { AIRLINER_TOP, isGap, type TrackSample } from "./trackStatus.ts";
 import { camAt, camFor, clamp, easeInOut, easeOut, followCamera, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
-import { mp4, type Mp4Sample } from "./mp4.ts";
+import { mp4, type Mp4Sample, type Mp4Track } from "./mp4.ts";
 
 type LonLat = [number, number];
 
@@ -1311,6 +1311,17 @@ const bytesOf = (b: AllowSharedBufferSource | undefined): Uint8Array | null => {
  * Stops with an AbortError when `signal` is aborted.
  */
 export async function makeVideo(content: VideoContent, o: VideoOptions & { fps: number }, progress: (done: number) => void, signal?: AbortSignal): Promise<Blob> {
+  const samples: Mp4Sample[] = [];
+  const track = await encodeVideo(content, o, (s) => void samples.push(s), progress, signal);
+  return mp4(track, samples);
+}
+
+/**
+ * The video's frames, each drawn at its own time, encoded and handed to `sample` in decoding order as the encoder gives
+ * them, the drawing waiting while `sample` takes its time (`touchdown render` sends each to the command line, which
+ * keeps them on disk). Gives the track the file's index needs (lib/mp4.ts). `progress` and `signal` as for `makeVideo`.
+ */
+export async function encodeVideo(content: VideoContent, o: VideoOptions & { fps: number }, sample: (s: Mp4Sample) => void | Promise<void>, progress: (done: number) => void, signal?: AbortSignal): Promise<Mp4Track> {
   await prepareVideo(content);
   const chosen = await chooseCodec(o.width, o.height, o.fps);
   if (!chosen) throw new VideoUnsupported();
@@ -1321,7 +1332,10 @@ export async function makeVideo(content: VideoContent, o: VideoOptions & { fps: 
   const ctx = canvas.getContext("2d", { alpha: false })!;
   const fps = o.fps;
   const total = Math.max(1, Math.round(o.seconds * fps));
-  const samples: Mp4Sample[] = [];
+  const waiting: Mp4Sample[] = [];
+  const handOn = async () => {
+    while (waiting.length) await sample(waiting.shift()!);
+  };
   let decoder: VideoDecoderConfig | null = null;
   let failure: unknown = null;
   const encoder = new VideoEncoder({
@@ -1329,7 +1343,7 @@ export async function makeVideo(content: VideoContent, o: VideoOptions & { fps: 
       if (meta?.decoderConfig) decoder = meta.decoderConfig;
       const data = new Uint8Array(chunk.byteLength);
       chunk.copyTo(data);
-      samples.push({ data, key: chunk.type === "key", frame: Math.round((chunk.timestamp * fps) / 1e6) });
+      waiting.push({ data, key: chunk.type === "key", frame: Math.round((chunk.timestamp * fps) / 1e6) });
     },
     error: (e) => {
       failure = e;
@@ -1352,6 +1366,7 @@ export async function makeVideo(content: VideoContent, o: VideoOptions & { fps: 
         if (failure) throw failure;
         await new Promise((r) => setTimeout(r, 1));
       }
+      await handOn();
       if (performance.now() - last > 50) {
         progress(i / total);
         await yieldToPage();
@@ -1360,10 +1375,11 @@ export async function makeVideo(content: VideoContent, o: VideoOptions & { fps: 
     }
     await encoder.flush();
     if (failure) throw failure;
+    await handOn();
   } finally {
     if (encoder.state !== "closed") encoder.close();
   }
   progress(1);
   const d = decoder as VideoDecoderConfig | null;
-  return mp4({ codec: d?.codec ?? chosen.config.codec, width: o.width, height: o.height, fps, description: bytesOf(d?.description), colour: d?.colorSpace ?? null }, samples);
+  return { codec: d?.codec ?? chosen.config.codec, width: o.width, height: o.height, fps, description: bytesOf(d?.description), colour: d?.colorSpace ?? null };
 }

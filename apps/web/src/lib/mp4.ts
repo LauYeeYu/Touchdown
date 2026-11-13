@@ -29,6 +29,13 @@ export interface Mp4Sample {
   frame: number;
 }
 
+/** What the index needs of a sample: its size, not its bytes, so a long video's frames can wait in a file. */
+export interface Mp4Frame {
+  size: number;
+  key: boolean;
+  frame: number;
+}
+
 // Colour codes of ISO/IEC 23091-2 (H.273), for the names WebCodecs uses.
 const PRIMARIES: Record<string, number> = { bt709: 1, bt470bg: 5, smpte170m: 6, bt2020: 9, smpte432: 12 };
 const TRANSFER: Record<string, number> = { bt709: 1, smpte170m: 6, linear: 8, "iec61966-2-1": 13, pq: 16, hlg: 18 };
@@ -53,6 +60,10 @@ class Writer {
   }
   u32(n: number) {
     this.bytes([(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff]);
+  }
+  u64(n: number) {
+    this.u32(Math.floor(n / 2 ** 32));
+    this.u32(n % 2 ** 32);
   }
   i32(n: number) {
     this.u32(n >>> 0);
@@ -161,6 +172,19 @@ function chunking(count: number, fps: number): number[] {
 
 /** The whole file. */
 export function mp4(track: Mp4Track, samples: Mp4Sample[]): Blob {
+  const head = mp4Head(
+    track,
+    samples.map((s) => ({ size: s.data.length, key: s.key, frame: s.frame })),
+  );
+  return new Blob([head as BlobPart, ...samples.map((s) => s.data as BlobPart)], { type: "video/mp4" });
+}
+
+/**
+ * The file up to its frames: the file type, the index and the frames' box header. The frames' bytes follow it in the
+ * order given, so a file can be written from frames kept anywhere (`touchdown render` keeps them on disk). Past 4 GB the
+ * offsets and the frames' box take their 64-bit forms.
+ */
+export function mp4Head(track: Mp4Track, samples: Mp4Frame[]): Uint8Array {
   const fps = Math.max(1, Math.round(track.fps));
   // A timescale of a thousand ticks a frame: every frame lasts exactly as long.
   const timescale = fps * 1000;
@@ -211,19 +235,22 @@ export function mp4(track: Mp4Track, samples: Mp4Sample[]): Blob {
   const stsz = fullBox("stsz", 0, 0, (w) => {
     w.u32(0);
     w.u32(count);
-    for (const s of samples) w.u32(s.data.length);
+    for (const s of samples) w.u32(s.size);
   });
   const stsd = fullBox("stsd", 0, 0, (w) => w.u32(1), sampleEntry(track));
 
   // The index is built twice: once to learn its size, then with the chunks' offsets in the file, which follow it.
+  const dataSize = samples.reduce((n, s) => n + s.size, 0);
+  const large = dataSize > 0xffffffff - (1 << 24);
   const build = (firstOffset: number) => {
-    const stco = fullBox("stco", 0, 0, (w) => {
+    const stco = fullBox(large ? "co64" : "stco", 0, 0, (w) => {
       w.u32(chunks.length);
       let at = firstOffset;
       let i = 0;
       for (const n of chunks) {
-        w.u32(at);
-        for (let j = 0; j < n; j++) at += samples[i++]!.data.length;
+        if (large) w.u64(at);
+        else w.u32(at);
+        for (let j = 0; j < n; j++) at += samples[i++]!.size;
       }
     });
     const stbl = box("stbl", stsd, stts, ...(ctts ? [ctts] : []), stss, stsc, stsz, stco);
@@ -294,12 +321,19 @@ export function mp4(track: Mp4Track, samples: Mp4Sample[]): Blob {
     w.u32(0x200);
     for (const brand of ["isom", "iso2", vp9 ? "vp09" : "avc1", "mp41"]) w.ascii(brand);
   });
-  const dataSize = samples.reduce((n, s) => n + s.data.length, 0);
-  const mdatHeader = 8;
+  const mdatHeader = large ? 16 : 8;
   const probe = build(0);
   const moov = build(ftyp.length + probe.length + mdatHeader);
   const head = new Writer();
-  head.u32(mdatHeader + dataSize);
-  head.ascii("mdat");
-  return new Blob([ftyp as BlobPart, moov as BlobPart, head.done() as BlobPart, ...samples.map((s) => s.data as BlobPart)], { type: "video/mp4" });
+  head.bytes(ftyp);
+  head.bytes(moov);
+  if (large) {
+    head.u32(1);
+    head.ascii("mdat");
+    head.u64(mdatHeader + dataSize);
+  } else {
+    head.u32(mdatHeader + dataSize);
+    head.ascii("mdat");
+  }
+  return head.done();
 }

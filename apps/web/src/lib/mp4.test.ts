@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mp4, type Mp4Sample } from "./mp4.ts";
+import { mp4, mp4Head, type Mp4Sample } from "./mp4.ts";
 
 interface Box {
   type: string;
@@ -88,5 +88,40 @@ describe("the video's MP4 file", () => {
     const b = boxes(bytes);
     expect(b.get("moov/trak/mdia/minf/stbl/stsd/vp09")).toBeDefined();
     expect(() => mp4({ codec: "avc1.640028", width: 2, height: 2, fps: 30 }, [])).toThrow();
+  });
+
+  it("writes its head from the frames' sizes alone, the frames then following it", async () => {
+    const samples = Array.from({ length: 40 }, (_, i) => sample(7 + (i % 5), i, i === 0));
+    const track = { codec: "avc1.640028", width: 640, height: 360, fps: 30, description: AVCC };
+    const whole = new Uint8Array(await mp4(track, samples).arrayBuffer());
+    const head = mp4Head(track, samples.map((s) => ({ size: s.data.length, key: s.key, frame: s.frame })));
+    const joined = new Uint8Array(head.length + samples.reduce((n, s) => n + s.data.length, 0));
+    joined.set(head);
+    let at = head.length;
+    for (const s of samples) {
+      joined.set(s.data, at);
+      at += s.data.length;
+    }
+    expect(joined).toEqual(whole);
+  });
+
+  it("uses 64-bit offsets and a 64-bit frames' box past 4 GB", () => {
+    // Five minutes at 60 frames a second, 300 kB a frame: 5.4 GB of frames, only their sizes given.
+    const frames = Array.from({ length: 18000 }, (_, i) => ({ size: 300_000, key: i % 120 === 0, frame: i }));
+    const head = mp4Head({ codec: "avc1.640033", width: 3840, height: 2160, fps: 60, description: AVCC }, frames);
+    const view = new DataView(head.buffer);
+    const text = String.fromCharCode(...head);
+    expect(text).toContain("co64");
+    expect(text).not.toContain("stco");
+    // The frames' box closes the head: size 1, "mdat", then its 64-bit size.
+    const mdat = head.length - 16;
+    expect(view.getUint32(mdat)).toBe(1);
+    expect(String.fromCharCode(...head.subarray(mdat + 4, mdat + 8))).toBe("mdat");
+    expect(view.getBigUint64(mdat + 8)).toBe(BigInt(16 + 18000 * 300_000));
+    // The first chunk starts right after the head, the second a second's frames later.
+    const co64 = text.indexOf("co64") + 8;
+    expect(view.getUint32(co64)).toBe(300);
+    expect(view.getBigUint64(co64 + 4)).toBe(BigInt(head.length));
+    expect(view.getBigUint64(co64 + 12)).toBe(BigInt(head.length + 60 * 300_000));
   });
 });
