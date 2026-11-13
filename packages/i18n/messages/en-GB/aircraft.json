@@ -139,5 +139,13 @@
   "types.compare.swap": "Swap the two types",
   "types.compare.drawing": "{first} and {second} seen from above, to one scale",
   "types.compare.scale": "To one scale, noses together. The first filled, the second outlined.",
-  "types.compare.difference": "Difference"
+  "types.compare.difference": "Difference",
+  "types.public.skip": "Skip to content",
+  "types.public.signIn": "Sign in",
+  "types.public.about": "Aircraft types from Touchdown, a log of flights and aircraft for the people its owner invites. These pages are open to anyone.",
+  "types.public.privacy": "Privacy policy",
+  "types.public.terms": "Terms of service",
+  "types.public.opening": "Opening aircraft types…",
+  "types.public.opening.label": "Opening aircraft types",
+  "types.public.ready": "Ready"
 }

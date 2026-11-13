@@ -419,6 +419,11 @@ img {
   gap: 12px;
 }
 
+/* Without the main navigation (the public types pages), the tools still sit at the end. */
+.wordmark + .masthead__tools {
+  margin-left: auto;
+}
+
 .sync {
   display: inline-flex;
   align-items: center;

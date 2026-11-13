@@ -139,5 +139,13 @@
   "types.compare.swap": "Die beiden Typen tauschen",
   "types.compare.drawing": "{first} und {second} von oben, im selben Maßstab",
   "types.compare.scale": "Im selben Maßstab, die Nasen auf gleicher Höhe. Der erste gefüllt, der zweite als Umriss.",
-  "types.compare.difference": "Unterschied"
+  "types.compare.difference": "Unterschied",
+  "types.public.skip": "Zum Inhalt springen",
+  "types.public.signIn": "Anmelden",
+  "types.public.about": "Flugzeugtypen aus Touchdown, einem Logbuch für Flüge und Flugzeuge für die Menschen, die sein Inhaber einlädt. Diese Seiten sind für alle offen.",
+  "types.public.privacy": "Datenschutzerklärung",
+  "types.public.terms": "Nutzungsbedingungen",
+  "types.public.opening": "Flugzeugtypen werden geöffnet…",
+  "types.public.opening.label": "Flugzeugtypen werden geöffnet",
+  "types.public.ready": "Bereit"
 }

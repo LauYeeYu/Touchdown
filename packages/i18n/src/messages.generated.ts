@@ -226,6 +226,14 @@ export interface MessageArgs {
   "aircraft.types.compare.drawing": { first: "text"; second: "text" };
   "aircraft.types.compare.scale": {};
   "aircraft.types.compare.difference": {};
+  "aircraft.types.public.skip": {};
+  "aircraft.types.public.signIn": {};
+  "aircraft.types.public.about": {};
+  "aircraft.types.public.privacy": {};
+  "aircraft.types.public.terms": {};
+  "aircraft.types.public.opening": {};
+  "aircraft.types.public.opening.label": {};
+  "aircraft.types.public.ready": {};
   "airport.notFound": { airport: "text"; where: "choice" };
   "airport.notFound.reference": {};
   "airport.notFound.back": {};

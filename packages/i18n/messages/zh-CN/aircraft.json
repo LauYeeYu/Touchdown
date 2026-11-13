@@ -139,5 +139,13 @@
   "types.compare.swap": "交换两种机型",
   "types.compare.drawing": "{first}和{second}的俯视图，按同一比例",
   "types.compare.scale": "按同一比例，机头对齐。第一种为实心，第二种为轮廓。",
-  "types.compare.difference": "差别"
+  "types.compare.difference": "差别",
+  "types.public.skip": "跳到内容",
+  "types.public.signIn": "登录",
+  "types.public.about": "机型页面来自Touchdown，一个供站长邀请的人使用的航班和飞机日志。这些页面对所有人开放。",
+  "types.public.privacy": "隐私政策",
+  "types.public.terms": "服务条款",
+  "types.public.opening": "正在打开机型…",
+  "types.public.opening.label": "正在打开机型",
+  "types.public.ready": "就绪"
 }
