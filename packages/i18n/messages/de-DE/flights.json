@@ -20,7 +20,7 @@
   "figure.format.label": "Format",
   "figure.format.hint": "{format, select, png {Scharfe Linien und Schrift, zum Teilen und fürs Web.} jpeg {Eine kleinere Datei, zum Teilen, wo die Größe zählt.} webp {Die kleinste Datei, fürs Web.} svg {Formen und Schrift, die in jeder Größe scharf bleiben, zum Bearbeiten in einem Zeichenprogramm.} other {Eine Seite in der Größe des Bildes, zum Drucken.}}",
   "figure.size.label": "Größe",
-  "figure.size.option": "{size, select, landscape {Querformat} square {Quadratisch} portrait {Hochformat} a4 {A4 zum Drucken} other {A3 zum Drucken}}, {width} × {height}",
+  "figure.size.option": "{size, select, landscape {Querformat} square {Quadratisch} portrait {Hochformat} a4 {A4 zum Drucken} a3 {A3 zum Drucken} other {US-Letter zum Drucken}}, {width} × {height}",
   "figure.stats.label": "Mit Statistik",
   "figure.codes.label": "Flughafencodes",
   "figure.download": "{format} herunterladen",

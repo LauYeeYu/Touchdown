@@ -137,7 +137,7 @@ Where it shows: a flight's page (the times strip's last cell, with how much furt
 | Base map | Natural Earth land and borders (public domain), light or dark style |
 | Lines | colour by airline, year, type, or one colour; recorded tracks drawn as recorded, others as great circles |
 | Labels | airport codes (IATA/ICAO/none), title, date range, totals (flights, distance) |
-| Size | 1920×1080, 1080×1080, 1080×1920, A4/A3 at 300 dpi, custom |
+| Size | 1920×1080, 1080×1080, 1080×1920, A4/A3/US Letter at 300 dpi, custom |
 | Format | PNG, JPEG, WebP, SVG, PDF |
 | Privacy | never shows private fields; option to hide flight numbers and exact dates |
 
@@ -150,8 +150,8 @@ Share first (Decided, built): where the browser can hand a file of the chosen fo
 | Choice | Built |
 |--------|-------|
 | Scope | One flight; the flights Flights shows, its period with its search and filters; or Home's period, its flights and its spotting places, blue dots sized by the aircraft seen as on Home's map. The whole log with the period "All time". |
-| Format | PNG, JPEG, WebP (where the browser can write it), SVG (shapes and text, with the type's files its characters need inside, Source Sans 3 and for Chinese Source Han Sans, so it looks the same on any computer), PDF (one page holding the image as a JPEG, the page the image's size at its resolution: A4 or A3 for the print sizes). |
-| Size | Landscape 1920×1080, square 1080×1080, portrait 1080×1920, A4 and A3 landscape at 300 dpi (3508×2480, 4961×3508). The words are laid out for a picture 1200 wide and grow with it, a fifth larger on a square or upright one. |
+| Format | PNG, JPEG, WebP (where the browser can write it), SVG (shapes and text, with the type's files its characters need inside, Source Sans 3 and for Chinese Source Han Sans, so it looks the same on any computer), PDF (one page holding the image as a JPEG, the page the image's size at its resolution: A4, A3 or US Letter for the print sizes). |
+| Size | Landscape 1920×1080, square 1080×1080, portrait 1080×1920, A4, A3 and US Letter landscape at 300 dpi (3508×2480, 4961×3508, 3300×2550). The words are laid out for a picture 1200 wide and grow with it, a fifth larger on a square or upright one (a picture at least a quarter wider than tall, US Letter's 11 × 8.5 included, counts as landscape). |
 | Theme | Light or dark, the page's to start with: the app's map colours, whatever the page shows now. |
 | Airport codes | Only on a map of more than 10 places, where the codes are left out to start with. On, every place's code that has room, smaller than on a map of a few places, the busiest places' first (the flights from and to it, the aircraft seen there). |
 | Statistics | Off to start with. On, figures under the map, as the page shows them, in as few rows as fit with the figures shared evenly between them: for a flight its takeoff and landing, time in the air, distance flown (with the great circle), route extension and aircraft; for Flights the flights and their distance, time in the air, longest flight, most flown route and airline; for Home the flights, the aircraft spotted and the figures above its map. Never a private field. |

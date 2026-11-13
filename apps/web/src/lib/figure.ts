@@ -13,16 +13,17 @@ import { AIRLINER, AIRLINER_TRANSFORM, GROUND } from "./wordmark.ts";
 import { pdfOfJpeg } from "./pdf.ts";
 
 export type FigureFormat = "png" | "jpeg" | "webp" | "svg" | "pdf";
-export type FigureSize = "landscape" | "square" | "portrait" | "a4" | "a3";
+export type FigureSize = "landscape" | "square" | "portrait" | "a4" | "a3" | "letter";
 export type FigureTheme = "light" | "dark";
 
-/** The sizes offered, in pixels, and the resolution a PDF of each is printed at (A4 and A3 landscape at 300 dpi). */
+/** The sizes offered, in pixels, and the resolution a PDF of each is printed at (A4, A3 and US Letter landscape at 300 dpi). */
 export const FIGURE_SIZES: Record<FigureSize, { width: number; height: number; dpi: number }> = {
   landscape: { width: 1920, height: 1080, dpi: 144 },
   square: { width: 1080, height: 1080, dpi: 144 },
   portrait: { width: 1080, height: 1920, dpi: 144 },
   a4: { width: 3508, height: 2480, dpi: 300 },
   a3: { width: 4961, height: 3508, dpi: 300 },
+  letter: { width: 3300, height: 2550, dpi: 300 },
 };
 
 export const FIGURE_FORMATS: Record<FigureFormat, { ext: string; type: string }> = {
@@ -76,6 +77,9 @@ const MIN_SPAN = 8;
  * any hemisphere, but a still picture shows places near the globe's edge squeezed, so a wider spread goes flat.
  */
 const GLOBE_REACH = Math.PI / 3;
+
+/** A picture at least this much wider than tall is landscape, with its words set for 1,200 wide (`lay`). */
+export const WIDE = 1.25;
 
 /** At most this many places get their codes written: more would cover each other and the routes. */
 export const MAX_LABELS = 10;
@@ -488,9 +492,10 @@ export function statTiles(stats: FigureStat[], u: number, left: number, right: n
 /** The figure, painted: the map fitted between the title and the statistics, the routes, the places, the words. */
 function lay(f: Figure, p: Painter, land: FeatureCollection) {
   const c: Colours = COLOURS[f.theme];
-  // Sizes are for a landscape picture 1,200 wide. A square or upright one sets its words a fifth larger, as it is
-  // seen smaller for its width (on a phone, in a feed).
-  const u = f.width / (f.width / f.height >= 1.4 ? 1200 : 1000);
+  // Sizes are for a landscape picture 1,200 wide, any page at least a quarter wider than tall (US Letter's 11 × 8.5 as
+  // A4's). A square or upright one sets its words a fifth larger, as it is seen smaller for its width (on a phone, in
+  // a feed).
+  const u = f.width / (f.width / f.height >= WIDE ? 1200 : 1000);
   p.rect(0, 0, f.width, f.height, c.paper);
 
   // The logo, at the bottom right: the mark and the name, as the top bar draws them (DESIGN.md, "Wordmark").

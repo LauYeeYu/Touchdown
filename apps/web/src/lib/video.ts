@@ -14,7 +14,7 @@ import type { Feature, FeatureCollection } from "geojson";
 import { haversineKm } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import type { MapFlight } from "../components/maps.tsx";
-import { CODE, COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, measure, overlaps, projectionFor, sans, spaced, STAT, statTiles, type Box, type Colours, type FigureStat, type FigureTheme } from "./figure.ts";
+import { CODE, COLOURS, drawMark, landNow, loadFonts, loadLand, MAX_LABELS, measure, overlaps, projectionFor, sans, spaced, STAT, statTiles, WIDE, type Box, type Colours, type FigureStat, type FigureTheme } from "./figure.ts";
 import { dateOnly, distance, durShort, nf } from "./format.ts";
 import { AIRLINER_TOP, isGap, type TrackSample } from "./trackStatus.ts";
 import { camAt, camFor, clamp, easeInOut, easeOut, planMoves, ramped, routeCamera, smoother, tickerChanges, timeline, union, type Cam, type Rect } from "./videoPlan.ts";
@@ -178,7 +178,7 @@ interface Frame {
 }
 
 function frameOf(width: number, height: number, theme: FigureTheme): Frame {
-  const u = width / (width / height >= 1.4 ? 1200 : 1000);
+  const u = width / (width / height >= WIDE ? 1200 : 1000);
   const nameSize = 26 * u;
   const markH = (nameSize * 25) / 18;
   const scale = markH / 20.5;

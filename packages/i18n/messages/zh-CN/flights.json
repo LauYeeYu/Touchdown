@@ -20,7 +20,7 @@
   "figure.format.label": "格式",
   "figure.format.hint": "{format, select, png {线条和文字清晰，适合分享和网页。} jpeg {文件较小，适合在意文件大小时分享。} webp {文件最小，适合网页。} svg {图形和文字在任何尺寸下都清晰，可在绘图软件中编辑。} other {与图片同尺寸的一页，用于打印。}}",
   "figure.size.label": "尺寸",
-  "figure.size.option": "{size, select, landscape {横向} square {方形} portrait {纵向} a4 {A4打印} other {A3打印}}，{width} × {height}",
+  "figure.size.option": "{size, select, landscape {横向} square {方形} portrait {纵向} a4 {A4打印} a3 {A3打印} other {US Letter打印}}，{width} × {height}",
   "figure.stats.label": "包含统计数据",
   "figure.codes.label": "机场代码",
   "figure.download": "下载{format}",
