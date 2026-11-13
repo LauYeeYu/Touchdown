@@ -328,16 +328,35 @@ export function routeCamera(o: { at: LonLat[]; km: ArrayLike<number>; width: num
   };
 
   // Views every thirtieth of a second while it moves, the zoom kept from closing in again, then smoothed.
-  const sigma = 0.2;
-  const reachOut = 3 * sigma;
-  const t0 = o.from - reachOut;
-  const t1 = Math.max(o.to, o.from) + reachOut;
+  const t0 = o.from - REACH_OUT;
+  const t1 = Math.max(o.to, o.from) + REACH_OUT;
+  return smoothed(t0, t1, (t) => raw(o.reach(clamp(t, o.from, o.to))), (raws) => {
+    for (let k = 1; k < raws.length; k++) raws[k]!.r = Math.min(raws[k]!.r, raws[k - 1]!.r);
+  });
+}
+
+/** How long a camera's views are smoothed over (a Gaussian's σ, seconds), and how far either side that reaches. */
+const SIGMA = 0.2;
+const REACH_OUT = 3 * SIGMA;
+
+interface RawView {
+  c: Vec;
+  r: number;
+  off: [number, number];
+}
+
+/**
+ * A camera from its views every thirtieth of a second between `t0` and `t1` (`adjust` may change them first), smoothed
+ * over `SIGMA` seconds so it does not jerk, and still before `t0` and after `t1`. Between two views the middle moves
+ * along the sphere, the radius in proportion and the offset in step.
+ */
+function smoothed(t0: number, t1: number, raw: (t: number) => RawView, adjust?: (raws: RawView[]) => void): RouteCamera {
   const count = Math.max(2, Math.min(1200, Math.ceil((t1 - t0) * 30) + 1));
   const dt = (t1 - t0) / (count - 1);
-  const raws = Array.from({ length: count }, (_, k) => raw(o.reach(clamp(t0 + k * dt, o.from, o.to))));
-  for (let k = 1; k < count; k++) raws[k]!.r = Math.min(raws[k]!.r, raws[k - 1]!.r);
-  const wide = Math.ceil(reachOut / dt);
-  const weights = Array.from({ length: 2 * wide + 1 }, (_, j) => Math.exp(-(((j - wide) * dt) ** 2) / (2 * sigma * sigma)));
+  const raws = Array.from({ length: count }, (_, k) => raw(t0 + k * dt));
+  adjust?.(raws);
+  const wide = Math.ceil(REACH_OUT / dt);
+  const weights = Array.from({ length: 2 * wide + 1 }, (_, j) => Math.exp(-(((j - wide) * dt) ** 2) / (2 * SIGMA * SIGMA)));
   const keys = raws.map((_, k) => {
     const c: Vec = [0, 0, 0];
     let logR = 0;
@@ -356,7 +375,7 @@ export function routeCamera(o: { at: LonLat[]; km: ArrayLike<number>; width: num
     }
     return { c: unit(c) ?? raws[k]!.c, r: Math.exp(logR / all), off: [off[0] / all, off[1] / all] as [number, number] };
   });
-  const view = (k: { c: Vec; r: number; off: [number, number] }): GlobeView => ({ centre: lonLat(k.c), r: k.r, off: k.off });
+  const view = (k: RawView): GlobeView => ({ centre: lonLat(k.c), r: k.r, off: k.off });
   const firstView = view(keys[0]!);
   const lastView = view(keys[count - 1]!);
   return {
