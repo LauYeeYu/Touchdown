@@ -66,14 +66,16 @@ export function withHeaders(res: Response, path: string): Response {
     out.headers.set("Referrer-Policy", "no-referrer");
     out.headers.set("Content-Security-Policy", SHARE_CSP);
   }
+  // The aircraft types pages are the same for everyone (docs/31, "Aircraft types"), so any cache may keep them.
+  const types = path === "/types" || path.startsWith("/types/") || path.startsWith("/types-files/");
   if ((out.headers.get("Content-Type") ?? "").startsWith("text/html")) {
     // The page is checked with the server on every visit, so a new deployment is picked up at once. A shared page is
     // also left as it is, so Cloudflare adds no page-view counting to it.
-    out.headers.set("Cache-Control", shared ? "no-cache, no-transform" : "no-cache");
+    out.headers.set("Cache-Control", shared ? "no-cache, no-transform" : types ? "public, no-cache" : "no-cache");
   } else if (path === "/sw.js") {
     // The offline worker (docs/30, "Offline"): checked on every visit, so a new deployment's files are kept at once.
     out.headers.set("Cache-Control", "no-cache");
-  } else if ((path.startsWith("/assets/") || path.startsWith("/share-files/assets/")) && res.ok) {
+  } else if ((path.startsWith("/assets/") || path.startsWith("/share-files/assets/") || path.startsWith("/types-files/assets/")) && res.ok) {
     // Built files carry a content hash in their names.
     out.headers.set("Cache-Control", "public, max-age=31536000, immutable");
   }

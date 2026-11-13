@@ -15,11 +15,12 @@ describe("the offline worker's routes", () => {
   });
 
   it("opens the app's pages from the network first, with the cached page offline", () => {
-    for (const path of ["/", "/flights", "/flights/01M687WJWYJHMG38DRPHYJJZ44", "/aircraft/abc", "/stats", "/settings", "/import"]) expect(routeFor(path, "navigate", files), path).toBe("page");
+    // The types pages too: online the server sends their public page, which opens the app for a member; offline the app.
+    for (const path of ["/", "/flights", "/flights/01M687WJWYJHMG38DRPHYJJZ44", "/aircraft/abc", "/stats", "/settings", "/import", "/types/A388"]) expect(routeFor(path, "navigate", files), path).toBe("page");
   });
 
   it("leaves the sign-in pages, the server's requests and share links alone", () => {
-    for (const path of ["/signin", "/signin/", "/setup", "/join/abc", "/reset/abc", "/privacy", "/terms", "/auth/me", "/api/storage/token", "/p/abcdefghijklmnopqrstuv", "/share-files/share.html", "/signin-files/signin.html", "/cli/login", "/sw.js"]) {
+    for (const path of ["/signin", "/signin/", "/setup", "/join/abc", "/reset/abc", "/privacy", "/terms", "/auth/me", "/api/storage/token", "/p/abcdefghijklmnopqrstuv", "/share-files/share.html", "/signin-files/signin.html", "/types-files/types.html", "/cli/login", "/sw.js"]) {
       expect(routeFor(path, "navigate", files), path).toBe("pass");
     }
     expect(routeFor("/auth/me", "cors", files)).toBe("pass");
@@ -41,11 +42,11 @@ describe("the files the offline worker keeps", () => {
       mkdirSync(join(dir, path, ".."), { recursive: true });
       writeFileSync(join(dir, path), text);
     };
-    for (const [path, text] of Object.entries({ "index.html": "<html>", "assets/index-abc.js": "app", "assets/index-abc.js.map": "{}", "boot.css": "a{}", "signin-files/signin.html": "x", "share-files/share.html": "y", "sw.js": "old", ...extra })) write(path, text);
+    for (const [path, text] of Object.entries({ "index.html": "<html>", "assets/index-abc.js": "app", "assets/index-abc.js.map": "{}", "boot.css": "a{}", "signin-files/signin.html": "x", "share-files/share.html": "y", "types-files/types.html": "z", "sw.js": "old", ...extra })) write(path, text);
     return dir;
   };
 
-  it("lists the app's files, without source maps, the sign-in and share pages' files or itself", () => {
+  it("lists the app's files, without source maps, the sign-in, share and types pages' files or itself", () => {
     expect(offlineFiles(build()).files).toEqual(["/assets/index-abc.js", "/boot.css", "/index.html"]);
   });
 

@@ -78,6 +78,28 @@ describe("the gate", () => {
     expect(page.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
   });
 
+  it("serves the aircraft types pages to anyone, the same page with a session or without", async () => {
+    const { s, served, owner } = await withOwner();
+    const pages = ["/types", "/types/", "/types/A388", "/types/compare?a=A388&b=B752"];
+    for (const path of pages) {
+      for (const jar of [{ cookie: null }, owner]) {
+        const r = await call(s, jar, "GET", path, undefined, { Accept: "text/html" });
+        expect(r.status, path).toBe(200);
+        expect(r.res.headers.get("Cache-Control"), path).toBe("public, no-cache");
+        // Nothing in the answer depends on who asks: no session is renewed on it.
+        expect(r.res.headers.getSetCookie(), path).toEqual([]);
+      }
+    }
+    expect(served).toEqual(Array(pages.length * 2).fill("/types-files/types.html"));
+    const file = await handle(new Request(`${SITE}/types-files/assets/types-1.js`), s);
+    expect(file.status).toBe(200);
+    expect(file.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+    // Only the pages: anything else under /types, or another method, meets the sign-in.
+    expect((await handle(new Request(`${SITE}/types/A388/photos`, { headers: { Accept: "text/html" } }), s)).status).toBe(302);
+    expect((await handle(new Request(`${SITE}/types/A388`, { method: "POST", headers: { Origin: SITE } }), s)).status).toBe(401);
+    expect((await handle(new Request(`${SITE}/types-files/%2e%2e%2findex.html`), s)).status).toBe(400);
+  });
+
   it("refuses paths that hide dot segments or slashes in escapes", async () => {
     const { s, served } = server();
     for (const path of ["/signin-files/%2e%2e%2findex.html", "/signin-files/..%2f..%2fpackage.json", "/signin-files/a%5c..%5cindex.html"]) {

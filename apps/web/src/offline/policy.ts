@@ -11,7 +11,7 @@ export const SHELL = "/index.html";
  * Addresses that are not the app's own pages: the server answers them, or another build does. They are never served
  * from the cache, so the sign-in pages, the API and share links behave offline as they would without the worker.
  */
-const NOT_APP = /^\/(auth|api|p|share-files|signin-files|cli|__share-cache)(\/|$)|^\/(signin|setup|privacy|terms)\/?$|^\/(join|reset)\//;
+const NOT_APP = /^\/(auth|api|p|share-files|signin-files|types-files|cli|__share-cache)(\/|$)|^\/(signin|setup|privacy|terms)\/?$|^\/(join|reset)\//;
 
 /** A file's address ends in an extension, as the server tells files from the app's pages (packages/server serve.ts). */
 const FILE = /\.[A-Za-z0-9]+$/;

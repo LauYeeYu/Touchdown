@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
-const LEFT_OUT = /^(signin-files|share-files)\/|\.map$|^sw\.js$|\/noto-sans-(sc|tc)-[^/]*\.woff2$/;
+const LEFT_OUT = /^(signin-files|share-files|types-files)\/|\.map$|^sw\.js$|\/noto-sans-(sc|tc)-[^/]*\.woff2$/;
 
 /** The app's files as addresses from the site's root, and a version that changes when any of them changes. */
 export function offlineFiles(dist: string): { files: string[]; version: string } {
