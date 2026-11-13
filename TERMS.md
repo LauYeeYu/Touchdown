@@ -35,7 +35,7 @@ A share link's page shows what the person who shared it chose to share. You can 
 
 ## Aircraft types pages
 
-The aircraft types pages can be opened without an account. Their figures come from Wikipedia and their drawings are made by Touchdown from those figures. Both are for interest and may be wrong or out of date. These terms' rules on use apply to you too.
+The aircraft types pages can be opened without an account. Their figures come from Wikipedia and Wikidata, and their drawings are made by Touchdown from those figures. Both are for interest and may be wrong or out of date. These terms' rules on use apply to you too.
 
 ## Other services
 
