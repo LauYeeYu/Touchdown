@@ -548,5 +548,19 @@
   "build.sightings.mostNew": "單日最多新飛機：{count}",
   "build.sightings.busiest": "單日最多拍攝紀錄：{count}",
   "build.combined.title": "綜合",
-  "build.combined.both": "既搭乘過又拍過的飛機：{count}"
+  "build.combined.both": "既搭乘過又拍過的飛機：{count}",
+  "render.bad": "{option, select, size {--size可以是landscape、square或portrait。} seconds {--seconds是10到600之間的整數。} fps {--fps可以是30或60。} theme {--theme可以是light或dark。} view {--view可以是route或follow。} year {log後面可以寫all或某一年，例如2025。} other {請說明影片的內容：flight REF、aircraft REF或log [YEAR]。}}",
+  "render.noChrome": "找不到用來製作影片的Chrome。請安裝Google Chrome，或用--chrome PATH指定它的路徑。",
+  "render.exists": "{file}已存在。請用--out指定其他位置，或用--force取代它。",
+  "render.building": "正在準備影片頁面…",
+  "render.starting": "正在不顯示視窗的Chrome中製作影片…",
+  "render.making": "正在製作影片…{percent, number}%",
+  "render.vp9": "此Chrome無法寫入H.264，所以影片採用VP9編碼，部分手機和Apple的應用程式可能無法播放。",
+  "render.made": "已寫入{file}：{seconds, number}秒，{width, number} × {height, number}，每秒{fps, number}格，{size}。",
+  "render.none": "{kind, select, flight {航班需要有兩個機場才能製作影片。} aircraft {這架飛機沒有可以製作影片的航班。} other {{year, select, all {日誌中沒有可以製作影片的航班或拍攝紀錄。} other {日誌中{year}\u2060年沒有可以製作影片的航班或拍攝紀錄。}}}}",
+  "render.unsupported": "此Chrome無法製作{width, number} × {height, number}、每秒{fps, number}格的影片。請試試每秒30格，或較小的尺寸。",
+  "render.failed": "無法製作影片：{reason}",
+  "render.noAnswer": "Chrome不再回應，影片沒有製作完成。請再執行一次。",
+  "render.buildFailed": "無法產生影片頁面：{reason}",
+  "render.chromeFailed": "影片完成之前Chrome就結束了（{reason}）。"
 }

@@ -56,6 +56,7 @@ import { statsCommand, statsHelp } from "./stats.ts";
 import { reviewCommand, reviewHelp } from "./review.ts";
 import { importCommand } from "./importfile.ts";
 import { backupCommand, backupHelp, exportCommand, exportHelp } from "./backup.ts";
+import { renderCommand, renderHelp } from "./render.ts";
 import { tracksCommand, tracksHelp } from "./tracklookup.ts";
 import { deleteCommand, deleteHelp, editCommand, editHelp, familiesCommand, familiesHelp, settingsCommand, settingsHelp, trackCommand, trackHelp, undoCommand, undoHelp, viewsHelp } from "./change.ts";
 import { importsCommand, importsHelp, issuesCommand, issuesHelp } from "./issues.ts";
@@ -117,6 +118,7 @@ const HELP: Record<string, () => string> = {
   backup: backupHelp,
   views: viewsHelp,
   export: exportHelp,
+  render: renderHelp,
 };
 
 function usage(text = menu(), code = 1): never {
@@ -317,6 +319,7 @@ async function main(argv: string[]) {
   if (cmd === "settings") return settingsCommand(all);
   if (cmd === "review") return reviewCommand(all);
   if (cmd === "backup") return backupCommand(all);
+  if (cmd === "render") return renderCommand(all);
   if (cmd === "export") return exportCommand(all);
   if (all.includes("--help") || all.includes("-h")) usage(HELP[cmd]!(), 0);
   // Without --out, import puts the files in the inbox for review (docs/34); with it, it builds a backup.

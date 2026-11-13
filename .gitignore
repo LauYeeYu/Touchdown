@@ -8,6 +8,7 @@ data/private/
 # Dependencies and build output
 node_modules/
 dist/
+dist-render/
 coverage/
 # wrangler dev's local state and bundles
 .wrangler/

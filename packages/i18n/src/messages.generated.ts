@@ -359,6 +359,7 @@ export interface MessageArgs {
   "cli.value.empty": {};
   "cli.value.clear": {};
   "cli.row": { n: "text" };
+  "cli.help.render": {};
   "cliRead.help.usage": { synopsis: "text" };
   "cliRead.option.log": {};
   "cliRead.option.json": {};
@@ -1228,6 +1229,20 @@ export interface MessageArgs {
   "cliWrite.build.sightings.busiest": { count: "text" };
   "cliWrite.build.combined.title": {};
   "cliWrite.build.combined.both": { count: "text" };
+  "cliWrite.render.bad": { option: "choice" };
+  "cliWrite.render.noChrome": {};
+  "cliWrite.render.exists": { file: "text" };
+  "cliWrite.render.building": {};
+  "cliWrite.render.starting": {};
+  "cliWrite.render.making": { percent: "number" };
+  "cliWrite.render.vp9": {};
+  "cliWrite.render.made": { file: "text"; fps: "number"; height: "number"; seconds: "number"; size: "text"; width: "number" };
+  "cliWrite.render.none": { kind: "choice"; year: "choice" };
+  "cliWrite.render.unsupported": { fps: "number"; height: "number"; width: "number" };
+  "cliWrite.render.failed": { reason: "text" };
+  "cliWrite.render.noAnswer": {};
+  "cliWrite.render.buildFailed": { reason: "text" };
+  "cliWrite.render.chromeFailed": { reason: "text" };
   "common.count.flights": { count: "number" };
   "common.count.sightings": { count: "number" };
   "common.count.aircraft": { count: "number" };

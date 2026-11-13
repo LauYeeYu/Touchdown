@@ -128,7 +128,7 @@ export async function flightsCommand(args: string[]) {
  * The flight's recorded positions, for its route extension: the log is read without them, so this flight's track is
  * read from the storage on its own. A backup holds them already. Without them the route extension is left out.
  */
-async function withTrackPoints(log: OpenedLog, flightId: string) {
+export async function withTrackPoints(log: OpenedLog, flightId: string) {
   const t = log.store.all("tracks").find((x) => x.flightId === flightId);
   if (!t || !log.storage || log.store.all("track_points").some((p) => p.trackId === t.id)) return;
   try {

@@ -1,9 +1,8 @@
 // What a video shows (lib/video.ts), from the log in this browser: its flights with their recorded tracks, and for a
 // period its sightings. The pages give the words (the title, the figures at the end), as they do for an image.
 
-import { haversineKm, simplifyTrack, type Sighting } from "@touchdown/core";
+import { haversineKm, simplifyTrack, type RefIndex, type Settings, type Sighting, type Store } from "@touchdown/core";
 import type { FlightView } from "@touchdown/core/view";
-import type { AppData } from "../data/app.ts";
 import type { FigureStat } from "./figure.ts";
 import { primaryCode } from "./codes.ts";
 import { trackIndex, trackRuns, type TrackPoint } from "./mapdata.ts";
@@ -11,6 +10,13 @@ import { trackSamples } from "./trackStatus.ts";
 import type { VideoContent, VideoLeg, VideoSighting } from "./video.ts";
 
 type LonLat = [number, number];
+
+/** The log a video is made from: the web app's data, or the log `touchdown render` hands its page. */
+export interface VideoLog {
+  store: Store;
+  ref: RefIndex;
+  settings(): Settings;
+}
 
 /** A track that starts or ends this far from its airport leaves that stretch unrecorded (as the maps draw it). */
 const GAP_AIRPORT_KM = 30;
@@ -43,7 +49,7 @@ function route(from: LonLat, to: LonLat, full: TrackPoint[] | undefined, points:
   return { points: out, gap };
 }
 
-function legOf(app: AppData, v: FlightView, tracks: Map<string, TrackPoint[]>, points: number): VideoLeg | null {
+function legOf(app: VideoLog, v: FlightView, tracks: Map<string, TrackPoint[]>, points: number): VideoLeg | null {
   const { ref } = app;
   const a = ref.airport(v.f.fromAirportId);
   const b = ref.airport(v.f.divertedToAirportId ?? v.f.toAirportId);
@@ -67,10 +73,10 @@ function legOf(app: AppData, v: FlightView, tracks: Map<string, TrackPoint[]>, p
   };
 }
 
-const unitOf = (app: AppData) => app.settings().distanceUnit ?? "km";
+const unitOf = (app: VideoLog) => app.settings().distanceUnit ?? "km";
 
 /** A flight's video: its aircraft along its whole recorded track, with what was recorded on the way. */
-export function flightVideo(app: AppData, v: FlightView, words: { title: string; subtitle?: string; stats?: FigureStat[] }): VideoContent {
+export function flightVideo(app: VideoLog, v: FlightView, words: { title: string; subtitle?: string; stats?: FigureStat[] }): VideoContent {
   const tracks = trackIndex(app.store);
   const leg = legOf(app, v, tracks, Infinity);
   const takeoff = v.f.takeoffAt ? Date.parse(v.f.takeoffAt) / 1000 : NaN;
@@ -87,7 +93,7 @@ export function flightVideo(app: AppData, v: FlightView, words: { title: string;
 }
 
 /** A period's video: its flights in the order they were flown, and its sightings when given. */
-export function periodVideo(app: AppData, views: FlightView[], words: { title: string; stats?: FigureStat[] }, sightings: Sighting[] = []): VideoContent {
+export function periodVideo(app: VideoLog, views: FlightView[], words: { title: string; stats?: FigureStat[] }, sightings: Sighting[] = []): VideoContent {
   const tracks = trackIndex(app.store);
   const legs = views.map((v) => legOf(app, v, tracks, PERIOD_TRACK_POINTS)).filter((l): l is VideoLeg => l !== null);
   const seen: VideoSighting[] = [];

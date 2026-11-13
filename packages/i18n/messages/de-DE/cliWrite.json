@@ -548,5 +548,19 @@
   "build.sightings.mostNew": "Die meisten neuen Flugzeuge an einem Tag: {count}",
   "build.sightings.busiest": "Die meisten Sichtungen an einem Tag: {count}",
   "build.combined.title": "Zusammen",
-  "build.combined.both": "Flugzeuge, mit denen du geflogen bist und die du fotografiert hast: {count}"
+  "build.combined.both": "Flugzeuge, mit denen du geflogen bist und die du fotografiert hast: {count}",
+  "render.bad": "{option, select, size {--size nimmt landscape, square oder portrait.} seconds {--seconds nimmt eine ganze Zahl von 10 bis 600.} fps {--fps nimmt 30 oder 60.} theme {--theme nimmt light oder dark.} view {--view nimmt route oder follow.} year {log nimmt all oder ein Jahr, etwa 2025.} other {Gib an, was das Video zeigt: flight REF, aircraft REF oder log [JAHR].}}",
+  "render.noChrome": "Kein Chrome gefunden, um das Video zu machen. Installiere Google Chrome oder gib seinen Pfad mit --chrome PATH an.",
+  "render.exists": "{file} gibt es schon. Gib ein anderes --out an oder --force, um die Datei zu ersetzen.",
+  "render.building": "Die Seite für das Video wird vorbereitet …",
+  "render.starting": "Das Video entsteht in Chrome, ohne Fenster …",
+  "render.making": "Das Video entsteht … {percent, number} %",
+  "render.vp9": "Dieses Chrome kann kein H.264 schreiben, darum ist das Video in VP9: Manche Handys und Apples Apps spielen es vielleicht nicht ab.",
+  "render.made": "{file} geschrieben: {seconds, number} Sekunden, {width, number} × {height, number}, {fps, number} Bilder pro Sekunde, {size}.",
+  "render.none": "{kind, select, flight {Für ein Video braucht der Flug beide Flughäfen.} aircraft {Das Flugzeug hat keine Flüge für ein Video.} other {{year, select, all {Das Logbuch hat keine Flüge oder Sichtungen für ein Video.} other {Das Logbuch hat {year} keine Flüge oder Sichtungen für ein Video.}}}}",
+  "render.unsupported": "Dieses Chrome kann kein Video mit {width, number} × {height, number} und {fps, number} Bildern pro Sekunde schreiben. Versuch es mit 30 Bildern pro Sekunde oder einer kleineren Größe.",
+  "render.failed": "Das Video konnte nicht gemacht werden: {reason}",
+  "render.noAnswer": "Chrome hat nicht mehr geantwortet, darum wurde das Video nicht gemacht. Führe den Befehl noch einmal aus.",
+  "render.buildFailed": "Die Seite für das Video konnte nicht gebaut werden: {reason}",
+  "render.chromeFailed": "Chrome wurde beendet, bevor das Video fertig war ({reason})."
 }

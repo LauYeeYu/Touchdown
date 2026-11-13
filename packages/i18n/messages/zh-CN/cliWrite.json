@@ -548,5 +548,19 @@
   "build.sightings.mostNew": "一天内拍到最多新飞机：{count}",
   "build.sightings.busiest": "一天内最多拍摄记录：{count}",
   "build.combined.title": "综合",
-  "build.combined.both": "既乘坐过又拍过的飞机：{count}"
+  "build.combined.both": "既乘坐过又拍过的飞机：{count}",
+  "render.bad": "{option, select, size {--size可以是landscape、square或portrait。} seconds {--seconds是10到600之间的整数。} fps {--fps可以是30或60。} theme {--theme可以是light或dark。} view {--view可以是route或follow。} year {log后面可以写all或某一年，例如2025。} other {请说明视频的内容：flight REF、aircraft REF或log [YEAR]。}}",
+  "render.noChrome": "找不到用来制作视频的Chrome。请安装Google Chrome，或用 --chrome PATH给出它的路径。",
+  "render.exists": "{file}已存在。请用 --out给出其他位置，或用 --force替换它。",
+  "render.building": "正在准备视频页面…",
+  "render.starting": "正在不显示窗口的Chrome中制作视频…",
+  "render.making": "正在制作视频…{percent, number}%",
+  "render.vp9": "此Chrome无法写入H.264，所以视频采用VP9编码，部分手机和Apple的应用可能无法播放。",
+  "render.made": "已写入{file}：{seconds, number}秒，{width, number} × {height, number}，每秒{fps, number}帧，{size}。",
+  "render.none": "{kind, select, flight {航班需要有两个机场才能制作视频。} aircraft {这架飞机没有可以制作视频的航班。} other {{year, select, all {日志中没有可以制作视频的航班或拍摄记录。} other {日志中{year}\u2060年没有可以制作视频的航班或拍摄记录。}}}}",
+  "render.unsupported": "此Chrome无法制作{width, number} × {height, number}、每秒{fps, number}帧的视频。请试试每秒30帧，或更小的尺寸。",
+  "render.failed": "无法制作视频：{reason}",
+  "render.noAnswer": "Chrome不再响应，视频没有制作完成。请再运行一次。",
+  "render.buildFailed": "无法生成视频页面：{reason}",
+  "render.chromeFailed": "视频完成之前Chrome就退出了（{reason}）。"
 }

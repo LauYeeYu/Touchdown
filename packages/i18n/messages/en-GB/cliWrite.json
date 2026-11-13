@@ -548,5 +548,19 @@
   "build.sightings.mostNew": "Most new aircraft in one day: {count}",
   "build.sightings.busiest": "Most sightings in one day: {count}",
   "build.combined.title": "Combined",
-  "build.combined.both": "Aircraft both flown on and photographed: {count}"
+  "build.combined.both": "Aircraft both flown on and photographed: {count}",
+  "render.bad": "{option, select, size {--size takes landscape, square or portrait.} seconds {--seconds takes a whole number from 10 to 600.} fps {--fps takes 30 or 60.} theme {--theme takes light or dark.} view {--view takes route or follow.} year {log takes all or a year, such as 2025.} other {Name what the video shows: flight REF, aircraft REF or log [YEAR].}}",
+  "render.noChrome": "No Chrome found to make the video in. Install Google Chrome, or give its path with --chrome PATH.",
+  "render.exists": "{file} exists already. Give another --out, or --force to replace it.",
+  "render.building": "Getting the video's page ready…",
+  "render.starting": "Making the video in Chrome, without a window…",
+  "render.making": "Making the video… {percent, number}%",
+  "render.vp9": "This Chrome cannot encode H.264, so the video is in VP9: some phones and Apple’s apps may not play it.",
+  "render.made": "Wrote {file}: {seconds, number} seconds, {width, number} × {height, number}, {fps, number} frames a second, {size}.",
+  "render.none": "{kind, select, flight {The flight needs both its airports for a video.} aircraft {The aircraft has no flights for a video.} other {{year, select, all {The log has no flights or sightings for a video.} other {The log has no flights or sightings in {year} for a video.}}}}",
+  "render.unsupported": "This Chrome cannot encode a video of {width, number} × {height, number} at {fps, number} frames a second. Try 30 frames a second, or a smaller size.",
+  "render.failed": "The video could not be made: {reason}",
+  "render.noAnswer": "Chrome stopped answering, so the video was not made. Run the command again.",
+  "render.buildFailed": "The video’s page could not be built: {reason}",
+  "render.chromeFailed": "Chrome stopped before the video was made ({reason})."
 }
