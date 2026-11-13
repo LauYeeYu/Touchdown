@@ -1,11 +1,11 @@
-// Download a map as a video (docs/23-tracks-and-maps.md, "Export: video"; docs/31-ui.md, "Video"): a preview that
-// plays the video as it will be saved, with a scrubber, and its choices: the size, the length, the frame rate, light
-// or dark. The size, the frame rate and the theme are kept in this browser for the next video. Opened from a flight's
-// page, Flights and Home; the page gives what the video shows (lib/videoContent.ts).
+// Share or download a map as a video (docs/23-tracks-and-maps.md, "Export: video"; docs/31-ui.md, "Video"): a preview
+// that plays the video as it will be saved, with a scrubber, and its choices: the size, the length, the frame rate,
+// light or dark. The size, the frame rate and the theme are kept in this browser for the next video. Share hands the file to the system's share sheet where the browser can, else it is
+// downloaded. Opened from a flight's page, Flights and Home; the page gives what the video shows (lib/videoContent.ts).
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
-import { download } from "../lib/download.ts";
+import { canShareFile, download, shareFile } from "../lib/download.ts";
 import { pageTheme, type FigureTheme } from "../lib/figure.ts";
 import { chooseCodec, defaultSeconds, makeScene, makeVideo, prepareVideo, VideoUnsupported, VIDEO_RATES, VIDEO_SECONDS, VIDEO_SIZES, type Scene, type VideoCodec, type VideoContent, type VideoSize } from "../lib/video.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -56,6 +56,12 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
   const [making, setMaking] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const stop = useRef<AbortController | null>(null);
+  // The video last made and its choices, so a second press shares or downloads it without making it again.
+  const made = useRef<{ key: string; blob: Blob } | null>(null);
+  // The choices of a video made but not shared: making takes longer than a press lets a page open the share sheet.
+  const [waiting, setWaiting] = useState<string | null>(null);
+  const key = `${choice.size}|${choice.fps}|${choice.theme}|${seconds}`;
+  const shareable = useMemo(() => canShareFile(fileName, "video/mp4"), [fileName]);
   const sizeLabel = useId();
   const lengthLabel = useId();
   const rateLabel = useId();
@@ -167,22 +173,38 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, playing, making, resized, playing ? 0 : at]);
 
-  const save = async () => {
-    const size = VIDEO_SIZES[choice.size];
-    const ctrl = new AbortController();
-    stop.current = ctrl;
+  // Share or download the video, made for these choices unless it was made already. Making takes seconds, longer than
+  // a press lets a page open the share sheet, so a video made for sharing usually waits for another press (`waiting`).
+  const send = async (how: "share" | "download") => {
     setProblem(null);
-    setMaking(0);
-    try {
-      const blob = await makeVideo(content, { ...size, theme: choice.theme, seconds, fps: choice.fps }, (done) => setMaking(done), ctrl.signal);
+    setWaiting(null);
+    const direct = made.current?.key === key;
+    if (!direct) {
+      const ctrl = new AbortController();
+      stop.current = ctrl;
+      setMaking(0);
+      try {
+        made.current = { key, blob: await makeVideo(content, { ...VIDEO_SIZES[choice.size], theme: choice.theme, seconds, fps: choice.fps }, (done) => setMaking(done), ctrl.signal) };
+      } catch (e) {
+        // Stopped on purpose says nothing. An encoder's own message is not for people: the dialog says what happened.
+        if (!(e instanceof DOMException && e.name === "AbortError")) setProblem(e instanceof VideoUnsupported ? t("flights.video.unsupported") : t("flights.video.failed"));
+        return;
+      } finally {
+        stop.current = null;
+        setMaking(null);
+      }
+    }
+    const blob = made.current!.blob;
+    if (how === "download") {
       download(fileName, blob, "video/mp4");
-      onClose();
-    } catch (e) {
-      // Stopped on purpose says nothing. An encoder's own message is not for people: the dialog says what happened.
-      if (!(e instanceof DOMException && e.name === "AbortError")) setProblem(e instanceof VideoUnsupported ? t("flights.video.unsupported") : t("flights.video.failed"));
-      setMaking(null);
-    } finally {
-      stop.current = null;
+      return onClose();
+    }
+    try {
+      const sent = await shareFile(new File([blob], fileName, { type: "video/mp4" }), direct);
+      if (sent === "shared") return onClose();
+      if (sent === "again") setWaiting(key);
+    } catch {
+      setProblem(t("flights.video.shareFailed"));
     }
   };
 
@@ -205,7 +227,7 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
   return (
     <dialog ref={dialog} className="share-dialog figure-dialog video-dialog" {...backdrop} aria-labelledby="video-title" onClose={close} onCancel={close}>
       <h2 id="video-title" className="share-dialog__title">
-        {t("flights.video.dialog.title")}
+        {t("flights.video.dialog.title", { share: shareable ? "yes" : "no" })}
       </h2>
       <div ref={holder} className="figure-preview video-preview">
         <div
@@ -295,6 +317,12 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
           <span className="share-dialog__meta">{t("flights.video.making", { percent: Math.round(making * 100) })}</span>
         </div>
       )}
+      {waiting === key && making === null && (
+        <p className="status-line status-line--good figure-hint" role="status">
+          <Icon name="circle-check" />
+          <span>{t("flights.video.ready")}</span>
+        </p>
+      )}
       {problem && (
         <p className="status-line status-line--error" role="alert">
           <Icon name="circle-x" />
@@ -303,10 +331,18 @@ export function VideoDialog({ content, fileName, onClose }: { content: VideoCont
       )}
       <div className="share-dialog__foot">
         {making === null ? (
-          <button type="button" className="btn btn--primary btn--small" disabled={!scene || !codec} onClick={() => void save()}>
-            <Icon name="download" />
-            {t("flights.video.download")}
-          </button>
+          <>
+            {shareable && (
+              <button type="button" className="btn btn--primary btn--small" disabled={!scene || !codec} onClick={() => void send("share")}>
+                <Icon name="share-2" />
+                {t("flights.video.share")}
+              </button>
+            )}
+            <button type="button" className={`btn ${shareable ? "btn--quiet" : "btn--primary"} btn--small`} disabled={!scene || !codec} onClick={() => void send("download")}>
+              <Icon name="download" />
+              {t("flights.video.download")}
+            </button>
+          </>
         ) : (
           <button type="button" className="btn btn--quiet btn--small" onClick={() => stop.current?.abort()}>
             <Icon name="x" />

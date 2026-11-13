@@ -1475,7 +1475,7 @@ export interface MessageArgs {
   "flights.legend.image": {};
   "flights.figure.title": { period: "choice"; year: "text" };
   "flights.figure.failed": {};
-  "flights.figure.dialog.title": {};
+  "flights.figure.dialog.title": { share: "choice" };
   "flights.figure.preview": {};
   "flights.figure.drawing": {};
   "flights.figure.format.label": {};
@@ -1484,12 +1484,15 @@ export interface MessageArgs {
   "flights.figure.size.option": { height: "text"; size: "choice"; width: "text" };
   "flights.figure.stats.label": {};
   "flights.figure.download": { format: "text" };
+  "flights.figure.share": {};
+  "flights.figure.ready": {};
+  "flights.figure.shareFailed": {};
   "flights.figure.making": {};
   "flights.figure.stat.aircraft": {};
   "flights.detail.figure.label": {};
   "flights.detail.figure.title": {};
   "flights.legend.video": {};
-  "flights.video.dialog.title": {};
+  "flights.video.dialog.title": { share: "choice" };
   "flights.video.preview": {};
   "flights.video.drawing": {};
   "flights.video.play": {};
@@ -1500,6 +1503,9 @@ export interface MessageArgs {
   "flights.video.rate.option": { rate: "choice" };
   "flights.video.vp9": {};
   "flights.video.download": {};
+  "flights.video.share": {};
+  "flights.video.ready": {};
+  "flights.video.shareFailed": {};
   "flights.video.making": { percent: "number" };
   "flights.video.stop": {};
   "flights.video.failed": {};

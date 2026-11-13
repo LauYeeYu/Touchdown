@@ -1,11 +1,11 @@
-// Download a map as an image (docs/23-tracks-and-maps.md, "Export: figure"; docs/31-ui.md, "Image"): a preview of the
-// image as it will be saved, drawn again on every change, and its choices: the format, the size, light or dark, and
-// the statistics. The choices are kept in this browser for the next image. Opened from a flight's page and from
-// Flights; the page gives what the image shows (lib/figure.ts, FigureContent).
+// Share or download a map as an image (docs/23-tracks-and-maps.md, "Export: figure"; docs/31-ui.md, "Image"): a
+// preview of the image as it will be saved, drawn again on every change, and its choices: the format, the size, light
+// or dark, and the statistics. The choices are kept in this browser for the next image. Share hands the file to the system's share sheet where the browser can, else it is downloaded. Opened from a
+// flight's page, Flights and Home; the page gives what the image shows (lib/figure.ts, FigureContent).
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
-import { download } from "../lib/download.ts";
+import { canShareFile, download, shareFile } from "../lib/download.ts";
 import { canEncode, drawFigure, figureFile, FIGURE_FORMATS, FIGURE_SIZES, pageTheme, prepareFigure, type FigureContent, type FigureFormat, type FigureSize, type FigureTheme } from "../lib/figure.ts";
 import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
@@ -45,13 +45,20 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
   const [choice, setChoice] = useState<Choice>(stored);
   const [ready, setReady] = useState(false);
   const [resized, setResized] = useState(0);
-  const [busy, setBusy] = useState(false);
+  // The button being worked on, while the file is made or shared.
+  const [busy, setBusy] = useState<"share" | "download" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  // The file last made and its choices, so a second press shares or downloads it without making it again.
+  const made = useRef<{ key: string; blob: Blob } | null>(null);
+  // The choices of a file made but not shared, because the browser wanted a fresh press.
+  const [waiting, setWaiting] = useState<string | null>(null);
   const formatLabel = useId();
   const sizeLabel = useId();
   const webp = useMemo(() => canEncode("image/webp"), []);
   const hasStats = !!content.stats?.length;
   const format = choice.format === "webp" && !webp ? "png" : choice.format;
+  const name = fileName(FIGURE_FORMATS[format].ext);
+  const shareable = useMemo(() => canShareFile(name, FIGURE_FORMATS[format].type), [name, format]);
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -84,6 +91,7 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
     }
   };
   const withStats = choice.stats && hasStats;
+  const key = `${format}|${choice.size}|${choice.theme}|${withStats}`;
 
   // The preview: the image itself, drawn at the size it takes on the screen. Every size of it is laid out in
   // proportion to its width, so the preview is the saved image made smaller.
@@ -102,17 +110,37 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
     box.replaceChildren(canvas);
   }, [ready, resized, choice.size, choice.theme, withStats, content]);
 
-  const save = async () => {
-    setBusy(true);
+  // Share or download the file, made for these choices unless it was made already. A file that took too long to make
+  // for the press waits for another (`waiting`).
+  // The button says it is making the image only while it does: the share sheet's own wait (until an app is picked, or
+  // the app has sent it) leaves the buttons as they were, so a sheet closed in a way the browser misses strands nothing.
+  const send = async (how: "share" | "download") => {
     setProblem(null);
+    setWaiting(null);
+    const direct = made.current?.key === key;
+    if (!direct) {
+      setBusy(how);
+      try {
+        const size = FIGURE_SIZES[choice.size];
+        made.current = { key, blob: await figureFile({ ...content, stats: withStats ? content.stats : undefined, width: size.width, height: size.height, theme: choice.theme }, format, size.dpi) };
+      } catch (e) {
+        setProblem(e instanceof Error ? e.message : t("flights.figure.failed"));
+        return;
+      } finally {
+        setBusy(null);
+      }
+    }
+    const blob = made.current!.blob;
+    if (how === "download") {
+      download(name, blob, blob.type);
+      return onClose();
+    }
     try {
-      const size = FIGURE_SIZES[choice.size];
-      const blob = await figureFile({ ...content, stats: withStats ? content.stats : undefined, width: size.width, height: size.height, theme: choice.theme }, format, size.dpi);
-      download(fileName(FIGURE_FORMATS[format].ext), blob, blob.type);
-      onClose();
-    } catch (e) {
-      setProblem(e instanceof Error ? e.message : t("flights.figure.failed"));
-      setBusy(false);
+      const sent = await shareFile(new File([blob], name, { type: blob.type }), direct);
+      if (sent === "shared") return onClose();
+      if (sent === "again") setWaiting(key);
+    } catch {
+      setProblem(t("flights.figure.shareFailed"));
     }
   };
 
@@ -120,7 +148,7 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
   return (
     <dialog ref={dialog} className="share-dialog figure-dialog" {...backdrop} aria-labelledby="figure-title" onClose={onClose} onCancel={onClose}>
       <h2 id="figure-title" className="share-dialog__title">
-        {t("flights.figure.dialog.title")}
+        {t("flights.figure.dialog.title", { share: shareable ? "yes" : "no" })}
       </h2>
       <div ref={holder} className="figure-preview" role="img" aria-label={t("flights.figure.preview")}>
         <p className="share-dialog__meta">{t("flights.figure.drawing")}</p>
@@ -164,6 +192,12 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
         )}
       </div>
       <p className="share-dialog__meta figure-hint">{t("flights.figure.format.hint", { format })}</p>
+      {waiting === key && (
+        <p className="status-line status-line--good figure-hint" role="status">
+          <Icon name="circle-check" />
+          <span>{t("flights.figure.ready")}</span>
+        </p>
+      )}
       {problem && (
         <p className="status-line status-line--error" role="alert">
           <Icon name="circle-x" />
@@ -171,9 +205,15 @@ export function FigureDialog({ content, fileName, onClose }: { content: FigureCo
         </p>
       )}
       <div className="share-dialog__foot">
-        <button type="button" className="btn btn--primary btn--small" disabled={busy || !ready} onClick={() => void save()}>
-          <Icon name={busy ? "loader-circle" : "download"} />
-          {busy ? t("flights.figure.making") : t("flights.figure.download", { format: FORMAT_NAMES[format] })}
+        {shareable && (
+          <button type="button" className="btn btn--primary btn--small" disabled={busy !== null || !ready} onClick={() => void send("share")}>
+            <Icon name={busy === "share" ? "loader-circle" : "share-2"} />
+            {busy === "share" ? t("flights.figure.making") : t("flights.figure.share")}
+          </button>
+        )}
+        <button type="button" className={`btn ${shareable ? "btn--quiet" : "btn--primary"} btn--small`} disabled={busy !== null || !ready} onClick={() => void send("download")}>
+          <Icon name={busy === "download" ? "loader-circle" : "download"} />
+          {busy === "download" ? t("flights.figure.making") : t("flights.figure.download", { format: FORMAT_NAMES[format] })}
         </button>
         <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
           {t("common.cancel")}
