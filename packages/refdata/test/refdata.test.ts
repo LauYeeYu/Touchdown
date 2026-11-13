@@ -4,6 +4,7 @@ import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
 import { familyOrder } from "../src/curated/type-order.ts";
+import { genericShape } from "../src/curated/silhouettes.ts";
 import { loadTypeWikidata, typeWikidataSource } from "../src/typeinfo.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
 import airfieldsFile from "../data/airfields.json" with { type: "json" };
@@ -211,6 +212,20 @@ describe("type codes by generation, then model", () => {
 
   it("names only families the reference data has", () => {
     for (const id of Object.keys(familyOrder)) expect(index.families.has(id), id).toBe(true);
+  });
+});
+
+describe("a type without a family's shape", () => {
+  const kind = (engineType: string, engineCount: number, wtc: string, role: string | null = null) => ({ engineType, engineCount, wtc, role });
+
+  it("is drawn as its kind: engines, their count, its size and its role", () => {
+    expect(genericShape(kind("turboshaft", 2, "M", "helicopter"))?.kind).toBe("helicopter");
+    expect(genericShape(kind("jet", 2, "M", "military"))?.engines).toBeUndefined();
+    expect(genericShape(kind("jet", 4, "H"))?.engines?.wing).toHaveLength(2);
+    expect(genericShape(kind("jet", 2, "L", "business"))?.engines?.rear).toBe(2);
+    expect(genericShape(kind("piston", 4, "M", "military"))?.engines?.wing).toHaveLength(2);
+    expect(genericShape(kind("piston", 1, "L"))?.engines).toBeUndefined();
+    expect(genericShape(kind("piston", 1, "L", "other"))).toBeNull();
   });
 });
 

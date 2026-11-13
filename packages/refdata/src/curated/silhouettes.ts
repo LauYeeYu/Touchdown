@@ -1,8 +1,9 @@
 // Each family's shape seen from above, for its silhouettes (G11, docs/13-reference-data.md, "Silhouettes"): drawn for
 // Touchdown by apps/web/src/lib/silhouette.ts from the type's own figures (length, span, fuselage width, sweep) and this
 // shape, which says what the figures do not: where the wing and tailplane sit, the engines, wingtips, propellers or
-// rotor. `checked` marks a family whose drawings a person has compared with the real aircraft (G11): only those are
-// shown on the site. Fractions are of the length, the half-span or the wingspan, as SilhouetteShape says.
+// rotor. `checked` marks a family whose drawings a person has compared with the real aircraft (G11): every drawing
+// shows, and a type's page says when its family is not checked yet. A type without a family is drawn with a shape for
+// its kind (`genericShape`). Fractions are of the length, the half-span or the wingspan, as SilhouetteShape says.
 
 import type { SilhouetteShape } from "../../../core/src/ref/types.ts";
 
@@ -237,6 +238,40 @@ export const sameWing: string[][] = [
  * The 747-300 and 747-400 stretched the upper deck, not the fuselage.
  */
 export const sameBody: string[][] = [["B741", "B742", "B743", "B74R", "B744"]];
+
+// For a type without a family's shape: a fighter's short, broad, swept wing well back with no engines showing, and a
+// four-engined propeller aircraft's long, broad, tapered wing with large nacelles (a DC-6, a B-17, an An-12).
+const FIGHTER: Shape = { kind: "jet", nose: 3.2, tail: 1.4, wing: { at: 0.44, root: 0.36, tip: 0.22 }, stab: { span: 0.42, at: 0.83, sweep: 38, root: 0.14 }, sweep: 38 };
+const QUAD_PROP: Shape = with_(TPROP, { wingAlso: { at: 0.32, root: 0.18, tip: 0.42 }, engines: { wing: [0.26, 0.5], size: 1.4 }, stabAlso: { span: 0.36 } });
+
+/** What a type without a family's shape is known as: from the reference tables and its role (Wikidata, docs/13). */
+export interface TypeKind {
+  engineType: string | null;
+  engineCount: number | null;
+  wtc: string | null;
+  role: string | null;
+}
+
+/**
+ * A shape for a type whose family has none, or that has no family: chosen by what it is, so the thousands of types
+ * outside the curated families are drawn too, as their kind looks from above. Not checked against any one aircraft
+ * (G11). Null when nothing fits (a balloon, an airship, a type with no engine type).
+ */
+export function genericShape(k: TypeKind): Shape | null {
+  if (k.role === "helicopter") return HELI;
+  if (k.role === "other") return null;
+  const n = k.engineCount ?? 1;
+  if (k.engineType === "jet") {
+    if (k.role === "military" && n <= 2 && k.wtc !== "H") return FIGHTER;
+    if (n >= 4) return QUAD;
+    if (n === 3) return with_(REAR, { engines: { rear: 3 } });
+    if (k.role === "business" || k.wtc === "L") return BIZ;
+    return k.wtc === "H" ? WIDE : NARROW;
+  }
+  if (k.engineType === "turboprop") return n >= 3 ? QUAD_PROP : n === 2 ? TPROP : SINGLE;
+  if (k.engineType === "piston" || k.engineType === "electric") return n >= 3 ? QUAD_PROP : n === 2 ? LIGHT_TWIN : SINGLE;
+  return null;
+}
 
 /** The shape of a type code in `familyId`: its family's, with what the type changes. Null for a family not drawn. */
 export function shapeOf(familyId: string | null | undefined, designator: string): (Shape & { checked: boolean }) | null {
