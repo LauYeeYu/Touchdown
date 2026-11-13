@@ -82,7 +82,7 @@ A non-breaking space is written `\u00a0` in the JSON, so it can be seen: `"#\u00
 - What is written for a program rather than shown (the agent check's request) is made inside `inSourceLanguage()`, in
   UK English whatever the interface's language. The log itself holds values and codes, never the interface's words.
 - Changing a UK English message changes its translations too: de-DE, zh-CN and zh-TW, and en-US where its spelling
-  differs. A test fails while a translation lacks a message, but it cannot tell when one no longer says what the
+  or its name for something differs ("Letter" for the paper size UK English calls "US Letter"). A test fails while a translation lacks a message, but it cannot tell when one no longer says what the
   English says.
 - The copy keeps the writing rules (AGENTS.md): no semicolons, no question-word openers except real questions. A test checks both in the source language.
 
@@ -94,7 +94,7 @@ three modules for it: `src/translations/<tag>.generated.ts` with the web pages' 
 language is chosen, and `<tag>.cli.generated.ts` and `<tag>.server.generated.ts` with the CLI's and the server's,
 which only `@touchdown/i18n/cli` and `@touchdown/i18n/server` load (`addTranslations`), so the web pages never carry
 them. Tests check that each translated message takes the same arguments and tags as the source, that de-DE, zh-CN and
-zh-TW have every message, and that en-US has only the messages spelt differently: the rest come from UK English. Each
+zh-TW have every message, and that en-US has only the messages spelt or worded differently: the rest come from UK English. Each
 language's notes (how it addresses the user, punctuation, spacing) and the words for Touchdown's terms are in
 `GLOSSARY.md`.
 

@@ -1,0 +1,3 @@
+{
+  "figure.size.option": "{size, select, landscape {Landscape} square {Square} portrait {Portrait} a4 {A4 for print} a3 {A3 for print} other {Letter for print}}, {width} × {height}"
+}

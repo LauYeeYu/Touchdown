@@ -2,9 +2,10 @@
 
 import m0 from "../../messages/en-US/account.json" with { type: "json" };
 import m1 from "../../messages/en-US/changes.json" with { type: "json" };
-import m2 from "../../messages/en-US/rules.json" with { type: "json" };
-import m3 from "../../messages/en-US/settings.json" with { type: "json" };
-import m4 from "../../messages/en-US/signin.json" with { type: "json" };
+import m2 from "../../messages/en-US/flights.json" with { type: "json" };
+import m3 from "../../messages/en-US/rules.json" with { type: "json" };
+import m4 from "../../messages/en-US/settings.json" with { type: "json" };
+import m5 from "../../messages/en-US/signin.json" with { type: "json" };
 import type { Catalog } from "../catalog.ts";
 
-export default { "account": m0, "changes": m1, "rules": m2, "settings": m3, "signin": m4 } satisfies Catalog;
+export default { "account": m0, "changes": m1, "flights": m2, "rules": m3, "settings": m4, "signin": m5 } satisfies Catalog;
