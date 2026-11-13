@@ -4,7 +4,7 @@ import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
 import { familyOrder } from "../src/curated/type-order.ts";
-import { genericShape } from "../src/curated/silhouettes.ts";
+import { familyShapes, genericShape } from "../src/curated/silhouettes.ts";
 import { loadTypeWikidata, typeWikidataSource } from "../src/typeinfo.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
 import airfieldsFile from "../data/airfields.json" with { type: "json" };
@@ -226,6 +226,12 @@ describe("a type without a family's shape", () => {
     expect(genericShape(kind("piston", 4, "M", "military"))?.engines?.wing).toHaveLength(2);
     expect(genericShape(kind("piston", 1, "L"))?.engines).toBeUndefined();
     expect(genericShape(kind("piston", 1, "L", "other"))).toBeNull();
+  });
+
+  it("leaves the curated families' checks as they are", () => {
+    // A family checked is one a person compared with the real aircraft (G11): the helicopters are not yet.
+    expect(familyShapes.A320!.checked).toBe(true);
+    expect(familyShapes.R44!.checked).toBe(false);
   });
 });
 

@@ -214,6 +214,27 @@ export const familyShapes: Record<string, FamilyShape> = {
 };
 
 /**
+ * Families whose drawings were compared with the real aircraft's planform (G11), by eye against their wing, engines and
+ * tail, and found close. Not yet: the helicopters, whose rotors are drawn as crossed lines without their tail rotors or
+ * fenestrons, the 707 and 767 families (the E-3's, E-6's and E-767's radar dome is not drawn), the Cessna 337 (drawn
+ * as a single, not its push-pull twin booms), Concorde (a straight-edged delta), the Cirrus SF50 (its V-tail and the
+ * engine on its back) and the Learjets (the older ones' wingtip tanks).
+ */
+const checkedFamilies = [
+  "A220", "A300", "A310", "A320", "A330", "A340", "A350", "A380", "A400M", "C295", "B717", "B727", "B737", "B747",
+  "B757", "B777", "B787", "C17", "DC3", "DC8", "DC9", "DC10", "MD11", "MD80", "MD90", "L1011", "C130", "C5", "E170",
+  "E175", "E190", "E195", "E145", "E120", "E110", "C390", "Phenom100", "Phenom300", "Embraer Legacy/Praetor", "CRJ",
+  "CL30", "CL35", "CL60", "Global", "Dash8", "DHC7", "DHC6", "DHC2", "DHC3", "ATR42", "ATR72", "SF34", "SB20", "F27",
+  "F28", "F50", "F100", "BAe146", "Jetstream", "D328", "B190", "L410", "SSJ100", "MC21", "ARJ21", "C919", "An148",
+  "An124", "An225", "Il76", "Il96", "Tu154", "Tu204", "Cessna Citation", "G150", "G200", "G280", "G450", "G550",
+  "G500", "G650", "G700", "FA50", "F900", "F2TH", "FA7X", "FA8X", "FA6X", "Hawker", "HondaJet", "PC24", "PC12",
+  "PC6", "King Air", "TBM", "Kodiak", "P2012", "C150", "C152", "C172", "C177", "C180", "C182", "C185", "C206",
+  "C208", "C210", "C310", "C340", "C402", "C404", "C414", "C421", "C441", "PA28", "PA32", "PA34", "PA44", "PA31",
+  "PA46", "PA18", "J3", "Bonanza", "Baron", "SR20", "SR22", "DA20", "DA40", "DA42", "DA62", "M20",
+];
+for (const id of checkedFamilies) familyShapes[id]!.checked = true;
+
+/**
  * Type codes that share one wing, so a code whose article gives no span is drawn with another's: for the drawing only,
  * its figures still show none. Checked with the drawings (G11).
  */
