@@ -53,13 +53,14 @@ export const familyShapes: Record<string, FamilyShape> = {
   C295: f(with_(TPROP, { prop: 3.9 })),
 
   // Boeing and Douglas
-  B707: f(with_(QUAD, { wingAlso: { root: 0.17, tip: 0.25 }, enginesAlso: { size: 0.85 } })),
+  // The E-3's 9.1m radar dome over the rear fuselage; the E-6 has none.
+  B707: f(with_(QUAD, { wingAlso: { root: 0.17, tip: 0.25 }, enginesAlso: { size: 0.85 } }), { E3TF: { radome: { at: 0.6, diameter: 9.1 } }, E3CF: { radome: { at: 0.6, diameter: 9.1 } } }),
   B717: f(with_(REAR, { wingAlso: { at: 0.4 } })),
   B727: f(with_(REAR, { engines: { rear: 3 }, wingAlso: { at: 0.38, root: 0.16, tip: 0.25 } })),
   B737: f(with_(NARROW, { wingAlso: { device: "winglet" } }), { B731: { wingAlso: { device: null } }, B732: { wingAlso: { device: null } }, B733: { wingAlso: { device: null } }, B734: { wingAlso: { device: null } }, B735: { wingAlso: { device: null } } }),
   B747: f(with_(QUAD, { wingAlso: { at: 0.33, root: 0.21, tip: 0.24, device: "winglet" } }), { B741: { wingAlso: { device: null } }, B742: { wingAlso: { device: null } }, B743: { wingAlso: { device: null } }, B74S: { wingAlso: { device: null } }, B748: { wingAlso: { device: "raked" } } }),
   B757: f(NARROW),
-  B767: f(WIDE, { B764: { wingAlso: { device: "raked" } } }),
+  B767: f(WIDE, { B764: { wingAlso: { device: "raked" } }, E767: { radome: { at: 0.58, diameter: 9.1 } } }),
   B777: f(with_(WIDE, { enginesAlso: { size: 1.25 } }), { B77W: { wingAlso: { device: "raked" } }, B77L: { wingAlso: { device: "raked" } }, B778: { wingAlso: { device: "raked" } }, B779: { wingAlso: { device: "raked" } } }),
   B787: f(with_(WIDE, { wingAlso: { device: "raked", root: 0.18 }, enginesAlso: { size: 1.15 } })),
   C17: f(with_(QUAD, { wingAlso: { at: 0.38, root: 0.17, tip: 0.3, device: "winglet" }, stabAlso: { span: 0.38, at: 0.87 } })),
@@ -93,7 +94,13 @@ export const familyShapes: Record<string, FamilyShape> = {
   CL35: f(BIZ),
   CL60: f(BIZ),
   Global: f(with_(BIZ, { wingAlso: { at: 0.42, root: 0.16 } })),
-  Learjet: f(with_(BIZ, { wingAlso: { at: 0.46, tip: 0.45 } })),
+  // The 23, 24, 25 and 35 have tip tanks; the later ones winglets.
+  Learjet: f(with_(BIZ, { wingAlso: { at: 0.46, tip: 0.45 } }), {
+    LJ23: { wingAlso: { device: null, tipTanks: true } },
+    LJ24: { wingAlso: { device: null, tipTanks: true } },
+    LJ25: { wingAlso: { device: null, tipTanks: true } },
+    LJ35: { wingAlso: { device: null, tipTanks: true } },
+  }),
   Dash8: f(with_(TPROP, { wingAlso: { at: 0.37 }, stabAlso: { span: 0.28 } })),
   DHC7: f(with_(TPROP, { engines: { wing: [0.2, 0.42] }, prop: 3.4 })),
   DHC6: f(with_(TPROP, { wingAlso: { at: 0.33, root: 0.12, tip: 1 }, prop: 2.6 })),
@@ -126,7 +133,8 @@ export const familyShapes: Record<string, FamilyShape> = {
   Tu154: f(with_(REAR, { engines: { rear: 3 }, wingAlso: { at: 0.4, root: 0.16, tip: 0.3 } })),
   Tu204: f(with_(NARROW, { wingAlso: { device: "winglet" } })),
   // A slender delta: its figures give no sweep, so its own, for the drawing only.
-  Concorde: f({ kind: "jet", nose: 4, tail: 2, sweep: 52, wing: { at: 0.36, root: 0.56, tip: 0.04 }, engines: { wing: [0.22], size: 0.8 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  // An ogee delta, its engines in pairs under the wing's rear.
+  Concorde: f({ kind: "jet", nose: 4, tail: 2, sweep: 52, wing: { at: 0.36, root: 0.56, tip: 0.04, ogee: true }, engines: { wing: [0.27], over: true, size: 1.4 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
 
   // Business jets
   "Cessna Citation": f(with_(BIZ, { wingAlso: { at: 0.42, root: 0.18, tip: 0.45, device: null } })),
@@ -148,7 +156,8 @@ export const familyShapes: Record<string, FamilyShape> = {
   // Its engines sit on pylons above the wing, which from above shows them over the wing's rear.
   HondaJet: f({ kind: "jet", nose: 2.4, tail: 3, wing: { at: 0.35, root: 0.14, tip: 0.5, device: "winglet" }, engines: { wing: [0.3], over: true, size: 1.1 }, stab: { span: 0.38, at: 0.86, sweep: 25, root: 0.09 } }),
   PC24: f(BIZ),
-  SF50: f({ kind: "jet", nose: 1.6, tail: 3, wing: { at: 0.32, root: 0.16, tip: 0.55 }, stab: { span: 0.3, at: 0.86, sweep: 20, root: 0.1 } }),
+  // Its engine on its back, and a V-tail: seen from above, a short swept tailplane.
+  SF50: f({ kind: "jet", nose: 1.6, tail: 3, wing: { at: 0.32, root: 0.16, tip: 0.55 }, engines: { top: true }, stab: { span: 0.28, at: 0.84, sweep: 35, root: 0.12 } }),
 
   // Turboprops and light aircraft
   PC12: f(with_(SINGLE, { wingAlso: { at: 0.4, root: 0.13, tip: 0.55, device: "winglet" }, prop: 2.67 })),
@@ -168,7 +177,8 @@ export const familyShapes: Record<string, FamilyShape> = {
   C208: f(with_(SINGLE, { wingAlso: { at: 0.3, root: 0.13, tip: 0.65 }, prop: 2.69 })),
   C210: f(with_(SINGLE, { prop: 2.03 })),
   C310: f(with_(LIGHT_TWIN, { prop: 1.98 })),
-  C337: f(with_(SINGLE, { prop: 1.93 })),
+  // Push-pull: a pod with a propeller at each end, and twin booms carrying the tailplane.
+  C337: f(with_(SINGLE, { prop: 1.93, booms: { at: 0.27, pod: 0.62 }, stabAlso: { at: 0.86, root: 0.1 } })),
   C340: f(with_(LIGHT_TWIN, { prop: 1.98 })),
   C402: f(with_(LIGHT_TWIN, { prop: 1.98 })),
   C404: f(with_(LIGHT_TWIN, { prop: 2.29 })),
@@ -197,16 +207,16 @@ export const familyShapes: Record<string, FamilyShape> = {
   R22: f(with_(HELI, { blades: 2 })),
   R44: f(with_(HELI, { blades: 2 })),
   R66: f(with_(HELI, { blades: 2 })),
-  "Bell 206": f(with_(HELI, { blades: 2 })),
-  "Bell 407": f(HELI),
-  "Bell 412": f(HELI),
-  "Bell 429": f(HELI),
-  H125: f(with_(HELI, { blades: 3 })),
-  H130: f(with_(HELI, { blades: 3 })),
-  H135: f(HELI),
+  "Bell 206": f(with_(HELI, { blades: 2, stabAlso: { at: 0.72 } })),
+  "Bell 407": f(with_(HELI, { stabAlso: { at: 0.72 } })),
+  "Bell 412": f(with_(HELI, { stabAlso: { at: 0.72 } })),
+  "Bell 429": f(with_(HELI, { stabAlso: { at: 0.8 } })),
+  H125: f(with_(HELI, { blades: 3, stabAlso: { at: 0.83 } })),
+  H130: f(with_(HELI, { blades: 3, fenestron: true, stabAlso: { at: 0.83 } })),
+  H135: f(with_(HELI, { fenestron: true, stabAlso: { at: 0.83 } })),
   H145: f(HELI),
-  AS365: f(HELI),
-  AW109: f(HELI),
+  AS365: f(with_(HELI, { fenestron: true, stabAlso: { at: 0.85 } })),
+  AW109: f(with_(HELI, { stabAlso: { at: 0.82 } })),
   AW139: f(with_(HELI, { blades: 5 })),
   S76: f(HELI),
   S92: f(HELI),

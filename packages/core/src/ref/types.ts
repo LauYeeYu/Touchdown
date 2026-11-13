@@ -152,13 +152,27 @@ export interface SilhouetteShape {
   tail?: number;
   /** A helicopter's tail boom, as a share of the length: a thin tube behind the cabin. */
   boom?: number;
-  /** The wing: its root's leading edge along the fuselage, its root chord (of the length), the tip's chord (of the root's). */
-  wing: { at: number; root: number; tip: number; device?: "winglet" | "raked" | "sharklet" | "blended" | null };
   /**
-   * Engines on the wing at fractions of the half-span (`over`: on pylons above its rear, as a HondaJet's), or beside the
-   * tail (two; a trijet's third, in the tail, does not show from above).
+   * The wing: its root's leading edge along the fuselage, its root chord (of the length), the tip's chord (of the root's).
+   * `tipTanks`: fuel tanks on the tips (the older Learjets'). `ogee`: an ogee delta's curved leading edge (Concorde's),
+   * swept steeply along the fuselage, then less, out to a short tip.
    */
-  engines?: { wing?: number[]; over?: boolean; rear?: 2 | 3; size?: number };
+  wing: { at: number; root: number; tip: number; device?: "winglet" | "raked" | "sharklet" | "blended" | null; tipTanks?: boolean; ogee?: boolean };
+  /**
+   * Engines on the wing at fractions of the half-span (`over`: over or under the wing's rear and past its trailing edge,
+   * as a HondaJet's above it and Concorde's below it both show from above), beside the tail (two; a trijet's third, in
+   * the tail, does not show from above), or one on top of the rear fuselage (`top`, a Cirrus SF50's).
+   */
+  engines?: { wing?: number[]; over?: boolean; rear?: 2 | 3; top?: boolean; size?: number };
+  /** A radar dome over the fuselage (an E-3's): its centre along the length, and its diameter in metres. */
+  radome?: { at: number; diameter: number };
+  /**
+   * Twin booms (a Cessna 337's) at a fraction of the half-span, carrying the tailplane between them; the fuselage a pod
+   * that ends at `pod` of the length, with a propeller at each end.
+   */
+  booms?: { at: number; pod: number };
+  /** A helicopter's tail fan in a shroud in its fin (a fenestron), in place of a tail rotor. */
+  fenestron?: boolean;
   /** The tailplane: its span (of the wingspan; none for a delta), its root's leading edge along the fuselage and its sweep. */
   stab: { span: number; at: number; sweep: number; root?: number };
   /** Propellers' diameter in metres, at the engines or the nose. */
