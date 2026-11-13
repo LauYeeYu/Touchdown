@@ -6,13 +6,40 @@
 @import "@fontsource-variable/noto-sans-sc";
 @import "@fontsource-variable/noto-sans-tc";
 
-/* Source Sans 3 again for Chinese pages, its line set for Chinese: Chinese characters stand higher on the baseline
-   than Latin capitals (their middle 0.38 of the size above it, against 0.33), and the baseline is placed by Source
-   Sans 3's ascent and descent (102% and 40%), which centre a line 0.31 above it. So a Chinese word sat high beside an
-   icon or in a pill. These overrides keep the line as tall (142%) and centre it 0.36 above the baseline, between the
-   two, so Chinese and Latin both sit in the middle. The same files: only the line's metrics differ. */
+/* Source Sans 3 again, its line set so a label sits in the middle of its button, chip or select. Chrome rounds a font's
+   ascent and descent to whole pixels and draws the letters on the pixel grid, so at 14px Source Sans 3's own metrics
+   (102% and 40%) left capitals 1.25-1.6px above the middle of a control, and Chinese characters 1.75-2px. Measured on
+   the controls at 14px and 15px, in steps of a whole pixel: for Latin text 105-109% of ascent puts capitals within
+   0.25-0.6px of the middle (110% and more, 0.4-0.75px under it), so "Source Sans 3 Text" takes 107% and 35%; for a
+   Chinese page, whose characters stand higher on the baseline than capitals, 110-115% puts them within 0.25px, so
+   "Source Sans 3 Han" takes 111% and 31%. Both keep the line as tall (142%): only where letters sit in it changes.
+   The same files as Source Sans 3's; other scripts (Greek, Cyrillic) keep its own metrics. */
 @font-face {
   font-family: "Source Sans 3 Han";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("../../../../node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  ascent-override: 111%;
+  descent-override: 31%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Source Sans 3 Han";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("../../../../node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF;
+  ascent-override: 111%;
+  descent-override: 31%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Source Sans 3 Text";
   font-style: normal;
   font-display: swap;
   font-weight: 200 900;
@@ -24,7 +51,7 @@
 }
 
 @font-face {
-  font-family: "Source Sans 3 Han";
+  font-family: "Source Sans 3 Text";
   font-style: normal;
   font-display: swap;
   font-weight: 200 900;
@@ -75,7 +102,7 @@
   --good: #2e7d4f;
   --land: #e6e0d1;
   --land-edge: #f6f3eb;
-  --sans: "Source Sans 3 Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sans: "Source Sans 3 Text", "Source Sans 3 Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* Material-style tonal surfaces: a warm neutral palette at the page's hue (HCT 105, chroma 5). */
   --surface-lowest: #fffdf8;
   --surface-low: #f5f0e5;
