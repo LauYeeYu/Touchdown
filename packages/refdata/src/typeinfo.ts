@@ -1,0 +1,30 @@
+// The aircraft types' figures (from Wikipedia), their families' history and the shapes their silhouettes are drawn
+// with (docs/13-reference-data.md, "Type figures", "Silhouettes"). A module of its own, loaded the first time a page
+// needs it (the type pages, the aircraft list's silhouettes), so the app's first load does not carry it.
+
+import { rowsToObjects, type AircraftType, type Family, type FamilyFacts, type RefTableFile, type TypeSpecs } from "../../core/src/ref/types.ts";
+import specs from "../data/type_specs.json" with { type: "json" };
+import facts from "../data/family_facts.json" with { type: "json" };
+import aircraftTypes from "../data/aircraft_types.json" with { type: "json" };
+import families from "../data/families.json" with { type: "json" };
+
+export { familyShapes, sameBody, sameWing, shapeOf } from "./curated/silhouettes.ts";
+
+export function loadTypeSpecs(): TypeSpecs[] {
+  return rowsToObjects(specs as RefTableFile);
+}
+
+/**
+ * The type codes and their families alone, for the public types pages (docs/31, "Aircraft types"), which need nothing
+ * else of the reference data: the app has them with the rest (index.ts).
+ */
+export function loadTypeTables(): { aircraftTypes: AircraftType[]; families: Family[] } {
+  return { aircraftTypes: rowsToObjects(aircraftTypes as RefTableFile), families: rowsToObjects(families as RefTableFile) };
+}
+
+export function loadFamilyFacts(): FamilyFacts[] {
+  return rowsToObjects(facts as RefTableFile);
+}
+
+/** The figures' attribution line and the date they were read. */
+export const typeSpecsSource = { sources: (specs as RefTableFile).sources, version: (specs as RefTableFile).version };
