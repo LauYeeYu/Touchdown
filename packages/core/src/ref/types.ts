@@ -57,6 +57,72 @@ export interface Family {
   manufacturer: string;
 }
 
+/**
+ * A type's figures from its Wikipedia article (docs/13-reference-data.md, "Type figures"), metric, null where the
+ * article gives none. `article` and `revision` say where they were read.
+ */
+export interface TypeSpecs {
+  designator: string;
+  article: string;
+  revision: number;
+  lengthM: number | null;
+  /** The wingspan; a helicopter's main rotor diameter. */
+  spanM: number | null;
+  heightM: number | null;
+  fuselageWidthM: number | null;
+  wingAreaM2: number | null;
+  sweepDeg: number | null;
+  mtowKg: number | null;
+  rangeKm: number | null;
+  cruiseKmh: number | null;
+  cruiseMach: number | null;
+  seatsTypical: number | null;
+  seatsMax: number | null;
+  engines: string | null;
+}
+
+/** A family's history from its main article's infobox. */
+export interface FamilyFacts {
+  familyId: string;
+  article: string;
+  revision: number;
+  firstFlight: string | null;
+  introduced: string | null;
+  built: number | null;
+  builtAsOf: string | null;
+  status: string | null;
+}
+
+/**
+ * A family's shape seen from above, for its silhouettes (G11): what its figures do not say. Fractions are of the
+ * length, the half-span or the fuselage's width. `checked`: a person has compared the drawing with the real aircraft
+ * (G11), so it may be shown.
+ */
+export interface SilhouetteShape {
+  kind: "jet" | "prop" | "helicopter";
+  /** The nose's length in fuselage widths (1.6 a round airliner's, 3 a pointed one), and the tail cone's. */
+  nose?: number;
+  tail?: number;
+  /** A helicopter's tail boom, as a share of the length: a thin tube behind the cabin. */
+  boom?: number;
+  /** The wing: its root's leading edge along the fuselage, its root chord (of the length), the tip's chord (of the root's). */
+  wing: { at: number; root: number; tip: number; device?: "winglet" | "raked" | "sharklet" | "blended" | null };
+  /**
+   * Engines on the wing at fractions of the half-span (`over`: on pylons above its rear, as a HondaJet's), or beside the
+   * tail (two; a trijet's third, in the tail, does not show from above).
+   */
+  engines?: { wing?: number[]; over?: boolean; rear?: 2 | 3; size?: number };
+  /** The tailplane: its span (of the wingspan; none for a delta), its root's leading edge along the fuselage and its sweep. */
+  stab: { span: number; at: number; sweep: number; root?: number };
+  /** Propellers' diameter in metres, at the engines or the nose. */
+  prop?: number;
+  /** A helicopter's main rotor blades. */
+  blades?: number;
+  /** For drawing only, where the figures give none: the fuselage's width (m) and the wing's sweep (degrees). */
+  width?: number;
+  sweep?: number;
+}
+
 export interface ModelPattern {
   designator: string;
   pattern: string; // regex source, matched against the standard model form (e.g. "A321-271NX")
