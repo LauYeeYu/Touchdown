@@ -146,7 +146,7 @@ export const familyShapes: Record<string, FamilyShape> = {
   FA6X: f(BIZ),
   Hawker: f(with_(BIZ, { wingAlso: { at: 0.4, root: 0.2, tip: 0.4, device: null } })),
   // Its engines sit on pylons above the wing, which from above shows them over the wing's rear.
-  HondaJet: f({ kind: "jet", nose: 2.4, tail: 3, wing: { at: 0.35, root: 0.14, tip: 0.5, device: "winglet" }, engines: { wing: [0.3], over: true, size: 0.8 }, stab: { span: 0.38, at: 0.86, sweep: 25, root: 0.09 } }),
+  HondaJet: f({ kind: "jet", nose: 2.4, tail: 3, wing: { at: 0.35, root: 0.14, tip: 0.5, device: "winglet" }, engines: { wing: [0.3], over: true, size: 1.1 }, stab: { span: 0.38, at: 0.86, sweep: 25, root: 0.09 } }),
   PC24: f(BIZ),
   SF50: f({ kind: "jet", nose: 1.6, tail: 3, wing: { at: 0.32, root: 0.16, tip: 0.55 }, stab: { span: 0.3, at: 0.86, sweep: 20, root: 0.1 } }),
 
