@@ -271,6 +271,8 @@ export interface TypeKind {
   engineCount: number | null;
   wtc: string | null;
   role: string | null;
+  /** Its wingspan where known, metres: a military jet over 25m is a transport, not a fighter. */
+  span?: number | null;
 }
 
 /**
@@ -280,10 +282,12 @@ export interface TypeKind {
  */
 export function genericShape(k: TypeKind): Shape | null {
   if (k.role === "helicopter") return HELI;
-  if (k.role === "other") return null;
+  // Of the rest (airships, balloons, experimental aircraft), only a jet is drawn: an X-plane looks most like a fighter.
+  const fighterSized = (k.span ?? 0) <= 25;
+  if (k.role === "other") return k.engineType === "jet" && fighterSized ? FIGHTER : null;
   const n = k.engineCount ?? 1;
   if (k.engineType === "jet") {
-    if (k.role === "military" && n <= 2 && k.wtc !== "H") return FIGHTER;
+    if (k.role === "military" && n <= 2 && k.wtc !== "H" && fighterSized) return FIGHTER;
     if (n >= 4) return QUAD;
     if (n === 3) return with_(REAR, { engines: { rear: 3 } });
     if (k.role === "business" || k.wtc === "L") return BIZ;

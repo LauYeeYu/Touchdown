@@ -279,11 +279,14 @@ describe("a type without a family's shape", () => {
   it("is drawn as its kind: engines, their count, its size and its role", () => {
     expect(genericShape(kind("turboshaft", 2, "M", "helicopter"))?.kind).toBe("helicopter");
     expect(genericShape(kind("jet", 2, "M", "military"))?.engines).toBeUndefined();
+    // A military jet with an airliner's span is a transport (a Kawasaki C-1), drawn with its engines under the wing.
+    expect(genericShape({ ...kind("jet", 2, "M", "military"), span: 30.6 })?.engines?.wing).toHaveLength(1);
     expect(genericShape(kind("jet", 4, "H"))?.engines?.wing).toHaveLength(2);
     expect(genericShape(kind("jet", 2, "L", "business"))?.engines?.rear).toBe(2);
     expect(genericShape(kind("piston", 4, "M", "military"))?.engines?.wing).toHaveLength(2);
     expect(genericShape(kind("piston", 1, "L"))?.engines).toBeUndefined();
     expect(genericShape(kind("piston", 1, "L", "other"))).toBeNull();
+    expect(genericShape(kind("jet", 1, "L", "other"))?.engines).toBeUndefined();
   });
 
   it("leaves the curated families' checks as they are", () => {
