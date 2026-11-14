@@ -20,6 +20,14 @@ import { TypeRow } from "../components/TypeRow.tsx";
 export const ROLES: TypeRole[] = ["airliner", "business", "light", "helicopter", "military", "other"];
 /** The manufacturers shown as cards, the airliners' best known, in alphabetical order: by their addresses. */
 const POPULAR = ["airbus", "boeing", "bombardier", "comac", "embraer", "lockheed", "mcdonnell-douglas"];
+/** The types a card draws where they are chosen, in order: else the manufacturer's types with the most codes. */
+const CARD_TYPES: Record<string, string[]> = {
+  airbus: ["A320", "A333", "A388"],
+  boeing: ["B744", "B752", "B763"],
+  embraer: ["E75L", "E145", "E195"],
+  // The DC-8 is Douglas's, from before the merger.
+  "mcdonnell-douglas": ["DC86", "DC93", "DC10"],
+};
 /** Rows added each time the list's end comes into view. */
 const STEP = 200;
 
@@ -114,12 +122,16 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
   const main = POPULAR.map((slug) => manufacturers.find((m) => m.manufacturer.slug === slug)).filter((m) => m !== undefined);
   const letters = new Map<string, typeof manufacturers>();
   for (const m of manufacturers) letters.set(letterOf(m.manufacturer.name), [...(letters.get(letterOf(m.manufacturer.name)) ?? []), m]);
-  // A card draws the same three of the manufacturer's types whatever the log has: those with a drawing and the most codes.
-  const drawn = (list: TypeEntry[]) =>
-    list
-      .filter((e) => info?.planform(e.usual, app.ref))
+  // A card draws the same three types whatever the log has: those chosen for it, else the manufacturer's types with a
+  // drawing and the most codes. A chosen type the filters leave out gives its place to the next of these.
+  const drawn = (slug: string, list: TypeEntry[]) => {
+    const chosen = (CARD_TYPES[slug] ?? []).filter((c) => info?.planform(c, app.ref) && entries.some((e) => e.codes.includes(c)));
+    const rest = list
+      .filter((e) => !e.codes.some((c) => chosen.includes(c)) && info?.planform(e.usual, app.ref))
       .sort((a, b) => b.codes.length - a.codes.length)
-      .slice(0, 3);
+      .map((e) => e.usual);
+    return [...chosen, ...rest].slice(0, 3);
+  };
   const sortedLetters = [...letters.entries()].sort((a, b) => (a[0] === "#" ? 1 : b[0] === "#" ? -1 : a[0].localeCompare(b[0])));
   return (
     <>
@@ -134,8 +146,8 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
             <li key={m.manufacturer.slug}>
               <Link className="manufacturer-card" to="/types/manufacturers/$manufacturer" params={{ manufacturer: m.manufacturer.slug }}>
                 <span className="manufacturer-card__shapes" aria-hidden="true">
-                  {drawn(m.entries).map((e) => (
-                    <Silhouette key={e.key} code={e.usual} size={44} />
+                  {drawn(m.manufacturer.slug, m.entries).map((code) => (
+                    <Silhouette key={code} code={code} size={44} />
                   ))}
                 </span>
                 <b>{m.manufacturer.name}</b>
