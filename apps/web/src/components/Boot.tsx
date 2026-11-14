@@ -1,9 +1,10 @@
 // The loading screen (docs/31-ui.md, "Opening"; styles in public/boot.css). Its progress bar is a final approach:
 // an aircraft follows the glide path down to the runway. index.html shows the same screen while the app's code
 // loads, the aircraft creeping a third of the way; this one carries it on as each step of opening the log
-// finishes, says which step is running, lands it and fades out over the first page.
+// finishes, says which step is running and lands it. Then the runway turns gold and runs out to both edges of the
+// screen, and the screen opens along it over the first page, the top lifting away and the bottom dropping.
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { t } from "@touchdown/i18n";
 
 /** How far the page's own bar got before the app's code ran: 0 to 1. */
@@ -15,8 +16,18 @@ export function waitingProgress(): number {
 // A Boeing 747 from the side, nose to the right, gear down; the main wheels are at 48.6% across, on the bottom edge.
 const PLANE = "M1.2 7.2 3.8 6.5 2.6.6h2.8L12.4 6.6H28.6C30.6 6.6 31.6 5 33.8 5H42.2C45 5 47.4 7 47.7 9.2C47.9 10.3 46.9 10.9 45.4 11.05 44.8 11.1 44.4 11.1 44 11.1H31L29.4 11.5H20.6L19 11.1H12.6C9.6 11.1 5.6 9.2 1.2 7.6ZM1.6 7.1 8.6 7.2 9.6 7.9 2.4 8.1ZM18.8 9.35 30.6 10.55 25 11.35 17.6 9.85ZM25.6 11.6H30.2A1 1 0 0 1 30.2 13.6H25.6A1 1 0 0 1 25.6 11.6ZM27.4 10.8H29.4V11.8H27.4ZM19.4 10.9H23A.9.9 0 0 1 23 12.7H19.4A.9.9 0 0 1 19.4 10.9ZM20.6 10.3H22.4V11.1H20.6ZM23 11.2H23.7V14.2H23ZM42.2 11H42.85V14.3H42.2Z";
 
-// How long the finished bar stays before the loading screen goes: the fill, then the fade (boot.css).
-const finishMs = () => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 300);
+// Once done: the bar fills and the aircraft flares (LANDING_MS), then the runway runs out to the edges and the screen
+// opens along it (OPENING_MS). The durations are boot.css's.
+const LANDING_MS = 200;
+const OPENING_MS = 160 + 520;
+const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Where the screen opens: the runway's middle and height on the screen, and its share of the screen's width. */
+interface Seam {
+  x: number;
+  y: number;
+  from: number;
+}
 
 /** `onGone`: once `done`, when the screen has gone and the page under it should stop drawing it. */
 export function Boot({ progress, text, done = false, label = t("ui.boot.label"), onGone }: { progress: number; text: string; done?: boolean; label?: string; onGone?: () => void }) {
@@ -24,16 +35,31 @@ export function Boot({ progress, text, done = false, label = t("ui.boot.label"),
   useEffect(() => {
     gone.current = onGone;
   });
+  const screen = useRef<HTMLDivElement>(null);
+  const [seam, setSeam] = useState<Seam | null>(null);
   useEffect(() => {
+    setSeam(null);
     if (!done) return;
-    const timer = setTimeout(() => gone.current?.(), finishMs());
-    return () => clearTimeout(timer);
+    // With reduced motion the screen goes as soon as the page is ready.
+    if (still()) {
+      gone.current?.();
+      return;
+    }
+    const timers = [
+      setTimeout(() => {
+        const runway = screen.current?.querySelector(".boot__runway")?.getBoundingClientRect();
+        if (!runway) return gone.current?.();
+        setSeam({ x: runway.left + runway.width / 2, y: runway.top + runway.height / 2, from: runway.width / window.innerWidth });
+      }, LANDING_MS),
+      setTimeout(() => gone.current?.(), LANDING_MS + OPENING_MS),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [done]);
   const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
-  return (
-    <div className={`boot${done ? " boot--done" : ""}`} aria-busy={!done}>
+  const content = (hidden: boolean): ReactNode => (
+    <>
       <p className="boot__mark">Touchdown</p>
-      <div className="boot__bar boot__bar--steps" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} style={{ "--p": `${pct}%` } as CSSProperties}>
+      <div className="boot__bar boot__bar--steps" role={hidden ? undefined : "progressbar"} aria-label={hidden ? undefined : label} aria-valuemin={hidden ? undefined : 0} aria-valuemax={hidden ? undefined : 100} aria-valuenow={hidden ? undefined : pct} style={{ "--p": `${pct}%` } as CSSProperties}>
         <span className="boot__ground" />
         <span className="boot__runway" />
         <span className="boot__glide">
@@ -46,9 +72,29 @@ export function Boot({ progress, text, done = false, label = t("ui.boot.label"),
           </svg>
         </span>
       </div>
-      <p className="boot__text" aria-live="polite">
+      <p className="boot__text" aria-live={hidden ? undefined : "polite"}>
         {text}
       </p>
+    </>
+  );
+  if (seam) {
+    // The screen twice, cut along the runway: the half above lifts away, the half below drops.
+    const at = { "--seam-x": `${seam.x}px`, "--seam-y": `${seam.y}px`, "--seam-from": seam.from } as CSSProperties;
+    return (
+      <>
+        <div className="boot boot--done boot--half boot--top" style={at} aria-hidden="true">
+          {content(true)}
+        </div>
+        <div className="boot boot--done boot--half boot--bottom" style={at} aria-hidden="true">
+          {content(true)}
+        </div>
+        <span className="boot__seam" style={at} />
+      </>
+    );
+  }
+  return (
+    <div ref={screen} className={`boot${done ? " boot--done" : ""}`} aria-busy={!done}>
+      {content(false)}
     </div>
   );
 }

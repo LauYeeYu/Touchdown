@@ -14,6 +14,7 @@
   --boot-ink-3: #6e685e;
   --boot-rule: #d3ccbc;
   --boot-flown: #c48400;
+  --boot-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -156,11 +157,67 @@ body {
   transition: --p 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Done: the bar fills, then the screen fades to show the first page. */
+/* Done: the bar fills and the aircraft flares. Then the runway turns gold and runs out to both edges of the screen
+   (220ms), and from 160ms the screen opens along it over the first page, rendered underneath: the half above lifts away
+   and the half below drops (520ms), each its own copy of the screen cut at the runway, and 64px further than it
+   needs so its edge is gone before the easing's slow end. --seam-y is the runway's height on the
+   screen, --seam-x its middle and --seam-from its share of the screen's width (components/Boot.tsx). */
 .boot--done {
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 160ms ease-out 120ms;
+}
+
+.boot--top {
+  clip-path: inset(0 0 calc(100% - var(--seam-y)) 0);
+  animation: boot-lift 520ms var(--boot-ease) 160ms both;
+}
+
+.boot--bottom {
+  clip-path: inset(var(--seam-y) 0 0 0);
+  animation: boot-drop 520ms var(--boot-ease) 160ms both;
+}
+
+@keyframes boot-lift {
+  to {
+    transform: translateY(calc(-1 * var(--seam-y) - 64px));
+  }
+}
+
+@keyframes boot-drop {
+  to {
+    transform: translateY(calc(100% - var(--seam-y) + 64px));
+  }
+}
+
+/* The runway, 3px like the one drawn, gold now, out to the edges; it fades as the halves part. */
+.boot__seam {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(var(--seam-y) - 1.5px);
+  z-index: 101;
+  height: 3px;
+  border-radius: 1.5px;
+  background: var(--boot-flown);
+  transform-origin: var(--seam-x) 50%;
+  pointer-events: none;
+  animation:
+    boot-seam 220ms var(--boot-ease) both,
+    boot-seam-fade 220ms var(--boot-ease) 160ms forwards;
+}
+
+@keyframes boot-seam {
+  from {
+    transform: scaleX(var(--seam-from));
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes boot-seam-fade {
+  to {
+    opacity: 0;
+  }
 }
 
 .boot__text {
@@ -187,7 +244,6 @@ body {
   }
 
   .boot__bar--steps,
-  .boot--done,
   .boot__plane {
     transition: none;
   }
