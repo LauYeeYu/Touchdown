@@ -6,7 +6,7 @@ Where each user's data lives, how it is stored, and how devices stay in sync (re
 
 - One schema for every backend. Storage code is generic: it works on schema-defined tables and rows, never on hand-written file formats. (Decided)
 - No central database by default. Each user's data lives in storage the user owns. (Decided)
-- First backends, in the user's Google Drive, user's choice: **JSON tables** or a **SQLite file**. (Decided)
+- First backend, in the user's Google Drive: **JSON tables**. A **SQLite file**, as the user's choice, comes later and is not scheduled: it would not open the app faster ("File backend: SQLite file"). (Decided)
 - Later backends: local SQLite file, Postgres / Supabase, Cloudflare D1. The interface is designed for them now; they are built later. (Decided)
 - Google Drive is the first backend, not the platform (S7). Everything that reads or writes the user's data goes through the backend interface below, so it works on every backend: sync, the CLI's inbox, the agent check hand-off, import attachments, and anything added later. No feature relies on what only one service offers, such as Drive's file sharing or Drive for Desktop. Google's own APIs are used only where a Google product is the subject: importing a Google Sheet, exporting to Google Sheets. (Decided)
 - Three data modes ([32](32-modes-and-sharing.md)): Standard (recommended; the server keeps an encrypted key to the storage, for sync and share links), Private (the server keeps nothing) and Local (this browser only, with the manual-file adapter). (Decided)
@@ -25,7 +25,7 @@ Local store           IndexedDB in the browser; the app always reads and writes 
 Sync engine           row-level merge, pending queue, conflicts
  │
 Backend               one of:
- ├─ file backends     JSON tables | SQLite file
+ ├─ file backends     JSON tables | (later) SQLite file
  │    └─ file adapter Google Drive | local folder | manual file
  └─ server backends   (later) Postgres / Supabase | Cloudflare D1 | local SQLite via CLI
 ```
@@ -234,6 +234,14 @@ Decided, built (`makeDailyCopy` in `packages/storage/src/backups.ts`, the keep r
 
 ## File backend: SQLite file
 
+Later, not scheduled (Decided). It would be a choice for users who want the log in one file they can open with SQLite tools, not a way to open the app faster:
+
+- The app opens from the browser's copy ("Local store"), so the storage's format plays no part in opening, except in a browser's first download.
+- A first download waits on requests made one after another, not on the size of the files: the tables are small, smaller still compressed, and a SQLite file needs its WebAssembly engine downloaded first. One file would save a request or two, which the JSON tables can save as well by making those requests at the same time ([40](40-roadmap.md), "Later").
+- Sync would cost more: every push uploads the whole log, every change from another device downloads all of it, and two devices writing at nearly the same moment overwrite the whole log, not one table. With track points in the file, a first download would also wait for every track, which the JSON tables read after the app has opened.
+
+The design, for when it is built:
+
 ```
 Touchdown/
   touchdown.sqlite         all user tables from 10, plus a `meta` table (schema name, version, last writer)
@@ -253,7 +261,7 @@ On a device joining a log, the mode and storage account are written into `settin
 
 ## Switching backends
 
-Both file backends hold the same tables, so converting is lossless: the app reads everything from one backend and writes it to the other ("Convert to SQLite" / "Convert to JSON tables" in settings). The same path will move data to a server backend later.
+Later, with the SQLite file backend. Both file backends hold the same tables, so converting is lossless: the app reads everything from one backend and writes it to the other ("Convert to SQLite" / "Convert to JSON tables" in settings). The same path will move data to a server backend later.
 
 ## Server backends (later)
 

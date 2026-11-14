@@ -56,7 +56,7 @@ When a feature is added or changed, check whether Getting started (`/guide`, `ap
 ## Planned stack (Decided unless noted)
 
 - TypeScript everywhere: web app, shared core package, companion CLI.
-- Static web app, data in the browser (IndexedDB) synced to the user's storage: JSON tables or a SQLite file (user's choice); server databases later.
+- Static web app, data in the browser (IndexedDB) synced to the user's storage as JSON tables; a SQLite file (the user's choice) and server databases later.
 - Details in `docs/30-architecture.md`.
 
 ## Commands

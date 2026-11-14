@@ -40,7 +40,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | S1 | Think through how data is stored. | Doc | Done in [12](12-storage-and-sync.md) |
 | S2 | Data syncs across a user's devices. | Chat | Decided |
 | S3 | Each user's data lives in storage the user owns (Google Drive first), not in a central database. | Chat | Decided |
-| S4 | First backends in the user's Drive: JSON tables or a SQLite file, chosen by the user. | Chat | Decided |
+| S4 | First backend in the user's Drive: JSON tables. A SQLite file, chosen by the user, comes later and is not scheduled. | Chat | Decided |
 | S5 | Each user can pick their own sync method. CSV import/export is the fallback that always works. | Chat | Decided |
 | S6 | Storage is generic: one structured schema (typed, flat tables) for every backend, so database backends (local SQLite, Postgres / Supabase, Cloudflare D1) can be added later without changing the data model. | Chat | Decided |
 | S7 | No feature depends on one storage backend. Google Drive is the first backend, not the only one: sync, the CLI's inbox, the agent check hand-off and anything added later work on every backend. | Chat | Decided (Q-STORAGE-ANY) |

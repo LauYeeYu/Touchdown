@@ -78,7 +78,7 @@ None. Phase 1 test data is in `data/private/`.
 | Q-MOBILE | Phone support? | Web app in Chrome on Android. No iOS support needed. |
 | Q-MODELS | Track die-cast models? | No. Misc is a note to the user; import it as notes. |
 | — | How are times stored? | Always as a full date-time with UTC offset; never a time alone. Plain dates only where only the day is known. |
-| — | How generic is storage? | One structured schema for every backend; Drive backends JSON tables or SQLite file (user chooses); later local SQLite, Postgres / Supabase, Cloudflare D1. |
+| — | How generic is storage? | One structured schema for every backend; in Drive, JSON tables; later a SQLite file (user chooses), local SQLite, Postgres / Supabase, Cloudflare D1. (Changed: the SQLite file was first planned beside JSON tables, and moved to later, as it would not open the app faster.) |
 | — | Spelling? | UK English in copy, docs, and comments. |
 | — | Type and colour constraints for the interface? | Sans-serif only; keep the warm paper ground #FAF8F1 (white acceptable, not preferred); support dark mode. |
 | Q-AGENT-FLAGS | Does Claude Code `--json-schema` work with all tools disabled? Which Codex features must be disabled? | Claude Code 2.1: the answer comes through the `StructuredOutput` tool, so `--disallowedTools "*"` blocks it; use `--tools "" --allowedTools StructuredOutput`. Codex 0.156: turn off every feature that is on except a short list of plumbing features; with that, structured output and stdin work. Details in [22](22-agent-verification.md). |

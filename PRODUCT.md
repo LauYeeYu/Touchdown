@@ -27,7 +27,7 @@ Success: the owner retires their spreadsheets and trusts the numbers, because ev
 
 - **Flown and spotted in one log.** Flights and sightings share one aircraft identity, so the app can show, for example, aircraft the user both flew on and photographed.
 - **Airframe-level accuracy.** Aircraft are counted as physical airframes (manufacturer serial number), not registrations; registration reuse and type mistakes are caught.
-- **The user owns the data.** Data lives in the user's own storage (Google Drive first, as JSON tables or a SQLite file), defined by one structured schema, always exportable.
+- **The user owns the data.** Data lives in the user's own storage (Google Drive first, as JSON tables), defined by one structured schema, always exportable.
 - **Spotter-grade statistics.** Flexible pivots (families by airline, by location, special liveries) beyond flight-tracker summaries.
 - **Web and Android.** Flighty supports neither; Touchdown runs in any modern browser, including Chrome on Android.
 
