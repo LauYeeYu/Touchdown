@@ -94,7 +94,6 @@ export function TypeCompare() {
             {db && <path className="type-compare__b-inside" d={db.path} fillRule="nonzero" />}
             {da && <path className="type-compare__a" d={da.path} fillRule="nonzero" />}
           </svg>
-          <figcaption>{t("aircraft.types.compare.scale")}</figcaption>
         </figure>
       )}
 

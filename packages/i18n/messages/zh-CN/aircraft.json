@@ -163,7 +163,6 @@
   "types.compare.second": "第二种机型",
   "types.compare.swap": "交换两种机型",
   "types.compare.drawing": "{first}和{second}的俯视图，按同一比例",
-  "types.compare.scale": "按同一比例，机头对齐。第一种为实心，第二种为轮廓。",
   "types.compare.difference": "差别",
   "types.count": "{count, plural, other {#种}}",
   "types.picker.more": "显示前{shown, number}种，共{count, number}种。输入更多名称可缩小范围。",

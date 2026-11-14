@@ -249,7 +249,6 @@ export interface MessageArgs {
   "aircraft.types.compare.second": {};
   "aircraft.types.compare.swap": {};
   "aircraft.types.compare.drawing": { first: "text"; second: "text" };
-  "aircraft.types.compare.scale": {};
   "aircraft.types.compare.difference": {};
   "aircraft.types.count": { count: "number" };
   "aircraft.types.picker.more": { count: "number"; shown: "number" };

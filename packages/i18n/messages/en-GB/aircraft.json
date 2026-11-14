@@ -163,7 +163,6 @@
   "types.compare.second": "Second type",
   "types.compare.swap": "Swap the two types",
   "types.compare.drawing": "{first} and {second} seen from above, to one scale",
-  "types.compare.scale": "To one scale, noses together. The first filled, the second outlined.",
   "types.compare.difference": "Difference",
   "types.count": "{count, plural, one {# type} other {# types}}",
   "types.picker.more": "The first {shown, number} of {count, number}. Type more of the name to narrow them.",
