@@ -19,7 +19,7 @@ import facts from "../data/family_facts.json" with { type: "json" };
 import aircraftTypes from "../data/aircraft_types.json" with { type: "json" };
 import families from "../data/families.json" with { type: "json" };
 
-export { familyShapes, genericShape, sameBody, sameWing, shapeOf, type TypeKind } from "./curated/silhouettes.ts";
+export { familyShapes, genericShape, sameBody, sameWing, shapeOf, statedSize, type TypeKind } from "./curated/silhouettes.ts";
 export { familyOrder } from "./curated/type-order.ts";
 
 export function loadTypeSpecs(): TypeSpecs[] {

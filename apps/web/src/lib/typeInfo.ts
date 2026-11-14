@@ -97,13 +97,14 @@ export function loadTypeInfo(): Promise<TypeInfo> {
       if (!merged.has(code)) merged.set(code, mergeTypeData(code, specs.get(code), wikidata.get(code), articles.get(code)));
       return merged.get(code)!;
     };
-    // A span or a length to draw with where a type has none: another code's on the same wing, or as long.
-    const borrow = (groups: string[][], value: (d: TypeData) => number | null) => {
+    // A span or a length to draw with where a type has none: one its article states in its text, else another code's
+    // on the same wing, or as long.
+    const borrow = (groups: string[][], value: (d: TypeData) => number | null, stated: (code: string) => number | undefined) => {
       const groupOf = new Map(groups.flatMap((group) => group.map((c) => [c, group] as const)));
-      return (code: string, own: number | null) => own ?? (groupOf.get(code) ?? []).map((c) => { const d = data(c); return d ? value(d) : null; }).find((x) => x !== null) ?? null;
+      return (code: string, own: number | null) => own ?? stated(code) ?? (groupOf.get(code) ?? []).map((c) => { const d = data(c); return d ? value(d) : null; }).find((x) => x !== null) ?? null;
     };
-    const spanToDraw = borrow(m.sameWing, (d) => d.spanM);
-    const lengthToDraw = borrow(m.sameBody, (d) => d.lengthM);
+    const spanToDraw = borrow(m.sameWing, (d) => d.spanM, (c) => m.statedSize[c]?.spanM);
+    const lengthToDraw = borrow(m.sameBody, (d) => d.lengthM, (c) => m.statedSize[c]?.lengthM);
     // A family's role: the one most of its codes have on Wikidata.
     const familyRoles = new Map<string, TypeRole | null>();
     const familyRole = (familyId: string, ref: RefIndex): TypeRole | null => {

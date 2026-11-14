@@ -62,7 +62,8 @@ export const familyShapes: Record<string, FamilyShape> = {
   B757: f(NARROW),
   B767: f(WIDE, { B764: { wingAlso: { device: "raked" } }, E767: { radome: { at: 0.58, diameter: 9.1 } } }),
   B777: f(with_(WIDE, { enginesAlso: { size: 1.25 } }), { B77W: { wingAlso: { device: "raked" } }, B77L: { wingAlso: { device: "raked" } }, B778: { wingAlso: { device: "raked" } }, B779: { wingAlso: { device: "raked" } } }),
-  B787: f(with_(WIDE, { wingAlso: { device: "raked", root: 0.18 }, enginesAlso: { size: 1.15 } })),
+  // The 787-3, never built, had blended winglets in place of the raked wingtips (Boeing 787 Dreamliner, "787-3").
+  B787: f(with_(WIDE, { wingAlso: { device: "raked", root: 0.18 }, enginesAlso: { size: 1.15 } }), { B783: { wingAlso: { device: "winglet" } } }),
   C17: f(with_(QUAD, { wingAlso: { at: 0.38, root: 0.17, tip: 0.3, device: "winglet" }, stabAlso: { span: 0.38, at: 0.87 } })),
   DC3: f(with_(LIGHT_TWIN, { wingAlso: { at: 0.27, root: 0.2, tip: 0.35 }, enginesAlso: { size: 1.1 }, prop: 3.5 })),
   DC8: f(with_(QUAD, { wingAlso: { root: 0.17, tip: 0.25 }, enginesAlso: { size: 0.85 } })),
@@ -250,7 +251,8 @@ for (const id of checkedFamilies) familyShapes[id]!.checked = true;
  */
 export const sameWing: string[][] = [
   ["B788", "B789", "B78X"],
-  ["A359", "A35K"],
+  // The A350-800, never built, was a shorter A350-900 on the same wing.
+  ["A359", "A35K", "A358"],
   ["A338", "A339"],
   ["B731", "B732"],
   ["B733", "B734", "B735"],
@@ -274,12 +276,23 @@ export const sameWing: string[][] = [
  */
 export const sameBody: string[][] = [
   ["B741", "B742", "B743", "B74R", "B744"],
+  // The 787-3 "kept the -8 length" (Boeing 787 Dreamliner, "787-3").
+  ["B788", "B783"],
   // The 747-400D has the 747-400's fuselage.
   ["B74D", "B744"],
   ["B721", "R721"],
   ["B722", "R722"],
   ["E145", "E45X"],
 ];
+
+/**
+ * A length or a span an article states in its text, not in a specifications table, for a model that has none of its
+ * own: for the drawing only, as `sameWing`, its figures still show none. Models cancelled before any was built.
+ */
+export const statedSize: Record<string, { lengthM?: number; spanM?: number }> = {
+  A358: { lengthM: 60.45 }, // Airbus A350, "Shorter A350-800": "The 60.45 m-long A350-800".
+  B783: { spanM: 51.7 }, // Boeing 787 Dreamliner, "787-3": "It kept the -8 length but its 51.7 m wingspan".
+};
 
 // For a type without a family's shape: a fighter's short, broad, swept wing well back with no engines showing, and a
 // four-engined propeller aircraft's long, broad, tapered wing with large nacelles (a DC-6, a B-17, an An-12).
