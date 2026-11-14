@@ -358,11 +358,15 @@ export const familySweep: Record<string, number> = {
   A320: 25, // Airbus A320 family: "Its wing sweep is 25 degrees."
   A330: 30, // Airbus A330, specifications: "25% chord wingsweep: 30°".
   A340: 30, // Airbus A340: "The wing is swept back at 30 degrees."
+  A350: 31.9, // Airbus A350: "The A350's wing has a 31.9° sweep angle", for the A350-800 too, never built.
   B707: 35, // Boeing 707: "The 707's wings are swept back at 35°."
   B727: 32, // Tupolev Tu-154: "the Boeing 727 has a slightly smaller sweepback angle of 32°".
   B747: 37.5, // Boeing 747: "Its wings have a high sweep angle of 37.5°."
   B757: 25, // Boeing 757: "The wings are largely identical across all 757 variants, swept at 25 degrees."
   B767: 31.5, // Boeing 767: "The wings are swept at 31.5 degrees."
+  // Boeing 777, "Comparison": "31.6° Wing sweep". The 777X's article states no angle for its new wing, "based on the 787
+  // wing but with less sweep" (the 787's is 32°), so the 777-8 and 777-9 are drawn with the 777's.
+  B777: 31.6,
   B787: 32, // Boeing 787 Dreamliner, a planform's caption: "32° wing sweep".
   DC8: 30, // Douglas DC-8: "30° wing sweep".
   // Not stated in the DC-10's, the MD-11's or the TriStar's article: 35° is the figure their manufacturers publish, and their
