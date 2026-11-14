@@ -16,9 +16,7 @@
   "measure.m": "{n}\u00a0m",
   "measure.t": "{n}\u00a0t",
   "measure.kg": "{n}\u00a0kg",
-  "measure.kmh": "{n}\u00a0km/h",
-  "measure.mph": "{n}\u00a0mph",
-  "measure.kn": "{n}\u00a0kn",
+  "measure.kt": "{n}\u00a0kt",
   "measure.mach": "Mach\u00a0{n, number}",
   "measure.m2": "{n}\u00a0m²",
   "measure.deg": "{n}°"

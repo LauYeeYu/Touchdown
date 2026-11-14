@@ -16,7 +16,7 @@ export function TypeFamilyTable({ codes, current, counts, visitor, rotor }: { co
   const { app } = useApp();
   const { ref } = app;
   const info = useTypeInfo();
-  const figures = typeFigures(app.settings().distanceUnit ?? "km", rotor);
+  const figures = typeFigures(rotor);
   const figuresOf = (c: string) => info?.specs(c) ?? noFigures(c);
   const compared = current !== null && !!info?.specs(current);
   // Drawn to one scale: the largest fills the column's width.

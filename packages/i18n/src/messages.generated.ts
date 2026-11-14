@@ -1741,9 +1741,7 @@ export interface MessageArgs {
   "format.measure.m": { n: "text" };
   "format.measure.t": { n: "text" };
   "format.measure.kg": { n: "text" };
-  "format.measure.kmh": { n: "text" };
-  "format.measure.mph": { n: "text" };
-  "format.measure.kn": { n: "text" };
+  "format.measure.kt": { n: "text" };
   "format.measure.mach": { n: "number" };
   "format.measure.m2": { n: "text" };
   "format.measure.deg": { n: "text" };

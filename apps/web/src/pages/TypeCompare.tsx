@@ -31,7 +31,6 @@ export function TypeCompare() {
   const { ref } = app;
   const info = useTypeInfo();
   const counts = useTypeCounts();
-  const unit = app.settings().distanceUnit ?? "km";
 
   // Every type with figures; the log's most flown and most seen to start with.
   const hasFigures = (code: string) => withFigures(info, code);
@@ -49,7 +48,7 @@ export function TypeCompare() {
   const db = drawingOf(b, info, ref);
   const na = a ? typeName(a, ref) : "";
   const nb = b ? typeName(b, ref) : "";
-  const figures = typeFigures(unit);
+  const figures = typeFigures();
 
   // One scale for both, the noses at the top on one centreline: the wider and the longer of the two decide the room.
   const ext = [da?.extent, db?.extent].filter((e): e is [number, number, number, number] => !!e);

@@ -71,7 +71,7 @@ Decided, built (`packages/refdata/scripts/type-specs.ts`, `src/curated/type-spec
 | Figures, not prose | Only the figures are kept, with the article's title and revision, and each type's page links to that revision. No text is copied, so no share-alike text is in the app. |
 | Where | The article for each family's codes and which of its table's columns is which code are curated (`type-specs.ts`): one family can need several articles (the 737's four generations). A figure the table does not give but the article states elsewhere is an override there, with where it is in the article. |
 | Never guessed | A figure the article does not give stays empty. |
-| Units | Metric, as the article gives it where it gives both; shown in the log's distance unit for range and speed. |
+| Units | Metric, as the article gives it where it gives both; range shown in nautical miles and speed in knots, as aviation gives them, whatever unit the log's distances are in. |
 | When | Built when the reference data is, not read while the app runs: `npm run build-type-specs -w @touchdown/refdata` (`--refresh` asks for each article's latest revision), which keeps what it reads in `data/private/cache/wikipedia/`. |
 | Order | A family's codes are listed by generation, then model: the first generation first, and within a generation its models in order (A318, A319, A320, A321, then the A320neo's). The order is a curated list (`src/curated/type-order.ts`), as nothing in the tables says which generation a type code belongs to. A test checks each list has exactly its family's codes. |
 | In the app | Its own module (`@touchdown/refdata/typeinfo`), loaded the first time a page needs it: the type pages and the aircraft list's silhouettes ([31](31-ui.md), "Aircraft types"). |

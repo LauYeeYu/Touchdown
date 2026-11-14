@@ -31,7 +31,6 @@ export function TypePage() {
   const counts = useTypeCounts();
   // A visitor who is not signed in has no log: the page says nothing about one.
   const visitor = useVisitor();
-  const unit = app.settings().distanceUnit ?? "km";
   const type = ref.type(code);
   const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode === code), [store, version, code]);
   if (!type || !hasTypePage(ref, code)) return <NotFound />;
@@ -47,7 +46,7 @@ export function TypePage() {
   const planform = info?.planform(code, ref) ?? null;
   const drawing = drawingOf(code, info, ref);
   const rotor = planform?.shape.kind === "helicopter";
-  const figures = typeFigures(unit, rotor);
+  const figures = typeFigures(rotor);
   const flown = counts.flown.get(code) ?? 0;
   const seenAircraft = aircraft.filter((v) => v.sightings.length > 0).length;
   // Every code of the family, once the figures are loaded.

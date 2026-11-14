@@ -1,8 +1,8 @@
 // An aircraft type's figures as the type pages show them (docs/31-ui.md, "Aircraft types"): each with its label, its
-// value in the units the log uses where it has one (a range in its distance unit, a speed to match), and the difference
-// between two types, for a family's table and for Compare.
+// value (a range in nautical miles and a speed in knots, as aviation gives them, whatever unit the log's distances are
+// in), and the difference between two types, for a family's table and for Compare.
 
-import type { RefIndex, Settings } from "@touchdown/core";
+import type { RefIndex } from "@touchdown/core";
 import { locale, t } from "@touchdown/i18n";
 import { distance, nf } from "./format.ts";
 import type { TypeData, TypeInfo } from "./typeInfo.ts";
@@ -26,9 +26,10 @@ export const metres = (m: number) => t("format.measure.m", { n: n2.format(m) });
 export const metresBetween = (lo: number, hi: number) => t("format.measure.m", { n: t("aircraft.types.between", { low: n2.format(lo), high: n2.format(hi) }) });
 /** A weight: tonnes from 10 t (or always, as `tonnes` says, so a difference is in the unit of its figures), else kilograms. */
 export const weight = (kg: number, tonnes = kg >= 10_000) => (tonnes ? t("format.measure.t", { n: n1.format(kg / 1000) }) : t("format.measure.kg", { n: nf.format(Math.round(kg)) }));
-/** A speed in the distance unit the log uses: km/h, mph or knots. */
-export const speed = (kmh: number, unit: Settings["distanceUnit"]) =>
-  unit === "mi" ? t("format.measure.mph", { n: nf.format(Math.round(kmh / 1.609344)) }) : unit === "nm" ? t("format.measure.kn", { n: nf.format(Math.round(kmh / 1.852)) }) : t("format.measure.kmh", { n: nf.format(Math.round(kmh)) });
+/** A speed in knots. */
+export const knots = (kmh: number) => t("format.measure.kt", { n: nf.format(Math.round(kmh / 1.852)) });
+/** A distance in nautical miles. */
+const nautical = (km: number) => distance(km, "nm");
 
 export interface TypeFigure {
   key: "length" | "span" | "height" | "mtow" | "range" | "seats" | "speed" | "area" | "sweep";
@@ -47,13 +48,13 @@ const signed = (d: number, text: (abs: number) => string) => {
 };
 
 /** The figures, in the order the pages show them. A helicopter's span is its rotor's diameter. */
-export function typeFigures(unit: Settings["distanceUnit"], helicopter = false): TypeFigure[] {
+export function typeFigures(helicopter = false): TypeFigure[] {
   return [
     { key: "mtow", label: t("aircraft.types.figure.mtow"), value: (s) => s.mtowKg, text: (s) => (s.mtowKg ? weight(s.mtowKg) : null), diff: (d, from) => signed(d, (abs) => weight(abs, from >= 10_000)) },
     { key: "length", label: t("aircraft.types.figure.length"), value: (s) => s.lengthM, text: (s) => (s.lengthM ? metres(s.lengthM) : null), diff: (d) => signed(d, metres) },
     { key: "span", label: t("aircraft.types.figure.span", { rotor: helicopter ? "yes" : "no" }), value: (s) => s.spanM, text: (s) => (s.spanM ? metres(s.spanM) : null), diff: (d) => signed(d, metres) },
     { key: "height", label: t("aircraft.types.figure.height"), value: (s) => s.heightM, text: (s) => (s.heightM ? metres(s.heightM) : null), diff: (d) => signed(d, metres) },
-    { key: "range", label: t("aircraft.types.figure.range"), value: (s) => s.rangeKm, text: (s) => (s.rangeKm ? distance(s.rangeKm, unit) : null), diff: (d) => signed(d, (abs) => distance(abs, unit)) },
+    { key: "range", label: t("aircraft.types.figure.range"), value: (s) => s.rangeKm, text: (s) => (s.rangeKm ? nautical(s.rangeKm) : null), diff: (d) => signed(d, nautical) },
     {
       key: "seats",
       label: t("aircraft.types.figure.seats"),
@@ -65,8 +66,8 @@ export function typeFigures(unit: Settings["distanceUnit"], helicopter = false):
       key: "speed",
       label: t("aircraft.types.figure.speed"),
       value: (s) => s.cruiseKmh,
-      text: (s) => (s.cruiseMach && s.cruiseKmh ? `${t("format.measure.mach", { n: s.cruiseMach })} · ${speed(s.cruiseKmh, unit)}` : s.cruiseMach ? t("format.measure.mach", { n: s.cruiseMach }) : s.cruiseKmh ? speed(s.cruiseKmh, unit) : null),
-      diff: (d) => signed(d, (abs) => speed(abs, unit)),
+      text: (s) => (s.cruiseMach && s.cruiseKmh ? `${t("format.measure.mach", { n: s.cruiseMach })} · ${knots(s.cruiseKmh)}` : s.cruiseMach ? t("format.measure.mach", { n: s.cruiseMach }) : s.cruiseKmh ? knots(s.cruiseKmh) : null),
+      diff: (d) => signed(d, knots),
     },
     { key: "area", label: t("aircraft.types.figure.area"), value: (s) => s.wingAreaM2, text: (s) => (s.wingAreaM2 ? t("format.measure.m2", { n: nf.format(Math.round(s.wingAreaM2)) }) : null), diff: (d) => signed(d, (abs) => t("format.measure.m2", { n: nf.format(Math.round(abs)) })) },
     { key: "sweep", label: t("aircraft.types.figure.sweep"), value: (s) => s.sweepDeg, text: (s) => (s.sweepDeg !== null ? t("format.measure.deg", { n: n1.format(s.sweepDeg) }) : null), diff: (d) => signed(d, (abs) => t("format.measure.deg", { n: n1.format(abs) })) },

@@ -16,9 +16,7 @@
   "measure.m": "{n}\u202f米",
   "measure.t": "{n}\u202f吨",
   "measure.kg": "{n}\u202f千\u2060克",
-  "measure.kmh": "{n}\u202f公\u2060里/小\u2060时",
-  "measure.mph": "{n}\u202f英\u2060里/小\u2060时",
-  "measure.kn": "{n}\u202f节",
+  "measure.kt": "{n}\u202f节",
   "measure.mach": "{n, number}\u202f马\u2060赫",
   "measure.m2": "{n}\u202f平\u2060方\u2060米",
   "measure.deg": "{n}°"
