@@ -199,6 +199,8 @@ export interface MessageArgs {
   "aircraft.types.source.wikidataMore": {};
   "aircraft.types.source.wikipediaMore": {};
   "aircraft.types.source.drawing": { checked: "choice" };
+  "aircraft.types.source.width": { name: "text" };
+  "aircraft.types.source.widthArticle": {};
   "aircraft.types.compare": {};
   "aircraft.types.none": {};
   "aircraft.types.cols.family": {};
@@ -210,6 +212,7 @@ export interface MessageArgs {
   "aircraft.types.figure.length": {};
   "aircraft.types.figure.span": { rotor: "choice" };
   "aircraft.types.figure.height": {};
+  "aircraft.types.figure.width": {};
   "aircraft.types.figure.range": {};
   "aircraft.types.figure.seats": {};
   "aircraft.types.figure.speed": {};

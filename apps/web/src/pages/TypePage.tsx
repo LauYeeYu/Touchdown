@@ -152,6 +152,16 @@ export function TypePage() {
           </>
         )}
         {!specs?.wikipedia && !specs?.wikidata && !specs?.article && `${t("aircraft.types.source.none")} `}
+        {specs?.widthFrom && `${t("aircraft.types.source.width", { name: typeName(specs.widthFrom, ref) })} `}
+        {specs?.widthArticle && (
+          <>
+            {t("aircraft.types.source.widthArticle")}{" "}
+            <a href={`https://en.wikipedia.org/w/index.php?title=${encodeURIComponent(specs.widthArticle.title.replace(/ /g, "_"))}&oldid=${specs.widthArticle.revision}`} target="_blank" rel="noopener">
+              {specs.widthArticle.title}
+            </a>
+            {". "}
+          </>
+        )}
         {drawing && planform && t("aircraft.types.source.drawing", { checked: planform.generic ? "generic" : drawing.checked ? "yes" : "no" })}
       </p>
     </div>

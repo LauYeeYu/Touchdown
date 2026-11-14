@@ -32,7 +32,7 @@ export const knots = (kmh: number) => t("format.measure.kt", { n: nf.format(Math
 const nautical = (km: number) => distance(km, "nm");
 
 export interface TypeFigure {
-  key: "length" | "span" | "height" | "mtow" | "range" | "seats" | "speed" | "area" | "sweep";
+  key: "length" | "span" | "height" | "width" | "mtow" | "range" | "seats" | "speed" | "area" | "sweep";
   label: string;
   /** The figure as a number to compare with another type's, in its stored unit. */
   value: (s: TypeData) => number | null;
@@ -54,6 +54,7 @@ export function typeFigures(helicopter = false): TypeFigure[] {
     { key: "length", label: t("aircraft.types.figure.length"), value: (s) => s.lengthM, text: (s) => (s.lengthM ? metres(s.lengthM) : null), diff: (d) => signed(d, metres) },
     { key: "span", label: t("aircraft.types.figure.span", { rotor: helicopter ? "yes" : "no" }), value: (s) => s.spanM, text: (s) => (s.spanM ? metres(s.spanM) : null), diff: (d) => signed(d, metres) },
     { key: "height", label: t("aircraft.types.figure.height"), value: (s) => s.heightM, text: (s) => (s.heightM ? metres(s.heightM) : null), diff: (d) => signed(d, metres) },
+    { key: "width", label: t("aircraft.types.figure.width"), value: (s) => s.fuselageWidthM, text: (s) => (s.fuselageWidthM ? metres(s.fuselageWidthM) : null), diff: (d) => signed(d, metres) },
     { key: "range", label: t("aircraft.types.figure.range"), value: (s) => s.rangeKm, text: (s) => (s.rangeKm ? nautical(s.rangeKm) : null), diff: (d) => signed(d, nautical) },
     {
       key: "seats",
