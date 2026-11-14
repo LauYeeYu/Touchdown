@@ -37,6 +37,7 @@ export const curatedFamilies: CuratedFamily[] = [
   { id: "B777", name: "Boeing 777", manufacturer: "Boeing", types: ["B772", "B773", "B77L", "B77W", "B778", "B779"] },
   { id: "B787", name: "Boeing 787", manufacturer: "Boeing", types: ["B783", "B788", "B789", "B78X"] },
   { id: "C17", name: "Boeing C-17 Globemaster III", manufacturer: "Boeing", types: ["C17"] },
+  { id: "C135", name: "Boeing C-135 / KC-135", manufacturer: "Boeing", types: ["C135", "K35E", "K35R", "R135", "W135"] },
 
   // McDonnell Douglas, Douglas, Lockheed
   { id: "DC3", name: "Douglas DC-3", manufacturer: "Douglas", types: ["DC3"] },

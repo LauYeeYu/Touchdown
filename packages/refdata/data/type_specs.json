@@ -128,6 +128,7 @@
 ["BLCF","Boeing Dreamlifter",1382266633,71.68,64.44,21.54,8.38,null,null,364235,7800,872,0.82,null,null,"4 × PW 4056"],
 ["BSCA","Shuttle Carrier Aircraft",1383103794,70.51,59.64,19.33,null,510,null,322051,2130,460,0.6,null,null,"4 × Pratt & Whitney JT9D-7J"],
 ["C130","Lockheed C-130 Hercules",1384545124,29.79,40.41,11.66,null,162.1,null,70307,3800,541,null,92,null,"4 × Allison T56-A-15"],
+["C135","Boeing NC-135",1379511224,41.53,39.88,12.7,null,226,null,122470,null,856,null,null,null,"4 × Pratt & Whitney J57-P-43WB"],
 ["C150","Cessna 150",1383125111,7.29,10.11,2.59,null,15,null,726,780,152,null,null,null,"1 × Continental O-200-A"],
 ["C152","Cessna 152",1378427177,7.34,10.16,2.59,null,15,null,757,768,198,null,null,null,"1 × Lycoming O-235-L2C"],
 ["C17","Boeing C-17 Globemaster III",1384251170,53,51.76,16.79,null,350,null,265352,4480,830,0.74,null,null,"4 × Pratt & Whitney PW2000"],
@@ -267,6 +268,8 @@
 ["JS32","British Aerospace Jetstream",1364824348,null,null,null,null,null,null,null,null,null,null,null,null,null],
 ["JS41","British Aerospace Jetstream 41",1372328124,19.25,18.29,5.74,null,32.6,null,10886,1433,null,null,29,null,"2 × Allied Signal TPE331-14GR/HR"],
 ["K100","Daher Kodiak",1382726970,10.41,13.72,4.65,null,22,null,3291,2096,339,null,null,null,"1 × Pratt & Whitney Canada PT6A-34"],
+["K35E","Boeing KC-135 Stratotanker",1384893379,null,null,null,null,null,null,null,null,null,null,null,null,null],
+["K35R","Boeing KC-135 Stratotanker",1384893379,41.53,39.88,12.7,null,226,null,146284,2400,850,null,null,80,"4 × CFM International F108-CF-100"],
 ["KE3","Boeing E-3 Sentry",1384614192,null,null,null,null,null,null,null,null,null,null,null,null,null],
 ["L101","Lockheed L-1011 TriStar",1385136335,54.2,47.3,16.9,null,321,null,195045,4963,963,null,256,400,"3 × Rolls-Royce RB.211-22"],
 ["L410","Let L-410 Turbolet",1374595290,14.42,19.98,5.97,null,34.9,null,6600,1500,null,null,19,null,"2 × General Electric H80-200"],
@@ -310,6 +313,7 @@
 ["PC12","Pilatus PC-12",1383125038,14.4,16.28,4.26,null,25.8,null,4740,3417,528,null,6,null,"1 × Pratt & Whitney Canada PT6A-67P"],
 ["PC24","Pilatus PC-24",1381030016,16.85,17,5.4,null,30.9,null,8500,3700,810,null,10,null,"2 × Williams FJ44-4A"],
 ["PC6T","Pilatus PC-6 Porter",1380319648,11,15.87,3.2,null,30.2,null,2800,730,213,null,null,10,"1 × Pratt & Whitney Canada PT6A-27"],
+["R135","Boeing RC-135",1368721505,41.53,39.88,12.7,null,226,null,146284,5552,null,null,21,null,"4 × CFM International F-108-CF-201"],
 ["R22","Robinson R22",1382783625,8.74,7.67,2.72,null,null,null,621,387,178,null,1,null,"1 × Lycoming O-320-A2B or -A2C"],
 ["R44","Robinson R44",1371278001,11.66,10,3.28,null,null,null,1134,560,202,null,3,null,"1 × Lycoming IO-540-AE1A5"],
 ["R66","Robinson R66",1377863172,8.99,10,3.48,null,null,null,1225,650,200,null,4,null,"1 × Rolls-Royce RR300"],
@@ -329,6 +333,7 @@
 ["T204","Tupolev Tu-204",1382752599,46.14,41.8,13.9,3.8,184.2,null,105000,4300,810,null,172,null,"2 × Aviadvigatel PS-90A"],
 ["TBM7","SOCATA TBM",1383124050,null,null,null,null,null,null,null,null,null,null,null,null,null],
 ["TBM8","SOCATA TBM",1383124050,null,null,null,null,null,null,null,null,null,null,null,null,null],
-["TBM9","SOCATA TBM",1383124050,10.72,12.83,4.36,null,18,null,3354,3304,467,null,4,null,"1 × Pratt & Whitney Canada PT6A-66D"]
+["TBM9","SOCATA TBM",1383124050,10.72,12.83,4.36,null,18,null,3354,3304,467,null,4,null,"1 × Pratt & Whitney Canada PT6A-66D"],
+["W135","Boeing WC-135 Constant Phoenix",1381598592,42.65,39.88,13,null,226,null,136305,6400,null,null,null,null,"4 × Pratt & Whitney TF33-P-9 or Pratt & Whitney TF33-P-5 or CFM International F108-CF-100"]
   ]
 }

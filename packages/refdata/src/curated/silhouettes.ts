@@ -64,6 +64,8 @@ export const familyShapes: Record<string, FamilyShape> = {
   B777: f(with_(WIDE, { enginesAlso: { size: 1.25 } }), { B77W: { wingAlso: { device: "raked" } }, B77L: { wingAlso: { device: "raked" } }, B778: { wingAlso: { device: "raked" } }, B779: { wingAlso: { device: "raked" } } }),
   // The 787-3, never built, had blended winglets in place of the raked wingtips (Boeing 787 Dreamliner, "787-3").
   B787: f(with_(WIDE, { wingAlso: { device: "raked", root: 0.18 }, enginesAlso: { size: 1.15 } }), { B783: { wingAlso: { device: "winglet" } } }),
+  // The C-135s are a smaller cousin of the 707 on the same plan: four engines on pylons under a swept wing.
+  C135: f(with_(QUAD, { wingAlso: { root: 0.17, tip: 0.25 }, enginesAlso: { size: 0.85 } })),
   C17: f(with_(QUAD, { wingAlso: { at: 0.38, root: 0.17, tip: 0.3, device: "winglet" }, stabAlso: { span: 0.38, at: 0.87 } })),
   DC3: f(with_(LIGHT_TWIN, { wingAlso: { at: 0.27, root: 0.2, tip: 0.35 }, enginesAlso: { size: 1.1 }, prop: 3.5 })),
   DC8: f(with_(QUAD, { wingAlso: { root: 0.17, tip: 0.25 }, enginesAlso: { size: 0.85 } })),
@@ -231,7 +233,7 @@ export const familyShapes: Record<string, FamilyShape> = {
  */
 const checkedFamilies = [
   "A220", "A300", "A310", "A320", "A330", "A340", "A350", "A380", "A400M", "C295", "B707", "B717", "B727", "B737",
-  "B747", "B757", "B767", "B777", "B787", "C17", "DC3", "DC8", "DC9", "DC10", "MD11", "MD80", "MD90", "L1011",
+  "B747", "B757", "B767", "B777", "B787", "C17", "C135", "DC3", "DC8", "DC9", "DC10", "MD11", "MD80", "MD90", "L1011",
   "C130", "C5", "E170", "E175", "E190", "E195", "E145", "E120", "E110", "C390", "Phenom100", "Phenom300",
   "Embraer Legacy/Praetor", "CRJ", "CL30", "CL35", "CL60", "Global", "Learjet", "Dash8", "DHC7", "DHC6", "DHC2",
   "DHC3", "ATR42", "ATR72", "SF34", "SB20", "F27", "F28", "F50", "F100", "BAe146", "Jetstream", "D328", "B190",
@@ -267,6 +269,8 @@ export const sameWing: string[][] = [
   ["B741", "B742", "B743", "B74R", "B74D", "BSCA"],
   // The E-3s are 707-320Bs, the E-3D with other engines, and the KE-3A is their airframe as a tanker.
   ["B703", "KE3", "E3CF"],
+  // The KC-135E and the NC-135 are C-135 airframes, as the KC-135R is.
+  ["K35R", "K35E", "C135"],
   // The Dreamlifter is a 747-400 with a larger fuselage on the 747-400's wing.
   ["B744", "BLCF"],
   // The ERJ 145XR is an ERJ 145 with more fuel, winglets and stronger engines, on the same wing and fuselage.
@@ -280,6 +284,7 @@ export const sameWing: string[][] = [
 export const sameBody: string[][] = [
   ["B741", "B742", "B743", "B74R", "B744", "BSCA"],
   ["B703", "KE3", "E3CF"],
+  ["K35R", "K35E", "C135"],
   // The 787-3 "kept the -8 length" (Boeing 787 Dreamliner, "787-3").
   ["B788", "B783"],
   // The 747-400D has the 747-400's fuselage.
@@ -372,6 +377,7 @@ export const familySweep: Record<string, number> = {
   // wing but with less sweep" (the 787's is 32°), so the 777-8 and 777-9 are drawn with the 777's.
   B777: 31.6,
   B787: 32, // Boeing 787 Dreamliner, a planform's caption: "32° wing sweep".
+  C135: 35, // Boeing KC-135 Stratotanker: "four turbofan engines, mounted under 35° swept wings".
   DC8: 30, // Douglas DC-8: "30° wing sweep".
   // Not stated in the DC-10's, the MD-11's or the TriStar's article: 35° is the figure their manufacturers publish, and their
   // tips sit well behind the root, as drawn with it.

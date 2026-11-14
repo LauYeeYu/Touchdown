@@ -26,6 +26,7 @@ export const familyOrder: Record<string, string[]> = {
   Baron: ["BE55", "BE58"],
   Bonanza: ["BE35", "BE33", "BE36"],
   C130: ["C130", "C30J"],
+  C135: ["C135", "R135", "K35E", "K35R", "W135"],
   C295: ["CN35", "C295"],
   C5: ["C5", "C5M"],
   CRJ: ["CRJ1", "CRJ2", "CRJ7", "CRJ9", "CRJX"],

@@ -257,6 +257,17 @@ export const typeSpecSources: FamilySpecSources[] = [
     ],
   },
   { familyId: "C17", main: "Boeing C-17 Globemaster III", sources: [one("Boeing C-17 Globemaster III", "C17")] },
+  {
+    familyId: "C135",
+    // The KC-135's: most of the family (the C-135 Stratolifter's article is about the 45 transports).
+    main: "Boeing KC-135 Stratotanker",
+    sources: [
+      one("Boeing KC-135 Stratotanker", "K35R", { linkOnly: ["K35E"] }), // KC-135R, as the C-135FR was re-engined to be
+      one("Boeing RC-135", "R135"),
+      one("Boeing WC-135 Constant Phoenix", "W135"),
+      one("Boeing NC-135", "C135"),
+    ],
+  },
 
   // McDonnell Douglas, Douglas, Lockheed
   { familyId: "DC3", main: "Douglas DC-3", sources: [one("Douglas DC-3", "DC3")] },

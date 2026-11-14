@@ -1,6 +1,6 @@
 {
   "table": "family_facts",
-  "version": "2026-11-13",
+  "version": "2026-11-14",
   "sources": [
     "English Wikipedia (figures), linked from each type's page"
   ],
@@ -51,6 +51,7 @@
 ["Bell 429","Bell 429 GlobalRanger",1337064987,"2007-02-27","2009",500,null,"In service"],
 ["Bonanza","Beechcraft Bonanza",1384278753,"1945-12-22","1947",18525,"2025","In service"],
 ["C130","Lockheed C-130 Hercules",1384545124,"1954-08-23","1956-12",2700,"2024-06","In service"],
+["C135","Boeing KC-135 Stratotanker",1384893379,"1956-08-31","1957-06",803,null,"In service"],
 ["C150","Cessna 150",1383125111,"1957-09-12",null,23839,null,"In service"],
 ["C152","Cessna 152",1378427177,null,"1977",7584,null,null],
 ["C17","Boeing C-17 Globemaster III",1384251170,"1991-09-15","1995-01-17",279,null,"In service"],

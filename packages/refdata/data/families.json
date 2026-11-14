@@ -1,6 +1,6 @@
 {
   "table": "families",
-  "version": "2026-10-19",
+  "version": "2026-11-14",
   "sources": [
     "Touchdown curated table"
   ],
@@ -46,6 +46,7 @@
 ["Bell 429","Bell 429","Bell"],
 ["Bonanza","Beechcraft Bonanza","Beechcraft"],
 ["C130","Lockheed C-130 Hercules","Lockheed"],
+["C135","Boeing C-135 / KC-135","Boeing"],
 ["C150","Cessna 150","Cessna"],
 ["C152","Cessna 152","Cessna"],
 ["C17","Boeing C-17 Globemaster III","Boeing"],
