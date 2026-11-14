@@ -49,7 +49,13 @@ const FROM_ARTICLE = ["lengthM", "spanM", "heightM", "mtowKg"] as const;
  * Wikipedia's curated ones first, Wikidata's where they have none, then the article's.
  */
 export function mergeTypeData(code: string, s: TypeSpecs | undefined, w: TypeWikidata | undefined, a?: TypeWikipedia): TypeData | null {
-  if (!s && !w && !a) return null;
+  return s || w || a ? merge(code, s, w, a) : null;
+}
+
+/** A type without figures, for a table that lists it beside its family's: every figure empty. */
+export const noFigures = (code: string): TypeData => merge(code, undefined, undefined, undefined);
+
+function merge(code: string, s: TypeSpecs | undefined, w: TypeWikidata | undefined, a: TypeWikipedia | undefined): TypeData {
   const filled = FROM_WIKIDATA.filter((k) => (s?.[k] ?? null) === null && (w?.[k] ?? null) !== null);
   const fromArticle = FROM_ARTICLE.filter((k) => (s?.[k] ?? w?.[k] ?? null) === null && (a?.[k] ?? null) !== null);
   return {

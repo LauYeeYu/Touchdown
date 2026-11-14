@@ -137,7 +137,7 @@
   "types.drawing.label": "{name} von oben, maßstabsgetreu",
   "types.page.lead": "Die {name} ist {length} lang{rotor, select, yes {, ihr Rotor misst {span}} other {, {span} von Flügelspitze zu Flügelspitze}}{hasMtow, select, yes {, und startet mit bis zu {mtow}} other {}}.",
   "types.page.log": "{flown, plural, =0 {{seen, plural, =0 {In deinem Logbuch gibt es sie noch nicht.} one {Du hast eine fotografiert.} other {Du hast # davon fotografiert.}}} one {Du bist einmal damit geflogen{seen, plural, =0 {.} one { und hast eine fotografiert.} other { und hast # davon fotografiert.}}} other {Du bist #-mal damit geflogen{seen, plural, =0 {.} one { und hast eine fotografiert.} other { und hast # davon fotografiert.}}}}",
-  "types.family.intro": "{count, plural, other {# Typcodes}}, im selben Maßstab gezeichnet, jeder mit seinem Unterschied zur {name}.",
+  "types.family.intro": "{count, plural, other {# Typcodes}}, im selben Maßstab gezeichnet{compared, select, yes {, jeder mit seinem Unterschied zur {name}} other {}}.",
   "types.family.inLog": "In deinem Logbuch",
   "types.history.title": "Geschichte",
   "types.history.firstFlight": "Erstflug",

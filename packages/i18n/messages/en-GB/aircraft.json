@@ -137,7 +137,7 @@
   "types.drawing.label": "{name} seen from above, to scale",
   "types.page.lead": "The {name} is {length} long{rotor, select, yes {, its rotor {span} across} other {, {span} from wingtip to wingtip}}{hasMtow, select, yes {, and takes off at up to {mtow}} other {}}.",
   "types.page.log": "{flown, plural, =0 {{seen, plural, =0 {It is not in your log yet.} one {You have photographed one.} other {You have photographed # of them.}}} one {You have flown on it once{seen, plural, =0 {.} one { and photographed one.} other { and photographed # of them.}}} other {You have flown on it # times{seen, plural, =0 {.} one { and photographed one.} other { and photographed # of them.}}}}",
-  "types.family.intro": "{count, plural, other {# type codes}}, drawn to one scale, each with its difference from the {name}.",
+  "types.family.intro": "{count, plural, other {# type codes}}, drawn to one scale{compared, select, yes {, each with its difference from the {name}} other {}}.",
   "types.family.inLog": "In your log",
   "types.history.title": "History",
   "types.history.firstFlight": "First flight",

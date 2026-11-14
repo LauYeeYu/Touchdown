@@ -13,7 +13,7 @@ import { Icon } from "../lib/icons.tsx";
 import { headline } from "../lib/i18n.tsx";
 import { dateOnly, nf, typeName } from "../lib/format.ts";
 import { familyTypes, metres, typeFigures, weight } from "../lib/typeFigures.ts";
-import { useTypeInfo } from "../lib/typeInfo.ts";
+import { noFigures, useTypeInfo } from "../lib/typeInfo.ts";
 import { useVisitor } from "../lib/visitor.ts";
 import { aircraftViews } from "../lib/views.ts";
 import { Fact } from "../components/Facts.tsx";
@@ -53,7 +53,9 @@ export function TypePage() {
   const flown = counts.flown.get(code) ?? 0;
   const seenAircraft = aircraft.filter((v) => v.sightings.length > 0).length;
   const codes = fam ? familyTypes(ref, fam.id, info) : [code];
-  const siblings = codes.filter((c) => info?.specs(c));
+  // Every code of the family, one without figures (the 787-3, never built) with dashes.
+  const siblings = info ? codes : [];
+  const figuresOf = (c: string) => info?.specs(c) ?? noFigures(c);
   // The family's codes drawn to one scale: the largest fills the column's width.
   const largest = Math.max(1, ...siblings.map((c) => Math.max(info?.specs(c)?.spanM ?? 0, info?.specs(c)?.lengthM ?? 0)));
   const familyScale = 84 / largest;
@@ -112,14 +114,14 @@ export function TypePage() {
         </dl>
       )}
 
-      {fam && siblings.length > 1 && specs && (
+      {fam && siblings.length > 1 && (
         <section className="section" aria-labelledby="family-title">
           <div className="section__head">
             <h2 className="section__title" id="family-title">
               {fam.name}
             </h2>
           </div>
-          <p className="type-family__intro">{t("aircraft.types.family.intro", { count: siblings.length, name })}</p>
+          <p className="type-family__intro">{t("aircraft.types.family.intro", { count: siblings.length, name, compared: specs ? "yes" : "no" })}</p>
           <div className="table-scroll">
             {/* Equal columns, at least 112px each, the figures' names kept in view while the codes scroll on a phone. */}
             <table className="table type-family" style={{ minWidth: 160 + siblings.length * 112 }}>
@@ -147,13 +149,13 @@ export function TypePage() {
               </thead>
               <tbody>
                 {figures.map((x) => {
-                  const own = x.value(specs);
-                  if (!siblings.some((c) => x.text(info!.specs(c)!))) return null;
+                  const own = x.value(figuresOf(code));
+                  if (!siblings.some((c) => x.text(figuresOf(c)))) return null;
                   return (
                     <tr key={x.key}>
                       <th scope="row">{x.label}</th>
                       {siblings.map((c) => {
-                        const s = info!.specs(c)!;
+                        const s = figuresOf(c);
                         const v = x.value(s);
                         // The difference only where there is one: a figure the same as this type's has none under it.
                         const diff = c !== code && v !== null && own !== null ? x.diff(v - own, own) : null;
@@ -171,7 +173,7 @@ export function TypePage() {
                   <th scope="row">{t("aircraft.types.figure.engines")}</th>
                   {siblings.map((c) => (
                     <td key={c} className="type-family__engines">
-                      {info!.specs(c)!.engines ?? "—"}
+                      {figuresOf(c).engines ?? "—"}
                     </td>
                   ))}
                 </tr>

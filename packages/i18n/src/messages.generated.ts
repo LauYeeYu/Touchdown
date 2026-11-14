@@ -223,7 +223,7 @@ export interface MessageArgs {
   "aircraft.types.drawing.label": { name: "text" };
   "aircraft.types.page.lead": { hasMtow: "choice"; length: "text"; mtow: "text"; name: "text"; rotor: "choice"; span: "text" };
   "aircraft.types.page.log": { flown: "number"; seen: "number" };
-  "aircraft.types.family.intro": { count: "number"; name: "text" };
+  "aircraft.types.family.intro": { compared: "choice"; count: "number"; name: "text" };
   "aircraft.types.family.inLog": {};
   "aircraft.types.history.title": {};
   "aircraft.types.history.firstFlight": {};

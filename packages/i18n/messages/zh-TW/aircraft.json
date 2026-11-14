@@ -137,7 +137,7 @@
   "types.drawing.label": "{name}俯視圖，按比例繪製",
   "types.page.lead": "{name}長{length}，{rotor, select, yes {旋翼直徑{span}} other {翼展{span}}}{hasMtow, select, yes {，最大起飛重量{mtow}} other {}}。",
   "types.page.log": "{flown, plural, =0 {{seen, plural, =0 {你的日誌中還沒有這種機型。} other {你拍攝過#架。}}} other {你搭乘過#次{seen, plural, =0 {。} other {，拍攝過#架。}}}}",
-  "types.family.intro": "{count, plural, other {#個}}機型代碼按同一比例繪製，並列出與{name}的差別。",
+  "types.family.intro": "{count, plural, other {#個}}機型代碼按同一比例繪製{compared, select, yes {，並列出與{name}的差別} other {}}。",
   "types.family.inLog": "日誌中",
   "types.history.title": "歷史",
   "types.history.firstFlight": "首飛",
