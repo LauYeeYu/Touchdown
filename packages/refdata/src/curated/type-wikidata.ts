@@ -116,6 +116,10 @@ export const itemOverrides: Record<string, string | null> = {
   B461: null,
   B462: null,
   B463: null,
+  // Shuttle Carrier: the item is named "Shuttle Carrier Aircraft", the 747s that carried the orbiters.
+  BSCA: "Q218990",
+  // FA-18E Super Hornet: the item is named "Boeing F/A-18 Super Hornet", with the slash ICAO's name leaves out.
+  F18S: "Q223318",
   // Gulfstream G400 (GA4C) is the G400 of the G500/G600 generation. The item of that name (Q1554296) is the earlier
   // G400, a Gulfstream IV model (GLF4).
   GA4C: null,
@@ -127,6 +131,14 @@ export const itemOverrides: Record<string, string | null> = {
   H25C: null,
   // Aero Commander 1121 Jet Commander: the name is an alias of the IAI 1124 Westwind item (Q1653016), its successor.
   JCOM: null,
+  // KE-3: the item is named "KE-3A", the model's full designation.
+  KE3: "Q106340716",
+  // MD-600N: the item is named "MD Helicopters MD 600", the company that took over Boeing's helicopters of the MD line.
+  MD60: "Q1915113",
+  // 75 Kaydet: the item is named "Boeing-Stearman Model 75", the maker's name for it; Kaydet was the Army's.
+  ST75: "Q660944",
+  // WC-135R: the item is the WC-135 series' ("WC-135 Constant Phoenix"), of which the R is the latest.
+  W135: "Q218645",
   // Wassmer WA-421 Prestige: the name matches an alias of the WA-40 item (Q7972781), an earlier model. The WA 4/21
   // Prestige has its own item.
   WA42: "Q20798119",
