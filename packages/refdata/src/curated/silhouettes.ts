@@ -265,8 +265,8 @@ export const sameWing: string[][] = [
   // The 747-400D has the 747-400's fuselage without its wingtip extensions and winglets. The Shuttle Carriers were a
   // 747-100 and a 747-100SR.
   ["B741", "B742", "B743", "B74R", "B74D", "BSCA"],
-  // The KE-3A is the E-3's airframe, a 707-320B, as a tanker.
-  ["B703", "KE3"],
+  // The E-3s are 707-320Bs, the E-3D with other engines, and the KE-3A is their airframe as a tanker.
+  ["B703", "KE3", "E3CF"],
   // The Dreamlifter is a 747-400 with a larger fuselage on the 747-400's wing.
   ["B744", "BLCF"],
   // The ERJ 145XR is an ERJ 145 with more fuel, winglets and stronger engines, on the same wing and fuselage.
@@ -279,7 +279,7 @@ export const sameWing: string[][] = [
  */
 export const sameBody: string[][] = [
   ["B741", "B742", "B743", "B74R", "B744", "BSCA"],
-  ["B703", "KE3"],
+  ["B703", "KE3", "E3CF"],
   // The 787-3 "kept the -8 length" (Boeing 787 Dreamliner, "787-3").
   ["B788", "B783"],
   // The 747-400D has the 747-400's fuselage.
