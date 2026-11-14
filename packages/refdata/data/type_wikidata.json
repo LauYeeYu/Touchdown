@@ -732,7 +732,7 @@
 ["KA62","Q12177649",2252140850,"Ka-62","helicopter",null,null,null,null,null,null,null,null,"1998",null,null],
 ["KAAN","Q1336692",2566246911,"TAI Kaan","military",20,11,null,null,null,null,null,null,"2024-02-21",null,null],
 ["KC2","Q1352202",2475043361,"Kawasaki C-2","military",43.9,44.4,14.2,null,null,null,null,null,"2010-01-26","2016-06",null],
-["KE3","Q106340716",1395791231,"KE-3A","airliner",null,null,null,null,null,null,null,null,null,null,null],
+["KE3","Q106340716",1395791231,"KE-3A","military",null,null,null,null,null,null,null,null,null,null,null],
 ["KELA","Q6385563",1346392958,"Keleher Lark",null,null,null,null,null,null,null,null,null,null,null,null],
 ["KELD","Q16980915",1563971463,"Kelly-D",null,null,null,null,null,null,null,null,null,null,null,null],
 ["KF21","Q495218",2553306175,"Korea Aerospace Industries KF-21 Boramae","military",16.9,11.2,4.7,25600,null,null,null,"2 × General Electric F414","2022-07-19",null,null],

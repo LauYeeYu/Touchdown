@@ -164,6 +164,8 @@ export const valueOverrides: Record<string, Partial<TypeWikidataValues>> = {
   // Ilyushin Il-96 (Q272571), the family's item: length 64.7 m and height 15.7 m are not the Il-96-300's (55.35 m and
   // 17.55 m in its Wikipedia article, "Specifications"), so they are another model's.
   IL96: { lengthM: null, heightM: null },
+  // KE-3A (Q106340716), subclass of the 707's airliner classes: it is a tanker built for the Royal Saudi Air Force.
+  KE3: { role: "military" },
   // Irkut MC-21 (Q929769), the family's item, for the MC-21-300: length 46.7 m and height 12.7 m are not the -300's
   // (42.2 m and 11.45 m in its Wikipedia article, "Specifications").
   MC23: { lengthM: null, heightM: null },
