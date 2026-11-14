@@ -1,7 +1,8 @@
 // The type codes of each family with more than one, by generation, then model (docs/13-reference-data.md, "Type
 // figures"): the order the type pages list a family's codes in. The first generation first, and within a generation its
-// models in order (A318, A319, A320, A321, then the A320neo's). Curated, as the reference data says neither which
-// generation a type code belongs to nor when it entered service. A test checks each list has exactly its family's codes.
+// models in order (A318, A319, A320, A321, then the A320neo's), a model cancelled before any was built among them (the
+// A350-800, the 787-3). Curated, as the reference data says neither which generation a type code belongs to nor when it
+// entered service. A test checks each list has exactly its family's codes.
 
 export const familyOrder: Record<string, string[]> = {
   A220: ["BCS1", "BCS3"],
@@ -9,18 +10,18 @@ export const familyOrder: Record<string, string[]> = {
   A320: ["A318", "A319", "A320", "A321", "A19N", "A20N", "A21N"],
   A330: ["A333", "A332", "A337", "A338", "A339"],
   A340: ["A342", "A343", "A345", "A346"],
-  A350: ["A359", "A35K"],
+  A350: ["A358", "A359", "A35K"],
   ATR42: ["AT43", "AT44", "AT45", "AT46"],
   ATR72: ["AT72", "AT73", "AT75", "AT76"],
   An148: ["A148", "A158"],
   B707: ["B701", "B703", "B720", "E3TF", "E6", "E3CF"],
-  B727: ["B721", "B722"],
+  B727: ["B721", "R721", "B722", "R722"],
   B737: ["B731", "B732", "B733", "B734", "B735", "B736", "B737", "B738", "B739", "E737", "P8", "B37M", "B38M", "B39M", "B3XM"],
-  B747: ["B741", "B742", "B743", "B74R", "B74S", "B744", "BLCF", "B748"],
+  B747: ["B741", "B742", "B743", "B74R", "B74S", "B744", "B74D", "BLCF", "B748"],
   B757: ["B752", "B753"],
   B767: ["B762", "B763", "E767", "B764"],
   B777: ["B772", "B773", "B77W", "B77L", "B778", "B779"],
-  B787: ["B788", "B789", "B78X"],
+  B787: ["B783", "B788", "B789", "B78X"],
   BAe146: ["B461", "B462", "B463", "RJ85", "RJ1H", "RJ70"],
   Baron: ["BE55", "BE58"],
   Bonanza: ["BE35", "BE33", "BE36"],

@@ -58,7 +58,7 @@ export const familyShapes: Record<string, FamilyShape> = {
   B717: f(with_(REAR, { wingAlso: { at: 0.4 } })),
   B727: f(with_(REAR, { engines: { rear: 3 }, wingAlso: { at: 0.38, root: 0.16, tip: 0.25 } })),
   B737: f(with_(NARROW, { wingAlso: { device: "winglet" } }), { B731: { wingAlso: { device: null } }, B732: { wingAlso: { device: null } }, B733: { wingAlso: { device: null } }, B734: { wingAlso: { device: null } }, B735: { wingAlso: { device: null } } }),
-  B747: f(with_(QUAD, { wingAlso: { at: 0.33, root: 0.21, tip: 0.24, device: "winglet" } }), { B741: { wingAlso: { device: null } }, B742: { wingAlso: { device: null } }, B743: { wingAlso: { device: null } }, B74S: { wingAlso: { device: null } }, B748: { wingAlso: { device: "raked" } } }),
+  B747: f(with_(QUAD, { wingAlso: { at: 0.33, root: 0.21, tip: 0.24, device: "winglet" } }), { B741: { wingAlso: { device: null } }, B742: { wingAlso: { device: null } }, B743: { wingAlso: { device: null } }, B74D: { wingAlso: { device: null } }, B74S: { wingAlso: { device: null } }, B748: { wingAlso: { device: "raked" } } }),
   B757: f(NARROW),
   B767: f(WIDE, { B764: { wingAlso: { device: "raked" } }, E767: { radome: { at: 0.58, diameter: 9.1 } } }),
   B777: f(with_(WIDE, { enginesAlso: { size: 1.25 } }), { B77W: { wingAlso: { device: "raked" } }, B77L: { wingAlso: { device: "raked" } }, B778: { wingAlso: { device: "raked" } }, B779: { wingAlso: { device: "raked" } } }),
@@ -257,9 +257,11 @@ export const sameWing: string[][] = [
   ["B736", "B737", "B738", "B739"],
   ["B37M", "B38M", "B39M", "B3XM"],
   ["B752", "B753"],
-  ["B721", "B722"],
+  // The Super 27s are 727s with new side engines.
+  ["B721", "B722", "R721", "R722"],
   ["B778", "B779"],
-  ["B741", "B742", "B743", "B74R"],
+  // The 747-400D has the 747-400's fuselage without its wingtip extensions and winglets.
+  ["B741", "B742", "B743", "B74R", "B74D"],
   // The Dreamlifter is a 747-400 with a larger fuselage on the 747-400's wing.
   ["B744", "BLCF"],
   // The ERJ 145XR is an ERJ 145 with more fuel, winglets and stronger engines, on the same wing and fuselage.
@@ -272,6 +274,10 @@ export const sameWing: string[][] = [
  */
 export const sameBody: string[][] = [
   ["B741", "B742", "B743", "B74R", "B744"],
+  // The 747-400D has the 747-400's fuselage.
+  ["B74D", "B744"],
+  ["B721", "R721"],
+  ["B722", "R722"],
   ["E145", "E45X"],
 ];
 

@@ -16,7 +16,7 @@ export const curatedFamilies: CuratedFamily[] = [
   { id: "A320", name: "Airbus A320 family", manufacturer: "Airbus", types: ["A318", "A319", "A320", "A321", "A19N", "A20N", "A21N"] },
   { id: "A330", name: "Airbus A330", manufacturer: "Airbus", types: ["A332", "A333", "A337", "A338", "A339"] },
   { id: "A340", name: "Airbus A340", manufacturer: "Airbus", types: ["A342", "A343", "A345", "A346"] },
-  { id: "A350", name: "Airbus A350", manufacturer: "Airbus", types: ["A359", "A35K"] },
+  { id: "A350", name: "Airbus A350", manufacturer: "Airbus", types: ["A358", "A359", "A35K"] },
   { id: "A380", name: "Airbus A380", manufacturer: "Airbus", types: ["A388"] },
   { id: "A400M", name: "Airbus A400M Atlas", manufacturer: "Airbus", types: ["A400"] },
   { id: "C295", name: "Airbus C295 / CN-235", manufacturer: "Airbus", types: ["C295", "CN35"] },
@@ -24,18 +24,18 @@ export const curatedFamilies: CuratedFamily[] = [
   // Boeing
   { id: "B707", name: "Boeing 707 / 720", manufacturer: "Boeing", types: ["B701", "B703", "B720", "E3TF", "E3CF", "E6"] },
   { id: "B717", name: "Boeing 717", manufacturer: "Boeing", types: ["B712"] },
-  { id: "B727", name: "Boeing 727", manufacturer: "Boeing", types: ["B721", "B722"] },
+  { id: "B727", name: "Boeing 727", manufacturer: "Boeing", types: ["B721", "B722", "R721", "R722"] },
   {
     id: "B737",
     name: "Boeing 737",
     manufacturer: "Boeing",
     types: ["B731", "B732", "B733", "B734", "B735", "B736", "B737", "B738", "B739", "B37M", "B38M", "B39M", "B3XM", "P8", "E737"],
   },
-  { id: "B747", name: "Boeing 747", manufacturer: "Boeing", types: ["B741", "B742", "B743", "B744", "B748", "B74S", "B74R", "BLCF"] },
+  { id: "B747", name: "Boeing 747", manufacturer: "Boeing", types: ["B741", "B742", "B743", "B744", "B74D", "B748", "B74S", "B74R", "BLCF"] },
   { id: "B757", name: "Boeing 757", manufacturer: "Boeing", types: ["B752", "B753"] },
   { id: "B767", name: "Boeing 767", manufacturer: "Boeing", types: ["B762", "B763", "B764", "E767"] },
   { id: "B777", name: "Boeing 777", manufacturer: "Boeing", types: ["B772", "B773", "B77L", "B77W", "B778", "B779"] },
-  { id: "B787", name: "Boeing 787", manufacturer: "Boeing", types: ["B788", "B789", "B78X"] },
+  { id: "B787", name: "Boeing 787", manufacturer: "Boeing", types: ["B783", "B788", "B789", "B78X"] },
   { id: "C17", name: "Boeing C-17 Globemaster III", manufacturer: "Boeing", types: ["C17"] },
 
   // McDonnell Douglas, Douglas, Lockheed

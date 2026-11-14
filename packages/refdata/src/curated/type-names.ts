@@ -27,6 +27,7 @@ export const typeNames: Record<string, string> = {
   A346: "A340-600",
   A359: "A350-900",
   A35K: "A350-1000",
+  A358: "A350-800",
   A388: "A380-800",
   A400: "A400M Atlas",
 
@@ -55,6 +56,7 @@ export const typeNames: Record<string, string> = {
   B742: "747-200",
   B743: "747-300",
   B744: "747-400",
+  B74D: "747-400D",
   B748: "747-8",
   B74S: "747SP",
   B74R: "747SR",
@@ -71,6 +73,7 @@ export const typeNames: Record<string, string> = {
   B778: "777-8",
   B779: "777-9",
   B788: "787-8",
+  B783: "787-3",
   B789: "787-9",
   B78X: "787-10",
   C17: "C-17 Globemaster III",
