@@ -217,7 +217,8 @@ export const familyShapes: Record<string, FamilyShape> = {
   H125: f(with_(HELI, { blades: 3, stabAlso: { at: 0.83 } })),
   H130: f(with_(HELI, { blades: 3, fenestron: true, stabAlso: { at: 0.83 } })),
   H135: f(with_(HELI, { fenestron: true, stabAlso: { at: 0.83 } })),
-  H145: f(HELI),
+  // EC45 covers the EC145 (a tail rotor) and the H145 (a fenestron): drawn as the H145, whose figures it has (Arriel 2E).
+  H145: f(with_(HELI, { fenestron: true, stabAlso: { at: 0.83 } })),
   AS365: f(with_(HELI, { fenestron: true, stabAlso: { at: 0.85 } })),
   AW109: f(with_(HELI, { stabAlso: { at: 0.82 } })),
   AW139: f(with_(HELI, { blades: 5 })),
@@ -228,8 +229,8 @@ export const familyShapes: Record<string, FamilyShape> = {
 
 /**
  * Families whose drawings were compared with the real aircraft's planform (G11), by eye against their wing, engines and
- * tail, and found close. Not yet: the H145 family, whose one code covers the EC145 (a tail rotor, as drawn) and the H145
- * (a fenestron).
+ * tail, and found close. Every family with a shape is: the H145's one code, which covers the EC145 (a tail rotor) and the
+ * H145 (a fenestron), is drawn as the H145, whose figures it has.
  */
 const checkedFamilies = [
   "A220", "A300", "A310", "A320", "A330", "A340", "A350", "A380", "A400M", "C295", "B707", "B717", "B727", "B737",
@@ -243,7 +244,7 @@ const checkedFamilies = [
   "C152", "C172", "C177", "C180", "C182", "C185", "C206", "C208", "C210", "C310", "C337", "C340", "C402", "C404",
   "C414", "C421", "C441", "PA28", "PA32", "PA34", "PA44", "PA31", "PA46", "PA18", "J3", "Bonanza", "Baron", "SR20",
   "SR22", "DA20", "DA40", "DA42", "DA62", "M20", "R22", "R44", "R66", "Bell 206", "Bell 407", "Bell 412", "Bell 429",
-  "H125", "H130", "H135", "AS365", "AW109", "AW139", "S76", "S92", "H60",
+  "H125", "H130", "H135", "H145", "AS365", "AW109", "AW139", "S76", "S92", "H60",
 ];
 for (const id of checkedFamilies) familyShapes[id]!.checked = true;
 

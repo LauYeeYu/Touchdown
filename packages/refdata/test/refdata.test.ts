@@ -315,9 +315,10 @@ describe("a type without a family's shape", () => {
   });
 
   it("leaves the curated families' checks as they are", () => {
-    // A family checked is one compared with the real aircraft (G11): the H145's one drawing cannot be both of its kinds.
-    expect(familyShapes.A320!.checked).toBe(true);
-    expect(familyShapes.H145!.checked).toBe(false);
+    // A family checked is one compared with the real aircraft (G11). The H145's one code is drawn as the H145, with its
+    // fenestron, as its figures are the H145's.
+    for (const [id, f] of Object.entries(familyShapes)) expect(f.checked, id).toBe(true);
+    expect(familyShapes.H145!.shape.fenestron).toBe(true);
   });
 });
 
