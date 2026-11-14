@@ -224,6 +224,12 @@ export interface MessageArgs {
   "aircraft.types.page.lead": { hasMtow: "choice"; length: "text"; mtow: "text"; name: "text"; rotor: "choice"; span: "text" };
   "aircraft.types.page.log": { flown: "number"; seen: "number" };
   "aircraft.types.family.intro": { compared: "choice"; count: "number"; name: "text" };
+  "aircraft.types.family.lead": { codes: "number"; year: "choice" };
+  "aircraft.types.family.leadLog": { codes: "number"; flown: "number"; seen: "number"; year: "choice" };
+  "aircraft.types.family.codes": {};
+  "aircraft.types.family.aircraft": { count: "number" };
+  "aircraft.types.source.history": {};
+  "aircraft.types.source.family": {};
   "aircraft.types.family.inLog": {};
   "aircraft.types.history.title": {};
   "aircraft.types.history.firstFlight": {};

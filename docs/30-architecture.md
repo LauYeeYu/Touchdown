@@ -118,7 +118,8 @@ Worker "touchdown" (or the same server on any machine, 33)
      /p/<id>              a shared link's page and content, without a session; the only path with
                           user content outside the sign-in
      /share-files/*       the share page's own code and styles, without a session; no user content
-     /types, /types/<code>, /types/compare, /types/manufacturers/<manufacturer>
+     /types, /types/<code>, /types/compare, /types/manufacturers/<manufacturer>,
+     /types/families/<family>
                           the aircraft types pages: one page the same for everyone, which opens
                           the app for a signed-in browser (31)
      /types-files/*       their own code, styles and type reference data, without a session

@@ -20,6 +20,20 @@ describe("a manufacturer's address", () => {
   });
 });
 
+describe("a family's address", () => {
+  it("is its own for every family, and one the server opens to anyone", () => {
+    const { families } = loadRefTables();
+    const slugs = new Map<string, string>();
+    for (const f of families) {
+      const slug = slugOf(f.name);
+      expect(slugs.get(slug), `${f.name} and ${slugs.get(slug)}`).toBeUndefined();
+      slugs.set(slug, f.name);
+      expect(TYPES_PAGES.test(`/types/families/${slug}`), f.name).toBe(true);
+    }
+    expect(slugOf("Boeing 707 / 720")).toBe("boeing-707-720");
+  });
+});
+
 describe("a type's figures", () => {
   const wiki = { designator: "X1", article: "Made-up airliner", revision: 1, lengthM: 40, spanM: null, heightM: null, fuselageWidthM: null, wingAreaM2: null, sweepDeg: null, mtowKg: 70000, rangeKm: null, cruiseKmh: null, cruiseMach: null, seatsTypical: 150, seatsMax: null, engines: null };
   const data = { designator: "X1", item: "Q1", revision: 2, label: "Made-up airliner", role: "airliner" as const, lengthM: 41, spanM: 35, heightM: 12, mtowKg: 72000, rangeKm: null, cruiseKmh: null, seatsMax: 180, engines: null, firstFlight: "1990", introduced: null, built: 12 };

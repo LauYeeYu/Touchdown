@@ -31,6 +31,7 @@ import { Types } from "./pages/Types.tsx";
 import { TypePage } from "./pages/TypePage.tsx";
 import { TypeCompare } from "./pages/TypeCompare.tsx";
 import { TypeManufacturer } from "./pages/TypeManufacturer.tsx";
+import { TypeFamily } from "./pages/TypeFamily.tsx";
 import { FirstRun } from "./pages/FirstRun.tsx";
 import { CliPage } from "./pages/CliPage.tsx";
 import { Guide } from "./pages/Guide.tsx";
@@ -68,10 +69,12 @@ const importR = createRoute({ getParentRoute: () => root, path: "/import", compo
 const issues = createRoute({ getParentRoute: () => root, path: "/issues", component: Issues });
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: SettingsPage });
 const sharedLinks = createRoute({ getParentRoute: () => root, path: "/shares", component: SharedLinks });
-// Aircraft types, from the More menu (docs/31, "Aircraft types"): the list, a type's page by its code, and Compare.
+// Aircraft types, from the More menu (docs/31, "Aircraft types"): the list, a type's page by its code, a manufacturer's
+// and a family's pages, and Compare.
 const types = createRoute({ getParentRoute: () => root, path: "/types", component: Types });
 const typeOne = createRoute({ getParentRoute: () => root, path: "/types/$code", component: TypePage });
 const typeMaker = createRoute({ getParentRoute: () => root, path: "/types/manufacturers/$manufacturer", component: TypeManufacturer });
+const typeFamily = createRoute({ getParentRoute: () => root, path: "/types/families/$family", component: TypeFamily });
 const typeCompare = createRoute({
   getParentRoute: () => root,
   path: "/types/compare",
@@ -80,7 +83,7 @@ const typeCompare = createRoute({
 });
 const guide = createRoute({ getParentRoute: () => root, path: "/guide", component: Guide });
 
-const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings, sharedLinks, types, typeCompare, typeMaker, typeOne, guide]);
+const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit, spotting, sightingNew, session, sightingEdit, aircraft, aircraftOne, airport, stats, map, globeR, importR, issues, settings, sharedLinks, types, typeCompare, typeMaker, typeFamily, typeOne, guide]);
 
 // Back returns to where the page was scrolled; a new page starts at the top.
 const router = createRouter({ routeTree, defaultPreload: false, scrollRestoration: true });

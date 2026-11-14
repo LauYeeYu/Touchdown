@@ -80,7 +80,7 @@ describe("the gate", () => {
 
   it("serves the aircraft types pages to anyone, the same page with a session or without", async () => {
     const { s, served, owner } = await withOwner();
-    const pages = ["/types", "/types/", "/types/A388", "/types/compare?a=A388&b=B752", "/types/manufacturers/mcdonnell-douglas"];
+    const pages = ["/types", "/types/", "/types/A388", "/types/compare?a=A388&b=B752", "/types/manufacturers/mcdonnell-douglas", "/types/families/boeing-737"];
     for (const path of pages) {
       for (const jar of [{ cookie: null }, owner]) {
         const r = await call(s, jar, "GET", path, undefined, { Accept: "text/html" });
@@ -97,6 +97,7 @@ describe("the gate", () => {
     // Only the pages: anything else under /types, or another method, meets the sign-in.
     expect((await handle(new Request(`${SITE}/types/A388/photos`, { headers: { Accept: "text/html" } }), s)).status).toBe(302);
     expect((await handle(new Request(`${SITE}/types/manufacturers/Boeing/747`, { headers: { Accept: "text/html" } }), s)).status).toBe(302);
+    expect((await handle(new Request(`${SITE}/types/families/boeing-737/B738`, { headers: { Accept: "text/html" } }), s)).status).toBe(302);
     expect((await handle(new Request(`${SITE}/types/A388`, { method: "POST", headers: { Origin: SITE } }), s)).status).toBe(401);
     expect((await handle(new Request(`${SITE}/types-files/%2e%2e%2findex.html`), s)).status).toBe(400);
   });

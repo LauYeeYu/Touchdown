@@ -8,6 +8,7 @@ import { Types } from "../pages/Types.tsx";
 import { TypePage } from "../pages/TypePage.tsx";
 import { TypeCompare } from "../pages/TypeCompare.tsx";
 import { TypeManufacturer } from "../pages/TypeManufacturer.tsx";
+import { TypeFamily } from "../pages/TypeFamily.tsx";
 import { NotFound } from "../pages/NotFound.tsx";
 import { TypesShell } from "./Shell.tsx";
 
@@ -19,6 +20,7 @@ export function typesRouter() {
   const list = createRoute({ getParentRoute: () => root, path: "/types", component: Types });
   const one = createRoute({ getParentRoute: () => root, path: "/types/$code", component: TypePage });
   const manufacturer = createRoute({ getParentRoute: () => root, path: "/types/manufacturers/$manufacturer", component: TypeManufacturer });
+  const family = createRoute({ getParentRoute: () => root, path: "/types/families/$family", component: TypeFamily });
   // As the app's route, which the page reads its two types from.
   const compare = createRoute({
     getParentRoute: () => root,
@@ -26,5 +28,5 @@ export function typesRouter() {
     component: TypeCompare,
     validateSearch: (s: Record<string, unknown>): { a?: string; b?: string } => ({ ...(typeof s.a === "string" ? { a: s.a } : {}), ...(typeof s.b === "string" ? { b: s.b } : {}) }),
   });
-  return createRouter({ routeTree: root.addChildren([list, compare, manufacturer, one]), defaultPreload: false, scrollRestoration: true });
+  return createRouter({ routeTree: root.addChildren([list, compare, manufacturer, family, one]), defaultPreload: false, scrollRestoration: true });
 }

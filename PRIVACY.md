@@ -80,7 +80,7 @@ In Standard mode you can share a link to a flight, a sighting, an aircraft or yo
 
 ## Aircraft types pages
 
-The pages at `/types`, `/types/<code>`, `/types/compare` and `/types/manufacturers/<manufacturer>` open without an account. They show each aircraft type's figures from Wikipedia and Wikidata and Touchdown's drawings of them, and nothing about you or anyone's log. The page is the same for everyone. When it opens, your browser asks the site whether it is signed in. If it is, the page opens the app in its place, and the app shows the types with your log from your browser, as its other pages do. The pages are not indexed by search engines and set no cookies. Their views are counted as described under Analytics.
+The pages at `/types`, `/types/<code>`, `/types/compare`, `/types/manufacturers/<manufacturer>` and `/types/families/<family>` open without an account. They show each aircraft type's figures from Wikipedia and Wikidata and Touchdown's drawings of them, and nothing about you or anyone's log. The page is the same for everyone. When it opens, your browser asks the site whether it is signed in. If it is, the page opens the app in its place, and the app shows the types with your log from your browser, as its other pages do. The pages are not indexed by search engines and set no cookies. Their views are counted as described under Analytics.
 
 ## Other services your browser contacts
 
