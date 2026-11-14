@@ -20,6 +20,8 @@ export interface TypeData extends Omit<TypeSpecs, "article" | "revision"> {
   firstFlight: string | null;
   introduced: string | null;
   built: number | null;
+  /** The family's type whose fuselage width this one shows, as its own figures give none; null when they give it. */
+  widthFrom: string | null;
 }
 
 export type TypePlanform = Planform & {
@@ -80,6 +82,7 @@ function merge(code: string, s: TypeSpecs | undefined, w: TypeWikidata | undefin
     firstFlight: w?.firstFlight ?? null,
     introduced: w?.introduced ?? null,
     built: w?.built ?? null,
+    widthFrom: null,
   };
 }
 
@@ -92,9 +95,44 @@ export function loadTypeInfo(): Promise<TypeInfo> {
     const wikidata = new Map(m.loadTypeWikidata().map((w) => [w.designator, w]));
     const articles = new Map(m.loadTypeWikipedia().map((a) => [a.designator, a]));
     const facts = new Map(m.loadFamilyFacts().map((f) => [f.familyId, f]));
+    const own = new Map<string, TypeData | null>();
+    const ownData = (code: string) => {
+      if (!own.has(code)) own.set(code, mergeTypeData(code, specs.get(code), wikidata.get(code), articles.get(code)));
+      return own.get(code)!;
+    };
+    const { aircraftTypes } = m.loadTypeTables();
+    const familyIdOf = new Map(aircraftTypes.map((t) => [t.designator, t.familyId] as const));
+    const members = new Map<string, string[]>();
+    for (const t of aircraftTypes) if (t.familyId) members.set(t.familyId, [...(members.get(t.familyId) ?? []), t.designator]);
+    // The types sharing a type's fuselage: its family's, by generation, as a stretch lengthens a fuselage and does not
+    // widen it. None in a family of separate models (ownBodies).
+    const sameFuselage = (code: string): string[] => {
+      const family = familyIdOf.get(code);
+      return family && !m.ownBodies.includes(family) ? (m.familyOrder[family] ?? members.get(family) ?? []) : [];
+    };
+    // The fuselage width: the type's own, else the one most of its family's types give (the narrower of two as common,
+    // as a freighter's widened body, the Dreamlifter's or the BelugaXL's, is the odd one), with the type giving it
+    // nearest in length (the A320's for the A320neo) (docs/13, "Type figures").
+    const widthOf = (code: string): { width: number; from: string | null } | null => {
+      const own = ownData(code)?.fuselageWidthM;
+      if (own) return { width: own, from: null };
+      const given = sameFuselage(code).flatMap((c) => {
+        const w = ownData(c)?.fuselageWidthM;
+        return w ? [{ width: w, from: c }] : [];
+      });
+      const count = (w: number) => given.filter((g) => g.width === w).length;
+      const length = ownData(code)?.lengthM ?? null;
+      const apart = (c: string) => (length === null ? 0 : Math.abs((ownData(c)?.lengthM ?? Infinity) - length));
+      const shared = given.sort((a, b) => count(b.width) - count(a.width) || a.width - b.width || apart(a.from) - apart(b.from))[0];
+      return shared ?? null;
+    };
     const merged = new Map<string, TypeData | null>();
     const data = (code: string) => {
-      if (!merged.has(code)) merged.set(code, mergeTypeData(code, specs.get(code), wikidata.get(code), articles.get(code)));
+      if (!merged.has(code)) {
+        const d = ownData(code);
+        const w = d && d.fuselageWidthM === null ? widthOf(code) : null;
+        merged.set(code, d && w ? { ...d, fuselageWidthM: w.width, widthFrom: w.from } : d);
+      }
       return merged.get(code)!;
     };
     // A span or a length to draw with where a type has none: one its article states in its text, else another code's
@@ -147,8 +185,9 @@ export function loadTypeInfo(): Promise<TypeInfo> {
         const length = lengthToDraw(code, d?.lengthM ?? null);
         // Every drawn type shows, checked or not (G11): a type's page says when its family is not checked yet.
         if (!shape || !length || !span) return null;
-        // The fuselage's width and the sweep from the figures, else the shape's own, else what a type of its kind has.
-        const width = d?.fuselageWidthM ?? shape.width ?? (shape.kind === "helicopter" ? length * 0.14 : length * 0.085);
+        // The fuselage's width and the sweep from the figures (the width the family's), else the shape's own, else what a
+        // type of its kind has.
+        const width = widthOf(code)?.width ?? shape.width ?? (shape.kind === "helicopter" ? length * 0.14 : length * 0.085);
         const sweep = d?.sweepDeg ?? shape.sweep ?? (shape.kind === "jet" ? 25 : 0);
         return { length, span, width, sweep, shape, checked: own?.checked ?? false, generic: !own };
       },

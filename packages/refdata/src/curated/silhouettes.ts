@@ -286,6 +286,13 @@ export const sameBody: string[][] = [
 ];
 
 /**
+ * Families of separate models rather than one model and its stretches, whose fuselages differ in width: the Citations
+ * from the Mustang to the X, the Learjets, and the Legacy 600 on the ERJ's fuselage beside the narrower Legacy 450 and
+ * 500. Elsewhere a type whose figures give no fuselage width takes its family's (docs/13, "Type figures").
+ */
+export const ownBodies: string[] = ["Cessna Citation", "Learjet", "Embraer Legacy/Praetor"];
+
+/**
  * A length or a span an article states in its text, not in a specifications table, for a model that has none of its
  * own: for the drawing only, as `sameWing`, its figures still show none. Models cancelled before any was built.
  */
