@@ -145,6 +145,10 @@ export const valueOverrides: Record<string, Partial<TypeWikidataValues>> = {
   A388: { engines: null },
   // Beechcraft 1900 (Q661819), total produced (P1092) 3: 695 were built (its Wikipedia article's infobox).
   B190: { built: null },
+  // Embraer ERJ 145 (Q913114), instance of (P31) airliner: a class above it has business aviation as a use, which
+  // outranks airliner when a role is chosen. The ERJ 145 is a regional airliner, as the ERJ 135's and the 145XR's items
+  // have it. Its business jet, the Legacy 600, is a code of its own (E35L).
+  E145: { role: "airliner" },
   // Ilyushin Il-96 (Q272571), the family's item: length 64.7 m and height 15.7 m are not the Il-96-300's (55.35 m and
   // 17.55 m in its Wikipedia article, "Specifications"), so they are another model's.
   IL96: { lengthM: null, heightM: null },

@@ -1,6 +1,6 @@
 {
   "table": "type_wikidata",
-  "version": "2026-11-13",
+  "version": "2026-11-14",
   "sources": [
     "Wikidata (wikidata.org), CC0"
   ],
@@ -494,7 +494,7 @@
 ["E120","Q1163407",2548046264,"Embraer EMB 120 Brasilia","airliner",20,19.78,null,11500,1750,null,30,"2 × PW118","1983-07-27","1985-10",354],
 ["E121","Q1335151",2469402202,"EMB 121 Xingu","business",12.25,14.05,null,null,null,null,null,null,"1976-10-10","1977-05-20",106],
 ["E135","Q1638968",2558720717,"Embraer ERJ 135","airliner",null,null,null,null,null,null,null,null,null,null,null],
-["E145","Q913114",2555230162,"Embraer ERJ 145","business",null,null,null,null,null,null,50,null,"1995-08-11",null,1240],
+["E145","Q913114",2555230162,"Embraer ERJ 145","airliner",null,null,null,null,null,null,50,null,"1995-08-11",null,1240],
 ["E170","Q18572652",2439293458,"Embraer 170","airliner",null,null,null,null,null,null,null,null,"2002-02-19",null,null],
 ["E190","Q2549320",2558725221,"Embraer 190","airliner",null,null,null,null,null,null,118,null,"2004-03-12","2005-09",null],
 ["E195","Q377173",2439293980,"Embraer 195","airliner",null,null,null,null,null,null,null,null,null,null,null],
