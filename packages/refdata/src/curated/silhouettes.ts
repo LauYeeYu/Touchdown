@@ -262,13 +262,18 @@ export const sameWing: string[][] = [
   ["B741", "B742", "B743", "B74R"],
   // The Dreamlifter is a 747-400 with a larger fuselage on the 747-400's wing.
   ["B744", "BLCF"],
+  // The ERJ 145XR is an ERJ 145 with more fuel, winglets and stronger engines, on the same wing and fuselage.
+  ["E145", "E45X"],
 ];
 
 /**
  * Type codes as long as one another, so a code whose article gives no length is drawn with another's, as `sameWing`.
- * The 747-300 and 747-400 stretched the upper deck, not the fuselage.
+ * The 747-300 and 747-400 stretched the upper deck, not the fuselage. The ERJ 145XR is as long as the ERJ 145.
  */
-export const sameBody: string[][] = [["B741", "B742", "B743", "B74R", "B744"]];
+export const sameBody: string[][] = [
+  ["B741", "B742", "B743", "B74R", "B744"],
+  ["E145", "E45X"],
+];
 
 // For a type without a family's shape: a fighter's short, broad, swept wing well back with no engines showing, and a
 // four-engined propeller aircraft's long, broad, tapered wing with large nacelles (a DC-6, a B-17, an An-12).
