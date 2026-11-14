@@ -31,7 +31,7 @@ export const curatedFamilies: CuratedFamily[] = [
     manufacturer: "Boeing",
     types: ["B731", "B732", "B733", "B734", "B735", "B736", "B737", "B738", "B739", "B37M", "B38M", "B39M", "B3XM", "P8", "E737"],
   },
-  { id: "B747", name: "Boeing 747", manufacturer: "Boeing", types: ["B741", "B742", "B743", "B744", "B74D", "B748", "B74S", "B74R", "BLCF"] },
+  { id: "B747", name: "Boeing 747", manufacturer: "Boeing", types: ["B741", "B742", "B743", "B744", "B74D", "B748", "B74S", "B74R", "BLCF", "BSCA"] },
   { id: "B757", name: "Boeing 757", manufacturer: "Boeing", types: ["B752", "B753"] },
   { id: "B767", name: "Boeing 767", manufacturer: "Boeing", types: ["B762", "B763", "B764", "E767"] },
   { id: "B777", name: "Boeing 777", manufacturer: "Boeing", types: ["B772", "B773", "B77L", "B77W", "B778", "B779"] },

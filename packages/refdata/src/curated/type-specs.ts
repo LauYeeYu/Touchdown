@@ -203,6 +203,7 @@ export const typeSpecSources: FamilySpecSources[] = [
       one("Boeing 747-400", "B744"),
       one("Boeing 747-8", "B748"), // 747-8 Intercontinental
       one("Boeing 747SP", "B74S"),
+      one("Shuttle Carrier Aircraft", "BSCA"),
       { article: "Boeing Dreamlifter", columns: { "747 Dreamlifter": "BLCF" } },
     ],
   },

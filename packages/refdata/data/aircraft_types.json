@@ -475,7 +475,7 @@
 ["BROU","Max Holste","MH-1521 Broussard",null,"piston",1,"L"],
 ["BRUM","Brumby","Brumby",null,"piston",1,"L"],
 ["BS60","Beech-Sferma","60 Marquis",null,"turboprop",2,"L"],
-["BSCA","Boeing","Shuttle Carrier",null,"jet",4,"H"],
+["BSCA","Boeing","Shuttle Carrier","B747","jet",4,"H"],
 ["BSTP","Bell","214ST SuperTransport",null,"turboprop",2,"M"],
 ["BSTR","Custom Flight","Bright Star",null,"piston",1,"L"],
 ["BSWN","DRONAMICS","Black Swan",null,"piston",1,"L"],

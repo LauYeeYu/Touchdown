@@ -58,7 +58,7 @@ export const familyShapes: Record<string, FamilyShape> = {
   B717: f(with_(REAR, { wingAlso: { at: 0.4 } })),
   B727: f(with_(REAR, { engines: { rear: 3 }, wingAlso: { at: 0.38, root: 0.16, tip: 0.25 } })),
   B737: f(with_(NARROW, { wingAlso: { device: "winglet" } }), { B731: { wingAlso: { device: null } }, B732: { wingAlso: { device: null } }, B733: { wingAlso: { device: null } }, B734: { wingAlso: { device: null } }, B735: { wingAlso: { device: null } } }),
-  B747: f(with_(QUAD, { wingAlso: { at: 0.33, root: 0.21, tip: 0.24, device: "winglet" } }), { B741: { wingAlso: { device: null } }, B742: { wingAlso: { device: null } }, B743: { wingAlso: { device: null } }, B74R: { wingAlso: { device: null } }, B74D: { wingAlso: { device: null } }, B74S: { wingAlso: { device: null } }, B748: { wingAlso: { device: "raked" } } }),
+  B747: f(with_(QUAD, { wingAlso: { at: 0.33, root: 0.21, tip: 0.24, device: "winglet" } }), { B741: { wingAlso: { device: null } }, B742: { wingAlso: { device: null } }, B743: { wingAlso: { device: null } }, B74R: { wingAlso: { device: null } }, BSCA: { wingAlso: { device: null } }, B74D: { wingAlso: { device: null } }, B74S: { wingAlso: { device: null } }, B748: { wingAlso: { device: "raked" } } }),
   B757: f(NARROW),
   B767: f(WIDE, { B764: { wingAlso: { device: "raked" } }, E767: { radome: { at: 0.58, diameter: 9.1 } } }),
   B777: f(with_(WIDE, { enginesAlso: { size: 1.25 } }), { B77W: { wingAlso: { device: "raked" } }, B77L: { wingAlso: { device: "raked" } }, B778: { wingAlso: { device: "raked" } }, B779: { wingAlso: { device: "raked" } } }),
@@ -262,8 +262,9 @@ export const sameWing: string[][] = [
   // The Super 27s are 727s with new side engines.
   ["B721", "B722", "R721", "R722"],
   ["B778", "B779"],
-  // The 747-400D has the 747-400's fuselage without its wingtip extensions and winglets.
-  ["B741", "B742", "B743", "B74R", "B74D"],
+  // The 747-400D has the 747-400's fuselage without its wingtip extensions and winglets. The Shuttle Carriers were a
+  // 747-100 and a 747-100SR.
+  ["B741", "B742", "B743", "B74R", "B74D", "BSCA"],
   // The KE-3A is the E-3's airframe, a 707-320B, as a tanker.
   ["B703", "KE3"],
   // The Dreamlifter is a 747-400 with a larger fuselage on the 747-400's wing.
@@ -277,7 +278,7 @@ export const sameWing: string[][] = [
  * The 747-300 and 747-400 stretched the upper deck, not the fuselage. The ERJ 145XR is as long as the ERJ 145.
  */
 export const sameBody: string[][] = [
-  ["B741", "B742", "B743", "B74R", "B744"],
+  ["B741", "B742", "B743", "B74R", "B744", "BSCA"],
   ["B703", "KE3"],
   // The 787-3 "kept the -8 length" (Boeing 787 Dreamliner, "787-3").
   ["B788", "B783"],

@@ -126,6 +126,7 @@
 ["BE9L","Beechcraft King Air",1383115466,10.82,15.32,4.34,null,27,null,4580,2446,416,null,null,7,"2 × PT6A-135A"],
 ["BE9T","Beechcraft King Air",1383115466,null,null,null,null,null,null,null,null,null,null,null,null,null],
 ["BLCF","Boeing Dreamlifter",1382266633,71.68,64.44,21.54,8.38,null,null,364235,7800,872,0.82,null,null,"4 × PW 4056"],
+["BSCA","Shuttle Carrier Aircraft",1383103794,70.51,59.64,19.33,null,510,null,322051,2130,460,0.6,null,null,"4 × Pratt & Whitney JT9D-7J"],
 ["C130","Lockheed C-130 Hercules",1384545124,29.79,40.41,11.66,null,162.1,null,70307,3800,541,null,92,null,"4 × Allison T56-A-15"],
 ["C150","Cessna 150",1383125111,7.29,10.11,2.59,null,15,null,726,780,152,null,null,null,"1 × Continental O-200-A"],
 ["C152","Cessna 152",1378427177,7.34,10.16,2.59,null,15,null,757,768,198,null,null,null,"1 × Lycoming O-235-L2C"],
