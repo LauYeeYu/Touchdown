@@ -251,9 +251,6 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
   return booting;
 }
 
-// How long the finished bar stays before the loading screen goes: the fill, then the fade (boot.css).
-const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 300;
-
 function App() {
   const [app, setApp] = useState<AppData | null>(null);
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
@@ -269,11 +266,6 @@ function App() {
       })
       .catch((e: Error) => setError(e instanceof OfflineWithoutAccount ? { title: t("shell.opening.offline"), message: e.message } : { message: e.message }));
   }, []);
-  useEffect(() => {
-    if (!app) return;
-    const t = setTimeout(() => setFinished(true), FINISH_MS);
-    return () => clearTimeout(t);
-  }, [app]);
   if (error) return <BootError message={error.message} title={error.title} />;
   // The first page renders under the loading screen while the bar fills and the screen fades.
   return (
@@ -283,7 +275,7 @@ function App() {
           {firstRun ? <FirstRun app={app} onDone={() => setFirstRun(false)} /> : <RouterProvider router={router} />}
         </AppContext.Provider>
       )}
-      {!finished && <Boot progress={app ? 1 : progress.at} text={app ? t("shell.opening.ready") : progress.text} done={!!app} />}
+      {!finished && <Boot progress={app ? 1 : progress.at} text={app ? t("shell.opening.ready") : progress.text} done={!!app} onGone={() => setFinished(true)} />}
     </>
   );
 }

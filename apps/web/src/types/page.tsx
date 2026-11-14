@@ -21,7 +21,6 @@ import { typesRouter, typesScope } from "./router.tsx";
 validateWithoutEval();
 
 const START = Math.max(0.3, waitingProgress());
-const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 300;
 
 function TypesPages() {
   const [data, setData] = useState<VisitorData | null>(null);
@@ -31,11 +30,6 @@ function TypesPages() {
     // The reference data and the types' figures together; the page waits for both, so it opens whole.
     void Promise.all([loadVisitor(), loadTypeInfo()]).then(([d]) => setData(d));
   }, []);
-  useEffect(() => {
-    if (!data) return;
-    const timer = setTimeout(() => setFinished(true), FINISH_MS);
-    return () => clearTimeout(timer);
-  }, [data]);
   return (
     <>
       {data && (
@@ -47,7 +41,7 @@ function TypesPages() {
           </VisitorContext.Provider>
         </AppContext.Provider>
       )}
-      {!finished && <Boot label={t("aircraft.types.public.opening.label")} progress={data ? 1 : START} text={data ? t("aircraft.types.public.ready") : t("aircraft.types.public.opening")} done={!!data} />}
+      {!finished && <Boot label={t("aircraft.types.public.opening.label")} progress={data ? 1 : START} text={data ? t("aircraft.types.public.ready") : t("aircraft.types.public.opening")} done={!!data} onGone={() => setFinished(true)} />}
     </>
   );
 }

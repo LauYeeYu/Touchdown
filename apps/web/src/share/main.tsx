@@ -35,7 +35,6 @@ function titleOf(content: ShareContent): string {
 // The app's loading screen (components/Boot.tsx): the page's own bar creeps towards 30% while the code loads, the
 // link's content and the reference data move it on, and it lands and fades out over the first page.
 const START = Math.max(0.3, waitingProgress());
-const FINISH_MS = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 300;
 
 function SharePage() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -54,11 +53,6 @@ function SharePage() {
       current = false;
     };
   }, [attempt]);
-  useEffect(() => {
-    if (!loaded) return;
-    const t = setTimeout(() => setFinished(true), FINISH_MS);
-    return () => clearTimeout(t);
-  }, [loaded]);
   const retry = () => {
     setLoaded(null);
     setFinished(false);
@@ -79,7 +73,7 @@ function SharePage() {
   return (
     <>
       {page}
-      {!finished && <Boot label={t("share.opening.label")} progress={loaded ? 1 : progress.at} text={loaded?.state === "ok" ? t("share.ready") : progress.text} done={!!loaded} />}
+      {!finished && <Boot label={t("share.opening.label")} progress={loaded ? 1 : progress.at} text={loaded?.state === "ok" ? t("share.ready") : progress.text} done={!!loaded} onGone={() => setFinished(true)} />}
     </>
   );
 }
