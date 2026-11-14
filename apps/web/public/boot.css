@@ -2,12 +2,6 @@
    app's code and stylesheet have loaded. Colours repeat the app's tokens (src/styles/app.css): paper, ink, ink-3,
    rule-strong and flown, in both themes. */
 
-@property --p {
-  syntax: "<percentage>";
-  inherits: true;
-  initial-value: 0%;
-}
-
 :root {
   --boot-paper: #faf8f1;
   --boot-ink: #1f1d1a;
@@ -74,7 +68,9 @@ body {
 /* The progress bar is a final approach, seen from the side: an aircraft follows the glide path down to the
    runway and touches down at 100%. The path already flown is drawn in the flown colour, the rest dashed.
    240 by 52px; the glide path starts at (6, 16), runs 186px at 9 degrees and meets the runway 14px past its
-   threshold. --p is how far along it the aircraft is. */
+   threshold. How far along it the aircraft is moves the aircraft's box (`translate`, up to the path's 186px) and
+   stretches the gold behind it (`scale`), so the browser can animate both off the main thread: the box is an HTML
+   element, as an <svg> element's own movement waits for the main thread. */
 .boot__bar {
   position: relative;
   width: 240px;
@@ -114,17 +110,29 @@ body {
 
 .boot__fill {
   display: block;
-  width: var(--p);
+  width: 100%;
   height: 100%;
   border-radius: 1px;
   background: var(--boot-flown);
+  transform-origin: 0 50%;
+  scale: 0 1;
+  will-change: scale;
+}
+
+/* The aircraft's box, a point on the path moved along it. */
+.boot__craft {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: 0 0;
+  will-change: translate;
 }
 
 /* A Boeing 747, anchored at its main wheels, which sit on the path; turned back level, then 3 degrees nose up,
-   as on an approach. At touchdown it flares to 6 degrees. */
+   as on an approach. At touchdown it raises its nose to 6 degrees. */
 .boot__plane {
   position: absolute;
-  left: var(--p);
+  left: 0;
   top: 0;
   width: 46px;
   height: 15.14px;
@@ -134,27 +142,36 @@ body {
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.boot--done .boot__plane {
+.boot--landed .boot__plane {
   transform: translate(-48.6%, -100%) rotate(-15deg);
 }
 
-/* Before the app's code runs nothing reports progress: creep towards a third while the code loads. */
-.boot__bar--waiting {
-  animation: boot-wait 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* Before the app's code runs nothing reports progress: creep on while the code loads, a quarter of the way in 2.4s,
+   still moving after 9s, never past 36%. The app's code then flies it on from where it is (components/Boot.tsx). */
+.boot__bar--waiting .boot__craft {
+  animation: boot-wait-craft 10s cubic-bezier(0.1, 0.6, 0.25, 1) forwards;
 }
 
-@keyframes boot-wait {
+.boot__bar--waiting .boot__fill {
+  animation: boot-wait-fill 10s cubic-bezier(0.1, 0.6, 0.25, 1) forwards;
+}
+
+@keyframes boot-wait-craft {
   from {
-    --p: 0%;
+    translate: 0 0;
   }
   to {
-    --p: 30%;
+    translate: 66.96px 0;
   }
 }
 
-/* Then each step of opening the log moves it on. */
-.boot__bar--steps {
-  transition: --p 200ms cubic-bezier(0.16, 1, 0.3, 1);
+@keyframes boot-wait-fill {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 0.36 1;
+  }
 }
 
 /* Done: the bar fills and the aircraft flares. Then the runway turns gold and runs out to both edges of the screen
@@ -238,12 +255,16 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .boot__bar--waiting {
+  .boot__bar--waiting .boot__craft {
     animation: none;
-    --p: 30%;
+    translate: 55.8px 0;
   }
 
-  .boot__bar--steps,
+  .boot__bar--waiting .boot__fill {
+    animation: none;
+    scale: 0.3 1;
+  }
+
   .boot__plane {
     transition: none;
   }

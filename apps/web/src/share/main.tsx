@@ -32,8 +32,8 @@ function titleOf(content: ShareContent): string {
   return t("share.title.record", { kind: content.kind });
 }
 
-// The app's loading screen (components/Boot.tsx): the page's own bar creeps towards 30% while the code loads, the
-// link's content and the reference data move it on, and it lands and fades out over the first page.
+// The app's loading screen (components/Boot.tsx): the page's own bar creeps on while the code loads, the link's
+// content and the reference data move it on, and it lands and opens along the runway over the first page.
 const START = Math.max(0.3, waitingProgress());
 
 function SharePage() {
@@ -60,7 +60,7 @@ function SharePage() {
     setAttempt((n) => n + 1);
   };
 
-  // The page renders under the loading screen while the bar lands and the screen fades.
+  // The page renders under the loading screen while the aircraft lands and the screen opens over it.
   const page = !loaded ? null : loaded.state === "not-found" ? (
     <Frame>{<Message title={t("share.notFound.title")} text={t("share.notFound.text")} />}</Frame>
   ) : loaded.state === "busy" ? (

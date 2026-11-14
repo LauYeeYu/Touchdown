@@ -125,8 +125,9 @@ interface Progress {
   text: string;
 }
 
-// One bar from 0 to 100%: the page's own bar creeps towards 30% while the code loads (public/boot.css), each
-// step of opening the log moves it on, and it fills when the first page is ready.
+// One bar from 0 to 100%: the page's own bar creeps on while the code loads (public/boot.css), each step of opening
+// the log reports how far it has got, and it fills when the first page is ready. The aircraft flies smoothly between
+// them (components/Boot.tsx).
 const SHARE: Record<OpenStep, number> = { reference: 0.15, log: 0.3 };
 const PREPARED = 0.9;
 // Read before React replaces the page's own bar, so the bar never steps back.
@@ -267,7 +268,7 @@ function App() {
       .catch((e: Error) => setError(e instanceof OfflineWithoutAccount ? { title: t("shell.opening.offline"), message: e.message } : { message: e.message }));
   }, []);
   if (error) return <BootError message={error.message} title={error.title} />;
-  // The first page renders under the loading screen while the bar fills and the screen fades.
+  // The first page renders under the loading screen while the aircraft lands and the screen opens over it.
   return (
     <>
       {app && (
