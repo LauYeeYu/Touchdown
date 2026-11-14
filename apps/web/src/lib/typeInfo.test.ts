@@ -28,4 +28,13 @@ describe("a type's fuselage width", () => {
     expect(info.specs("C510")?.fuselageWidthM).toBeNull();
     expect(info.planform("C510", ref)!.width).toBeLessThan(info.planform("C750", ref)!.width);
   });
+
+  it("is drawn the same for a family's types, a stretch as wide as the type it stretches", async () => {
+    const info = await loadTypeInfo();
+    expect(info.planform("B772", ref)!.width).toBe(info.planform("B779", ref)!.width);
+    // The 787-3 was never built and has no figures: it is drawn with the family's width all the same.
+    expect(info.planform("B783", ref)!.width).toBe(5.77);
+    // No type of the Gulfstream G400/G500/G600 gives one: the drawing works one out for the family.
+    expect(info.planform("GA4C", ref)!.width).toBe(info.planform("GA6C", ref)!.width);
+  });
 });

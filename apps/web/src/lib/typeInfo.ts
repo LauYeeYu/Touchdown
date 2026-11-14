@@ -149,6 +149,11 @@ export function loadTypeInfo(): Promise<TypeInfo> {
     };
     const spanToDraw = borrow(m.sameWing, (d) => d.spanM, (c) => m.statedSize[c]?.spanM);
     const lengthToDraw = borrow(m.sameBody, (d) => d.lengthM, (c) => m.statedSize[c]?.lengthM);
+    // The length a fuselage width is worked out from where no type of the family gives one: the family's longest type's,
+    // so its types are drawn equally wide (a small aircraft's fuselage is wider for its length than this makes it, and
+    // the longest's is the least so), else the type's own.
+    const lengthForWidth = (code: string, length: number) =>
+      Math.max(length, ...sameFuselage(code).map((c) => lengthToDraw(c, data(c)?.lengthM ?? null) ?? 0));
     // A family's role: the one most of its codes have on Wikidata.
     const familyRoles = new Map<string, TypeRole | null>();
     const familyRole = (familyId: string, ref: RefIndex): TypeRole | null => {
@@ -193,7 +198,7 @@ export function loadTypeInfo(): Promise<TypeInfo> {
         if (!shape || !length || !span) return null;
         // The fuselage's width and the sweep from the figures (the width the family's), else the shape's own, else what a
         // type of its kind has.
-        const width = widthOf(code)?.width ?? shape.width ?? (shape.kind === "helicopter" ? length * 0.14 : length * 0.085);
+        const width = widthOf(code)?.width ?? shape.width ?? lengthForWidth(code, length) * (shape.kind === "helicopter" ? 0.14 : 0.085);
         const sweep = d?.sweepDeg ?? shape.sweep ?? (shape.kind === "jet" ? 25 : 0);
         return { length, span, width, sweep, shape, checked: own?.checked ?? false, generic: !own };
       },
