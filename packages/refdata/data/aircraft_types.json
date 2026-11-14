@@ -1467,7 +1467,7 @@
 ["KATR","Aerosamara","Katran",null,"piston",1,"L"],
 ["KC2","Kawasaki","C-2",null,"jet",2,"H"],
 ["KC39","Embraer","KC-390",null,"jet",2,"M"],
-["KE3","Boeing","KE-3",null,"jet",4,"H"],
+["KE3","Boeing","KE-3","B707","jet",4,"H"],
 ["KEHA","KESTREL","Float Hawk",null,"piston",1,"L"],
 ["KELA","Keleher","Lark",null,"piston",1,"L"],
 ["KELD","Kelly","D",null,"piston",1,"L"],

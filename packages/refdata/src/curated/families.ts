@@ -22,7 +22,7 @@ export const curatedFamilies: CuratedFamily[] = [
   { id: "C295", name: "Airbus C295 / CN-235", manufacturer: "Airbus", types: ["C295", "CN35"] },
 
   // Boeing
-  { id: "B707", name: "Boeing 707 / 720", manufacturer: "Boeing", types: ["B701", "B703", "B720", "E3TF", "E3CF", "E6"] },
+  { id: "B707", name: "Boeing 707 / 720", manufacturer: "Boeing", types: ["B701", "B703", "B720", "E3TF", "E3CF", "E6", "KE3"] },
   { id: "B717", name: "Boeing 717", manufacturer: "Boeing", types: ["B712"] },
   { id: "B727", name: "Boeing 727", manufacturer: "Boeing", types: ["B721", "B722", "R721", "R722"] },
   {

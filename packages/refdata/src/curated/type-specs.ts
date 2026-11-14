@@ -151,7 +151,7 @@ export const typeSpecSources: FamilySpecSources[] = [
         capacity: "max",
       },
       one("Boeing 720", "B720"),
-      one("Boeing E-3 Sentry", "E3TF", { linkOnly: ["E3CF"] }), // E-3 with TF33 engines
+      one("Boeing E-3 Sentry", "E3TF", { linkOnly: ["E3CF", "KE3"] }), // E-3 with TF33 engines; the KE-3A, its tanker
       one("Boeing E-6 Mercury", "E6"),
     ],
   },
