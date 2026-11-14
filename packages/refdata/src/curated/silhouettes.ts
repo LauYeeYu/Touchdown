@@ -394,6 +394,8 @@ export const familySweep: Record<string, number> = {
   Hawker: 20, // Hawker 800: "a 20° quarter chord wing sweep".
   // Not stated in these families' articles: the quarter-chord sweep their manufacturers publish, rounded, so they are not
   // drawn at the 25° a jet gets without one.
+  A300: 28,
+  A310: 28,
   BAe146: 15,
   F100: 17.5,
   An124: 32,
