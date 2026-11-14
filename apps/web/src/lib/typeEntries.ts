@@ -69,8 +69,11 @@ export const byName = new Intl.Collator(undefined, { numeric: true }).compare;
 /** Text for a search: no case, no accents, no spaces or hyphens. */
 export const fold = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[\s-]+/g, "");
 
-/** A manufacturer's address: its name in lower case, without accents, words joined by hyphens ("Aérospatiale-BAC" → "aerospatiale-bac"). */
-export const manufacturerSlug = (name: string) =>
+/**
+ * A manufacturer's or a family's address: its name in lower case, without accents, words joined by hyphens
+ * ("Aérospatiale-BAC" → "aerospatiale-bac", "Boeing 737" → "boeing-737").
+ */
+export const slugOf = (name: string) =>
   name
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
@@ -114,7 +117,7 @@ export function useTypeEntries(): { entries: TypeEntry[]; manufacturers: TypeMan
     entries.sort((a, b) => byName(a.manufacturer, b.manufacturer) || byName(a.name, b.name));
     const byManufacturer = new Map<string, TypeManufacturer>();
     for (const e of entries) {
-      const m = byManufacturer.get(e.manufacturer) ?? byManufacturer.set(e.manufacturer, { name: e.manufacturer, slug: manufacturerSlug(e.manufacturer), entries: [], codes: 0, families: 0 }).get(e.manufacturer)!;
+      const m = byManufacturer.get(e.manufacturer) ?? byManufacturer.set(e.manufacturer, { name: e.manufacturer, slug: slugOf(e.manufacturer), entries: [], codes: 0, families: 0 }).get(e.manufacturer)!;
       m.entries.push(e);
       m.codes += e.codes.length;
       if (e.family) m.families++;

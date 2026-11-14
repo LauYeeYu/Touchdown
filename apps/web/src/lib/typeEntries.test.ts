@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { loadRefTables } from "@touchdown/refdata";
 import { TYPES_PAGES } from "../../../../packages/server/src/handler.ts";
-import { manufacturerSlug } from "./typeEntries.ts";
+import { slugOf } from "./typeEntries.ts";
 import { mergeTypeData } from "./typeInfo.ts";
 
 describe("a manufacturer's address", () => {
@@ -11,12 +11,12 @@ describe("a manufacturer's address", () => {
     const manufacturers = new Set([...aircraftTypes.map((t) => t.manufacturer), ...families.map((f) => f.manufacturer)].filter(Boolean));
     const slugs = new Map<string, string>();
     for (const m of manufacturers) {
-      const slug = manufacturerSlug(m);
+      const slug = slugOf(m);
       expect(slugs.get(slug), `${m} and ${slugs.get(slug)}`).toBeUndefined();
       slugs.set(slug, m);
       expect(TYPES_PAGES.test(`/types/manufacturers/${slug}`), m).toBe(true);
     }
-    expect(manufacturerSlug("Aérospatiale-BAC")).toBe("aerospatiale-bac");
+    expect(slugOf("Aérospatiale-BAC")).toBe("aerospatiale-bac");
   });
 });
 

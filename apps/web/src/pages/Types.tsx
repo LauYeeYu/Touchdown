@@ -12,7 +12,7 @@ import { headline } from "../lib/i18n.tsx";
 import { useVisitor } from "../lib/visitor.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useApp } from "../data/context.tsx";
-import { fold, manufacturerSlug, useTypeCounts, useTypeEntries, type TypeEntry, type TypeManufacturer } from "../lib/typeEntries.ts";
+import { fold, slugOf, useTypeCounts, useTypeEntries, type TypeEntry, type TypeManufacturer } from "../lib/typeEntries.ts";
 import { Select } from "../components/Select.tsx";
 import { Silhouette } from "../components/Silhouette.tsx";
 import { TypeRow } from "../components/TypeRow.tsx";
@@ -225,7 +225,7 @@ function TypeList({ entries, counts }: { entries: TypeEntry[]; counts: boolean }
       {manufacturers.map((m) => (
         <section key={m.name} className="types__manufacturer" aria-label={m.name}>
           <h2 className="types__manufacturer-title">
-            <Link to="/types/manufacturers/$manufacturer" params={{ manufacturer: manufacturerSlug(m.name) }}>
+            <Link to="/types/manufacturers/$manufacturer" params={{ manufacturer: slugOf(m.name) }}>
               {m.name}
             </Link>
           </h2>
