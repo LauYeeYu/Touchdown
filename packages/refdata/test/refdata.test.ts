@@ -4,7 +4,8 @@ import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
 import { familyOrder } from "../src/curated/type-order.ts";
-import { familyShapes, genericShape } from "../src/curated/silhouettes.ts";
+import { familyShapes, genericShape, ownBodies } from "../src/curated/silhouettes.ts";
+import { comparisonWidths, widthArticles } from "../src/curated/fuselage-widths.ts";
 import { loadTypeSpecs, loadTypeWikidata, loadTypeWikipedia, typeWikidataSource, typeWikipediaSource } from "../src/typeinfo.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
 import airfieldsFile from "../data/airfields.json" with { type: "json" };
@@ -270,6 +271,30 @@ describe("type codes by generation, then model", () => {
 
   it("names only families the reference data has", () => {
     for (const id of Object.keys(familyOrder)) expect(index.families.has(id), id).toBe(true);
+  });
+});
+
+describe("fuselage widths from the comparison tables", () => {
+  const index = new RefIndex(ref);
+  const own = new Set(loadTypeSpecs().filter((s) => s.fuselageWidthM !== null).map((s) => s.designator));
+
+  it("name a family, or a type without one, whose own figures give none", () => {
+    for (const [key, w] of Object.entries(comparisonWidths)) {
+      const codes = index.families.has(key) ? [...index.types.values()].filter((x) => x.familyId === key).map((x) => x.designator) : [key];
+      expect(codes.length, key).toBeGreaterThan(0);
+      if (!index.families.has(key)) expect(index.type(key)?.familyId ?? null, key).toBeNull();
+      for (const c of codes) expect(own.has(c), `${key}: ${c} has its own`).toBe(false);
+      expect(widthArticles[w.from], key).toBeGreaterThan(0);
+      expect(w.widthM, key).toBeGreaterThan(1);
+      expect(w.widthM, key).toBeLessThan(8);
+    }
+  });
+
+  it("are not shared in a family of separate models, each one the reference data has", () => {
+    for (const id of ownBodies) {
+      expect(index.families.has(id), id).toBe(true);
+      expect(comparisonWidths[id], id).toBeUndefined();
+    }
   });
 });
 

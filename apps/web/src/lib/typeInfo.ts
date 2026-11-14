@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { FamilyFacts, RefIndex, SilhouetteShape, TypeRole, TypeSpecs, TypeWikidata, TypeWikipedia } from "@touchdown/core";
+import type { WidthArticle } from "@touchdown/refdata/typeinfo";
 import type { Planform } from "./silhouette.ts";
 
 /**
@@ -22,6 +23,8 @@ export interface TypeData extends Omit<TypeSpecs, "article" | "revision"> {
   built: number | null;
   /** The family's type whose fuselage width this one shows, as its own figures give none; null when they give it. */
   widthFrom: string | null;
+  /** The comparison article whose table gives the fuselage width, when neither the type's figures nor its family's do. */
+  widthArticle: { title: string; revision: number } | null;
 }
 
 export type TypePlanform = Planform & {
@@ -83,6 +86,7 @@ function merge(code: string, s: TypeSpecs | undefined, w: TypeWikidata | undefin
     introduced: w?.introduced ?? null,
     built: w?.built ?? null,
     widthFrom: null,
+    widthArticle: null,
   };
 }
 
@@ -112,26 +116,28 @@ export function loadTypeInfo(): Promise<TypeInfo> {
     };
     // The fuselage width: the type's own, else the one most of its family's types give (the narrower of two as common,
     // as a freighter's widened body, the Dreamlifter's or the BelugaXL's, is the odd one), with the type giving it
-    // nearest in length (the A320's for the A320neo) (docs/13, "Type figures").
-    const widthOf = (code: string): { width: number; from: string | null } | null => {
+    // nearest in length (the A320's for the A320neo), else its family's in a comparison table (docs/13, "Type figures").
+    const widthOf = (code: string): { width: number; from: string | null; article: WidthArticle | null } | null => {
       const own = ownData(code)?.fuselageWidthM;
-      if (own) return { width: own, from: null };
+      if (own) return { width: own, from: null, article: null };
       const given = sameFuselage(code).flatMap((c) => {
         const w = ownData(c)?.fuselageWidthM;
-        return w ? [{ width: w, from: c }] : [];
+        return w ? [{ width: w, from: c, article: null }] : [];
       });
       const count = (w: number) => given.filter((g) => g.width === w).length;
       const length = ownData(code)?.lengthM ?? null;
       const apart = (c: string) => (length === null ? 0 : Math.abs((ownData(c)?.lengthM ?? Infinity) - length));
       const shared = given.sort((a, b) => count(b.width) - count(a.width) || a.width - b.width || apart(a.from) - apart(b.from))[0];
-      return shared ?? null;
+      if (shared) return shared;
+      const listed = m.comparisonWidths[familyIdOf.get(code) ?? code];
+      return listed ? { width: listed.widthM, from: null, article: listed.from } : null;
     };
     const merged = new Map<string, TypeData | null>();
     const data = (code: string) => {
       if (!merged.has(code)) {
         const d = ownData(code);
         const w = d && d.fuselageWidthM === null ? widthOf(code) : null;
-        merged.set(code, d && w ? { ...d, fuselageWidthM: w.width, widthFrom: w.from } : d);
+        merged.set(code, d && w ? { ...d, fuselageWidthM: w.width, widthFrom: w.from, widthArticle: w.article ? { title: w.article, revision: m.widthArticles[w.article] } : null } : d);
       }
       return merged.get(code)!;
     };
