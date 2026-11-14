@@ -1,6 +1,6 @@
 {
   "table": "type_specs",
-  "version": "2026-11-13",
+  "version": "2026-11-14",
   "sources": [
     "English Wikipedia (figures), linked from each type's page"
   ],
@@ -93,7 +93,7 @@
 ["B738","Boeing 737 Next Generation",1385064872,39.47,35.79,null,3.76,124.6,null,79016,5436,837,null,160,184,"2 × CFM56-7B24/26/27"],
 ["B739","Boeing 737 Next Generation",1385064872,42.11,null,null,null,null,null,85139,5460,null,null,null,215,"2 × CFM56-7B24/26/27"],
 ["B741","Boeing 747",1384394049,null,null,null,null,null,null,null,null,null,null,null,null,null],
-["B742","Boeing 747",1384394049,68.6,59.6,19.6,null,null,null,377842,12150,null,null,366,null,"4 × Pratt & Whitney JT9D-7R4G2"],
+["B742","Boeing 747",1384394049,null,59.6,19.6,null,null,null,377842,12150,null,null,366,null,"4 × Pratt & Whitney JT9D-7R4G2"],
 ["B743","Boeing 747",1384394049,null,null,null,null,null,null,null,null,null,null,null,null,null],
 ["B744","Boeing 747-400",1385360915,null,null,null,null,null,null,396893,13490,910,0.855,416,null,"4 × PW4000 or GE CF6 or RR RB211"],
 ["B748","Boeing 747-8",1383601682,76.25,68.4,20,6.5,554,null,447696,14310,null,null,467,null,"4 × General Electric GEnx-2B67"],

@@ -627,6 +627,10 @@ export const typeSpecOverrides: Record<string, Partial<TypeSpecValues>> = {
   // Boeing 727, "The wing span and height remain the same on both the -100 and -200 (108 … feet (33 … m))";
   // "Specifications (Boeing 727-100 …)": 108 ft 0 in (32.92 m).
   B722: { spanM: 32.92 },
+  // Boeing 747, "Specifications (Boeing 747-200B …)", "Length: 225 ft 2 in (68.6 m)": the fuselage's length. The
+  // 747-200B is 231 ft 10 in long overall, as the 747-100, -300 and -400 are (the 747-400's article and Wikidata's
+  // 747-300 give 70.6 m). No mapped article states it, so it is left out and the drawing takes the 747-300's.
+  B742: { lengthM: null },
   // Boeing 777X, "Comparison" table, row "Engine (×2)": one cell for both models, a list of the GE9X's versions;
   // "Specifications (777-9)", "Powerplant: 2 × General Electric GE9X-105B1A and subvariants".
   B778: { engines: "2 × General Electric GE9X" },
