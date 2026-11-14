@@ -63,6 +63,9 @@ export function hasTypePage(ref: RefIndex, code: string | null | undefined): boo
   return !!ref.type(code)?.manufacturer;
 }
 
+/** Names in order, numbers in them by value: the 717 before the 727, the C-17 before the C-135. */
+export const byName = new Intl.Collator(undefined, { numeric: true }).compare;
+
 /** Text for a search: no case, no accents, no spaces or hyphens. */
 export const fold = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[\s-]+/g, "");
 
@@ -108,7 +111,7 @@ export function useTypeEntries(): { entries: TypeEntry[]; manufacturers: TypeMan
       if ((type.familyId && ref.family(type.familyId)) || !hasTypePage(ref, type.designator)) continue;
       entries.push(entryOf(ref, info, counts, type.designator, null, typeName(type.designator, ref), type.manufacturer, [type.designator]));
     }
-    entries.sort((a, b) => a.manufacturer.localeCompare(b.manufacturer) || a.name.localeCompare(b.name));
+    entries.sort((a, b) => byName(a.manufacturer, b.manufacturer) || byName(a.name, b.name));
     const byManufacturer = new Map<string, TypeManufacturer>();
     for (const e of entries) {
       const m = byManufacturer.get(e.manufacturer) ?? byManufacturer.set(e.manufacturer, { name: e.manufacturer, slug: manufacturerSlug(e.manufacturer), entries: [], codes: 0, families: 0 }).get(e.manufacturer)!;

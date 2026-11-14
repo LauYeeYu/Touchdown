@@ -1,6 +1,6 @@
 // A manufacturer's aircraft types (docs/31-ui.md, "Aircraft types"), from the manufacturers on Aircraft types: its families and its
-// types without one, from the first to fly (a family by its article, a type by Wikidata; those without a date last, by
-// name), each with the year it first flew, and the roles among them to narrow the list.
+// types without one, by name with numbers in order (so a family's variants without one sit beside it), each with the year
+// it first flew, and the roles among them to narrow the list.
 
 import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
@@ -29,9 +29,8 @@ export function TypeManufacturer() {
   if (!manufacturer) return <NotFound />;
 
   const roles = ROLES.filter((r) => manufacturer.entries.some((e) => e.roles.includes(r)));
-  const entries = manufacturer.entries
-    .filter((e) => role === "all" || e.roles.includes(role))
-    .sort((a, b) => (a.firstFlight && b.firstFlight ? a.firstFlight.localeCompare(b.firstFlight) : a.firstFlight ? -1 : b.firstFlight ? 1 : 0) || a.name.localeCompare(b.name));
+  // By name, as useTypeEntries orders them.
+  const entries = manufacturer.entries.filter((e) => role === "all" || e.roles.includes(role));
   const codes = manufacturer.entries.flatMap((e) => e.codes);
   const flownTypes = codes.filter((c) => counts.flown.has(c)).length;
   const seenTypes = codes.filter((c) => counts.seen.has(c)).length;
