@@ -114,11 +114,11 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
   const main = POPULAR.map((slug) => manufacturers.find((m) => m.manufacturer.slug === slug)).filter((m) => m !== undefined);
   const letters = new Map<string, typeof manufacturers>();
   for (const m of manufacturers) letters.set(letterOf(m.manufacturer.name), [...(letters.get(letterOf(m.manufacturer.name)) ?? []), m]);
-  // A card draws three of the manufacturer's types that have a drawing: the most logged, else the families with the most codes.
+  // A card draws the same three of the manufacturer's types whatever the log has: those with a drawing and the most codes.
   const drawn = (list: TypeEntry[]) =>
     list
-      .filter((e) => info?.planform(e.drawn, app.ref))
-      .sort((a, b) => b.flown + b.seen - (a.flown + a.seen) || b.codes.length - a.codes.length)
+      .filter((e) => info?.planform(e.usual, app.ref))
+      .sort((a, b) => b.codes.length - a.codes.length)
       .slice(0, 3);
   const sortedLetters = [...letters.entries()].sort((a, b) => (a[0] === "#" ? 1 : b[0] === "#" ? -1 : a[0].localeCompare(b[0])));
   return (
@@ -135,7 +135,7 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
               <Link className="manufacturer-card" to="/types/manufacturers/$manufacturer" params={{ manufacturer: m.manufacturer.slug }}>
                 <span className="manufacturer-card__shapes" aria-hidden="true">
                   {drawn(m.entries).map((e) => (
-                    <Silhouette key={e.key} code={e.drawn} size={44} />
+                    <Silhouette key={e.key} code={e.usual} size={44} />
                   ))}
                 </span>
                 <b>{m.manufacturer.name}</b>
