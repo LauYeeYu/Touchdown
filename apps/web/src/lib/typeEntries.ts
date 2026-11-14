@@ -35,6 +35,8 @@ export interface TypeEntry {
   main: string;
   /** The type it is drawn with: the main one, else the next most logged one that has a drawing. */
   drawn: string;
+  /** The type it is drawn with whatever the log has: its first with figures, else the next one that has a drawing. */
+  usual: string;
   roles: TypeRole[];
   flown: number;
   seen: number;
@@ -78,12 +80,16 @@ function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: 
   const flown = codes.reduce((s, c) => s + (counts.flown.get(c) ?? 0), 0);
   const seen = codes.reduce((s, c) => s + (counts.seen.get(c) ?? 0), 0);
   const logged = [...codes].sort((a, b) => n(b) - n(a));
-  const main = (flown + seen > 0 ? logged[0] : codes.find((c) => info?.specs(c)?.lengthM)) ?? codes[0]!;
-  const drawn = family ? ([main, ...logged].find((c) => info?.planform(c, ref)) ?? main) : main;
+  const first = codes.find((c) => info?.specs(c)?.lengthM) ?? codes[0]!;
+  const main = flown + seen > 0 ? logged[0]! : first;
+  // A family is drawn by the first of these that has a drawing.
+  const drawable = (lead: string, rest: string[]) => (family ? ([lead, ...rest].find((c) => info?.planform(c, ref)) ?? lead) : lead);
+  const drawn = drawable(main, logged);
+  const usual = drawable(first, codes);
   const roles = info ? [...new Set(codes.map((c) => info.role(c, ref)))] : [];
   const firstFlight = family ? (info?.facts(family.id)?.firstFlight ?? null) : (info?.specs(main)?.firstFlight ?? null);
   const text = fold([name, manufacturer, ...codes, ...codes.map((c) => typeName(c, ref))].join("|"));
-  return { key, family, name, manufacturer, codes, main, drawn, roles, flown, seen, firstFlight, text };
+  return { key, family, name, manufacturer, codes, main, drawn, usual, roles, flown, seen, firstFlight, text };
 }
 
 /** Every entry, by manufacturer and name, and the manufacturers, by name. */
