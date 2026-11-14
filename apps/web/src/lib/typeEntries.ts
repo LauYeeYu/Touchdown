@@ -31,7 +31,7 @@ export interface TypeEntry {
   name: string;
   manufacturer: string;
   codes: string[];
-  /** The type the entry opens: the one the log has most, else the first with figures, else the first. */
+  /** Its main type: the one the log has most, else the first with figures, else the first. A type's row opens it. */
   main: string;
   /** The type it is drawn with: the main one, else the next most logged one that has a drawing. */
   drawn: string;

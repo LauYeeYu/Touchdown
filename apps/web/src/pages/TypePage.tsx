@@ -21,7 +21,7 @@ import { TypeDrawing } from "../components/TypeDrawing.tsx";
 import { TypeFamilyTable } from "../components/TypeFamilyTable.tsx";
 import { TypeAircraft, TypeHistory, type History } from "../components/TypeSections.tsx";
 import { NotFound } from "./NotFound.tsx";
-import { hasTypePage, useTypeCounts } from "../lib/typeEntries.ts";
+import { hasTypePage, slugOf, useTypeCounts } from "../lib/typeEntries.ts";
 
 export function TypePage() {
   const { code } = useParams({ from: "/types/$code" });
@@ -111,7 +111,9 @@ export function TypePage() {
         <section className="section" aria-labelledby="family-title">
           <div className="section__head">
             <h2 className="section__title" id="family-title">
-              {fam.name}
+              <Link to="/types/families/$family" params={{ family: slugOf(fam.name) }}>
+                {fam.name}
+              </Link>
             </h2>
           </div>
           <TypeFamilyTable codes={siblings} current={code} counts={counts} visitor={visitor} rotor={rotor} />

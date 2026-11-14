@@ -1,6 +1,6 @@
 // A family or a type in the types pages' lists (docs/31-ui.md, "Aircraft types"): its silhouette, its name and codes,
 // the span of its main figures (with its first flight on a manufacturer's page), and for a member how often the log has it.
-// It opens its main type's page.
+// A family's row opens the family's page, a type's row the type's.
 
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
@@ -8,7 +8,7 @@ import { Link } from "../lib/link.tsx";
 import { nf } from "../lib/format.ts";
 import { metres, metresBetween, spanOf } from "../lib/typeFigures.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
-import type { TypeEntry } from "../lib/typeEntries.ts";
+import { slugOf, type TypeEntry } from "../lib/typeEntries.ts";
 import { Silhouette } from "./Silhouette.tsx";
 
 /** "1 piston engine", "2 turboprops": a type's engines from the reference data, where it has no figures. */
@@ -35,9 +35,10 @@ export function TypeRow({ entry, counts, firstFlight = false }: { entry: TypeEnt
     const engines = enginesOf(app.ref.type(entry.main));
     if (engines) figures.push(engines);
   }
+  const to = entry.family ? ({ to: "/types/families/$family", params: { family: slugOf(entry.family.name) } } as const) : ({ to: "/types/$code", params: { code: entry.main } } as const);
   return (
     <li>
-      <Link className="row type-row" to="/types/$code" params={{ code: entry.main }}>
+      <Link className="row type-row" {...to}>
         <Silhouette code={entry.drawn} size={52} className="type-row__shape" />
         <span className="type-row__name">
           <b>{entry.name}</b>
