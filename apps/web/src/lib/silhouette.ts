@@ -263,6 +263,10 @@ export function planformParts(p: Planform): Pt[][] {
     // One engine on top of the rear fuselage, wider than the body where it narrows to the tail.
     parts.push(clockwise(nacelle(0, p.length * 0.56, p.length * 0.8, p.width * 0.45 * size)));
   }
+  if (s.engines?.fin) {
+    // One in the fin, over the tail cone: half the fuselage's width, from two widths ahead of the tail almost to its end.
+    parts.push(clockwise(nacelle(0, p.length - p.width * 2.15, p.length - p.width * 0.4, p.width * 0.245)));
+  }
   for (const f of s.engines?.wing ?? []) {
     const x = half * f;
     const y = leAt(x);
@@ -284,8 +288,8 @@ export function planformParts(p: Planform): Pt[][] {
     }
   }
   if (s.engines?.rear) {
-    // Two nacelles beside the tail cone, and a third on the centreline for a trijet.
-    // A third engine in the tail sits within the fuselage's width, so it does not show from above.
+    // Two nacelles beside the tail cone. A third in the tail cone sits within the fuselage's width, so it does not show
+    // from above.
     const length = p.width * 1.25 * size;
     const radius = p.width * 0.28 * size;
     const y = p.length * (s.stab.at - 0.08);
