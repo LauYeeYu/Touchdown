@@ -78,6 +78,9 @@ export function withHeaders(res: Response, path: string): Response {
   } else if ((path.startsWith("/assets/") || path.startsWith("/share-files/assets/") || path.startsWith("/types-files/assets/")) && res.ok) {
     // Built files carry a content hash in their names.
     out.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  } else if (path.startsWith("/types-files/previews/") && res.ok) {
+    // The types pages' previews for chat apps: a page names its picture with a hash of it (`?v=`), so a day is safe.
+    out.headers.set("Cache-Control", "public, max-age=86400");
   }
   return out;
 }

@@ -69,8 +69,8 @@ const shareJson = (s: Server, url: URL, r: ShareRow) => ({
 
 const bytesOf = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
-/** Text for an HTML attribute. */
-const attr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+/** Text for an HTML attribute, or a page's text. */
+export const attr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // ---------- the owner's requests ----------
 

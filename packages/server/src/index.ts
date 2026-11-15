@@ -5,3 +5,4 @@ export * from "./db.ts";
 export * from "./handler.ts";
 export * from "./headers.ts";
 export { memoryCache, type ShareCache } from "./share.ts";
+export { previewFile, type TypePreviews } from "./types.ts";

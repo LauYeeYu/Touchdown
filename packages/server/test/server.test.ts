@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { handle, safeNext, type Server } from "../src/index.ts";
+import type { Locale } from "@touchdown/i18n";
+import { handle, previewFile, safeNext, type Server, type TypePreviews } from "../src/index.ts";
 import { sqliteFile } from "../src/node.ts";
 
 const SITE = "https://touchdown.example";
@@ -90,7 +91,7 @@ describe("the gate", () => {
         expect(r.res.headers.getSetCookie(), path).toEqual([]);
       }
     }
-    expect(served).toEqual(Array(pages.length * 2).fill("/types-files/types.html"));
+    expect(served.filter((f) => !f.startsWith("/types-files/previews/"))).toEqual(Array(pages.length * 2).fill("/types-files/types.html"));
     const file = await handle(new Request(`${SITE}/types-files/assets/types-1.js`), s);
     expect(file.status).toBe(200);
     expect(file.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
@@ -100,6 +101,52 @@ describe("the gate", () => {
     expect((await handle(new Request(`${SITE}/types/families/boeing-737/B738`, { headers: { Accept: "text/html" } }), s)).status).toBe(302);
     expect((await handle(new Request(`${SITE}/types/A388`, { method: "POST", headers: { Origin: SITE } }), s)).status).toBe(401);
     expect((await handle(new Request(`${SITE}/types-files/%2e%2e%2findex.html`), s)).status).toBe(400);
+  });
+
+  it("gives each types page its own preview for chat apps, in the language asked for", async () => {
+    const html = `<html><head><title>Aircraft types · Touchdown</title>\n    <meta property="og:title" content="Aircraft types · Touchdown" />\n    <meta property="og:description" content="Aircraft types." />\n</head><body></body></html>`;
+    const files = new Map<string, TypePreviews>();
+    const add = (lang: Locale, page: string, preview: TypePreviews[string]) => {
+      const name = `/types-files/previews/${previewFile(lang, page)}`;
+      files.set(name, { ...files.get(name), [page]: preview });
+    };
+    add("en-GB", "/types/A388", ["Airbus A380-800", "The Airbus A380-800 is 72.72 m long.", "A388.png?v=1"]);
+    add("de-DE", "/types/A388", ["Airbus A380-800", "Die Airbus A380-800 ist 72,72 m lang.", "A388.png?v=1"]);
+    add("en-GB", "/types/B744", ["Boeing 747-400", "", "B744.png?v=2"]);
+    add("en-GB", "/types/compare", ["Compare aircraft types", "{first} and {second} seen from above, to one scale", "list.png?v=3"]);
+    const assets = {
+      async fetch(req: Request) {
+        const path = new URL(req.url).pathname;
+        if (path === "/types-files/types.html") return new Response(html, { headers: { "Content-Type": "text/html", ETag: '"abc"' } });
+        return files.has(path) ? Response.json(files.get(path)) : new Response("Not found", { status: 404 });
+      },
+    };
+    const s: Server = { db: sqliteFile(":memory:"), config: { origins: [SITE] }, assets };
+    const get = async (path: string, lang = "en-GB") => {
+      const res = await handle(new Request(SITE + path, { headers: { Accept: "text/html", "Accept-Language": lang } }), s);
+      return { res, text: await res.text() };
+    };
+    const meta = (text: string, p: string) => new RegExp(`<meta property="og:${p}" content="([^"]*)">`).exec(text)?.[1];
+
+    const a = await get("/types/a388/");
+    expect(meta(a.text, "title")).toBe("Airbus A380-800");
+    expect(meta(a.text, "image")).toBe(`${SITE}/types-files/previews/A388.png?v=1`);
+    expect(meta(a.text, "url")).toBe(`${SITE}/types/A388`);
+    expect(a.text).toContain("<title>Airbus A380-800</title>");
+    // The file's own title and line are gone, so a chat app reads only the page's.
+    expect(a.text.match(/og:title/g)).toHaveLength(1);
+    expect(a.text).not.toContain("Aircraft types.");
+    expect(a.res.headers.get("Vary")).toBe("Accept-Language");
+    expect(a.res.headers.get("ETag")).toBeNull();
+    expect(meta((await get("/types/A388", "de-DE,de;q=0.9")).text, "description")).toBe("Die Airbus A380-800 ist 72,72 m lang.");
+    // A type without figures has no line, and Compare's names the two types asked for.
+    expect(meta((await get("/types/B744")).text, "description")).toBeUndefined();
+    const c = await get("/types/compare?a=A388&b=b744");
+    expect(meta(c.text, "description")).toBe("Airbus A380-800 and Boeing 747-400 seen from above, to one scale");
+    expect(meta(c.text, "url")).toBe(`${SITE}/types/compare?a=A388&amp;b=B744`);
+    expect(meta((await get("/types/compare?a=A388")).text, "description")).toBeUndefined();
+    // A page without a preview is the file as it is.
+    expect((await get("/types/ZZZZ9")).text).toBe(html);
   });
 
   it("refuses paths that hide dot segments or slashes in escapes", async () => {
