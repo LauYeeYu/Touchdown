@@ -89,6 +89,15 @@ function fuselageHalf(p: Planform, y: number): number {
     if (y > start - neck) return w * (0.2 + 0.8 * (1 - ((y - (start - neck)) / neck) ** 1.5));
     return w;
   }
+  const fair = p.shape.fairing;
+  if (fair && y > p.length - tail) {
+    // Straight in to the fin's fairing, along it, and to a point over its last half a width.
+    const from = p.length - fair.length * p.width;
+    const point = p.length - p.width * 0.5;
+    if (y > point) return w * fair.width * (1 - ((y - point) / (p.length - point)) ** 2);
+    if (y > from) return w * fair.width;
+    return w * (1 - (1 - fair.width) * ((y - (p.length - tail)) / (from - (p.length - tail))));
+  }
   if (y > p.length - tail) {
     const s = (y - (p.length - tail)) / tail;
     // Under an engine in the fin (a DC-10's), the tail cone narrows straight in to the nacelle, which is then the outline.

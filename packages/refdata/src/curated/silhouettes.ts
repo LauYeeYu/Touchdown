@@ -58,7 +58,7 @@ export const familyShapes: Record<string, FamilyShape> = {
   B717: f(with_(REAR, { wingAlso: { at: 0.4 } })),
   // The 727-200 is drawn: its plugs ahead of and behind the wing put the wing, the side engines and the tailplane at
   // other fractions of the 727-100's length. The Super 27s' side engines are larger.
-  B727: f(with_(REAR, { tail: 4.1, engines: { rear: 3, at: 0.7, size: 0.8 }, wingAlso: { at: 0.335, root: 0.165, tip: 0.31 }, stabAlso: { span: 0.33, at: 0.85, root: 0.092, sweep: 35 } }), {
+  B727: f(with_(REAR, { tail: 4, fairing: { width: 0.25, length: 1.9 }, engines: { rear: 3, at: 0.7, size: 0.8 }, wingAlso: { at: 0.335, root: 0.165, tip: 0.31 }, stabAlso: { span: 0.33, at: 0.85, root: 0.092, sweep: 35 } }), {
     B721: { engines: { at: 0.66 }, wingAlso: { at: 0.31, root: 0.19 }, stabAlso: { at: 0.826, root: 0.106 } },
     R721: { engines: { at: 0.66, size: 0.95 }, wingAlso: { at: 0.31, root: 0.19 }, stabAlso: { at: 0.826, root: 0.106 } },
     R722: { engines: { size: 0.95 } },
@@ -140,7 +140,7 @@ export const familyShapes: Record<string, FamilyShape> = {
   Il76: f(with_(QUAD, { wingAlso: { at: 0.38, root: 0.17, tip: 0.35 }, stabAlso: { span: 0.35 } })),
   Il96: f(with_(QUAD, { wingAlso: { device: "winglet" } })),
   // Large side engines close beside the fuselage, and the main landing gear in fairings behind the wing.
-  Tu154: f(with_(REAR, { engines: { rear: 3, at: 0.74, size: 1.3 }, wingAlso: { at: 0.37, root: 0.19, tip: 0.22, pods: 0.31 }, stabAlso: { span: 0.31, at: 0.875, root: 0.08, sweep: 40 } })),
+  Tu154: f(with_(REAR, { tail: 3.2, fairing: { width: 0.3, length: 1.6 }, engines: { rear: 3, at: 0.74, size: 1.3 }, wingAlso: { at: 0.37, root: 0.19, tip: 0.22, pods: 0.31 }, stabAlso: { span: 0.31, at: 0.875, root: 0.08, sweep: 40 } })),
   Tu204: f(with_(NARROW, { wingAlso: { device: "winglet" } })),
   // A slender delta: its figures give no sweep, so its own, for the drawing only.
   // An ogee delta, its engines in pairs under the wing's rear.

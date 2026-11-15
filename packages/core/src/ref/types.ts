@@ -150,6 +150,12 @@ export interface SilhouetteShape {
   /** The nose's length in fuselage widths (1.6 a round airliner's, 3 a pointed one), and the tail cone's. */
   nose?: number;
   tail?: number;
+  /**
+   * A T-tail's fin and the fairing at its top, seen from above as a narrow strip (a 727's, a Tu-154's): the tail cone
+   * narrows straight in to its width (of the fuselage's), which then runs to a point at the end, from `length` fuselage
+   * widths before it.
+   */
+  fairing?: { width: number; length: number };
   /** A helicopter's tail boom, as a share of the length: a thin tube behind the cabin. */
   boom?: number;
   /**
