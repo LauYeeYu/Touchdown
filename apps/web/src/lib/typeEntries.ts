@@ -10,7 +10,7 @@ import { familyTypes } from "./typeFigures.ts";
 import { useTypeInfo, type TypeInfo } from "./typeInfo.ts";
 
 /** How often the log has each type code: flights flown on it, sightings of it. */
-export function useTypeCounts() {
+export function useTypeCounts(): TypeCounts {
   const { app, version } = useApp();
   return useMemo(() => {
     const flown = new Map<string, number>();
@@ -22,7 +22,10 @@ export function useTypeCounts() {
   }, [app.store, version]);
 }
 
-export type TypeCounts = ReturnType<typeof useTypeCounts>;
+export interface TypeCounts {
+  flown: Map<string, number>;
+  seen: Map<string, number>;
+}
 
 export interface TypeEntry {
   /** The family's id, or the type code of a type without one. */
@@ -99,29 +102,31 @@ function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: 
 }
 
 /** Every entry, by manufacturer and name, and the manufacturers, by name. */
+export function typeEntries(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts): { entries: TypeEntry[]; manufacturers: TypeManufacturer[] } {
+  const entries: TypeEntry[] = [];
+  for (const fam of ref.families.values()) {
+    const codes = familyTypes(ref, fam.id, info);
+    if (codes.length) entries.push(entryOf(ref, info, counts, fam.id, fam, fam.name, fam.manufacturer, codes));
+  }
+  for (const type of ref.types.values()) {
+    if ((type.familyId && ref.family(type.familyId)) || !hasTypePage(ref, type.designator)) continue;
+    entries.push(entryOf(ref, info, counts, type.designator, null, typeName(type.designator, ref), type.manufacturer, [type.designator]));
+  }
+  entries.sort((a, b) => byName(a.manufacturer, b.manufacturer) || byName(a.name, b.name));
+  const byManufacturer = new Map<string, TypeManufacturer>();
+  for (const e of entries) {
+    const m = byManufacturer.get(e.manufacturer) ?? byManufacturer.set(e.manufacturer, { name: e.manufacturer, slug: slugOf(e.manufacturer), entries: [], codes: 0, families: 0 }).get(e.manufacturer)!;
+    m.entries.push(e);
+    m.codes += e.codes.length;
+    if (e.family) m.families++;
+  }
+  return { entries, manufacturers: [...byManufacturer.values()] };
+}
+
+/** typeEntries for the page, with the log's counts, made again when the log or the types' information changes. */
 export function useTypeEntries(): { entries: TypeEntry[]; manufacturers: TypeManufacturer[] } {
   const { app } = useApp();
-  const { ref } = app;
   const info = useTypeInfo();
   const counts = useTypeCounts();
-  return useMemo(() => {
-    const entries: TypeEntry[] = [];
-    for (const fam of ref.families.values()) {
-      const codes = familyTypes(ref, fam.id, info);
-      if (codes.length) entries.push(entryOf(ref, info, counts, fam.id, fam, fam.name, fam.manufacturer, codes));
-    }
-    for (const type of ref.types.values()) {
-      if ((type.familyId && ref.family(type.familyId)) || !hasTypePage(ref, type.designator)) continue;
-      entries.push(entryOf(ref, info, counts, type.designator, null, typeName(type.designator, ref), type.manufacturer, [type.designator]));
-    }
-    entries.sort((a, b) => byName(a.manufacturer, b.manufacturer) || byName(a.name, b.name));
-    const byManufacturer = new Map<string, TypeManufacturer>();
-    for (const e of entries) {
-      const m = byManufacturer.get(e.manufacturer) ?? byManufacturer.set(e.manufacturer, { name: e.manufacturer, slug: slugOf(e.manufacturer), entries: [], codes: 0, families: 0 }).get(e.manufacturer)!;
-      m.entries.push(e);
-      m.codes += e.codes.length;
-      if (e.family) m.families++;
-    }
-    return { entries, manufacturers: [...byManufacturer.values()] };
-  }, [ref, info, counts]);
+  return useMemo(() => typeEntries(app.ref, info, counts), [app.ref, info, counts]);
 }
