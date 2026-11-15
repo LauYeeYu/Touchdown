@@ -8569,7 +8569,7 @@ button.select {
   }
 
   .manufacturer-card__shapes {
-    gap: 4px;
+    --shapes-gap: 4px;
   }
 }
 
@@ -8594,17 +8594,18 @@ button.select {
   font-weight: 650;
 }
 
+/* Three types' room, each drawn 44px wide (pages/Types.tsx): one or two sit in its middle, so a card's drawings line up
+   with the cards' above and below. */
 .manufacturer-card__shapes {
+  --shapes-gap: 8px;
   display: flex;
+  justify-content: center;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--shapes-gap);
+  width: calc(3 * 44px + 2 * var(--shapes-gap));
   height: 48px;
   margin-bottom: 8px;
   color: var(--ink-2);
-}
-
-.manufacturer-card__shapes--few {
-  justify-content: center;
 }
 
 .manufacturer-card__count {
