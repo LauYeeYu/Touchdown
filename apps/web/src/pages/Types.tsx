@@ -19,7 +19,7 @@ import { TypeRow } from "../components/TypeRow.tsx";
 
 export const ROLES: TypeRole[] = ["airliner", "business", "light", "helicopter", "military", "other"];
 /** The manufacturers shown as cards, the airliners' best known, in alphabetical order: by their addresses. */
-const POPULAR = ["airbus", "boeing", "bombardier", "comac", "embraer", "lockheed", "mcdonnell-douglas"];
+const POPULAR = ["aerospatiale-bac", "airbus", "boeing", "bombardier", "comac", "embraer", "lockheed", "mcdonnell-douglas"];
 /** The types a card draws where they are chosen, in order: else the manufacturer's types with the most codes. */
 const CARD_TYPES: Record<string, string[]> = {
   airbus: ["A320", "A333", "A388"],
