@@ -164,9 +164,10 @@ export interface SilhouetteShape {
    * by `past` of their length, half unless given, as a HondaJet's above it and Concorde's nozzles below it show from
    * above), beside the tail (two, their centre at `at` of the length where the tailplane does not set it; a 727's third,
    * in the tail cone, does not show from above), one in the fin over the tail cone (`fin`, a DC-10's, wider than the
-   * fuselage where it narrows), or one on top of the rear fuselage (`top`, a Cirrus SF50's).
+   * fuselage where it narrows), one on top of the rear fuselage (`top`, a Cirrus SF50's), or one in the nose as well as
+   * those on the wing (`nose`, a trimotor's).
    */
-  engines?: { wing?: number[]; over?: boolean; past?: number; rear?: 2 | 3; at?: number; fin?: boolean; top?: boolean; size?: number };
+  engines?: { wing?: number[]; over?: boolean; past?: number; rear?: 2 | 3; at?: number; fin?: boolean; top?: boolean; nose?: boolean; size?: number };
   /** A radar dome over the fuselage (an E-3's): its centre along the length, and its diameter in metres. */
   radome?: { at: number; diameter: number };
   /**

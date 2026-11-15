@@ -318,10 +318,12 @@ export const statedSize: Record<string, { lengthM?: number; spanM?: number }> = 
   B783: { spanM: 51.7 }, // Boeing 787 Dreamliner, "787-3": "It kept the -8 length but its 51.7 m wingspan".
 };
 
-// For a type without a family's shape: a fighter's short, broad, swept wing well back with no engines showing, and a
-// four-engined propeller aircraft's long, broad, tapered wing with large nacelles (a DC-6, a B-17, an An-12).
+// For a type without a family's shape: a fighter's short, broad, swept wing well back with no engines showing, a
+// four-engined propeller aircraft's long, broad, tapered wing with large nacelles (a DC-6, a B-17, an An-12), and a
+// trimotor's, one engine on each wing and one in the nose (a Ford Trimotor, a Junkers Ju 52).
 const FIGHTER: Shape = { kind: "jet", nose: 3.2, tail: 1.4, wing: { at: 0.44, root: 0.36, tip: 0.22 }, stab: { span: 0.42, at: 0.83, sweep: 38, root: 0.14 }, sweep: 38 };
 const QUAD_PROP: Shape = with_(TPROP, { wingAlso: { at: 0.32, root: 0.18, tip: 0.42 }, engines: { wing: [0.26, 0.5], size: 1.4 }, stabAlso: { span: 0.36 } });
+const TRIMOTOR: Shape = with_(QUAD_PROP, { engines: { wing: [0.3], nose: true, size: 1.1 } });
 
 /** What a type without a family's shape is known as: from the reference tables and its role (Wikidata, docs/13). */
 export interface TypeKind {
@@ -351,8 +353,8 @@ export function genericShape(k: TypeKind): Shape | null {
     if (k.role === "business" || k.wtc === "L") return BIZ;
     return k.wtc === "H" ? WIDE : NARROW;
   }
-  if (k.engineType === "turboprop") return n >= 3 ? QUAD_PROP : n === 2 ? TPROP : SINGLE;
-  if (k.engineType === "piston" || k.engineType === "electric") return n >= 3 ? QUAD_PROP : n === 2 ? LIGHT_TWIN : SINGLE;
+  if (k.engineType === "turboprop") return n >= 4 ? QUAD_PROP : n === 3 ? TRIMOTOR : n === 2 ? TPROP : SINGLE;
+  if (k.engineType === "piston" || k.engineType === "electric") return n >= 4 ? QUAD_PROP : n === 3 ? TRIMOTOR : n === 2 ? LIGHT_TWIN : SINGLE;
   return null;
 }
 

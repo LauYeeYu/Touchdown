@@ -303,8 +303,8 @@ export function planformParts(p: Planform): Pt[][] {
     const x = fuselageHalf(p, y) + radius * 0.95;
     for (const sx of [x, -x]) parts.push(clockwise(nacelle(sx, y - length / 2, y + length / 2, radius)));
   }
-  if (s.kind === "prop" && !s.engines?.wing?.length) {
-    // A single engine in the nose: its propeller across the nose.
+  if (s.kind === "prop" && (!s.engines?.wing?.length || s.engines.nose)) {
+    // An engine in the nose: its propeller across the nose.
     const d = s.prop ?? 1.9;
     parts.push(clockwise([[-d / 2, -0.05], [d / 2, -0.05], [d / 2, 0.12], [-d / 2, 0.12]]));
   }
