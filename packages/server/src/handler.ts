@@ -9,6 +9,9 @@ import { siteId, type Database } from "./db.ts";
 import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
 import { withHeaders } from "./headers.ts";
 import { shareApi, sharePage, type ShareCache } from "./share.ts";
+import { TYPES_FILES, TYPES_PAGES, typesPage } from "./types.ts";
+
+export { TYPES_FILES, TYPES_PAGES };
 
 export interface ServerConfig {
   /** The site's addresses, such as https://touchdown.example.org; the first is used in links. */
@@ -63,13 +66,6 @@ const CLI_ALLOWED = new Set(["GET /auth/me", "POST /auth/signout", "GET /api/sto
 export const SIGNIN_FILES = "/signin-files/";
 /** The share page's own build (docs/32, "The public page"): code, styles and reference data, no user content. */
 export const SHARE_FILES = "/share-files/";
-/**
- * The aircraft types pages' own build (docs/31-ui.md, "Aircraft types"): reference data only, one page the same for
- * everyone. Its script opens the app in its place for a signed-in visitor.
- */
-export const TYPES_FILES = "/types-files/";
-/** The types pages: the list, Compare, a type by its code, and a manufacturer's types and a family's by its name's slug. */
-export const TYPES_PAGES = /^\/types(?:\/compare|\/[A-Za-z0-9]{1,8}|\/(?:manufacturers|families)\/[a-z0-9-]{1,80})?\/?$/;
 const PUBLIC_PAGES = /^\/(signin|setup|join\/[^/]+|reset\/[^/]+)\/?$/;
 /** The privacy policy and the terms: static pages built from PRIVACY.md and TERMS.md, open to anyone. */
 const POLICY_PAGES = /^\/(privacy|terms)\/?$/;
@@ -244,9 +240,7 @@ async function answer(request: Request, s: Server): Promise<Response> {
     if (path.startsWith(SHARE_FILES)) return withHeaders(await s.assets.fetch(request), path);
     // The aircraft types pages and their files: the same for everyone, so they are answered before any session is
     // looked up, and nothing in the answer depends on who asks.
-    if (TYPES_PAGES.test(path) && (request.method === "GET" || request.method === "HEAD")) {
-      return withHeaders(await s.assets.fetch(new Request(new URL(`${TYPES_FILES}types.html`, url), { method: request.method, headers: request.headers })), path);
-    }
+    if (TYPES_PAGES.test(path) && (request.method === "GET" || request.method === "HEAD")) return withHeaders(await typesPage(request, s, url), path);
     if (path.startsWith(TYPES_FILES)) return withHeaders(await s.assets.fetch(request), path);
 
     const session = await currentSession(request, s, now);
