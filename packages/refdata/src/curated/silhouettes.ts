@@ -33,7 +33,7 @@ const with_ = (base: Shape, over: Partial<Shape> & { wingAlso?: Partial<Shape["w
 export interface FamilyShape {
   shape: Shape;
   /** A type code drawn otherwise than its family: other wingtips, more engines. */
-  types?: Record<string, Partial<Shape> & { wingAlso?: Partial<Shape["wing"]> }>;
+  types?: Record<string, Partial<Shape> & { wingAlso?: Partial<Shape["wing"]>; stabAlso?: Partial<Shape["stab"]>; enginesAlso?: Partial<NonNullable<Shape["engines"]>> }>;
   checked: boolean;
 }
 
@@ -56,7 +56,13 @@ export const familyShapes: Record<string, FamilyShape> = {
   // The E-3's 9.1m radar dome over the rear fuselage; the E-6 has none.
   B707: f(with_(QUAD, { wingAlso: { root: 0.17, tip: 0.25 }, enginesAlso: { size: 0.85 } }), { E3TF: { radome: { at: 0.6, diameter: 9.1 } }, E3CF: { radome: { at: 0.6, diameter: 9.1 } } }),
   B717: f(with_(REAR, { wingAlso: { at: 0.4 } })),
-  B727: f(with_(REAR, { engines: { rear: 3 }, wingAlso: { at: 0.38, root: 0.16, tip: 0.25 } })),
+  // The 727-200 is drawn: its plugs ahead of and behind the wing put the wing, the side engines and the tailplane at
+  // other fractions of the 727-100's length. The Super 27s' side engines are larger.
+  B727: f(with_(REAR, { tail: 4.1, engines: { rear: 3, at: 0.7, size: 0.8 }, wingAlso: { at: 0.335, root: 0.165, tip: 0.31 }, stabAlso: { span: 0.33, at: 0.85, root: 0.092, sweep: 35 } }), {
+    B721: { engines: { at: 0.66 }, wingAlso: { at: 0.31, root: 0.19 }, stabAlso: { at: 0.826, root: 0.106 } },
+    R721: { engines: { at: 0.66, size: 0.95 }, wingAlso: { at: 0.31, root: 0.19 }, stabAlso: { at: 0.826, root: 0.106 } },
+    R722: { engines: { size: 0.95 } },
+  }),
   B737: f(with_(NARROW, { wingAlso: { device: "winglet" } }), { B731: { wingAlso: { device: null } }, B732: { wingAlso: { device: null } }, B733: { wingAlso: { device: null } }, B734: { wingAlso: { device: null } }, B735: { wingAlso: { device: null } } }),
   B747: f(with_(QUAD, { wingAlso: { at: 0.33, root: 0.21, tip: 0.24, device: "winglet" } }), { B741: { wingAlso: { device: null } }, B742: { wingAlso: { device: null } }, B743: { wingAlso: { device: null } }, B74R: { wingAlso: { device: null } }, BSCA: { wingAlso: { device: null } }, B74D: { wingAlso: { device: null } }, B74S: { wingAlso: { device: null } }, B748: { wingAlso: { device: "raked" } } }),
   B757: f(NARROW),

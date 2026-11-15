@@ -292,7 +292,7 @@ export function planformParts(p: Planform): Pt[][] {
     // from above.
     const length = p.width * 1.25 * size;
     const radius = p.width * 0.28 * size;
-    const y = p.length * (s.stab.at - 0.08);
+    const y = p.length * (s.engines.at ?? s.stab.at - 0.08);
     const x = fuselageHalf(p, y) + radius * 0.95;
     for (const sx of [x, -x]) parts.push(clockwise(nacelle(sx, y - length / 2, y + length / 2, radius)));
   }
