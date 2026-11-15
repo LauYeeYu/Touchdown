@@ -122,7 +122,8 @@ Worker "touchdown" (or the same server on any machine, 33)
      /types/families/<family>
                           the aircraft types pages: one page the same for everyone, which opens
                           the app for a signed-in browser (31)
-     /types-files/*       their own code, styles and type reference data, without a session
+     /types-files/*       their own code, styles and type reference data, and their previews for
+                          chat apps, without a session
      D1                   accounts, sessions, invitations (33); Standard-mode storage keys
                           and link settings (32)
      /api/storage/*       Standard mode: terms, connecting Google Drive, short-lived access (32)

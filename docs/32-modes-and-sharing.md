@@ -250,7 +250,7 @@ Decided (changed), built (`apps/web/src/share/`):
 
 ### Previews
 
-Decided (changed), built (Q-SHARE-PREVIEW): a link pasted into a chat app shows a preview of what it opens, a title, a line under it and a picture of its map. First proposed as a plain "Shared from Touchdown" that revealed nothing.
+Decided (changed), built (Q-SHARE-PREVIEW): a link pasted into a chat app shows a preview of what it opens, a title, a line under it and a picture of its map. First proposed as a plain "Shared from Touchdown" that revealed nothing. The aircraft types pages have previews of their own, made by the build ([31](31-ui.md), "Aircraft types").
 
 | Kind | Title | Line under it | Picture |
 |---|---|---|---|
