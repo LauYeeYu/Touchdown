@@ -129,6 +129,8 @@ export const itemOverrides: Record<string, string | null> = {
   // Hawker 1000: its curated article is the British Aerospace 125's, whose item (Q1591686) is the whole family's (first
   // flight in 1962, every model built). No item for the Hawker 1000 was found.
   H25C: null,
+  // Ilyushin Il-86: the item's English label spells the maker "Iljushin".
+  IL86: "Q62167",
   // Aero Commander 1121 Jet Commander: the name is an alias of the IAI 1124 Westwind item (Q1653016), its successor.
   JCOM: null,
   // KE-3: the item is named "KE-3A", the model's full designation.

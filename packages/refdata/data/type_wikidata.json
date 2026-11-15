@@ -1,6 +1,6 @@
 {
   "table": "type_wikidata",
-  "version": "2026-11-14",
+  "version": "2026-11-15",
   "sources": [
     "Wikidata (wikidata.org), CC0"
   ],
@@ -695,6 +695,7 @@
 ["IL38","Q163838",2535753817,"Ilyushin Il-38","military",39.92,37.4,null,null,null,null,null,"4 × AI-20","1971-07-20","1969-01-17",58],
 ["IL62","Q182575",2562175614,"Ilyushin Il-62","airliner",53.12,43.2,12.35,null,null,null,null,"4 × Soloviev D-30","1963-01-03","1965",292],
 ["IL76","Q142549",2538787484,"Ilyushin Il-76","military",46.59,50.5,null,null,null,null,null,"4 × Aviadvigatel PS-90","1971-03-25","1974",950],
+["IL86","Q62167",2531161236,"Iljushin Il-86","airliner",59.94,48.06,15.81,null,null,null,null,"4 × Kuznetsov NK-86","1976-12-22","1980-12-26",106],
 ["IL96","Q272571",2517611932,"Iljushin IL-96","airliner",null,60.11,null,null,null,null,null,null,"1988-09-28","1993",30],
 ["IP06","Q56297975",1924294538,"IPE 06 Curucaca",null,null,null,null,null,null,null,null,null,null,null,null],
 ["IP26","Q50575154",1556672062,"IPAI-26 Tuca",null,null,null,null,null,null,null,null,null,null,null,null],
