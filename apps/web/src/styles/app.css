@@ -8603,6 +8603,10 @@ button.select {
   color: var(--ink-2);
 }
 
+.manufacturer-card__shapes--few {
+  justify-content: center;
+}
+
 .manufacturer-card__count {
   font-size: 0.875rem;
   color: var(--ink-3);

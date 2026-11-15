@@ -142,19 +142,23 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
           </h2>
         </div>
         <ul className="manufacturer-cards">
-          {main.map((m) => (
-            <li key={m.manufacturer.slug}>
-              <Link className="manufacturer-card" to="/types/manufacturers/$manufacturer" params={{ manufacturer: m.manufacturer.slug }}>
-                <span className="manufacturer-card__shapes" aria-hidden="true">
-                  {drawn(m.manufacturer.slug, m.entries).map((code) => (
-                    <Silhouette key={code} code={code} size={44} />
-                  ))}
-                </span>
-                <b>{m.manufacturer.name}</b>
-                <span className="manufacturer-card__count">{manufacturerCounts(m)}</span>
-              </Link>
-            </li>
-          ))}
+          {main.map((m) => {
+            const codes = drawn(m.manufacturer.slug, m.entries);
+            return (
+              <li key={m.manufacturer.slug}>
+                <Link className="manufacturer-card" to="/types/manufacturers/$manufacturer" params={{ manufacturer: m.manufacturer.slug }}>
+                  {/* One or two types are drawn in the card's middle: on the left they leave its right side empty. */}
+                  <span className={`manufacturer-card__shapes${codes.length < 3 ? " manufacturer-card__shapes--few" : ""}`} aria-hidden="true">
+                    {codes.map((code) => (
+                      <Silhouette key={code} code={code} size={44} />
+                    ))}
+                  </span>
+                  <b>{m.manufacturer.name}</b>
+                  <span className="manufacturer-card__count">{manufacturerCounts(m)}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </section>
       <section className="section" aria-labelledby="manufacturers-all">
