@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { offlineFiles } from "./files.ts";
-import { routeFor } from "./policy.ts";
+import { installCache, routeFor } from "./policy.ts";
 
 describe("the offline worker's routes", () => {
   const files = new Set(["/index.html", "/assets/index-abc.js", "/boot.css", "/manifest.webmanifest"]);
@@ -30,6 +30,12 @@ describe("the offline worker's routes", () => {
   it("does not take addresses that only start like a public page for one", () => {
     expect(routeFor("/signing-notes", "navigate", files)).toBe("page");
     expect(routeFor("/pages", "navigate", files)).toBe("page");
+  });
+
+  it("installs the built files from the browser's cache where it has them, and asks for the rest again", () => {
+    expect(installCache("/assets/index-abc.js")).toBe("default");
+    expect(installCache("/assets/index-abc.css")).toBe("default");
+    for (const path of ["/index.html", "/boot.css", "/manifest.webmanifest", "/icon-192.png"]) expect(installCache(path), path).toBe("no-cache");
   });
 });
 

@@ -13,6 +13,18 @@ export const SHELL = "/index.html";
  */
 const NOT_APP = /^\/(auth|api|p|share-files|signin-files|types-files|cli|__share-cache)(\/|$)|^\/(signin|setup|privacy|terms)\/?$|^\/(join|reset)\//;
 
+/** The built files, whose names carry a hash of their contents. */
+const BUILT = /^\/assets\//;
+
+/**
+ * How the worker's install fetches a file. A built file may come from the browser's own cache, where the page has just
+ * put the ones it opened with: its name changes with its contents, so a copy there is the same file. Any other file,
+ * the app's page among them, is asked for again.
+ */
+export function installCache(path: string): RequestCache {
+  return BUILT.test(path) ? "default" : "no-cache";
+}
+
 /** A file's address ends in an extension, as the server tells files from the app's pages (packages/server serve.ts). */
 const FILE = /\.[A-Za-z0-9]+$/;
 

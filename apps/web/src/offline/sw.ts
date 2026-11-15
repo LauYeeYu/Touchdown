@@ -2,7 +2,7 @@
 // is not here: it is in the browser's database, and sync sends what changed once the network returns. Built on its
 // own as a plain script (vite.sw.config.ts), which fills in the build's files and version.
 
-import { CACHE_PREFIX, routeFor, SHELL } from "./policy.ts";
+import { CACHE_PREFIX, installCache, routeFor, SHELL } from "./policy.ts";
 
 /** The app's files, as addresses from the site's root, and a version made from their contents. */
 declare const __OFFLINE_FILES__: string[];
@@ -27,19 +27,32 @@ interface WorkerScope {
 const scope = self as unknown as WorkerScope;
 const CACHE = `${CACHE_PREFIX}${__OFFLINE_VERSION__}`;
 const FILES = new Set(__OFFLINE_FILES__);
+/** Files fetched at once by the install, so a slow connection still has room for the page. */
+const AT_ONCE = 3;
 
-// Every file is fetched again with the session, as the gate asks. One that does not come back whole (signed out
-// meanwhile, or a redirect to the sign-in page) stops the install, and the worker before this one stays.
+// Every file is fetched with the session, as the gate asks, the built ones from the browser's cache where it has them
+// (installCache). One that does not come back whole (signed out meanwhile, or a redirect to the sign-in page) stops the
+// install, and the worker before this one stays.
 scope.addEventListener("install", (e) =>
   e.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE);
+      const keep = async (path: string) => {
+        const res = await fetch(new Request(path, { cache: installCache(path), redirect: "error", credentials: "same-origin" }));
+        if (!res.ok) throw new Error(`${path} answered ${res.status}.`);
+        await cache.put(path, res);
+      };
+      const queue = [...FILES];
       try {
         await Promise.all(
-          [...FILES].map(async (path) => {
-            const res = await fetch(new Request(path, { cache: "no-cache", redirect: "error", credentials: "same-origin" }));
-            if (!res.ok) throw new Error(`${path} answered ${res.status}.`);
-            await cache.put(path, res);
+          Array.from({ length: AT_ONCE }, async () => {
+            try {
+              for (let path = queue.shift(); path !== undefined; path = queue.shift()) await keep(path);
+            } catch (err) {
+              // The others stop too: the install has failed.
+              queue.length = 0;
+              throw err;
+            }
           }),
         );
       } catch (err) {
