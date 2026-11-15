@@ -8871,7 +8871,9 @@ button.select {
     flex-direction: column;
   }
 
-  .type-compare__bars {
+  /* The bars' column goes, its heading and the engines row's empty cell with it, so the columns stay in line. */
+  .type-compare__bars,
+  .type-compare__bars-head {
     display: none;
   }
 }

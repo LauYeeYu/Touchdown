@@ -140,7 +140,7 @@ export function TypeCompare() {
             <tr>
               <th scope="row">{t("aircraft.types.figure.engines")}</th>
               <td>{sa.engines ?? "—"}</td>
-              <td />
+              <td className="type-compare__bars" aria-hidden="true" />
               <td>{sb.engines ?? "—"}</td>
               <td />
             </tr>
