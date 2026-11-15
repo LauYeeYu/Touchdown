@@ -113,11 +113,12 @@ function fuselage(p: Planform): Pt[] {
 
 /**
  * Where the wingtip's leading edge is along the length: by the quarter-chord sweep from the root, or for an ogee delta
- * (Concorde's), whose trailing edge runs nearly straight across, just ahead of the root's trailing edge.
+ * (Concorde's), whose trailing edge runs nearly straight across, just ahead of the root's trailing edge. The edges are
+ * drawn from the centreline, so the quarter-chord line runs from the root's there to the tip's, over the half-span.
  */
-function tipLeading(p: Planform, rootAt: number, rootChord: number, tipChord: number, reach: number, sweepDeg: number): number {
+function tipLeading(p: Planform, rootAt: number, rootChord: number, tipChord: number, half: number, sweepDeg: number): number {
   if (p.shape.wing.ogee) return rootAt + rootChord * 0.95 - tipChord;
-  return rootAt + rootChord / 4 + Math.tan(sweepDeg * RAD) * reach - tipChord / 4;
+  return rootAt + rootChord / 4 + Math.tan(sweepDeg * RAD) * half - tipChord / 4;
 }
 
 /** One wing (the right one): from its root at the fuselage's side out to the tip, swept and tapered, with its tip device. */
@@ -128,7 +129,7 @@ function wing(p: Planform, span: number, sweepDeg: number, rootAt: number, rootC
   const reach = half - root;
   // From the quarter-chord sweep to the leading edge's: the quarter-chord line runs from a quarter of the root's chord to a
   // quarter of the tip's.
-  const tipLe = tipLeading(p, rootAt, rootChord, tipChord, reach, sweepDeg);
+  const tipLe = tipLeading(p, rootAt, rootChord, tipChord, half, sweepDeg);
   if (p.shape.wing.ogee) {
     // An ogee delta's leading edge runs back steeply along the fuselage, then curves out to a short tip; the trailing
     // edge runs straight across.
@@ -226,7 +227,7 @@ export function planformParts(p: Planform): Pt[][] {
   const tipChord = rootChord * s.wing.tip;
   const right = wing(p, p.span, p.sweep, wingRootAt, rootChord, s.wing.tip, s.wing.device ?? null);
   parts.push(right, clockwise(mirror(right)));
-  const tipLe = tipLeading(p, wingRootAt, rootChord, tipChord, half - fuselageHalf(p, wingRootAt + rootChord / 2), p.sweep);
+  const tipLe = tipLeading(p, wingRootAt, rootChord, tipChord, half, p.sweep);
   // Where the leading and trailing edges are at `x` metres out (straight lines from the root to the tip).
   const leAt = (x: number) => wingRootAt + (tipLe - wingRootAt) * (x / half);
   const teAt = (x: number) => wingRootAt + rootChord + (tipLe + tipChord - wingRootAt - rootChord) * (x / half);
