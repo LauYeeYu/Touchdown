@@ -169,8 +169,6 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
     const offlineAccount = me === "offline" ? lastAccount() : null;
     if (me === "offline" && !offlineAccount && !import.meta.env.DEV) throw new OfflineWithoutAccount();
     openAccountDb(typeof me === "object" ? me.id : offlineAccount);
-    // Signed in online: keep the app's files for the next time it opens offline.
-    if (typeof me === "object") keepOffline();
     // Tabs share the browser's copy (docs/12, "Tabs"): one writes it and syncs, the others follow it.
     const tabs = tabsFor(db.name);
     const writer = (await tabs.open()) === "writer";
@@ -247,6 +245,9 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
         .then((kept) => kept || navigator.storage.persist())
         .catch(() => false);
     }
+    // Signed in online: keep the app's files for the next time it opens offline. Only now that the log is open: after
+    // a new deployment the worker fetches the app's files again, and on a slow connection the opening waited for it.
+    if (typeof me === "object") keepOffline();
     return opened;
   })();
   return booting;
