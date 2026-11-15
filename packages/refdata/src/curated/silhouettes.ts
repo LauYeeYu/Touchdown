@@ -144,7 +144,7 @@ export const familyShapes: Record<string, FamilyShape> = {
   Tu204: f(with_(NARROW, { wingAlso: { device: "winglet" } })),
   // A slender delta: its figures give no sweep, so its own, for the drawing only.
   // An ogee delta, its engines in pairs under the wing's rear.
-  Concorde: f({ kind: "jet", nose: 4, tail: 2, sweep: 52, wing: { at: 0.36, root: 0.56, tip: 0.04, ogee: true }, engines: { wing: [0.27], over: true, size: 1.4 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  Concorde: f({ kind: "jet", nose: 4, tail: 4.7, sweep: 52, wing: { at: 0.29, root: 0.485, tip: 0.04, ogee: true }, engines: { wing: [0.45], over: true, past: 0.12, size: 1.75 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
 
   // Business jets
   "Cessna Citation": f(with_(BIZ, { wingAlso: { at: 0.42, root: 0.18, tip: 0.45, device: null } })),

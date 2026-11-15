@@ -160,13 +160,13 @@ export interface SilhouetteShape {
    */
   wing: { at: number; root: number; tip: number; device?: "winglet" | "raked" | "sharklet" | "blended" | null; tipTanks?: boolean; ogee?: boolean; pods?: number };
   /**
-   * Engines on the wing at fractions of the half-span (`over`: over or under the wing's rear and past its trailing edge,
-   * as a HondaJet's above it and Concorde's below it both show from above), beside the tail (two, their centre at `at`
-   * of the length where the tailplane does not set it; a 727's third, in the tail cone, does not show from above), one
-   * in the fin over the tail cone (`fin`, a DC-10's, wider than the fuselage where it narrows), or one on top of the rear
-   * fuselage (`top`, a Cirrus SF50's).
+   * Engines on the wing at fractions of the half-span (`over`: over or under the wing's rear and past its trailing edge
+   * by `past` of their length, half unless given, as a HondaJet's above it and Concorde's nozzles below it show from
+   * above), beside the tail (two, their centre at `at` of the length where the tailplane does not set it; a 727's third,
+   * in the tail cone, does not show from above), one in the fin over the tail cone (`fin`, a DC-10's, wider than the
+   * fuselage where it narrows), or one on top of the rear fuselage (`top`, a Cirrus SF50's).
    */
-  engines?: { wing?: number[]; over?: boolean; rear?: 2 | 3; at?: number; fin?: boolean; top?: boolean; size?: number };
+  engines?: { wing?: number[]; over?: boolean; past?: number; rear?: 2 | 3; at?: number; fin?: boolean; top?: boolean; size?: number };
   /** A radar dome over the fuselage (an E-3's): its centre along the length, and its diameter in metres. */
   radome?: { at: number; diameter: number };
   /**

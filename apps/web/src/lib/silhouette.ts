@@ -135,7 +135,7 @@ function wing(p: Planform, span: number, sweepDeg: number, rootAt: number, rootC
     // edge runs straight across.
     const curve: Pt[] = Array.from({ length: 17 }, (_, i) => {
       const t = i / 16;
-      return [root + reach * t, rootAt + (tipLe - rootAt) * t ** 0.45] as Pt;
+      return [root + reach * t, rootAt + (tipLe - rootAt) * t ** 0.7] as Pt;
     });
     return clockwise([[0, rootAt], ...curve, [half, tipLe + tipChord], [0, rootAt + rootChord]]);
   }
@@ -287,10 +287,10 @@ export function planformParts(p: Planform): Pt[][] {
       // A jet's nacelle hangs ahead of the leading edge, its rear under the wing.
       const length = p.width * 1.3 * size;
       const radius = p.width * 0.26 * size;
-      // Over or under the wing's rear (a HondaJet's, Concorde's), it reaches well past the trailing edge, so it shows
-      // from above.
+      // Over or under the wing's rear, it reaches past the trailing edge, so it shows from above: a HondaJet's well
+      // past it, Concorde's nozzles just.
       const te = teAt(x);
-      const [front, back] = s.engines?.over ? [te - length, te + length * 0.5] : [y - length * 0.7, y + length * 0.3];
+      const [front, back] = s.engines?.over ? [te - length, te + length * (s.engines.past ?? 0.5)] : [y - length * 0.7, y + length * 0.3];
       for (const sx of [x, -x]) parts.push(clockwise(nacelle(sx, front, back, radius)));
     }
   }
