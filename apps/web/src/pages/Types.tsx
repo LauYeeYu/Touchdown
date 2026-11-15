@@ -123,11 +123,16 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
   const letters = new Map<string, typeof manufacturers>();
   for (const m of manufacturers) letters.set(letterOf(m.manufacturer.name), [...(letters.get(letterOf(m.manufacturer.name)) ?? []), m]);
   // A card draws the same three types whatever the log has: those chosen for it, else the manufacturer's types with a
-  // drawing and the most codes. A chosen type the filters leave out gives its place to the next of these.
+  // drawing and the most codes. A chosen type the filters leave out gives its place to the next of these. Only a type
+  // drawn with its family's shape: the usual shape of its kind would put a Tu-134's engines under its wing.
+  const ownShape = (code: string) => {
+    const p = info?.planform(code, app.ref);
+    return !!p && !p.generic;
+  };
   const drawn = (slug: string, list: TypeEntry[]) => {
-    const chosen = (CARD_TYPES[slug] ?? []).filter((c) => info?.planform(c, app.ref) && entries.some((e) => e.codes.includes(c)));
+    const chosen = (CARD_TYPES[slug] ?? []).filter((c) => ownShape(c) && entries.some((e) => e.codes.includes(c)));
     const rest = list
-      .filter((e) => !e.codes.some((c) => chosen.includes(c)) && info?.planform(e.usual, app.ref))
+      .filter((e) => !e.codes.some((c) => chosen.includes(c)) && ownShape(e.usual))
       .sort((a, b) => b.codes.length - a.codes.length)
       .map((e) => e.usual);
     return [...chosen, ...rest].slice(0, 3);
