@@ -347,7 +347,8 @@ export function genericShape(k: TypeKind): Shape | null {
   if (k.role === "other") return k.engineType === "jet" && fighterSized ? FIGHTER : null;
   const n = k.engineCount ?? 1;
   if (k.engineType === "jet") {
-    if (k.role === "military" && n <= 2 && k.wtc !== "H" && fighterSized) return FIGHTER;
+    // The Yak-38's and Yak-141's third engines are lift jets in the fuselage.
+    if (k.role === "military" && n <= 3 && k.wtc !== "H" && fighterSized) return FIGHTER;
     if (n >= 4) return QUAD;
     if (n === 3) return with_(REAR, { engines: { rear: 3, at: 0.7 } });
     if (k.role === "business" || k.wtc === "L") return BIZ;
