@@ -8558,21 +8558,6 @@ button.select {
   list-style: none;
 }
 
-@media (max-width: 600px) {
-  .manufacturer-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .manufacturer-card {
-    padding: 12px;
-  }
-
-  .manufacturer-card__shapes {
-    --shapes-gap: 4px;
-  }
-}
-
 .manufacturer-card {
   display: grid;
   gap: 4px;
@@ -8611,6 +8596,22 @@ button.select {
 .manufacturer-card__count {
   font-size: 0.875rem;
   color: var(--ink-3);
+}
+
+/* After the cards' own rules, which would otherwise override these. */
+@media (max-width: 600px) {
+  .manufacturer-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .manufacturer-card {
+    padding: 12px;
+  }
+
+  .manufacturer-card__shapes {
+    --shapes-gap: 4px;
+  }
 }
 
 .manufacturer-letters {
