@@ -4,7 +4,7 @@ import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
 import { familyOrder } from "../src/curated/type-order.ts";
-import { familyShapes, genericShape, ownBodies } from "../src/curated/silhouettes.ts";
+import { familyShapes, genericShape, ownBodies, shapeOf, typeShapes } from "../src/curated/silhouettes.ts";
 import { comparisonWidths, widthArticles } from "../src/curated/fuselage-widths.ts";
 import { loadTypeSpecs, loadTypeWikidata, loadTypeWikipedia, typeWikidataSource, typeWikipediaSource } from "../src/typeinfo.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
@@ -319,6 +319,20 @@ describe("a type without a family's shape", () => {
     // fenestron, as its figures are the H145's.
     for (const [id, f] of Object.entries(familyShapes)) expect(f.checked, id).toBe(true);
     expect(familyShapes.H145!.shape.fenestron).toBe(true);
+  });
+
+  it("gives a type without a family its own shape where it has one", () => {
+    // Each is a type code of the reference tables in no family, so its own shape is the one it is drawn with.
+    const index = new RefIndex(ref);
+    for (const code of Object.keys(typeShapes)) {
+      const type = index.type(code);
+      expect(type, code).toBeTruthy();
+      expect(type!.familyId, code).toBeNull();
+      expect(shapeOf(null, code)?.checked, code).toBe(true);
+    }
+    expect(shapeOf(null, "IL62")?.engines?.rear).toBe(4);
+    expect(shapeOf(null, "T144")?.wing.crank).toBeDefined();
+    expect(shapeOf(null, "B738")).toBeNull();
   });
 });
 

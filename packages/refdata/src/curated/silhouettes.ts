@@ -325,6 +325,35 @@ const FIGHTER: Shape = { kind: "jet", nose: 3.2, tail: 1.4, wing: { at: 0.44, ro
 const QUAD_PROP: Shape = with_(TPROP, { wingAlso: { at: 0.32, root: 0.18, tip: 0.42 }, engines: { wing: [0.26, 0.5], size: 1.4 }, stabAlso: { span: 0.36 } });
 const TRIMOTOR: Shape = with_(QUAD_PROP, { engines: { wing: [0.3], nose: true, size: 1.1 } });
 
+/**
+ * Type codes without a family whose usual shape of their kind would draw them wrongly, each with its own: the Il-62's
+ * and Tu-134's engines by the tail, the Tu-144's double delta, the bombers' swing wings and buried engines. Each was laid
+ * over a three-view drawing at one scale (G11). The sweep given here is for the drawing only, where no article states it.
+ */
+const own = (shape: Shape): FamilyShape => ({ shape, checked: true });
+export const typeShapes: Record<string, FamilyShape> = {
+  // Ilyushin
+  IL18: own(with_(QUAD_PROP, { wingAlso: { at: 0.405, root: 0.15, tip: 0.4 }, engines: { wing: [0.24, 0.48], size: 1.1 }, prop: 4.5, stabAlso: { span: 0.33 } })),
+  IL62: own(with_(REAR, { tail: 3.2, fairing: { width: 0.3, length: 1.5 }, sweep: 35, wingAlso: { at: 0.36, root: 0.18, tip: 0.37 }, engines: { rear: 4, at: 0.735, long: 1.7, size: 0.85 }, stabAlso: { span: 0.29, at: 0.88, sweep: 40, beyond: true } })),
+  IL86: own(with_(QUAD, { wingAlso: { at: 0.33, root: 0.19, tip: 0.25 }, engines: { wing: [0.3, 0.68], ahead: 0.95, size: 0.8 }, stabAlso: { span: 0.4 } })),
+  // Tupolev
+  T134: own(with_(REAR, { tail: 3, fairing: { width: 0.3, length: 1.5 }, sweep: 35, wingAlso: { at: 0.37, root: 0.19, tip: 0.3, pods: 0.33 }, engines: { rear: 2, at: 0.735, long: 2 }, stabAlso: { span: 0.4, at: 0.88, sweep: 40, beyond: true } })),
+  // Canards behind the cockpit, its engines in two boxes under the wing, their nozzles just past it.
+  T144: own({ kind: "jet", nose: 5, tail: 4.4, width: 3.4, wing: { at: 0.343, root: 0.49, tip: 0.12, ogee: true, crank: [0.33, 0.53] }, engines: { wing: [0.23], over: true, past: 0.08, size: 1.7 }, canard: { at: 0.155, span: 0.36 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  // Drawn with its wings spread, its engines in pairs under the glove.
+  T160: own({ kind: "jet", nose: 3, tail: 3, width: 3, wing: { at: 0.42, root: 0.12, tip: 0.35, glove: { at: 0.18, reach: 0.31 } }, engines: { rear: 4, at: 0.635, long: 2.1, apart: 1.23, size: 0.82 }, stab: { span: 0.24, at: 0.86, sweep: 45, root: 0.12 } }),
+  // Drawn with its wings spread, its engines inside the fuselage behind wide intakes.
+  T22M: own({ kind: "jet", nose: 3, tail: 2, width: 4.4, wing: { at: 0.47, root: 0.2, tip: 0.4, glove: { at: 0.3, reach: 0.27 } }, stab: { span: 0.32, at: 0.83, sweep: 55, root: 0.16 } }),
+  T334: own(with_(REAR, { sweep: 20, wingAlso: { at: 0.38, root: 0.17, tip: 0.35, device: "winglet" }, engines: { rear: 2, at: 0.75, size: 1 }, stabAlso: { span: 0.38, at: 0.86, sweep: 35 } })),
+  // Its engines in the wing roots, beside the fuselage, and its landing gear in fairings behind the wing.
+  TU16: own({ kind: "jet", nose: 2.5, tail: 3, sweep: 35, wing: { at: 0.31, root: 0.2, tip: 0.35, pods: 0.4 }, engines: { rear: 2, at: 0.41, long: 3.6, size: 0.7 }, stab: { span: 0.33, at: 0.84, sweep: 42, root: 0.1 } }),
+  // Its engines side by side on its back by the fin. Its article gives a sweep of "between 52 and 55°" without saying
+  // where it is measured: 47° at the quarter chord matches its three-view drawing's leading edge of about 51°.
+  TU22: own({ kind: "jet", nose: 4, tail: 2, width: 2.5, sweep: 47, wing: { at: 0.38, root: 0.3, tip: 0.2, pods: 0.34 }, engines: { rear: 2, at: 0.79, apart: 0.53, long: 3.3, size: 0.85 }, stab: { span: 0.36, at: 0.87, sweep: 55, root: 0.12 } }),
+  // The inner nacelles reach back past the wing: the landing gear's.
+  TU95: own(with_(QUAD_PROP, { wingAlso: { at: 0.21, root: 0.24, tip: 0.23, pods: 0.25 }, engines: { wing: [0.25, 0.49], size: 1.3 }, prop: 5.6, stabAlso: { span: 0.3, at: 0.86, sweep: 40 } })),
+};
+
 /** What a type without a family's shape is known as: from the reference tables and its role (Wikidata, docs/13). */
 export interface TypeKind {
   engineType: string | null;
@@ -361,7 +390,7 @@ export function genericShape(k: TypeKind): Shape | null {
 
 /** The shape of a type code in `familyId`: its family's, with what the type changes. Null for a family not drawn. */
 export function shapeOf(familyId: string | null | undefined, designator: string): (Shape & { checked: boolean }) | null {
-  const fam = familyId ? familyShapes[familyId] : undefined;
+  const fam = (familyId ? familyShapes[familyId] : undefined) ?? typeShapes[designator];
   if (!fam) return null;
   const own = fam.types?.[designator];
   const shape = own ? with_(fam.shape, own) : fam.shape;
@@ -462,4 +491,8 @@ export const typeSweep: Record<string, number> = {
   C68A: 16.3, // Cessna Citation Latitude, specifications: "16.3° sweep".
   C700: 28, // Cessna Citation Longitude: "a new ~28° swept wing" (26.8° inboard, 28.6° outboard).
   C750: 37, // Cessna Citation X: "37 degrees of sweepback at the quarter chord".
+  IL86: 35, // Ilyushin Il-86, specifications: "35° ¼ chord sweep".
+  T160: 20, // Tupolev Tu-160, specifications: the span with "wings spread (20°)".
+  T22M: 20, // Tupolev Tu-22M, specifications: the span "spread (20° sweep)".
+  TU95: 35, // Tupolev Tu-95: "a mid-mounted wing with 35 degrees of sweep".
 };
