@@ -238,6 +238,13 @@ export function planformParts(p: Planform): Pt[][] {
     const y = leAt(half) + tipChord * 0.4;
     for (const sx of [half - r, -(half - r)]) parts.push(clockwise(capsule(sx, y - length / 2, y + length / 2, r)));
   }
+  if (s.wing.pods) {
+    // A landing gear fairing under each wing, from mid-chord to well past the trailing edge, narrowing to a point.
+    const x = half * s.wing.pods;
+    const front = leAt(x) + (teAt(x) - leAt(x)) * 0.35;
+    const back = teAt(x) + p.width * 0.75;
+    for (const sx of [x, -x]) parts.push(clockwise(ellipse(sx, (front + back) / 2, p.width * 0.16, (back - front) / 2)));
+  }
   if (s.booms) {
     // Two booms from the wing to the tail, the tailplane across between them, and the pod's rear propeller.
     const x = half * s.booms.at;

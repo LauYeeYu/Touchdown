@@ -155,9 +155,10 @@ export interface SilhouetteShape {
   /**
    * The wing: its root's leading edge along the fuselage, its root chord (of the length), the tip's chord (of the root's).
    * `tipTanks`: fuel tanks on the tips (the older Learjets'). `ogee`: an ogee delta's curved leading edge (Concorde's),
-   * swept steeply along the fuselage, then less, out to a short tip.
+   * swept steeply along the fuselage, then less, out to a short tip. `pods`: the main landing gear's fairings at that
+   * fraction of the half-span, reaching back past the trailing edge (a Tu-154's).
    */
-  wing: { at: number; root: number; tip: number; device?: "winglet" | "raked" | "sharklet" | "blended" | null; tipTanks?: boolean; ogee?: boolean };
+  wing: { at: number; root: number; tip: number; device?: "winglet" | "raked" | "sharklet" | "blended" | null; tipTanks?: boolean; ogee?: boolean; pods?: number };
   /**
    * Engines on the wing at fractions of the half-span (`over`: over or under the wing's rear and past its trailing edge,
    * as a HondaJet's above it and Concorde's below it both show from above), beside the tail (two, their centre at `at`

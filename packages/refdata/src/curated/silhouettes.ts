@@ -139,7 +139,8 @@ export const familyShapes: Record<string, FamilyShape> = {
   An225: f(with_(QUAD, { wingAlso: { at: 0.36, root: 0.2, tip: 0.28 }, engines: { wing: [0.24, 0.42, 0.6] } })),
   Il76: f(with_(QUAD, { wingAlso: { at: 0.38, root: 0.17, tip: 0.35 }, stabAlso: { span: 0.35 } })),
   Il96: f(with_(QUAD, { wingAlso: { device: "winglet" } })),
-  Tu154: f(with_(REAR, { engines: { rear: 3 }, wingAlso: { at: 0.4, root: 0.16, tip: 0.3 } })),
+  // Large side engines close beside the fuselage, and the main landing gear in fairings behind the wing.
+  Tu154: f(with_(REAR, { engines: { rear: 3, at: 0.74, size: 1.3 }, wingAlso: { at: 0.37, root: 0.19, tip: 0.22, pods: 0.31 }, stabAlso: { span: 0.31, at: 0.875, root: 0.08, sweep: 40 } })),
   Tu204: f(with_(NARROW, { wingAlso: { device: "winglet" } })),
   // A slender delta: its figures give no sweep, so its own, for the drawing only.
   // An ogee delta, its engines in pairs under the wing's rear.
