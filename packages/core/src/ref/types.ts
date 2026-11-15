@@ -161,19 +161,36 @@ export interface SilhouetteShape {
   /**
    * The wing: its root's leading edge along the fuselage, its root chord (of the length), the tip's chord (of the root's).
    * `tipTanks`: fuel tanks on the tips (the older Learjets'). `ogee`: an ogee delta's curved leading edge (Concorde's),
-   * swept steeply along the fuselage, then less, out to a short tip. `pods`: the main landing gear's fairings at that
-   * fraction of the half-span, reaching back past the trailing edge (a Tu-154's).
+   * swept steeply along the fuselage, then less, out to a short tip, or with `crank` a double delta's (a Tu-144's),
+   * straight to the crank at that fraction of the reach and of the way back to the tip, then straight to the tip.
+   * `pods`: the main landing gear's fairings at that fraction of the half-span, reaching back past the trailing edge (a
+   * Tu-154's). `glove`: a swing wing's fixed glove (a Tu-160's), from the fuselage at `at` of the length out to the
+   * leading edge at `reach` of the half-span.
    */
-  wing: { at: number; root: number; tip: number; device?: "winglet" | "raked" | "sharklet" | "blended" | null; tipTanks?: boolean; ogee?: boolean; pods?: number };
+  wing: {
+    at: number;
+    root: number;
+    tip: number;
+    device?: "winglet" | "raked" | "sharklet" | "blended" | null;
+    tipTanks?: boolean;
+    ogee?: boolean;
+    crank?: [number, number];
+    pods?: number;
+    glove?: { at: number; reach: number };
+  };
   /**
-   * Engines on the wing at fractions of the half-span (`over`: over or under the wing's rear and past its trailing edge
-   * by `past` of their length, half unless given, as a HondaJet's above it and Concorde's nozzles below it show from
-   * above), beside the tail (two, their centre at `at` of the length where the tailplane does not set it; a 727's third,
-   * in the tail cone, does not show from above), one in the fin over the tail cone (`fin`, a DC-10's, wider than the
-   * fuselage where it narrows), one on top of the rear fuselage (`top`, a Cirrus SF50's), or one in the nose as well as
-   * those on the wing (`nose`, a trimotor's).
+   * Engines on the wing at fractions of the half-span, `ahead` of their length ahead of the leading edge (0.7 unless
+   * given, an Il-86's on long pylons nearly all; `over`: over or under the wing's rear and past its trailing edge by
+   * `past` of their length, half unless given, as a HondaJet's above it and Concorde's nozzles below it show from
+   * above), beside the tail (two, their centre at `at` of the length where the tailplane does not set it, `long` fuselage
+   * widths long and `apart` widths from the centreline where given: a Tu-16's in its wing roots, a Tu-22's on its back;
+   * four in pairs side by side, an Il-62's; a 727's third, in the tail cone, does not show from above), one in the fin
+   * over the tail cone (`fin`, a DC-10's, wider than the fuselage where it narrows), one on top of the rear fuselage
+   * (`top`, a Cirrus SF50's), or one in the nose as well as those on the wing (`nose`, a trimotor's).
    */
-  engines?: { wing?: number[]; over?: boolean; past?: number; rear?: 2 | 3; at?: number; fin?: boolean; top?: boolean; nose?: boolean; size?: number };
+  engines?: { wing?: number[]; ahead?: number; over?: boolean; past?: number; rear?: 2 | 3 | 4; at?: number; long?: number; apart?: number; fin?: boolean; top?: boolean; nose?: boolean; size?: number };
+  /** Foreplanes behind the cockpit (a Tu-144's): along the length, and their span (of the wingspan). */
+  canard?: { at: number; span: number };
   /** A radar dome over the fuselage (an E-3's): its centre along the length, and its diameter in metres. */
   radome?: { at: number; diameter: number };
   /**
@@ -183,8 +200,11 @@ export interface SilhouetteShape {
   booms?: { at: number; pod: number };
   /** A helicopter's tail fan in a shroud in its fin (a fenestron), in place of a tail rotor. */
   fenestron?: boolean;
-  /** The tailplane: its span (of the wingspan; none for a delta), its root's leading edge along the fuselage and its sweep. */
-  stab: { span: number; at: number; sweep: number; root?: number };
+  /**
+   * The tailplane: its span (of the wingspan; none for a delta), its root's leading edge along the fuselage and its sweep.
+   * `beyond`: a T-tail's on top of a swept fin, whose tips may reach past the tail cone (a Tu-134's).
+   */
+  stab: { span: number; at: number; sweep: number; root?: number; beyond?: boolean };
   /** Propellers' diameter in metres, at the engines or the nose. */
   prop?: number;
   /** A helicopter's main rotor blades. */

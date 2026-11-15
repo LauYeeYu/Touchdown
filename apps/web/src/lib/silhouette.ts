@@ -123,11 +123,12 @@ function fuselage(p: Planform): Pt[] {
 
 /**
  * Where the wingtip's leading edge is along the length: by the quarter-chord sweep from the root, or for an ogee delta
- * (Concorde's), whose trailing edge runs nearly straight across, just ahead of the root's trailing edge. The edges are
- * drawn from the centreline, so the quarter-chord line runs from the root's there to the tip's, over the half-span.
+ * (Concorde's), whose trailing edge runs nearly straight across, just ahead of the root's trailing edge (a double
+ * delta's, the Tu-144's, straight across). The edges are drawn from the centreline, so the quarter-chord line runs from
+ * the root's there to the tip's, over the half-span.
  */
 function tipLeading(p: Planform, rootAt: number, rootChord: number, tipChord: number, half: number, sweepDeg: number): number {
-  if (p.shape.wing.ogee) return rootAt + rootChord * 0.95 - tipChord;
+  if (p.shape.wing.ogee) return rootAt + rootChord * (p.shape.wing.crank ? 1 : 0.95) - tipChord;
   return rootAt + rootChord / 4 + Math.tan(sweepDeg * RAD) * half - tipChord / 4;
 }
 
@@ -143,10 +144,11 @@ function wing(p: Planform, span: number, sweepDeg: number, rootAt: number, rootC
   if (p.shape.wing.ogee) {
     // An ogee delta's leading edge runs back steeply along the fuselage, then curves out to a short tip; the trailing
     // edge runs straight across.
-    const curve: Pt[] = Array.from({ length: 17 }, (_, i) => {
-      const t = i / 16;
-      return [root + reach * t, rootAt + (tipLe - rootAt) * t ** 0.7] as Pt;
-    });
+    // A double delta's two straight edges meet at its crank.
+    const crank = p.shape.wing.crank;
+    const steps = crank ? [0, crank[0], 1] : Array.from({ length: 17 }, (_, i) => i / 16);
+    const along = (t: number) => (!crank ? t ** 0.7 : t <= crank[0] ? (t / crank[0]) * crank[1] : crank[1] + ((t - crank[0]) / (1 - crank[0])) * (1 - crank[1]));
+    const curve: Pt[] = steps.map((t) => [root + reach * t, rootAt + (tipLe - rootAt) * along(t)] as Pt);
     return clockwise([[0, rootAt], ...curve, [half, tipLe + tipChord], [0, rootAt + rootChord]]);
   }
   const le: Pt[] = [
@@ -186,9 +188,10 @@ function tailplane(p: Planform): Pt[] | null {
   const tip = root * 0.4;
   let at = p.length * s.at;
   const reachOf = (y: number) => Math.tan(s.sweep * RAD) * (half - fuselageHalf(p, y + root / 2)) + (root - tip) / 4;
-  // Its tips end before the tail cone does, as a real tailplane's: a wide, swept one moves forward to do so.
+  // Its tips end before the tail cone does, as a real tailplane's: a wide, swept one moves forward to do so. A T-tail's,
+  // on top of a swept fin, may reach past it.
   const over = at + reachOf(at) + tip - p.length * 0.99;
-  if (over > 0) at -= over;
+  if (over > 0 && !s.beyond) at -= over;
   const tipLe = at + reachOf(at);
   return clockwise([
     [0, at],
@@ -248,6 +251,20 @@ export function planformParts(p: Planform): Pt[][] {
     const y = leAt(half) + tipChord * 0.4;
     for (const sx of [half - r, -(half - r)]) parts.push(clockwise(capsule(sx, y - length / 2, y + length / 2, r)));
   }
+  if (s.wing.glove) {
+    // A swing wing's fixed glove: from the fuselage, well ahead of the wing, out to its leading edge at the pivot.
+    const gx = half * s.wing.glove.reach;
+    const glove: Pt[] = [[0, p.length * s.wing.glove.at], [gx, leAt(gx)], [gx, teAt(gx)], [0, wingRootAt + rootChord]];
+    parts.push(clockwise(glove), clockwise(mirror(glove)));
+  }
+  if (s.canard) {
+    // Foreplanes across the fuselage behind the cockpit, short in chord.
+    const ch = p.span * s.canard.span * 0.13;
+    const cx = (p.span * s.canard.span) / 2;
+    const cy = p.length * s.canard.at;
+    const fore: Pt[] = [[0, cy], [cx, cy + ch * 0.15], [cx, cy + ch * 0.85], [0, cy + ch]];
+    parts.push(clockwise(fore), clockwise(mirror(fore)));
+  }
   if (s.wing.pods) {
     // A landing gear fairing under each wing, from mid-chord to well past the trailing edge, narrowing to a point.
     const x = half * s.wing.pods;
@@ -303,18 +320,21 @@ export function planformParts(p: Planform): Pt[][] {
       // Over or under the wing's rear, it reaches past the trailing edge, so it shows from above: a HondaJet's well
       // past it, Concorde's nozzles just.
       const te = teAt(x);
-      const [front, back] = s.engines?.over ? [te - length, te + length * (s.engines.past ?? 0.5)] : [y - length * 0.7, y + length * 0.3];
+      const ahead = s.engines?.ahead ?? 0.7;
+      const [front, back] = s.engines?.over ? [te - length, te + length * (s.engines.past ?? 0.5)] : [y - length * ahead, y + length * (1 - ahead)];
       for (const sx of [x, -x]) parts.push(clockwise(nacelle(sx, front, back, radius)));
     }
   }
   if (s.engines?.rear) {
     // Two nacelles beside the tail cone. A third in the tail cone sits within the fuselage's width, so it does not show
     // from above.
-    const length = p.width * 1.25 * size;
+    const length = p.width * (s.engines.long ?? 1.25 * size);
     const radius = p.width * 0.28 * size;
     const y = p.length * (s.engines.at ?? s.stab.at - 0.08);
-    const x = fuselageHalf(p, y) + radius * 0.95;
-    for (const sx of [x, -x]) parts.push(clockwise(nacelle(sx, y - length / 2, y + length / 2, radius)));
+    const x = s.engines.apart !== undefined ? p.width * s.engines.apart : fuselageHalf(p, y) + radius * 0.95;
+    // Four: a second beside each, outboard.
+    const xs = s.engines.rear === 4 ? [x, x + radius * 1.9] : [x];
+    for (const ex of xs) for (const sx of [ex, -ex]) parts.push(clockwise(nacelle(sx, y - length / 2, y + length / 2, radius)));
   }
   if (s.kind === "prop" && (!s.engines?.wing?.length || s.engines.nose)) {
     // An engine in the nose: its propeller across the nose.
