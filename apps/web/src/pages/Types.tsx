@@ -25,8 +25,10 @@ const CARD_TYPES: Record<string, string[]> = {
   airbus: ["A320", "A333", "A388"],
   boeing: ["B744", "B752", "B763"],
   embraer: ["E75L", "E145", "E195"],
+  ilyushin: ["IL62", "IL86", "IL96"],
   // The DC-8 is Douglas's, from before the merger.
   "mcdonnell-douglas": ["DC86", "DC93", "DC10"],
+  tupolev: ["T134", "T144", "T154"],
 };
 /** Rows added each time the list's end comes into view. */
 const STEP = 200;
@@ -124,7 +126,7 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
   for (const m of manufacturers) letters.set(letterOf(m.manufacturer.name), [...(letters.get(letterOf(m.manufacturer.name)) ?? []), m]);
   // A card draws the same three types whatever the log has: those chosen for it, else the manufacturer's types with a
   // drawing and the most codes. A chosen type the filters leave out gives its place to the next of these. Only a type
-  // drawn with its family's shape: the usual shape of its kind would put a Tu-134's engines under its wing.
+  // drawn with its family's shape or its own: the usual shape of its kind may put its engines in the wrong place.
   const ownShape = (code: string) => {
     const p = info?.planform(code, app.ref);
     return !!p && !p.generic;
