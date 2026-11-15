@@ -347,7 +347,7 @@ export function genericShape(k: TypeKind): Shape | null {
   if (k.engineType === "jet") {
     if (k.role === "military" && n <= 2 && k.wtc !== "H" && fighterSized) return FIGHTER;
     if (n >= 4) return QUAD;
-    if (n === 3) return with_(REAR, { engines: { rear: 3 } });
+    if (n === 3) return with_(REAR, { engines: { rear: 3, at: 0.7 } });
     if (k.role === "business" || k.wtc === "L") return BIZ;
     return k.wtc === "H" ? WIDE : NARROW;
   }
