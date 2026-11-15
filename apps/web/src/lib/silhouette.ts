@@ -91,7 +91,8 @@ function fuselageHalf(p: Planform, y: number): number {
   }
   if (y > p.length - tail) {
     const s = (y - (p.length - tail)) / tail;
-    return w * (1 - 0.85 * s ** 1.6);
+    // Under an engine in the fin (a DC-10's), the tail cone narrows straight in to the nacelle, which is then the outline.
+    return p.shape.engines?.fin ? w * (1 - s) : w * (1 - 0.85 * s ** 1.6);
   }
   return w;
 }
@@ -271,8 +272,11 @@ export function planformParts(p: Planform): Pt[][] {
     parts.push(clockwise(nacelle(0, p.length * 0.56, p.length * 0.8, p.width * 0.45 * size)));
   }
   if (s.engines?.fin) {
-    // One in the fin, over the tail cone: half the fuselage's width, from two widths ahead of the tail almost to its end.
-    parts.push(clockwise(nacelle(0, p.length - p.width * 2.15, p.length - p.width * 0.4, p.width * 0.245)));
+    // One in the fin, over the tail cone: half the fuselage's width, from two widths ahead of the tail, its sides straight
+    // back to the exhaust, then a pointed cone to the end. Past where the fuselage narrows to it, it is the outline.
+    const [l, w] = [p.length, p.width];
+    const right: Pt[] = [[w * 0.2, l - w * 2.18], [w * 0.245, l - w * 2.1], [w * 0.245, l - w * 0.7], [w * 0.22, l - w * 0.45], [w * 0.16, l - w * 0.45], [w * 0.03, l - w * 0.04], [0, l]];
+    parts.push(clockwise([[0, l - w * 2.18], ...right, ...mirror(right).slice(1)]));
   }
   for (const f of s.engines?.wing ?? []) {
     const x = half * f;
