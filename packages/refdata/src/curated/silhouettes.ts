@@ -58,9 +58,9 @@ export const familyShapes: Record<string, FamilyShape> = {
   B717: f(with_(REAR, { wingAlso: { at: 0.4 } })),
   // The 727-200 is drawn: its plugs ahead of and behind the wing put the wing, the side engines and the tailplane at
   // other fractions of the 727-100's length. The Super 27s' side engines are larger.
-  B727: f(with_(REAR, { tail: 4, fairing: { width: 0.25, length: 1.9 }, engines: { rear: 3, at: 0.7, size: 0.8 }, wingAlso: { at: 0.335, root: 0.165, tip: 0.31 }, stabAlso: { span: 0.33, at: 0.85, root: 0.092, sweep: 35 } }), {
-    B721: { engines: { at: 0.66 }, wingAlso: { at: 0.31, root: 0.19 }, stabAlso: { at: 0.826, root: 0.106 } },
-    R721: { engines: { at: 0.66, size: 0.95 }, wingAlso: { at: 0.31, root: 0.19 }, stabAlso: { at: 0.826, root: 0.106 } },
+  B727: f(with_(REAR, { tail: 4, fairing: { width: 0.25, length: 1.9 }, engines: { rear: 3, at: 0.7, long: 1.5, apart: 0.77, size: 0.8 }, wingAlso: { at: 0.335, root: 0.183, tip: 0.31 }, stabAlso: { span: 0.33, at: 0.85, root: 0.092, sweep: 35 } }), {
+    B721: { engines: { at: 0.665 }, wingAlso: { at: 0.31, root: 0.21 }, stabAlso: { at: 0.826, root: 0.106 } },
+    R721: { engines: { at: 0.665, size: 0.95 }, wingAlso: { at: 0.31, root: 0.21 }, stabAlso: { at: 0.826, root: 0.106 } },
     R722: { engines: { size: 0.95 } },
   }),
   B737: f(with_(NARROW, { wingAlso: { device: "winglet" } }), { B731: { wingAlso: { device: null } }, B732: { wingAlso: { device: null } }, B733: { wingAlso: { device: null } }, B734: { wingAlso: { device: null } }, B735: { wingAlso: { device: null } } }),
