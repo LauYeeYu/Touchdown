@@ -9,7 +9,7 @@
   "mode.local.line": "不同步，仅保存在此浏览器中。",
   "storage.title": "存储空间",
   "storage.gdrive.line": "任何设备都能用。",
-  "storage.gdrive.note": "Touchdown会在Google云端硬盘中创建Touchdown文件夹，且只能打开自己创建的文件。每次登录有效一小时，之后同步会暂停，直到你重新登录。",
+  "storage.gdrive.note": "Touchdown会在Google云端硬盘中创建Touchdown文件夹，且只能打开自己创建的文件。Google的访问权限有效一小时。Touchdown会在你下次点击时续期，期间会短暂弹出Google窗口。无法续期时，会请你重新登录。离线时，同步会暂停，直到恢复连接。",
   "storage.gdrive.button": "连接Google云端硬盘",
   "storage.localfs.name": "此电脑上的文件夹",
   "storage.localfs.line": "放在Dropbox、OneDrive或iCloud云盘中，即可在多台电脑间同步。",

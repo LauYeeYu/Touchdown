@@ -19,7 +19,7 @@
   "modes.figure.links": "分享链接",
   "modes.figure.google": "登录Google",
   "modes.figure.google.standard": "仅连接时一次",
-  "modes.figure.google.private": "使用Google云端硬盘时每小时一次",
+  "modes.figure.google.private": "使用Google云端硬盘时每小时一次，在你下次点击时续期",
   "modes.figure.google.local": "不需要",
   "modes.figure.server": "Touchdown的服务器能打开你的日志",
   "myfr24.title": "从myFR24导入航班",

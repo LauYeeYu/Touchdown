@@ -9,7 +9,7 @@
   "mode.local.line": "Keine Synchronisierung. Nur in diesem Browser gespeichert.",
   "storage.title": "Speicher",
   "storage.gdrive.line": "Funktioniert auf jedem Gerät.",
-  "storage.gdrive.note": "Touchdown legt in deinem Google Drive einen Touchdown-Ordner an und kann nur die Dateien öffnen, die es selbst anlegt. Eine Anmeldung gilt eine Stunde, danach wartet die Synchronisierung, bis du dich wieder anmeldest.",
+  "storage.gdrive.note": "Touchdown legt in deinem Google Drive einen Touchdown-Ordner an und kann nur die Dateien öffnen, die es selbst anlegt. Der Zugriff von Google gilt eine Stunde. Touchdown erneuert ihn bei deinem nächsten Klick, mit einem kurzen Google-Fenster, und bittet dich, dich anzumelden, wenn das nicht geht. Offline wartet die Synchronisierung, bis die Verbindung wieder da ist.",
   "storage.gdrive.button": "Google Drive verbinden",
   "storage.localfs.name": "Ein Ordner auf diesem Computer",
   "storage.localfs.line": "Leg ihn in Dropbox, OneDrive oder iCloud Drive, damit andere Computer mitsynchronisieren.",

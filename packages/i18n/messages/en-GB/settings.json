@@ -9,7 +9,7 @@
   "mode.local.line": "No sync. Saved in this browser only.",
   "storage.title": "Storage",
   "storage.gdrive.line": "Works on any device.",
-  "storage.gdrive.note": "Touchdown makes a Touchdown directory in your Google Drive and can only open the files it creates. Each sign-in lasts an hour, then sync waits until you sign in again.",
+  "storage.gdrive.note": "Touchdown makes a Touchdown directory in your Google Drive and can only open the files it creates. Google's access lasts an hour. Touchdown renews it on your next click, with a brief Google window, and asks you to sign in when it cannot. Offline, sync waits until the connection returns.",
   "storage.gdrive.button": "Connect Google Drive",
   "storage.localfs.name": "A directory on this computer",
   "storage.localfs.line": "Put it in Dropbox, OneDrive or iCloud Drive to sync other computers.",

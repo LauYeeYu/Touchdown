@@ -9,7 +9,7 @@
   "mode.local.line": "不同步，只儲存在此瀏覽器中。",
   "storage.title": "儲存空間",
   "storage.gdrive.line": "任何裝置都能用。",
-  "storage.gdrive.note": "Touchdown會在Google雲端硬碟中建立Touchdown資料夾，且只能開啟自己建立的檔案。每次登入可維持一小時，之後同步會暫停，直到你重新登入。",
+  "storage.gdrive.note": "Touchdown會在Google雲端硬碟中建立Touchdown資料夾，且只能開啟自己建立的檔案。Google的存取權限可維持一小時。Touchdown會在你下次點選時續期，期間會短暫跳出Google視窗。無法續期時，會請你重新登入。離線時，同步會暫停，直到恢復連線。",
   "storage.gdrive.button": "連接Google雲端硬碟",
   "storage.localfs.name": "這台電腦上的資料夾",
   "storage.localfs.line": "放在Dropbox、OneDrive或iCloud Drive中，就能與其他電腦同步。",
