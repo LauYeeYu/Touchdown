@@ -3,81 +3,25 @@
 // puts in the page's head (packages/server/src/types.ts). The words are the pages' own. Run after the types pages' build
 // (package.json), into its directory; `--only A388,C172 --out DIR` draws only those types and the list, into DIR.
 
-import { createHash } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { Resvg } from "@resvg/resvg-js";
-import * as fontkit from "fontkit";
 import { RefIndex } from "@touchdown/core";
 import { LOCALES, setLocale, t, type Locale } from "@touchdown/i18n";
 import { loadRefTables } from "@touchdown/refdata";
 import { previewFile, type TypePreviews } from "@touchdown/server";
 import { typeName } from "../src/lib/format.ts";
-import { COLOURS } from "../src/lib/figure.ts";
 import { extentOf, planformParts, planformPath } from "../src/lib/silhouette.ts";
 import { slugOf, typeEntries } from "../src/lib/typeEntries.ts";
 import { metres, weight } from "../src/lib/typeFigures.ts";
 import { loadTypeInfo, type TypeInfo } from "../src/lib/typeInfo.ts";
-import { AIRLINER, AIRLINER_TRANSFORM, GROUND } from "../src/lib/wordmark.ts";
-
-/** A chat app's picture: 1200 × 630, as a share link's preview (docs/32, "Previews"). */
-const W = 1200;
-const H = 630;
-const C = COLOURS.light;
+import { C, H, W, keep as keepAt, logo, num, picture as paper } from "./picture.ts";
 
 const { values: args } = parseArgs({ options: { only: { type: "string" }, out: { type: "string" } } });
 const OUT = args.out ?? join(import.meta.dirname, "../dist/types-files/previews");
 
-// ——— Words as paths ———
-// The picture is drawn without the system's fonts, so the logo's name is the pages' typeface (Source Sans 3) drawn as
-// outlines, at the top bar's 600 from the fixed weights: the font library cannot vary the pages' variable font as it is
-// compressed.
-
-const fonts = join(dirname(createRequire(import.meta.url).resolve("@fontsource/source-sans-3/LICENSE")), "files");
-const sans600 = fontkit.openSync(join(fonts, "source-sans-3-latin-600-normal.woff2")) as fontkit.Font;
-
-const num = (x: number) => String(Math.round(x * 100) / 100);
-
-/** A line of words as outlines at 600, its left end at x and its baseline at y, `size` pixels high; and its width. */
-function words(text: string, size: number, letterSpacing = 0): { width: number; at: (x: number, y: number, fill: string) => string } {
-  const run = sans600.layout(text);
-  const k = size / sans600.unitsPerEm;
-  const glyphs: { d: string; x: number }[] = [];
-  let x = 0;
-  run.glyphs.forEach((g, i) => {
-    glyphs.push({ d: g.path.toSVG(), x });
-    x += run.positions[i]!.xAdvance * k + letterSpacing;
-  });
-  const width = x - letterSpacing;
-  return {
-    width,
-    at: (x0, y0, fill) => `<g fill="${fill}">${glyphs.map((g) => `<path transform="translate(${num(x0 + g.x)} ${num(y0)}) scale(${k} ${-k})" d="${g.d}"/>`).join("")}</g>`,
-  };
-}
-
-/** The logo at the bottom right, as a share link's preview draws it (lib/figure.ts): the mark and the name. */
-function logo(): string {
-  const nameSize = 26;
-  const markH = (nameSize * 25) / 18;
-  const markScale = markH / 20.5;
-  const markW = 28 * markScale;
-  const name = words("Touchdown", nameSize, -0.015 * nameSize);
-  const right = W - 44;
-  const bottom = H - 36;
-  const left = right - (markW + 13 + name.width);
-  return [
-    `<g transform="translate(${num(left)} ${num(bottom - markH)}) scale(${markScale.toFixed(3)}) translate(-2 -6)">`,
-    `<path d="${GROUND}" stroke="${C.paper}" stroke-width="4.4" stroke-linecap="round"/>`,
-    `<path d="${GROUND}" stroke="${C.flown}" stroke-width="2.4" stroke-linecap="round"/>`,
-    `<path transform="${AIRLINER_TRANSFORM}" d="${AIRLINER}" fill="${C.ink}" stroke="${C.paper}" stroke-width="2" paint-order="stroke"/>`,
-    `</g>`,
-    name.at(right - name.width, bottom - markH / 2 + 0.36 * nameSize, C.ink),
-  ].join("");
-}
-
-const picture = (body: string) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${C.paper}"/>${body}${logo()}</svg>`;
+/** A types page's picture: the logo at the bottom right, as a share link's preview has it. */
+const picture = (body: string) => paper(body + logo(26, H - 36, W - 44));
 
 // ——— Drawings ———
 
@@ -136,16 +80,8 @@ function listPicture(drawings: Map<string, Drawing>): string {
 
 // ——— Files ———
 
-function png(svg: string): Buffer {
-  return new Resvg(svg, { font: { loadSystemFonts: false }, fitTo: { mode: "original" } }).render().asPng();
-}
-
 /** A picture written under its name, its address carrying a hash of its contents, so a chat app asks for a new one. */
-function keep(name: string, svg: string): string {
-  const bytes = png(svg);
-  writeFileSync(join(OUT, name), bytes);
-  return `${name}?v=${createHash("sha256").update(bytes).digest("hex").slice(0, 12)}`;
-}
+const keep = (name: string, svg: string): string => `${name}?v=${keepAt(join(OUT, name), svg)}`;
 
 const ref = new RefIndex(loadRefTables());
 const info = await loadTypeInfo();
