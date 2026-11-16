@@ -36,7 +36,10 @@ export type TypePlanform = Planform & {
 export interface TypeInfo {
   specs(code: string | null | undefined): TypeData | null;
   facts(familyId: string | null | undefined): FamilyFacts | null;
-  /** The type's role: Wikidata's, else its family's, else what its engines and size make it most likely to be. */
+  /**
+   * The type's role: a curated one where Wikidata gives none or another, else Wikidata's, else a rotorcraft's by its
+   * kind, else its family's, else what its engines and size make it most likely to be.
+   */
   role(code: string, ref: RefIndex): TypeRole;
   /** What a type is drawn with, and whether its family is checked yet (G11); null without a shape, a length or a span. */
   planform(code: string | null | undefined, ref: RefIndex): TypePlanform | null;
@@ -171,10 +174,11 @@ export function loadTypeInfo(): Promise<TypeInfo> {
       specs: (code) => (code ? data(code) : null),
       facts: (id) => (id ? (facts.get(id) ?? null) : null),
       role(code, ref) {
-        const own = data(code)?.role;
+        const own = m.typeRoles[code] ?? data(code)?.role;
         if (own) return own;
         const type = ref.type(code);
         if (!type) return "other";
+        if (type.kind === "helicopter" || type.kind === "gyroplane" || type.kind === "tiltrotor") return "helicopter";
         const fam = type.familyId ? familyRole(type.familyId, ref) : null;
         if (fam) return fam;
         if (m.shapeOf(type.familyId, code)?.kind === "helicopter") return "helicopter";

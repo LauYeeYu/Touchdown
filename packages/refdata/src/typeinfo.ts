@@ -21,6 +21,7 @@ import families from "../data/families.json" with { type: "json" };
 
 export { familyShapes, genericShape, ownBodies, sameBody, sameWing, shapeOf, statedSize, type TypeKind } from "./curated/silhouettes.ts";
 export { familyOrder } from "./curated/type-order.ts";
+export { typeRoles } from "./curated/type-roles.ts";
 export { comparisonWidths, widthArticles, type WidthArticle } from "./curated/fuselage-widths.ts";
 
 export function loadTypeSpecs(): TypeSpecs[] {
