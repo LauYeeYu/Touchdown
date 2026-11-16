@@ -50,5 +50,6 @@
   "serve.notFound": "找不到",
   "serve.error": "伺服器錯誤",
   "error.suspended": "這個帳戶已被暫停。請聯絡邀請你的人。",
-  "share.badPreview": "不是有效的預覽：需要標題和一張600 KB以內的PNG圖片。"
+  "share.badPreview": "不是有效的預覽：需要標題和一張600 KB以內的PNG圖片。",
+  "preview.site": "記錄你搭乘過的航班和拍到的飛機的個人日誌。"
 }

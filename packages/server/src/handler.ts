@@ -9,6 +9,7 @@ import { siteId, type Database } from "./db.ts";
 import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
 import { withHeaders } from "./headers.ts";
 import { shareApi, sharePage, type ShareCache } from "./share.ts";
+import { signinPage } from "./signin.ts";
 import { TYPES_FILES, TYPES_PAGES, typesPage } from "./types.ts";
 
 export { TYPES_FILES, TYPES_PAGES };
@@ -253,7 +254,7 @@ async function answer(request: Request, s: Server): Promise<Response> {
     if (policy) return done(await s.assets.fetch(new Request(new URL(`${SIGNIN_FILES}${policy}.html`, url), { headers: request.headers })));
     if (PUBLIC_PAGES.test(path)) {
       if (session && path.startsWith("/signin")) return done(Response.redirect(new URL(safeNext(url.searchParams.get("next")), url).toString(), 302));
-      return done(await s.assets.fetch(new Request(new URL(`${SIGNIN_FILES}signin.html`, url), { headers: request.headers })));
+      return done(await signinPage(request, s, url));
     }
     if (path.startsWith(SIGNIN_FILES) || path === "/favicon.svg") return done(await s.assets.fetch(request));
     // The command line's session opens its few requests, not the app's pages and files.

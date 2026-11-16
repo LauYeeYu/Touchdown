@@ -50,5 +50,6 @@
   "serve.notFound": "Nicht gefunden",
   "serve.error": "Serverfehler",
   "error.suspended": "Dieses Konto ist gesperrt. Wende dich an die Person, die dich eingeladen hat.",
-  "share.badPreview": "Keine Vorschau: Nötig sind ein Titel und ein PNG-Bild von höchstens 600 KB."
+  "share.badPreview": "Keine Vorschau: Nötig sind ein Titel und ein PNG-Bild von höchstens 600 KB.",
+  "preview.site": "Ein persönliches Logbuch der Flüge, die du geflogen bist, und der Flugzeuge, die du fotografiert hast."
 }

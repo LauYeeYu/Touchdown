@@ -50,5 +50,6 @@
   "serve.notFound": "未找到",
   "serve.error": "服务器错误",
   "error.suspended": "这个账户已被暂停。请联系邀请你的人。",
-  "share.badPreview": "不是有效的预览：需要一个标题和一张不超过600 KB的PNG图片。"
+  "share.badPreview": "不是有效的预览：需要一个标题和一张不超过600 KB的PNG图片。",
+  "preview.site": "记录你乘坐过的航班和拍到的飞机的个人日志。"
 }

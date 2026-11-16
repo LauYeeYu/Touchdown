@@ -2538,6 +2538,7 @@ export interface MessageArgs {
   "server.serve.error": {};
   "server.error.suspended": {};
   "server.share.badPreview": {};
+  "server.preview.site": {};
   "settings.syncMode": {};
   "settings.mode.standard.name": {};
   "settings.mode.standard.tag": {};

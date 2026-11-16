@@ -103,6 +103,35 @@ describe("the gate", () => {
     expect((await handle(new Request(`${SITE}/types-files/%2e%2e%2findex.html`), s)).status).toBe(400);
   });
 
+  it("gives the sign-in page, where a link to the site lands, the site's preview in the language asked for", async () => {
+    const html = `<html><head><title>Touchdown</title>\n    <meta property="og:title" content="Touchdown" />\n<meta property="og:image" content="/signin-files/preview.png?v=1"></head><body></body></html>`;
+    const assets = {
+      async fetch(req: Request) {
+        const path = new URL(req.url).pathname;
+        return path === "/signin-files/signin.html" ? new Response(html, { headers: { "Content-Type": "text/html", ETag: '"abc"' } }) : new Response("Not found", { status: 404 });
+      },
+    };
+    const s: Server = { db: sqliteFile(":memory:"), config: { origins: [SITE] }, assets };
+    const meta = (text: string, p: string) => new RegExp(`<meta property="og:${p}" content="([^"]*)"`).exec(text)?.[1];
+    // The site's front page sends a visitor to the sign-in page, which a chat app reads.
+    const home = await handle(new Request(`${SITE}/`, { headers: { Accept: "text/html" } }), s);
+    expect(home.headers.get("Location")).toBe(`${SITE}/signin?next=%2F`);
+    const get = async (path: string, lang: string) => {
+      const res = await handle(new Request(SITE + path, { headers: { Accept: "text/html", "Accept-Language": lang, "If-None-Match": '"abc"' } }), s);
+      return { res, text: await res.text() };
+    };
+    const en = await get("/signin?next=%2F", "en-GB");
+    expect(meta(en.text, "image")).toBe(`${SITE}/signin-files/preview.png?v=1`);
+    expect(meta(en.text, "url")).toBe(`${SITE}/`);
+    expect(meta(en.text, "description")).toBe("A personal log of the flights you have flown and the aircraft you have photographed.");
+    expect(en.res.status).toBe(200);
+    expect(en.res.headers.get("Vary")).toBe("Accept-Language");
+    expect(en.res.headers.get("ETag")).toBeNull();
+    // An invitation's page is the same page, in the language asked for.
+    const de = await get("/join/abc", "de-DE,de;q=0.9");
+    expect(meta(de.text, "description")).toBe("Ein persönliches Logbuch der Flüge, die du geflogen bist, und der Flugzeuge, die du fotografiert hast.");
+  });
+
   it("gives each types page its own preview for chat apps, in the language asked for", async () => {
     const html = `<html><head><title>Aircraft types · Touchdown</title>\n    <meta property="og:title" content="Aircraft types · Touchdown" />\n    <meta property="og:description" content="Aircraft types." />\n</head><body></body></html>`;
     const files = new Map<string, TypePreviews>();
