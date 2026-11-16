@@ -192,12 +192,12 @@ export function loadTypeInfo(): Promise<TypeInfo> {
       planform(code, ref) {
         if (!code) return null;
         const type = ref.type(code);
-        if (!type) return null;
+        if (!type || m.undrawable.includes(code)) return null;
         const d = data(code);
         const own = m.shapeOf(type.familyId, code) as (SilhouetteShape & { checked: boolean }) | null;
         const span = spanToDraw(code, d?.spanM ?? null);
-        const shape = own ?? m.genericShape({ engineType: type.engineType, engineCount: type.engineCount, wtc: type.wtc, role: info.role(code, ref), span });
         const length = lengthToDraw(code, d?.lengthM ?? null);
+        const shape = own ?? m.genericShape({ engineType: type.engineType, engineCount: type.engineCount, wtc: type.wtc, kind: type.kind, role: info.role(code, ref), span, length });
         // Every drawn type shows, checked or not (G11): a type's page says when its family is not checked yet.
         if (!shape || !length || !span) return null;
         // The fuselage's width and the sweep from the figures (the width the family's), else the shape's own, else what a

@@ -5,7 +5,7 @@
 // shows, and a type's page says when its family is not checked yet. A type without a family is drawn with a shape for
 // its kind (`genericShape`). Fractions are of the length, the half-span or the wingspan, as SilhouetteShape says.
 
-import type { SilhouetteShape } from "../../../core/src/ref/types.ts";
+import type { AircraftKind, SilhouetteShape } from "../../../core/src/ref/types.ts";
 
 type Shape = SilhouetteShape;
 
@@ -324,6 +324,12 @@ export const statedSize: Record<string, { lengthM?: number; spanM?: number }> = 
 const FIGHTER: Shape = { kind: "jet", nose: 3.2, tail: 1.4, wing: { at: 0.44, root: 0.36, tip: 0.22 }, stab: { span: 0.42, at: 0.83, sweep: 38, root: 0.14 }, sweep: 38 };
 const QUAD_PROP: Shape = with_(TPROP, { wingAlso: { at: 0.32, root: 0.18, tip: 0.42 }, engines: { wing: [0.26, 0.5], size: 1.4 }, stabAlso: { span: 0.36 } });
 const TRIMOTOR: Shape = with_(QUAD_PROP, { engines: { wing: [0.3], nose: true, size: 1.1 } });
+// A business jet with one engine on its back (a Cirrus SF50, an Eclipse 400), a gyroplane, and a tiltrotor seen with its
+// rotors forward, edge on at the wingtips.
+const TOP_JET: Shape = { kind: "jet", nose: 1.8, tail: 3, sweep: 0, wing: { at: 0.34, root: 0.16, tip: 0.55 }, engines: { top: true }, stab: { span: 0.3, at: 0.85, sweep: 30, root: 0.12 } };
+const GYRO: Shape = { ...HELI, boom: 0.45, blades: 2, gyro: true, stab: { span: 0, at: 0.92, sweep: 0 } };
+const LONG_WING: Shape = { kind: "jet", nose: 1.6, tail: 3, sweep: 0, wing: { at: 0.32, root: 0.11, tip: 0.4 }, stab: { span: 0.16, at: 0.88, sweep: 5, root: 0.1 } };
+const TILTROTOR: Shape = with_(TPROP, { wingAlso: { at: 0.42, root: 0.12, tip: 0.8 }, engines: { wing: [1] }, stabAlso: { span: 0.45, at: 0.86 } });
 
 /**
  * Type codes without a family whose usual shape of their kind would draw them wrongly, each with its own: the Il-62's
@@ -359,9 +365,13 @@ export interface TypeKind {
   engineType: string | null;
   engineCount: number | null;
   wtc: string | null;
+  /** The types table's: a helicopter, a gyroplane or a tiltrotor is drawn as one whatever its role. */
+  kind?: AircraftKind | null;
   role: string | null;
   /** Its wingspan where known, metres: a military jet over 25m is a transport, not a fighter. */
   span?: number | null;
+  /** Its length where known, metres: a jet with a span of more than twice it is a glider's or a high flyer's wing. */
+  length?: number | null;
 }
 
 /**
@@ -370,14 +380,24 @@ export interface TypeKind {
  * (G11). Null when nothing fits (a balloon, an airship, a type with no engine type).
  */
 export function genericShape(k: TypeKind): Shape | null {
-  if (k.role === "helicopter") return HELI;
-  // Of the rest (airships, balloons, experimental aircraft), only a jet is drawn: an X-plane looks most like a fighter.
+  if (k.kind === "tiltrotor") return TILTROTOR;
+  if (k.kind === "gyroplane") return GYRO;
+  if (k.kind === "helicopter" || k.role === "helicopter") return HELI;
   const fighterSized = (k.span ?? 0) <= 25;
-  if (k.role === "other") return k.engineType === "jet" && fighterSized ? FIGHTER : null;
   const n = k.engineCount ?? 1;
+  // A long, straight wing on a slender body: a motor glider's sustainer, a high flyer's buried engine.
+  const longWing = k.engineType === "jet" && n <= 2 && !!k.span && !!k.length && k.span > 1.9 * k.length;
+  // Of the rest (airships, balloons, experimental aircraft), only a jet is drawn: an X-plane looks most like a fighter.
+  if (k.role === "other") return k.engineType !== "jet" ? null : longWing ? LONG_WING : fighterSized ? FIGHTER : null;
+  if (longWing) return LONG_WING;
   if (k.engineType === "jet") {
     // The Yak-38's and Yak-141's third engines are lift jets in the fuselage.
     if (k.role === "military" && n <= 3 && k.wtc !== "H" && fighterSized) return FIGHTER;
+    // One engine: on the back of a business jet, else inside the fuselage, as a trainer's or a fighter's.
+    if (n === 1) return k.role === "business" ? TOP_JET : fighterSized ? FIGHTER : null;
+    // Six or eight: pods of two along each wing (a B-52's), or three single ones.
+    if (n >= 8) return with_(QUAD, { engines: { wing: [0.28, 0.62], paired: true } });
+    if (n >= 6) return with_(QUAD, { engines: { wing: [0.27, 0.47, 0.67] } });
     if (n >= 4) return QUAD;
     if (n === 3) return with_(REAR, { engines: { rear: 3, at: 0.7 } });
     if (k.role === "business" || k.wtc === "L") return BIZ;
@@ -387,6 +407,13 @@ export function genericShape(k: TypeKind): Shape | null {
   if (k.engineType === "piston" || k.engineType === "electric") return n >= 4 ? QUAD_PROP : n === 3 ? TRIMOTOR : n === 2 ? LIGHT_TWIN : SINGLE;
   return null;
 }
+
+/**
+ * Type codes the generator cannot draw, so they have no silhouette rather than a wrong one: two fuselages side by side
+ * (a Stratolaunch, a WhiteKnightTwo, a Twin Mustang) or wings one behind the other (a Proteus), and two tiltrotors whose
+ * span in the figures is their rotors' diameter, not their wings'.
+ */
+export const undrawable: string[] = ["SLCH", "WHK2", "WHKN", "P82", "PRTS", "BPOD", "XV15", "V280"];
 
 /** The shape of a type code in `familyId`: its family's, with what the type changes. Null for a family not drawn. */
 export function shapeOf(familyId: string | null | undefined, designator: string): (Shape & { checked: boolean }) | null {

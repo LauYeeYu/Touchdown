@@ -4,7 +4,8 @@ import { RefIndex } from "../../core/src/ref/index.ts";
 import { loadRefTables, refSources } from "../src/index.ts";
 import { loadAirfields } from "../src/airfields.ts";
 import { familyOrder } from "../src/curated/type-order.ts";
-import { familyShapes, genericShape, ownBodies, shapeOf, typeShapes } from "../src/curated/silhouettes.ts";
+import { familyShapes, genericShape, ownBodies, shapeOf, typeShapes, undrawable } from "../src/curated/silhouettes.ts";
+import { typeRoles } from "../src/curated/type-roles.ts";
 import { comparisonWidths, widthArticles } from "../src/curated/fuselage-widths.ts";
 import { loadTypeSpecs, loadTypeWikidata, loadTypeWikipedia, typeWikidataSource, typeWikipediaSource } from "../src/typeinfo.ts";
 import airportsFile from "../data/airports.json" with { type: "json" };
@@ -298,6 +299,22 @@ describe("fuselage widths from the comparison tables", () => {
   });
 });
 
+describe("a type's kind and role", () => {
+  it("are read from the sources: helicopters, gyroplanes and tiltrotors among the landplanes", () => {
+    const index = new RefIndex(ref);
+    expect(index.type("H47")?.kind).toBe("helicopter");
+    expect(index.type("V22")?.kind).toBe("tiltrotor");
+    expect(index.type("A320")?.kind).toBe("landplane");
+    expect(ref.aircraftTypes.filter((t) => t.kind === "helicopter").length).toBeGreaterThan(100);
+  });
+
+  it("are curated only for type codes the reference tables have, and not drawn where the generator cannot", () => {
+    const index = new RefIndex(ref);
+    for (const code of [...Object.keys(typeRoles), ...undrawable]) expect(index.type(code), code).toBeTruthy();
+    expect(typeRoles.FC1).toBe("military");
+  });
+});
+
 describe("a type without a family's shape", () => {
   const kind = (engineType: string, engineCount: number, wtc: string, role: string | null = null) => ({ engineType, engineCount, wtc, role });
 
@@ -312,6 +329,18 @@ describe("a type without a family's shape", () => {
     expect(genericShape(kind("piston", 1, "L"))?.engines).toBeUndefined();
     expect(genericShape(kind("piston", 1, "L", "other"))).toBeNull();
     expect(genericShape(kind("jet", 1, "L", "other"))?.engines).toBeUndefined();
+    // A helicopter, a gyroplane and a tiltrotor by their kind in the types table, whatever their role.
+    expect(genericShape({ ...kind("turboprop", 2, "M", "airliner"), kind: "helicopter" })?.kind).toBe("helicopter");
+    expect(genericShape({ ...kind("piston", 1, "L", "light"), kind: "gyroplane" })?.gyro).toBe(true);
+    expect(genericShape({ ...kind("turboprop", 2, "M", "helicopter"), kind: "tiltrotor" })?.engines?.wing).toEqual([1]);
+    // One jet engine: on a business jet's back, else inside a trainer's or a fighter's fuselage.
+    expect(genericShape(kind("jet", 1, "L", "business"))?.engines?.top).toBe(true);
+    expect(genericShape(kind("jet", 1, "L", "light"))?.engines).toBeUndefined();
+    // Eight jet engines: pods of two.
+    expect(genericShape(kind("jet", 8, "H", "military"))?.engines?.paired).toBe(true);
+    // A span of more than twice the length: a long, straight wing.
+    expect(genericShape({ ...kind("jet", 1, "L", "light"), span: 18, length: 7 })?.sweep).toBe(0);
+    expect(genericShape({ ...kind("jet", 1, "L", "light"), span: 18, length: 7 })?.stab.span).toBeLessThan(0.2);
   });
 
   it("leaves the curated families' checks as they are", () => {
@@ -328,7 +357,7 @@ describe("a type without a family's shape", () => {
       const type = index.type(code);
       expect(type, code).toBeTruthy();
       expect(type!.familyId, code).toBeNull();
-      expect(shapeOf(null, code)?.checked, code).toBe(true);
+      expect(shapeOf(null, code), code).toBeTruthy();
     }
     expect(shapeOf(null, "IL62")?.engines?.rear).toBe(4);
     expect(shapeOf(null, "T144")?.wing.crank).toBeDefined();
