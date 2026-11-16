@@ -327,7 +327,7 @@ Protection (Proposed):
 ## Private mode
 
 As in [12](12-storage-and-sync.md):
-- **Connecting.** The browser connects to the storage itself: Google's sign-in popup, or a local folder through the browser (built). A Google token lasts an hour and stays in the browser until then; after that, sync waits until the user clicks "Sign in" ([12](12-storage-and-sync.md), "Google Drive details"). Not having to sign in again is one of the things Standard gives.
+- **Connecting.** The browser connects to the storage itself: Google's sign-in popup, or a local folder through the browser (built). A Google token lasts an hour and stays in the browser until then. Near its end, or after it, the user's next click renews it with a brief Google window, which closes by itself while they are signed in to Google. When Google needs them, or offline, sync waits, until they click "Sign in" or the connection returns ([12](12-storage-and-sync.md), "Google Drive details"). No Google window at all is one of the things Standard gives.
 - **Server.** It keeps nothing about the user.
 - **Sharing.** Share sends an image or a video. Its dialog says links need Standard mode.
 - **CLI inbox.** It works as in [21](21-import-export.md).
