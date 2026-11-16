@@ -10,6 +10,7 @@ import { placeName, type StorageKind, type SyncedConnection } from "./connection
 import { db } from "./db.ts";
 import { folderAllowed, LocalFolder } from "./folder.ts";
 import { GoogleSignIn, loadGoogle, SignInCancelled } from "./google.ts";
+import { clickRenewal } from "./renewal.ts";
 import { ServerDriveAuth, standard } from "./standard.ts";
 import type { TabMessage } from "./tabs.ts";
 
@@ -84,13 +85,27 @@ export interface StorageInbox {
   remove(name: string): Promise<void>;
 }
 
+/** What a tab tells the storage's renewal of access, and hears from it (`Storage.renew`). */
+interface RenewHooks {
+  /** The network can be reached. */
+  online(): boolean;
+  renewed(): void;
+  failed(e: unknown): void;
+}
+
 /** The storage's files, and whether this browser may use them now; with `ask`, inside a click, it may ask. */
 interface Storage {
   files: FileAdapter;
   ready(ask: boolean): Promise<boolean>;
+  /** Keep the access renewed where the storage needs it (Private's Google Drive, renewal.ts); returns its stop. */
+  renew(hooks: RenewHooks): () => void;
 }
 
+/** How often a tab reads the saved token again, as another tab may have renewed it. */
+const TOKEN_READ_MS = 30_000;
+
 function storageFor(c: SyncedConnection): Storage {
+  const nothing = () => () => {};
   if (c.mode === "standard") {
     // The server keeps the key; when it has none that works, connecting again goes through Google's page.
     const auth = new ServerDriveAuth();
@@ -101,15 +116,39 @@ function storageFor(c: SyncedConnection): Storage {
         if (ask) location.assign(standard.connectUrl(location.pathname));
         return false;
       },
+      renew: nothing,
     };
   }
-  if (c.adapter === "localfs") return { files: new LocalFolder(c.folder), ready: (ask) => folderAllowed(c.folder, ask) };
+  if (c.adapter === "localfs") return { files: new LocalFolder(c.folder), ready: (ask) => folderAllowed(c.folder, ask), renew: nothing };
   const google = new GoogleSignIn(c.account);
-  // Ready before the user clicks Sign in, so Google's window opens at once.
+  // Ready before the user clicks, so Google's window opens at once.
   void loadGoogle().catch(() => undefined);
   return {
     files: new GoogleDrive(google),
     ready: async (ask) => (await google.ready()) || (ask && !!(await google.signIn())),
+    renew: (hooks) => {
+      // A click decides by the saved token, so none is asked for before it has been read once.
+      let known = false;
+      const read = () =>
+        void google
+          .refresh()
+          .then(() => (known = true))
+          .catch(() => undefined);
+      read();
+      const every = setInterval(read, TOKEN_READ_MS);
+      const renewal = clickRenewal(c, document, {
+        expiresAt: () => google.expiresAt(),
+        online: hooks.online,
+        canAsk: () => known && !!window.google,
+        renew: () => google.signIn(),
+        renewed: hooks.renewed,
+        failed: hooks.failed,
+      });
+      return () => {
+        clearInterval(every);
+        renewal?.stop();
+      };
+    },
   };
 }
 
@@ -273,7 +312,19 @@ export class SyncController implements SyncHandle {
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     const every = setInterval(() => void this.run(), EVERY_MS);
+    // Private's Google Drive: the user's next click renews the hour's access once it is nearly over (renewal.ts).
+    const stopRenewal = this.storage.renew({
+      online: () => !this.offline() && this.info.state !== "offline",
+      renewed: () => {
+        if (this.info.state !== "permission") return;
+        this.set({ error: null });
+        void this.run();
+      },
+      // Once sync waits for the user, the "Sign in" bar says why; before that, the bar comes when the hour is over.
+      failed: (e) => this.info.state === "permission" && !(e instanceof SignInCancelled) && this.set({ error: (e as Error).message }),
+    });
     this.cleanups.push(
+      stopRenewal,
       unsubscribe,
       () => document.removeEventListener("visibilitychange", onShow),
       () => window.removeEventListener("online", onOnline),
@@ -476,7 +527,16 @@ export class TabSync implements SyncHandle {
     // Coming back into view syncs, as it does in the writing tab.
     const onShow = () => document.visibilityState === "visible" && this.post({ type: "run", id: "" });
     document.addEventListener("visibilitychange", onShow);
-    this.cleanup = () => document.removeEventListener("visibilitychange", onShow);
+    // A click here renews the access as in the writing tab, which then uses it (renewal.ts).
+    const stopRenewal = this.storage.renew({
+      online: () => navigator.onLine !== false && this.info.state !== "offline",
+      renewed: () => this.info.state === "permission" && this.post({ type: "allow" }),
+      failed: (e) => this.info.state === "permission" && !(e instanceof SignInCancelled) && this.heard({ ...this.info, error: (e as Error).message }),
+    });
+    this.cleanup = () => {
+      document.removeEventListener("visibilitychange", onShow);
+      stopRenewal();
+    };
   }
 
   private readonly cleanup: () => void;

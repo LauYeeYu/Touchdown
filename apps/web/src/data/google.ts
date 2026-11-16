@@ -1,6 +1,7 @@
 // Google sign-in for Private mode's Google Drive (docs/12, "Google Drive details"): Google Identity Services' token
-// flow, in a popup. A token lasts an hour and is kept in this browser until then, never on a server. After that,
-// sync waits until the user signs in again: browsers open the popup only on a click.
+// flow, in a popup. A token lasts an hour and is kept in this browser until then, never on a server. Browsers open the
+// popup only on a click, so the user's next click renews it once the hour is nearly over (renewal.ts). When that cannot
+// finish without the user, sync waits until they sign in again.
 
 import { t } from "@touchdown/i18n";
 import { GoogleDrive, SignInNeeded, type DriveAuth } from "@touchdown/storage";
@@ -26,6 +27,8 @@ interface Gis {
         client_id: string;
         scope: string;
         login_hint?: string;
+        /** "": Google asks the user only what it must (signing in, the first permission); else it closes by itself. */
+        prompt?: string;
         callback: (r: TokenResponse) => void;
         error_callback?: (e: { type: string; message?: string }) => void;
       }): { requestAccessToken(): void };
@@ -70,18 +73,39 @@ export interface SavedToken {
 /** Tokens for one Google account, or for whichever account the user picks when `account` is null. */
 export class GoogleSignIn implements DriveAuth {
   private saved: SavedToken | null = null;
+  /** Google's window while it is open: a second sign-in waits for it rather than opening another. */
+  private asking: Promise<string> | null = null;
 
   constructor(readonly account: string | null) {}
 
   private usable(s: SavedToken | null): s is SavedToken {
-    return !!s && s.expiresAt - MARGIN_MS > Date.now() && (!this.account || s.account === this.account);
+    return !!s && s.expiresAt - MARGIN_MS > Date.now() && this.ours(s);
+  }
+
+  private ours(s: SavedToken): boolean {
+    return !this.account || s.account === this.account;
+  }
+
+  private async stored(): Promise<SavedToken | null> {
+    return ((await db.meta.get(KEY))?.value as SavedToken | undefined) ?? null;
   }
 
   async token(): Promise<string> {
     // Another tab may have signed in since.
-    if (!this.usable(this.saved)) this.saved = ((await db.meta.get(KEY))?.value as SavedToken | undefined) ?? null;
+    if (!this.usable(this.saved)) this.saved = await this.stored();
     if (this.usable(this.saved)) return this.saved.token;
     throw new SignInNeeded(t("data.google.signInAgain"));
+  }
+
+  /** When the token in hand ends, as last read; null without one. A click decides with it at once (renewal.ts). */
+  expiresAt(): number | null {
+    return this.saved && this.ours(this.saved) ? this.saved.expiresAt : null;
+  }
+
+  /** Read the saved token again, and take it when it lasts longer: another tab may have renewed it. */
+  async refresh(): Promise<void> {
+    const s = await this.stored();
+    if (s && this.ours(s) && s.expiresAt > (this.saved?.expiresAt ?? 0)) this.saved = s;
   }
 
   refused(token: string) {
@@ -100,9 +124,18 @@ export class GoogleSignIn implements DriveAuth {
     }
   }
 
-  /** Sign in in Google's popup; call it from a click. Returns the account's email address. */
-  async signIn(): Promise<string> {
-    const { token, expiresAt, account } = await requestDriveToken(this.account);
+  /**
+   * Sign in in Google's popup; call it from a click. Returns the account's email address. While Google's window is
+   * open, another call waits for it.
+   */
+  signIn(): Promise<string> {
+    // Not async: Google's window opens within this call, inside the click.
+    this.asking ??= this.ask().finally(() => (this.asking = null));
+    return this.asking;
+  }
+
+  private async ask(): Promise<string> {
+    const { token, expiresAt, account } = await requestDriveToken(this.account, { quiet: !!this.account });
     this.saved = { token, expiresAt, account };
     await db.meta.put({ key: KEY, value: this.saved });
     return account;
@@ -111,10 +144,11 @@ export class GoogleSignIn implements DriveAuth {
 
 /**
  * An hour's access to Touchdown's files in Google Drive, from Google's popup; call it from a click. With `account`,
- * signing in as another account is refused. Nothing is kept: GoogleSignIn keeps it for sync, and the command line's
- * page (/cli/drive) passes it on.
+ * signing in as another account is refused. `quiet` (Private mode's sync, for the log's account): Google asks only
+ * what it must, so while the user is signed in its window closes by itself. Nothing is kept: GoogleSignIn keeps it
+ * for sync, and the command line's page (/cli/drive) passes it on.
  */
-export async function requestDriveToken(account: string | null): Promise<SavedToken> {
+export async function requestDriveToken(account: string | null, { quiet = false } = {}): Promise<SavedToken> {
   const google = window.google ?? (await loadGoogle());
   const response = await new Promise<TokenResponse>((resolve, reject) => {
     google.accounts.oauth2
@@ -122,6 +156,7 @@ export async function requestDriveToken(account: string | null): Promise<SavedTo
         client_id: GOOGLE_CLIENT_ID,
         scope: SCOPE,
         login_hint: account ?? undefined,
+        prompt: quiet ? "" : undefined,
         callback: resolve,
         error_callback: (e) =>
           reject(
