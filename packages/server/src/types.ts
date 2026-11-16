@@ -24,32 +24,41 @@ const PREVIEWS = `${TYPES_FILES}previews/`;
  */
 const PREVIEW_FILES = 16;
 
-/** The file in PREVIEWS that has a page's preview in a language. */
-export function previewFile(lang: Locale, page: string): string {
+/** A number from a text, the same every time. */
+function hashOf(text: string): number {
   let h = 0;
-  for (let i = 0; i < page.length; i++) h = (h * 31 + page.charCodeAt(i)) >>> 0;
-  return `${lang}-${h % PREVIEW_FILES}.json`;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+  return h;
 }
 
-/** The previews' files read so far, kept by a server (a Worker's instance). */
-const kept = new WeakMap<Assets, Map<string, Promise<TypePreviews | null>>>();
+/** The file in PREVIEWS that has a page's preview in a language. */
+export function previewFile(lang: Locale, page: string): string {
+  return `${lang}-${hashOf(page) % PREVIEW_FILES}.json`;
+}
 
-/** A page's preview in a language, from its file. */
-async function previewOf(s: Server, url: URL, lang: Locale, page: string): Promise<TypePreviews[string] | undefined> {
+/** The files in PREVIEWS read so far, kept by a server (a Worker's instance). */
+const kept = new WeakMap<Assets, Map<string, Promise<unknown>>>();
+
+/** A file in PREVIEWS, read once. */
+function fileOf<T>(s: Server, url: URL, name: string): Promise<T | null> {
   let files = kept.get(s.assets);
   if (!files) kept.set(s.assets, (files = new Map()));
-  const name = previewFile(lang, page);
-  let read = files.get(name);
+  let read = files.get(name) as Promise<T | null> | undefined;
   if (!read) {
     read = s.assets
       .fetch(new Request(new URL(PREVIEWS + name, url)))
-      .then(async (res) => (res.ok ? ((await res.json()) as TypePreviews) : null))
+      .then(async (res) => (res.ok ? ((await res.json()) as T) : null))
       .catch(() => null);
     files.set(name, read);
     // One that could not be read is asked for again next time.
     void read.then((p) => p ?? files.delete(name));
   }
-  return (await read)?.[page];
+  return read;
+}
+
+/** A page's preview in a language, from its file. */
+async function previewOf(s: Server, url: URL, lang: Locale, page: string): Promise<TypePreviews[string] | undefined> {
+  return (await fileOf<TypePreviews>(s, url, previewFile(lang, page)))?.[page];
 }
 
 /** A page's address as the previews name it: without a slash at the end, a type's code in capitals. */
