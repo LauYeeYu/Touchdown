@@ -8825,8 +8825,8 @@ button.select {
 
 .type-compare__bar {
   display: block;
-  height: 6px;
-  border-radius: 3px;
+  height: 8px;
+  border-radius: 4px;
 }
 
 .type-compare__bar + .type-compare__bar {
@@ -8838,8 +8838,9 @@ button.select {
   box-shadow: inset 0 0 0 1px var(--rule-strong);
 }
 
+/* The second as the drawing has it: its outline, as its swatch. */
 .type-compare__bar--b {
-  background: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink);
 }
 
 @media (max-width: 720px) {
