@@ -92,6 +92,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `engineType` | enum | `jet` | `jet`, `turboprop`, `piston`, `electric`, `other` |
 | `engineCount` | integer | `2` | |
 | `wtc` | enum | `M` | Wake turbulence category: `L`, `M`, `H`, `J` |
+| `kind` | enum | `landplane` | ICAO's aircraft description: `landplane`, `seaplane`, `amphibian`, `helicopter`, `gyroplane`, `tiltrotor` |
 
 **model_patterns**
 

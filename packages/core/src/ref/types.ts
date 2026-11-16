@@ -40,6 +40,8 @@ export interface Operator {
 
 export type EngineType = "jet" | "turboprop" | "piston" | "electric" | "other";
 export type WakeCategory = "L" | "M" | "H" | "J";
+/** What kind of aircraft a type is, as ICAO's aircraft description has it: a landplane, a seaplane, an amphibian, a helicopter, a gyroplane or a tiltrotor. */
+export type AircraftKind = "landplane" | "seaplane" | "amphibian" | "helicopter" | "gyroplane" | "tiltrotor";
 
 export interface AircraftType {
   designator: string; // ICAO type designator
@@ -49,6 +51,7 @@ export interface AircraftType {
   engineType: EngineType | null;
   engineCount: number | null;
   wtc: WakeCategory | null;
+  kind: AircraftKind | null;
 }
 
 export interface Family {

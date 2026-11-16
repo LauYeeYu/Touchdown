@@ -36,7 +36,7 @@ const VRS_MODEL_TYPE_FILES = ["-", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const columns = {
   airports: ["id", "icao", "iata", "name", "city", "country", "lat", "lon", "elevationFt", "tz"],
   operators: ["id", "icao", "iata", "name", "callsign", "country", "kind", "validFrom", "validTo"],
-  aircraftTypes: ["designator", "manufacturer", "name", "familyId", "engineType", "engineCount", "wtc"],
+  aircraftTypes: ["designator", "manufacturer", "name", "familyId", "engineType", "engineCount", "wtc", "kind"],
   families: ["id", "name", "manufacturer"],
   modelPatterns: ["designator", "pattern", "example"],
   registrationPrefixes: ["prefix", "country", "pattern"],

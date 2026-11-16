@@ -1,12 +1,14 @@
 // Aircraft types from VRS standing-data model-type, with gaps filled from Mictronics types.json.
 
-import type { AircraftType, EngineType, WakeCategory } from "../../core/src/ref/types.ts";
+import type { AircraftKind, AircraftType, EngineType, WakeCategory } from "../../core/src/ref/types.ts";
 import { familyOfType, familyById } from "../src/curated/families.ts";
 import { typeNames } from "../src/curated/type-names.ts";
 import { wakeCategoryFixes } from "../src/curated/fixes.ts";
 import { compare, parseCsvRecords } from "./lib.ts";
 
 const ENGINE_TYPE: Record<string, EngineType> = { J: "jet", T: "turboprop", P: "piston", E: "electric", R: "other" };
+/** ICAO's aircraft description letters: VRS's species code, the first letter of Mictronics's description. */
+const KIND: Record<string, AircraftKind> = { L: "landplane", S: "seaplane", A: "amphibian", H: "helicopter", G: "gyroplane", T: "tiltrotor" };
 
 // VRS manufacturer names shortened to the name people use.
 const MANUFACTURER_NAMES: Record<string, string> = {
@@ -25,6 +27,7 @@ interface VrsRow {
   engines: string;
   engineType: string;
   wtc: string;
+  species: string;
   active: boolean;
 }
 
@@ -88,6 +91,7 @@ export function buildAircraftTypes(vrsModelTypeCsvs: string[], mictronicsTypesJs
         engines: (r.Engines ?? "").trim(),
         engineType: (r.EngineTypeCode ?? "").trim(),
         wtc: (r.WakeTurbulenceCode ?? "").trim(),
+        species: (r.SpeciesCode ?? "").trim(),
         active: r.IsActive === "1",
       };
       byDesignator.set(designator, [...(byDesignator.get(designator) ?? []), row]);
@@ -112,6 +116,7 @@ export function buildAircraftTypes(vrsModelTypeCsvs: string[], mictronicsTypesJs
     const engineCount = Number(first.engines) || Number(desc[1]) || null;
     const engineType = ENGINE_TYPE[first.engineType] ?? ENGINE_TYPE[desc[2] ?? ""] ?? null;
     const wtc = wakeCategoryFixes[designator] ?? wake(first.wtc) ?? wake(mic[designator]?.wtc);
+    const kind = KIND[first.species] ?? KIND[desc[0] ?? ""] ?? null;
 
     rows.push({
       designator,
@@ -121,6 +126,7 @@ export function buildAircraftTypes(vrsModelTypeCsvs: string[], mictronicsTypesJs
       engineType,
       engineCount,
       wtc,
+      kind,
     });
   }
   rows.sort((a, b) => compare(a.designator, b.designator));

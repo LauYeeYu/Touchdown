@@ -23,7 +23,7 @@ const expectedColumns: [RefTableFile, string, string[]][] = [
   [airportsFile, "airports", ["id", "icao", "iata", "name", "city", "country", "lat", "lon", "elevationFt", "tz"]],
   [airfieldsFile, "airfields", ["id", "icao", "iata", "name", "city", "country", "lat", "lon", "elevationFt", "tz"]],
   [operatorsFile, "operators", ["id", "icao", "iata", "name", "callsign", "country", "kind", "validFrom", "validTo"]],
-  [aircraftTypesFile, "aircraft_types", ["designator", "manufacturer", "name", "familyId", "engineType", "engineCount", "wtc"]],
+  [aircraftTypesFile, "aircraft_types", ["designator", "manufacturer", "name", "familyId", "engineType", "engineCount", "wtc", "kind"]],
   [familiesFile, "families", ["id", "name", "manufacturer"]],
   [modelPatternsFile, "model_patterns", ["designator", "pattern", "example"]],
   [registrationPrefixesFile, "registration_prefixes", ["prefix", "country", "pattern"]],
