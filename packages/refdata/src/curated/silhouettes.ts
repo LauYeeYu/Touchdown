@@ -333,10 +333,14 @@ const TILTROTOR: Shape = with_(TPROP, { wingAlso: { at: 0.42, root: 0.12, tip: 0
 
 /**
  * Type codes without a family whose usual shape of their kind would draw them wrongly, each with its own: the Il-62's
- * and Tu-134's engines by the tail, the Tu-144's double delta, the bombers' swing wings and buried engines. Each was laid
- * over a three-view drawing at one scale (G11). The sweep given here is for the drawing only, where no article states it.
+ * and Tu-134's engines by the tail, the Tu-144's double delta, the bombers' swing wings and buried engines, the B-52's
+ * pods of two, the Chinook's two rotors, the deltas and the flying wings. Those made with `own` were laid over a
+ * three-view drawing at one scale (G11); those made with `drawn` follow what is known of their layout and are not
+ * checked yet. The sweep given here is for the drawing only, where no article states it.
  */
 const own = (shape: Shape): FamilyShape => ({ shape, checked: true });
+/** A type's own shape from what is known of its layout, not yet laid over a three-view drawing. */
+const drawn = (shape: Shape): FamilyShape => ({ shape, checked: false });
 export const typeShapes: Record<string, FamilyShape> = {
   // Ilyushin
   IL18: own(with_(QUAD_PROP, { wingAlso: { at: 0.405, root: 0.15, tip: 0.4 }, engines: { wing: [0.24, 0.48], size: 1.1 }, prop: 4.5, stabAlso: { span: 0.33 } })),
@@ -358,6 +362,92 @@ export const typeShapes: Record<string, FamilyShape> = {
   TU22: own({ kind: "jet", nose: 4, tail: 2, width: 2.5, sweep: 47, wing: { at: 0.38, root: 0.3, tip: 0.2, pods: 0.34 }, engines: { rear: 2, at: 0.79, apart: 0.53, long: 3.3, size: 0.85 }, stab: { span: 0.36, at: 0.87, sweep: 55, root: 0.12 } }),
   // The inner nacelles reach back past the wing: the landing gear's.
   TU95: own(with_(QUAD_PROP, { wingAlso: { at: 0.21, root: 0.24, tip: 0.23, pods: 0.25 }, engines: { wing: [0.25, 0.49], size: 1.3 }, prop: 5.6, stabAlso: { span: 0.3, at: 0.86, sweep: 40 } })),
+
+  // Yakovlev: three engines at the tail, two beside it and one inside, under a T-tail. The Yak-40's wing is straight.
+  YK40: own(with_(REAR, { sweep: 2, tail: 3, fairing: { width: 0.3, length: 1.4 }, wingAlso: { at: 0.427, root: 0.185, tip: 0.45 }, engines: { rear: 3, at: 0.68, long: 1.16, apart: 0.81, size: 0.8 }, stabAlso: { span: 0.3, at: 0.89, sweep: 10, root: 0.1, beyond: true } })),
+  YK42: own(with_(REAR, { tail: 3, fairing: { width: 0.3, length: 1.4 }, wingAlso: { at: 0.38, root: 0.22, tip: 0.26 }, engines: { rear: 3, at: 0.69, long: 1.13, apart: 0.95, size: 0.8 }, stabAlso: { span: 0.31, at: 0.886, sweep: 30, root: 0.09, beyond: true } })),
+  // Dassault: two engines beside the tail, the tailplane across the fin. The Falcon 10 is a smaller Falcon 20.
+  FA10: drawn(with_(BIZ, { nose: 2, sweep: 30, wingAlso: { at: 0.45, root: 0.21, tip: 0.32, device: null }, engines: { rear: 2, at: 0.79, size: 0.85 }, stabAlso: { span: 0.4, at: 0.83, sweep: 32, root: 0.1 } })),
+  FA20: drawn(with_(BIZ, { nose: 2, sweep: 30, wingAlso: { at: 0.45, root: 0.21, tip: 0.3, device: null }, engines: { rear: 2, at: 0.79, size: 0.85 }, stabAlso: { span: 0.4, at: 0.83, sweep: 32, root: 0.1 } })),
+
+  // Boeing B-52: its eight engines in four pods of two on pylons under a high, swept wing, and a narrow fuselage.
+  B52: own(with_(QUAD, { width: 2.9, sweep: 34, wingAlso: { at: 0.225, root: 0.2, tip: 0.34 }, engines: { wing: [0.35, 0.61], paired: true, ahead: 1.05, size: 1 }, stabAlso: { span: 0.26, at: 0.765, sweep: 38, root: 0.15 } })),
+  // Vickers VC10: four engines in pairs beside the tail, under a T-tail, as an Il-62's.
+  VC10: own(with_(REAR, { tail: 3.2, fairing: { width: 0.3, length: 1.5 }, sweep: 32.5, wingAlso: { at: 0.36, root: 0.18, tip: 0.33 }, engines: { rear: 4, at: 0.74, long: 1.7, size: 0.85 }, stabAlso: { span: 0.3, at: 0.88, sweep: 40, beyond: true } })),
+  // Fairchild A-10: a straight wing, its two engines in pods on the rear fuselage, the tailplane between two fins.
+  A10: own({ kind: "jet", nose: 2.2, tail: 3, sweep: 3, wing: { at: 0.42, root: 0.195, tip: 0.65 }, engines: { rear: 2, at: 0.698, long: 2.44, apart: 1.14, size: 1.62 }, stab: { span: 0.34, at: 0.86, sweep: 0, root: 0.13, beyond: true } }),
+
+  // Rotorcraft: the Chinook's two rotors in tandem, Kamov's two on one mast, Kaman's two meshing, and each type's blades.
+  H47: own({ ...HELI, rotors: "tandem", blades: 3, width: 3.78 }),
+  KA25: drawn({ ...HELI, rotors: "coaxial", blades: 3, boom: 0.35, stab: { span: 0, at: 0.88, sweep: 0 } }),
+  KA27: drawn({ ...HELI, rotors: "coaxial", blades: 3, boom: 0.35, stab: { span: 0, at: 0.88, sweep: 0 } }),
+  K226: drawn({ ...HELI, rotors: "coaxial", blades: 3, boom: 0.4, stab: { span: 0, at: 0.86, sweep: 0 } }),
+  H43B: drawn({ ...HELI, rotors: "intermeshing", blades: 2, boom: 0.4, stab: { span: 0, at: 0.88, sweep: 0 } }),
+  MI8: drawn({ ...HELI, blades: 5 }),
+  MI14: drawn({ ...HELI, blades: 5 }),
+  MI24: drawn({ ...HELI, blades: 5 }),
+  MI26: drawn({ ...HELI, blades: 8 }),
+  MI28: drawn({ ...HELI, blades: 5 }),
+  MI38: drawn({ ...HELI, blades: 6 }),
+  MI2: drawn({ ...HELI, blades: 3 }),
+  EH10: drawn({ ...HELI, blades: 5 }),
+  EC25: drawn({ ...HELI, blades: 5 }),
+  S64: drawn({ ...HELI, blades: 6 }),
+  UH1: drawn({ ...HELI, blades: 2 }),
+  B212: drawn({ ...HELI, blades: 2 }),
+  BSTP: drawn({ ...HELI, blades: 2 }),
+  B222: drawn({ ...HELI, blades: 2 }),
+  B47J: drawn({ ...HELI, blades: 2 }),
+  ALO2: drawn({ ...HELI, blades: 3 }),
+  // Tiltrotors, their rotors forward, edge on, at the wingtips: Bell–Boeing V-22 Osprey's 38 ft 1 in, Leonardo AW609's 7.9 m.
+  V22: drawn(with_(TILTROTOR, { prop: 11.61 })),
+  B609: drawn(with_(TILTROTOR, { prop: 7.9 })),
+  // Grumman E-2: "its 24-foot-diameter (7.3 m) rotating radar dome" (Grumman E-2 Hawkeye).
+  E2: drawn(with_(TPROP, { wingAlso: { at: 0.4, root: 0.13, tip: 0.5 }, radome: { at: 0.47, diameter: 7.3 }, stabAlso: { span: 0.32, at: 0.87, sweep: 10 } })),
+
+  // Twin booms: the P-38's and the Bronco's engines at the booms' fronts, the Flying Boxcar's and the Packet's too, and
+  // the Vampire's and the Venom's jet in the pod.
+  P38: drawn(with_(SINGLE, { wingAlso: { at: 0.32, root: 0.19, tip: 0.45 }, booms: { at: 0.31, pod: 0.62, pusher: false }, engines: { wing: [0.31], size: 1.3 }, prop: 3.5, stabAlso: { at: 0.86, root: 0.1 } })),
+  V10: drawn(with_(SINGLE, { wingAlso: { at: 0.3, root: 0.14, tip: 0.8 }, booms: { at: 0.3, pod: 0.55, pusher: false }, engines: { wing: [0.3], size: 1.2 }, stabAlso: { at: 0.85, root: 0.1 } })),
+  C119: drawn(with_(SINGLE, { wingAlso: { at: 0.3, root: 0.16, tip: 0.45 }, booms: { at: 0.3, pod: 0.68, pusher: false }, engines: { wing: [0.3], size: 1.3 }, stabAlso: { at: 0.86, root: 0.09 } })),
+  C82: drawn(with_(SINGLE, { wingAlso: { at: 0.3, root: 0.16, tip: 0.45 }, booms: { at: 0.3, pod: 0.68, pusher: false }, engines: { wing: [0.3], size: 1.3 }, stabAlso: { at: 0.86, root: 0.09 } })),
+  VAMP: drawn({ kind: "jet", nose: 2, tail: 1.2, sweep: 0, wing: { at: 0.3, root: 0.3, tip: 0.45 }, booms: { at: 0.32, pod: 0.62, pusher: false }, stab: { span: 0.4, at: 0.86, sweep: 0, root: 0.1 } }),
+  VNOM: drawn({ kind: "jet", nose: 2, tail: 1.2, sweep: 8, wing: { at: 0.3, root: 0.3, tip: 0.45, tipTanks: true }, booms: { at: 0.32, pod: 0.62, pusher: false }, stab: { span: 0.4, at: 0.86, sweep: 0, root: 0.1 } }),
+
+  // Deltas without a tailplane, and with foreplanes: the Mirages, the Delta Dart and the Vulcan, the Draken's double delta,
+  // and the Kfir, the Rafale, the Gripen, the J-10 and the Viggen with canards.
+  MIRA: own({ kind: "jet", nose: 4, tail: 1.6, sweep: 54, wing: { at: 0.35, root: 0.5, tip: 0.06 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  MIR2: drawn({ kind: "jet", nose: 3.6, tail: 1.6, sweep: 52, wing: { at: 0.35, root: 0.52, tip: 0.06 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  F106: drawn({ kind: "jet", nose: 4, tail: 1.6, sweep: 54, wing: { at: 0.4, root: 0.48, tip: 0.06 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  VULC: drawn({ kind: "jet", nose: 2.4, tail: 2, sweep: 42, wing: { at: 0.2, root: 0.6, tip: 0.18 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  SB35: own({ kind: "jet", nose: 3, tail: 1.4, wing: { at: 0.2, root: 0.67, tip: 0.07, ogee: true, crank: [0.4, 0.6] }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  KFIR: drawn({ kind: "jet", nose: 4, tail: 1.6, sweep: 54, wing: { at: 0.37, root: 0.49, tip: 0.06 }, canard: { at: 0.33, span: 0.42, chord: 0.1 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  RFAL: drawn({ kind: "jet", nose: 3.4, tail: 1.4, sweep: 42, wing: { at: 0.43, root: 0.5, tip: 0.1 }, canard: { at: 0.27, span: 0.5, chord: 0.14 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  SB39: drawn({ kind: "jet", nose: 3.6, tail: 1.4, sweep: 42, wing: { at: 0.45, root: 0.48, tip: 0.1 }, canard: { at: 0.3, span: 0.5, chord: 0.14 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  J10: drawn({ kind: "jet", nose: 3.6, tail: 1.4, sweep: 46, wing: { at: 0.44, root: 0.5, tip: 0.07 }, canard: { at: 0.28, span: 0.5, chord: 0.14 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  SB37: drawn({ kind: "jet", nose: 3.4, tail: 1.4, wing: { at: 0.47, root: 0.44, tip: 0.12, ogee: true, crank: [0.35, 0.4] }, canard: { at: 0.26, span: 0.6, chord: 0.16 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+
+  // Flying wings: the whole length is the wing's root.
+  B2: drawn({ kind: "jet", nose: 1.2, tail: 1, width: 4, sweep: 30, wing: { at: 0.01, root: 0.98, tip: 0.07 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  B21: drawn({ kind: "jet", nose: 1.2, tail: 1, width: 3.6, sweep: 30, wing: { at: 0.01, root: 0.98, tip: 0.07 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  X47B: drawn({ kind: "jet", nose: 1.4, tail: 1, width: 2, sweep: 30, wing: { at: 0.02, root: 0.96, tip: 0.12 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  // An arrowhead, its V-tail seen from above as a swept tailplane.
+  F117: drawn({ kind: "jet", nose: 1.5, tail: 1.6, sweep: 60, wing: { at: 0.08, root: 0.72, tip: 0.12 }, stab: { span: 0.38, at: 0.8, sweep: 50, root: 0.14 } }),
+
+  // Engines inside the wing roots, so none shows from above: the Myasishchev M-4 and the VM-T, the Nimrod's (a Comet's).
+  MYA4: drawn(with_(QUAD, { sweep: 35, wingAlso: { at: 0.34, root: 0.22, tip: 0.3 }, engines: { wing: [] }, stabAlso: { span: 0.3, sweep: 35 } })),
+  VMT: drawn(with_(QUAD, { sweep: 35, wingAlso: { at: 0.34, root: 0.22, tip: 0.3 }, engines: { wing: [] }, stabAlso: { span: 0.3, sweep: 35 } })),
+  NIM: drawn(with_(QUAD, { sweep: 20, wingAlso: { at: 0.32, root: 0.22, tip: 0.3 }, engines: { wing: [] }, stabAlso: { span: 0.38, sweep: 20 } })),
+  // High flyers with long straight wings: the U-2's engine inside, the Triton's on its back with a V-tail.
+  U2: drawn({ kind: "jet", nose: 2.4, tail: 3, sweep: 0, wing: { at: 0.34, root: 0.14, tip: 0.42 }, stab: { span: 0.21, at: 0.87, sweep: 15, root: 0.1 } }),
+  Q4: drawn({ kind: "jet", nose: 1.6, tail: 3, sweep: 5, wing: { at: 0.4, root: 0.13, tip: 0.35 }, engines: { top: true, size: 1.2 }, stab: { span: 0.26, at: 0.83, sweep: 30, root: 0.13 } }),
+  // Straight-winged bombers: the Canberra's engines in nacelles through the wing, the Il-28's under it; the Yak-28's under
+  // a swept wing; and the Viking's and the Skywarrior's in pods under the wing.
+  CNBR: drawn({ kind: "jet", nose: 2.4, tail: 3, sweep: 3, wing: { at: 0.36, root: 0.3, tip: 0.35 }, engines: { wing: [0.34], ahead: 0.45, size: 1.8 }, stab: { span: 0.43, at: 0.85, sweep: 10, root: 0.12 } }),
+  IL28: drawn({ kind: "jet", nose: 2.4, tail: 3, sweep: 3, wing: { at: 0.4, root: 0.18, tip: 0.5 }, engines: { wing: [0.3], ahead: 0.6, size: 1.5 }, stab: { span: 0.33, at: 0.84, sweep: 35, root: 0.11 } }),
+  YK28: drawn({ kind: "jet", nose: 3, tail: 2.4, sweep: 40, wing: { at: 0.42, root: 0.22, tip: 0.4 }, engines: { wing: [0.45], size: 1.4 }, stab: { span: 0.38, at: 0.84, sweep: 45, root: 0.12 } }),
+  S3: drawn(with_(NARROW, { sweep: 15, wingAlso: { at: 0.36, root: 0.2, tip: 0.35 }, engines: { wing: [0.32], size: 1.1 }, stabAlso: { span: 0.4 } })),
+  A3: drawn(with_(NARROW, { sweep: 36, wingAlso: { at: 0.33, root: 0.2, tip: 0.35 }, engines: { wing: [0.33] } })),
 };
 
 /** What a type without a family's shape is known as: from the reference tables and its role (Wikidata, docs/13). */
@@ -519,6 +609,9 @@ export const typeSweep: Record<string, number> = {
   C700: 28, // Cessna Citation Longitude: "a new ~28° swept wing" (26.8° inboard, 28.6° outboard).
   C750: 37, // Cessna Citation X: "37 degrees of sweepback at the quarter chord".
   IL86: 35, // Ilyushin Il-86, specifications: "35° ¼ chord sweep".
+  // Yakovlev Yak-42: "the second prototype with a sweep of 23 degrees. After evaluation, the greater sweep of the second
+  // prototype was chosen for production."
+  YK42: 23,
   T160: 20, // Tupolev Tu-160, specifications: the span with "wings spread (20°)".
   T22M: 20, // Tupolev Tu-22M, specifications: the span "spread (20° sweep)".
   TU95: 35, // Tupolev Tu-95: "a mid-mounted wing with 35 degrees of sweep".

@@ -360,6 +360,9 @@ describe("a type without a family's shape", () => {
       expect(shapeOf(null, code), code).toBeTruthy();
     }
     expect(shapeOf(null, "IL62")?.engines?.rear).toBe(4);
+    expect(shapeOf(null, "H47")?.rotors).toBe("tandem");
+    expect(shapeOf(null, "B52")?.engines?.paired).toBe(true);
+    expect(shapeOf(null, "YK42")?.sweep).toBe(23);
     expect(shapeOf(null, "T144")?.wing.crank).toBeDefined();
     expect(shapeOf(null, "B738")).toBeNull();
   });
