@@ -189,20 +189,33 @@ export interface SilhouetteShape {
    * widths long and `apart` widths from the centreline where given: a Tu-16's in its wing roots, a Tu-22's on its back;
    * four in pairs side by side, an Il-62's; a 727's third, in the tail cone, does not show from above), one in the fin
    * over the tail cone (`fin`, a DC-10's, wider than the fuselage where it narrows), one on top of the rear fuselage
-   * (`top`, a Cirrus SF50's), or one in the nose as well as those on the wing (`nose`, a trimotor's).
+   * (`top`, a Cirrus SF50's), or one in the nose as well as those on the wing (`nose`, a trimotor's). `paired`: each
+   * place on the wing a pod of two engines side by side (a B-52's).
    */
-  engines?: { wing?: number[]; ahead?: number; over?: boolean; past?: number; rear?: 2 | 3 | 4; at?: number; long?: number; apart?: number; fin?: boolean; top?: boolean; nose?: boolean; size?: number };
-  /** Foreplanes behind the cockpit (a Tu-144's): along the length, and their span (of the wingspan). */
-  canard?: { at: number; span: number };
+  engines?: { wing?: number[]; ahead?: number; over?: boolean; past?: number; rear?: 2 | 3 | 4; at?: number; long?: number; apart?: number; fin?: boolean; top?: boolean; nose?: boolean; paired?: boolean; size?: number };
+  /**
+   * Foreplanes behind the cockpit (a Tu-144's): along the length, and their span (of the wingspan). `chord`: their root's
+   * chord (of the length), for a fighter's small swept delta, its leading edge swept back.
+   */
+  canard?: { at: number; span: number; chord?: number };
   /** A radar dome over the fuselage (an E-3's): its centre along the length, and its diameter in metres. */
   radome?: { at: number; diameter: number };
   /**
    * Twin booms (a Cessna 337's) at a fraction of the half-span, carrying the tailplane between them; the fuselage a pod
-   * that ends at `pod` of the length, with a propeller at each end.
+   * that ends at `pod` of the length, with a propeller at each end. `pusher: false`: none at the pod's end, as on a
+   * P-38, whose engines are at the booms' fronts, or a jet's (a Vampire's).
    */
-  booms?: { at: number; pod: number };
+  booms?: { at: number; pod: number; pusher?: boolean };
   /** A helicopter's tail fan in a shroud in its fin (a fenestron), in place of a tail rotor. */
   fenestron?: boolean;
+  /**
+   * A helicopter's rotors, where it has not one main rotor and a tail rotor: two in tandem over its ends (a Chinook's,
+   * its length then from the front rotor's tip to the rear one's), two on one mast turning opposite ways (`coaxial`, a
+   * Kamov's), or two side by side on masts close together, meshing (`intermeshing`, a K-MAX's). None has a tail rotor.
+   */
+  rotors?: "tandem" | "coaxial" | "intermeshing";
+  /** A gyroplane: its rotor turned by the air, a pusher propeller behind the cabin, and no tail rotor. */
+  gyro?: boolean;
   /**
    * The tailplane: its span (of the wingspan; none for a delta), its root's leading edge along the fuselage and its sweep.
    * `beyond`: a T-tail's on top of a swept fin, whose tips may reach past the tail cone (a Tu-134's).

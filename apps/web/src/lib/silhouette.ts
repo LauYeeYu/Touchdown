@@ -156,8 +156,9 @@ function wing(p: Planform, span: number, sweepDeg: number, rootAt: number, rootC
     [half, tipLe],
   ];
   const te: Pt[] = [[half, tipLe + tipChord]];
-  // Airliners' trailing edges run straight out from the root to a kink, then follow the leading edge's line.
-  if (p.shape.kind === "jet" && sweepDeg > 15) {
+  // Airliners' trailing edges run straight out from the root to a kink, then follow the leading edge's line. A delta's,
+  // without a tailplane, runs straight across.
+  if (p.shape.kind === "jet" && sweepDeg > 15 && p.shape.stab.span > 0) {
     const kinkAt = root + reach * 0.32;
     const leAtKink = rootAt + (tipLe - rootAt) * ((kinkAt - 0) / half);
     const chordAtKink = rootChord + (tipChord - rootChord) * ((kinkAt - root) / reach) * 0.85;
@@ -206,22 +207,53 @@ export function planformParts(p: Planform): Pt[][] {
   const s = p.shape;
   const parts: Pt[][] = [clockwise(fuselage(p))];
   if (s.kind === "helicopter") {
-    // The rotor as its blades from the mast, over the cabin, as wide as a blade is for its length.
-    const mastY = p.length * 0.3;
     const r = p.span / 2;
     const blades = s.blades ?? 2;
     const chord = r * 0.028;
-    for (let i = 0; i < blades; i++) {
-      const a = (2 * Math.PI * i) / blades + Math.PI / 4;
-      const along: Pt = [Math.cos(a), Math.sin(a)];
-      const across: Pt = [-along[1] * chord, along[0] * chord];
-      parts.push(clockwise([[across[0], mastY + across[1]], [along[0] * r + across[0], mastY + along[1] * r + across[1]], [along[0] * r - across[0], mastY + along[1] * r - across[1]], [-across[0], mastY - across[1]]]));
+    // A rotor as its blades from the mast, as wide as a blade is for its length, turned by `turn`.
+    const rotor = (x: number, y: number, turn: number) => {
+      for (let i = 0; i < blades; i++) {
+        const a = (2 * Math.PI * i) / blades + Math.PI / 4 + turn;
+        const along: Pt = [Math.cos(a), Math.sin(a)];
+        const across: Pt = [-along[1] * chord, along[0] * chord];
+        parts.push(clockwise([[x + across[0], y + across[1]], [x + along[0] * r + across[0], y + along[1] * r + across[1]], [x + along[0] * r - across[0], y + along[1] * r - across[1]], [x - across[0], y - across[1]]]));
+      }
+      parts.push(clockwise(ellipse(x, y, p.width * 0.32, p.width * 0.32)));
+    };
+    if (s.rotors === "tandem") {
+      // A rotor over each end, the fuselage between them reaching a little past each mast; no tail rotor or stabiliser.
+      const front = r;
+      const back = p.length - r;
+      const reach = p.span * 0.107;
+      const body = fuselage({ ...p, length: back - front + 2 * reach, shape: { ...s, boom: 0, nose: s.nose ?? 0.8, tail: s.tail ?? 0.6 } }).map(([x, y]) => [x, y + front - reach] as Pt);
+      parts[0] = clockwise(body);
+      // Each rotor with a blade along the centreline, the front one's forward and the rear one's back.
+      rotor(0, front, -Math.PI / 2 - Math.PI / 4);
+      rotor(0, back, Math.PI / 2 - Math.PI / 4);
+      return parts;
     }
-    parts.push(clockwise(ellipse(0, mastY, p.width * 0.32, p.width * 0.32)));
+    const mastY = p.length * (s.gyro ? 0.36 : 0.3);
+    if (s.rotors === "coaxial") {
+      // Two rotors on one mast, the upper one's blades between the lower one's.
+      rotor(0, mastY, 0);
+      rotor(0, mastY, Math.PI / blades);
+    } else if (s.rotors === "intermeshing") {
+      // Two rotors on masts side by side, each leaning out, their blades meshing.
+      rotor(-p.span * 0.03, mastY, 0);
+      rotor(p.span * 0.03, mastY, Math.PI / 2);
+    } else rotor(0, mastY, 0);
     // A small stabiliser across the boom, where the shape puts it.
     const stabHalf = p.span * 0.12;
     const sy = p.length * Math.min(s.stab.at, 0.92);
     parts.push(clockwise([[-stabHalf, sy], [stabHalf, sy], [stabHalf, sy + p.width * 0.35], [-stabHalf, sy + p.width * 0.35]]));
+    if (s.gyro) {
+      // The pusher propeller behind the cabin, seen edge on.
+      const d = s.prop ?? p.span * 0.2;
+      const y = p.length * (1 - (s.boom ?? 0.45)) + p.width * 0.1;
+      parts.push(clockwise([[-d / 2, y], [d / 2, y], [d / 2, y + 0.16], [-d / 2, y + 0.16]]));
+      return parts;
+    }
+    if (s.rotors) return parts;
     if (s.fenestron) {
       // The shrouded fan in the fin at the end: from above, the fin thickened over the fan's diameter.
       const d = p.span * 0.11;
@@ -259,10 +291,10 @@ export function planformParts(p: Planform): Pt[][] {
   }
   if (s.canard) {
     // Foreplanes across the fuselage behind the cockpit, short in chord.
-    const ch = p.span * s.canard.span * 0.13;
     const cx = (p.span * s.canard.span) / 2;
     const cy = p.length * s.canard.at;
-    const fore: Pt[] = [[0, cy], [cx, cy + ch * 0.15], [cx, cy + ch * 0.85], [0, cy + ch]];
+    const ch = s.canard.chord ? p.length * s.canard.chord : p.span * s.canard.span * 0.13;
+    const fore: Pt[] = s.canard.chord ? [[0, cy], [cx, cy + ch * 0.75], [cx, cy + ch * 0.95], [0, cy + ch]] : [[0, cy], [cx, cy + ch * 0.15], [cx, cy + ch * 0.85], [0, cy + ch]];
     parts.push(clockwise(fore), clockwise(mirror(fore)));
   }
   if (s.wing.pods) {
@@ -275,14 +307,17 @@ export function planformParts(p: Planform): Pt[][] {
   if (s.booms) {
     // Two booms from the wing to the tail, the tailplane across between them, and the pod's rear propeller.
     const x = half * s.booms.at;
-    const r = p.width * 0.13;
+    // Booms that carry the engines are as wide as their nacelles.
+    const r = s.engines?.wing?.includes(s.booms.at) ? p.width * 0.16 * (s.engines.size ?? 1) : p.width * 0.13;
     for (const sx of [x, -x]) parts.push(clockwise(capsule(sx, wingRootAt + rootChord * 0.3, p.length, r)));
     const sy = p.length * s.stab.at;
     const chord = (s.stab.root ?? 0.11) * p.length;
     parts.push(clockwise([[-x - r * 1.5, sy], [x + r * 1.5, sy], [x + r * 1.5, sy + chord], [-x - r * 1.5, sy + chord]]));
-    const d = s.prop ?? 1.9;
-    const end = podEnd(p);
-    parts.push(clockwise([[-d / 2, end - 0.05], [d / 2, end - 0.05], [d / 2, end + 0.12], [-d / 2, end + 0.12]]));
+    if (s.kind === "prop" && s.booms.pusher !== false) {
+      const d = s.prop ?? 1.9;
+      const end = podEnd(p);
+      parts.push(clockwise([[-d / 2, end - 0.05], [d / 2, end - 0.05], [d / 2, end + 0.12], [-d / 2, end + 0.12]]));
+    }
   } else {
     const stab = tailplane(p);
     if (stab) parts.push(stab, clockwise(mirror(stab)));
@@ -312,7 +347,9 @@ export function planformParts(p: Planform): Pt[][] {
       const nacelle = p.width * 0.32 * size;
       parts.push(clockwise(capsule(x, y - nacelle * 1.4, y + rootChord * 0.9, nacelle / 2)), clockwise(capsule(-x, y - nacelle * 1.4, y + rootChord * 0.9, nacelle / 2)));
       const d = s.prop ?? p.span * 0.14;
-      for (const sx of [x, -x]) parts.push(clockwise([[sx - d / 2, y - nacelle * 1.45], [sx + d / 2, y - nacelle * 1.45], [sx + d / 2, y - nacelle * 1.3], [sx - d / 2, y - nacelle * 1.3]]));
+      // A large rotor's disc edge on is as thick as its blades are wide.
+      const thick = Math.max(nacelle * 0.15, d * 0.025);
+      for (const sx of [x, -x]) parts.push(clockwise([[sx - d / 2, y - nacelle * 1.3 - thick], [sx + d / 2, y - nacelle * 1.3 - thick], [sx + d / 2, y - nacelle * 1.3], [sx - d / 2, y - nacelle * 1.3]]));
     } else {
       // A jet's nacelle hangs ahead of the leading edge, its rear under the wing.
       const length = p.width * 1.3 * size;
@@ -322,7 +359,9 @@ export function planformParts(p: Planform): Pt[][] {
       const te = teAt(x);
       const ahead = s.engines?.ahead ?? 0.7;
       const [front, back] = s.engines?.over ? [te - length, te + length * (s.engines.past ?? 0.5)] : [y - length * ahead, y + length * (1 - ahead)];
-      for (const sx of [x, -x]) parts.push(clockwise(nacelle(sx, front, back, radius)));
+      // A pod of two side by side, their intakes together.
+      const xs = s.engines?.paired ? [x - radius * 0.95, x + radius * 0.95] : [x];
+      for (const ex of xs) for (const sx of [ex, -ex]) parts.push(clockwise(nacelle(sx, front, back, radius)));
     }
   }
   if (s.engines?.rear) {
