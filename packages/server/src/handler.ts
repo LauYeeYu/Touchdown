@@ -10,7 +10,7 @@ import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError
 import { withHeaders } from "./headers.ts";
 import { shareApi, sharePage, type ShareCache } from "./share.ts";
 import { signinPage } from "./signin.ts";
-import { TYPES_FILES, TYPES_PAGES, typesPage } from "./types.ts";
+import { COMPARE_PICTURE, comparePicture, TYPES_FILES, TYPES_PAGES, typesPage } from "./types.ts";
 
 export { TYPES_FILES, TYPES_PAGES };
 
@@ -242,6 +242,8 @@ async function answer(request: Request, s: Server): Promise<Response> {
     // The aircraft types pages and their files: the same for everyone, so they are answered before any session is
     // looked up, and nothing in the answer depends on who asks.
     if (TYPES_PAGES.test(path) && (request.method === "GET" || request.method === "HEAD")) return withHeaders(await typesPage(request, s, url), path);
+    const pair = COMPARE_PICTURE.exec(path);
+    if (pair && (request.method === "GET" || request.method === "HEAD")) return withHeaders(await comparePicture(s, url, pair[1]!, pair[2]!), path);
     if (path.startsWith(TYPES_FILES)) return withHeaders(await s.assets.fetch(request), path);
 
     const session = await currentSession(request, s, now);

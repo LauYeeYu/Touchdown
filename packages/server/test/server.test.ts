@@ -142,6 +142,7 @@ describe("the gate", () => {
     add("en-GB", "/types/A388", ["Airbus A380-800", "The Airbus A380-800 is 72.72 m long.", "A388.png?v=1"]);
     add("de-DE", "/types/A388", ["Airbus A380-800", "Die Airbus A380-800 ist 72,72 m lang.", "A388.png?v=1"]);
     add("en-GB", "/types/B744", ["Boeing 747-400", "", "B744.png?v=2"]);
+    add("en-GB", "/types/XV15", ["Bell XV-15", "", "list.png?v=3"]);
     add("en-GB", "/types/compare", ["Compare aircraft types", "{first} and {second} seen from above, to one scale", "list.png?v=3"]);
     const assets = {
       async fetch(req: Request) {
@@ -173,9 +174,42 @@ describe("the gate", () => {
     const c = await get("/types/compare?a=A388&b=b744");
     expect(meta(c.text, "description")).toBe("Airbus A380-800 and Boeing 747-400 seen from above, to one scale");
     expect(meta(c.text, "url")).toBe(`${SITE}/types/compare?a=A388&amp;b=B744`);
+    // Its picture shows the two, which the server draws, where both have their own; else it is the list's.
+    expect(meta(c.text, "image")).toMatch(new RegExp(`^${SITE}/types-files/previews/compare/A388-B744\\.png\\?v=[0-9a-z]+$`));
+    expect(meta((await get("/types/compare?a=A388&b=XV15")).text, "image")).toBe(`${SITE}/types-files/previews/list.png?v=3`);
     expect(meta((await get("/types/compare?a=A388")).text, "description")).toBeUndefined();
+    expect(meta((await get("/types/compare?a=A388")).text, "image")).toBe(`${SITE}/types-files/previews/list.png?v=3`);
     // A page without a preview is the file as it is.
     expect((await get("/types/ZZZZ9")).text).toBe(html);
+  });
+
+  it("draws Compare's picture of two types for anyone, from their drawings", async () => {
+    const square = (half: number) => [[-half, 0, half, 0, half, 2 * half, -half, 2 * half]];
+    const files: Record<string, unknown> = {
+      "/types-files/previews/compare.json": { width: 1200, height: 630, palette: Buffer.alloc(768).toString("base64"), levels: 128, logo: { x: 0, y: 0, w: 1, h: 1, pixels: "AA==" } },
+      "/types-files/previews/drawings/A388.json": square(4000),
+      "/types-files/previews/drawings/C172.json": square(500),
+    };
+    const served: string[] = [];
+    const assets = {
+      async fetch(req: Request) {
+        const path = new URL(req.url).pathname;
+        served.push(path);
+        return path in files ? Response.json(files[path]) : new Response("Not found", { status: 404 });
+      },
+    };
+    const s: Server = { db: sqliteFile(":memory:"), config: { origins: [SITE] }, assets };
+    const res = await handle(new Request(`${SITE}/types-files/previews/compare/A388-C172.png?v=1`), s);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=86400");
+    expect([...new Uint8Array(await res.arrayBuffer()).subarray(0, 4)]).toEqual([137, 80, 78, 71]);
+    // A code without a drawing has no picture, and an address not written as the page writes it is a file like any other.
+    expect((await handle(new Request(`${SITE}/types-files/previews/compare/A388-XV15.png`), s)).status).toBe(404);
+    served.length = 0;
+    expect((await handle(new Request(`${SITE}/types-files/previews/compare/a388-c172.png`), s)).status).toBe(404);
+    expect(served).toEqual(["/types-files/previews/compare/a388-c172.png"]);
+    expect((await handle(new Request(`${SITE}/types-files/previews/compare/A388-C172.png`, { method: "POST", headers: { Origin: SITE } }), s)).status).toBe(404);
   });
 
   it("refuses paths that hide dot segments or slashes in escapes", async () => {

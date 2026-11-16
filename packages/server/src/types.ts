@@ -1,9 +1,11 @@
 // The aircraft types pages (docs/31-ui.md, "Aircraft types"): the types pages' one page for every address, the same for
 // everyone, with the address's own preview for chat apps in its head (Open Graph), in the request's language: its
-// title, the line under it and its picture. The types pages' build makes them (apps/web/scripts/type-previews.ts).
+// title, the line under it and its picture. The types pages' build makes them (apps/web/scripts/type-previews.ts), but
+// for Compare's picture of two types, which the server draws when asked (compare.ts).
 
-import { locale, type Locale } from "@touchdown/i18n/server";
-import { siteOrigin, type Assets, type Server } from "./handler.ts";
+import { locale, t, type Locale } from "@touchdown/i18n/server";
+import { DRAWN, drawCompare, type CompareBase, type CompareDrawing } from "./compare.ts";
+import { json, siteOrigin, type Assets, type Server } from "./handler.ts";
 import { attr } from "./share.ts";
 
 /**
@@ -18,6 +20,8 @@ export const TYPES_PAGES = /^\/types(?:\/compare|\/[A-Za-z0-9]{1,8}|\/(?:manufac
 export type TypePreviews = Record<string, [title: string, description: string, image: string]>;
 
 const PREVIEWS = `${TYPES_FILES}previews/`;
+/** Compare's picture of two types by their codes, in PREVIEWS: the server draws it (compare.ts). */
+export const COMPARE_PICTURE = /^\/types-files\/previews\/compare\/([A-Z0-9]{1,8})-([A-Z0-9]{1,8})\.png$/;
 /**
  * The files a language's previews are split into, by address, so a request reads a small one: on Cloudflare's free plan
  * a request has 10 ms of the processor, and a Worker's instance that keeps them is often new.
@@ -61,6 +65,13 @@ async function previewOf(s: Server, url: URL, lang: Locale, page: string): Promi
   return (await fileOf<TypePreviews>(s, url, previewFile(lang, page)))?.[page];
 }
 
+/** Compare's picture of two types, drawn from their drawings when a chat app asks for it. */
+export async function comparePicture(s: Server, url: URL, a: string, b: string): Promise<Response> {
+  const [base, first, second] = await Promise.all([fileOf<CompareBase>(s, url, "compare.json"), fileOf<CompareDrawing>(s, url, `drawings/${a}.json`), fileOf<CompareDrawing>(s, url, `drawings/${b}.json`)]);
+  if (!base || !first || !second) return json(404, { error: t("server.error.notFound") });
+  return new Response(drawCompare(base, first, second), { headers: { "Content-Type": "image/png" } });
+}
+
 /** A page's address as the previews name it: without a slash at the end, a type's code in capitals. */
 function pageOf(path: string): string {
   const page = path.replace(/\/$/, "");
@@ -82,11 +93,15 @@ export async function typesPage(request: Request, s: Server, url: URL): Promise<
   if (!found) return page;
   let [title, description, image] = found;
   if (path === "/types/compare") {
-    // The line names the two types asked for, else there is none.
-    const [a, b] = ["a", "b"].map((k) => url.searchParams.get(k)?.toUpperCase() ?? "");
-    const [first, second] = (await Promise.all([a, b].map((c) => (c ? previewOf(s, url, lang, `/types/${c}`) : undefined)))).map((p) => p?.[0]);
-    description = first && second ? description.replace("{first}", first).replace("{second}", second) : "";
-    if (first && second) path += `?a=${encodeURIComponent(a!)}&b=${encodeURIComponent(b!)}`;
+    // The line names the two types asked for, else there is none, and the picture shows them where both have a
+    // drawing, as their own pictures show, else it is the list's.
+    const [a, b] = ["a", "b"].map((k) => url.searchParams.get(k)?.toUpperCase() ?? "") as [string, string];
+    const [pa, pb] = await Promise.all([a, b].map((c) => (c ? previewOf(s, url, lang, `/types/${c}`) : undefined)));
+    description = pa && pb ? description.replace("{first}", pa[0]).replace("{second}", pb[0]) : "";
+    if (pa && pb) {
+      path += `?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`;
+      if (pa[2].startsWith(`${a}.png`) && pb[2].startsWith(`${b}.png`)) image = `compare/${a}-${b}.png?v=${hashOf(DRAWN + pa[2] + pb[2]).toString(36)}`;
+    }
   }
   const origin = siteOrigin(s, url);
   const tags = [

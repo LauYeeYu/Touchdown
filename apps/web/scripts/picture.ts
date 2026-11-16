@@ -67,16 +67,17 @@ export function logo(size: number, bottom: number, right?: number): string {
 /** The picture: the paper colour under `body`. */
 export const picture = (body: string) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${C.paper}"/>${body}</svg>`;
 
-function png(svg: string): Buffer {
-  return new Resvg(svg, { font: { loadSystemFonts: false }, fitTo: { mode: "original" } }).render().asPng();
-}
+const render = (svg: string) => new Resvg(svg, { font: { loadSystemFonts: false }, fitTo: { mode: "original" } }).render();
+
+/** A picture's pixels: four bytes each, red, green, blue and opacity, row by row. */
+export const pixels = (svg: string): Uint8Array => render(svg).pixels;
 
 /**
  * A picture written to `file`, and the hash of its contents to put in its address, so a chat app that kept an earlier
  * one asks for the new one.
  */
 export function keep(file: string, svg: string): string {
-  const bytes = png(svg);
+  const bytes = render(svg).asPng();
   writeFileSync(file, bytes);
   return createHash("sha256").update(bytes).digest("hex").slice(0, 12);
 }
