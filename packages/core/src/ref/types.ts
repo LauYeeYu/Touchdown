@@ -227,13 +227,18 @@ export interface SilhouetteShape {
    */
   clockwise?: boolean;
   /**
+   * A tiltrotor: the nacelles at its wingtips turn from forward, as drawn, to upright, their proprotors (`blades` each)
+   * with them, as a hover shows.
+   */
+  tilts?: boolean;
+  /**
    * The tailplane: its span (of the wingspan; none for a delta), its root's leading edge along the fuselage and its sweep.
    * `beyond`: a T-tail's on top of a swept fin, whose tips may reach past the tail cone (a Tu-134's).
    */
   stab: { span: number; at: number; sweep: number; root?: number; beyond?: boolean };
   /** Propellers' diameter in metres, at the engines or the nose. */
   prop?: number;
-  /** A helicopter's main rotor blades. */
+  /** A helicopter's main rotor blades, a tiltrotor's proprotor's. */
   blades?: number;
   /** For drawing only, where the figures give none: the fuselage's width (m) and the wing's sweep (degrees). */
   width?: number;

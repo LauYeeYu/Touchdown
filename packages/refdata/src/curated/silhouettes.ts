@@ -325,11 +325,12 @@ const FIGHTER: Shape = { kind: "jet", nose: 3.2, tail: 1.4, wing: { at: 0.44, ro
 const QUAD_PROP: Shape = with_(TPROP, { wingAlso: { at: 0.32, root: 0.18, tip: 0.42 }, engines: { wing: [0.26, 0.5], size: 1.4 }, stabAlso: { span: 0.36 } });
 const TRIMOTOR: Shape = with_(QUAD_PROP, { engines: { wing: [0.3], nose: true, size: 1.1 } });
 // A business jet with one engine on its back (a Cirrus SF50, an Eclipse 400), a gyroplane, and a tiltrotor seen with its
-// rotors forward, edge on at the wingtips.
+// rotors forward, edge on at the wingtips, which a hover turns up. Bell–Boeing V-22 Osprey: "one three-bladed proprotor,
+// turboshaft engine, and transmission nacelle mounted on each wingtip". Leonardo AW609: "a three-bladed proprotor".
 const TOP_JET: Shape = { kind: "jet", nose: 1.8, tail: 3, sweep: 0, wing: { at: 0.34, root: 0.16, tip: 0.55 }, engines: { top: true }, stab: { span: 0.3, at: 0.85, sweep: 30, root: 0.12 } };
 const GYRO: Shape = { ...HELI, boom: 0.45, blades: 2, gyro: true, stab: { span: 0, at: 0.92, sweep: 0 } };
 const LONG_WING: Shape = { kind: "jet", nose: 1.6, tail: 3, sweep: 0, wing: { at: 0.32, root: 0.11, tip: 0.4 }, stab: { span: 0.16, at: 0.88, sweep: 5, root: 0.1 } };
-const TILTROTOR: Shape = with_(TPROP, { wingAlso: { at: 0.42, root: 0.12, tip: 0.8 }, engines: { wing: [1] }, stabAlso: { span: 0.45, at: 0.86 } });
+const TILTROTOR: Shape = with_(TPROP, { wingAlso: { at: 0.42, root: 0.12, tip: 0.8 }, engines: { wing: [1] }, stabAlso: { span: 0.45, at: 0.86 }, tilts: true, blades: 3 });
 
 /**
  * Type codes without a family whose usual shape of their kind would draw them wrongly, each with its own: the Il-62's

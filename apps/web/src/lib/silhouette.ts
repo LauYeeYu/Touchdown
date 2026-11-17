@@ -24,12 +24,18 @@ export type Pt = [number, number];
 /**
  * A part of a drawing that moves when its type is hovered (components/Silhouette.tsx): a rotor turning about its mast
  * (`dir` 1 clockwise from above, -1 the other way), a swing wing's outer panel pivoting back by `angle` degrees about
- * `at`, or foreplanes folding into the fuselage (`stow`).
+ * `at`, foreplanes folding into the fuselage (`stow`), or a tiltrotor's nacelle and proprotor turning up from forward to
+ * upright about `at`, on the wing. The nacelle runs from `front` to `back` along the length and is `wide` across, so
+ * upright it shows as a circle that wide. The proprotor is drawn forward as its disc edge on (`parts`), its hub `reach`
+ * ahead of `at`. Turning up, it shows as its `blades`, drawn about the origin as they are seen from above when upright,
+ * spinning as a rotor does.
  */
 export type Moving =
   | { kind: "rotor"; parts: Pt[][]; at: Pt; dir: 1 | -1 }
   | { kind: "swing"; parts: Pt[][]; at: Pt; angle: number }
-  | { kind: "stow"; parts: Pt[][] };
+  | { kind: "stow"; parts: Pt[][] }
+  | { kind: "nacelle"; parts: Pt[][]; at: Pt; front: number; back: number; wide: number }
+  | { kind: "proprotor"; parts: Pt[][]; at: Pt; reach: number; blades: Pt[][]; dir: 1 | -1 };
 
 /** What a moving part does, without its outlines. */
 type How = { [K in Moving["kind"]]: Omit<Extract<Moving, { kind: K }>, "parts"> }[Moving["kind"]];
@@ -403,7 +409,30 @@ function build(p: Planform): { parts: Pt[][]; moving: Mark[] } {
   for (const f of s.engines?.wing ?? []) {
     const x = half * f;
     const y = leAt(x);
-    if (s.kind === "prop") {
+    if (s.kind === "prop" && s.tilts) {
+      // A tiltrotor's nacelle and proprotor turn up about the wing's spar at the tip, two fifths of its chord back.
+      const nacelle = p.width * 0.32 * size;
+      const [front, back] = [y - nacelle * 1.4, y + rootChord * 0.9];
+      const spar = y + tipChord * 0.4;
+      const d = s.prop ?? p.span * 0.14;
+      // Its blades as wide as a proprotor's are for their length, and the hub's spinner.
+      const blades: Pt[][] = Array.from({ length: s.blades ?? 3 }, (_, i) => {
+        const a = Math.PI / 2 + (2 * Math.PI * i) / (s.blades ?? 3);
+        const [c, n] = [Math.cos(a), Math.sin(a)];
+        const [r, w] = [d / 2, d * 0.025];
+        return clockwise([[-n * w, c * w], [c * r - n * w, n * r + c * w], [c * r + n * w, n * r - c * w], [n * w, -c * w]]);
+      });
+      blades.push(clockwise(ellipse(0, 0, nacelle * 0.42, nacelle * 0.42)));
+      // Forward, its disc edge on, as a propeller's, at the nacelle's front.
+      const thick = Math.max(nacelle * 0.15, d * 0.025);
+      const hub = y - nacelle * 1.3 - thick / 2;
+      // The two proprotors turn each the other way.
+      for (const [sx, dir] of [[x, -1], [-x, 1]] as const) {
+        moves({ kind: "nacelle", at: [sx, spar], front, back, wide: nacelle }, () => parts.push(clockwise(capsule(sx, front, back, nacelle / 2))));
+        const disc: Pt[] = [[sx - d / 2, hub - thick / 2], [sx + d / 2, hub - thick / 2], [sx + d / 2, hub + thick / 2], [sx - d / 2, hub + thick / 2]];
+        moves({ kind: "proprotor", at: [sx, spar], reach: spar - hub, blades, dir }, () => parts.push(clockwise(disc)));
+      }
+    } else if (s.kind === "prop") {
       // A nacelle running back over the wing, a spinner and the propeller's disc seen edge on.
       const nacelle = p.width * 0.32 * size;
       parts.push(clockwise(capsule(x, y - nacelle * 1.4, y + rootChord * 0.9, nacelle / 2)), clockwise(capsule(-x, y - nacelle * 1.4, y + rootChord * 0.9, nacelle / 2)));

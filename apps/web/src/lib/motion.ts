@@ -71,23 +71,61 @@ export function useGrow<T extends HTMLElement>(key: unknown) {
   return ref;
 }
 
-/** A moving part of a type's drawing, as drawn (components/Silhouette.tsx, lib/silhouette.ts `Moving`). */
-export type TypeMove = { kind: "rotor"; path: string; at: [number, number]; dir: 1 | -1 } | { kind: "swing"; path: string; at: [number, number]; angle: number } | { kind: "stow"; path: string };
+/**
+ * A moving part of a type's drawing, as drawn (components/Silhouette.tsx, lib/silhouette.ts `Moving`): a proprotor's
+ * `path` its disc edge on, as drawn, and `blades` about the origin, which `proprotorAt` puts in place.
+ */
+export type TypeMove =
+  | { kind: "rotor"; path: string; at: [number, number]; dir: 1 | -1 }
+  | { kind: "swing"; path: string; at: [number, number]; angle: number }
+  | { kind: "stow"; path: string }
+  | { kind: "nacelle"; path: string; at: [number, number]; front: number; back: number; wide: number }
+  | { kind: "proprotor"; path: string; blades: string; at: [number, number]; reach: number; dir: 1 | -1 };
+
+const n3 = (v: number) => +v.toFixed(3);
+
+/**
+ * A tiltrotor's proprotor's blades `up` of the way from forward to upright (0 to 1), turned `angle` degrees: the hub
+ * coming back over the spar as the nacelle rises, the disc they turn in opening from edge on to round.
+ */
+function proprotorAt(m: Extract<TypeMove, { kind: "proprotor" }>, up: number, angle: number): string {
+  const tilt = (up * Math.PI) / 2;
+  return `translate(${n3(m.at[0])} ${n3(m.at[1] - m.reach * Math.cos(tilt))}) scale(1 ${n3(Math.sin(tilt))}) rotate(${angle.toFixed(2)})`;
+}
+
+/**
+ * How far up a tiltrotor's nacelle turns before its proprotor shows as blades: nearly level, a turning proprotor is a
+ * disc edge on, as a propeller is drawn, its blades a line too thin to see.
+ */
+const BLADES_FROM = 0.15;
+
+/**
+ * A tiltrotor's nacelle `up` of the way from forward to upright: from above, as long as its length shows at that angle
+ * and its width as it rises, its middle coming back over the spar, so upright it is a circle as wide as it is.
+ */
+function nacelleAt(m: Extract<TypeMove, { kind: "nacelle" }>, up: number): string {
+  const tilt = (up * Math.PI) / 2;
+  const [length, mid] = [m.back - m.front, (m.front + m.back) / 2];
+  const shown = length * Math.cos(tilt) + m.wide * Math.sin(tilt);
+  return `translate(0 ${n3(m.at[1] + (mid - m.at[1]) * Math.cos(tilt))}) scale(1 ${n3(shown / length)}) translate(0 ${n3(-mid)})`;
+}
 
 /** A rotor at speed, degrees a second: a turn in about 0.9 seconds, which the eye can still follow. */
 const ROTOR_SPEED = 400;
 /**
  * How quickly each part answers, as an exponential's time constant in seconds: a rotor spins up in about a second and
- * coasts to a stop in about two and a half, a swing wing sweeps back in about half a second, as the one easing does, and
- * spreads again a little quicker, and foreplanes fold away in a third of a second.
+ * coasts to a stop in about two and a half, a swing wing sweeps back in about half a second, as the one easing does,
+ * and spreads again a little quicker, foreplanes fold away in a third of a second, and a tiltrotor's nacelles turn up
+ * in about three quarters of a second and down a little quicker.
  */
-const TIMES = { rotorUp: 0.35, rotorDown: 0.6, swingIn: 0.16, swingOut: 0.12, stow: 0.1 };
+const TIMES = { rotorUp: 0.35, rotorDown: 0.6, swingIn: 0.16, swingOut: 0.12, stow: 0.1, tiltUp: 0.22, tiltDown: 0.16 };
 
 /**
  * A type's moving parts doing what they do while it is hovered or has the keyboard's focus (DESIGN.md, "Motion"): its
  * rotors spin up and coast down, a swing wing sweeps back to its swept angle and spreads again, foreplanes fold into the
- * fuselage. The hover is on what holds the drawing: its row or card, its link or its figure. Each moving part is a path
- * of `svg` marked `data-moving`, in the order of `moves`. Nothing moves for reduced motion.
+ * fuselage, a tiltrotor's nacelles turn up, its proprotors spinning up as they do. The hover is on what holds the
+ * drawing: its row or card, its link or its figure. Each moving part is a path of `svg` marked `data-moving`, in the
+ * order of `moves`. Nothing moves for reduced motion.
  */
 export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeMove[]) {
   useEffect(() => {
@@ -110,19 +148,30 @@ export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeM
         const s = state[i]!;
         const path = paths[i];
         if (!path) return;
-        if (m.kind === "rotor") {
+        if (m.kind === "rotor" || m.kind === "proprotor") {
           s.speed += ((on ? ROTOR_SPEED : 0) - s.speed) * ease(on ? TIMES.rotorUp : TIMES.rotorDown);
           if (!on && s.speed < 6) s.speed = 0;
           s.angle = (s.angle + s.speed * m.dir * dt) % 360;
           if (s.speed) moving = true;
-          path.setAttribute("transform", `rotate(${s.angle.toFixed(2)} ${about(m.at)})`);
-          return;
+          if (m.kind === "rotor") {
+            path.setAttribute("transform", `rotate(${s.angle.toFixed(2)} ${about(m.at)})`);
+            return;
+          }
         }
         const target = on ? 1 : 0;
-        s.done += (target - s.done) * ease(m.kind === "stow" ? TIMES.stow : on ? TIMES.swingIn : TIMES.swingOut);
+        const tau = m.kind === "stow" ? TIMES.stow : m.kind === "nacelle" || m.kind === "proprotor" ? (on ? TIMES.tiltUp : TIMES.tiltDown) : on ? TIMES.swingIn : TIMES.swingOut;
+        s.done += (target - s.done) * ease(tau);
         if (Math.abs(target - s.done) < 0.002) s.done = target;
         else moving = true;
-        if (!s.done) path.removeAttribute("transform");
+        // Turning up, the blades; nearly level again, the disc.
+        if (m.kind === "proprotor") {
+          const blades = s.done >= BLADES_FROM;
+          path.setAttribute("d", blades ? m.blades : m.path);
+          if (blades) path.setAttribute("transform", proprotorAt(m, s.done, s.angle));
+          else path.removeAttribute("transform");
+        }
+        else if (m.kind === "nacelle" && s.done) path.setAttribute("transform", nacelleAt(m, s.done));
+        else if (!s.done) path.removeAttribute("transform");
         else if (m.kind === "swing") path.setAttribute("transform", `rotate(${(m.angle * s.done).toFixed(2)} ${about(m.at)})`);
         // Folded in across the fuselage's centreline, at x = 0.
         else path.setAttribute("transform", `scale(${Math.max(0.001, 1 - s.done).toFixed(3)} 1)`);

@@ -80,6 +80,36 @@ describe("what moves when a type is hovered", () => {
     for (const code of ["B06", "EC35"]) expect(dir(code), code).toEqual([-1]);
   });
 
+  it("turns a tiltrotor's nacelles up about its wingtips, their proprotors each the other way", async () => {
+    const ref = new RefIndex(loadRefTables());
+    const info = await loadTypeInfo();
+    for (const code of ["V22", "B609"]) {
+      const p = info.planform(code, ref)!;
+      const { still, moving } = planformLayers(p);
+      expect(moving.map((m) => m.kind)).toEqual(["nacelle", "proprotor", "nacelle", "proprotor"]);
+      const [x0, , x1] = extentOf(still);
+      for (const m of moving) {
+        if (m.kind !== "nacelle" && m.kind !== "proprotor") throw new Error(m.kind);
+        // At a wingtip, on the wing.
+        expect(Math.abs(m.at[0]), code).toBeCloseTo(p.span / 2, 6);
+        expect(m.at[0] < 0 ? x0 : x1).toBeCloseTo(m.at[0], 1);
+        if (m.kind === "nacelle") expect(m.front < m.at[1] && m.at[1] < m.back).toBe(true);
+        else {
+          // Drawn forward, its disc edge on as wide as the proprotor is, ahead of the nacelle.
+          const [dx0, dy0, dx1, dy1] = extentOf(m.parts);
+          expect(dx1 - dx0).toBeCloseTo(p.shape.prop!, 6);
+          expect(dy1).toBeLessThan(m.at[1] - m.reach / 2);
+          // Its blades about the origin, as long as the proprotor's radius.
+          const [, , bx1] = extentOf(m.blades);
+          expect(bx1).toBeLessThanOrEqual(p.shape.prop! / 2 + 0.01);
+          expect(dy0 + dy1).toBeCloseTo(2 * (m.at[1] - m.reach), 6);
+        }
+      }
+      const dirs = moving.map((m) => (m.kind === "proprotor" ? m.dir : 0)).filter(Boolean);
+      expect(dirs.sort()).toEqual([-1, 1]);
+    }
+  });
+
   it("sweeps a swing wing back to the span its article states, its leading edge starting at the glove's corner", async () => {
     const ref = new RefIndex(loadRefTables());
     const info = await loadTypeInfo();
