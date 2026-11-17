@@ -1493,6 +1493,21 @@ main {
   flex: 1;
 }
 
+/* An aircraft card's registration and type, the type's silhouette at the right, in the middle of the two lines. */
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card__name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .card__reg {
   font-size: 1.0625rem;
   font-weight: 600;
@@ -2136,6 +2151,10 @@ main {
 
 .aircraft-card .card__reg {
   font-size: 1.5rem;
+}
+
+.aircraft-card .card__name {
+  gap: 6px;
 }
 
 .identity {

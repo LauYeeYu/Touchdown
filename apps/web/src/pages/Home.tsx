@@ -18,6 +18,7 @@ import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
 import { MonthChart } from "../components/charts.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
+import { Silhouette } from "../components/Silhouette.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { Fig, Phrase, usePhrases } from "../components/Phrase.tsx";
 import { EmptyLog } from "./EmptyLog.tsx";
@@ -316,13 +317,18 @@ export function Home() {
               <article className="card stretch" key={airframe.id}>
                 <Photo reg={flight.registration} alt={t("home.photoAlt", { registration: flight.registration ?? "", type: typeName(airframe.typeCode, ref) })} />
                 <div className="card__body">
-                  <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
-                    {flight.registration}
-                  </Link>
-                  <span className="card__type">
-                    {typeName(airframe.typeCode, ref)}
-                    {flight.airlineId && ` · ${airlineLabel(flight.airlineId, ref)}`}
-                  </span>
+                  <div className="card__head">
+                    <div className="card__name">
+                      <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
+                        {flight.registration}
+                      </Link>
+                      <span className="card__type">
+                        {typeName(airframe.typeCode, ref)}
+                        {flight.airlineId && ` · ${airlineLabel(flight.airlineId, ref)}`}
+                      </span>
+                    </div>
+                    <Silhouette code={airframe.typeCode} size={36} />
+                  </div>
                   <ul className="card__events">
                     <li>
                       <span className="dot dot--flown" />

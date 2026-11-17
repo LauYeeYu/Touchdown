@@ -28,6 +28,7 @@ import type { FigureContent } from "../lib/figure.ts";
 import { flightFigure } from "../lib/preview.ts";
 import { flightWords } from "../lib/figureWords.ts";
 import { Credit, Photo } from "../components/Photo.tsx";
+import { Silhouette } from "../components/Silhouette.tsx";
 import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
@@ -599,17 +600,23 @@ export function FlightDetail() {
           <article className={`card aircraft-card${airframe ? " stretch" : ""}`} id="aircraft-card">
             {!livery && <Photo reg={f.registration} alt={`${f.registration ?? ""}, ${typeText}`} />}
             <div className="card__body">
-              {airframe ? (
-                <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
-                  {f.registration ?? t("flights.detail.aircraft.noReg")}
-                </Link>
-              ) : (
-                <span className="card__reg">{f.registration ?? t("flights.detail.aircraft.noReg")}</span>
-              )}
-              <span className="card__type">
-                {typeText}
-                {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
-              </span>
+              {/* The registration and the type, with the type's silhouette at the right (G11), as the lists draw it. */}
+              <div className="card__head">
+                <div className="card__name">
+                  {airframe ? (
+                    <Link className="card__reg stretch__link" to="/aircraft/$id" params={{ id: airframe.id }}>
+                      {f.registration ?? t("flights.detail.aircraft.noReg")}
+                    </Link>
+                  ) : (
+                    <span className="card__reg">{f.registration ?? t("flights.detail.aircraft.noReg")}</span>
+                  )}
+                  <span className="card__type">
+                    {typeText}
+                    {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
+                  </span>
+                </div>
+                <Silhouette code={f.typeCode} size={48} />
+              </div>
               <ul className="card__events">
                 {onThis.map((o) => (
                   <li key={o.f.id}>
