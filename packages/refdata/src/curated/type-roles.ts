@@ -61,15 +61,26 @@ export const typeRoles: Record<string, TypeRole> = {
   S211: "military",
   T33: "military",
   TZRV: "military", // Tazarve
-  // Military transports, patrol aircraft and amphibians.
+  // Military transports, patrol aircraft and amphibians, and airborne warning and command aircraft on an airliner's
+  // airframe, which its family would make an airliner.
   ATLA: "military", // Atlantic
   BELF: "military", // Belfast
   BER4: "military", // Beriev A-40
+  E3CF: "military", // E-3 Sentry
+  E3TF: "military",
+  E6: "military", // E-6 Mercury
+  E737: "military", // E-7 Wedgetail
   KC39: "military", // C-390
   S2T: "military", // Turbo Tracker
   US1: "military",
   WW24: "military", // Westwind Sea Scan
   Y20: "military",
+  // Airliners whose items reach military aircraft through the air forces that flew them.
+  DH8A: "airliner",
+  DH8B: "airliner",
+  DH8C: "airliner",
+  DH8D: "airliner",
+  E110: "airliner", // Bandeirante
   // Business jets and a business turboprop.
   ASTR: "business",
   BE40: "business",
@@ -96,6 +107,7 @@ export const typeRoles: Record<string, TypeRole> = {
   SBR2: "business", // Sabreliner 75
   // Record, research and launch aircraft, and demonstrators.
   ARES: "other",
+  BSCA: "other", // NASA's Shuttle Carrier Aircraft, a 747
   GFLY: "other", // GlobalFlyer
   M55: "other", // Geophysica
   MG44: "other",
