@@ -2319,7 +2319,8 @@ main {
     grid-template-columns: 84px minmax(170px, 1.4fr) minmax(130px, 1fr) 72px 48px;
   }
 
-  .row__aircraft,
+  /* With the row's class too: the type cell's own display, later in the file, would otherwise show it. */
+  .row .row__aircraft,
   .row__num--dist {
     display: none;
   }
@@ -8881,7 +8882,7 @@ button.select {
   }
 }
 
-/* A type cell with its silhouette (components/TypeCell.tsx, the aircraft list): the shape fitted to 30px beside the
+/* A type cell with its silhouette (components/TypeCell.tsx, the lists' rows): the shape fitted to 30px beside the
    type's name and code, both lines beside it. The words give the cell its baseline, not the drawing (whose baseline is
    its bottom edge), so the row's other cells line up with the type's name, as on rows without a drawing. */
 .type-cell--drawn {
