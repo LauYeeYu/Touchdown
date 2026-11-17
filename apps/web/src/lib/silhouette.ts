@@ -351,8 +351,8 @@ export function planformParts(p: Planform): Pt[][] {
       const thick = Math.max(nacelle * 0.15, d * 0.025);
       for (const sx of [x, -x]) parts.push(clockwise([[sx - d / 2, y - nacelle * 1.3 - thick], [sx + d / 2, y - nacelle * 1.3 - thick], [sx + d / 2, y - nacelle * 1.3], [sx - d / 2, y - nacelle * 1.3]]));
     } else {
-      // A jet's nacelle hangs ahead of the leading edge, its rear under the wing.
-      const length = p.width * 1.3 * size;
+      // A jet's nacelle hangs ahead of the leading edge, its rear under the wing; `long` where it is longer for its width.
+      const length = p.width * (s.engines?.long ?? 1.3 * size);
       const radius = p.width * 0.26 * size;
       // Over or under the wing's rear, it reaches past the trailing edge, so it shows from above: a HondaJet's well
       // past it, Concorde's nozzles just.

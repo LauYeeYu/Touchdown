@@ -402,6 +402,8 @@ export const typeShapes: Record<string, FamilyShape> = {
   // Tiltrotors, their rotors forward, edge on, at the wingtips: Bell–Boeing V-22 Osprey's 38 ft 1 in, Leonardo AW609's 7.9 m.
   V22: drawn(with_(TILTROTOR, { prop: 11.61 })),
   B609: drawn(with_(TILTROTOR, { prop: 7.9 })),
+  // The Il-14, a twin piston airliner, laid over its three-view.
+  IL14: own(with_(LIGHT_TWIN, { tail: 3.3, width: 2.6, sweep: -2.5, wingAlso: { at: 0.354, root: 0.184, tip: 0.42 }, engines: { wing: [0.23], size: 1.6 }, prop: 3.5, stabAlso: { span: 0.28, at: 0.828, sweep: 12, root: 0.142 } })),
   // Grumman E-2: "its 24-foot-diameter (7.3 m) rotating radar dome" (Grumman E-2 Hawkeye).
   E2: drawn(with_(TPROP, { wingAlso: { at: 0.4, root: 0.13, tip: 0.5 }, radome: { at: 0.47, diameter: 7.3 }, stabAlso: { span: 0.32, at: 0.87, sweep: 10 } })),
 
@@ -426,6 +428,8 @@ export const typeShapes: Record<string, FamilyShape> = {
   SB39: drawn({ kind: "jet", nose: 3.6, tail: 1.4, sweep: 42, wing: { at: 0.45, root: 0.48, tip: 0.1 }, canard: { at: 0.3, span: 0.5, chord: 0.14 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
   J10: drawn({ kind: "jet", nose: 3.6, tail: 1.4, sweep: 46, wing: { at: 0.44, root: 0.5, tip: 0.07 }, canard: { at: 0.28, span: 0.5, chord: 0.14 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
   SB37: drawn({ kind: "jet", nose: 3.4, tail: 1.4, wing: { at: 0.47, root: 0.44, tip: 0.12, ogee: true, crank: [0.35, 0.4] }, canard: { at: 0.26, span: 0.6, chord: 0.16 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  // The SR-71's chines as a double delta's first part, from behind the nose, and its long nacelles through the wing.
+  SR71: drawn({ kind: "jet", nose: 4, tail: 1.6, width: 1.9, wing: { at: 0.08, root: 0.84, tip: 0.04, ogee: true, crank: [0.3, 0.55] }, engines: { wing: [0.5], over: true, past: 0.02, long: 9.3, size: 2.3 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
 
   // Flying wings: the whole length is the wing's root.
   B2: drawn({ kind: "jet", nose: 1.2, tail: 1, width: 4, sweep: 30, wing: { at: 0.01, root: 0.98, tip: 0.07 }, stab: { span: 0, at: 0.9, sweep: 0 } }),

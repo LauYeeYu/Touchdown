@@ -185,8 +185,9 @@ export interface SilhouetteShape {
    * Engines on the wing at fractions of the half-span, `ahead` of their length ahead of the leading edge (0.7 unless
    * given, an Il-86's on long pylons nearly all; `over`: over or under the wing's rear and past its trailing edge by
    * `past` of their length, half unless given, as a HondaJet's above it and Concorde's nozzles below it show from
-   * above), beside the tail (two, their centre at `at` of the length where the tailplane does not set it, `long` fuselage
-   * widths long and `apart` widths from the centreline where given: a Tu-16's in its wing roots, a Tu-22's on its back;
+   * above; `long` fuselage widths long where given, an SR-71's from its inlet's spike to its nozzle), beside the tail
+   * (two, their centre at `at` of the length where the tailplane does not set it, `long` fuselage widths long and
+   * `apart` widths from the centreline where given: a Tu-16's in its wing roots, a Tu-22's on its back;
    * four in pairs side by side, an Il-62's; a 727's third, in the tail cone, does not show from above), one in the fin
    * over the tail cone (`fin`, a DC-10's, wider than the fuselage where it narrows), one on top of the rear fuselage
    * (`top`, a Cirrus SF50's), or one in the nose as well as those on the wing (`nose`, a trimotor's). `paired`: each
