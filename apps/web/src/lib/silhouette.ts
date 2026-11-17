@@ -249,7 +249,8 @@ function build(p: Planform): { parts: Pt[][]; moving: Mark[] } {
     const blades = s.blades ?? 2;
     const chord = r * 0.028;
     // A rotor as its blades from the mast, as wide as a blade is for its length, turned by `turn`, and the way it turns:
-    // anticlockwise from above for one rotor, as most do, and two rotors each the other way.
+    // one rotor anticlockwise from above, as most do, or clockwise where its shape says so, and two rotors each the other
+    // way.
     const rotor = (x: number, y: number, turn: number, dir: 1 | -1) =>
       moves({ kind: "rotor", at: [x, y], dir }, () => {
         for (let i = 0; i < blades; i++) {
@@ -281,7 +282,7 @@ function build(p: Planform): { parts: Pt[][]; moving: Mark[] } {
       // Two rotors on masts side by side, each leaning out, their blades meshing.
       rotor(-p.span * 0.03, mastY, 0, 1);
       rotor(p.span * 0.03, mastY, Math.PI / 2, -1);
-    } else rotor(0, mastY, 0, -1);
+    } else rotor(0, mastY, 0, s.clockwise ? 1 : -1);
     // A small stabiliser across the boom, where the shape puts it.
     const stabHalf = p.span * 0.12;
     const sy = p.length * Math.min(s.stab.at, 0.92);

@@ -532,6 +532,24 @@ export function genericShape(k: TypeKind): Shape | null {
  */
 export const undrawable: string[] = ["SLCH", "WHK2", "WHKN", "P82", "PRTS", "BPOD", "XV15", "V280"];
 
+/**
+ * Helicopters whose one main rotor turns clockwise seen from above (`clockwise`). Retreating blade stall: "In
+ * counter-clockwise rotating rotor systems (as in most American-made types) this is the left side; in clockwise rotating
+ * systems (such as in most French and Russian models)". So the French designs, from Sud and Aérospatiale to Eurocopter's
+ * and Airbus Helicopters', the Soviet and Russian ones, and those built under licence or copied from them, whose rotors
+ * are theirs. German designs in the same companies (the BO 105, BK 117, H135, H145), the Tiger and the NH90, which
+ * French and German makers designed together, and the rest keep the usual way.
+ */
+export const clockwiseRotors: string[] = [
+  // French: Sud, Aérospatiale, Eurocopter, Airbus Helicopters, Guimbal.
+  "ALO2", "DJIN", "PUMA", "AS32", "AS3B", "FREL", "S360", "S65C", "AS50", "AS55", "AS65", "EC20", "EC25", "EC30", "EC55", "EC75", "H160", "X3", "G2CA",
+  // Built under licence or copied: the Alouette III and the Lama in India, the Gazelle in Yugoslavia, the Super Frelon's
+  // and the Ecureuil's Chinese successors, and the Rooivalk, which has the Puma's rotor.
+  "ALO3", "LAMA", "GAZL", "AC31", "AC33", "RVAL",
+  // Soviet and Russian: Mil, Kazan's Ansat, and the Mi-2 and Mi-4 built in Poland and China.
+  "MI2", "MI4", "MI6", "MI8", "MI10", "MI14", "MI24", "MI26", "MI28", "MI34", "MI38", "ANST", "A2RT",
+];
+
 /** The shape of a type code in `familyId`: its family's, with what the type changes. Null for a family not drawn. */
 export function shapeOf(familyId: string | null | undefined, designator: string): (Shape & { checked: boolean }) | null {
   const fam = (familyId ? familyShapes[familyId] : undefined) ?? typeShapes[designator];

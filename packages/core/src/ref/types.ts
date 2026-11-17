@@ -222,6 +222,11 @@ export interface SilhouetteShape {
   /** A gyroplane: its rotor turned by the air, a pusher propeller behind the cabin, and no tail rotor. */
   gyro?: boolean;
   /**
+   * A helicopter's one main rotor turns clockwise seen from above, as most French and Russian designs' do; anticlockwise,
+   * as most others', unless given. A hover shows it (components/Silhouette.tsx).
+   */
+  clockwise?: boolean;
+  /**
    * The tailplane: its span (of the wingspan; none for a delta), its root's leading edge along the fuselage and its sweep.
    * `beyond`: a T-tail's on top of a swept fin, whose tips may reach past the tail cone (a Tu-134's).
    */

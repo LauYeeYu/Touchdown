@@ -71,6 +71,15 @@ describe("what moves when a type is hovered", () => {
     }
   });
 
+  it("turns a French or Russian design's rotor clockwise from above, and others' the other way", async () => {
+    const ref = new RefIndex(loadRefTables());
+    const info = await loadTypeInfo();
+    const dir = (code: string) => planformLayers(info.planform(code, ref)!).moving.map((m) => (m.kind === "rotor" ? m.dir : 0));
+    // A Mil Mi-17, an Airbus H125 (an Ecureuil), an Aérospatiale Puma; a Bell 206, an Airbus H135 (a German design).
+    for (const code of ["MI8", "AS50", "PUMA"]) expect(dir(code), code).toEqual([1]);
+    for (const code of ["B06", "EC35"]) expect(dir(code), code).toEqual([-1]);
+  });
+
   it("sweeps a swing wing back to the span its article states, its leading edge starting at the glove's corner", async () => {
     const ref = new RefIndex(loadRefTables());
     const info = await loadTypeInfo();
