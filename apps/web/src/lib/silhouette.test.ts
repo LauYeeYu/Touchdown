@@ -78,8 +78,11 @@ describe("what moves when a type is hovered", () => {
       const a = (deg * Math.PI) / 180;
       return [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)];
     };
-    // Tupolev Tu-160: "35.6 m wings swept (65°)". Tupolev Tu-22M: "23.3 m swept (65° sweep)".
-    for (const [code, swept] of [["T160", 35.6], ["T22M", 23.3]] as const) {
+    // Tupolev Tu-160: "35.6 m wings swept (65°)". Tupolev Tu-22M: "23.3 m swept (65° sweep)". The others' articles, each
+    // quoted with its shape (packages/refdata/src/curated/silhouettes.ts): 79 ft, 38 ft 2.5 in, 32 ft, and in metres.
+    const ft = 0.3048;
+    const swung = [["T160", 35.6], ["T22M", 23.3], ["B1", 79 * ft], ["F14", 38 * ft + 2.5 * 0.0254], ["F111", 32 * ft], ["TOR", 8.6], ["MG23", 7.779], ["SU17", 10.02], ["SU24", 10.37]] as const;
+    for (const [code, swept] of swung) {
       const { still, moving } = planformLayers(info.planform(code, ref)!);
       expect(moving.map((m) => m.kind)).toEqual(["swing", "swing"]);
       const parts = [...still, ...moving.flatMap((m) => (m.kind === "swing" ? m.parts.map((part) => part.map((pt) => turn(pt, m.at, m.angle))) : []))];

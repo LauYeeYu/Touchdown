@@ -346,6 +346,25 @@ export const typeShapes: Record<string, FamilyShape> = {
   IL18: own(with_(QUAD_PROP, { wingAlso: { at: 0.405, root: 0.15, tip: 0.4 }, engines: { wing: [0.24, 0.48], size: 1.1 }, prop: 4.5, stabAlso: { span: 0.33 } })),
   IL62: own(with_(REAR, { tail: 3.2, fairing: { width: 0.3, length: 1.5 }, sweep: 35, wingAlso: { at: 0.36, root: 0.18, tip: 0.37 }, engines: { rear: 4, at: 0.735, long: 1.7, size: 0.85 }, stabAlso: { span: 0.29, at: 0.88, sweep: 40, beyond: true } })),
   IL86: own(with_(QUAD, { wingAlso: { at: 0.33, root: 0.19, tip: 0.25 }, engines: { wing: [0.3, 0.68], ahead: 0.95, size: 0.8 }, stabAlso: { span: 0.4 } })),
+  // Swing wings, drawn spread from what is known of their layout, not yet laid over a three-view: each glove reaches as
+  // far out as the spread and swept spans in its article put the pivot (silhouette.test.ts).
+  // Swept back, Rockwell B-1 Lancer: "to 67.5 degrees (full forward to full sweep)", specifications: "79 ft" swept.
+  B1: drawn({ kind: "jet", nose: 3.4, tail: 2.4, wing: { at: 0.42, root: 0.15, tip: 0.3, glove: { at: 0.2, reach: 0.276 }, swept: 67.5 }, engines: { rear: 4, at: 0.66, long: 2.4, apart: 0.95, size: 0.8 }, stab: { span: 0.33, at: 0.86, sweep: 40, root: 0.1 } }),
+  // Swept back, Grumman F-14 Tomcat: "between 20° and 68°", specifications: "38 ft 2.5 in" swept.
+  F14: drawn({ kind: "jet", nose: 3.2, tail: 1.4, wing: { at: 0.47, root: 0.2, tip: 0.4, glove: { at: 0.3, reach: 0.293 }, swept: 68 }, stab: { span: 0.5, at: 0.82, sweep: 40, root: 0.16 } }),
+  // Swept back, General Dynamics F-111 Aardvark: "between 16 and 72.5° (full forward to full sweep)", specifications:
+  // "32 ft" swept.
+  F111: drawn({ kind: "jet", nose: 3.6, tail: 1.6, wing: { at: 0.46, root: 0.17, tip: 0.35, glove: { at: 0.36, reach: 0.275 }, swept: 72.5 }, stab: { span: 0.45, at: 0.83, sweep: 45, root: 0.15 } }),
+  // Swept back, Panavia Tornado, specifications: "8.60 m" swept "at 67° sweep".
+  TOR: drawn({ kind: "jet", nose: 3.2, tail: 1.4, wing: { at: 0.48, root: 0.2, tip: 0.4, glove: { at: 0.34, reach: 0.288 }, swept: 67 }, stab: { span: 0.5, at: 0.82, sweep: 45, root: 0.18 } }),
+  // Swept back, Mikoyan-Gurevich MiG-23: "fully swept at 72°", specifications: "7.779 m" fully swept.
+  MG23: drawn({ kind: "jet", nose: 3.4, tail: 1.4, wing: { at: 0.5, root: 0.2, tip: 0.4, glove: { at: 0.42, reach: 0.327 }, swept: 72 }, stab: { span: 0.42, at: 0.84, sweep: 55, root: 0.15 } }),
+  // Swept back, Sukhoi Su-17: "between 30° and 63°", specifications: "10.02 m" wings swept. "The stationary part of the
+  // wing was half as long as the rotating part."
+  SU17: drawn({ kind: "jet", nose: 3.6, tail: 1.4, wing: { at: 0.45, root: 0.26, tip: 0.4, glove: { at: 0.38, reach: 0.359 }, swept: 63 }, stab: { span: 0.4, at: 0.84, sweep: 55, root: 0.14 } }),
+  // Swept back, Sukhoi Su-24: "69° for minimum aspect ratio", specifications: "10.37 m" wings swept. Its "relatively small
+  // fixed wing glove, swept at 69°".
+  SU24: drawn({ kind: "jet", nose: 3, tail: 1.6, wing: { at: 0.45, root: 0.18, tip: 0.4, glove: { at: 0.175, reach: 0.315 }, swept: 69 }, stab: { span: 0.45, at: 0.83, sweep: 50, root: 0.16 } }),
   // Tupolev
   T134: own(with_(REAR, { tail: 3, fairing: { width: 0.3, length: 1.5 }, sweep: 35, wingAlso: { at: 0.37, root: 0.19, tip: 0.3, pods: 0.33 }, engines: { rear: 2, at: 0.735, long: 2 }, stabAlso: { span: 0.4, at: 0.88, sweep: 40, beyond: true } })),
   // Canards behind the cockpit, its engines in two boxes under the wing, their nozzles just past it.
@@ -621,6 +640,13 @@ export const typeSweep: Record<string, number> = {
   // prototype was chosen for production."
   YK42: 23,
   T160: 20, // Tupolev Tu-160, specifications: the span with "wings spread (20°)".
+  B1: 15, // Rockwell B-1 Lancer: "The wings can sweep from 15 degrees to 67.5 degrees".
+  F14: 20, // Grumman F-14 Tomcat: "The F-14's wing sweep can be varied between 20° and 68° in flight".
+  F111: 16, // General Dynamics F-111 Aardvark: "The wing sweep varied between 16 and 72.5°".
+  TOR: 25, // Panavia Tornado, specifications: the span "at 25° sweep".
+  MG23: 16, // Mikoyan-Gurevich MiG-23: "with the wings fully spread at 16°".
+  SU17: 30, // Sukhoi Su-17: "The sweep angle could be configured between 30° and 63°."
+  SU24: 16, // Sukhoi Su-24: "16° for takeoff and landing".
   T22M: 20, // Tupolev Tu-22M, specifications: the span "spread (20° sweep)".
   TU95: 35, // Tupolev Tu-95: "a mid-mounted wing with 35 degrees of sweep".
 };
