@@ -1,12 +1,13 @@
 // A type's silhouette from above (lib/silhouette.ts, G11): fitted to a square box (`size`, the aircraft list, the types'
 // rows), filling more of it the larger the aircraft, or at a scale (`scale` pixels a metre) so types drawn side by side
 // compare as they are (a family's table, Compare). Nothing for a type not drawn, and an empty box of the same size while
-// the types' information loads.
+// the types' information loads. Hovered, its moving parts move: rotors spin, a swing wing sweeps back (lib/motion.ts).
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { RefIndex } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
-import { extentOf, planformParts, planformPath } from "../lib/silhouette.ts";
+import { extentOf, planformLayers, planformPath } from "../lib/silhouette.ts";
+import { useTypeMotion, type TypeMove } from "../lib/motion.ts";
 import { useTypeInfo, type TypeInfo } from "../lib/typeInfo.ts";
 
 /**
@@ -22,7 +23,8 @@ export function fitShare(metres: number): number {
   return FIT.least + (1 - FIT.least) * Math.min(1, metres / FIT.largest) ** FIT.power;
 }
 
-type Drawn = { path: string; extent: [number, number, number, number]; checked: boolean };
+/** A type's outline (`path`), its still parts and its moving ones apart, its extent in metres, and whether it is checked. */
+export type Drawn = { path: string; still: string; moving: TypeMove[]; extent: [number, number, number, number]; checked: boolean };
 const drawn = new Map<string, Drawn | null>();
 
 /** A type's outline and extent in metres, worked out once a tab. */
@@ -32,17 +34,37 @@ export function drawingOf(code: string | null | undefined, info: TypeInfo | null
     const p = info.planform(code, ref);
     if (!p) drawn.set(code, null);
     else {
-      const parts = planformParts(p);
-      drawn.set(code, { path: planformPath(parts), extent: extentOf(parts), checked: p.checked });
+      const { still, moving } = planformLayers(p);
+      const parts = [...still, ...moving.flatMap((m) => m.parts)];
+      const moves = moving.map(({ parts, ...how }) => ({ ...how, path: planformPath(parts) }));
+      drawn.set(code, { path: planformPath(parts), still: planformPath(still), moving: moves, extent: extentOf(parts), checked: p.checked });
     }
   }
   return drawn.get(code)!;
+}
+
+/** No moving parts. */
+const NONE: TypeMove[] = [];
+
+/** A drawing's outline: one path, or its still parts and each moving part on its own, for `useTypeMotion` to move. */
+export function DrawingShape({ d, className }: { d: Drawn; className?: string }) {
+  if (!d.moving.length) return <path className={className} d={d.path} fillRule="nonzero" />;
+  return (
+    <>
+      <path className={className} d={d.still} fillRule="nonzero" />
+      {d.moving.map((m, i) => (
+        <path key={i} className={className} d={m.path} fillRule="nonzero" data-moving="" />
+      ))}
+    </>
+  );
 }
 
 export function Silhouette({ code, size, scale, className = "", label }: { code: string | null | undefined; size?: number; scale?: number; className?: string; label?: string }) {
   const { app } = useApp();
   const info = useTypeInfo();
   const d = useMemo(() => drawingOf(code, info, app.ref), [code, info, app.ref]);
+  const svg = useRef<SVGSVGElement>(null);
+  useTypeMotion(svg, d?.moving ?? NONE);
   if (!d) return size ? <span className={`silhouette silhouette--empty ${className}`} style={{ width: size, height: size }} aria-hidden="true" /> : null;
   const [x0, y0, x1, y1] = d.extent;
   const w = x1 - x0;
@@ -53,8 +75,8 @@ export function Silhouette({ code, size, scale, className = "", label }: { code:
   const width = size ?? w * (scale ?? 4);
   const height = size ?? h * (scale ?? 4);
   return (
-    <svg className={`silhouette ${className}`} viewBox={view} width={width} height={height} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
-      <path d={d.path} fillRule="nonzero" />
+    <svg ref={svg} className={`silhouette ${className}`} viewBox={view} width={width} height={height} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
+      <DrawingShape d={d} />
     </svg>
   );
 }

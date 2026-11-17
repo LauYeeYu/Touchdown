@@ -1,7 +1,7 @@
 // Motion that keeps a change from jarring (DESIGN.md, "Motion"): only where the change would otherwise jump, short, and
 // never in the way. With reduced motion, everything here is instant.
 
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
 const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -69,4 +69,89 @@ export function useGrow<T extends HTMLElement>(key: unknown) {
     before.current = new Set(rowsOf(box));
   });
   return ref;
+}
+
+/** A moving part of a type's drawing, as drawn (components/Silhouette.tsx, lib/silhouette.ts `Moving`). */
+export type TypeMove = { kind: "rotor"; path: string; at: [number, number]; dir: 1 | -1 } | { kind: "swing"; path: string; at: [number, number]; angle: number } | { kind: "stow"; path: string };
+
+/** A rotor at speed, degrees a second: a turn in about 0.9 seconds, which the eye can still follow. */
+const ROTOR_SPEED = 400;
+/**
+ * How quickly each part answers, as an exponential's time constant in seconds: a rotor spins up in about a second and
+ * coasts to a stop in about two and a half, a swing wing sweeps back in about half a second, as the one easing does, and
+ * spreads again a little quicker, and foreplanes fold away in a third of a second.
+ */
+const TIMES = { rotorUp: 0.35, rotorDown: 0.6, swingIn: 0.16, swingOut: 0.12, stow: 0.1 };
+
+/**
+ * A type's moving parts doing what they do while it is hovered or has the keyboard's focus (DESIGN.md, "Motion"): its
+ * rotors spin up and coast down, a swing wing sweeps back to its swept angle and spreads again, foreplanes fold into the
+ * fuselage. The hover is on what holds the drawing: its row or card, its link or its figure. Each moving part is a path
+ * of `svg` marked `data-moving`, in the order of `moves`. Nothing moves for reduced motion.
+ */
+export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeMove[]) {
+  useEffect(() => {
+    const el = svg.current;
+    if (!el || !moves.length || still()) return;
+    const host = el.closest<HTMLElement | SVGElement>("a, tr, .card, figure") ?? el;
+    const paths = [...el.querySelectorAll<SVGPathElement>("[data-moving]")];
+    const about = (at: [number, number]) => `${+at[0].toFixed(3)} ${+at[1].toFixed(3)}`;
+    // Each part's state: a rotor's angle and speed, or how far a wing or foreplane has gone, 0 to 1.
+    const state = moves.map(() => ({ angle: 0, speed: 0, done: 0 }));
+    let on = false;
+    let frame = 0;
+    let last = 0;
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const ease = (tau: number) => 1 - Math.exp(-dt / tau);
+      let moving = false;
+      moves.forEach((m, i) => {
+        const s = state[i]!;
+        const path = paths[i];
+        if (!path) return;
+        if (m.kind === "rotor") {
+          s.speed += ((on ? ROTOR_SPEED : 0) - s.speed) * ease(on ? TIMES.rotorUp : TIMES.rotorDown);
+          if (!on && s.speed < 6) s.speed = 0;
+          s.angle = (s.angle + s.speed * m.dir * dt) % 360;
+          if (s.speed) moving = true;
+          path.setAttribute("transform", `rotate(${s.angle.toFixed(2)} ${about(m.at)})`);
+          return;
+        }
+        const target = on ? 1 : 0;
+        s.done += (target - s.done) * ease(m.kind === "stow" ? TIMES.stow : on ? TIMES.swingIn : TIMES.swingOut);
+        if (Math.abs(target - s.done) < 0.002) s.done = target;
+        else moving = true;
+        if (!s.done) path.removeAttribute("transform");
+        else if (m.kind === "swing") path.setAttribute("transform", `rotate(${(m.angle * s.done).toFixed(2)} ${about(m.at)})`);
+        // Folded in across the fuselage's centreline, at x = 0.
+        else path.setAttribute("transform", `scale(${Math.max(0.001, 1 - s.done).toFixed(3)} 1)`);
+      });
+      frame = moving ? requestAnimationFrame(step) : 0;
+    };
+    const run = (next: boolean) => {
+      on = next;
+      if (!frame) {
+        last = performance.now();
+        frame = requestAnimationFrame(step);
+      }
+    };
+    const enter = () => run(true);
+    const leave = () => run(false);
+    // Focus within the host, as a link in a row or a card has it; leaving it for another part of the host is not leaving.
+    const blur = (e: Event) => {
+      if (!host.contains((e as FocusEvent).relatedTarget as Node | null)) leave();
+    };
+    host.addEventListener("pointerenter", enter);
+    host.addEventListener("pointerleave", leave);
+    host.addEventListener("focusin", enter);
+    host.addEventListener("focusout", blur);
+    return () => {
+      cancelAnimationFrame(frame);
+      host.removeEventListener("pointerenter", enter);
+      host.removeEventListener("pointerleave", leave);
+      host.removeEventListener("focusin", enter);
+      host.removeEventListener("focusout", blur);
+    };
+  }, [svg, moves]);
 }

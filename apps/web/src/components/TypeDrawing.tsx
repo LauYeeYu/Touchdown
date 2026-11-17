@@ -1,11 +1,14 @@
 // A type's silhouette as a measured drawing (docs/31-ui.md, "Aircraft types"): seen from above on its panel, its span
 // marked across the top and its length down the side as a drawing office would, with a scale bar. A dimension is marked
 // only where the type's own figures give it, not one drawn with a sibling's (docs/13, "Silhouettes"). The words keep
-// their size whatever the aircraft's, sized from the drawing's width on the screen.
+// their size whatever the aircraft's, sized from the drawing's width on the screen. Hovered, its moving parts move
+// (lib/motion.ts): the dimensions stay those of its figures.
 
 import { useEffect, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
 import { metres } from "../lib/typeFigures.ts";
+import { useTypeMotion } from "../lib/motion.ts";
+import { DrawingShape, type Drawn } from "./Silhouette.tsx";
 
 /** A round length for the scale bar: about a fifth of the drawing's width. */
 function barLength(width: number): number {
@@ -14,8 +17,9 @@ function barLength(width: number): number {
   return steps.reduce((best, s) => (Math.abs(s - target) < Math.abs(best - target) ? s : best), steps[0]!);
 }
 
-export function TypeDrawing({ path, extent, length, span, rotor, label }: { path: string; extent: [number, number, number, number]; length: number | null; span: number | null; rotor: boolean; label: string }) {
+export function TypeDrawing({ drawing, length, span, rotor, label }: { drawing: Drawn; length: number | null; span: number | null; rotor: boolean; label: string }) {
   const box = useRef<SVGSVGElement>(null);
+  useTypeMotion(box, drawing.moving);
   // The drawing's size on the screen: it is fitted into its box by width or by height, whichever is tighter.
   const [shown, setShown] = useState<[number, number]>([600, 400]);
   useEffect(() => {
@@ -28,7 +32,7 @@ export function TypeDrawing({ path, extent, length, span, rotor, label }: { path
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const [x0, y0, x1, y1] = extent;
+  const [x0, y0, x1, y1] = drawing.extent;
   const w = x1 - x0;
   const h = y1 - y0;
   // Room around the drawing for the dimension lines and their words, in metres.
@@ -43,7 +47,7 @@ export function TypeDrawing({ path, extent, length, span, rotor, label }: { path
   const barY = y1 + room * 0.55;
   return (
     <svg ref={box} className="type-drawing" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} role="img" aria-label={label}>
-      <path className="type-drawing__shape" d={path} fillRule="nonzero" />
+      <DrawingShape d={drawing} className="type-drawing__shape" />
       <g className="type-drawing__dims" strokeWidth={1.25 * u}>
         {/* The span across the top, from tip to tip. */}
         {span !== null && (

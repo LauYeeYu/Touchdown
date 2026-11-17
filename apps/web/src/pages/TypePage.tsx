@@ -86,7 +86,7 @@ export function TypePage() {
 
       {drawing && planform && (
         <figure className="type-page__drawing">
-          <TypeDrawing path={drawing.path} extent={drawing.extent} length={specs?.lengthM ?? null} span={specs?.spanM ?? null} rotor={rotor} label={t("aircraft.types.drawing.label", { name })} />
+          <TypeDrawing drawing={drawing} length={specs?.lengthM ?? null} span={specs?.spanM ?? null} rotor={rotor} label={t("aircraft.types.drawing.label", { name })} />
         </figure>
       )}
 
