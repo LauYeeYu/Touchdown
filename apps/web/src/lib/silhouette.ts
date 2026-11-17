@@ -19,7 +19,23 @@ export interface Planform {
 
 export type Shape = SilhouetteShape;
 
-type Pt = [number, number];
+export type Pt = [number, number];
+
+/**
+ * A part of a drawing that moves when its type is hovered (components/Silhouette.tsx): a rotor turning about its mast
+ * (`dir` 1 clockwise from above, -1 the other way), a swing wing's outer panel pivoting back by `angle` degrees about
+ * `at`, or foreplanes folding into the fuselage (`stow`).
+ */
+export type Moving =
+  | { kind: "rotor"; parts: Pt[][]; at: Pt; dir: 1 | -1 }
+  | { kind: "swing"; parts: Pt[][]; at: Pt; angle: number }
+  | { kind: "stow"; parts: Pt[][] };
+
+/** What a moving part does, without its outlines. */
+type How = { [K in Moving["kind"]]: Omit<Extract<Moving, { kind: K }>, "parts"> }[Moving["kind"]];
+
+/** Where in the list of parts a moving one is. */
+type Mark = { from: number; to: number } & How;
 
 const RAD = Math.PI / 180;
 
@@ -53,6 +69,21 @@ function capsule(cx: number, y0: number, y1: number, halfWidth: number): Pt[] {
     const a = (Math.PI * i) / 8;
     out.push([cx + r * Math.cos(a), y1 - r + r * Math.sin(a)]);
   }
+  return out;
+}
+
+/** How far a swing wing's pivot is from the glove's corner, in the chord there (planformLayers). */
+const SWING_PIVOT = 0.6;
+
+/** The part of an outline on one side of the line x = `x0`: `side` 1 to its right, -1 to its left. */
+function clipX(points: Pt[], x0: number, side: 1 | -1): Pt[] {
+  const inside = ([x]: Pt) => (x - x0) * side >= 0;
+  const out: Pt[] = [];
+  points.forEach((a, i) => {
+    const b = points[(i + 1) % points.length]!;
+    if (inside(a)) out.push(a);
+    if (inside(a) !== inside(b)) out.push([x0, a[1] + ((x0 - a[0]) / (b[0] - a[0])) * (b[1] - a[1])]);
+  });
   return out;
 }
 
@@ -157,8 +188,8 @@ function wing(p: Planform, span: number, sweepDeg: number, rootAt: number, rootC
   ];
   const te: Pt[] = [[half, tipLe + tipChord]];
   // Airliners' trailing edges run straight out from the root to a kink, then follow the leading edge's line. A delta's,
-  // without a tailplane, runs straight across.
-  if (p.shape.kind === "jet" && sweepDeg > 15 && p.shape.stab.span > 0) {
+  // without a tailplane, runs straight across, and so does a swing wing's, whose outer panel turns under its glove.
+  if (p.shape.kind === "jet" && sweepDeg > 15 && p.shape.stab.span > 0 && !p.shape.wing.glove) {
     const kinkAt = root + reach * 0.32;
     const leAtKink = rootAt + (tipLe - rootAt) * ((kinkAt - 0) / half);
     const chordAtKink = rootChord + (tipChord - rootChord) * ((kinkAt - root) / reach) * 0.85;
@@ -202,24 +233,33 @@ function tailplane(p: Planform): Pt[] | null {
   ]);
 }
 
-/** The outlines a type is drawn with: fuselage, wings, tailplane, engines, propellers or rotor. */
-export function planformParts(p: Planform): Pt[][] {
+/** The outlines a type is drawn with, and which of them move when it is hovered. */
+function build(p: Planform): { parts: Pt[][]; moving: Mark[] } {
   const s = p.shape;
   const parts: Pt[][] = [clockwise(fuselage(p))];
+  const moving: Mark[] = [];
+  /** The parts `draw` adds, marked as moving as `how` says. */
+  const moves = (how: How, draw: () => void) => {
+    const from = parts.length;
+    draw();
+    moving.push({ ...how, from, to: parts.length });
+  };
   if (s.kind === "helicopter") {
     const r = p.span / 2;
     const blades = s.blades ?? 2;
     const chord = r * 0.028;
-    // A rotor as its blades from the mast, as wide as a blade is for its length, turned by `turn`.
-    const rotor = (x: number, y: number, turn: number) => {
-      for (let i = 0; i < blades; i++) {
-        const a = (2 * Math.PI * i) / blades + Math.PI / 4 + turn;
-        const along: Pt = [Math.cos(a), Math.sin(a)];
-        const across: Pt = [-along[1] * chord, along[0] * chord];
-        parts.push(clockwise([[x + across[0], y + across[1]], [x + along[0] * r + across[0], y + along[1] * r + across[1]], [x + along[0] * r - across[0], y + along[1] * r - across[1]], [x - across[0], y - across[1]]]));
-      }
-      parts.push(clockwise(ellipse(x, y, p.width * 0.32, p.width * 0.32)));
-    };
+    // A rotor as its blades from the mast, as wide as a blade is for its length, turned by `turn`, and the way it turns:
+    // anticlockwise from above for one rotor, as most do, and two rotors each the other way.
+    const rotor = (x: number, y: number, turn: number, dir: 1 | -1) =>
+      moves({ kind: "rotor", at: [x, y], dir }, () => {
+        for (let i = 0; i < blades; i++) {
+          const a = (2 * Math.PI * i) / blades + Math.PI / 4 + turn;
+          const along: Pt = [Math.cos(a), Math.sin(a)];
+          const across: Pt = [-along[1] * chord, along[0] * chord];
+          parts.push(clockwise([[x + across[0], y + across[1]], [x + along[0] * r + across[0], y + along[1] * r + across[1]], [x + along[0] * r - across[0], y + along[1] * r - across[1]], [x - across[0], y - across[1]]]));
+        }
+        parts.push(clockwise(ellipse(x, y, p.width * 0.32, p.width * 0.32)));
+      });
     if (s.rotors === "tandem") {
       // A rotor over each end, the fuselage between them reaching a little past each mast; no tail rotor or stabiliser.
       const front = r;
@@ -228,20 +268,20 @@ export function planformParts(p: Planform): Pt[][] {
       const body = fuselage({ ...p, length: back - front + 2 * reach, shape: { ...s, boom: 0, nose: s.nose ?? 0.8, tail: s.tail ?? 0.6 } }).map(([x, y]) => [x, y + front - reach] as Pt);
       parts[0] = clockwise(body);
       // Each rotor with a blade along the centreline, the front one's forward and the rear one's back.
-      rotor(0, front, -Math.PI / 2 - Math.PI / 4);
-      rotor(0, back, Math.PI / 2 - Math.PI / 4);
-      return parts;
+      rotor(0, front, -Math.PI / 2 - Math.PI / 4, -1);
+      rotor(0, back, Math.PI / 2 - Math.PI / 4, 1);
+      return { parts, moving };
     }
     const mastY = p.length * (s.gyro ? 0.36 : 0.3);
     if (s.rotors === "coaxial") {
       // Two rotors on one mast, the upper one's blades between the lower one's.
-      rotor(0, mastY, 0);
-      rotor(0, mastY, Math.PI / blades);
+      rotor(0, mastY, 0, -1);
+      rotor(0, mastY, Math.PI / blades, 1);
     } else if (s.rotors === "intermeshing") {
       // Two rotors on masts side by side, each leaning out, their blades meshing.
-      rotor(-p.span * 0.03, mastY, 0);
-      rotor(p.span * 0.03, mastY, Math.PI / 2);
-    } else rotor(0, mastY, 0);
+      rotor(-p.span * 0.03, mastY, 0, 1);
+      rotor(p.span * 0.03, mastY, Math.PI / 2, -1);
+    } else rotor(0, mastY, 0, -1);
     // A small stabiliser across the boom, where the shape puts it.
     const stabHalf = p.span * 0.12;
     const sy = p.length * Math.min(s.stab.at, 0.92);
@@ -251,9 +291,9 @@ export function planformParts(p: Planform): Pt[][] {
       const d = s.prop ?? p.span * 0.2;
       const y = p.length * (1 - (s.boom ?? 0.45)) + p.width * 0.1;
       parts.push(clockwise([[-d / 2, y], [d / 2, y], [d / 2, y + 0.16], [-d / 2, y + 0.16]]));
-      return parts;
+      return { parts, moving };
     }
-    if (s.rotors) return parts;
+    if (s.rotors) return { parts, moving };
     if (s.fenestron) {
       // The shrouded fan in the fin at the end: from above, the fin thickened over the fan's diameter.
       const d = p.span * 0.11;
@@ -264,18 +304,36 @@ export function planformParts(p: Planform): Pt[][] {
       const x = -(fuselageHalf(p, p.length * 0.95) + d * 0.06);
       parts.push(clockwise(capsule(x, p.length - d * 1.05, p.length - d * 0.05, Math.max(0.05, d * 0.04))));
     }
-    return parts;
+    return { parts, moving };
   }
   const wingRootAt = p.length * s.wing.at;
   const rootChord = p.length * s.wing.root;
   const half = p.span / 2;
   const tipChord = rootChord * s.wing.tip;
   const right = wing(p, p.span, p.sweep, wingRootAt, rootChord, s.wing.tip, s.wing.device ?? null);
-  parts.push(right, clockwise(mirror(right)));
   const tipLe = tipLeading(p, wingRootAt, rootChord, tipChord, half, p.sweep);
   // Where the leading and trailing edges are at `x` metres out (straight lines from the root to the tip).
   const leAt = (x: number) => wingRootAt + (tipLe - wingRootAt) * (x / half);
   const teAt = (x: number) => wingRootAt + rootChord + (tipLe + tipChord - wingRootAt - rootChord) * (x / half);
+  if (s.wing.glove && s.wing.swept) {
+    // A swing wing: the outer panel turns about a pivot inside the glove, where swept back its leading edge starts at the
+    // glove's corner and runs on from the glove's own, as the aircraft's does. Any pivot on the line that halves the
+    // angle between the leading edge spread and swept does that. Along it, `SWING_PIVOT` of the chord from the corner,
+    // the panel swept back reaches the spans the Tu-160's and the Tu-22M's articles state (silhouette.test.ts). The panel
+    // reaches in under the glove as far as the turn brings to the corner, so it fills the glove's edge at every angle.
+    const gx = half * s.wing.glove.reach;
+    const corner: Pt = [gx, leAt(gx)];
+    const r = (teAt(gx) - leAt(gx)) * SWING_PIVOT;
+    const spread = Math.atan2(tipLe - wingRootAt, half);
+    const angle = s.wing.swept - p.sweep;
+    const mid = spread + (angle * RAD) / 2;
+    const at: Pt = [gx - r * Math.sin(mid), corner[1] + r * Math.cos(mid)];
+    const inner = clipX(right, gx, -1);
+    const outer = clipX(right, gx - 2 * r * Math.sin((angle * RAD) / 2) * Math.cos(spread), 1);
+    parts.push(clockwise(inner), clockwise(mirror(inner)));
+    moves({ kind: "swing", at, angle }, () => parts.push(clockwise(outer)));
+    moves({ kind: "swing", at: [-at[0], at[1]], angle: -angle }, () => parts.push(clockwise(mirror(outer))));
+  } else parts.push(right, clockwise(mirror(right)));
   if (s.wing.tipTanks) {
     // A fuel tank on each tip, longer than the tip's chord and reaching ahead of it.
     const length = tipChord * 2.4;
@@ -295,7 +353,9 @@ export function planformParts(p: Planform): Pt[][] {
     const cy = p.length * s.canard.at;
     const ch = s.canard.chord ? p.length * s.canard.chord : p.span * s.canard.span * 0.13;
     const fore: Pt[] = s.canard.chord ? [[0, cy], [cx, cy + ch * 0.75], [cx, cy + ch * 0.95], [0, cy + ch]] : [[0, cy], [cx, cy + ch * 0.15], [cx, cy + ch * 0.85], [0, cy + ch]];
-    parts.push(clockwise(fore), clockwise(mirror(fore)));
+    const add = () => parts.push(clockwise(fore), clockwise(mirror(fore)));
+    if (s.canard.retracts) moves({ kind: "stow" }, add);
+    else add();
   }
   if (s.wing.pods) {
     // A landing gear fairing under each wing, from mid-chord to well past the trailing edge, narrowing to a point.
@@ -380,7 +440,22 @@ export function planformParts(p: Planform): Pt[][] {
     const d = s.prop ?? 1.9;
     parts.push(clockwise([[-d / 2, -0.05], [d / 2, -0.05], [d / 2, 0.12], [-d / 2, 0.12]]));
   }
-  return parts;
+  return { parts, moving };
+}
+
+/** The outlines a type is drawn with: fuselage, wings, tailplane, engines, propellers or rotor. */
+export function planformParts(p: Planform): Pt[][] {
+  return build(p).parts;
+}
+
+/** The outlines that stay still when the type is hovered, and those that move. */
+export function planformLayers(p: Planform): { still: Pt[][]; moving: Moving[] } {
+  const { parts, moving } = build(p);
+  const taken = new Set(moving.flatMap((m) => Array.from({ length: m.to - m.from }, (_, i) => m.from + i)));
+  return {
+    still: parts.filter((_, i) => !taken.has(i)),
+    moving: moving.map(({ from, to, ...how }) => ({ ...how, parts: parts.slice(from, to) })),
+  };
 }
 
 /** The parts' extent: [minX, minY, maxX, maxY]. */

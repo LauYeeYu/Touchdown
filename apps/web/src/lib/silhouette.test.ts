@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { extentOf, planformParts, planformPath, type Planform, type Shape } from "./silhouette.ts";
+import { RefIndex } from "@touchdown/core";
+import { loadRefTables } from "@touchdown/refdata";
+import { extentOf, planformLayers, planformParts, planformPath, type Planform, type Pt, type Shape } from "./silhouette.ts";
+import { loadTypeInfo } from "./typeInfo.ts";
 
 // Made-up airliners, in metres: a long narrow twin and a broad four-engined one.
 const twin: Shape = { kind: "jet", wing: { at: 0.37, root: 0.16, tip: 0.24 }, engines: { wing: [0.34] }, stab: { span: 0.34, at: 0.86, sweep: 30 } };
@@ -40,5 +43,54 @@ describe("a type seen from above", () => {
     const [bx0, , bx1, by1] = extentOf(planformParts(broad));
     expect((lx1 - lx0) / ly1).toBeLessThan(1);
     expect((bx1 - bx0) / by1).toBeGreaterThan(1);
+  });
+});
+
+describe("what moves when a type is hovered", () => {
+  const helicopter: Shape = { kind: "helicopter", nose: 1.1, tail: 1, boom: 0.45, wing: { at: 0, root: 0, tip: 0 }, stab: { span: 0, at: 0.9, sweep: 0 }, blades: 4 };
+  const heli: Planform = { length: 16, span: 14, width: 2.2, sweep: 0, shape: helicopter };
+
+  it("keeps every part, the moving ones apart from the still ones", () => {
+    for (const p of [long, heli, { ...heli, shape: { ...helicopter, rotors: "tandem" as const } }]) {
+      const { still, moving } = planformLayers(p);
+      expect(still.length + moving.reduce((n, m) => n + m.parts.length, 0)).toBe(planformParts(p).length);
+    }
+    expect(planformLayers(long).moving).toEqual([]);
+  });
+
+  it("turns a rotor about its mast, and two rotors each the other way", () => {
+    const one = planformLayers(heli).moving;
+    expect(one.map((m) => m.kind)).toEqual(["rotor"]);
+    // Its blades and hub, all round the mast.
+    const rotor = one[0]!;
+    if (rotor.kind !== "rotor") throw new Error("not a rotor");
+    for (const [x, y] of rotor.parts.flat()) expect(Math.hypot(x - rotor.at[0], y - rotor.at[1])).toBeLessThanOrEqual(heli.span / 2 + 0.01);
+    for (const rotors of ["tandem", "coaxial", "intermeshing"] as const) {
+      const two = planformLayers({ ...heli, shape: { ...helicopter, rotors } }).moving;
+      expect(two.map((m) => (m.kind === "rotor" ? m.dir : 0)).sort()).toEqual([-1, 1]);
+    }
+  });
+
+  it("sweeps a swing wing back to the span its article states, its leading edge starting at the glove's corner", async () => {
+    const ref = new RefIndex(loadRefTables());
+    const info = await loadTypeInfo();
+    const turn = ([x, y]: Pt, [cx, cy]: Pt, deg: number): Pt => {
+      const a = (deg * Math.PI) / 180;
+      return [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)];
+    };
+    // Tupolev Tu-160: "35.6 m wings swept (65°)". Tupolev Tu-22M: "23.3 m swept (65° sweep)".
+    for (const [code, swept] of [["T160", 35.6], ["T22M", 23.3]] as const) {
+      const { still, moving } = planformLayers(info.planform(code, ref)!);
+      expect(moving.map((m) => m.kind)).toEqual(["swing", "swing"]);
+      const parts = [...still, ...moving.flatMap((m) => (m.kind === "swing" ? m.parts.map((part) => part.map((pt) => turn(pt, m.at, m.angle))) : []))];
+      const [x0, , x1] = extentOf(parts);
+      expect(Math.abs((x1 - x0) / swept - 1), code).toBeLessThan(0.01);
+      // The right panel's root, at the front, lands on a corner of the still parts: the glove's.
+      const right = moving.find((m) => m.kind === "swing" && m.angle > 0)!;
+      if (right.kind !== "swing") throw new Error("not a swing wing");
+      const front = right.parts[0]!.reduce((a, b) => (b[0] < a[0] - 1e-9 || (Math.abs(b[0] - a[0]) < 1e-9 && b[1] < a[1]) ? b : a));
+      const [fx, fy] = turn(front, right.at, right.angle);
+      expect(Math.min(...still.flat().map(([x, y]) => Math.hypot(x - fx, y - fy))), code).toBeLessThan(0.01);
+    }
   });
 });

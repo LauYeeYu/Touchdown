@@ -349,11 +349,15 @@ export const typeShapes: Record<string, FamilyShape> = {
   // Tupolev
   T134: own(with_(REAR, { tail: 3, fairing: { width: 0.3, length: 1.5 }, sweep: 35, wingAlso: { at: 0.37, root: 0.19, tip: 0.3, pods: 0.33 }, engines: { rear: 2, at: 0.735, long: 2 }, stabAlso: { span: 0.4, at: 0.88, sweep: 40, beyond: true } })),
   // Canards behind the cockpit, its engines in two boxes under the wing, their nozzles just past it.
-  T144: own({ kind: "jet", nose: 5, tail: 4.4, width: 3.4, wing: { at: 0.343, root: 0.49, tip: 0.12, ogee: true, crank: [0.33, 0.53] }, engines: { wing: [0.23], over: true, past: 0.08, size: 1.7 }, canard: { at: 0.155, span: 0.36 }, stab: { span: 0, at: 0.9, sweep: 0 } }),
+  // Tupolev Tu-144: "two small retractable surfaces called a moustache canard", "fitted just behind the cockpit".
+  T144: own({ kind: "jet", nose: 5, tail: 4.4, width: 3.4, wing: { at: 0.343, root: 0.49, tip: 0.12, ogee: true, crank: [0.33, 0.53] }, engines: { wing: [0.23], over: true, past: 0.08, size: 1.7 }, canard: { at: 0.155, span: 0.36, retracts: true }, stab: { span: 0, at: 0.9, sweep: 0 } }),
   // Drawn with its wings spread, its engines in pairs under the glove.
-  T160: own({ kind: "jet", nose: 3, tail: 3, width: 3, wing: { at: 0.42, root: 0.12, tip: 0.35, glove: { at: 0.18, reach: 0.31 } }, engines: { rear: 4, at: 0.635, long: 2.1, apart: 1.23, size: 0.82 }, stab: { span: 0.24, at: 0.86, sweep: 45, root: 0.12 } }),
+  // Swept back, Tupolev Tu-160, specifications: "35.6 m wings swept (65°)".
+  T160: own({ kind: "jet", nose: 3, tail: 3, width: 3, wing: { at: 0.42, root: 0.12, tip: 0.35, glove: { at: 0.18, reach: 0.31 }, swept: 65 }, engines: { rear: 4, at: 0.635, long: 2.1, apart: 1.23, size: 0.82 }, stab: { span: 0.24, at: 0.86, sweep: 45, root: 0.12 } }),
   // Drawn with its wings spread, its engines inside the fuselage behind wide intakes.
-  T22M: own({ kind: "jet", nose: 3, tail: 2, width: 4.4, wing: { at: 0.47, root: 0.2, tip: 0.4, glove: { at: 0.3, reach: 0.27 } }, stab: { span: 0.32, at: 0.83, sweep: 55, root: 0.16 } }),
+  // Swept back, Tupolev Tu-22M, specifications: "23.3 m swept (65° sweep)". Its glove reaches as far out as that and the
+  // spread span put the pivot.
+  T22M: own({ kind: "jet", nose: 3, tail: 2, width: 4.4, wing: { at: 0.47, root: 0.2, tip: 0.4, glove: { at: 0.3, reach: 0.36 }, swept: 65 }, stab: { span: 0.32, at: 0.83, sweep: 55, root: 0.16 } }),
   T334: own(with_(REAR, { sweep: 20, wingAlso: { at: 0.38, root: 0.17, tip: 0.35, device: "winglet" }, engines: { rear: 2, at: 0.75, size: 1 }, stabAlso: { span: 0.38, at: 0.86, sweep: 35 } })),
   // Its engines in the wing roots, beside the fuselage, and its landing gear in fairings behind the wing.
   TU16: own({ kind: "jet", nose: 2.5, tail: 3, sweep: 35, wing: { at: 0.31, root: 0.2, tip: 0.35, pods: 0.4 }, engines: { rear: 2, at: 0.41, long: 3.6, size: 0.7 }, stab: { span: 0.33, at: 0.84, sweep: 42, root: 0.1 } }),

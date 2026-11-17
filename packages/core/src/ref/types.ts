@@ -168,7 +168,9 @@ export interface SilhouetteShape {
    * straight to the crank at that fraction of the reach and of the way back to the tip, then straight to the tip.
    * `pods`: the main landing gear's fairings at that fraction of the half-span, reaching back past the trailing edge (a
    * Tu-154's). `glove`: a swing wing's fixed glove (a Tu-160's), from the fuselage at `at` of the length out to the
-   * leading edge at `reach` of the half-span.
+   * leading edge at `reach` of the half-span. `swept`: a swing wing's sweep in degrees when swept back, its outer panel
+   * turning under the glove, swept back its leading edge starting at the glove's corner; it is drawn spread, and a hover
+   * sweeps it (components/Silhouette.tsx).
    */
   wing: {
     at: number;
@@ -180,6 +182,7 @@ export interface SilhouetteShape {
     crank?: [number, number];
     pods?: number;
     glove?: { at: number; reach: number };
+    swept?: number;
   };
   /**
    * Engines on the wing at fractions of the half-span, `ahead` of their length ahead of the leading edge (0.7 unless
@@ -196,9 +199,10 @@ export interface SilhouetteShape {
   engines?: { wing?: number[]; ahead?: number; over?: boolean; past?: number; rear?: 2 | 3 | 4; at?: number; long?: number; apart?: number; fin?: boolean; top?: boolean; nose?: boolean; paired?: boolean; size?: number };
   /**
    * Foreplanes behind the cockpit (a Tu-144's): along the length, and their span (of the wingspan). `chord`: their root's
-   * chord (of the length), for a fighter's small swept delta, its leading edge swept back.
+   * chord (of the length), for a fighter's small swept delta, its leading edge swept back. `retracts`: they fold into the
+   * fuselage for cruise, as a hover shows.
    */
-  canard?: { at: number; span: number; chord?: number };
+  canard?: { at: number; span: number; chord?: number; retracts?: boolean };
   /** A radar dome over the fuselage (an E-3's): its centre along the length, and its diameter in metres. */
   radome?: { at: number; diameter: number };
   /**
