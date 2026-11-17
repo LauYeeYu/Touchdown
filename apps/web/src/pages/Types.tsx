@@ -12,6 +12,7 @@ import { headline } from "../lib/i18n.tsx";
 import { useVisitor } from "../lib/visitor.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useApp } from "../data/context.tsx";
+import { useViewState } from "../lib/viewState.ts";
 import { fold, slugOf, useTypeCounts, useTypeEntries, type TypeEntry, type TypeManufacturer } from "../lib/typeEntries.ts";
 import { Select } from "../components/Select.tsx";
 import { Silhouette } from "../components/Silhouette.tsx";
@@ -62,11 +63,12 @@ export function Types() {
   const counts = useTypeCounts();
   // A visitor who is not signed in has no log: every type, and no counts.
   const visitor = useVisitor();
-  const [q, setQ] = useState("");
+  // Kept with the visit, so Back from a type's page shows the list as it was left (docs/31, "Going back").
+  const [q, setQ] = useViewState("q", "");
   // Every type to start with: "In your log" narrows it.
-  const [show, setShow] = useState<"log" | "all">("all");
-  const [role, setRole] = useState<TypeRole | "all">("all");
-  const [view, setView] = useState<"manufacturers" | "list">("manufacturers");
+  const [show, setShow] = useViewState<"log" | "all">("show", "all");
+  const [role, setRole] = useViewState<TypeRole | "all">("role", "all");
+  const [view, setView] = useViewState<"manufacturers" | "list">("view", "manufacturers");
 
   const needle = fold(q.trim());
   const shown = useMemo(

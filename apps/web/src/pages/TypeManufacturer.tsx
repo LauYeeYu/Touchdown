@@ -2,7 +2,6 @@
 // types without one, by name with numbers in order (so a family's variants without one sit beside it), each with the year
 // it first flew, and the roles among them to narrow the list.
 
-import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import type { TypeRole } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
@@ -10,6 +9,7 @@ import { Link } from "../lib/link.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { headline } from "../lib/i18n.tsx";
 import { useVisitor } from "../lib/visitor.ts";
+import { useViewState } from "../lib/viewState.ts";
 import { useTypeCounts, useTypeEntries } from "../lib/typeEntries.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useApp } from "../data/context.tsx";
@@ -24,7 +24,8 @@ export function TypeManufacturer() {
   const visitor = useVisitor();
   const { app } = useApp();
   const info = useTypeInfo();
-  const [role, setRole] = useState<TypeRole | "all">("all");
+  // Kept with the visit, so Back from a type's page shows the role chosen (docs/31, "Going back").
+  const [role, setRole] = useViewState<TypeRole | "all">("role", "all");
   const manufacturer = manufacturers.find((m) => m.slug === slug);
   if (!manufacturer) return <NotFound />;
 
