@@ -38,10 +38,11 @@ const CARD_TYPES: Record<string, string[]> = {
   airbus: ["A320", "A333", "A388"],
   boeing: ["B744", "B752", "B763"],
   embraer: ["E75L", "E145", "E195"],
-  ilyushin: ["IL62", "IL86", "IL96"],
+  ilyushin: ["IL14", "IL62", "IL96"],
+  lockheed: ["SR71", "L101", "C5"],
   // The DC-8 is Douglas's, from before the merger.
   "mcdonnell-douglas": ["DC86", "DC93", "DC10"],
-  tupolev: ["T134", "T144", "T154"],
+  tupolev: ["T144", "T154", "T204"],
 };
 /** Rows added each time the list's end comes into view. */
 const STEP = 200;
