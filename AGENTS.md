@@ -29,6 +29,10 @@ When a feature is added or changed, check whether Getting started (`/guide`, `ap
 - Mark each design statement as Decided, Proposed, or Open when it matters.
 - When something is uncertain, ask the user instead of guessing. Add it to `docs/90-open-questions.md` if it cannot be answered right away.
 
+## Interface checks
+
+- After adding or moving an icon, a silhouette, an emoji or a dot beside words, look at the rendered page in English and in Chinese (`en-GB`, `zh-CN`), at a desktop's width and a phone's, and check that each sits where it should vertically. Icons, emojis and Chinese characters have heights and baselines of their own, so a row lined up by baseline, or a box centred on it, can move: a cell whose first item is an SVG takes the SVG's bottom edge as its baseline, and the row's other words line up there.
+
 ## Commits
 
 - Break the changes into several commits, one change each.
