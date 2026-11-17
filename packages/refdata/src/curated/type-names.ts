@@ -276,3 +276,11 @@ export const typeNames: Record<string, string> = {
   S92: "S-92",
   H60: "H-60 Black Hawk",
 };
+
+/**
+ * A type's original manufacturer where licence builders tie with it in VRS or outnumber it, and no curated family
+ * names it: its name and model name are taken from its rows.
+ */
+export const typeMakers: Record<string, string> = {
+  IL14: "Ilyushin", // also built by Avia (Av-14) and VEB
+};

@@ -1,6 +1,6 @@
 {
   "table": "type_wikidata",
-  "version": "2026-11-15",
+  "version": "2026-11-17",
   "sources": [
     "Wikidata (wikidata.org), CC0"
   ],
@@ -690,6 +690,7 @@
 ["IA58","Q212172",2518138537,"IA 58 Pucará","military",14.25,14.5,5.36,null,null,430,null,"2 × Astazou","1969-08-20","1974-08-09",160],
 ["IA63","Q175445",2469151469,"FMA IA-63 Pampa","military",10.93,9.69,null,null,null,null,null,null,"1984-10-06","1988",33],
 ["IFUR","Q16995111",2009599938,"Isaacs Fury",null,null,null,null,null,null,null,null,null,"1963",null,null],
+["IL14","Q275031",2559861768,"Ilyushin Il-14","military",22.3,31.7,7.8,null,null,null,36,"2 × ASh-82T","1950-10-01","1954-11-30",1348],
 ["IL18","Q160266",2531157063,"Ilyushin Il-18","airliner",35.9,37.4,10.17,null,6500,null,null,"4 × AI-20","1957-07-04","1959-04-20",null],
 ["IL28","Q16527674",2338955960,"Harbin H-5","military",null,null,null,null,null,null,null,null,"1966-09-25","1967",null],
 ["IL38","Q163838",2535753817,"Ilyushin Il-38","military",39.92,37.4,null,null,null,null,null,"4 × AI-20","1971-07-20","1969-01-17",58],

@@ -81,6 +81,7 @@ export const typeRoles: Record<string, TypeRole> = {
   DH8C: "airliner",
   DH8D: "airliner",
   E110: "airliner", // Bandeirante
+  IL14: "airliner",
   // Business jets and a business turboprop.
   ASTR: "business",
   BE40: "business",

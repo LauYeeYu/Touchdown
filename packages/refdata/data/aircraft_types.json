@@ -1,6 +1,6 @@
 {
   "table": "aircraft_types",
-  "version": "2026-11-16",
+  "version": "2026-11-17",
   "sources": [
     "Virtual Radar Server standing data (github.com/vradarserver/standing-data), CC0",
     "Mictronics aircraft database (github.com/Mictronics/aircraft-database), Open Data Commons Attribution License (ODC-By)",
@@ -1341,7 +1341,7 @@
 ["IA58","FMA","IA-58 Pucará",null,"turboprop",2,"L","landplane"],
 ["IA63","FMA","IA-63 Pampa",null,"jet",1,"L","landplane"],
 ["IFUR","Isaacs","Fury",null,"piston",1,"L","landplane"],
-["IL14","Avia-Zavody","Av-14",null,"piston",2,"M","landplane"],
+["IL14","Ilyushin","Il-14",null,"piston",2,"M","landplane"],
 ["IL18","Ilyushin","Il-18",null,"turboprop",4,"M","landplane"],
 ["IL28","Harbin","H-5",null,"jet",2,"M","landplane"],
 ["IL38","Ilyushin","Il-38",null,"turboprop",4,"M","landplane"],

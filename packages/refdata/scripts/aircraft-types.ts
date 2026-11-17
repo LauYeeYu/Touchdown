@@ -2,7 +2,7 @@
 
 import type { AircraftKind, AircraftType, EngineType, WakeCategory } from "../../core/src/ref/types.ts";
 import { familyOfType, familyById } from "../src/curated/families.ts";
-import { typeNames } from "../src/curated/type-names.ts";
+import { typeMakers, typeNames } from "../src/curated/type-names.ts";
 import { wakeCategoryFixes } from "../src/curated/fixes.ts";
 import { compare, parseCsvRecords } from "./lib.ts";
 
@@ -106,8 +106,9 @@ export function buildAircraftTypes(vrsModelTypeCsvs: string[], mictronicsTypesJs
     const shortName = (m: string) => MANUFACTURER_NAMES[m] ?? m;
 
     // Licence builders can outnumber the original manufacturer in VRS (PZL-Mielec for the Piper
-    // Seneca). When the family names the manufacturer, take the model name from its rows.
-    const familyRows = family ? vrsRows.filter((r) => shortName(r.manufacturer) === family.manufacturer) : [];
+    // Seneca). When the family or a curated maker names the manufacturer, take the model name from its rows.
+    const named = family?.manufacturer ?? typeMakers[designator];
+    const familyRows = named ? vrsRows.filter((r) => shortName(r.manufacturer) === named) : [];
     const maker = familyRows.length ? familyRows[0]!.manufacturer : mainManufacturer(vrsRows);
     const own = familyRows.length ? familyRows : vrsRows.filter((r) => r.manufacturer === maker);
     const first = pickName(designator, vrsRows, own);
@@ -120,7 +121,7 @@ export function buildAircraftTypes(vrsModelTypeCsvs: string[], mictronicsTypesJs
 
     rows.push({
       designator,
-      manufacturer: family?.manufacturer ?? shortName(maker),
+      manufacturer: named ?? shortName(maker),
       name: typeNames[designator] ?? first.model,
       familyId,
       engineType,
