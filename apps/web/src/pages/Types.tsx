@@ -1,6 +1,6 @@
 // Aircraft types (docs/31-ui.md, "Aircraft types"), from the More menu: every ICAO type code, the curated families
-// grouped (docs/13, "Type figures"). It opens on the manufacturers: the airliners' best known as cards, then every one from
-// A to Z, each leading to its page. A search, or the list view, shows the types themselves by manufacturer, a few
+// grouped (docs/13, "Type figures"). It opens on the manufacturers: the best known of the role chosen as cards (the
+// airliners' for every role), then every one from A to Z, each leading to its page. A search, or the list view, shows the types themselves by manufacturer, a few
 // hundred at a time as the page scrolls. "In your log" and a role narrow both.
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,9 +18,22 @@ import { Silhouette } from "../components/Silhouette.tsx";
 import { TypeRow } from "../components/TypeRow.tsx";
 
 export const ROLES: TypeRole[] = ["airliner", "business", "light", "helicopter", "military", "other"];
-/** The manufacturers shown as cards, the airliners' best known, in alphabetical order: by their addresses. */
-const POPULAR = ["aerospatiale-bac", "airbus", "boeing", "bombardier", "comac", "embraer", "ilyushin", "lockheed", "mcdonnell-douglas", "tupolev"];
-/** The types a card draws where they are chosen, in order: else the manufacturer's types with the most codes. */
+/**
+ * The manufacturers shown as cards, by their addresses in alphabetical order: the best known of the role chosen, of
+ * those with types drawn with their family's shape or their own, and the airliners' for every role. Other aircraft
+ * have too few such types for cards.
+ */
+const AIRLINER_MAKERS = ["aerospatiale-bac", "airbus", "boeing", "bombardier", "comac", "embraer", "ilyushin", "lockheed", "mcdonnell-douglas", "tupolev"];
+const POPULAR: Record<TypeRole | "all", string[]> = {
+  all: AIRLINER_MAKERS,
+  airliner: AIRLINER_MAKERS,
+  business: ["beechcraft", "bombardier", "cessna", "daher", "dassault", "embraer", "gulfstream", "hawker-beechcraft", "honda", "pilatus"],
+  light: ["beechcraft", "cessna", "cirrus", "de-havilland-canada", "diamond", "mooney", "pilatus", "piper", "quest", "tecnam"],
+  helicopter: ["agustawestland", "airbus-helicopters", "bell", "bell-boeing", "boeing-vertol", "kamov", "leonardo", "mil", "robinson", "sikorsky"],
+  military: ["airbus", "boeing", "dassault", "embraer", "fairchild", "lockheed", "northrop", "northrop-grumman", "saab", "tupolev"],
+  other: [],
+};
+/** The types a card draws where they are chosen and of the role, in order: else the manufacturer's types with the most codes. */
 const CARD_TYPES: Record<string, string[]> = {
   airbus: ["A320", "A333", "A388"],
   boeing: ["B744", "B752", "B763"],
@@ -100,13 +113,16 @@ export function Types() {
           {t("aircraft.types.compare")}
         </Link>
       </div>
-      {!shown.length ? <p className="types__empty">{t("aircraft.types.none")}</p> : listing ? <TypeList entries={shown} counts={!visitor} /> : <Manufacturers entries={shown} all={manufacturers} />}
+      {!shown.length ? <p className="types__empty">{t("aircraft.types.none")}</p> : listing ? <TypeList entries={shown} counts={!visitor} /> : <Manufacturers entries={shown} all={manufacturers} role={role} />}
     </div>
   );
 }
 
-/** The manufacturers of the entries shown: the popular ones as cards with three of their types drawn, then every one A to Z. */
-function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufacturer[] }) {
+/**
+ * The manufacturers of the entries shown: the popular ones of the role as cards with three of their types drawn, then
+ * every one A to Z.
+ */
+function Manufacturers({ entries, all, role }: { entries: TypeEntry[]; all: TypeManufacturer[]; role: TypeRole | "all" }) {
   const { app } = useApp();
   const info = useTypeInfo();
   const manufacturers = useMemo(() => {
@@ -120,43 +136,47 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
     }
     return [...by.values()];
   }, [entries, all]);
-  // Those of them the filters leave any types of.
-  const main = POPULAR.map((slug) => manufacturers.find((m) => m.manufacturer.slug === slug)).filter((m) => m !== undefined);
   const letters = new Map<string, typeof manufacturers>();
   for (const m of manufacturers) letters.set(letterOf(m.manufacturer.name), [...(letters.get(letterOf(m.manufacturer.name)) ?? []), m]);
   // A card draws the same three types whatever the log has: those chosen for it, else the manufacturer's types with a
-  // drawing and the most codes. A chosen type the filters leave out gives its place to the next of these. Only a type
-  // drawn with its family's shape or its own: the usual shape of its kind may put its engines in the wrong place.
-  const ownShape = (code: string) => {
+  // drawing and the most codes, each family by its usual type, else by its first of the role. A chosen type the filters
+  // leave out gives its place to the next of these. Only a type of the role chosen, drawn with its family's shape or its
+  // own: the usual shape of its kind may put its engines in the wrong place.
+  const drawable = (code: string) => {
     const p = info?.planform(code, app.ref);
-    return !!p && !p.generic;
+    return !!p && !p.generic && (role === "all" || info?.role(code, app.ref) === role);
   };
   const drawn = (slug: string, list: TypeEntry[]) => {
-    const chosen = (CARD_TYPES[slug] ?? []).filter((c) => ownShape(c) && entries.some((e) => e.codes.includes(c)));
+    const chosen = (CARD_TYPES[slug] ?? []).filter((c) => drawable(c) && entries.some((e) => e.codes.includes(c)));
     const rest = list
-      .filter((e) => !e.codes.some((c) => chosen.includes(c)) && ownShape(e.usual))
+      .filter((e) => !e.codes.some((c) => chosen.includes(c)))
       .sort((a, b) => b.codes.length - a.codes.length)
-      .map((e) => e.usual);
+      .flatMap((e) => [e.usual, ...e.codes].find(drawable) ?? []);
     return [...chosen, ...rest].slice(0, 3);
   };
+  // The role's popular manufacturers the filters leave a type to draw of: none, and there are no cards.
+  const main = POPULAR[role].flatMap((slug) => {
+    const m = manufacturers.find((x) => x.manufacturer.slug === slug);
+    const shapes = m ? drawn(slug, m.entries) : [];
+    return m && shapes.length ? [{ ...m, shapes }] : [];
+  });
   const sortedLetters = [...letters.entries()].sort((a, b) => (a[0] === "#" ? 1 : b[0] === "#" ? -1 : a[0].localeCompare(b[0])));
   return (
     <>
-      <section className="section" aria-labelledby="manufacturers-main">
-        <div className="section__head">
-          <h2 className="section__title" id="manufacturers-main">
-            {t("aircraft.types.manufacturers.main")}
-          </h2>
-        </div>
-        <ul className="manufacturer-cards">
-          {main.map((m) => {
-            const codes = drawn(m.manufacturer.slug, m.entries);
-            return (
+      {main.length > 0 && (
+        <section className="section" aria-labelledby="manufacturers-main">
+          <div className="section__head">
+            <h2 className="section__title" id="manufacturers-main">
+              {t("aircraft.types.manufacturers.main")}
+            </h2>
+          </div>
+          <ul className="manufacturer-cards">
+            {main.map((m) => (
               <li key={m.manufacturer.slug}>
                 <Link className="manufacturer-card" to="/types/manufacturers/$manufacturer" params={{ manufacturer: m.manufacturer.slug }}>
                   {/* The room of three types, at the card's left as its name: one or two are drawn in its middle. */}
                   <span className="manufacturer-card__shapes" aria-hidden="true">
-                    {codes.map((code) => (
+                    {m.shapes.map((code) => (
                       <Silhouette key={code} code={code} size={44} />
                     ))}
                   </span>
@@ -164,10 +184,10 @@ function Manufacturers({ entries, all }: { entries: TypeEntry[]; all: TypeManufa
                   <span className="manufacturer-card__count">{manufacturerCounts(m)}</span>
                 </Link>
               </li>
-            );
-          })}
-        </ul>
-      </section>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="section" aria-labelledby="manufacturers-all">
         <div className="section__head">
           <h2 className="section__title" id="manufacturers-all">
