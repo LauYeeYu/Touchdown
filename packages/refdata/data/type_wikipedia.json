@@ -1,6 +1,6 @@
 {
   "table": "type_wikipedia",
-  "version": "2026-11-14",
+  "version": "2026-11-18",
   "sources": [
     "English Wikipedia (en.wikipedia.org), figures from articles' specifications, CC BY-SA"
   ],
@@ -351,6 +351,8 @@
 ["F111","General Dynamics–Grumman EF-111A Raven",1360320773,23.17,19.2,6.1,40370],
 ["F16","General Dynamics F-16 Fighting Falcon",1384400246,15.06,9.96,4.88,19187],
 ["F16X","General Dynamics F-16XL",1376103960,16.51,9.88,5.36,21800],
+["F18","McDonnell Douglas F/A-18 Hornet",1384610138,17.1,12.3,4.7,23541],
+["F18H","McDonnell Douglas F/A-18 Hornet",1384610138,17.1,12.3,4.7,23541],
 ["F18S","Boeing F/A-18E/F Super Hornet",1383996347,18.31,13.62,4.88,29937],
 ["F2","Mitsubishi F-2",1372774511,15.52,11.13,null,22100],
 ["F30","Golden Avio F30",1321152180,6.8,8.6,2.6,null],

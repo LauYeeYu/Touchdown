@@ -98,6 +98,9 @@ export const articleOverrides: Record<string, string | null> = {
   E314: "Embraer EMB 314 Super Tucano", // ALX was the Super Tucano's programme name
   F106: "Convair F-106 Delta Dart", // the QF-106 is a converted F-106
   F111: "General Dynamics–Grumman EF-111A Raven",
+  // The Hornet is the F/A-18, the AF-18 Australia's and the ATF-18 Australia's two-seater.
+  F18: "McDonnell Douglas F/A-18 Hornet",
+  F18H: "McDonnell Douglas F/A-18 Hornet",
   G2T1: "Great Lakes Sport Trainer", // the 2T-1 Sport Trainer
   G21: "Grumman G-21 Goose",
   H43B: "Kaman HH-43 Huskie",
