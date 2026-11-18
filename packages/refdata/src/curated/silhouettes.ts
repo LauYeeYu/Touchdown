@@ -554,14 +554,26 @@ export const clockwiseRotors: string[] = [
 /**
  * Folding wings: each type code's span with its wings folded, in metres, for drawing the fold a hover shows (the shape's
  * `wing.fold`, applied to its family's shape, its own or the usual one of its kind). From the type's English Wikipedia
- * article, its specifications' span or width with the wings folded, as quoted. Each folds up about a hinge along the
- * line of flight.
+ * article, its specifications' span or width with the wings folded, as quoted, unless said otherwise. Each folds up
+ * about a hinge along the line of flight. Those that fold on over the fuselage (the Intruder's, the Viking's) are drawn
+ * standing upright: from above, the rest of a folded wing lies over the wing and the fuselage, which already show
+ * there. Wings that turn and fold back along the fuselage (the Hawkeye's, the Avenger's) are not drawn folding.
  */
 export const wingFolds: Record<string, number> = {
   // Boeing 777X, specifications: "235 ft 5 in (71.76 m) (212 ft 9 in (64.84 m) with wingtips folded)", its "11 feet
   // (3.5 m) folding wingtips".
   B778: 64.84,
   B779: 64.84,
+  // McDonnell Douglas F/A-18 Hornet, specifications: width "8.4 m", "wing folded", the F18H's too.
+  F18: 8.4,
+  F18H: 8.4,
+  // Not stated in the Boeing F/A-18E/F Super Hornet's article: Naval Technology's specifications give "Width, Wings
+  // Folded 30ft 7in" (9.32 m).
+  F18S: 9.32,
+  F4: 8.4, // McDonnell Douglas F-4 Phantom II, specifications: width "8.4 m", "wing folded".
+  A7: 7.24, // LTV A-7 Corsair II, specifications: width "7.24 m", "wings folded".
+  A6: 7.671, // Grumman A-6 Intruder, specifications: width "25 ft 2 in", "wing folded".
+  S3: 8.992, // Lockheed S-3 Viking, specifications: width "29 ft 6 in", "folded".
 };
 
 /** The shape of a type code in `familyId`: its family's, with what the type changes. Null for a family not drawn. */
