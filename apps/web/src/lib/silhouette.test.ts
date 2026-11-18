@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { RefIndex } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
-import { extentOf, planformLayers, planformParts, planformPath, type Planform, type Pt, type Shape } from "./silhouette.ts";
+import { wingFolds } from "@touchdown/refdata/typeinfo";
+import { extentOf, foldedPanel, planformLayers, planformParts, planformPath, type Planform, type Pt, type Shape } from "./silhouette.ts";
 import { loadTypeInfo } from "./typeInfo.ts";
 
 // Made-up airliners, in metres: a long narrow twin and a broad four-engined one.
 const twin: Shape = { kind: "jet", wing: { at: 0.37, root: 0.16, tip: 0.24 }, engines: { wing: [0.34] }, stab: { span: 0.34, at: 0.86, sweep: 30 } };
 const long: Planform = { length: 47, span: 38, width: 3.8, sweep: 25, shape: twin };
 const broad: Planform = { length: 73, span: 80, width: 7.1, sweep: 33, shape: { ...twin, wing: { at: 0.33, root: 0.26, tip: 0.2, device: "winglet" }, engines: { wing: [0.37, 0.67] } } };
+
+/** Whether a point is inside an outline (a ray to its right crosses the outline an odd number of times). */
+const inside = ([x, y]: Pt, part: Pt[]) =>
+  part.reduce((odd, [x1, y1], i) => {
+    const [x2, y2] = part[(i + 1) % part.length]!;
+    return (y1 > y) !== (y2 > y) && x < x1 + ((y - y1) / (y2 - y1)) * (x2 - x1) ? !odd : odd;
+  }, false);
 
 const signedArea = (part: [number, number][]) => part.reduce((s, [x1, y1], i) => {
   const [x2, y2] = part[(i + 1) % part.length]!;
@@ -133,6 +141,45 @@ describe("what moves when a type is hovered", () => {
       const front = right.parts[0]!.reduce((a, b) => (b[0] < a[0] - 1e-9 || (Math.abs(b[0] - a[0]) < 1e-9 && b[1] < a[1]) ? b : a));
       const [fx, fy] = turn(front, right.at, right.angle);
       expect(Math.min(...still.flat().map(([x, y]) => Math.hypot(x - fx, y - fy))), code).toBeLessThan(0.01);
+    }
+  });
+
+  it("folds each folding wing up to the span its source states, each panel about its hinge", async () => {
+    const ref = new RefIndex(loadRefTables());
+    const info = await loadTypeInfo();
+    // Each type's folded span quotes its source (packages/refdata/src/curated/silhouettes.ts, wingFolds).
+    for (const [code, fold] of Object.entries(wingFolds)) {
+      const p = info.planform(code, ref)!;
+      expect(p, code).toBeTruthy();
+      const { still, moving } = planformLayers(p);
+      expect(moving.map((m) => m.kind), code).toEqual(["fold", "fold"]);
+      const spread = extentOf([...still, ...moving.flatMap((m) => m.parts)]);
+      expect(spread[2] - spread[0], code).toBeCloseTo(p.span, 1);
+      const folded = extentOf([...still, ...moving.flatMap((m) => (m.kind === "fold" ? foldedPanel(m.parts[0]!, m.hinge, m.thick, 1) : []))]);
+      expect(folded[2] - folded[0], code).toBeCloseTo(fold, 2);
+      for (const m of moving) {
+        if (m.kind !== "fold") continue;
+        const side = Math.sign(m.hinge);
+        const panel = m.parts[0]!;
+        // The wing reaches out to the hinge, and the panel in over it, so no gap shows between them.
+        expect(Math.max(...still.flat().map(([x]) => x * side)), code).toBeCloseTo(Math.abs(m.hinge), 6);
+        expect(Math.min(...panel.map(([x]) => x * side))).toBeLessThan(Math.abs(m.hinge));
+        // Spread, the panel as drawn, and nothing more: its edges swept by no thickness are lines.
+        const [drawnIn, movedOut, ...edges] = foldedPanel(panel, m.hinge, m.thick, 0);
+        expect([drawnIn, movedOut]).toEqual([panel, panel]);
+        for (const edge of edges) expect(signedArea(edge)).toBeCloseTo(0, 9);
+        // Upright, a strip along the hinge as thick as the wing, as long as the panel is from its front to its back,
+        // filled all the way across along it.
+        const strip = foldedPanel(panel, m.hinge, m.thick, 1);
+        const [, ty0, , ty1] = extentOf([panel]);
+        const [sx0, sy0, sx1, sy1] = extentOf(strip);
+        expect([sy0, sy1]).toEqual([ty0, ty1]);
+        expect(sx1 - sx0).toBeCloseTo(m.thick, 6);
+        for (let i = 1; i < 40; i++) {
+          const y = ty0 + ((ty1 - ty0) * i) / 40;
+          for (const across of [0.1, 0.5, 0.9]) expect(strip.some((part) => inside([m.hinge + side * m.thick * across, y], part)), `${code} at ${y}`).toBe(true);
+        }
+      }
     }
   });
 });

@@ -2,6 +2,7 @@
 // never in the way. With reduced motion, everything here is instant.
 
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { foldedPanel, planformPath, type Pt } from "./silhouette.ts";
 
 const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -73,11 +74,13 @@ export function useGrow<T extends HTMLElement>(key: unknown) {
 
 /**
  * A moving part of a type's drawing, as drawn (components/Silhouette.tsx, lib/silhouette.ts `Moving`): a proprotor's
- * `path` its disc edge on, as drawn, and `blades` about the origin, which `proprotorAt` puts in place.
+ * `path` its disc edge on, as drawn, and `blades` about the origin, which `proprotorAt` puts in place, and a folding
+ * wing's `outline` spread, which `foldedPanel` draws at its angle.
  */
 export type TypeMove =
   | { kind: "rotor"; path: string; at: [number, number]; dir: 1 | -1 }
   | { kind: "swing"; path: string; at: [number, number]; angle: number }
+  | { kind: "fold"; path: string; outline: Pt[]; hinge: number; thick: number }
   | { kind: "stow"; path: string }
   | { kind: "nacelle"; path: string; at: [number, number]; front: number; back: number; wide: number }
   | { kind: "proprotor"; path: string; blades: string; at: [number, number]; reach: number; dir: 1 | -1 };
@@ -115,15 +118,16 @@ const ROTOR_SPEED = 400;
 /**
  * How quickly each part answers, as an exponential's time constant in seconds: a rotor spins up in about a second and
  * coasts to a stop in about two and a half, a swing wing sweeps back in about half a second, as the one easing does,
- * and spreads again a little quicker, foreplanes fold away in a third of a second, and a tiltrotor's nacelles turn up
- * in about three quarters of a second and down a little quicker.
+ * and spreads again a little quicker, folding wings fold up as quickly and spread as quickly, foreplanes fold away in a
+ * third of a second, and a tiltrotor's nacelles turn up in about three quarters of a second and down a little quicker.
  */
-const TIMES = { rotorUp: 0.35, rotorDown: 0.6, swingIn: 0.16, swingOut: 0.12, stow: 0.1, tiltUp: 0.22, tiltDown: 0.16 };
+const TIMES = { rotorUp: 0.35, rotorDown: 0.6, swingIn: 0.16, swingOut: 0.12, foldUp: 0.16, foldDown: 0.12, stow: 0.1, tiltUp: 0.22, tiltDown: 0.16 };
 
 /**
  * A type's moving parts doing what they do while it is hovered or has the keyboard's focus (DESIGN.md, "Motion"): its
- * rotors spin up and coast down, a swing wing sweeps back to its swept angle and spreads again, foreplanes fold into the
- * fuselage, a tiltrotor's nacelles turn up, its proprotors spinning up as they do. The hover is on what holds the
+ * rotors spin up and coast down, a swing wing sweeps back to its swept angle and spreads again, folding wings fold up
+ * and spread again, foreplanes fold into the fuselage, a tiltrotor's nacelles turn up, its proprotors spinning up as
+ * they do. The hover is on what holds the
  * drawing: its row or card, its link or its figure. Each moving part is a path of `svg` marked `data-moving`, in the
  * order of `moves`. Nothing moves for reduced motion.
  */
@@ -159,7 +163,11 @@ export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeM
           }
         }
         const target = on ? 1 : 0;
-        const tau = m.kind === "stow" ? TIMES.stow : m.kind === "nacelle" || m.kind === "proprotor" ? (on ? TIMES.tiltUp : TIMES.tiltDown) : on ? TIMES.swingIn : TIMES.swingOut;
+        const tau =
+          m.kind === "stow" ? TIMES.stow
+          : m.kind === "nacelle" || m.kind === "proprotor" ? (on ? TIMES.tiltUp : TIMES.tiltDown)
+          : m.kind === "fold" ? (on ? TIMES.foldUp : TIMES.foldDown)
+          : on ? TIMES.swingIn : TIMES.swingOut;
         s.done += (target - s.done) * ease(tau);
         if (Math.abs(target - s.done) < 0.002) s.done = target;
         else moving = true;
@@ -171,6 +179,8 @@ export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeM
           else path.removeAttribute("transform");
         }
         else if (m.kind === "nacelle" && s.done) path.setAttribute("transform", nacelleAt(m, s.done));
+        // A folding wing's outline, as it shows at its angle.
+        else if (m.kind === "fold") path.setAttribute("d", s.done ? planformPath(foldedPanel(m.outline, m.hinge, m.thick, s.done)) : m.path);
         else if (!s.done) path.removeAttribute("transform");
         else if (m.kind === "swing") path.setAttribute("transform", `rotate(${(m.angle * s.done).toFixed(2)} ${about(m.at)})`);
         // Folded in across the fuselage's centreline, at x = 0.

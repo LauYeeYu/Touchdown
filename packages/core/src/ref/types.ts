@@ -170,7 +170,9 @@ export interface SilhouetteShape {
    * Tu-154's). `glove`: a swing wing's fixed glove (a Tu-160's), from the fuselage at `at` of the length out to the
    * leading edge at `reach` of the half-span. `swept`: a swing wing's sweep in degrees when swept back, its outer panel
    * turning under the glove, swept back its leading edge starting at the glove's corner; it is drawn spread, and a hover
-   * sweeps it (components/Silhouette.tsx).
+   * sweeps it (components/Silhouette.tsx). `fold`: folding wings' span folded, in metres (a 777X's, from the curated
+   * `wingFolds`): each folds up about a hinge along the line of flight, the part outboard of it upright at that span;
+   * it is drawn spread, and a hover folds it.
    */
   wing: {
     at: number;
@@ -183,6 +185,7 @@ export interface SilhouetteShape {
     pods?: number;
     glove?: { at: number; reach: number };
     swept?: number;
+    fold?: number;
   };
   /**
    * Engines on the wing at fractions of the half-span, `ahead` of their length ahead of the leading edge (0.7 unless

@@ -551,6 +551,19 @@ export const clockwiseRotors: string[] = [
   "MI2", "MI4", "MI6", "MI8", "MI10", "MI14", "MI24", "MI26", "MI28", "MI34", "MI38", "ANST", "A2RT",
 ];
 
+/**
+ * Folding wings: each type code's span with its wings folded, in metres, for drawing the fold a hover shows (the shape's
+ * `wing.fold`, applied to its family's shape, its own or the usual one of its kind). From the type's English Wikipedia
+ * article, its specifications' span or width with the wings folded, as quoted. Each folds up about a hinge along the
+ * line of flight.
+ */
+export const wingFolds: Record<string, number> = {
+  // Boeing 777X, specifications: "235 ft 5 in (71.76 m) (212 ft 9 in (64.84 m) with wingtips folded)", its "11 feet
+  // (3.5 m) folding wingtips".
+  B778: 64.84,
+  B779: 64.84,
+};
+
 /** The shape of a type code in `familyId`: its family's, with what the type changes. Null for a family not drawn. */
 export function shapeOf(familyId: string | null | undefined, designator: string): (Shape & { checked: boolean }) | null {
   const fam = (familyId ? familyShapes[familyId] : undefined) ?? typeShapes[designator];

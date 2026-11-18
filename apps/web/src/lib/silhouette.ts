@@ -28,11 +28,13 @@ export type Pt = [number, number];
  * upright about `at`, on the wing. The nacelle runs from `front` to `back` along the length and is `wide` across, so
  * upright it shows as a circle that wide. The proprotor is drawn forward as its disc edge on (`parts`), its hub `reach`
  * ahead of `at`. Turning up, it shows as its `blades`, drawn about the origin as they are seen from above when upright,
- * spinning as a rotor does.
+ * spinning as a rotor does. A folding wing's outer panel (a 777X's tip, a Hornet's outer wing) turns up about a hinge
+ * along the line of flight at x = `hinge`, and upright shows as wide as the wing is `thick` there (`foldedPanel`).
  */
 export type Moving =
   | { kind: "rotor"; parts: Pt[][]; at: Pt; dir: 1 | -1 }
   | { kind: "swing"; parts: Pt[][]; at: Pt; angle: number }
+  | { kind: "fold"; parts: Pt[][]; hinge: number; thick: number }
   | { kind: "stow"; parts: Pt[][] }
   | { kind: "nacelle"; parts: Pt[][]; at: Pt; front: number; back: number; wide: number }
   | { kind: "proprotor"; parts: Pt[][]; at: Pt; reach: number; blades: Pt[][]; dir: 1 | -1 };
@@ -80,6 +82,30 @@ function capsule(cx: number, y0: number, y1: number, halfWidth: number): Pt[] {
 
 /** How far a swing wing's pivot is from the glove's corner, in the chord there (planformLayers). */
 const SWING_PIVOT = 0.6;
+
+/**
+ * How thick a wing is where it folds, in its tip's chord: a folding panel upright shows this wide. An airliner's is about
+ * a tenth, a fighter's thinner, but at a fighter's size the difference is a fraction of a pixel.
+ */
+const FOLD_THICKNESS = 0.1;
+
+/**
+ * A folding wing's outer panel (its spread `outline`) `up` of the way from spread to upright (0 to 1), seen from above:
+ * drawn in towards its hinge as it turns, and as much of its thickness showing outboard of that as the angle shows, so
+ * upright it is a strip along the hinge as thick as the wing. As outlines filled together: the panel drawn in, the same
+ * moved out, and each of its edges swept between them, which together cover every point the panel passes over.
+ */
+export function foldedPanel(outline: Pt[], hinge: number, thick: number, up: number): Pt[][] {
+  const tilt = (up * Math.PI) / 2;
+  const drawnIn = outline.map(([x, y]): Pt => [hinge + (x - hinge) * Math.cos(tilt), y]);
+  const out = Math.sign(hinge) * thick * Math.sin(tilt);
+  const moved = (points: Pt[]) => points.map(([x, y]): Pt => [x + out, y]);
+  const edges = drawnIn.map((a, i): Pt[] => {
+    const b = drawnIn[(i + 1) % drawnIn.length]!;
+    return [a, b, ...moved([b, a])];
+  });
+  return [drawnIn, moved(drawnIn), ...edges].map(clockwise);
+}
 
 /** The part of an outline on one side of the line x = `x0`: `side` 1 to its right, -1 to its left. */
 function clipX(points: Pt[], x0: number, side: 1 | -1): Pt[] {
@@ -340,6 +366,17 @@ function build(p: Planform): { parts: Pt[][]; moving: Mark[] } {
     parts.push(clockwise(inner), clockwise(mirror(inner)));
     moves({ kind: "swing", at, angle }, () => parts.push(clockwise(outer)));
     moves({ kind: "swing", at: [-at[0], at[1]], angle: -angle }, () => parts.push(clockwise(mirror(outer))));
+  } else if (s.wing.fold && s.wing.fold < p.span) {
+    // Folding wings: each outer panel turns up about a hinge along the line of flight, and upright stands at the folded
+    // span, as thick as the wing is there, so the hinge is that far inside it. Each panel reaches in over the wing by as
+    // much, so no seam shows between them.
+    const thick = tipChord * FOLD_THICKNESS;
+    const hinge = s.wing.fold / 2 - thick;
+    const inner = clipX(right, hinge, -1);
+    const outer = clipX(right, hinge - thick, 1);
+    parts.push(clockwise(inner), clockwise(mirror(inner)));
+    moves({ kind: "fold", hinge, thick }, () => parts.push(clockwise(outer)));
+    moves({ kind: "fold", hinge: -hinge, thick }, () => parts.push(clockwise(mirror(outer))));
   } else parts.push(right, clockwise(mirror(right)));
   if (s.wing.tipTanks) {
     // A fuel tank on each tip, longer than the tip's chord and reaching ahead of it.

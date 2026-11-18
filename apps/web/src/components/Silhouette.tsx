@@ -1,8 +1,8 @@
 // A type's silhouette from above (lib/silhouette.ts, G11): fitted to a square box (`size`, the aircraft list, the types'
 // rows), filling more of it the larger the aircraft, or at a scale (`scale` pixels a metre) so types drawn side by side
 // compare as they are (a family's table, Compare). Nothing for a type not drawn, and an empty box of the same size while
-// the types' information loads. Hovered, its moving parts move: rotors spin, a swing wing sweeps back, a tiltrotor's
-// nacelles turn up (lib/motion.ts).
+// the types' information loads. Hovered, its moving parts move: rotors spin, a swing wing sweeps back, folding wings
+// fold up, a tiltrotor's nacelles turn up (lib/motion.ts).
 
 import { useMemo, useRef } from "react";
 import type { RefIndex } from "@touchdown/core";
@@ -39,7 +39,9 @@ export function drawingOf(code: string | null | undefined, info: TypeInfo | null
       const parts = [...still, ...moving.flatMap((m) => m.parts)];
       const moves = moving.map((m): TypeMove => {
         const { parts, ...how } = m;
-        return how.kind === "proprotor" ? { ...how, path: planformPath(parts), blades: planformPath(how.blades) } : { ...how, path: planformPath(parts) };
+        if (how.kind === "proprotor") return { ...how, path: planformPath(parts), blades: planformPath(how.blades) };
+        if (how.kind === "fold") return { ...how, path: planformPath(parts), outline: parts[0]! };
+        return { ...how, path: planformPath(parts) };
       });
       drawn.set(code, { path: planformPath(parts), still: planformPath(still), moving: moves, extent: extentOf(parts), checked: p.checked });
     }
