@@ -1,5 +1,6 @@
 // A type chosen from every type with figures (docs/31-ui.md, "Aircraft types", Compare): a button like the site's
-// selects that opens a panel on the menu surface. Typing searches names, manufacturers, families and codes at once. Without a search the
+// selects that opens a panel on the menu surface. Typing searches names, manufacturers, families and codes at once, and
+// Enter takes the one type found, or the code typed whole. Without a search the
 // panel goes by steps: the log's types first (for a signed-in member), then the manufacturers; a manufacturer shows its families
 // and its types without one, and a family its type codes. Back returns a step. Arrow keys move through the panel,
 // Escape closes it.
@@ -98,6 +99,8 @@ export function TypePicker({ value, codes, onChange, labelledBy }: { value: stri
     }
     return scored.sort((a, b) => a.rank - b.rank || typeName(a.code, ref).localeCompare(typeName(b.code, ref)));
   }, [q, needle, codes, texts, ref]);
+  // What Enter takes: the one type found, or a code typed whole.
+  const enterTakes = results.length === 1 || results[0]?.rank === 0 ? results[0]!.code : null;
 
   const close = (refocus: boolean) => {
     setOpen(false);
@@ -142,7 +145,7 @@ export function TypePicker({ value, codes, onChange, labelledBy }: { value: stri
   };
 
   const typeItem = (c: string) => (
-    <button key={c} type="button" className="menu__item type-picker__item" aria-current={c === value ? "true" : undefined} onClick={() => choose(c)}>
+    <button key={c} type="button" className="menu__item type-picker__item" aria-current={c === value ? "true" : undefined} data-enter={needle && c === enterTakes ? "" : undefined} onClick={() => choose(c)}>
       <span className="type-picker__name">{typeName(c, ref)}</span>
       <span className="type-picker__code">{c}</span>
       {c === value && <Icon name="check" />}
@@ -216,7 +219,19 @@ export function TypePicker({ value, codes, onChange, labelledBy }: { value: stri
           <label className="search filter-panel__search">
             <span className="visually-hidden">{t("aircraft.types.search")}</span>
             <Icon name="search" />
-            <input className="input" type="search" placeholder={t("aircraft.types.searchPlaceholder")} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+            <input
+              className="input"
+              type="search"
+              placeholder={t("aircraft.types.searchPlaceholder")}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || !enterTakes) return;
+                e.preventDefault();
+                choose(enterTakes);
+              }}
+              autoComplete="off"
+            />
           </label>
           {!needle && title && (
             <p className="filter-panel__title">

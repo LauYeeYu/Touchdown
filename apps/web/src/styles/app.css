@@ -8781,6 +8781,11 @@ button.select {
   background: var(--selected-container);
 }
 
+/* The type Enter takes from a search: the one found, or the code typed whole. */
+.type-picker__item[data-enter]:not([aria-current="true"]) {
+  background: var(--state-hover);
+}
+
 .type-picker__heading {
   margin: 8px 0 2px;
   padding: 0 8px;
