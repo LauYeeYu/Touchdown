@@ -6,6 +6,7 @@
 // and `leave` holds it on the screen while it fades out, before it closes and its page takes it away.
 
 import { useCallback, useEffect, useRef, type MouseEvent, type PointerEvent, type SyntheticEvent } from "react";
+import { reducedMotion } from "./reducedMotion.ts";
 
 /** Handlers for a modal `<dialog>`: `close` runs on a click on its backdrop. */
 export function useBackdropClose(close: () => void) {
@@ -49,7 +50,7 @@ export const LEAVE_MS = 160;
 export function leave(d: HTMLDialogElement | null, then?: () => void) {
   if (!d?.open) return then?.();
   if (d.hasAttribute("data-leaving")) return;
-  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const still = reducedMotion();
   d.setAttribute("data-leaving", "");
   window.setTimeout(
     () => {

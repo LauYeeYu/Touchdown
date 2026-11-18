@@ -3,9 +3,8 @@
 
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { foldedPanel, planformPath, type Pt } from "./silhouette.ts";
+import { reducedMotion } from "./reducedMotion.ts";
 
-/** Whether the reader asks for reduced motion: then nothing here moves, and a change is made at once. */
-export const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** A box's rows: a list's items or a table's body rows. */
 const rowsOf = (box: HTMLElement) => [...box.querySelectorAll(":scope > li, :scope tbody > tr")];

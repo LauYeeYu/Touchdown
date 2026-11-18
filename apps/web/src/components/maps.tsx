@@ -12,6 +12,7 @@ import { t } from "@touchdown/i18n";
 import { esc, hideTip, showTip } from "./overlay.tsx";
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { TrackLoadingNote, useTracksLoading } from "../lib/trackLoading.tsx";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 
 /** The least a fitted map shows, in degrees: a single spotting place is framed with its region around it. */
 const MIN_LON = 24;
@@ -61,7 +62,6 @@ export interface MapSpot {
  * it replaces, the great circle, fades out (DESIGN.md, "Motion"). What is there when the map first draws does not move.
  */
 export const ARRIVE_MS = 400;
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export interface Arrival {
   /** The line the flight had before its track: drawn fading out. */

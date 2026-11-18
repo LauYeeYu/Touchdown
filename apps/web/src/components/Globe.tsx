@@ -13,6 +13,7 @@ import { airportTip, ARRIVE_MS, routeSamplesOf, screenAngle, type MapFlight, typ
 import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
 import { TrackLoading } from "../lib/trackLoading.tsx";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 
 /** While tracks load, a great circle waiting for its flight's track is drawn this much fainter, as on the flat maps. */
 const PENDING_ALPHA = 0.45;
@@ -468,7 +469,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
   const arriving = useRef(new Map<string, { at: number; was: LonLat[][] }>());
   useEffect(() => {
     const now = performance.now();
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const still = reducedMotion();
     for (const f of flights) {
       const before = seen.current.get(f.id);
       if (before && !before.track && f.track && !still) arriving.current.set(f.id, { at: now, was: before.line });

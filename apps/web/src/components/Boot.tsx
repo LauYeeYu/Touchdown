@@ -7,6 +7,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { t } from "@touchdown/i18n";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 
 /** The glide path's length in pixels (boot.css): the aircraft at 100% is this far along it. */
 const PATH = 186;
@@ -36,7 +37,6 @@ const STEEPEST = 4;
 // screen opens along it (OPENING_MS). The durations are boot.css's.
 const LANDING_MS = 160;
 const OPENING_MS = 160 + 520;
-const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** A cubic Bézier easing, as CSS draws one, for working out where a leg's aircraft is and how fast it is going. */
 function bezier(x1: number, y1: number, x2: number, y2: number): (x: number) => number {
@@ -125,7 +125,7 @@ export function Boot({ progress, text, done = false, label = t("ui.boot.label"),
   // work can hold up the main thread; started later, a leg would arrive late and the aircraft would jump.
   // Each step reported: a leg towards a point ahead of it. With reduced motion the bar jumps to each step instead.
   useLayoutEffect(() => {
-    if (done || still()) return;
+    if (done || reducedMotion()) return;
     const target = Math.min(1, Math.max(0, progress));
     fly(target + (0.97 - target) * AHEAD, LEG_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,7 +137,7 @@ export function Boot({ progress, text, done = false, label = t("ui.boot.label"),
       setSeam(null);
       return;
     }
-    if (still()) return gone.current?.();
+    if (reducedMotion()) return gone.current?.();
     const last = fly(1, LAND_MS(1 - along(leg.current, document.timeline.currentTime as number)[0]));
     if (!last) return setLanded(true);
     last.finished.then(
@@ -162,7 +162,7 @@ export function Boot({ progress, text, done = false, label = t("ui.boot.label"),
   }, [landed]);
   const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
   // The aircraft's place as drawn: fixed while its legs fly it, so a new render does not undo them.
-  const p = seam ? 1 : still() ? pct / 100 : from;
+  const p = seam ? 1 : reducedMotion() ? pct / 100 : from;
   const content = (hidden: boolean): ReactNode => (
     <>
       <p className="boot__mark">Touchdown</p>

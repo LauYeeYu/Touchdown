@@ -14,6 +14,7 @@ import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
 import { useModal } from "../lib/dialog.ts";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 
 interface Choice {
   size: VideoSize;
@@ -42,8 +43,6 @@ function stored(): Choice {
   }
 }
 
-const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 /** "0:07", "1:30": a place in the video. */
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -62,8 +61,8 @@ export function VideoDialog({ content, fileName, onClose, onSent }: { content: V
   const [codec, setCodec] = useState<VideoCodec | null | undefined>(undefined);
   const [resized, setResized] = useState(0);
   // The preview's place in the video, and whether it plays. With reduced motion it waits on the last frame.
-  const [playing, setPlaying] = useState(() => !still());
-  const [at, setAt] = useState(() => (still() ? Infinity : 0));
+  const [playing, setPlaying] = useState(() => !reducedMotion());
+  const [at, setAt] = useState(() => (reducedMotion() ? Infinity : 0));
   const [making, setMaking] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const stop = useRef<AbortController | null>(null);

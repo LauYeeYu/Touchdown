@@ -21,6 +21,7 @@ import { Pager, usePaging } from "./Pager.tsx";
 import { TypeCell } from "./TypeCell.tsx";
 import { toast } from "./overlay.tsx";
 import { tx } from "../lib/i18n.tsx";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 
 /** What the first choice counts: the dataset and the measure together, as one plain phrase. */
 const COUNTS: { dataset: Dataset; measure: Measure; label: () => string; head: () => string }[] = [
@@ -129,7 +130,7 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
   const list = useRef<HTMLElement>(null);
   const pick = (p: Picked) => {
     setPicked(p);
-    requestAnimationFrame(() => list.current?.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+    requestAnimationFrame(() => list.current?.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" }));
   };
   const isPicked = (row: string | null, col: string | null) => picked?.row === row && picked?.col === col;
   const countSelect = (

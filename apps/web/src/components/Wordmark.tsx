@@ -4,6 +4,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { AIRLINER, AIRLINER_TRANSFORM, GROUND, MARK_VIEWBOX } from "../lib/wordmark.ts";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 
 const LANDING_MS = 1500;
 /** When the wheels meet the runway, as a share of the landing. */
@@ -37,7 +38,7 @@ export function Wordmark() {
     if (!g || !host) return;
     const land = (e: Event) => {
       if ((e as PointerEvent).pointerType !== "mouse" || g.getAnimations().length) return;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (reducedMotion()) return;
       g.animate(LANDING, { duration: LANDING_MS });
       for (const puff of smoke.current?.children ?? []) puff.animate(SMOKE, { duration: 450, delay: LANDING_MS * TOUCH, easing: "ease-out" });
     };

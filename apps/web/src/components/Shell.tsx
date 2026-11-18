@@ -21,6 +21,7 @@ import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
 import { Wordmark } from "./Wordmark.tsx";
 import { FootCredits } from "./FootCredits.tsx";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 
 const NAV: { to: string; label: () => string; icon: IconName; match: (p: string) => boolean }[] = [
   { to: "/", label: () => t("shell.nav.home"), icon: "house", match: (p) => p === "/" },
@@ -130,7 +131,7 @@ function applyTheme(theme: (typeof THEMES)[number]) {
     else root.setAttribute("data-theme", theme);
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#212019" : "#f2ede2");
   };
-  const fade = dark !== wasDark && "startViewTransition" in document && document.visibilityState === "visible" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fade = dark !== wasDark && "startViewTransition" in document && document.visibilityState === "visible" && !reducedMotion();
   // A fade cut short by the next change (a quick second press) is skipped, and the new look still applies.
   if (fade) document.startViewTransition(set).ready.catch(() => undefined);
   else set();

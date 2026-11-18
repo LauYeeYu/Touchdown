@@ -8,7 +8,8 @@
 import { useEffect, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
 import { metres } from "../lib/typeFigures.ts";
-import { reducedMotion, useTypeMotion, type Pose, type Poses } from "../lib/motion.ts";
+import { useTypeMotion, type Pose, type Poses } from "../lib/motion.ts";
+import { reducedMotion } from "../lib/reducedMotion.ts";
 import { DrawingShape, type Drawn } from "./Silhouette.tsx";
 
 /** A round length for the scale bar: about a fifth of the drawing's width. */
