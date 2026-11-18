@@ -53,8 +53,6 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
   const [rowId, setRowId] = useViewState("custom.rows", "airline");
   const [colId, setColId] = useViewState("custom.columns", "family");
   const [filters, setFilters] = useViewState<PivotFilter[]>("custom.filters", []);
-  const [picked, setPicked] = useState<Picked | null>(null);
-  const [allRows, setAllRows] = useState(false);
   const [editing, setEditing] = useState<string | "new" | null>(null);
 
   const dims = DIMENSIONS.filter((d) => d.datasets.includes(dataset));
@@ -68,12 +66,15 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
   const name = (dimId: string, k: string) => pivotValueLabel(dimId, k, ref, codeStyle());
   const fmt = (n: number) => (measure === "distance" ? distance(n, unit) : measure === "time" ? durShort(n) : nf.format(n));
 
-  // A new question: the list under the table was an answer to the old one.
+  // The figure picked and "Show all" belong to the question they were chosen in: a new one starts without them, as the
+  // list under the table was an answer to the old one. Kept with the visit, so Back from a record shows them (docs/31,
+  // "Going back").
   const query = `${dataset}|${measure}|${rowDim.id}|${colDim?.id ?? ""}|${JSON.stringify(active)}`;
-  useEffect(() => {
-    setPicked(null);
-    setAllRows(false);
-  }, [query]);
+  const [answer, setAnswer] = useViewState<{ query: string; picked: Picked | null; allRows: boolean }>("custom.answer", { query, picked: null, allRows: false });
+  const current = answer.query === query ? answer : { query, picked: null, allRows: false };
+  const { picked, allRows } = current;
+  const setPicked = (p: Picked | null) => setAnswer({ ...current, picked: p });
+  const setAllRows = (f: (all: boolean) => boolean) => setAnswer({ ...current, allRows: f(allRows) });
 
   const setCount = (value: string) => {
     const c = COUNTS.find((x) => `${x.dataset}:${x.measure}` === value)!;
@@ -293,7 +294,7 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
           </div>
           {result.rows.length > FIRST_ROWS && (
             <p className="ranked__foot">
-              <button type="button" className="link-btn" onClick={() => setAllRows((a) => !a)}>
+              <button type="button" className="link-btn" aria-expanded={allRows} onClick={() => setAllRows((a) => !a)}>
                 {allRows ? t("views.showFewer") : t("views.showAll", { count: result.rows.length })}
               </button>
             </p>

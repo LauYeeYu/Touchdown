@@ -3,7 +3,7 @@
 // airliners' for every role), then every one from A to Z, each leading to its page. A search, or the list view, shows the types themselves by manufacturer, a few
 // hundred at a time as the page scrolls. "In your log" and a role narrow both.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { TypeRole } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
@@ -116,7 +116,7 @@ export function Types() {
           {t("aircraft.types.compare")}
         </Link>
       </div>
-      {!shown.length ? <p className="types__empty">{t("aircraft.types.none")}</p> : listing ? <TypeList entries={shown} counts={!visitor} /> : <Manufacturers entries={shown} all={manufacturers} role={role} />}
+      {!shown.length ? <p className="types__empty">{t("aircraft.types.none")}</p> : listing ? <TypeList entries={shown} counts={!visitor} list={`${show}|${role}|${needle}`} /> : <Manufacturers entries={shown} all={manufacturers} role={role} />}
     </div>
   );
 }
@@ -227,20 +227,24 @@ function Manufacturers({ entries, all, role }: { entries: TypeEntry[]; all: Type
   );
 }
 
-/** The entries by manufacturer, a few hundred at a time: more come as the list's end scrolls into view. */
-function TypeList({ entries, counts }: { entries: TypeEntry[]; counts: boolean }) {
-  const [limit, setLimit] = useState(STEP);
+/**
+ * The entries by manufacturer, a few hundred at a time: more come as the list's end scrolls into view. How many is kept
+ * with the visit for the list it was for (`list`, the filters), so Back shows as many rows as were left and the page can
+ * scroll back to where it was (docs/31, "Going back"). Another list starts with a few hundred.
+ */
+function TypeList({ entries, counts, list }: { entries: TypeEntry[]; counts: boolean; list: string }) {
+  const [saved, setSaved] = useViewState("rows", { list, rows: STEP });
+  const limit = saved.list === list ? saved.rows : STEP;
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => setLimit(STEP), [entries]);
   useEffect(() => {
     const el = end.current;
     if (!el) return;
     const io = new IntersectionObserver((seen) => {
-      if (seen.some((s) => s.isIntersecting)) setLimit((l) => l + STEP);
+      if (seen.some((s) => s.isIntersecting)) setSaved({ list, rows: limit + STEP });
     }, { rootMargin: "800px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [limit, entries]);
+  }, [limit, entries, list]);
   const manufacturers: { name: string; entries: TypeEntry[] }[] = [];
   for (const e of entries.slice(0, limit)) {
     const last = manufacturers[manufacturers.length - 1];
@@ -272,7 +276,7 @@ function TypeList({ entries, counts }: { entries: TypeEntry[]; counts: boolean }
       ))}
       {limit < entries.length && (
         <div ref={end} className="types__more">
-          <button type="button" className="btn btn--quiet" onClick={() => setLimit((l) => l + STEP)}>
+          <button type="button" className="btn btn--quiet" onClick={() => setSaved({ list, rows: limit + STEP })}>
             {t("aircraft.types.list.more")}
           </button>
         </div>

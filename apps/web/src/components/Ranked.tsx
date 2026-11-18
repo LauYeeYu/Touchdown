@@ -1,12 +1,12 @@
 // A ranked list: label, bar, number. The bar shows each count against the largest (styles: .ranked); the
 // first few rows show, with "Show all" for the rest and a note of records the count could not include.
 
-import { useState } from "react";
 import type { Tally } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import { nf } from "../lib/format.ts";
 import { LeftOut } from "./Facts.tsx";
 import { useGrow } from "../lib/motion.ts";
+import { useViewState } from "../lib/viewState.ts";
 
 interface Props {
   title: string;
@@ -21,7 +21,8 @@ interface Props {
 }
 
 export function Ranked({ title, t: tally, label, count, limit = 8, color = "var(--flown)", missing }: Props) {
-  const [all, setAll] = useState(false);
+  // Kept with the visit, by the list's title, so Back shows the list as long as it was left (docs/31, "Going back").
+  const [all, setAll] = useViewState(`ranked.${title}`, false);
   const items = all ? tally.items : tally.items.slice(0, limit);
   const max = tally.items[0]?.count ?? 1;
   // "Show all" opens the list as a disclosure opens, so the lists below slide down instead of jumping.
@@ -46,7 +47,7 @@ export function Ranked({ title, t: tally, label, count, limit = 8, color = "var(
       )}
       <p className="ranked__foot">
         {tally.items.length > limit && (
-          <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
+          <button type="button" className="link-btn" aria-expanded={all} onClick={() => setAll((a) => !a)}>
             {all ? t("stats.showFewer") : t("stats.showAll", { count: tally.items.length })}
           </button>
         )}

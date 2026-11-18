@@ -1,7 +1,7 @@
 // Stats (docs/24-statistics.md): the period on a globe, then flights, sightings and both together, and a custom
 // view (a pivot) of any one or two dimensions by one measure. Every number says what it left out.
 
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { ageLeftOutText, ageText, aircraftAges, ageTodayNote, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, seatPositionLabel, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
@@ -354,7 +354,8 @@ function SortHeading({ by, label, sort, onSort, className }: { by: ExtensionSort
 
 /** The flights furthest off the great circle, each linking to its page: the first ten, then all. */
 function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtension[]; views: Map<string, ReturnType<typeof sortedFlights>[number]>; unit: Settings["distanceUnit"]; sort: ExtensionSort; onSort: (s: ExtensionSort) => void }) {
-  const [all, setAll] = useState(false);
+  // Kept with the visit, so Back from a flight shows the table as long as it was left (docs/31, "Going back").
+  const [all, setAll] = useViewState("mostIndirect.all", false);
   const shown = all ? rows : rows.slice(0, 10);
   // "Show all" opens the table as a disclosure opens, so what is below slides down instead of jumping.
   const grow = useGrow<HTMLDivElement>(all);
@@ -396,7 +397,7 @@ function MostIndirect({ rows, views, unit, sort, onSort }: { rows: RouteExtensio
       </div>
       {rows.length > 10 && (
         <p className="ranked__foot">
-          <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
+          <button type="button" className="link-btn" aria-expanded={all} onClick={() => setAll((a) => !a)}>
             {all ? t("stats.showFewer") : t("stats.showAll", { count: rows.length })}
           </button>
         </p>
@@ -561,14 +562,14 @@ function AgeLeftOut({ left }: { left: AircraftAges["leftOut"] }) {
   return text ? <p className="age-note">{text}</p> : null;
 }
 
-/** Ten rows, then "Show all", opening as a disclosure opens. */
-function useTenRows<T>(rows: T[]) {
-  const [all, setAll] = useState(false);
+/** Ten rows, then "Show all", opening as a disclosure opens, kept with the visit by `name` (docs/31, "Going back"). */
+function useTenRows<T>(name: string, rows: T[]) {
+  const [all, setAll] = useViewState(`${name}.all`, false);
   const grow = useGrow<HTMLDivElement>(all);
   const foot =
     rows.length > 10 ? (
       <p className="ranked__foot">
-        <button type="button" className="link-btn" onClick={() => setAll((a) => !a)}>
+        <button type="button" className="link-btn" aria-expanded={all} onClick={() => setAll((a) => !a)}>
           {all ? t("stats.showFewer") : t("stats.showAll", { count: rows.length })}
         </button>
       </p>
@@ -578,7 +579,7 @@ function useTenRows<T>(rows: T[]) {
 
 /** The aircraft's age on the day of each flight. */
 function AgeWhenFlownTable({ rows, views, reference }: { rows: AgeWhenFlown[]; views: FlightViews; reference: RefIndex }) {
-  const { shown, grow, foot } = useTenRows(rows);
+  const { shown, grow, foot } = useTenRows("ageWhenFlown", rows);
   return (
     <div>
       <h3 className="ranked__title">{t("stats.age.whenFlown")}</h3>
@@ -627,7 +628,7 @@ function AgeWhenFlownTable({ rows, views, reference }: { rows: AgeWhenFlown[]; v
  * it is only the time since its first flight, so the column says that, and the row carries its status.
  */
 function AgeNowTable({ rows, reference }: { rows: AgeNow[]; reference: RefIndex }) {
-  const { shown, grow, foot } = useTenRows(rows);
+  const { shown, grow, foot } = useTenRows("ageNow", rows);
   return (
     <div>
       <h3 className="ranked__title">{t("stats.age.today")}</h3>
