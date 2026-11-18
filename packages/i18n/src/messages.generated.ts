@@ -221,9 +221,11 @@ export interface MessageArgs {
   "aircraft.types.figure.engines": {};
   "aircraft.types.seats.upTo": { max: "number"; typical: "number" };
   "aircraft.types.seats.max": { max: "number" };
-  "aircraft.types.drawing.span": { length: "text"; rotor: "choice" };
+  "aircraft.types.drawing.span": { length: "text"; pose: "choice"; rotor: "choice" };
   "aircraft.types.drawing.length": { length: "text" };
   "aircraft.types.drawing.label": { name: "text" };
+  "aircraft.types.drawing.poses": {};
+  "aircraft.types.drawing.pose": { pose: "choice" };
   "aircraft.types.page.lead": { hasMtow: "choice"; length: "text"; mtow: "text"; name: "text"; rotor: "choice"; span: "text" };
   "aircraft.types.page.log": { flown: "number"; seen: "number" };
   "aircraft.types.family.intro": { compared: "choice"; count: "number"; name: "text" };

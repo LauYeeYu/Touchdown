@@ -4,7 +4,8 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { foldedPanel, planformPath, type Pt } from "./silhouette.ts";
 
-const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** Whether the reader asks for reduced motion: then nothing here moves, and a change is made at once. */
+export const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** A box's rows: a list's items or a table's body rows. */
 const rowsOf = (box: HTMLElement) => [...box.querySelectorAll(":scope > li, :scope tbody > tr")];
@@ -24,7 +25,7 @@ export function useGrow<T extends HTMLElement>(key: unknown) {
     if (!box) return;
     const from = last.current;
     const to = box.offsetHeight;
-    if (from === null || from === to || still()) return;
+    if (from === null || from === to || reducedMotion()) return;
     const added = to > from ? rowsOf(box).filter((row) => !before.current.has(row)) : [];
     for (const row of added) row.classList.add("grow-in");
     box.style.height = `${from}px`;
@@ -85,6 +86,25 @@ export type TypeMove =
   | { kind: "nacelle"; path: string; at: [number, number]; front: number; back: number; wide: number }
   | { kind: "proprotor"; path: string; blades: string; at: [number, number]; reach: number; dir: 1 | -1 };
 
+/**
+ * What a type's moving parts do (docs/31, "Aircraft types"): move while it is hovered (`animated`), or hold still as
+ * drawn (`rest`) or where a hover takes them (`moved`), its rotors then spinning.
+ */
+export type Pose = "animated" | "rest" | "moved";
+
+/**
+ * The two poses a type's drawing holds, by what moves in it: wings spread and folded (`fold`), spread and swept back
+ * (`swing`), foreplanes extended and retracted (`stow`), a tiltrotor's nacelles forward and upright (`tilt`), or a
+ * helicopter's rotors stopped and spinning (`rotor`). Null for a drawing with nothing that moves.
+ */
+export type Poses = "fold" | "swing" | "stow" | "tilt" | "rotor";
+
+export function posesOf(moves: TypeMove[]): Poses | null {
+  const first = moves.find((m) => m.kind !== "rotor" && m.kind !== "proprotor") ?? moves[0];
+  if (!first) return null;
+  return first.kind === "nacelle" || first.kind === "proprotor" ? "tilt" : first.kind;
+}
+
 const n3 = (v: number) => +v.toFixed(3);
 
 /**
@@ -124,36 +144,49 @@ const ROTOR_SPEED = 400;
 const TIMES = { rotorUp: 0.35, rotorDown: 0.6, swingIn: 0.16, swingOut: 0.12, foldUp: 0.16, foldDown: 0.12, stow: 0.1, tiltUp: 0.22, tiltDown: 0.16 };
 
 /**
- * A type's moving parts doing what they do while it is hovered or has the keyboard's focus (DESIGN.md, "Motion"): its
- * rotors spin up and coast down, a swing wing sweeps back to its swept angle and spreads again, folding wings fold up
- * and spread again, foreplanes fold into the fuselage, a tiltrotor's nacelles turn up, its proprotors spinning up as
- * they do. The hover is on what holds the
- * drawing: its row or card, its link or its figure. Each moving part is a path of `svg` marked `data-moving`, in the
- * order of `moves`. Nothing moves for reduced motion.
+ * A type's moving parts doing what they do (DESIGN.md, "Motion"): its rotors spin up and coast down, a swing wing sweeps
+ * back to its swept angle and spreads again, folding wings fold up and spread again, foreplanes fold into the fuselage,
+ * a tiltrotor's nacelles turn up, its proprotors spinning up as they do. `animated`, they move while what holds the
+ * drawing is hovered or has the keyboard's focus: its row or card, its link or its figure. Held in a `pose`, they move
+ * there and stay, and a page that opens in one shows it at once. Each moving part is a path of `svg` marked
+ * `data-moving`, in the order of `moves`. For reduced motion nothing moves: a pose is taken at once, and rotors stay
+ * still.
  */
-export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeMove[]) {
+export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeMove[], pose: Pose = "animated") {
+  const held = useRef(pose);
+  const wake = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    held.current = pose;
+    wake.current?.();
+  }, [pose]);
   useEffect(() => {
     const el = svg.current;
-    if (!el || !moves.length || still()) return;
+    if (!el || !moves.length) return;
+    const instant = reducedMotion();
     const host = el.closest<HTMLElement | SVGElement>("a, tr, .card, figure") ?? el;
     const paths = [...el.querySelectorAll<SVGPathElement>("[data-moving]")];
     const about = (at: [number, number]) => `${+at[0].toFixed(3)} ${+at[1].toFixed(3)}`;
     // Each part's state: a rotor's angle and speed, or how far a wing or foreplane has gone, 0 to 1.
     const state = moves.map(() => ({ angle: 0, speed: 0, done: 0 }));
-    let on = false;
+    let hovered = false;
+    // The first frame takes the pose the page opens in at once.
+    let snap = true;
     let frame = 0;
     let last = 0;
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      const ease = (tau: number) => 1 - Math.exp(-dt / tau);
+      const on = held.current === "animated" ? hovered && !instant : held.current === "moved";
+      const at = instant || snap;
+      snap = false;
+      const ease = (tau: number) => (at ? 1 : 1 - Math.exp(-dt / tau));
       let moving = false;
       moves.forEach((m, i) => {
         const s = state[i]!;
         const path = paths[i];
         if (!path) return;
         if (m.kind === "rotor" || m.kind === "proprotor") {
-          s.speed += ((on ? ROTOR_SPEED : 0) - s.speed) * ease(on ? TIMES.rotorUp : TIMES.rotorDown);
+          s.speed += ((on && !instant ? ROTOR_SPEED : 0) - s.speed) * ease(on ? TIMES.rotorUp : TIMES.rotorDown);
           if (!on && s.speed < 6) s.speed = 0;
           s.angle = (s.angle + s.speed * m.dir * dt) % 360;
           if (s.speed) moving = true;
@@ -188,15 +221,22 @@ export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeM
       });
       frame = moving ? requestAnimationFrame(step) : 0;
     };
-    const run = (next: boolean) => {
-      on = next;
+    const run = () => {
       if (!frame) {
         last = performance.now();
         frame = requestAnimationFrame(step);
       }
     };
-    const enter = () => run(true);
-    const leave = () => run(false);
+    wake.current = run;
+    run();
+    const enter = () => {
+      hovered = true;
+      run();
+    };
+    const leave = () => {
+      hovered = false;
+      run();
+    };
     // Focus within the host, as a link in a row or a card has it; leaving it for another part of the host is not leaving.
     const blur = (e: Event) => {
       if (!host.contains((e as FocusEvent).relatedTarget as Node | null)) leave();
@@ -206,6 +246,7 @@ export function useTypeMotion(svg: RefObject<SVGSVGElement | null>, moves: TypeM
     host.addEventListener("focusin", enter);
     host.addEventListener("focusout", blur);
     return () => {
+      wake.current = null;
       cancelAnimationFrame(frame);
       host.removeEventListener("pointerenter", enter);
       host.removeEventListener("pointerleave", leave);

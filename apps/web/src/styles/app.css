@@ -8429,6 +8429,18 @@ button.select {
   font-variant-numeric: tabular-nums;
 }
 
+/* The span line follows the wingtips when the drawing is held folded or swept (components/TypeDrawing.tsx). */
+.type-drawing__span > * {
+  transition: transform 400ms var(--ease);
+}
+
+/* Animated, or held in one of its two poses: at the panel's top end, over the drawing. */
+.type-drawing__poses {
+  align-self: flex-end;
+  margin-bottom: 8px;
+  max-width: 100%;
+}
+
 .type-page__facts {
   margin-top: 32px;
 }

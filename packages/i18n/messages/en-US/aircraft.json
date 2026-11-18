@@ -1,0 +1,3 @@
+{
+  "types.drawing.pose": "{pose, select, animated {Animated} unfolded {Spread} folded {Folded} forward {Spread} swept {Swept} extended {Extended} retracted {Retracted} aeroplane {Airplane} helicopter {Helicopter} stopped {Stopped} other {Spinning}}"
+}

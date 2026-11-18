@@ -1,5 +1,6 @@
 // An aircraft type's page (docs/31-ui.md, "Aircraft types"), from Aircraft types and Compare: the type seen from above
-// as a measured drawing (G11), a sentence of its size and what the log has of it, its figures from Wikipedia (docs/13,
+// as a measured drawing (G11), its moving parts animated on hover or held in a pose the reader picks, a sentence of its
+// size and what the log has of it, its figures from Wikipedia (docs/13,
 // "Type figures"), its family's type codes side by side at one scale with each one's difference from this one, the
 // family's history, the log's aircraft of the type, and where the figures and the drawing come from.
 
@@ -16,9 +17,11 @@ import { familyTypes, metres, typeFigures, weight } from "../lib/typeFigures.ts"
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useVisitor } from "../lib/visitor.ts";
 import { aircraftViews } from "../lib/views.ts";
+import { posesOf, type Pose } from "../lib/motion.ts";
+import { useViewState } from "../lib/viewState.ts";
 import { Fact } from "../components/Facts.tsx";
 import { drawingOf } from "../components/Silhouette.tsx";
-import { TypeDrawing } from "../components/TypeDrawing.tsx";
+import { PoseChoice, TypeDrawing, type MovedSpan } from "../components/TypeDrawing.tsx";
 import { TypeFamilyTable } from "../components/TypeFamilyTable.tsx";
 import { TypeAircraft, TypeHistory, type History } from "../components/TypeSections.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -34,6 +37,7 @@ export function TypePage() {
   const visitor = useVisitor();
   const type = ref.type(code);
   const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode === code), [store, version, code]);
+  const [pose, setPose] = useViewState<Pose>("drawing.pose", "animated");
   if (!type || !hasTypePage(ref, code)) return <NotFound />;
 
   const name = typeName(code, ref);
@@ -46,6 +50,10 @@ export function TypePage() {
     familyFacts ?? (ownHistory ? { firstFlight: specs!.firstFlight, introduced: specs!.introduced, built: specs!.built, builtAsOf: null, status: null } : null);
   const planform = info?.planform(code, ref) ?? null;
   const drawing = drawingOf(code, info, ref);
+  const poses = drawing ? posesOf(drawing.moving) : null;
+  // The span its figure gives with the wings folded or swept back, marked when the drawing is held so.
+  const wing = planform?.shape.wing;
+  const moved: MovedSpan | null = wing?.fold ? { span: wing.fold, as: "folded" } : wing?.sweptSpan ? { span: wing.sweptSpan, as: "swept" } : null;
   const rotor = planform?.shape.kind === "helicopter";
   const figures = typeFigures(rotor);
   const flown = counts.flown.get(code) ?? 0;
@@ -87,7 +95,8 @@ export function TypePage() {
 
       {drawing && planform && (
         <figure className="type-page__drawing">
-          <TypeDrawing drawing={drawing} length={specs?.lengthM ?? null} span={specs?.spanM ?? null} rotor={rotor} label={t("aircraft.types.drawing.label", { name })} />
+          {poses && <PoseChoice poses={poses} value={pose} onChange={setPose} />}
+          <TypeDrawing drawing={drawing} length={specs?.lengthM ?? null} span={specs?.spanM ?? null} rotor={rotor} label={t("aircraft.types.drawing.label", { name })} pose={pose} moved={moved} />
         </figure>
       )}
 

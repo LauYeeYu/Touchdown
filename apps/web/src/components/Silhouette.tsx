@@ -7,7 +7,7 @@
 import { useMemo, useRef } from "react";
 import type { RefIndex } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
-import { extentOf, planformLayers, planformPath } from "../lib/silhouette.ts";
+import { extentOf, movedParts, planformLayers, planformPath } from "../lib/silhouette.ts";
 import { useTypeMotion, type TypeMove } from "../lib/motion.ts";
 import { useTypeInfo, type TypeInfo } from "../lib/typeInfo.ts";
 
@@ -24,8 +24,11 @@ export function fitShare(metres: number): number {
   return FIT.least + (1 - FIT.least) * Math.min(1, metres / FIT.largest) ** FIT.power;
 }
 
-/** A type's outline (`path`), its still parts and its moving ones apart, its extent in metres, and whether it is checked. */
-export type Drawn = { path: string; still: string; moving: TypeMove[]; extent: [number, number, number, number]; checked: boolean };
+/**
+ * A type's outline (`path`), its still parts and its moving ones apart, its extent in metres, and with its moving parts
+ * where a hover takes them (a swing wing swept, wings folded), and whether it is checked.
+ */
+export type Drawn = { path: string; still: string; moving: TypeMove[]; extent: [number, number, number, number]; movedExtent: [number, number, number, number]; checked: boolean };
 const drawn = new Map<string, Drawn | null>();
 
 /** A type's outline and extent in metres, worked out once a tab. */
@@ -43,7 +46,7 @@ export function drawingOf(code: string | null | undefined, info: TypeInfo | null
         if (how.kind === "fold") return { ...how, path: planformPath(parts), outline: parts[0]! };
         return { ...how, path: planformPath(parts) };
       });
-      drawn.set(code, { path: planformPath(parts), still: planformPath(still), moving: moves, extent: extentOf(parts), checked: p.checked });
+      drawn.set(code, { path: planformPath(parts), still: planformPath(still), moving: moves, extent: extentOf(parts), movedExtent: extentOf([...still, ...movedParts(moving)]), checked: p.checked });
     }
   }
   return drawn.get(code)!;

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { RefIndex } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
 import { wingFolds } from "@touchdown/refdata/typeinfo";
-import { extentOf, foldedPanel, planformLayers, planformParts, planformPath, type Planform, type Pt, type Shape } from "./silhouette.ts";
+import { extentOf, foldedPanel, movedParts, planformLayers, planformParts, planformPath, type Planform, type Pt, type Shape } from "./silhouette.ts";
+import { posesOf, type TypeMove } from "./motion.ts";
 import { loadTypeInfo } from "./typeInfo.ts";
 
 // Made-up airliners, in metres: a long narrow twin and a broad four-engined one.
@@ -121,25 +122,20 @@ describe("what moves when a type is hovered", () => {
   it("sweeps a swing wing back to the span its article states, its leading edge starting at the glove's corner", async () => {
     const ref = new RefIndex(loadRefTables());
     const info = await loadTypeInfo();
-    const turn = ([x, y]: Pt, [cx, cy]: Pt, deg: number): Pt => {
-      const a = (deg * Math.PI) / 180;
-      return [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)];
-    };
-    // Tupolev Tu-160: "35.6 m wings swept (65°)". Tupolev Tu-22M: "23.3 m swept (65° sweep)". The others' articles, each
-    // quoted with its shape (packages/refdata/src/curated/silhouettes.ts): 79 ft, 38 ft 2.5 in, 32 ft, and in metres.
-    const ft = 0.3048;
-    const swung = [["T160", 35.6], ["T22M", 23.3], ["B1", 79 * ft], ["F14", 38 * ft + 2.5 * 0.0254], ["F111", 32 * ft], ["TOR", 8.6], ["MG23", 7.779], ["SU17", 10.02], ["SU24", 10.37]] as const;
-    for (const [code, swept] of swung) {
-      const { still, moving } = planformLayers(info.planform(code, ref)!);
+    // Each shape's swept span quotes its article (packages/refdata/src/curated/silhouettes.ts).
+    for (const code of ["T160", "T22M", "B1", "F14", "F111", "TOR", "MG23", "SU17", "SU24"]) {
+      const p = info.planform(code, ref)!;
+      const swept = p.shape.wing.sweptSpan!;
+      expect(swept, code).toBeGreaterThan(0);
+      const { still, moving } = planformLayers(p);
       expect(moving.map((m) => m.kind)).toEqual(["swing", "swing"]);
-      const parts = [...still, ...moving.flatMap((m) => (m.kind === "swing" ? m.parts.map((part) => part.map((pt) => turn(pt, m.at, m.angle))) : []))];
-      const [x0, , x1] = extentOf(parts);
+      const [x0, , x1] = extentOf([...still, ...movedParts(moving)]);
       expect(Math.abs((x1 - x0) / swept - 1), code).toBeLessThan(0.01);
       // The right panel's root, at the front, lands on a corner of the still parts: the glove's.
       const right = moving.find((m) => m.kind === "swing" && m.angle > 0)!;
-      if (right.kind !== "swing") throw new Error("not a swing wing");
-      const front = right.parts[0]!.reduce((a, b) => (b[0] < a[0] - 1e-9 || (Math.abs(b[0] - a[0]) < 1e-9 && b[1] < a[1]) ? b : a));
-      const [fx, fy] = turn(front, right.at, right.angle);
+      const part = right.parts[0]!;
+      const front = part.indexOf(part.reduce((a, b) => (b[0] < a[0] - 1e-9 || (Math.abs(b[0] - a[0]) < 1e-9 && b[1] < a[1]) ? b : a)));
+      const [fx, fy] = movedParts([right])[0]![front]!;
       expect(Math.min(...still.flat().map(([x, y]) => Math.hypot(x - fx, y - fy))), code).toBeLessThan(0.01);
     }
   });
@@ -155,7 +151,7 @@ describe("what moves when a type is hovered", () => {
       expect(moving.map((m) => m.kind), code).toEqual(["fold", "fold"]);
       const spread = extentOf([...still, ...moving.flatMap((m) => m.parts)]);
       expect(spread[2] - spread[0], code).toBeCloseTo(p.span, 1);
-      const folded = extentOf([...still, ...moving.flatMap((m) => (m.kind === "fold" ? foldedPanel(m.parts[0]!, m.hinge, m.thick, 1) : []))]);
+      const folded = extentOf([...still, ...movedParts(moving)]);
       expect(folded[2] - folded[0], code).toBeCloseTo(fold, 2);
       for (const m of moving) {
         if (m.kind !== "fold") continue;
@@ -181,5 +177,12 @@ describe("what moves when a type is hovered", () => {
         }
       }
     }
+  });
+
+  it("holds each kind of moving part in the two poses named for it", async () => {
+    const ref = new RefIndex(loadRefTables());
+    const info = await loadTypeInfo();
+    const posesOfCode = (code: string) => posesOf(planformLayers(info.planform(code, ref)!).moving as unknown as TypeMove[]);
+    expect(["B779", "F18", "T160", "T144", "V22", "H60", "B738"].map(posesOfCode)).toEqual(["fold", "fold", "swing", "stow", "tilt", "rotor", null]);
   });
 });

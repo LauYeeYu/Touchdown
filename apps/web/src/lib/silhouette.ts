@@ -510,6 +510,26 @@ function build(p: Planform): { parts: Pt[][]; moving: Mark[] } {
   return { parts, moving };
 }
 
+/** A point turned `deg` degrees clockwise on the screen (y down) about `at`, as SVG's `rotate` turns it. */
+function turn([x, y]: Pt, [cx, cy]: Pt, deg: number): Pt {
+  const a = deg * RAD;
+  return [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)];
+}
+
+/**
+ * The moving parts' outlines `up` of the way to where a hover takes them (1 all the way), for the drawing's extent in
+ * that pose: a swing wing swept back, wings folded, foreplanes folded away. A rotor, a tiltrotor's nacelle and its
+ * proprotor stay as drawn: turning up, they keep within the span they are drawn at.
+ */
+export function movedParts(moving: Moving[], up = 1): Pt[][] {
+  return moving.flatMap((m) => {
+    if (m.kind === "swing") return m.parts.map((part) => part.map((pt) => turn(pt, m.at, m.angle * up)));
+    if (m.kind === "fold") return m.parts.flatMap((part) => foldedPanel(part, m.hinge, m.thick, up));
+    if (m.kind === "stow") return up >= 1 ? [] : m.parts.map((part) => part.map(([x, y]): Pt => [x * (1 - up), y]));
+    return m.parts;
+  });
+}
+
 /** The outlines a type is drawn with: fuselage, wings, tailplane, engines, propellers or rotor. */
 export function planformParts(p: Planform): Pt[][] {
   return build(p).parts;
