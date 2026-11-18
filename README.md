@@ -15,7 +15,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/preview-dark.png">
-    <img src="docs/images/preview-light.png" alt="Touchdown's Home page: the year in one sentence, its figures, and a map of the year's flights and spotting places" width="880">
+    <img src="docs/images/preview-light.png" alt="Touchdown's Home page: the year in one sentence, its figures, and a map of the year's flights along their recorded tracks and its spotting places" width="880">
   </picture>
   <br>
   <sub>Home, with a made-up log.</sub>
