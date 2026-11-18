@@ -1,13 +1,41 @@
-// The Flights page's search, shared with `touchdown flights --search`: text in a flight's number, airports, cities,
-// registration, airline or type, or a route between two airports. "SHA-PEK", "Shanghai - Beijing" and "SHA PEK" find
-// the route either way, "SHA > PEK" and "SHA to PEK" only that way.
+// How every search on the site and in the CLI reads its text (docs/31-ui.md, "Searching"), and the Flights page's
+// search, shared with `touchdown flights --search`: text in a flight's number, airports, cities, registration, airline
+// or type, or a route between two airports. "SHA-PEK", "Shanghai - Beijing" and "SHA PEK" find the route either way,
+// "SHA > PEK" and "SHA to PEK" only that way.
 
 import { airportName, cityName, type RefIndex } from "../ref/index.ts";
-import { airlineLabel } from "./format.ts";
+import { airlineLabel, typeName } from "./format.ts";
 import type { FlightView } from "./views.ts";
 
-/** Lower case, no accents, no spaces: "São Paulo" and "sao paulo" are the same text. */
-const squash = (s: string) => s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/\s+/g, "");
+/**
+ * Text as a search reads it: lower case, without accents, and only its letters and digits, so "Tu-160", "TU 160" and
+ * "tu160" are the same text, and so are "São Paulo" and "sao paulo", "G-ABCD" and "gabcd".
+ */
+export function searchFold(s: string): string {
+  return s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+/**
+ * A thing's text for a search (`searchMatcher`): each of its fields folded on its own and kept apart, so a word of a
+ * search is found within one field, never across two.
+ */
+export function searchText(fields: readonly (string | null | undefined)[]): string {
+  return fields
+    .map((f) => searchFold(f ?? ""))
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * A test of a thing's `searchText` against the search `q`: whether it holds each of the search's words, in any order,
+ * each folded as `searchFold` does. "Tu160" and "tu 160" find "Tupolev Tu-160", "boeing 300er" finds "Boeing
+ * 777-300ER", "London New York" a flight between the two. Null for a search with no letters or digits.
+ */
+export function searchMatcher(q: string): ((text: string) => boolean) | null {
+  const words = q.split(/\s+/).map(searchFold).filter(Boolean);
+  return words.length ? (text) => words.every((w) => text.includes(w)) : null;
+}
+
 
 /** Whether an airport, by id or as typed when it is not known, is the one a side of a route names. */
 type Side = (id: string | null, raw: string | null) => boolean;
@@ -35,17 +63,17 @@ function routeOf(q: string, ref: RefIndex): Route | null {
  * Shanghai's.
  */
 function airportTerm(term: string, ref: RefIndex): Side {
-  const t = squash(term);
+  const t = searchFold(term);
   const isCode = !!ref.airportByCode(t);
   const seen = new Map<string, boolean>();
   const known = (id: string) => {
     const a = ref.airport(id);
     if (!a) return false;
-    const codes = [a.iata, a.icao].filter((c): c is string => !!c).map(squash);
+    const codes = [a.iata, a.icao].filter((c): c is string => !!c).map(searchFold);
     if (isCode) return codes.includes(t);
     // The data's names, in English, and the names shown in the interface's language (docs/13): either finds it.
-    const cities = [squash(a.city ?? ""), squash(cityName(a) ?? "")].filter(Boolean);
-    const names = [squash(a.name), squash(airportName(a))];
+    const cities = [searchFold(a.city ?? ""), searchFold(cityName(a) ?? "")].filter(Boolean);
+    const names = [searchFold(a.name), searchFold(airportName(a))];
     const long = t.length >= 3 || /[\u4e00-\u9fff]/.test(t);
     return codes.some((c) => c.startsWith(t)) || cities.some((c) => c.startsWith(t)) || (long && (cities.some((c) => c.includes(t)) || names.some((n) => n.includes(t))));
   };
@@ -54,15 +82,16 @@ function airportTerm(term: string, ref: RefIndex): Side {
       if (!seen.has(id)) seen.set(id, known(id));
       if (seen.get(id)) return true;
     }
-    return !!raw && squash(raw) === t;
+    return !!raw && searchFold(raw) === t;
   };
 }
 
 /** A test for the flights that match the search text; every flight matches empty text. */
 export function flightSearch(q: string, ref: RefIndex): (v: FlightView) => boolean {
-  const needle = squash(q);
-  if (!needle) return () => true;
   const route = routeOf(q.trim(), ref);
+  // A route one way is not its words in any order, which the flights the other way have too: as text, it is read whole.
+  const matches = searchMatcher(route?.oneWay ? searchFold(q) : q);
+  if (!matches) return () => true;
   const from = route && airportTerm(route.from, ref);
   const to = route && airportTerm(route.to, ref);
   return (v) => {
@@ -75,6 +104,6 @@ export function flightSearch(q: string, ref: RefIndex): (v: FlightView) => boole
     }
     const a = ref.airport(f.fromAirportId);
     const b = ref.airport(f.toAirportId);
-    return squash([f.flightNumber, v.fromCode, v.toCode, a?.icao, b?.icao, a?.city, b?.city, cityName(a), cityName(b), f.registration, ref.operator(f.airlineId)?.name, airlineLabel(f.airlineId, ref), f.typeCode].join("|")).includes(needle);
+    return matches(searchText([f.flightNumber, v.fromCode, v.toCode, a?.icao, b?.icao, a?.city, b?.city, cityName(a), cityName(b), f.registration, ref.operator(f.airlineId)?.name, airlineLabel(f.airlineId, ref), f.typeCode, f.typeCode && typeName(f.typeCode, ref)]));
   };
 }

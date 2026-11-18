@@ -2,7 +2,7 @@
 // registrations and every time the user flew on it or photographed it.
 
 import { flightDay, phasesOf } from "@touchdown/core";
-import { aircraftViews, airlineLabel, airportWithCode, PHASE_LABEL, STATUS_WORD, textCode, type AircraftView } from "@touchdown/core/view";
+import { aircraftViews, airlineLabel, airportWithCode, PHASE_LABEL, searchMatcher, searchText, STATUS_WORD, textCode, type AircraftView } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n/cli";
 import { aircraftLabel, airportJson, findingJson, openFindings } from "./shape.ts";
 import { argsOrHelp, fail, fields, findAircraft, notFound, openOrFail, optionLines, plain, printJson, readFrom, readOptions, section, table, usage, type OpenedLog } from "./read.ts";
@@ -27,8 +27,6 @@ ${optionLines(19, [
 ${readOptions(19)}
 
 ${aircraftChangeHelp()}`;
-
-const squash = (s: string) => s.toLowerCase().replace(/[\s-]+/g, "");
 
 function listJson(log: OpenedLog, v: AircraftView) {
   const a = v.airframe;
@@ -57,14 +55,14 @@ export async function aircraftCommand(args: string[]) {
 
   const sort = a.values.get("--sort") ?? "last";
   if (!["last", "count", "reg"].includes(sort)) return fail(json, t("cliRead.aircraft.sortInvalid"));
-  const needle = squash(a.values.get("--search") ?? "");
+  const matches = searchMatcher(a.values.get("--search") ?? "");
   const views = aircraftViews(log.store).filter((v) => v.flights.length || v.sightings.length);
   const shown = views
     .filter((v) => !a.flags.has("--flown") || v.flights.length > 0)
     .filter((v) => !a.flags.has("--both") || (v.flights.length > 0 && v.sightings.length > 0))
     .filter((v) => !a.flags.has("--provisional") || !!v.airframe.provisional)
     .filter((v) => !a.flags.has("--no-first-flight") || !v.airframe.firstFlightDate)
-    .filter((v) => !needle || squash([v.registration, v.airframe.typeCode, aircraftLabel(log, v.airframe.typeCode, null), airlineLabel(v.operatorId, log.ref), v.airframe.msn].join("|")).includes(needle))
+    .filter((v) => !matches || matches(searchText([v.registration, v.airframe.typeCode, aircraftLabel(log, v.airframe.typeCode, null), airlineLabel(v.operatorId, log.ref), v.airframe.msn])))
     .sort((x, y) =>
       sort === "reg"
         ? (x.registration ?? "").localeCompare(y.registration ?? "")

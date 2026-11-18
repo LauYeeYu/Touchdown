@@ -1,17 +1,18 @@
 // A type chosen from every type with figures (docs/31-ui.md, "Aircraft types", Compare): a button like the site's
-// selects that opens a panel on the menu surface. Typing searches names, manufacturers and codes at once. Without a search the
+// selects that opens a panel on the menu surface. Typing searches names, manufacturers, families and codes at once. Without a search the
 // panel goes by steps: the log's types first (for a signed-in member), then the manufacturers; a manufacturer shows its families
 // and its types without one, and a family its type codes. Back returns a step. Arrow keys move through the panel,
 // Escape closes it.
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { searchFold, searchMatcher, searchText } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { typeName } from "../lib/format.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useVisitor } from "../lib/visitor.ts";
-import { useTypeCounts } from "../lib/typeEntries.ts";
+import { typeNames, useTypeCounts } from "../lib/typeEntries.ts";
 
 /** At most this many types under a search, so a short search does not list the whole table. */
 const MAX_RESULTS = 80;
@@ -28,8 +29,6 @@ interface Manufacturer {
   singles: string[];
   count: number;
 }
-
-const fold = (s: string) => s.toLowerCase().replace(/[\s-]+/g, "");
 
 export function TypePicker({ value, codes, onChange, labelledBy }: { value: string | undefined; codes: string[]; onChange: (code: string) => void; labelledBy: string }) {
   const { app } = useApp();
@@ -75,20 +74,30 @@ export function TypePicker({ value, codes, onChange, labelledBy }: { value: stri
     return [...new Set([...counts.flown.keys(), ...counts.seen.keys()])].filter((c) => has.has(c)).sort((a, b) => n(b) - n(a)).slice(0, MAX_LOGGED);
   }, [codes, counts, visitor]);
 
-  const needle = fold(q.trim());
+  // Each type's text for a search: its names (lib/typeEntries.ts, `typeNames`), its maker and its family.
+  const texts = useMemo(
+    () =>
+      new Map(
+        codes.map((c) => {
+          const type = ref.type(c);
+          const fam = type?.familyId ? ref.family(type.familyId) : null;
+          return [c, searchText([...typeNames(c, ref, info), type?.manufacturer, fam?.id, fam?.name])];
+        }),
+      ),
+    [codes, ref, info],
+  );
+  const needle = searchFold(q);
   const results = useMemo(() => {
-    if (!needle) return [];
+    const search = searchMatcher(q);
+    if (!search) return [];
     const scored: { code: string; rank: number }[] = [];
     for (const c of codes) {
-      const type = ref.type(c);
-      const name = typeName(c, ref);
-      const fam = type?.familyId ? ref.family(type.familyId)?.name : "";
+      if (!search(texts.get(c) ?? "")) continue;
       // A code typed whole comes first, then names that start with the search, then any match.
-      const rank = fold(c) === needle ? 0 : fold(name).startsWith(needle) ? 1 : [c, name, type?.manufacturer ?? "", fam ?? ""].some((s) => fold(s).includes(needle)) ? 2 : -1;
-      if (rank >= 0) scored.push({ code: c, rank });
+      scored.push({ code: c, rank: searchFold(c) === needle ? 0 : searchFold(typeName(c, ref)).startsWith(needle) ? 1 : 2 });
     }
     return scored.sort((a, b) => a.rank - b.rank || typeName(a.code, ref).localeCompare(typeName(b.code, ref)));
-  }, [needle, codes, ref]);
+  }, [q, needle, codes, texts, ref]);
 
   const close = (refocus: boolean) => {
     setOpen(false);

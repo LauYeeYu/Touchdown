@@ -3,6 +3,7 @@
 
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { airportName, cityName, operatorName, type Airport, type Operator, type RefIndex, type WornLivery } from "@touchdown/core";
+import { searchFold } from "@touchdown/core/view";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { dayMonthYear } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
@@ -21,9 +22,8 @@ export function TextInput(props: React.ComponentProps<"input">) {
   return <input className="input" autoComplete="off" spellCheck={false} {...props} />;
 }
 
-function normal(s: string) {
-  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-}
+/** Text as every search reads it (`searchFold`): "St. John's", "st johns" and "St Johns" are the same. */
+const normal = searchFold;
 
 /** Airports matching typed text: exact IATA or ICAO code first, then city and name. */
 export function searchAirports(ref: RefIndex, q: string, limit = 8): Airport[] {

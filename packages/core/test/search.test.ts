@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normaliseFlight } from "../src/index.ts";
-import { flightSearch, sortedFlights } from "../src/view/index.ts";
+import { flightSearch, searchFold, searchMatcher, searchText, sortedFlights } from "../src/view/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 // Made-up flights between the fixture airports.
@@ -12,7 +12,7 @@ function views() {
   add("XY2", "JFK", "LHR");
   add("XY3", "LHR", "BOS");
   add("XY4", "LHR", "JFK", { divertedToAirportId: "ap_kbos" });
-  add("XY5", "PVG", "HND");
+  add("XY5", "PVG", "HND", { typeCode: "B77W" });
   return sortedFlights(store, ref);
 }
 const found = (q: string) => views().filter(flightSearch(q, ref)).map((v) => v.f.flightNumber).sort();
@@ -38,10 +38,33 @@ describe("flight search", () => {
     expect(found("shang-tok")).toEqual(["XY5"]);
   });
 
+  it("finds a flight by its type's name as well as its code", () => {
+    for (const q of ["B77W", "777", "777-300ER", "boeing 300er", "Boeing 777 300 ER"]) expect(found(q), q).toEqual(["XY5"]);
+  });
+
   it("still finds text, a registration's dash included", () => {
     expect(found("G-ABCD")).toHaveLength(5);
     expect(found("pvg")).toEqual(["XY5"]);
     expect(found("")).toHaveLength(5);
     expect(found("LHR-PVG")).toEqual([]);
+  });
+});
+
+describe("search text", () => {
+  it("reads only letters and digits, in lower case, without accents", () => {
+    expect(["Tu-160", "TU 160", "tu160", "Tu–160", "Tu\u2011160"].map(searchFold)).toEqual(["tu160", "tu160", "tu160", "tu160", "tu160"]);
+    expect(searchFold("São Paulo")).toBe("saopaulo");
+    expect(searchFold("St. John's")).toBe("stjohns");
+    expect(searchFold("上海 浦东")).toBe("上海浦东");
+  });
+
+  it("finds a thing holding each word of a search, in any order, each within one of its fields", () => {
+    const tu160 = searchText(["T160", "Tupolev Tu-160", "Tupolev"]);
+    for (const q of ["Tu160", "tu 160", "TU-160", "160 tupolev", "t160"]) expect(searchMatcher(q)!(tu160), q).toBe(true);
+    expect(searchMatcher("Tu-154")!(tu160)).toBe(false);
+    // A word does not run from one field into the next: "T160" then "Tupolev" is not "160tupolev".
+    expect(searchMatcher("160tupolev")!(tu160)).toBe(false);
+    expect(searchMatcher("")).toBeNull();
+    expect(searchMatcher(" - ")).toBeNull();
   });
 });

@@ -4,6 +4,7 @@
 
 import { useMemo } from "react";
 import type { Family, RefIndex, TypeRole } from "@touchdown/core";
+import { searchText } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { typeName } from "./format.ts";
 import { familyTypes } from "./typeFigures.ts";
@@ -45,7 +46,7 @@ export interface TypeEntry {
   seen: number;
   /** When the family (its article) or the type (Wikidata) first flew: YYYY, YYYY-MM or YYYY-MM-DD. */
   firstFlight: string | null;
-  /** Its names, manufacturer and codes, folded for a search. */
+  /** Its names, manufacturer, family and codes, and the names its types go by, as a search reads them (`searchText`). */
   text: string;
 }
 
@@ -69,8 +70,15 @@ export function hasTypePage(ref: RefIndex, code: string | null | undefined): boo
 /** Names in order, numbers in them by value: the 717 before the 727, the C-17 before the C-135. */
 export const byName = new Intl.Collator(undefined, { numeric: true }).compare;
 
-/** Text for a search: no case, no accents, no spaces or hyphens. */
-export const fold = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[\s-]+/g, "");
+/**
+ * The names a type code goes by, for a search: its code, its ICAO name with its maker, and the titles its figures'
+ * sources give it, Wikipedia's article and Wikidata's item, such as "Boeing 777X" for the 777-9 and "Boeing 787
+ * Dreamliner" for the 787-8.
+ */
+export function typeNames(code: string, ref: RefIndex, info: TypeInfo | null): string[] {
+  const s = info?.specs(code);
+  return [code, typeName(code, ref), s?.wikipedia?.article, s?.article?.title, s?.wikidata?.label].filter((n): n is string => !!n);
+}
 
 /**
  * A manufacturer's or a family's address: its name in lower case, without accents, words joined by hyphens
@@ -97,7 +105,7 @@ function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: 
   const usual = drawable(first, codes);
   const roles = info ? [...new Set(codes.map((c) => info.role(c, ref)))] : [];
   const firstFlight = family ? (info?.facts(family.id)?.firstFlight ?? null) : (info?.specs(main)?.firstFlight ?? null);
-  const text = fold([name, manufacturer, ...codes, ...codes.map((c) => typeName(c, ref))].join("|"));
+  const text = searchText([name, manufacturer, family?.id, ...codes.flatMap((c) => typeNames(c, ref, info))]);
   return { key, family, name, manufacturer, codes, main, drawn, usual, roles, flown, seen, firstFlight, text };
 }
 

@@ -2,7 +2,7 @@
 // flight's page, in the terminal or as JSON.
 
 import { arrivalAirportId, flightName, phasesOf, type Flight, type Sighting } from "@touchdown/core";
-import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, extensionPercent, flightSearch, inPeriod, PHASE_LABEL, REASON_LABEL, routeExtension, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
+import { airlineLabel, airportWithCode, CABIN_LABEL, dayLong, distance, extensionPercent, flightSearch, inPeriod, PHASE_LABEL, REASON_LABEL, routeExtension, searchMatcher, searchText, sessionsOf, sortedFlights, textCode, TRACK_SOURCE, type FlightView } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n/cli";
 import { aircraftLabel, airportJson, duration, findingJson, findingsOf, flightJson, openFindings, sightingJson, timeLabel, trackOf } from "./shape.ts";
 import { argsOrHelp, fail, fields, findAirport, findFlight, notFound, openOrFail, optionLines, periodOf, plain, printJson, privateFields, readFrom, readOptions, section, table, usage, type OpenedLog } from "./read.ts";
@@ -52,8 +52,6 @@ ${t("cliRead.sessions.help")}
 
 ${optionLines(16, [["--year Y", t("cliRead.option.yearAll")]])}
 ${readOptions(16)}`;
-
-const squash = (s: string) => s.toLowerCase().replace(/\s+/g, "");
 
 /** An airline named by code or name, or stop. */
 function airlineOf(log: OpenedLog, json: boolean, text: string | undefined): string | null {
@@ -200,10 +198,10 @@ function trackText(track: ReturnType<typeof trackOf>): string {
   return partial ? t("cliRead.flight.track.partial") : t("cliRead.flight.track.recorded");
 }
 
-function sightingMatches(log: OpenedLog, s: Sighting, needle: string): boolean {
-  if (!needle) return true;
+function sightingMatches(log: OpenedLog, s: Sighting, matches: ((text: string) => boolean) | null): boolean {
+  if (!matches) return true;
   const a = log.ref.airport(s.airportId);
-  return squash([s.registration, s.registrationRaw, s.typeCode, airlineLabel(s.operatorId, log.ref), s.operatorRaw, a?.iata, a?.icao, a?.city, s.airportRaw].join("|")).includes(needle);
+  return matches(searchText([s.registration, s.registrationRaw, s.typeCode, aircraftLabel(log, s.typeCode, s.model), airlineLabel(s.operatorId, log.ref), s.operatorRaw, a?.iata, a?.icao, a?.city, s.airportRaw]));
 }
 
 export async function sightingsCommand(args: string[]) {
@@ -215,14 +213,14 @@ export async function sightingsCommand(args: string[]) {
   const airport = airportOf(log, json, a.values.get("--airport"));
   const airline = airlineOf(log, json, a.values.get("--airline"));
   const type = a.values.get("--type")?.toUpperCase();
-  const needle = squash(a.values.get("--search") ?? "");
+  const matches = searchMatcher(a.values.get("--search") ?? "");
   const shown = log.store
     .all("sightings")
     .filter((s) => inPeriod(s.seenOn, year))
     .filter((s) => !airport || s.airportId === airport)
     .filter((s) => !airline || s.operatorId === airline)
     .filter((s) => !type || s.typeCode === type)
-    .filter((s) => sightingMatches(log, s, needle))
+    .filter((s) => sightingMatches(log, s, matches))
     .sort((x, y) => (y.seenOn ?? "").localeCompare(x.seenOn ?? "") || (y.seenAt ?? "").localeCompare(x.seenAt ?? "") || x.id.localeCompare(y.id));
   const aircraft = new Set(shown.map((s) => s.airframeId ?? s.id)).size;
   const airports = new Set(shown.map((s) => s.airportId ?? s.airportRaw).filter(Boolean)).size;

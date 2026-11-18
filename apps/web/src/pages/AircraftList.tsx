@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
 import { flightDay, liveryNames } from "@touchdown/core";
+import { searchMatcher, searchText } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
 import { airlineLabel, dateOnly, nf, typeName } from "../lib/format.ts";
@@ -60,7 +61,8 @@ export function AircraftList() {
   const liveryCount = liveryNames([...liveries.values()].flat()).length;
   const mostFlown = views.reduce<(typeof views)[number] | null>((best, v) => (!best || v.flights.length > best.flights.length ? v : best), null);
 
-  const needle = q.trim().toLowerCase().replace(/[\s-]+/g, "");
+  const needle = q.trim();
+  const search = searchMatcher(needle);
   const shown = views
     .filter((v) =>
       filter === "flown"
@@ -71,7 +73,7 @@ export function AircraftList() {
             ? !!liveries.get(v.airframe.id)?.length
             : true,
     )
-    .filter((v) => !needle || [v.registration, v.airframe.typeCode, typeName(v.airframe.typeCode, ref), airlineLabel(v.operatorId, ref), v.airframe.msn].join("|").toLowerCase().replace(/[\s-]+/g, "").includes(needle))
+    .filter((v) => !search || search(searchText([v.registration, v.airframe.typeCode, typeName(v.airframe.typeCode, ref), airlineLabel(v.operatorId, ref), v.airframe.msn])))
     .sort((a, b) =>
       sort === "reg"
         ? (a.registration ?? "").localeCompare(b.registration ?? "")

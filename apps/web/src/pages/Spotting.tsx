@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
 import { phaseIndex, sightingStats, type Sighting } from "@touchdown/core";
+import { searchMatcher, searchText } from "@touchdown/core/view";
 import { list, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -54,11 +55,12 @@ export function Spotting() {
   const { sightings, ss, sessions, flown, review, tags, phases } = data;
   const newCount = ss.newPerDay.reduce((a, b) => a + b.count, 0);
   const airports = [...new Set(sightings.map((s) => s.airportId).filter((x): x is string => !!x))].sort((a, b) => shortAirport(a, ref).localeCompare(shortAirport(b, ref)));
-  const needle = q.trim().toLowerCase().replace(/\s+/g, "");
+  const needle = q.trim();
+  const search = searchMatcher(needle);
   const matches = (s: Sighting) => {
     if (airport && s.airportId !== airport) return false;
-    if (!needle) return true;
-    return [s.registration, s.typeCode, typeName(s.typeCode, ref), airlineLabel(s.operatorId, ref), s.operatorRaw, s.specialLivery, s.livery].join("|").toLowerCase().replace(/\s+/g, "").includes(needle);
+    if (!search) return true;
+    return search(searchText([s.registration, s.typeCode, typeName(s.typeCode, ref), airlineLabel(s.operatorId, ref), s.operatorRaw, s.specialLivery, s.livery]));
   };
   const shownSessions = sessions.map((x) => ({ ...x, shown: x.sightings.filter(matches) })).filter((x) => x.shown.length);
   const paging = usePaging(shownSessions, SESSIONS_PER_PAGE, `${year}|${needle}|${airport}`);
@@ -145,7 +147,7 @@ export function Spotting() {
       )}
       <div ref={paging.top} className="list-top" />
       {paging.slice.map((sess) => {
-        const open = expanded.includes(sess.key) || !!needle || sess.shown.length <= SESSION_PREVIEW + 2;
+        const open = expanded.includes(sess.key) || !!search || sess.shown.length <= SESSION_PREVIEW + 2;
         const rows = open ? sess.shown : sess.shown.slice(0, SESSION_PREVIEW);
         return (
           <section className="month session" key={sess.key}>
