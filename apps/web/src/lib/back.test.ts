@@ -80,4 +80,13 @@ describe("going back (docs/31, \"Going back\"), in the source", () => {
     );
     expect(plain).toEqual([]);
   });
+
+  it("marks a list's \"Show all\" with aria-expanded, so scripts/check-back.ts finds it", () => {
+    const unmarked = sources().flatMap(({ file, text }) =>
+      [...text.matchAll(/<button\b([^>]*)>((?:(?!<\/button>)[\s\S])*?)<\/button>/g)]
+        .filter((m) => (/\.showFewer"/.test(m[2]!) || /\bshow-all\b/.test(m[1]!)) && !/aria-expanded/.test(m[1]!))
+        .map(() => file),
+    );
+    expect(unmarked).toEqual([]);
+  });
 });

@@ -203,7 +203,7 @@ export function Spotting() {
               ))}
             </SessionRows>
             {!open && (
-              <button type="button" className="btn btn--quiet btn--small show-all" onClick={() => setExpanded((e) => [...e, sess.key])}>
+              <button type="button" className="btn btn--quiet btn--small show-all" aria-expanded="false" onClick={() => setExpanded((e) => [...e, sess.key])}>
                 {t("spotting.day.showAll", { count: sess.shown.length })}
               </button>
             )}

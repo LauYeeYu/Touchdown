@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build && vite build -c vite.signin.config.ts && tsx scripts/site-preview.ts && vite build -c vite.share.config.ts && vite build -c vite.types.config.ts && tsx scripts/type-previews.ts && vite build -c vite.sw.config.ts",
     "preview": "vite preview",
+    "check-back": "tsx scripts/check-back.ts",
     "deploy": "wrangler deploy"
   },
   "dependencies": {

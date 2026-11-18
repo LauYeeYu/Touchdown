@@ -1,7 +1,8 @@
 // Period control (docs/31-ui.md): segmented buttons while they fit, at most the three most recent years
 // plus "All time"; older years in an "Earlier" menu; one menu button on very narrow screens. The selected
 // segment is shown by fill and check, and every segment reserves room for its longest label, so the
-// control never changes width when the selection changes.
+// control never changes width when the selection changes. It is marked `data-setting`: one setting shared by every
+// page, not a page's own view (scripts/check-back.ts leaves it alone).
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
@@ -26,7 +27,7 @@ function Segments({ year, years, k, onPick, onMenu, menuOpen, triggerRef }: {
 }) {
   if (k === 0) {
     return (
-      <div className="segmented" role="group" aria-label={t("stats.period.label")}>
+      <div className="segmented" role="group" aria-label={t("stats.period.label")} data-setting="period">
         <button type="button" className="seg seg--menu" aria-haspopup="menu" aria-expanded={!!menuOpen} aria-pressed="true" onClick={onMenu} ref={triggerRef}>
           <Icon name="check" className="seg__check" />
           <span className="seg__label" data-ghost={t("stats.period.allTime")}>
@@ -42,7 +43,7 @@ function Segments({ year, years, k, onPick, onMenu, menuOpen, triggerRef }: {
   const pickedEarlier = earlier.includes(year);
   const ghost = earlier.reduce((a, b) => (a.length >= b.length ? a : b), t("stats.period.earlier"));
   return (
-    <div className="segmented" role="group" aria-label={t("stats.period.label")}>
+    <div className="segmented" role="group" aria-label={t("stats.period.label")} data-setting="period">
       {earlier.length > 0 && (
         <button type="button" className="seg seg--menu" aria-haspopup="menu" aria-expanded={!!menuOpen} aria-pressed={pickedEarlier} onClick={onMenu} ref={triggerRef}>
           <Icon name="check" className="seg__check" />
