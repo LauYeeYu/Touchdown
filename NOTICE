@@ -16,16 +16,10 @@ Reference data (packages/refdata/data), built from:
 - Touchdown's own tables (aircraft families, model patterns, registration prefixes, curated
   rows): Apache License 2.0, with the code.
 
-Icons (apps/web/src/lib/icons.tsx, prototype/icons): Lucide (lucide.dev). ISC License.
+Icons (apps/web/src/lib/icons.tsx): Lucide (lucide.dev). ISC License.
   Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather
   (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
-  The full licence is in prototype/icons/LICENSE.txt.
-
-Prototype (prototype/vendor):
-- d3 v7.9.0, Copyright 2010-2023 Mike Bostock (d3js.org). ISC License.
-- topojson-client v3.1.0, Copyright 2019 Mike Bostock. ISC License.
-- countries-110m.js: world-atlas (github.com/topojson/world-atlas, ISC License), from
-  Natural Earth (naturalearthdata.com), public domain.
+  The full licence is in apps/web/src/lib/lucide.LICENSE.txt.
 
 Not in this repository, and not covered by its licence:
 - The OpenSky Network aircraft database, which the command-line tool downloads for each

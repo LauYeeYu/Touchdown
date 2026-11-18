@@ -92,7 +92,7 @@ The site runs as a Cloudflare Worker (the address is in `apps/web/wrangler.jsonc
 
 Your records stay in your browser, your storage and `data/private/`. Lookups send only a registration (to adsbdb, and to Flightradar24 with `--fr24`). The hosted site's [privacy policy](PRIVACY.md) and [terms of service](TERMS.md) say what it keeps; it shows them at `/privacy` and `/terms`.
 
-Touchdown is under the [Apache License 2.0](LICENSE). The reference data, the icons and the prototype's libraries keep their own licences; [NOTICE](NOTICE) lists them.
+Touchdown is under the [Apache License 2.0](LICENSE). The reference data and the icons keep their own licences; [NOTICE](NOTICE) lists them.
 
 ## More
 
