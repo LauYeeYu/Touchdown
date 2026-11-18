@@ -97,7 +97,8 @@ export function AirportPage() {
   const parts = `${dep ? "d" : ""}${land ? "l" : ""}${trans ? "t" : ""}`;
   const flownText = parts.length > 0;
   const fig = (text: ReactNode) => <Fig>{text}</Fig>;
-  const goBack = () => (window.history.length > 1 ? router.history.back() : navigate({ to: "/stats" }));
+  // Back to the page it was opened from in the app, else to Statistics: a tab opened on it has nothing of the app before it.
+  const goBack = () => (router.history.canGoBack() ? router.history.back() : navigate({ to: "/stats" }));
 
   return (
     <div className="page">
