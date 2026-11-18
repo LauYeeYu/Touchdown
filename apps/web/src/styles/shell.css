@@ -1,0 +1,688 @@
+/* The frame around every page: the header and its navigation, the footer, a page's top, crumbs and pagers
+   (styles/app.css imports the parts in order). */
+
+.page {
+  width: min(var(--page), 100% - 2 * var(--gutter));
+  margin-inline: auto;
+}
+
+/* The frame on tonal surfaces, without borders. */
+.masthead {
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface-mid);
+  border-bottom-color: transparent;
+}
+
+.masthead__bar {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: 64px;
+}
+
+/* The airliner touching down on its gold ground line, then the name (components/Wordmark.tsx). */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.wordmark__mark {
+  flex: none;
+  width: 34px;
+  height: 25px;
+  /* On its approach, the aircraft comes in from outside the box. */
+  overflow: visible;
+}
+
+.wordmark__plane {
+  transform-box: fill-box;
+  transform-origin: 55% 95%;
+}
+
+.wordmark__ground {
+  stroke: var(--flown);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* Tyre smoke at touchdown: shown only while the aircraft lands under the pointer. */
+.wordmark__smoke circle {
+  fill: var(--ink-3);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+
+/* Navigation: the current page sits in a pill of the selection tint. */
+.nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: background-color 160ms var(--ease), color 160ms var(--ease);
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+.nav__link .icon {
+  display: none;
+}
+
+.nav__link:hover {
+  color: var(--ink);
+  background: var(--state-hover);
+}
+
+.nav__link[aria-current="page"] {
+  font-weight: 600;
+  background: var(--selected-container);
+  color: var(--on-selected-container);
+}
+
+.nav__link[aria-disabled="true"] {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+.nav__link[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--ink-3);
+}
+
+.masthead__tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Without the main navigation (the public types pages), the tools still sit at the end. */
+.wordmark + .masthead__tools {
+  margin-left: auto;
+}
+
+.sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.sample-note {
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.sample-note .page {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  height: 32px;
+}
+
+.view-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 40px;
+}
+
+.period-host {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Home's share icon for the whole log, at the end of the period row, under the header's last icon. */
+.share-log {
+  flex: none;
+}
+
+/* Flights' end of the period row: Share, then "Add flight" (not on phones). */
+.view-top__end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.period {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* A page a share link does not show (lib/link.tsx): its link is plain text, and a way back to a list the link lacks is
+   left out. */
+.is-unlinked {
+  color: inherit;
+  text-decoration: none;
+  cursor: auto;
+}
+
+.crumbs .is-unlinked {
+  display: none;
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 28px;
+  font-size: 0.9375rem;
+}
+
+.crumbs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.crumbs__pager {
+  display: flex;
+  gap: 20px;
+}
+
+.pager-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+}
+
+.pager-foot a {
+  text-decoration: none;
+  max-width: 48%;
+}
+
+.pager-foot small {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.pager-foot span {
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.pager-foot a:hover span {
+  text-decoration: underline;
+}
+
+.pager-foot .next {
+  text-align: right;
+  margin-left: auto;
+}
+
+.placeholder {
+  padding: 96px 0;
+  max-width: 34em;
+}
+
+.site-foot {
+  border-top: 1px solid var(--rule);
+  padding: 24px 0 40px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.site-foot p {
+  margin: 0 0 4px;
+}
+
+.site-foot a {
+  color: var(--ink-3);
+}
+
+/* "Data and credits": a button in the footer's last line, underlined as the links beside it, with the credits
+   folded under the line until it is pressed. */
+.site-foot .site-foot__more {
+  gap: 2px;
+  color: var(--ink-3);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 1px;
+}
+
+.site-foot__more .icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 160ms ease-out;
+}
+
+.site-foot__more[aria-expanded="true"] .icon {
+  transform: rotate(180deg);
+}
+
+.site-foot .site-foot__credits {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 720px) {
+  .view-top {
+    padding-top: 24px;
+  }
+
+  /* The drawn icon lines up with the column's edge (the button's padding reaches into the gutter) and comes to 15px
+     from the year buttons, so they keep three buttons on a 390px phone. */
+  .share-log {
+    margin: 0 -11px 0 -12px;
+  }
+
+  .crumbs__pager {
+    display: none;
+  }
+}
+
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 60;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.skip:focus {
+  top: 12px;
+}
+
+.view-top__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sync--error {
+  color: var(--alert);
+}
+
+/* The save state links to Settings, where the sync state is spelt out. */
+a.sync {
+  text-decoration: none;
+}
+
+a.sync:hover {
+  color: var(--ink-2);
+}
+
+a.sync.sync--error:hover {
+  color: var(--alert);
+}
+
+.issues-btn {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  top: 2px;
+  right: 0;
+}
+
+.menu-anchor {
+  position: relative;
+}
+
+.period-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: max-content;
+  height: 0;
+  overflow: hidden;
+}
+
+.start {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 16px;
+  margin: 36px 0 28px;
+}
+
+.start__item {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: border-color 160ms var(--ease), background-color 160ms var(--ease);
+  border-color: transparent;
+  background: var(--surface-low);
+}
+
+.start__item:hover {
+  border-color: var(--rule-hover);
+  background: var(--surface-mid);
+}
+
+.start__item > span {
+  display: grid;
+  gap: 4px;
+}
+
+.start__item b {
+  font-size: 1.0625rem;
+}
+
+.start__item span span {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.start__item--main {
+  background: var(--selected-container);
+  color: var(--on-selected-container);
+}
+
+a.wordmark {
+  color: inherit;
+}
+
+/* The forms that take a record (a flight, a sighting, a spotting session), sign-in and the first run: narrower than
+   the main body, as a form is. Pages to read, Settings and Import among them, use the main body's width. */
+.page--form {
+  max-width: 880px;
+}
+
+.page--wide {
+  width: min(1280px, 100% - 2 * var(--gutter));
+}
+
+.view-top + .form-title {
+  margin-top: 0;
+}
+
+@media (max-width: 960px) {
+  .start {
+    grid-template-columns: 1fr;
+  }
+}
+
+.crumbs__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.crumbs__back:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.view-top--airport {
+  padding-top: 28px;
+}
+
+/* Where a page change scrolls back to: just below the sticky header. */
+.list-top {
+  scroll-margin-top: 96px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 24px;
+}
+
+.pager__count {
+  font-size: 0.875rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pager__pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pager__num {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease), color 160ms var(--ease);
+}
+
+.pager__num:hover {
+  background: var(--state-hover);
+  color: var(--ink);
+}
+
+.pager__num[aria-current="page"] {
+  background: var(--selected-container);
+  color: var(--on-selected-container);
+  font-weight: 650;
+}
+
+.pager__gap {
+  min-width: 24px;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.pager .icon-btn:disabled {
+  opacity: 0.38;
+  background: transparent;
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .pager {
+    justify-content: center;
+  }
+
+  .pager__count {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pager__num {
+    min-width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 840px) {
+  .masthead__bar {
+    height: 56px;
+    gap: 8px;
+  }
+
+  .wordmark {
+    margin-right: auto;
+    gap: 8px;
+    font-size: 1.0625rem;
+  }
+
+  .wordmark__mark {
+    width: 31px;
+    height: 23px;
+  }
+
+  .sync__text {
+    display: none;
+  }
+
+  /* Navigation bar: a pill behind the current tab's icon, label below. */
+  .nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    z-index: 30;
+    margin: 0;
+    gap: 0;
+    justify-content: space-around;
+    padding: 6px 4px calc(7px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--rule);
+    transform: translateZ(0);
+    padding-top: 10px;
+    background: var(--surface-mid);
+    border-top-color: transparent;
+  }
+
+  /* Chrome on Android resizes the viewport while its toolbar slides; the bar's colour
+     continues below the edge so the page never shows through a transient gap. */
+  .nav::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 120px;
+    background: var(--surface-mid);
+  }
+
+  .nav__link {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    font-size: 0.6875rem;
+    min-width: 56px;
+  }
+
+  .nav__link[aria-current="page"] {
+    background: transparent;
+  }
+
+  /* The footer ends the page, so it, not the page above it, clears the bottom bar (78px tall, more over a phone's
+     home indicator): its last lines would otherwise scroll no higher than under the bar. */
+  .site-foot {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  /* Opened, the credits are scrolled into view above the bar, not under it. */
+  .site-foot__credits {
+    scroll-margin-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .masthead__tools {
+    gap: 4px;
+  }
+
+  .nav__link,
+  .nav__link:hover,
+  .nav__link[aria-current="page"] {
+    background: transparent;
+    padding: 0 4px 6px;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .nav__link[aria-current="page"] {
+    color: var(--ink);
+    font-weight: 650;
+  }
+
+  .nav__link[aria-current="page"] .icon {
+    background: var(--selected-container);
+    color: var(--on-selected-container);
+  }
+}
+
+@media (max-width: 400px) {
+  /* Narrow phones: the top bar's five buttons close up so the wordmark keeps its room; below 360px the theme
+   button gives way (Settings has the same choice). */
+  .masthead__tools {
+    gap: 0;
+  }
+
+  .masthead__tools .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 359px) {
+  .masthead__tools .theme-btn {
+    display: none;
+  }
+}
+
+@media (min-width: 841px) and (max-width: 1180px) {
+  .masthead__bar {
+    gap: 20px;
+  }
+
+  .sync__text {
+    display: none;
+  }
+
+  .nav {
+    gap: 2px;
+  }
+
+  .nav__link {
+    padding: 8px 12px;
+  }
+
+  .masthead__tools {
+    gap: 6px;
+  }
+}

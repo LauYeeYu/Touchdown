@@ -1,0 +1,1183 @@
+/* Buttons, segmented buttons, menus and selects, searches, chips and filters, tabs, disclosures, toasts and cards
+   (styles/app.css imports the parts in order). */
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease), color 160ms var(--ease);
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+  background: var(--state-hover);
+}
+
+.icon-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Pill shapes for everything you press. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease), transform 160ms var(--ease);
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  position: relative;
+  isolation: isolate;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn--primary:hover {
+  background: var(--btn-hover);
+}
+
+.btn--quiet {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn--quiet:hover {
+  background: var(--hover);
+}
+
+.segmented {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Segmented control: 40px tall, with the selection tint. */
+.seg {
+  position: relative;
+  padding: 0 30px;
+  border: 0;
+  border-left: 1px solid var(--rule-strong);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease), color 180ms var(--ease);
+  height: 40px;
+}
+
+.seg:first-child {
+  border-left: 0;
+}
+
+.seg:hover {
+  color: var(--ink);
+  background: var(--state-hover);
+}
+
+.seg[aria-pressed="true"] {
+  background: var(--selected-container);
+  color: var(--on-selected-container);
+}
+
+.seg__check {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.25;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.6);
+  transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+}
+
+.seg[aria-pressed="true"] .seg__check {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.seg:focus-visible {
+  outline-offset: -3px;
+  border-radius: 999px;
+}
+
+.seg__chev {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  transition: transform 180ms var(--ease);
+}
+
+.seg--menu[aria-expanded="true"] .seg__chev {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* The label reserves the width of its longest possible text, so picking an older year
+   never changes the control's width. */
+.seg__label {
+  display: inline-grid;
+}
+
+.seg__label > span,
+.seg__label::after {
+  grid-area: 1 / 1;
+}
+
+.seg__label::after {
+  content: attr(data-ghost);
+  visibility: hidden;
+  height: 0;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 25;
+  display: grid;
+  min-width: 148px;
+  padding: 6px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+}
+
+.menu[hidden] {
+  display: none;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  white-space: nowrap;
+  padding: 0 14px 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu__item:hover,
+.menu__item:focus-visible {
+  outline: none;
+  background: var(--state-hover);
+}
+
+.menu__check {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.25;
+  opacity: 0;
+}
+
+.menu__item[aria-checked="true"] .menu__check {
+  opacity: 1;
+}
+
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.link-arrow:hover {
+  text-decoration: underline;
+}
+
+/* Cards and containers: large corners, tonal fills. */
+.card {
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  transition: background-color 300ms var(--ease);
+  background: var(--surface-low);
+}
+
+.card.is-flash {
+  animation: flash 1.2s var(--ease);
+}
+
+.card__body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* An aircraft card's registration and type, the type's silhouette at the right, in the middle of the two lines. */
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card__name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.card__reg {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.card__type {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.card__events {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.disclosure summary {
+  cursor: pointer;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  padding: 4px 0;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 16px 0;
+  margin-top: 32px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.search {
+  position: relative;
+  flex: 1 1 280px;
+  max-width: 380px;
+}
+
+.search .icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+  left: 16px;
+}
+
+/* Fields: softer corners; the search is a filled pill. */
+.input,
+.select {
+  border: 1px solid var(--rule-strong);
+  background: var(--field);
+  padding: 0 12px;
+  font-size: 0.9375rem;
+  transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+  border-radius: 12px;
+  height: 42px;
+}
+
+.input {
+  width: 100%;
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+}
+
+.input:hover,
+.select:hover {
+  border-color: var(--rule-hover);
+}
+
+.input:focus,
+.select:focus,
+.select[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--focus-wash);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--flown);
+  width: 16px;
+  height: 16px;
+}
+
+.filters__count {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.empty {
+  padding: 56px 0;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.empty p {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 60;
+  transform: translate(-50%, 12px);
+  opacity: 0;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-pop);
+  transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+  border-radius: 12px;
+  padding: 14px 20px;
+}
+
+@media (max-width: 720px) {
+  .filters__count {
+    margin-left: 0;
+  }
+
+  .search {
+    max-width: none;
+  }
+}
+
+/* Here, after .btn, which it follows in the cascade. */
+.hide-phone {
+  white-space: nowrap;
+}
+
+/* Here, after .icon-btn .icon, which it follows in the cascade. */
+.sync .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.menu--end {
+  right: 0;
+}
+
+.menu--start {
+  left: 0;
+}
+
+a.btn,
+label.btn {
+  text-decoration: none;
+  color: var(--ink);
+}
+
+a.btn--primary {
+  color: var(--paper);
+}
+
+.btn--small {
+  font-size: 0.875rem;
+  height: 34px;
+  padding: 0 14px;
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-2);
+}
+
+.btn--ghost:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.btn--danger {
+  background: transparent;
+  border-color: var(--rule-strong);
+  color: var(--alert);
+}
+
+.btn--danger:hover {
+  background: var(--alert-wash);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 1px;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  text-decoration-color: currentColor;
+}
+
+/* A button that follows text in the same line: Chinese has no space between sentences, so the gap is drawn here. */
+:root:lang(zh-CN) .link-btn--after,
+:root:lang(zh-TW) .link-btn--after {
+  margin-inline-start: 0.6em;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-top: 16px;
+}
+
+.button-row--tight {
+  margin-top: 0;
+  flex-wrap: nowrap;
+}
+
+.input--invalid {
+  border-color: var(--alert);
+}
+
+.input--big {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.input--big::placeholder {
+  text-transform: none;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.textarea {
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+  font-family: inherit;
+  border-radius: 16px;
+}
+
+/* Selects draw their own chevron, inset from the rounded end instead of the browser's arrow at the edge. */
+.select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  background-image: var(--select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 12px 12px;
+}
+
+.filters .select {
+  width: auto;
+  max-width: 280px;
+  border-radius: 999px;
+  padding: 0 16px;
+  background-color: var(--surface-high);
+  border-color: transparent;
+  padding-right: 42px;
+  background-position: right 18px center;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Chips: 8px corners, the selection tint when on. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease), color 160ms var(--ease);
+  border-radius: 8px;
+  height: 34px;
+}
+
+.chip:hover {
+  color: var(--ink);
+}
+
+.chip--removable {
+  padding: 0 6px 0 14px;
+}
+
+.chip__x {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.chip__x:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.filters .chips {
+  gap: 6px;
+}
+
+.filters .chip {
+  height: 32px;
+}
+
+/* "More" on the flight form (Disclosure): a full-size summary above the optional fields. */
+.disclosure--form {
+  margin-top: 32px;
+}
+
+.disclosure--form > summary {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.pill--livery {
+  background: var(--spotted-wash);
+  color: var(--spotted-ink);
+}
+
+/* A special livery after an aircraft's registration in the Aircraft list: neutral, as the livery band is, since the
+   aircraft may have been flown or photographed in it, and marked with the band's paint roller. A long name is cut. */
+.pill--paint {
+  gap: 4px;
+  max-width: 100%;
+}
+
+.pill--paint .icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+.pill--paint > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.show-all {
+  margin-top: 12px;
+}
+
+.more-note {
+  margin-top: 20px;
+}
+
+.tabs {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  margin-top: 28px;
+  border-bottom: 1px solid var(--rule);
+  overflow-x: auto;
+}
+
+.tab {
+  position: relative;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tabs + .chips {
+  margin-top: 20px;
+}
+
+/* A question mark beside a heading: what the heading means shows in the tooltip on hover, focus or a tap. */
+.help-tip {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-3);
+  vertical-align: middle;
+  cursor: help;
+  transition: color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.help-tip .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.help-tip:hover,
+.help-tip:focus-visible {
+  color: var(--ink);
+  background: var(--surface-mid);
+}
+
+.filter-chip__edit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  max-width: min(420px, 70vw);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.filter-chip__dim {
+  font-weight: 400;
+}
+
+.filter-chip .chip__x {
+  color: inherit;
+}
+
+.filter-add {
+  border-style: dashed;
+}
+
+/* The panel under a filter: its values to tick, each with how many records have it. */
+.filter-panel {
+  width: min(320px, calc(100vw - 32px));
+  gap: 2px;
+  padding: 10px;
+}
+
+.filter-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 2px 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.filter-panel__back {
+  margin-left: -6px;
+}
+
+.filter-panel__search {
+  margin-bottom: 6px;
+}
+
+.filter-panel__search .input {
+  height: 38px;
+}
+
+.filter-panel__values {
+  max-height: min(320px, 50vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.filter-panel__value {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.filter-panel__value:hover {
+  background: var(--state-hover);
+}
+
+.filter-panel__value input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--flown);
+}
+
+.filter-panel__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-panel__count {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.filter-panel__none {
+  margin: 8px;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.filter-panel__foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 8px 4px 2px;
+  border-top: 1px solid var(--rule);
+}
+
+.check--block {
+  display: flex;
+  margin-top: 16px;
+}
+
+.note-bar {
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.note-bar__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 0;
+}
+
+.note-bar__bar > span {
+  flex: 1 1 320px;
+}
+
+@media (max-width: 720px) {
+  /* Here, after .btn, which it follows in the cascade. */
+  .hide-phone {
+    display: none;
+  }
+}
+
+/* Here, after .note-bar, which it follows in the cascade. */
+.sample-note,
+.note-bar {
+  background: var(--surface-low);
+  border-bottom-color: transparent;
+}
+
+.btn--quiet {
+  border-color: var(--rule-hover);
+}
+
+.btn--quiet:hover,
+.btn--ghost:hover {
+  background: var(--state-hover);
+}
+
+.btn--quiet:active,
+.btn--ghost:active {
+  background: var(--state-press);
+}
+
+.icon-btn:active {
+  background: var(--state-press);
+}
+
+.search .input {
+  height: 46px;
+  padding-left: 44px;
+  border-radius: 999px;
+  border-color: transparent;
+  background: var(--surface-high);
+}
+
+.search .input:hover {
+  border-color: transparent;
+  background: var(--surface-highest);
+}
+
+.search .input:focus {
+  border-color: var(--focus);
+  background: var(--surface-lowest);
+}
+
+.filters .select:hover {
+  background-color: var(--surface-highest);
+  border-color: transparent;
+}
+
+.menu__item,
+.picker__option {
+  border-radius: 10px;
+}
+
+/* A card or thumbnail that opens a page: its main link covers the whole of it, and the photo credit's link sits
+   above that, so neither link is inside the other. */
+.stretch {
+  position: relative;
+}
+
+.stretch__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.stretch__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.stretch .credit a,
+.stretch .card__events a {
+  position: relative;
+  z-index: 2;
+}
+
+.stretch:has(.stretch__link:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.stretch__link:focus-visible {
+  outline: none;
+}
+
+/* A linked card only changes shade on hover: darker on the light theme, lighter on the dark one (the ink mixed
+   in is dark or light). No rise, no shadow; the photo stays as it is. */
+.card.stretch:hover {
+  background: color-mix(in srgb, var(--surface-low), var(--ink) 9%);
+}
+
+/* Flat map or globe, at the end of a legend row (components/MapStyle.tsx); Expand follows it. */
+.segmented--small .seg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 0.8125rem;
+}
+
+/* The select's button (components/Select.tsx): the chosen option, as wide as the longest one (a hidden copy of each
+   under it) unless its place sets a width, and cut with an ellipsis when it must be narrower. */
+button.select {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.select__value {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.select__value > span {
+  grid-area: 1 / 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select__ghost {
+  visibility: hidden;
+  height: 0;
+}
+
+/* Its list: a menu in the top layer, placed by the script (top, left, widths, height), scrolling when long. */
+.select-menu {
+  position: fixed;
+  inset: auto;
+  z-index: 70;
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--ink);
+  animation: select-menu-in 120ms var(--ease);
+}
+
+.select-menu:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select-menu {
+    animation: none;
+  }
+}
+
+.select-menu__option[aria-selected="true"] .menu__check {
+  opacity: 1;
+}
+
+@media (forced-colors: active) {
+  /* Forced colours drop the state layer: the focused option keeps an outline instead. */
+  .select-menu__option:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+.select-menu__option[aria-disabled="true"] {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+.select-menu__option[aria-disabled="true"]:hover {
+  background: transparent;
+}
+
+.select-menu__option {
+  min-width: 0;
+}
+
+.select-menu__option .menu__check {
+  flex: none;
+}
+
+.select-menu__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* An optgroup: its name in ink-3, lined up with the options' labels after the check column. */
+.select-menu__group {
+  display: grid;
+}
+
+.select-menu__group + .select-menu__group {
+  margin-top: 6px;
+}
+
+.select-menu__heading {
+  padding: 8px 14px 4px 36px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* A label that reserves the width of its bold form (StableLabel): the current page in the navigation and the
+   selected tab turn bold without moving what comes after them. */
+.stable-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stable-label::after {
+  content: attr(data-label) / "";
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 650;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Opens by sliding the content down and fading it in; the chevron turns. Browsers without ::details-content
+   simply open it. */
+.disclosure {
+  interpolate-size: allow-keywords;
+}
+
+.disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure summary::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: var(--select-chevron) no-repeat center / 12px 12px;
+  transform: rotate(-90deg);
+  transition: transform 220ms var(--ease);
+}
+
+.disclosure[open] summary::before {
+  transform: rotate(0deg);
+}
+
+.disclosure summary:hover {
+  color: var(--ink);
+}
+
+.disclosure::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition:
+    block-size 280ms var(--ease),
+    opacity 220ms var(--ease),
+    content-visibility 280ms allow-discrete;
+}
+
+.disclosure[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosure::details-content,
+  .disclosure summary::before {
+    transition: none;
+  }
+}
+
+/* Material's indicator: three pixels with rounded top corners under the selected label. It slides and
+   resizes to the newly selected tab. */
+.tabs__indicator {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.tabs.is-ready .tabs__indicator {
+  transition:
+    transform 300ms var(--ease),
+    width 300ms var(--ease);
+}
+
+/* The rows "Show all" brings in fade in as their box opens to them (useGrow in lib/motion.ts, which leaves them out
+   for reduced motion): ranked lists, the statistics tables, the custom view and a day's sightings. */
+.grow-in {
+  animation: grow-in 280ms var(--ease) both;
+}
+
+/* The tab row scrolls sideways, which would clip an outside focus ring; draw it inside the tab. */
+.tab:focus-visible {
+  outline-offset: -3px;
+  border-radius: 10px;
+}

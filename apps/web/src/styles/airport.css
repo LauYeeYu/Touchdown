@@ -1,0 +1,26 @@
+/* An airport's page (styles/app.css imports the parts in order). */
+
+.airport-hero {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: 28px;
+}
+
+.airport-hero .route-hero__place {
+  margin: 0 0 4px;
+}
+
+/* Under the header of an airport the user added: saying so, and Edit. */
+.airport-own {
+  margin: 10px 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+@media (max-width: 720px) {
+  .airport-hero .route-hero__code {
+    font-size: 3.5rem;
+  }
+}

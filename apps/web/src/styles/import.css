@@ -1,0 +1,561 @@
+/* Import: the drop zone, the review, the agent check and change files (styles/app.css imports the parts in order).
+   */
+
+.dropzone {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 28px;
+  border: 1px dashed var(--rule-hover);
+  cursor: pointer;
+  transition: border-color 160ms var(--ease);
+  background: var(--surface-low);
+}
+
+.dropzone:hover {
+  border-color: var(--ink-3);
+}
+
+.dropzone.is-busy {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.dropzone > span {
+  display: grid;
+  gap: 6px;
+}
+
+.dropzone b {
+  font-size: 1.0625rem;
+}
+
+.dropzone span span {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.import-done {
+  margin-top: 20px;
+}
+
+.history-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.history-row > span {
+  display: grid;
+}
+
+/* The text keeps room to read, so on a phone the buttons go under it instead of squeezing it or each other. */
+.history-row > span:first-child {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.history-row > .history-row__actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.section--waiting + .dropzone {
+  margin-top: 24px;
+}
+
+.column-mapping {
+  margin-top: 24px;
+}
+
+.column-mapping__kind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.column-mapping__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.column-mapping__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.column-mapping__name {
+  display: grid;
+  min-width: 0;
+}
+
+.column-mapping__name small {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.column-mapping__name .column-mapping__why {
+  color: var(--ink-2);
+  white-space: normal;
+}
+
+.column-mapping__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  .column-mapping__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.review-rows {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+
+.review-row {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.review-row.is-skipped {
+  opacity: 0.5;
+}
+
+.review-row__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-row__title {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.review-row__fills {
+  margin: 6px 0 0 104px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.review-row .table--diff,
+.review-row .findings {
+  margin-left: 104px;
+  width: calc(100% - 104px);
+}
+
+.status {
+  flex: none;
+  width: 92px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.status--new {
+  color: var(--flown-ink);
+}
+
+.status--conflict {
+  color: var(--alert);
+}
+
+.commit-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px 0;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+}
+
+.commit-bar p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.commit-bar .btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+.commit-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.agent-panel + .chips {
+  margin-top: 16px;
+}
+
+.diff-note {
+  color: var(--ink-3);
+}
+
+/* The panel on the Import page, between the summary and the row filters: a tonal box with numbered steps. */
+.agent-panel {
+  margin: 20px 0 4px;
+  padding: 18px 20px 20px;
+  border-radius: 20px;
+  background: var(--surface-low);
+}
+
+.agent-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.agent-panel__lead {
+  margin: 6px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.agent-panel__note {
+  margin: 14px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.agent-panel__error {
+  margin: 10px 0 0;
+  font-size: 0.875rem;
+  color: var(--alert);
+}
+
+.agent-panel .button-row {
+  margin-top: 14px;
+}
+
+/* The steps carry their order, so they are numbered: a 28px tonal disc, the text, then the control under it. */
+.agent-steps {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.agent-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 12px;
+  counter-increment: step;
+}
+
+.agent-steps li::before {
+  content: counter(step);
+  grid-row: span 2;
+  align-self: start;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--surface-highest);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.agent-steps__text {
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.agent-steps li > .btn,
+.agent-command {
+  grid-column: 2;
+  justify-self: start;
+}
+
+/* The command to run, in a tonal box with a copy button at its end. The app's sans face, as everywhere. */
+.agent-command {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 4px 4px 14px;
+  border-radius: 12px;
+  background: var(--surface-highest);
+}
+
+.agent-command code {
+  overflow-x: auto;
+  font-family: inherit;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.agent-command__copy {
+  flex: none;
+}
+
+/* A row's suggestions, under its findings: tonal boxes with the change, the reason, and Use or Dismiss. */
+.suggestions {
+  display: grid;
+  gap: 6px;
+  width: calc(100% - 104px);
+  margin: 10px 0 0 104px;
+  padding: 0;
+  list-style: none;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 12px;
+  background: var(--surface-low);
+  transition: background-color 160ms var(--ease), opacity 160ms var(--ease);
+}
+
+.suggestion__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* On one baseline: the label is set smaller than the value, so centring the two would sit it higher. */
+.suggestion__change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.suggestion__change b {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.suggestion__field {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.suggestion__old {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--rule-hover);
+  overflow-wrap: anywhere;
+}
+
+.suggestion__arrow {
+  align-self: center;
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.suggestion__reason {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.suggestion__meta {
+  color: var(--ink-3);
+}
+
+.suggestion__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.suggestion__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.suggestion__state .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* Used: the selection tint, as for anything chosen. Dismissed: faded. */
+.suggestion.is-used {
+  background: var(--selected-container);
+}
+
+.suggestion.is-used .suggestion__change,
+.suggestion.is-used .suggestion__state {
+  color: var(--on-selected-container);
+}
+
+.suggestion.is-dismissed {
+  opacity: 0.6;
+}
+
+.suggestion--note {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+/* A change file's review (components/ChangeReview.tsx): a tonal box per change, its values as the suggestions show
+   theirs. A change left out, or with nothing left to do, fades. */
+.changes {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-low);
+  transition: opacity 160ms var(--ease);
+}
+
+.change.is-off {
+  opacity: 0.6;
+}
+
+.change__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  cursor: pointer;
+}
+
+.change__head input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  translate: 0 2px;
+  accent-color: var(--flown);
+}
+
+.change__head input:disabled {
+  cursor: default;
+}
+
+.change__action {
+  font-weight: 650;
+}
+
+.change__title {
+  min-width: 0;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.change__note {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 0 26px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.change__lines {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0 26px;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 720px) {
+  .review-row__fills,
+  .review-row .table--diff,
+  .review-row .findings,
+  .suggestions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .suggestion {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .suggestion__actions {
+    justify-content: flex-end;
+  }
+
+  .agent-panel {
+    padding: 16px;
+  }
+
+  .review-row__head {
+    flex-wrap: wrap;
+  }
+
+  .status {
+    width: auto;
+  }
+
+  .commit-bar {
+    flex-direction: column;
+    align-items: stretch;
+    bottom: 64px;
+  }
+}
+
+/* A track file chosen on a flight's page, shown with what it would save above the map. */
+.track-file {
+  margin-top: 24px;
+}
+
+/* Here, after .dropzone, which it follows in the cascade. */
+.start__item,
+.dropzone {
+  border-radius: 24px;
+}

@@ -1,0 +1,472 @@
+/* Spotting and aircraft: sessions, photos, liveries and timelines (styles/app.css imports the parts in order). */
+
+.session__title {
+  font-size: 1.625rem;
+  line-height: 1.15;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.thumb {
+  margin: 0;
+}
+
+.thumb .photo {
+  aspect-ratio: 3 / 2;
+  border-radius: 14px;
+}
+
+.thumb figcaption {
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+}
+
+.thumb figcaption b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.thumb .credit {
+  padding-top: 4px;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+}
+
+.tag-new {
+  color: var(--spotted-ink);
+  font-weight: 600;
+}
+
+.photo {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-3);
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 260ms var(--ease);
+}
+
+.photo img.is-loaded {
+  opacity: 1;
+}
+
+.photo__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+.photo.is-ready .photo__fallback {
+  display: none;
+}
+
+.photo.is-loading .photo__fallback {
+  color: transparent;
+  background: linear-gradient(100deg, var(--paper-3) 30%, var(--shimmer) 50%, var(--paper-3) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px 16px;
+}
+
+.card .photo {
+  aspect-ratio: 3 / 2;
+}
+
+/* Here, after .card .photo, which it follows in the cascade. */
+.aircraft-card .photo {
+  aspect-ratio: 16 / 10;
+}
+
+@media (max-width: 720px) {
+  .gallery {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 78%;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    margin-inline: calc(-1 * var(--gutter));
+    padding: 0 var(--gutter) 12px;
+    scroll-padding-inline: var(--gutter);
+  }
+
+  .gallery .card {
+    scroll-snap-align: start;
+  }
+}
+
+.aircraft-hero__actions {
+  margin-top: 14px;
+}
+
+.aircraft-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 40px;
+  align-items: start;
+  margin-top: 28px;
+}
+
+.aircraft-hero__photo {
+  margin: 0;
+}
+
+.aircraft-hero__photo .card__body {
+  padding: 10px 16px 14px;
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dot, date, then the record as running text, so a long record wraps under itself and not under the dot. A
+   sighting's statuses and a special livery each take a line under it. */
+.timeline li {
+  display: grid;
+  grid-template-columns: auto 108px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.9375rem;
+}
+
+/* On the first line's middle. */
+.timeline .dot {
+  align-self: start;
+  margin-top: calc(0.5lh - 4px);
+}
+
+.timeline__date {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline__what {
+  min-width: 0;
+}
+
+/* The registration a flight was under. */
+.timeline__what .muted {
+  color: var(--ink-2);
+}
+
+.timeline__more {
+  grid-column: 3;
+  color: var(--ink-2);
+}
+
+/* A record in a special livery: a tonal band that reaches 12px past the column, so its text stays aligned. */
+.timeline li.is-livery {
+  margin-inline: -12px;
+  padding-inline: 12px;
+  border-radius: 14px;
+  border-bottom-color: transparent;
+  background: var(--surface-low);
+}
+
+.timeline li.is-livery + li.is-livery {
+  margin-top: 2px;
+}
+
+.timeline__livery {
+  grid-column: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-2);
+}
+
+.timeline__livery .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* A flight or an aircraft in a special livery: the reference photo beside the livery's name and facts, as one
+   tonal panel. In gold and blue's world it stays neutral: the photo carries the livery's own colours. */
+.livery-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  margin-top: 28px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--surface-low);
+  transition: background 300ms var(--ease);
+}
+
+.livery-band.stretch:hover .stretch__link {
+  text-decoration: underline;
+  text-underline-offset: 1px;
+}
+
+.livery-band .photo {
+  height: 100%;
+  min-height: 260px;
+}
+
+.livery-band__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  padding: 28px 28px 24px;
+}
+
+.livery-band__mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.livery-band__mark .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.livery-band__name {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.livery-band__about {
+  margin: 10px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+/* Each fact as wide as it needs, so a long one ("3 times, first 17 May 2026") is not squeezed onto two lines by a
+   short one; facts that do not fit side by side go one under the other. */
+.livery-band__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+  margin: 0;
+}
+
+.livery-band__facts dt {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.livery-band__facts dd {
+  margin: 2px 0 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.livery-band .credit {
+  margin: 0;
+}
+
+.aircraft-hero--livery {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 720px) {
+  .livery-band {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 24px;
+  }
+
+  .livery-band .photo {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 3 / 2;
+  }
+
+  .livery-band__text {
+    padding: 20px 20px 18px;
+  }
+
+  .livery-band__name {
+    font-size: 1.875rem;
+  }
+}
+
+.session-entry {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.session-count {
+  margin: 20px 0 8px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.session-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) 92px 92px 132px minmax(120px, 1fr) 36px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.session-row .input,
+.session-row .select {
+  height: 34px;
+  font-size: 0.875rem;
+}
+
+.session-row__reg {
+  display: grid;
+  min-width: 0;
+}
+
+.session-row__reg b {
+  font-size: 1.0625rem;
+}
+
+.session-row__reg small {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-row__notes {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--alert);
+}
+
+.session-row__notes .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.session-row__ask {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.session-row__ask b {
+  color: var(--ink);
+}
+
+@media (max-width: 960px) {
+  .aircraft-hero {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .session-row {
+    grid-template-columns: 1fr 1fr 36px;
+  }
+
+  .session-row__reg {
+    grid-column: 1 / -1;
+  }
+
+  /* Type and airline on one line, then phase, special livery and the remove button. */
+  .session-row input[aria-label^="Airline"] {
+    grid-column: 2 / -1;
+  }
+}
+
+.thumb.stretch:hover b {
+  text-decoration: underline;
+  text-underline-offset: 1px;
+}
+
+.session-row .select {
+  padding-right: 32px;
+  background-position: right 12px center;
+}
+
+.paste-facts {
+  margin-top: 16px;
+}
+
+.paste-facts__found {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-low);
+  font-size: 0.9375rem;
+}
+
+.paste-facts__found p {
+  margin: 0;
+}
+
+.paste-facts__warn {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: var(--alert);
+}
+
+.paste-facts__warn .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+/* Text areas keep their rows; the field height above is for single-line inputs. */
+/* Here, after .session-row .input, which it follows in the cascade. */
+.input.textarea {
+  height: auto;
+  min-height: 88px;
+  padding: 12px 14px;
+  border-radius: 16px;
+}

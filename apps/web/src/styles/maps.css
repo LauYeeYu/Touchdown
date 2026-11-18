@@ -1,0 +1,585 @@
+/* The flat maps, their tooltips and loading note, and the globe (styles/app.css imports the parts in order). */
+
+.map-wrap {
+  position: relative;
+  margin-top: 28px;
+}
+
+.map-wrap .legend {
+  margin-bottom: 12px;
+  padding-inline: 4px;
+}
+
+/* A map and what sits on it: the tracks loading note. */
+.map-box {
+  position: relative;
+}
+
+/* "Loading tracks · 29 of 41" in the map's top corner while its flights' tracks load (lib/trackLoading.tsx). It
+   fades in after a moment, so a quick read never flashes it, and out when the last one is in. */
+.track-loading {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0;
+  padding: 0 12px 0 9px;
+  border-radius: 999px;
+  background: var(--surface-high);
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms var(--ease);
+}
+
+.track-loading.is-shown {
+  opacity: 1;
+}
+
+/* On the globe, level with Expand (36px tall, 16px down) in the other top corner. */
+.globe-stage .track-loading {
+  top: 20px;
+}
+
+.track-loading .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.track-loading.is-shown .icon {
+  animation: track-loading-turn 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-loading.is-shown .icon {
+    animation: none;
+  }
+}
+
+.map {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+
+.map .land {
+  fill: var(--land);
+  stroke: var(--land-edge);
+  stroke-width: 0.6;
+}
+
+.map .sphere {
+  fill: var(--sphere);
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.map .graticule {
+  fill: none;
+  stroke: var(--hover);
+  stroke-width: 0.6;
+}
+
+.map .arc {
+  fill: none;
+  stroke: var(--flown);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  opacity: 0.85;
+  transition: opacity 200ms var(--ease), stroke-width 200ms var(--ease), stroke 200ms var(--ease), stroke-opacity 200ms var(--ease);
+}
+
+.map .arc--track {
+  stroke-linejoin: round;
+}
+
+/* A recorded track that arrives while the map shows (tracks load after the page) fades in, and the great circle it
+   replaces fades out (maps.tsx, ARRIVE_MS). Nothing moves: the lines change in place. */
+.map .is-arriving {
+  animation: track-arrive 400ms var(--ease) both;
+}
+
+.map .arc--leaving,
+.map .gc--leaving {
+  pointer-events: none;
+  animation: track-leave 400ms var(--ease) both;
+}
+
+/* While tracks load, a great circle waiting for its flight's track is fainter (lib/trackLoading.tsx), and when the
+   track arrives the great circle leaves from there. */
+.map.is-loading-tracks .arc--pending,
+.map.is-loading-tracks .gc--primary,
+.map .arc--leaving,
+.map .gc--leaving {
+  stroke-opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map .is-arriving {
+    animation: none;
+  }
+
+  .map .arc--leaving,
+  .map .gc--leaving {
+    display: none;
+  }
+}
+
+/* The stretch of a partial track that was not recorded: the great circle in grey dots, since gold means the aircraft
+   was there. */
+.map .arc--gap {
+  stroke: var(--ink-3);
+  stroke-dasharray: 0.1 4;
+}
+
+/* A recorded position with a gap on both sides, which no line passes through. */
+.map .arc.arc--lone,
+.map .arc.arc--lone.is-active {
+  fill: var(--flown);
+  stroke: var(--paper);
+  stroke-width: 1;
+}
+
+.map .arc-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  cursor: pointer;
+}
+
+/* The great circle beside a recorded track, for reference: faint, so the track's grey gaps read apart from it. */
+.map .gc {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.map .gc--primary {
+  transition: stroke-opacity 200ms var(--ease);
+  stroke: var(--flown);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+}
+
+.map .track {
+  fill: none;
+  stroke: var(--flown);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A stretch of a recorded track with nothing recorded: grey dots, since gold means the aircraft was there. */
+.map .track--gap {
+  stroke: var(--ink-3);
+  stroke-width: 2;
+  stroke-dasharray: 0.1 5;
+}
+
+/* A recorded position with a gap on both sides, which no line passes through, so it can be seen. */
+.map .track-lone {
+  fill: var(--flown);
+  stroke: var(--paper);
+  stroke-width: 1.5;
+}
+
+/* Pointing at a recorded position: the aircraft from above, turned the way it was going, on a paper disc; at a gap,
+   the gap darkens. */
+.map .track-hover {
+  pointer-events: none;
+}
+
+.map .track-hover__disc {
+  fill: var(--paper);
+  opacity: 0.9;
+}
+
+.map .track-hover__plane {
+  fill: var(--ink);
+  stroke: var(--paper);
+  stroke-width: 1.4;
+  paint-order: stroke;
+}
+
+/* Drawn over the gap's own dots, on the same path with the same spacing: the dots darken and grow, nothing moves. */
+.map .track-hover__gap {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-dasharray: 0.1 5;
+  stroke-linecap: round;
+}
+
+.map .track-halo {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.map .airport {
+  fill: var(--ink);
+  stroke: var(--paper);
+  stroke-width: 2;
+}
+
+.map .airport-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--ink-2);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  letter-spacing: 0.02em;
+}
+
+.map .spot {
+  fill: var(--spotted);
+  stroke: var(--paper);
+  stroke-width: 2;
+  cursor: pointer;
+  transition: opacity 200ms var(--ease);
+}
+
+.map.is-focus-flown .spot,
+.map.is-focus-spotted .arc,
+.map.is-focus-route .arc:not(.is-active) {
+  opacity: 0.12;
+}
+
+.map.is-focus-both .arc:not(.is-both),
+.map.is-focus-both .spot:not(.is-both) {
+  opacity: 0.12;
+}
+
+.map .arc.is-active {
+  stroke-width: 3;
+  opacity: 1;
+}
+
+/* A flight a search or a filter leaves out: grey and faint behind the others, so the map keeps its frame. The layer
+   fades as one, so a route flown many times is as faint as one flown once. */
+.map .arcs-muted {
+  opacity: 0.35;
+}
+
+.map .arc.is-muted {
+  stroke: var(--ink-3);
+  stroke-width: 1.25;
+  opacity: 1;
+}
+
+.map .arc.arc--lone.is-muted {
+  display: none;
+}
+
+.map .arc-hit.is-muted {
+  pointer-events: none;
+}
+
+.map .airport,
+.map .airport-label {
+  transition: opacity 200ms var(--ease);
+}
+
+.map .airport.is-muted,
+.map .airport-label.is-muted {
+  opacity: 0.35;
+}
+
+/* Floating surfaces. */
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: var(--tip-bg);
+  color: var(--tip-ink);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  box-shadow: 0 0 0 1px var(--tip-edge), var(--shadow-pop);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 120ms var(--ease), transform 120ms var(--ease);
+  border-radius: 10px;
+}
+
+.tooltip.is-on {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tooltip strong {
+  font-weight: 600;
+}
+
+.tooltip .muted {
+  color: var(--tip-muted);
+}
+
+/* A recorded position's facts on a flight's map: labels left, values right, figures lined up. */
+.tooltip .tip-facts {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 1px 14px;
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip .tip-facts dt {
+  color: var(--tip-muted);
+}
+
+.tooltip .tip-facts dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+}
+
+.tooltip .tip-facts dd .muted {
+  font-weight: 400;
+}
+
+.route-mini {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 2.25rem;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.route-mini .arrow {
+  width: 56px;
+  height: 20px;
+  color: var(--flown);
+}
+
+/* Here, after .tooltip.is-on, which it follows in the cascade. */
+.toast.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 720px) {
+  .route-mini {
+    font-size: 1.875rem;
+  }
+}
+
+/* Maps sit in a rounded container, like a Material card. */
+.map-wrap .map {
+  border-radius: 28px;
+  background: var(--surface-low);
+}
+
+@media (max-width: 720px) {
+  .map-wrap .map {
+    border-radius: 24px;
+  }
+}
+
+/* The globe in a page (components/GlobePanel.tsx): the legend row, then the stage. Expanded, the panel fills
+   the screen on the paper background and the stage takes the height left. */
+.globe-panel__head {
+  align-items: center;
+}
+
+/* A filter in the head row, like the list filters: a filled pill, as tall as the chips beside it. */
+.globe-panel__head .select {
+  width: auto;
+  max-width: 240px;
+  height: 34px;
+  padding: 0 38px 0 14px;
+  border-radius: 999px;
+  border-color: transparent;
+  background-color: var(--surface-high);
+  background-position: right 14px center;
+  font-size: 0.875rem;
+}
+
+.globe-stage {
+  position: relative;
+  height: clamp(340px, 58vh, 560px);
+  border-radius: 28px;
+  background: var(--globe-stage);
+  overflow: hidden;
+}
+
+/* On a flight page the globe takes the flat route map's height (components/maps.tsx: 430px, 280px when the map
+   is narrower than 600px), so switching between them moves nothing. */
+.globe-panel--route {
+  container-type: inline-size;
+}
+
+.globe-panel--route .globe-stage {
+  height: 430px;
+}
+
+@container (max-width: 599px) {
+  .globe-panel--route .globe-stage {
+    height: 280px;
+  }
+}
+
+/* Expand and Collapse, inside the stage's top corner: Material's filled tonal button, like the zoom buttons. */
+.globe-expand {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--globe-control);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease);
+}
+
+.globe-expand:hover {
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 8%);
+}
+
+.globe-expand:active {
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 12%);
+}
+
+.globe-expand .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.globe-panel.is-full .globe-stage {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.globe {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.globe__canvas {
+  display: block;
+  cursor: grab;
+  touch-action: none;
+  border-radius: inherit;
+}
+
+/* In a page, a vertical swipe scrolls the page; sideways turns the globe. */
+.globe--contained .globe__canvas {
+  touch-action: pan-y;
+}
+
+.globe__canvas:focus-visible {
+  outline-offset: -4px;
+}
+
+.globe-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+/* Zoom and turn back: Material's filled tonal icon buttons, with no shadow and no outline. */
+.globe-btn {
+  width: 44px;
+  height: 44px;
+  background: var(--globe-control);
+  color: var(--ink);
+}
+
+.globe-btn:hover {
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 8%);
+}
+
+.globe-btn:active {
+  background: color-mix(in srgb, var(--globe-control), var(--ink) 12%);
+}
+
+.globe-hint {
+  position: absolute;
+  left: 20px;
+  bottom: 16px;
+  margin: 0;
+  max-width: calc(100% - 100px);
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.map-style {
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  .map-style {
+    margin-left: 0;
+  }
+
+  .globe-stage {
+    height: clamp(320px, 50vh, 420px);
+    border-radius: 24px;
+  }
+
+  .globe-panel:not(.is-full) .globe-hint {
+    display: none;
+  }
+}
+
+.map .airport-hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.map .is-clickable {
+  cursor: pointer;
+}
+
+.map .airport.is-hover {
+  r: 6;
+}
+
+.map .airport-label.is-link:hover {
+  fill: var(--ink);
+  text-decoration: underline;
+}
+
+.map .spot.is-clickable:hover {
+  stroke: var(--ink);
+}
+
+@media (max-width: 840px) {
+  .globe-hint {
+    left: 16px;
+    right: 76px;
+    bottom: 14px;
+  }
+}

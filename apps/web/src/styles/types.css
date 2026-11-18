@@ -1,0 +1,676 @@
+/* The aircraft types pages: the list, a type, a family, a manufacturer and Compare (styles/app.css imports the parts
+   in order). */
+
+/* A type seen from above (components/Silhouette.tsx), in the text's ink: a quiet shape beside words, never a data colour. */
+.silhouette {
+  display: inline-block;
+  flex: none;
+  fill: currentColor;
+  color: var(--ink-2);
+}
+
+/* The list: a heading per maker over its families, a row each with its silhouette fitted to a 52px square. */
+.types__manufacturer {
+  margin-top: 28px;
+}
+
+.types__manufacturer-title {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.type-row {
+  grid-template-columns: 52px minmax(180px, 1.3fr) minmax(160px, 1fr) 64px 80px;
+  align-items: center;
+}
+
+/* A manufacturer's page: its list below the sentence, with or without the role chips between. */
+.type-manufacturer > .rows {
+  margin-top: 24px;
+}
+
+/* A row without the log's columns: a visitor's, or on a manufacturer's page none of whose types the log has. */
+.type-row:not(:has(.row__num)):not(.cols) {
+  grid-template-columns: 52px minmax(180px, 1.3fr) minmax(160px, 1fr);
+}
+
+/* A manufacturer's page with no drawing among its types: no silhouette column. */
+.rows.type-rows--undrawn .type-row__shape {
+  display: none;
+}
+
+.rows.type-rows--undrawn .type-row {
+  grid-template-columns: minmax(180px, 1.3fr) minmax(160px, 1fr) 64px 80px;
+}
+
+.rows.type-rows--undrawn .type-row:not(:has(.row__num)) {
+  grid-template-columns: minmax(180px, 1.3fr) minmax(160px, 1fr);
+}
+
+/* A visitor's list has no log, so no flights and sightings columns. */
+.types--visitor .type-row {
+  grid-template-columns: 52px minmax(180px, 1.3fr) minmax(160px, 1fr);
+}
+
+.type-row__name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.type-row__name b {
+  font-weight: 600;
+}
+
+.type-row__codes {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-row__figures {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.type-row .row__num {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.types__empty {
+  margin-top: 28px;
+  color: var(--ink-2);
+}
+
+/* A type's page: its name, its codes, a sentence, then the measured drawing on a tonal panel like a map's. */
+.type-page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.type-page__name {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.type-page__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 8px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.type-page__code {
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-page__lead {
+  max-width: 40em;
+  margin: 18px 0 0;
+  font-size: 1.25rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.type-page__drawing,
+.type-compare__drawing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 28px 0 0;
+  padding: 24px 20px;
+  border-radius: 28px;
+  background: var(--surface-low);
+}
+
+.type-drawing {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  max-height: min(64vh, 600px);
+}
+
+.type-drawing__shape {
+  fill: var(--ink);
+}
+
+.type-drawing__dims {
+  stroke: var(--ink-3);
+  fill: var(--ink-2);
+}
+
+.type-drawing__dims text {
+  stroke: none;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The span line follows the wingtips when the drawing is held folded or swept (components/TypeDrawing.tsx). */
+.type-drawing__span > * {
+  transition: transform 400ms var(--ease);
+}
+
+/* Animated, or held in one of its two poses: at the panel's top end, over the drawing. */
+.type-drawing__poses {
+  align-self: flex-end;
+  margin-bottom: 8px;
+  max-width: 100%;
+}
+
+.type-page__facts {
+  margin-top: 32px;
+}
+
+/* The family's type codes side by side: drawn to one scale on their tails' line, this one's column marked. */
+.type-family__intro {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.type-family {
+  table-layout: fixed;
+}
+
+.type-family__label-col {
+  width: 160px;
+}
+
+@media (max-width: 600px) {
+  .type-family__label-col {
+    width: 104px;
+  }
+}
+
+.type-family th,
+.type-family td {
+  padding: 10px 8px;
+  text-align: center;
+  vertical-align: top;
+}
+
+/* The figures' names, kept in view while a long family scrolls sideways, the corner above them too, so the codes and
+   their figures pass under them. */
+.type-family tbody th,
+.type-family thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding-left: 0;
+  text-align: left;
+  color: var(--ink-2);
+  background: var(--paper);
+}
+
+.type-family thead th {
+  padding-bottom: 14px;
+}
+
+.type-family__head {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+.type-family__head b {
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.type-family__head:hover b {
+  text-decoration: underline;
+}
+
+/* One scale for the family, the tails on one line. */
+.type-family__shape {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 92px;
+  margin-bottom: 8px;
+}
+
+.type-family__diff {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.type-family__engines {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.type-family__log {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+}
+
+.type-family__log > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.type-aircraft {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.type-aircraft li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.type-page__source {
+  max-width: 60em;
+  margin: 44px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.type-page__source a {
+  color: var(--ink-2);
+}
+
+/* Compare: two pickers, the two drawn over each other (the first a soft fill, the second its ink outline), then the
+   figures with a pair of bars each, the first's light and the second's in ink, as the drawing's. */
+.type-compare__pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 12px;
+  margin-top: 20px;
+}
+
+/* The manufacturers on Aircraft types: the largest as cards with three of their types drawn, then every one A to Z. */
+.manufacturer-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manufacturer-card {
+  display: grid;
+  gap: 4px;
+  height: 100%;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  background: var(--surface-low);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 160ms var(--ease);
+}
+
+.manufacturer-card:hover {
+  background: var(--surface-mid);
+}
+
+.manufacturer-card b {
+  font-size: 1.0625rem;
+  font-weight: 650;
+}
+
+/* Three types' room, each drawn 44px wide (pages/Types.tsx): one or two sit in its middle, so a card's drawings line up
+   with the cards' above and below. */
+.manufacturer-card__shapes {
+  --shapes-gap: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--shapes-gap);
+  width: calc(3 * 44px + 2 * var(--shapes-gap));
+  height: 48px;
+  margin-bottom: 8px;
+  color: var(--ink-2);
+}
+
+.manufacturer-card__count {
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+@media (max-width: 600px) {
+  /* After the cards' own rules, which would otherwise override these. */
+  .manufacturer-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .manufacturer-card {
+    padding: 12px;
+  }
+
+  .manufacturer-card__shapes {
+    --shapes-gap: 4px;
+  }
+}
+
+.manufacturer-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.manufacturer-letters a {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.manufacturer-letters a:hover {
+  background: var(--state-hover);
+  color: var(--ink);
+}
+
+.manufacturer-index__letter {
+  scroll-margin-top: 88px;
+  break-inside: avoid;
+  margin-bottom: 18px;
+}
+
+.manufacturer-index {
+  columns: 4 220px;
+  column-gap: 32px;
+}
+
+.manufacturer-index__letter h3 {
+  margin: 0 0 6px;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--ink-3);
+}
+
+.manufacturer-index__letter ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manufacturer-index__letter li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9375rem;
+}
+
+.manufacturer-index__letter a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.manufacturer-index__letter a:hover {
+  text-decoration: underline;
+}
+
+.manufacturer-index__count {
+  flex: none;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.types__manufacturer-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.types__manufacturer-title a:hover {
+  text-decoration: underline;
+}
+
+.types__more {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+/* Compare's type picker (components/TypePicker.tsx): a select's button over a panel with a search and steps. */
+.type-picker {
+  position: relative;
+  width: min(360px, 100%);
+}
+
+.type-picker__trigger {
+  width: 100%;
+}
+
+.type-picker__panel {
+  width: min(380px, calc(100vw - 32px));
+}
+
+.type-picker__list {
+  display: grid;
+  gap: 2px;
+  max-height: min(380px, 55vh);
+}
+
+.type-picker__item {
+  height: auto;
+  min-height: 38px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.type-picker__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.type-picker__code {
+  flex: none;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-picker__item[aria-current="true"] {
+  background: var(--selected-container);
+}
+
+/* The type Enter takes from a search: the one found, or the code typed whole. */
+.type-picker__item[data-enter]:not([aria-current="true"]) {
+  background: var(--state-hover);
+}
+
+.type-picker__heading {
+  margin: 8px 0 2px;
+  padding: 0 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.type-picker__heading:first-child {
+  margin-top: 0;
+}
+
+.type-picker__note {
+  margin: 6px 0 2px;
+  padding: 0 8px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.type-compare__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.type-compare__swatch--a {
+  background: var(--surface-highest);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.type-compare__swatch--b {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.type-compare__drawing svg {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  max-height: min(62vh, 580px);
+}
+
+.type-compare__a {
+  fill: var(--ink);
+  opacity: 0.22;
+}
+
+.type-compare__b {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+
+.type-compare__b-inside {
+  fill: var(--surface-low);
+}
+
+.type-compare__table {
+  margin-top: 28px;
+}
+
+.type-compare__table th[scope="col"] a {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.type-compare__table .type-compare__bars {
+  width: 30%;
+  vertical-align: middle;
+}
+
+.type-compare__bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.type-compare__bar + .type-compare__bar {
+  margin-top: 4px;
+}
+
+.type-compare__bar--a {
+  background: var(--surface-highest);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+/* The second as the drawing has it: its outline, as its swatch. */
+.type-compare__bar--b {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+@media (max-width: 720px) {
+  .type-row {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 56px;
+  }
+
+  .types--visitor .type-row,
+  .type-row:not(:has(.row__num)):not(.cols) {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .rows.type-rows--undrawn .type-row {
+    grid-template-columns: minmax(0, 1fr) 44px 56px;
+  }
+
+  .rows.type-rows--undrawn .type-row:not(:has(.row__num)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .type-row__figures,
+  .cols.type-row span:nth-child(3) {
+    display: none;
+  }
+
+  .type-page__name {
+    font-size: 1.75rem;
+  }
+
+  .type-page__head {
+    flex-direction: column;
+  }
+
+  /* The bars' column goes, its heading and the engines row's empty cell with it, so the columns stay in line. */
+  .type-compare__bars,
+  .type-compare__bars-head {
+    display: none;
+  }
+}
+
+/* A type cell with its silhouette (components/TypeCell.tsx, the lists' rows): the shape fitted to 30px beside the
+   type's name and code, both lines beside it. The words give the cell its baseline, not the drawing (whose baseline is
+   its bottom edge), so the row's other cells line up with the type's name, as on rows without a drawing. */
+.type-cell--drawn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.type-cell--drawn .type-cell__text {
+  display: grid;
+  min-width: 0;
+  align-self: baseline;
+}
+
+/* An aircraft's type on its page, leading to the type's page: the words as they were, underlined on hover. */
+.type-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.type-link:hover b {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

@@ -1,0 +1,1071 @@
+/* The pieces the views share: the lead sentence, figures, legends, sections, rows and tables (styles/app.css imports
+   the parts in order). */
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  stroke-width: 1.75;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.lead {
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.32;
+  letter-spacing: -0.02em;
+  max-width: 31em;
+  margin: 24px 0 0;
+  text-wrap: balance;
+}
+
+.lead .figure {
+  font-weight: 650;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.phrase {
+  display: inline;
+  cursor: pointer;
+  border-radius: 2px;
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  /* The box ends about 0.4em under the baseline, under the descenders. The line starts 0.1em under the baseline. */
+  background-position: 0 calc(100% - 0.3em + 2px);
+  transition: background-color 180ms var(--ease);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.phrase--flown {
+  background-image: linear-gradient(var(--flown), var(--flown));
+}
+
+.phrase--spotted {
+  background-image: linear-gradient(var(--spotted), var(--spotted));
+}
+
+.phrase--both {
+  background-image: linear-gradient(90deg, var(--flown) 0 50%, var(--spotted) 50% 100%);
+}
+
+.phrase--flown:hover,
+.phrase--flown[aria-pressed="true"] {
+  background-color: var(--flown-wash);
+}
+
+.phrase--spotted:hover,
+.phrase--spotted[aria-pressed="true"] {
+  background-color: var(--spotted-wash);
+}
+
+.phrase--both:hover,
+.phrase--both[aria-pressed="true"] {
+  background-color: var(--hover);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 20px 32px;
+  margin: 32px 0 0;
+}
+
+.facts > div {
+  min-width: 0;
+}
+
+/* Six figures as two rows of three, rather than a row of five and one left over. */
+.facts--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.facts dt {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.facts dd {
+  margin: 4px 0 0;
+}
+
+.facts__value {
+  display: block;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.facts__value .unit {
+  margin-left: 1px;
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+
+.facts .keep {
+  white-space: nowrap;
+}
+
+.facts__detail {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.review-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.review-line a {
+  color: var(--ink);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch-line {
+  width: 18px;
+  height: 0;
+  border-top: 2px solid var(--flown);
+}
+
+.swatch-line--dashed {
+  border-top: 1.5px dashed var(--ink-3);
+}
+
+.swatch-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--spotted);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+.swatch-dot--ink {
+  background: var(--ink);
+  width: 7px;
+  height: 7px;
+}
+
+.section {
+  margin-top: 64px;
+}
+
+.section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section__title {
+  font-weight: 650;
+  font-size: 1.375rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.section__aside {
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 48px;
+}
+
+.recent__line {
+  margin: 10px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.recent__line b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.facts-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 16px 0 20px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+
+.facts-inline li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+}
+
+.facts-inline .icon {
+  color: var(--ink-3);
+}
+
+/* Here, after .facts-inline li, which it follows in the cascade. */
+.card__events li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot--flown {
+  background: var(--flown);
+}
+
+.dot--spotted {
+  background: var(--spotted);
+}
+
+.credit {
+  margin: 0;
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.credit a {
+  color: var(--ink-3);
+}
+
+.credit a:hover {
+  color: var(--ink);
+}
+
+.numbers {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.numbers table {
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.numbers td,
+.numbers th {
+  padding: 2px 12px 2px 0;
+  text-align: left;
+  font-weight: 400;
+}
+
+.cols,
+.row {
+  display: grid;
+  grid-template-columns: 92px minmax(190px, 1.4fr) minmax(150px, 1fr) minmax(140px, 1fr) 80px 92px 56px;
+  gap: 16px;
+  align-items: first baseline;
+}
+
+.cols {
+  padding: 18px 12px 6px;
+  margin: 0 -12px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.cols .num {
+  text-align: right;
+}
+
+.month {
+  margin-top: 28px;
+}
+
+.month__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.month__title {
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.month__sum {
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The divider belongs to the list item, so it stays a straight line; the row's rounded shape shows only in
+   its hover fill, which hides the dividers above and below it. */
+.rows > li:has(> .row) {
+  border-bottom: 1px solid var(--rule);
+  transition: border-color 140ms var(--ease);
+}
+
+.rows > li:has(> .row:hover, > .row.is-active),
+.rows > li:has(+ li > .row:hover, + li > .row.is-active) {
+  border-bottom-color: transparent;
+}
+
+/* Rows: a rounded state layer. */
+.row {
+  padding: 14px 12px;
+  margin: 0 -12px;
+  text-decoration: none;
+  transition: background-color 140ms var(--ease);
+  border-radius: 14px;
+}
+
+.row:hover,
+.row.is-active {
+  background: var(--surface-mid);
+}
+
+.row__date {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.row__date b {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.row__route {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.row__route .arrow {
+  width: 22px;
+  height: 10px;
+  color: var(--flown);
+}
+
+.review {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.review .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.row__cities {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.row__cell {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  line-height: 1.35;
+}
+
+.row__cell b {
+  display: block;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.row__num {
+  font-size: 0.9375rem;
+  text-align: right;
+  color: var(--ink);
+}
+
+.row__track {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  color: var(--ink-3);
+}
+
+.row__track .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.lead--flight {
+  font-size: 1.5rem;
+  max-width: 34em;
+  margin-top: 16px;
+}
+
+.dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
+  margin: 0;
+}
+
+.dl > div {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dl dt {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.dl dd {
+  margin: 2px 0 0;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.dl dd .muted {
+  color: var(--ink-3);
+}
+
+.status-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.status-line--check {
+  color: var(--ink);
+}
+
+.subhead {
+  margin: 32px 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .cols,
+  .row {
+    grid-template-columns: 84px minmax(170px, 1.4fr) minmax(130px, 1fr) 72px 48px;
+  }
+
+  /* With the row's class too: the type cell's own display, later in the file, would otherwise show it. */
+  .row .row__aircraft,
+  .row__num--dist {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .lead {
+    font-size: 1.5rem;
+    line-height: 1.36;
+  }
+
+  .lead--flight {
+    font-size: 1.25rem;
+  }
+
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 20px;
+  }
+
+  .facts > div:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .facts__value {
+    font-size: 1.125rem;
+  }
+
+  .section {
+    margin-top: 44px;
+  }
+
+  .section__title {
+    font-size: 1.25rem;
+  }
+
+  .cols {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "route num"
+      "meta meta";
+    gap: 4px 12px;
+    padding: 12px 8px;
+    margin: 0 -8px;
+  }
+
+  .row__date {
+    grid-area: meta;
+    order: 2;
+    font-size: 0.8125rem;
+  }
+
+  .row__date b {
+    display: inline;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+
+  .row__route-wrap {
+    grid-area: route;
+  }
+
+  .row__flight,
+  .row__track {
+    display: none;
+  }
+
+  .row__num--dur {
+    grid-area: num;
+  }
+
+  .dl {
+    gap: 0 20px;
+  }
+}
+
+/* Here, after .row__track .icon, which it follows in the cascade. */
+.menu__item .icon {
+  width: 17px;
+  height: 17px;
+  color: var(--ink-3);
+}
+
+/* Here, after .review .icon, which it follows in the cascade. */
+.btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Here, after .row__track .icon, which it follows in the cascade. */
+.link-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Here, after .row__track .icon, which it follows in the cascade. */
+.chip__x .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* Fields changed on two devices come first on the Issues page, closer to the tabs, and apart from the findings. */
+/* Here, after .section, which it follows in the cascade. */
+.issue-group--conflicts {
+  margin-top: 32px;
+  margin-bottom: 48px;
+}
+
+.row--sighting {
+  grid-template-columns: minmax(170px, 1.2fr) minmax(150px, 1fr) 110px minmax(160px, 1.3fr) 32px;
+}
+
+/* A sighting seen in several phases: one per line. */
+.row__phase {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row__notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cols--aircraft,
+.row--aircraft {
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) 72px 84px 112px;
+}
+
+.row--aircraft .row__num {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.facts--stats {
+  margin-top: 28px;
+}
+
+.left-out {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.stats-note {
+  margin-top: 16px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.table thead th {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.table tbody th {
+  font-weight: 500;
+}
+
+.table .num {
+  text-align: right;
+}
+
+/* A heading with its question mark beside it. */
+.titled {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Set widths, so showing more rows or sorting another way never moves a column. Each fits its widest figure on one
+   line ("at least +100%", "12,542 mi"), and the first column takes what is left. */
+.table--fixed {
+  table-layout: fixed;
+}
+
+.table--fixed .col-route {
+  width: 7em;
+}
+
+.table--fixed .col-count {
+  width: 4.5em;
+}
+
+.table--fixed .col-ext {
+  width: 7.5em;
+}
+
+.table--fixed .col-extra {
+  width: 6.5em;
+}
+
+.table--fixed th:last-child,
+.table--fixed td:last-child {
+  padding-right: 0;
+}
+
+/* A column heading that sorts its table: the heading's own look, a chevron on the column sorted by. */
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.th-sort .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.th-sort:hover,
+.th-sort.is-on {
+  color: var(--ink);
+}
+
+.skeleton-bar {
+  display: inline-block;
+  height: 0.75em;
+  border-radius: 4px;
+  vertical-align: middle;
+  background: linear-gradient(100deg, var(--paper-3) 30%, var(--shimmer) 50%, var(--paper-3) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar {
+    animation: none;
+  }
+}
+
+/* The section's sort switch: "Sort by" and the two choices, at the head's end. */
+.section__head--wrap {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Set widths, as in the route extension tables: "Since first flight" on one line, "12 Jan 1989", "35.8 years". */
+.table--fixed .col-age {
+  width: 8.5em;
+}
+
+.table--fixed .col-first {
+  width: 7em;
+}
+
+.table--fixed .col-reg {
+  width: 38%;
+}
+
+@media (max-width: 600px) {
+  .table--fixed .col-first,
+  .table--fixed .col-reg {
+    display: none;
+  }
+
+  .table--fixed .col-age {
+    width: 7.75em;
+  }
+
+  /* Phones: three columns, each row two lines. The route (or the count of flights) moves under the first column, and
+   "at least" under its figure, so nothing wraps mid-phrase. */
+  .table--fixed .col-route,
+  .table--fixed .col-count {
+    display: none;
+  }
+
+  .table--fixed .col-ext {
+    width: 6em;
+  }
+
+  .table--fixed .col-extra {
+    width: 5.5em;
+  }
+}
+
+.table--diff {
+  margin-top: 10px;
+  font-size: 0.875rem;
+}
+
+/* Here, after .th-sort:hover, which it follows in the cascade. */
+.filter-chip.is-on {
+  background: var(--selected-container);
+  border-color: transparent;
+  color: var(--on-selected-container);
+}
+
+/* Here, after .row__track .icon, which it follows in the cascade. */
+.filter-add .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.table--pivot th,
+.table--pivot td {
+  white-space: nowrap;
+}
+
+.table--pivot tbody th,
+.table--pivot thead th:first-child,
+.table--pivot tfoot th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--paper);
+}
+
+/* The figure's button fills its cell, so the outline of the one picked runs to the cell's edges. */
+.table--pivot .pivot__cell {
+  height: 1px;
+  padding: 0;
+}
+
+.table--pivot tfoot th,
+.table--pivot tfoot td {
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 0;
+}
+
+.lead--flight + .chips {
+  margin-top: 20px;
+}
+
+/* Here, after .rows, which it follows in the cascade. */
+.overrides {
+  margin-top: 12px;
+}
+
+/* What a recorded track does not record, and the faint great circle. */
+.swatch-line--unrecorded {
+  border-top: 2px dotted var(--ink-3);
+}
+
+.swatch-line--faint {
+  border-top: 1px dashed var(--rule-strong);
+}
+
+@media (max-width: 960px) {
+  .cols--aircraft,
+  .row--aircraft {
+    grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) 60px 72px;
+  }
+
+  .row--aircraft .row__airline,
+  .row--aircraft .row__num--date,
+  .cols--aircraft span:nth-child(3),
+  .cols--aircraft span:nth-child(6) {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .row--sighting {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "route num"
+      "meta meta";
+  }
+
+  .row--sighting .row__route-wrap {
+    grid-area: route;
+  }
+
+  .row--sighting .row__cell:not(.row__notes):not(.row__phase) {
+    grid-area: num;
+    text-align: right;
+  }
+
+  .row--sighting .row__phase,
+  .row--sighting .row__track {
+    display: none;
+  }
+
+  .row--sighting .row__notes {
+    grid-area: meta;
+  }
+
+  .row--aircraft {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  /* A long livery name is cut inside the column instead of widening the row. */
+  .row--aircraft .row__route-wrap {
+    min-width: 0;
+  }
+
+  .row--aircraft .row__cell {
+    display: none;
+  }
+}
+
+/* Here, after .filter-chip.is-on, which it follows in the cascade. */
+.chip:hover {
+  background: var(--state-hover);
+}
+
+/* Here, after .th-sort:hover, which it follows in the cascade. */
+.chip[aria-checked="true"],
+.chip[aria-pressed="true"] {
+  background: var(--selected-container);
+  border-color: transparent;
+  color: var(--on-selected-container);
+}
+
+/* The pill at the end of a map's legend row (Home, Flights: Explore on a globe). On a phone it takes a line of its
+   own. */
+.legend__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* A link, or a button: a button loses the browser's two-tone border and its own font. */
+.legend__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-high);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.legend__action:hover {
+  background: var(--surface-highest);
+}
+
+.legend__action .icon {
+  width: 15px;
+  height: 15px;
+}
+
+@media (max-width: 720px) {
+  .legend__actions {
+    flex-basis: 100%;
+    margin-top: 6px;
+    margin-left: 0;
+  }
+}
+
+.lead--airport {
+  font-size: 1.5rem;
+  max-width: 34em;
+  margin-top: 16px;
+}
+
+.facts__link {
+  text-decoration: none;
+}
+
+.facts__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 1px;
+}
+
+@media (max-width: 720px) {
+  .lead--airport {
+    font-size: 1.25rem;
+  }
+}
+
+/* "2h 07m": units set small and quieter than the figures. */
+.dur {
+  white-space: nowrap;
+}
+
+.dur__u {
+  margin-left: 1px;
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+
+/* Aircraft list: the type code under the registration, only on phones, where the type column is hidden. */
+.row__type-phone {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .row__type-phone {
+    display: block;
+  }
+}
+
+/* An airport code in large type, with the other code small beneath it when the user shows both (BigCode). */
+.big-code {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.big-code__second {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+@media (max-width: 840px) {
+  /* Here, after .btn .icon, which it follows in the cascade. */
+  .nav__link .icon {
+    display: block;
+    box-sizing: content-box;
+    width: 22px;
+    height: 22px;
+    padding: 5px 20px;
+    border-radius: 999px;
+    transition: background-color 180ms var(--ease);
+  }
+}

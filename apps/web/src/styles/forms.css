@@ -1,0 +1,392 @@
+/* Fields, pickers and form layouts, known values, findings and issues (styles/app.css imports the parts in order).
+   */
+
+.form-title {
+  margin: 8px 0 6px;
+  font-size: 2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+/* A list page's title: on a computer the navigation above names the page, so only a phone shows it. */
+.title--phone {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.form-sub {
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.form {
+  margin-top: 24px;
+}
+
+.form-section {
+  margin: 36px 0 6px;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px 20px;
+  margin-top: 16px;
+}
+
+/* Settings' choices: wide enough for each row of chips to stay on one line, two to a row. */
+.form-grid--choices {
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+}
+
+.field--wide {
+  grid-column: 1 / -1;
+}
+
+.field__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.field__hint {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  min-height: 1.2em;
+}
+
+.field__hint--bad {
+  color: var(--alert);
+}
+
+/* An action after a field's hint or a short status ("Add as an airport…"): set apart in every language, since the
+   hint before it is not a sentence. */
+.field__action {
+  margin-inline-start: 0.6em;
+}
+
+.datetime {
+  display: grid;
+  grid-template-columns: 1fr 112px;
+  gap: 8px;
+}
+
+.picker {
+  position: relative;
+  display: grid;
+  gap: 6px;
+}
+
+.picker__list {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+}
+
+.picker__option {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.picker__option[aria-selected="true"] {
+  background: var(--hover);
+}
+
+.picker__option b {
+  font-variant-numeric: tabular-nums;
+}
+
+.picker__option small {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.form-checks {
+  margin-top: 8px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+}
+
+.known {
+  display: flex;
+  gap: 10px;
+  margin: 18px 0 4px;
+  padding: 12px 14px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  border-radius: 16px;
+  background: var(--surface-mid);
+}
+
+.known p {
+  margin: 0;
+}
+
+.known b {
+  color: var(--ink);
+}
+
+.form .field + .form-grid,
+.known + .field {
+  margin-top: 18px;
+}
+
+.inline-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.inline-form .field {
+  flex: 1 1 auto;
+}
+
+.inline-form .field__hint:empty {
+  display: none;
+}
+
+.inline-form > .btn {
+  margin-bottom: 1px;
+}
+
+.inline-form--merge {
+  display: grid;
+  align-items: start;
+}
+
+.merge-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.merge-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  font-size: 0.9375rem;
+  border-radius: 14px;
+}
+
+.findings {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.finding {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  font-size: 0.9375rem;
+  border-radius: 16px;
+  border-color: transparent;
+  background: var(--surface-low);
+}
+
+.finding--error {
+  background: var(--alert-wash);
+}
+
+.finding__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.finding__rule {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.finding__text {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.finding__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.findings--compact {
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.findings--compact .finding {
+  padding: 8px 10px;
+  font-size: 0.875rem;
+  border-radius: 12px;
+}
+
+.issue__records {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.issue-group .findings {
+  margin-top: 0;
+}
+
+/* A field changed on two devices: the value in the log and the other change, one under the other. */
+.conflict {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.conflict dt {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  padding-top: 1px;
+}
+
+.conflict dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.conflict__when {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.flight-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.notes {
+  margin: 4px 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.form-subsection {
+  margin: 24px 0 4px;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.sources {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.sources li + li {
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .form-title {
+    font-size: 1.625rem;
+  }
+
+  .title--phone {
+    position: static !important;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    margin: 28px 0 0;
+  }
+
+  .title--phone + .view-top {
+    padding-top: 16px;
+  }
+
+  .title--phone + .view-top:empty {
+    padding-top: 0;
+  }
+
+  .title--phone + .view-top:empty + .facts {
+    margin-top: 20px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-form {
+    flex-wrap: wrap;
+  }
+
+  .datetime {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.picker__list,
+.menu {
+  border-radius: 16px;
+  border-color: transparent;
+  background: var(--surface-mid);
+  box-shadow: var(--shadow-2);
+}

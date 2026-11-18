@@ -1,0 +1,666 @@
+/* The dialogs: the terms, Share, a picture, a video, the daily copies, an airport (styles/app.css imports the parts
+   in order). */
+
+/* Standard mode's terms: a modal dialog, so they cannot be scrolled past. The text scrolls; the buttons stay in view. */
+.terms-dialog {
+  /* As wide as a comfortable line of its text, which fills it. */
+  width: min(36rem, calc(100vw - 32px));
+  max-height: min(88vh, 46rem);
+  padding: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-pop);
+}
+
+.terms-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.terms-dialog::backdrop {
+  background: rgba(23, 22, 19, 0.5);
+}
+
+.terms-dialog__body {
+  overflow-y: auto;
+  padding: 22px 24px 6px;
+}
+
+.terms-dialog__body:focus {
+  outline: none;
+}
+
+.terms-dialog__title {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.terms-dialog p {
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.terms-dialog a {
+  color: inherit;
+}
+
+.terms-dialog__foot {
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--rule);
+}
+
+.terms-dialog__foot .button-row {
+  margin: 0;
+}
+
+/* The Share dialog: a small card over the page, the link's address in the tonal link box. */
+.share-dialog {
+  width: min(32rem, calc(100vw - 32px));
+  padding: 22px 24px 18px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-pop);
+}
+
+.share-dialog::backdrop {
+  background: rgba(23, 22, 19, 0.5);
+}
+
+/* Dialogs arriving and leaving (every card made from the Share dialog's, and the terms): the card fades in as it rises
+   12px into place from 98%, and the page dims under it, so the dialog does not pop. Leaving is quicker: both fade,
+   the card dropping back a little, before it closes (`leave` in lib/dialog.ts holds it for `LEAVE_MS`). Instant with
+   reduced motion. */
+.share-dialog,
+.terms-dialog {
+  transition:
+    opacity 200ms var(--ease),
+    transform 260ms var(--ease);
+}
+
+.share-dialog::backdrop,
+.terms-dialog::backdrop {
+  transition: opacity 220ms var(--ease);
+}
+
+.share-dialog[data-leaving],
+.terms-dialog[data-leaving] {
+  opacity: 0;
+  transform: translateY(6px) scale(0.99);
+  transition-duration: 160ms;
+  pointer-events: none;
+}
+
+.share-dialog[data-leaving]::backdrop,
+.terms-dialog[data-leaving]::backdrop {
+  opacity: 0;
+  transition-duration: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-dialog,
+  .terms-dialog,
+  .share-dialog::backdrop,
+  .terms-dialog::backdrop {
+    transition: none;
+  }
+}
+
+.share-dialog__title {
+  margin: 0 0 10px;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.share-dialog__text {
+  margin: 0 0 14px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.share-dialog__link {
+  width: 100%;
+}
+
+.share-dialog__meta {
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.share-dialog__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+/* Download an image (components/FigureDialog.tsx): the image as it will be saved, then its choices in one row. */
+.figure-dialog {
+  width: min(48rem, calc(100vw - 32px));
+}
+
+.figure-preview {
+  display: grid;
+  place-items: center;
+  height: min(46vh, 430px);
+  margin: 4px 0 18px;
+  border-radius: 14px;
+  background: var(--surface-low);
+}
+
+/* The image on the panel: a hairline keeps a light image apart from a light panel, a dark one from a dark one. */
+.figure-preview__image {
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--rule-strong);
+}
+
+.figure-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px 24px;
+}
+
+.figure-option {
+  display: grid;
+  gap: 6px;
+}
+
+.figure-option__label {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+/* The checkboxes (Include statistics, Airport codes) one under the other, the last on the controls' line: a lone one
+   centred on them, two filling the label's height above it. */
+.figure-checks {
+  align-self: flex-end;
+  gap: 2px;
+}
+
+.figure-checks .check {
+  min-height: 28px;
+}
+
+.figure-checks .check:only-child {
+  min-height: 38px;
+}
+
+/* The theme's two segments as tall as the selects beside them. */
+.figure-option .segmented .seg {
+  min-height: 38px;
+}
+
+.figure-hint {
+  margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+  .figure-preview {
+    height: min(36vh, 300px);
+  }
+}
+
+/* Download a video (components/VideoDialog.tsx): the image dialog's panel, the preview playing on it, and under the
+   preview its player: play or pause, the place in the video (a scrubber), and the time. */
+/* Wider than the image's, so its four choices fit on one line. */
+.video-dialog {
+  width: min(54rem, calc(100vw - 32px));
+}
+
+.video-preview {
+  grid-template-rows: auto auto;
+  place-items: stretch;
+  height: auto;
+  padding: 0 12px 6px;
+}
+
+/* The video's own shape, as high as the image dialog's panel allows: no empty band around a landscape video on a
+   phone. */
+.video-preview__stage {
+  display: grid;
+  place-items: center;
+  max-height: calc(min(46vh, 430px) - 36px);
+  min-height: 120px;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .video-preview__stage {
+    max-height: calc(min(40vh, 340px) - 36px);
+  }
+}
+
+.video-preview__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.video-preview__play .icon {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.video-preview__time {
+  min-width: 8ch;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.video-preview__scrub {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.video-preview__scrub::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule-strong);
+}
+
+.video-preview__scrub::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--ink-2);
+  appearance: none;
+}
+
+.video-preview__scrub::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule-strong);
+}
+
+.video-preview__scrub::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-3);
+}
+
+.video-preview__scrub::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink-2);
+}
+
+.video-preview__scrub:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.video-preview__scrub:disabled,
+.video-preview__play:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* While the video is made: how far it has got, a bar in ink on the controls' surface, and the percentage. */
+.video-making {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.video-making__bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--surface-high);
+}
+
+.video-making__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ink-2);
+  transition: width 200ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-making__bar > span {
+    transition: none;
+  }
+}
+
+/* Share's sections (components/ShareDialog.tsx): the link and the image or video, each under a small title, with a
+   hairline between them and the buttons of each in a row. */
+.share-section + .share-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.share-section__title {
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.share-section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.share-section__title + .share-section__actions {
+  margin-top: 0;
+}
+
+/* "Change in Settings" and "All shared links": links among the dialog's words, smaller, in ink-2. */
+.share-dialog__all {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+/* The link's buttons, then "All shared links" beside them where the row has room, else on the line under them. */
+.share-section__actions--link {
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.share-section__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* The daily copies in the user's storage (CopiesDialog): a row for each, its date and its buttons, hairlines between,
+   the list scrolling inside the card when it is long. */
+.copies {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: min(26rem, 55vh);
+  overflow-y: auto;
+  border-top: 1px solid var(--rule);
+}
+
+.copies__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.copies__day {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.copies__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Adding or changing an airport of the user's own (AirportDialog): the share dialog's card, wide enough for two
+   fields a row, one on phones. */
+.airport-dialog {
+  width: min(36rem, calc(100vw - 32px));
+}
+
+.airport-dialog .form-grid {
+  margin-top: 4px;
+}
+
+.airport-dialog .share-dialog__foot {
+  margin-top: 22px;
+}
+
+/* A list to choose from (components/PickList.tsx): a box on each row, the chosen rows in the selection container,
+   the ways to choose and what is chosen above it. In a dialog (MyFr24Dialog.tsx) the list takes the height left. */
+.pick-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(46rem, calc(100vw - 32px));
+  height: min(46rem, calc(100dvh - 48px));
+}
+
+.pick-dialog .share-dialog__title {
+  margin: 0;
+}
+
+.pick-dialog .pick__panel {
+  flex: 1 1 auto;
+}
+
+.pick-dialog .share-dialog__foot {
+  margin-top: 4px;
+}
+
+/* The list in a panel, its head (all of it, what is chosen) above a hairline. The boxes and the count line up with
+   the rows' boxes and tags: 4px of panel and 12px of row. */
+.pick__panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--surface-lowest);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+/* 1px more above, for the panel's outline drawn inside it. */
+.pick__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Centred by their letters, cap height to baseline, not by a line box that keeps room for descenders. */
+.pick__all-label,
+.pick__count {
+  text-box: trim-both cap alphabetic;
+}
+
+/* The one button for all, in the list's head. */
+.pick__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pick__all:hover {
+  background: var(--surface-high);
+}
+
+.pick__all:disabled {
+  cursor: default;
+  color: var(--ink-3);
+  background: none;
+}
+
+.pick__all[aria-checked="true"] .pick__box,
+.pick__all[aria-checked="mixed"] .pick__box {
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--paper);
+}
+
+.pick__count {
+  margin-left: auto;
+  padding-right: 12px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pick__hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.pick__hint .icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+}
+
+.pick__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pick__row {
+  display: grid;
+  grid-template-columns: 18px 7.5rem 5.5rem minmax(0, 1fr) auto;
+  grid-template-areas: "box date flight route tag";
+  align-items: center;
+  gap: 4px 14px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pick__row:hover {
+  background: var(--surface-high);
+}
+
+.pick__row[aria-selected="true"] {
+  background: var(--selected-container);
+  color: var(--on-selected-container);
+}
+
+/* A run of chosen rows reads as one block. */
+.pick__row[aria-selected="true"]:has(+ .pick__row[aria-selected="true"]) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.pick__row[aria-selected="true"] + .pick__row[aria-selected="true"] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.pick__row:focus-visible {
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+.pick__box {
+  grid-area: box;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1.5px var(--rule-hover);
+  background: var(--surface-lowest);
+}
+
+.pick__row[aria-selected="true"] .pick__box {
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--paper);
+}
+
+.pick__box .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 3;
+}
+
+.pick__date {
+  grid-area: date;
+  color: var(--ink-2);
+}
+
+.pick__row[aria-selected="true"] .pick__date {
+  color: inherit;
+}
+
+.pick__flight {
+  grid-area: flight;
+  font-weight: 600;
+}
+
+.pick__route {
+  grid-area: route;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick__tag {
+  grid-area: tag;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  white-space: nowrap;
+}
+
+.pick__row[aria-selected="true"] .pick__tag {
+  color: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-selected-container) 30%, transparent);
+}
+
+@media (max-width: 560px) {
+  .pick__row {
+    grid-template-columns: 18px auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "box date date tag"
+      "box flight route route";
+  }
+}
+
+/* Here, after .video-preview__play .icon, which it follows in the cascade. */
+.segmented--small .icon {
+  width: 15px;
+  height: 15px;
+}

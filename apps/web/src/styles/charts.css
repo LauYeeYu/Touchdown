@@ -1,0 +1,469 @@
+/* Charts, ranked lists, Statistics' tables and the custom view (styles/app.css imports the parts in order). */
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+}
+
+.chart__title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart__sub {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart .grid line {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.chart .axis text,
+.chart .tick-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  fill: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart .bar {
+  transition: opacity 160ms var(--ease);
+}
+
+.chart .bar-hit {
+  fill: transparent;
+}
+
+.chart .bar.is-dim {
+  opacity: 0.35;
+}
+
+.chart .bar-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart .future {
+  stroke: var(--rule-strong);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.chart .line {
+  fill: none;
+  stroke: var(--flown);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.chart .area {
+  fill: var(--flown-wash);
+}
+
+.chart .crosshair {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.chart .cursor-dot {
+  fill: var(--flown);
+  stroke: var(--paper);
+  stroke-width: 2;
+}
+
+.chart__plot svg {
+  display: block;
+}
+
+.ranked-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 36px 48px;
+  margin-top: 44px;
+}
+
+.ranked__title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.ranked__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ranked__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 44px;
+  gap: 12px;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 0.9375rem;
+}
+
+/* Long names (routes, airports) wrap to a second line rather than being cut off. */
+.ranked__label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+/* The bar shows each count against the largest; there is no "full" to show, so no track behind it. */
+/* Bars, not dots: 8px tall with 2px corners, so even a short bar reads as a length. They grow from the start
+   when they appear and move to new lengths when the period changes. */
+.ranked__bar {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.ranked__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transform-origin: left center;
+  animation: bar-grow 600ms var(--ease) both;
+  transition: width 400ms var(--ease);
+}
+
+.ranked__num {
+  text-align: right;
+  color: var(--ink);
+}
+
+.ranked__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+}
+
+/* Route extension on Statistics: the most indirect flights beside the routes. */
+.extension-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 40px;
+  margin-top: 16px;
+}
+
+.extension-route {
+  white-space: nowrap;
+}
+
+.ext-fig {
+  white-space: nowrap;
+}
+
+/* The row's second line on a phone: the route under the flight, or the flights under the route. */
+.extension-sub {
+  display: none;
+}
+
+/* Route extension while its tracks load: the tables' rows as bars, the loading note over their middle. */
+.extension-wait {
+  position: relative;
+}
+
+.extension-wait .track-loading {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.extension-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.extension-sort__label {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+@media (max-width: 860px) {
+  .extension-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
+/* Aircraft age on Statistics: the figures in a sentence, then the age when flown beside the time since first flight,
+   two tables of equal width. */
+.age-summary {
+  margin: 12px 0 0;
+  color: var(--ink-2);
+}
+
+.age-summary b {
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.age-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
+  margin-top: 20px;
+}
+
+.age-aircraft {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+/* The type under the registration; on a phone the first flight joins it, as its column goes. */
+.age-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.age-sub__phone {
+  display: none;
+}
+
+.age-note {
+  margin: 16px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+@media (max-width: 860px) {
+  .age-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
+@media (max-width: 600px) {
+  .age-sub__phone {
+    display: inline;
+  }
+
+  .extension-sub {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+  }
+
+  .ext-fig {
+    display: inline-grid;
+    justify-items: end;
+  }
+
+  .ext-fig .ext-min {
+    grid-row: 2;
+    margin-top: 1px;
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+  }
+}
+
+/* What to count, as a sentence: "Number of flights by airline split by family", each choice a filled pill. */
+.custom__query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-top: 28px;
+}
+
+.custom__word {
+  font-size: 1.0625rem;
+  color: var(--ink-2);
+}
+
+.custom .custom__select {
+  width: auto;
+  max-width: 100%;
+  height: 42px;
+  padding: 0 40px 0 18px;
+  border-color: transparent;
+  border-radius: 999px;
+  background-color: var(--surface-high);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.custom .custom__select:hover {
+  border-color: transparent;
+  background-color: var(--surface-highest);
+}
+
+.custom__tool {
+  margin-left: -4px;
+  color: var(--ink-2);
+}
+
+/* The filters: a chip each, then "Filter", then how many records are left. */
+.custom__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.custom__count {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.custom__saved {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 16px;
+}
+
+.custom__saved .chip[aria-current="true"] {
+  background: var(--selected-container);
+  border-color: transparent;
+  color: var(--on-selected-container);
+}
+
+.custom__saved .chip--plain {
+  padding-right: 14px;
+}
+
+/* The table: figures shaded by size in the data's ink (6% to 40%: the text stays at 7:1 or more), each one a button
+   that lists the records behind it. The row names stay in view when the table scrolls sideways. */
+.custom .table-scroll {
+  margin-top: 24px;
+}
+
+.pivot--flights {
+  --heat-ink: var(--flown);
+}
+
+.pivot--sightings {
+  --heat-ink: var(--spotted);
+}
+
+.pivot__cell.is-shaded {
+  background: color-mix(in srgb, var(--heat-ink) calc(6% + var(--heat, 0) * 34%), transparent);
+}
+
+.pivot__fig {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: box-shadow 140ms var(--ease);
+}
+
+.pivot__fig:hover {
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.pivot__fig.is-picked {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.pivot__total .pivot__fig {
+  font-weight: 600;
+}
+
+.pivot__others {
+  color: var(--ink-3);
+}
+
+.custom__notes p {
+  margin: 10px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+/* The records behind a figure, under the table. */
+.custom__records {
+  margin-top: 36px;
+  scroll-margin: 96px 0 24px;
+}
+
+.custom__records-head {
+  align-items: center;
+  gap: 12px;
+}
+
+.custom__records-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.custom__records-head .icon-btn {
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  /* Phones: a filter's panel opens from the start of the filter row, across it, not from its chip. */
+  .custom__filters {
+    position: relative;
+  }
+
+  .custom__filters .menu-anchor {
+    position: static;
+  }
+
+  .custom__filters .filter-panel {
+    left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .ranked-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Here, after .ranked__bar span, which it follows in the cascade. */
+  .tabs.is-ready .tabs__indicator,
+  .ranked__bar span {
+    transition: none;
+    animation: none;
+  }
+}

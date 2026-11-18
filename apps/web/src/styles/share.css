@@ -1,0 +1,40 @@
+/* The share page (styles/app.css imports the parts in order). */
+
+/* The app's own pages and frame (src/share/Shell.tsx). When a link does not open, a message. */
+.share-main {
+  padding-bottom: 72px;
+}
+
+.share-message {
+  max-width: 36rem;
+  margin: 14vh 0 0;
+}
+
+.share-message__title {
+  margin: 0 0 10px;
+  font-size: 1.75rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.share-message__text {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.share-message__retry {
+  margin-top: 20px;
+}
+
+.share-notes {
+  white-space: pre-wrap;
+}
+
+.share-photo-link + .share-photo-link {
+  margin-left: 12px;
+}
+
+.share-dl {
+  max-width: 40rem;
+}

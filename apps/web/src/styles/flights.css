@@ -1,0 +1,283 @@
+/* A flight's page (styles/app.css imports the parts in order). */
+
+.route-hero {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto;
+  align-items: end;
+  gap: 28px;
+  margin-top: 36px;
+}
+
+.route-hero__end {
+  min-width: 0;
+}
+
+.route-hero__end--to {
+  text-align: right;
+}
+
+.route-hero__code {
+  font-size: 5rem;
+  line-height: 0.9;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.route-hero__place {
+  margin: 12px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+
+.route-hero__city {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The other code, after the name. The dot keeps to the name's last word (a non-breaking space before it, no break
+   after it), so a long name never wraps with the dot opening a line. */
+.route-hero__icao {
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.route-hero__mid {
+  align-self: center;
+  text-align: center;
+  padding-bottom: 6px;
+}
+
+.route-hero__mid svg {
+  width: 100%;
+  height: 56px;
+  overflow: visible;
+}
+
+.route-hero__mid .arcline {
+  fill: none;
+  stroke: var(--flown);
+  stroke-width: 2;
+}
+
+.route-hero__stat {
+  margin-top: 2px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.route-hero__stat b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.flight-date {
+  margin: 24px 0 0;
+  font-size: 1rem;
+  color: var(--ink-2);
+}
+
+.flight-date b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* As many equal columns as there are cells: boarding, takeoff, landing, time in the air, distance, route extension. */
+.times {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin-top: 28px;
+}
+
+.time {
+  padding: 18px 20px 18px 0;
+}
+
+.time + .time {
+  padding-left: 20px;
+  border-left: 1px solid var(--rule);
+}
+
+.time__label {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+/* A question mark beside a cell's label (a distance that is a minimum, route extension), sized to the label's line
+   so the labels stay level across the strip. */
+.time__label .help-tip {
+  width: 22px;
+  height: 22px;
+  margin: -6px 0 -6px 2px;
+}
+
+.time__label .help-tip .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.time__clock {
+  margin: 4px 0 0;
+  font-size: 1.75rem;
+  line-height: 1.1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.time__date {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plus-day {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 48px;
+  align-items: start;
+}
+
+.aircraft-card .card__body {
+  padding: 18px 20px 18px;
+  gap: 6px;
+}
+
+.aircraft-card .card__reg {
+  font-size: 1.5rem;
+}
+
+.aircraft-card .card__name {
+  gap: 6px;
+}
+
+.identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.identity .icon {
+  margin-top: 3px;
+  color: var(--ink-3);
+}
+
+/* Here, after .identity .icon, which it follows in the cascade. */
+.status-line .icon {
+  margin-top: 3px;
+}
+
+/* Here, after .identity .icon, which it follows in the cascade. */
+.status-line--good .icon {
+  color: var(--good);
+}
+
+/* Here, after .status-line--good .icon, which it follows in the cascade. */
+.status-line--error .icon {
+  color: var(--alert);
+}
+
+@media (max-width: 720px) {
+  /* Here, after .detail-grid, which it follows in the cascade. */
+  .split,
+  .charts,
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .route-hero {
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .route-hero__code {
+    font-size: 3.25rem;
+  }
+
+  .route-hero__place {
+    font-size: 0.8125rem;
+  }
+
+  /* Without the name, the other code has a line of its own under the city, with no dot before it. */
+  .route-hero__name,
+  .route-hero__sep {
+    display: none;
+  }
+
+  .route-hero__mid svg {
+    height: 40px;
+  }
+
+  .times {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .time:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .time:nth-child(n + 3) {
+    border-top: 1px solid var(--rule);
+  }
+
+  /* A last cell alone in its row takes the whole row, so the line above it runs across. */
+  .time:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .time__clock {
+    font-size: 1.5rem;
+  }
+}
+
+/* Here, after .status-line .icon, which it follows in the cascade. */
+.start__item .icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  color: var(--ink-2);
+}
+
+/* Here, after .start__item .icon, which it follows in the cascade. */
+.start__item--main .icon {
+  color: var(--flown);
+}
+
+/* Airport names in a flight's header open the airport page. */
+.route-hero__link {
+  text-decoration: none;
+}
+
+.route-hero__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 1px;
+}

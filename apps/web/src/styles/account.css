@@ -1,0 +1,431 @@
+/* Settings, the account and sign-in, modes, invitations, shared links and the policy pages (styles/app.css imports
+   the parts in order). */
+
+/* Shared links: the account lists' tonal card, one item per link with Copy link and a menu at its end. */
+.account-card.shares-list {
+  margin-top: 20px;
+}
+
+.shares-list__title {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.shares-list__title:hover {
+  text-decoration: underline;
+}
+
+.shares-list__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.shares-empty {
+  margin-top: 20px;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  background: var(--surface-low);
+  color: var(--ink-2);
+}
+
+/* Material's account lists: a tonal card per group, each item a two-line list item (the thing, then its value in
+   ink-2) with its action at the end. Two cards to a row as Display's choices are, one column on phones. */
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 20px 24px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+.account-group {
+  margin: 0 0 8px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.account-card {
+  list-style: none;
+  margin: 0;
+  padding: 4px 20px;
+  border-radius: var(--radius);
+  background: var(--surface-low);
+}
+
+.account-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 14px 0;
+}
+
+/* An open form belongs to the item above it: no divider between them, and it lines up with the item's text. */
+.account-card > li + li:not(.account-card__form) {
+  border-top: 1px solid var(--rule);
+}
+
+.account-item__text {
+  display: grid;
+  flex: 1 1 10rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-item__text small {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.account-card__form {
+  padding: 0 0 16px;
+}
+
+/* Settings › Data: the account card, each item its name, then the options its buttons follow, then the buttons.
+   Buttons sit under the name, not at the end, because an item may have four. */
+.data-card {
+  margin-top: 16px;
+}
+
+.data-item {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.data-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.data-item .check input {
+  margin: 0;
+}
+
+.data-item__state {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.data-card + .button-row {
+  margin-top: 20px;
+}
+
+.account-form {
+  display: grid;
+  gap: 12px;
+  max-width: 26rem;
+  padding: 4px 0 16px;
+}
+
+.account-form .button-row {
+  margin-top: 0;
+}
+
+.link-result {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.link-result small {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+/* A link to send, in a tonal box with a copy button at its end. */
+.link-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  justify-self: start;
+  padding: 4px 4px 4px 14px;
+  border-radius: 12px;
+  background: var(--surface-highest);
+}
+
+.link-box code {
+  overflow-x: auto;
+  font-family: inherit;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.link-box__copy {
+  flex: none;
+}
+
+/* The message to send with an invitation link. */
+.invite-message {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.invite-message small {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.invite-message__text {
+  font-size: 0.875rem;
+}
+
+.invite-message .button-row {
+  margin: 0;
+}
+
+.policy {
+  padding-bottom: 64px;
+}
+
+.policy h1 {
+  margin: 24px 0 4px;
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.32;
+  letter-spacing: -0.02em;
+}
+
+.policy h2 {
+  margin: 36px 0 8px;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.policy p,
+.policy li {
+  line-height: 1.6;
+}
+
+.policy ul,
+.policy ol {
+  padding-left: 1.25rem;
+}
+
+.policy li + li {
+  margin-top: 4px;
+}
+
+.policy table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.policy th,
+.policy td {
+  padding: 10px 16px 10px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.policy th {
+  font-weight: 600;
+}
+
+.policy code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--surface-highest);
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+.policy a {
+  color: inherit;
+}
+
+.policy__links,
+.signin__policies {
+  margin-top: 40px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.policy__links a,
+.signin__policies a {
+  color: inherit;
+}
+
+.signin__form {
+  display: grid;
+  gap: 14px;
+  max-width: 26rem;
+  margin-top: 24px;
+}
+
+.signin__form .button-row {
+  margin-top: 4px;
+}
+
+.signin__or {
+  max-width: 26rem;
+  margin: 20px 0 0;
+  color: var(--ink-3);
+  font-size: 0.875rem;
+}
+
+.signin__or + .button-row {
+  margin-top: 8px;
+}
+
+.signin .signin__note {
+  margin-top: 28px;
+}
+
+.modes {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 20px;
+}
+
+.mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--surface-low);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease);
+}
+
+.mode:hover {
+  background: var(--surface-mid);
+}
+
+.mode:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.mode > .icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  color: var(--ink-2);
+}
+
+.mode__text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mode__name {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.mode__name b {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mode__text > span:not(.mode__name) {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.mode__text small {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.mode__tag {
+  padding: 1px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.mode__mark {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.mode__mark .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.25;
+}
+
+.mode--on,
+.mode--on:hover {
+  background: var(--selected-container);
+}
+
+.mode--on > .icon,
+.mode--on .mode__name b,
+.mode--on .mode__text > span:not(.mode__name),
+.mode--on .mode__tag,
+.mode--on .mode__mark {
+  color: var(--on-selected-container);
+}
+
+.mode--on .mode__tag {
+  border-color: currentColor;
+}
+
+.mode--off,
+.mode--off:hover {
+  background: var(--surface-low);
+  cursor: default;
+}
+
+.mode--off > .icon,
+.mode--off .mode__name b,
+.mode--off .mode__text > span:not(.mode__name) {
+  color: var(--ink-3);
+}
+
+.local-warning .status-line {
+  margin-top: 0;
+  color: var(--ink);
+}
+
+/* Here, after .link-box code, which it follows in the cascade. */
+.form-sub code {
+  font-size: 0.875rem;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--paper-2);
+}
+
+/* A suspended member in Settings › People, after their name. */
+.member-suspended {
+  margin-inline-start: 8px;
+  vertical-align: 1px;
+}
+
+/* Here, after .account-item__text small, which it follows in the cascade. */
+.history-row small {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+/* Here, after .history-row small, which it follows in the cascade. */
+.review-row__title small {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
