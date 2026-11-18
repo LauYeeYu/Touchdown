@@ -3,10 +3,11 @@
 // The draft is kept in this browser until it is saved, so a long session survives a reload.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { looksLikeOperatorName, normaliseRegistration, PHASES, todayIn } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
 import { typeName, airlineLabel, PHASE_LABEL, shortAirport } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -122,9 +123,9 @@ export function SessionAdd() {
   return (
     <div className="page page--form">
       <nav className="crumbs" aria-label={t("common.back")}>
-        <Link to="/spotting">
+        <BackLink to="/spotting">
           <Icon name="arrow-left" /> {t("spotting.title")}
-        </Link>
+        </BackLink>
       </nav>
       <h1 className="form-title">{t("spotting.session.title")}</h1>
       <p className="form-sub">{t("spotting.session.lead")}</p>

@@ -4,6 +4,7 @@
 
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import type { LinkScope } from "../lib/link.tsx";
+import { keepTrail } from "../lib/back.tsx";
 import { Types } from "../pages/Types.tsx";
 import { TypePage } from "../pages/TypePage.tsx";
 import { TypeCompare } from "../pages/TypeCompare.tsx";
@@ -28,5 +29,8 @@ export function typesRouter() {
     component: TypeCompare,
     validateSearch: (s: Record<string, unknown>): { a?: string; b?: string } => ({ ...(typeof s.a === "string" ? { a: s.a } : {}), ...(typeof s.b === "string" ? { b: s.b } : {}) }),
   });
-  return createRouter({ routeTree: root.addChildren([list, compare, manufacturer, family, one]), defaultPreload: false, scrollRestoration: true });
+  const router = createRouter({ routeTree: root.addChildren([list, compare, manufacturer, family, one]), defaultPreload: false, scrollRestoration: true });
+  // A page's link back to the types goes back to the visit it came from (lib/back.tsx).
+  keepTrail(router.history);
+  return router;
 }

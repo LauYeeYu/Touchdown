@@ -32,7 +32,7 @@ When a feature is added or changed, check whether Getting started (`/guide`, `ap
 ## Interface checks
 
 - After adding or moving an icon, a silhouette, an emoji or a dot beside words, look at the rendered page in English and in Chinese (`en-GB`, `zh-CN`), at a desktop's width and a phone's, and check that each sits where it should vertically. Icons, emojis and Chinese characters have heights and baselines of their own, so a row lined up by baseline, or a box centred on it, can move: a cell whose first item is an SVG takes the SVG's bottom edge as its baseline, and the row's other words line up there.
-- A page's search, filters, chips, view, sort or tab is held with `useViewState` (`apps/web/src/lib/viewState.ts`), never React's own state, so Back from a page it leads to shows it as it was left (docs/31, "Going back"). Check it: choose something, open a row, go back.
+- A page's search, filters, chips, view, sort or tab is held with `useViewState` (`apps/web/src/lib/viewState.ts`), never React's own state, so Back from a page it leads to shows it as it was left (docs/31, "Going back"). A link back to the page it belongs under (a crumb, a form's Cancel) is a `BackLink` (`lib/back.tsx`). Check it: choose something, open a row, go back.
 
 ## Commits
 

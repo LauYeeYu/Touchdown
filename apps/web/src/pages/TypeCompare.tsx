@@ -7,6 +7,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { Link } from "../lib/link.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { typeName } from "../lib/format.ts";
 import { typeFigures } from "../lib/typeFigures.ts";
@@ -59,10 +60,10 @@ export function TypeCompare() {
   return (
     <div className="page type-compare">
       <nav className="crumbs">
-        <Link to="/types">
+        <BackLink to="/types">
           <Icon name="arrow-left" />
           {t("aircraft.types.title")}
-        </Link>
+        </BackLink>
       </nav>
       <h1 className="type-page__name">{t("aircraft.types.compare.title")}</h1>
       <div className="type-compare__pick">

@@ -8,6 +8,7 @@ import { useParams } from "@tanstack/react-router";
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { Link } from "../lib/link.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { headline } from "../lib/i18n.tsx";
 import { typeName } from "../lib/format.ts";
@@ -55,10 +56,10 @@ export function TypePage() {
   return (
     <div className="page type-page">
       <nav className="crumbs">
-        <Link to="/types">
+        <BackLink to="/types">
           <Icon name="arrow-left" />
           {t("aircraft.types.title")}
-        </Link>
+        </BackLink>
       </nav>
       <header className="type-page__head">
         <div>

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { Link, useReachable } from "../lib/link.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { extensionPercent, routeExtension } from "@touchdown/core/view";
 import { airportName, cityName, daysBetween, fitTrackFile, flightDay, flightName, greatCircleKm, guessSeatPosition, liveryName, parseDateTime, privateOf, readTrackFile, sameLivery, toUtcIso, trackChangeFor, trackFileName, trackKml, type Flight, type InboxChange } from "@touchdown/core";
 import { download } from "../lib/download.ts";
@@ -297,9 +298,9 @@ export function FlightDetail() {
   return (
     <div className="page">
       <nav className="crumbs" aria-label={t("flights.detail.nav")}>
-        <Link to="/flights">
+        <BackLink to="/flights">
           <Icon name="arrow-left" /> {t("flights.allFlights")}
-        </Link>
+        </BackLink>
         <span className="crumbs__pager">
           {prev && (
             <Link to="/flights/$id" params={{ id: prev.f.id }} title={t("flights.detail.previous")}>

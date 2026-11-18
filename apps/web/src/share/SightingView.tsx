@@ -10,6 +10,7 @@ import { airportWithCode } from "../lib/codes.ts";
 import { airlineLabel, dateOnly, PHASE_LABEL, TAG_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Link } from "../lib/link.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { Credit, Photo } from "../components/Photo.tsx";
 import { LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { NotFound } from "../pages/NotFound.tsx";
@@ -33,9 +34,9 @@ export function SightingView() {
   return (
     <div className="page">
       <nav className="crumbs" aria-label={t("common.back")}>
-        <Link to="/spotting">
+        <BackLink to="/spotting">
           <Icon name="arrow-left" /> {t("share.nav.spotting")}
-        </Link>
+        </BackLink>
       </nav>
       <div className={`aircraft-hero${livery ? " aircraft-hero--livery" : ""}`}>
         <div>

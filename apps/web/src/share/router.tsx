@@ -6,6 +6,7 @@
 import { createHashHistory, createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
 import type { TableName } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
+import { keepTrail } from "../lib/back.tsx";
 import type { LinkScope } from "../lib/link.tsx";
 import { airportParams, slugParams } from "../lib/slugs.ts";
 import { Home } from "../pages/Home.tsx";
@@ -62,5 +63,8 @@ export function shareRouter(data: ShareData) {
     : [];
   const own = kind === "flight" ? [flight] : kind === "sighting" ? [sighting, sightingForm] : [flight, sighting, sightingForm, aircraftOne];
   const routeTree = root.addChildren(log ? [home, flight, sighting, sightingForm, aircraftOne, ...whole] : [home, ...own]);
-  return createRouter({ routeTree, history: createHashHistory(), defaultPreload: false, scrollRestoration: true });
+  const router = createRouter({ routeTree, history: createHashHistory(), defaultPreload: false, scrollRestoration: true });
+  // A page's link back to its list goes back to the visit it came from (lib/back.tsx).
+  keepTrail(router.history);
+  return router;
 }

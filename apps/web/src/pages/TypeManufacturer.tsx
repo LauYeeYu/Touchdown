@@ -6,6 +6,7 @@ import { useParams } from "@tanstack/react-router";
 import type { TypeRole } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { headline } from "../lib/i18n.tsx";
 import { useVisitor } from "../lib/visitor.ts";
@@ -39,10 +40,10 @@ export function TypeManufacturer() {
   return (
     <div className={`page types type-manufacturer${visitor ? " types--visitor" : ""}`}>
       <nav className="crumbs">
-        <Link to="/types">
+        <BackLink to="/types">
           <Icon name="arrow-left" />
           {t("aircraft.types.title")}
-        </Link>
+        </BackLink>
       </nav>
       <h1 className="type-page__name">{manufacturer.name}</h1>
       <p className="type-page__lead">

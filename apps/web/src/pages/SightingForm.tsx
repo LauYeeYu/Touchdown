@@ -7,6 +7,7 @@ import { flightDay, looksLikeOperatorName, PHASES, todayIn, type SightingValues 
 import { sentenceGap, series, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { draftFindings } from "../data/draft.ts";
+import { BackLink } from "../lib/back.tsx";
 import { knownFor, lastSpot, rememberSpot } from "../lib/known.ts";
 import { airlineLabel, dayMonthYear, PHASE_LABEL, shortAirport, TAG_LABEL, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
@@ -99,9 +100,9 @@ export function SightingForm({ edit = false }: { edit?: boolean }) {
   return (
     <div className="page page--form">
       <nav className="crumbs" aria-label={t("common.back")}>
-        <Link to="/spotting">
+        <BackLink to="/spotting">
           <Icon name="arrow-left" /> {t("spotting.title")}
-        </Link>
+        </BackLink>
       </nav>
       <h1 className="form-title">{existing ? t("spotting.sighting.titleEdit") : t("spotting.sighting.titleAdd")}</h1>
       <p className="form-sub">{tx("spotting.sighting.lead", {}, { link: (text) => <Link to="/spotting/session">{text}</Link> })}</p>

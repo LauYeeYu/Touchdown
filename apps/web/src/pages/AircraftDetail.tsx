@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { inSentence, sentenceGap, series, t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { flightDay, isValidDate, liveryName, liveryNames, pastedFactsFor, phasesOf, sameLivery, type Flight, type Sighting } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { aircraftViews } from "../lib/views.ts";
@@ -157,9 +158,9 @@ export function AircraftDetail() {
   return (
     <div className="page">
       <nav className="crumbs" aria-label={t("common.back")}>
-        <Link to="/aircraft">
+        <BackLink to="/aircraft">
           <Icon name="arrow-left" /> {t("aircraft.detail.all")}
-        </Link>
+        </BackLink>
       </nav>
       <div className={`aircraft-hero${liveries.length ? " aircraft-hero--livery" : ""}`}>
         <div>

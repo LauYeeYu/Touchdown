@@ -12,6 +12,7 @@ import { forgetOffline, keepOffline } from "./data/offline.ts";
 import { Boot, BootError, OfflineWithoutAccount, waitingProgress } from "./components/Boot.tsx";
 import { AppContext } from "./data/context.tsx";
 import { Shell } from "./components/Shell.tsx";
+import { keepTrail } from "./lib/back.tsx";
 import { Home } from "./pages/Home.tsx";
 import { Flights } from "./pages/Flights.tsx";
 import { FlightDetail } from "./pages/FlightDetail.tsx";
@@ -87,6 +88,8 @@ const routeTree = root.addChildren([home, flights, flightNew, flight, flightEdit
 
 // Back returns to where the page was scrolled; a new page starts at the top.
 const router = createRouter({ routeTree, defaultPreload: false, scrollRestoration: true });
+// A page's link back to its list goes back to the visit it came from (lib/back.tsx).
+keepTrail(router.history);
 
 declare module "@tanstack/react-router" {
   interface Register {

@@ -2,10 +2,11 @@
 // suggestions; everything else under "More". Every time is a date and a time, in the airport's local time.
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { t } from "@touchdown/i18n";
 import { cityName, looksLikeOperatorName, parseDateTime, parseFlightNumber, todayIn, withPrivate, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
+import { BackLink } from "../lib/back.tsx";
 import { textCode } from "../lib/codes.ts";
 import { draftFindings } from "../data/draft.ts";
 import { CABIN_LABEL, REASON_LABEL, typeName } from "../lib/format.ts";
@@ -170,9 +171,9 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
   return (
     <div className="page page--form">
       <nav className="crumbs" aria-label={t("common.back")}>
-        <Link to={existing ? "/flights/$id" : "/flights"} params={existing ? { id: existing.id } : undefined}>
+        <BackLink to={existing ? "/flights/$id" : "/flights"} params={existing ? { id: existing.id } : undefined}>
           <Icon name="arrow-left" /> {existing ? t("flightForm.backToFlight") : t("flights.allFlights")}
-        </Link>
+        </BackLink>
       </nav>
       <h1 className="form-title">{existing ? t("flightForm.title.edit") : t("flightForm.title.add")}</h1>
       <p className="form-sub">{t("flightForm.intro")}</p>
@@ -278,9 +279,9 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
             <Icon name="check" />
             {existing ? t("flightForm.submit.save") : t("flightForm.submit.add")}
           </button>
-          <Link className="btn btn--quiet" to={existing ? "/flights/$id" : "/flights"} params={existing ? { id: existing.id } : undefined}>
+          <BackLink className="btn btn--quiet" to={existing ? "/flights/$id" : "/flights"} params={existing ? { id: existing.id } : undefined}>
             {t("common.cancel")}
-          </Link>
+          </BackLink>
         </div>
       </form>
     </div>
