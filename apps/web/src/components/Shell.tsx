@@ -22,6 +22,7 @@ import { StableLabel } from "./StableLabel.tsx";
 import { Wordmark } from "./Wordmark.tsx";
 import { FootCredits } from "./FootCredits.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
+import { localValue, setLocalValue } from "../lib/localValue.ts";
 
 const NAV: { to: string; label: () => string; icon: IconName; match: (p: string) => boolean }[] = [
   { to: "/", label: () => t("shell.nav.home"), icon: "house", match: (p) => p === "/" },
@@ -118,11 +119,7 @@ let lookDark: boolean | null = null;
  */
 function applyTheme(theme: (typeof THEMES)[number]) {
   const root = document.documentElement;
-  try {
-    localStorage.setItem("td-theme", theme);
-  } catch {
-    /* storage unavailable: the theme still applies, from the log, once the app has loaded */
-  }
+  setLocalValue("td-theme", theme);
   const dark = theme === "dark" || (theme === "system" && deviceDark());
   const wasDark = lookDark ?? (root.hasAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : deviceDark());
   lookDark = dark;
@@ -189,12 +186,8 @@ export function Shell() {
   useEffect(() => {
     if (app.connection?.mode !== "standard" || sync?.state !== "synced" || notHereYet || app.readOnly) return;
     const today = todayIn();
-    try {
-      if (localStorage.getItem("td-previews") === today) return;
-      localStorage.setItem("td-previews", today);
-    } catch {
-      return;
-    }
+    // Where nothing can be kept, not at all: it would run after every sync.
+    if (localValue("td-previews") === today || !setLocalValue("td-previews", today)) return;
     void refreshPreviews(app).catch((e: unknown) => console.warn("Link previews were not refreshed:", e));
   }, [app, sync?.state, notHereYet]);
   const backupDue = useBackupDue(local, app.connection?.since ?? null, version);

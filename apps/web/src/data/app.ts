@@ -63,18 +63,14 @@ import { forgetGoogleToken } from "./google.ts";
 import { hasTables, savedSyncState, SYNC_CHECKED, SyncController, TabSync, type SyncHandle, type SyncInfo } from "./sync.ts";
 import type { SavedRow, TabMessage, Tabs } from "./tabs.ts";
 import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
+import { localValue, setLocalValue } from "../lib/localValue.ts";
 
 function deviceId(): string {
-  try {
-    let id = localStorage.getItem("td-device");
-    if (!id) {
-      id = `dev_${ulid().slice(-10).toLowerCase()}`;
-      localStorage.setItem("td-device", id);
-    }
-    return id;
-  } catch {
-    return `dev_${ulid().slice(-10).toLowerCase()}`;
-  }
+  const kept = localValue("td-device");
+  if (kept) return kept;
+  const id = `dev_${ulid().slice(-10).toLowerCase()}`;
+  setLocalValue("td-device", id);
+  return id;
 }
 
 /**
@@ -82,11 +78,7 @@ function deviceId(): string {
  * include every version it made, and its next edits must not count on from those (version vectors, docs/12).
  */
 function renewDeviceId() {
-  try {
-    localStorage.setItem("td-device", `dev_${ulid().slice(-10).toLowerCase()}`);
-  } catch {
-    // A new id is made on the next visit anyway when storage is unavailable.
-  }
+  setLocalValue("td-device", `dev_${ulid().slice(-10).toLowerCase()}`);
 }
 
 export type SaveState = "saved" | "saving" | "error";
@@ -774,13 +766,7 @@ export class AppData {
 
   updateSettings(patch: Partial<Settings>) {
     updateSettings(this.store, patch);
-    if (patch.theme) {
-      try {
-        localStorage.setItem("td-theme", patch.theme);
-      } catch {
-        /* storage unavailable: the setting still applies for this session */
-      }
-    }
+    if (patch.theme) setLocalValue("td-theme", patch.theme);
   }
 
   // ---------- writes ----------

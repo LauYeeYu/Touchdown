@@ -6,6 +6,7 @@
 
 import { cloneElement, createElement, Fragment, isValidElement, type ReactNode } from "react";
 import { LOCALES, locale, matchLocale, rich, setDateStyle, setLocale, type Locale, type MessageKey, type Params } from "@touchdown/i18n";
+import { localValue, setLocalValue } from "./localValue.ts";
 
 type TagNames<K extends MessageKey> = Parameters<typeof rich<K, ReactNode>>[2] extends infer T ? (T extends Record<string, unknown> ? keyof T : never) : never;
 type Rest<K extends MessageKey> = [TagNames<K>] extends [never]
@@ -25,14 +26,6 @@ export function tx<K extends MessageKey>(key: K, ...[params, tags]: Rest<K>): Re
 const SAVED_LANGUAGE = "touchdown.language";
 const SAVED_DATES = "touchdown.dateFormat";
 
-function read(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null; // Storage blocked: the defaults decide.
-  }
-}
-
 /**
  * Choose the interface's language and date format before the first page is drawn: those the log chose, as this
  * browser last saw them, else the best of the browser's languages and its own way of writing dates. Sets the page's
@@ -40,10 +33,10 @@ function read(key: string): string | null {
  * viewer's own account's language.
  */
 export async function startLanguage(preferred: string | null = null): Promise<void> {
-  const saved = preferred && preferred in LOCALES ? preferred : read(SAVED_LANGUAGE);
+  const saved = preferred && preferred in LOCALES ? preferred : localValue(SAVED_LANGUAGE);
   const wanted = saved && saved in LOCALES ? (saved as Locale) : matchLocale(navigator.languages ?? [navigator.language]);
   if (wanted !== locale()) await setLocale(wanted);
-  setDateStyle(read(SAVED_DATES) ?? "language");
+  setDateStyle(localValue(SAVED_DATES) ?? "language");
   document.documentElement.lang = locale();
 }
 
@@ -61,23 +54,14 @@ export interface LanguageChoice {
  */
 export async function followLog(choice: LanguageChoice, now = false): Promise<void> {
   const chosen = choice.language && choice.language in LOCALES ? (choice.language as Locale) : null;
-  keep(SAVED_LANGUAGE, chosen);
-  keep(SAVED_DATES, choice.dateFormat);
+  setLocalValue(SAVED_LANGUAGE, chosen || null);
+  setLocalValue(SAVED_DATES, choice.dateFormat || null);
   if (now) {
     const wanted = chosen ?? matchLocale(navigator.languages ?? [navigator.language]);
     if (wanted !== locale()) await setLocale(wanted);
     document.documentElement.lang = locale();
   }
   setDateStyle(choice.dateFormat ?? "language");
-}
-
-function keep(key: string, value: string | null) {
-  try {
-    if (value) localStorage.setItem(key, value);
-    else localStorage.removeItem(key);
-  } catch {
-    // Storage blocked: the log's choice still applies, once the log is open.
-  }
 }
 
 /** The text of rendered parts: strings, and the children of elements (a figure, a link). */

@@ -3,6 +3,7 @@
 
 import { t } from "@touchdown/i18n";
 import { passwordKey } from "../lib/passwordKey.ts";
+import { localValue, setLocalValue } from "../lib/localValue.ts";
 
 export interface Me {
   id: string;
@@ -67,11 +68,7 @@ const LAST_ACCOUNT = "td-account";
 export async function whoAmI(): Promise<Me | "signed-out" | "offline"> {
   try {
     const me = await call<Me>("GET", "/auth/me");
-    try {
-      localStorage.setItem(LAST_ACCOUNT, me.id);
-    } catch {
-      // storage unavailable: the app still opens, only not offline
-    }
+    setLocalValue(LAST_ACCOUNT, me.id);
     return me;
   } catch (e) {
     return e instanceof AuthError && e.status === 401 ? "signed-out" : "offline";
@@ -79,20 +76,12 @@ export async function whoAmI(): Promise<Me | "signed-out" | "offline"> {
 }
 
 export function lastAccount(): string | null {
-  try {
-    return localStorage.getItem(LAST_ACCOUNT);
-  } catch {
-    return null;
-  }
+  return localValue(LAST_ACCOUNT);
 }
 
 /** Signed out: offline, the app no longer opens this account's log. */
 export function forgetAccount(): void {
-  try {
-    localStorage.removeItem(LAST_ACCOUNT);
-  } catch {
-    // storage unavailable: nothing was kept
-  }
+  setLocalValue(LAST_ACCOUNT, null);
 }
 
 let siteId: Promise<string> | null = null;

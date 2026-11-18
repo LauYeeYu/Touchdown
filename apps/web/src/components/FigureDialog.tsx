@@ -12,6 +12,7 @@ import { Icon } from "../lib/icons.tsx";
 import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
 import { useModal } from "../lib/dialog.ts";
+import { localJson, setLocalValue } from "../lib/localValue.ts";
 
 interface Choice {
   format: FigureFormat;
@@ -30,18 +31,14 @@ const FORMAT_NAMES: Record<FigureFormat, string> = { png: "PNG", jpeg: "JPEG", w
 /** The last choices made in this browser, else PNG, landscape, the page's theme, no statistics and no codes. */
 function stored(): Choice {
   const fallback: Choice = { format: "png", size: "landscape", theme: pageTheme(), stats: false, codes: false };
-  try {
-    const c = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Choice> | null;
-    return {
-      format: c?.format && c.format in FIGURE_FORMATS ? c.format : fallback.format,
-      size: c?.size && c.size in FIGURE_SIZES ? c.size : fallback.size,
-      theme: c?.theme === "light" || c?.theme === "dark" ? c.theme : fallback.theme,
-      stats: typeof c?.stats === "boolean" ? c.stats : fallback.stats,
-      codes: typeof c?.codes === "boolean" ? c.codes : fallback.codes,
-    };
-  } catch {
-    return fallback;
-  }
+  const c = localJson<Partial<Choice>>(KEY);
+  return {
+    format: c?.format && c.format in FIGURE_FORMATS ? c.format : fallback.format,
+    size: c?.size && c.size in FIGURE_SIZES ? c.size : fallback.size,
+    theme: c?.theme === "light" || c?.theme === "dark" ? c.theme : fallback.theme,
+    stats: typeof c?.stats === "boolean" ? c.stats : fallback.stats,
+    codes: typeof c?.codes === "boolean" ? c.codes : fallback.codes,
+  };
 }
 
 /**
@@ -96,11 +93,7 @@ export function FigureDialog({ content, fileName, onClose, onSent }: { content: 
   const set = (c: Partial<Choice>) => {
     const next = { ...choice, ...c };
     setChoice(next);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      /* storage unavailable: the choices last until the dialog closes */
-    }
+    setLocalValue(KEY, JSON.stringify(next));
   };
   const withStats = choice.stats && hasStats;
   const withCodes = choice.codes && busyMap;

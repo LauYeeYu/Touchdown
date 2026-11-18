@@ -4,6 +4,7 @@
 import { readBackup } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import type { AppData } from "./app.ts";
+import { localValue, setLocalValue } from "../lib/localValue.ts";
 
 export const LOCAL_BACKUP_KEY = "td-dev-local-backup"; // modification time of the backup last loaded
 const HARD_RELOAD_KEY = "td-dev-hard-reload"; // the hard refresh last acted on, per tab
@@ -24,11 +25,7 @@ export async function localBackupModified(): Promise<number | null> {
 }
 
 export function loadedBackupModified(): number {
-  try {
-    return Number(localStorage.getItem(LOCAL_BACKUP_KEY)) || 0;
-  } catch {
-    return 0;
-  }
+  return Number(localValue(LOCAL_BACKUP_KEY)) || 0;
 }
 
 /**
@@ -51,11 +48,7 @@ export async function replaceWithLocalBackup(app: AppData, step?: (text: string)
   const records = [...back.tables.values()].reduce((n, rows) => n + rows.length, 0);
   step?.(t("data.localBackup.saving", { count: records }));
   await app.replaceAll(back.tables);
-  try {
-    localStorage.setItem(LOCAL_BACKUP_KEY, String(modified));
-  } catch {
-    /* storage unavailable */
-  }
+  setLocalValue(LOCAL_BACKUP_KEY, String(modified));
   return true;
 }
 

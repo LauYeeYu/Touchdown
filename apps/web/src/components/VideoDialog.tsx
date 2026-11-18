@@ -15,6 +15,7 @@ import { nf } from "../lib/format.ts";
 import { Select } from "./Select.tsx";
 import { useModal } from "../lib/dialog.ts";
 import { reducedMotion } from "../lib/reducedMotion.ts";
+import { localJson, setLocalValue } from "../lib/localValue.ts";
 
 interface Choice {
   size: VideoSize;
@@ -29,18 +30,14 @@ const KEY = "td-video";
 /** The last choices made in this browser, else landscape, 60 frames a second, the page's theme and no codes. */
 function stored(): Choice {
   const fallback: Choice = { size: "landscape", fps: 60, theme: pageTheme(), codes: false, view: "route" };
-  try {
-    const c = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Choice> | null;
-    return {
-      size: c?.size && c.size in VIDEO_SIZES ? c.size : fallback.size,
-      fps: c?.fps && (VIDEO_RATES as readonly number[]).includes(c.fps) ? c.fps : fallback.fps,
-      theme: c?.theme === "light" || c?.theme === "dark" ? c.theme : fallback.theme,
-      codes: typeof c?.codes === "boolean" ? c.codes : fallback.codes,
-      view: c?.view === "follow" ? "follow" : fallback.view,
-    };
-  } catch {
-    return fallback;
-  }
+  const c = localJson<Partial<Choice>>(KEY);
+  return {
+    size: c?.size && c.size in VIDEO_SIZES ? c.size : fallback.size,
+    fps: c?.fps && (VIDEO_RATES as readonly number[]).includes(c.fps) ? c.fps : fallback.fps,
+    theme: c?.theme === "light" || c?.theme === "dark" ? c.theme : fallback.theme,
+    codes: typeof c?.codes === "boolean" ? c.codes : fallback.codes,
+    view: c?.view === "follow" ? "follow" : fallback.view,
+  };
 }
 
 /** "0:07", "1:30": a place in the video. */
@@ -115,11 +112,7 @@ export function VideoDialog({ content, fileName, onClose, onSent }: { content: V
   const set = (c: Partial<Choice>) => {
     const next = { ...choice, ...c };
     setChoice(next);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      /* storage unavailable: the choices last until the dialog closes */
-    }
+    setLocalValue(KEY, JSON.stringify(next));
   };
 
   // The scene at the size chosen; the preview draws it smaller, as the saved video made smaller.

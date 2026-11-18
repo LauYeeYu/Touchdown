@@ -4,17 +4,14 @@
 import { useRef, useState } from "react";
 import { t } from "@touchdown/i18n";
 import { Icon } from "../lib/icons.tsx";
+import { localValue, setLocalValue } from "../lib/localValue.ts";
 
 export type MapStyle = "map" | "globe";
 
 const KEY = "td-map-style";
 
 function stored(): MapStyle {
-  try {
-    return localStorage.getItem(KEY) === "globe" ? "globe" : "map";
-  } catch {
-    return "map";
-  }
+  return localValue(KEY) === "globe" ? "globe" : "map";
 }
 
 /**
@@ -29,11 +26,7 @@ export function useMapStyle() {
     const map = box.current?.querySelector<HTMLElement>(".map");
     if (s === "globe" && map) setHeight(map.getBoundingClientRect().height);
     setStyle(s);
-    try {
-      localStorage.setItem(KEY, s);
-    } catch {
-      /* storage unavailable: the choice lasts until the page closes */
-    }
+    setLocalValue(KEY, s);
   };
   return { style, set, box, height };
 }
