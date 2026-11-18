@@ -6,13 +6,14 @@
 import { airportName, cityName, type RefIndex } from "../ref/index.ts";
 import { airlineLabel, typeName } from "./format.ts";
 import type { FlightView } from "./views.ts";
+import { withoutAccents } from "../normalise/text.ts";
 
 /**
  * Text as a search reads it: lower case, without accents, and only its letters and digits, so "Tu-160", "TU 160" and
  * "tu160" are the same text, and so are "São Paulo" and "sao paulo", "G-ABCD" and "gabcd".
  */
 export function searchFold(s: string): string {
-  return s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  return withoutAccents(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
 /**

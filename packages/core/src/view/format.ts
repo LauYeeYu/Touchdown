@@ -6,6 +6,7 @@ import { airportName, cityName, operatorName, type RefIndex } from "../ref/index
 import { parseDateTime } from "../time/index.ts";
 import { formatModel } from "../normalise/model.ts";
 import type { Settings } from "../schema/tables.ts";
+import { withoutAccents } from "../normalise/text.ts";
 
 /** Numbers in the interface's language: "12,345". */
 export const nf = { format: (n: number | bigint): string => numberFormat(locale()).format(n) };
@@ -152,7 +153,7 @@ const COMMON_PLACE_WORDS = new Set(["and", "the", "upon", "des", "les", "sur", "
 
 /** The words that set a place name apart, in lower case without accents: "Frankfurt am Main" gives frankfurt and main. */
 function placeWords(s: string): Set<string> {
-  const words = s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().split(/[^a-z0-9]+/);
+  const words = withoutAccents(s).toLowerCase().split(/[^a-z0-9]+/);
   return new Set(words.filter((w) => w.length >= 3 && !COMMON_PLACE_WORDS.has(w)));
 }
 

@@ -3,7 +3,7 @@
 // when it first flew. Shared by the list, the manufacturers and a manufacturer's page.
 
 import { useMemo } from "react";
-import type { Family, RefIndex, TypeRole } from "@touchdown/core";
+import { withoutAccents, type Family, type RefIndex, type TypeRole } from "@touchdown/core";
 import { searchText } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { typeName } from "./format.ts";
@@ -85,9 +85,7 @@ export function typeNames(code: string, ref: RefIndex, info: TypeInfo | null): s
  * ("Aérospatiale-BAC" → "aerospatiale-bac", "Boeing 737" → "boeing-737").
  */
 export const slugOf = (name: string) =>
-  name
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+  withoutAccents(name)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");

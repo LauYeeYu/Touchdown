@@ -4,7 +4,7 @@
 // hundred at a time as the page scrolls. "In your log" and a role narrow both.
 
 import { useEffect, useMemo, useRef } from "react";
-import type { TypeRole } from "@touchdown/core";
+import { withoutAccents, type TypeRole } from "@touchdown/core";
 import { searchMatcher } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
@@ -55,7 +55,7 @@ export const manufacturerCounts = (m: { codes: number; families: number }) =>
 
 /** The letter a manufacturer is filed under, without accents; a digit or a sign under #. */
 const letterOf = (name: string) => {
-  const c = name.normalize("NFKD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+  const c = withoutAccents(name).charAt(0).toUpperCase();
   return /[A-Z]/.test(c) ? c : "#";
 };
 
