@@ -2,7 +2,7 @@
 // uses. Private fields only say whether they are recorded (docs/34, "Private fields").
 
 import { checkAll, flightDay, phasesOf, resolveAirframes, type Finding, type Flight, type Sighting, type TableName } from "@touchdown/core";
-import { dateTimeLabel, durShort, modelLabel, routeExtension, typeName, viewFlight, type FlightView } from "@touchdown/core/view";
+import { dateTimeLabel, durShort, modelLabel, routeExtension, typeName, type FlightView } from "@touchdown/core/view";
 import { privateFields, type OpenedLog } from "./read.ts";
 
 export function airportJson(log: OpenedLog, id: string | null, raw: string | null) {
@@ -103,8 +103,6 @@ export function sightingJson(log: OpenedLog, s: Sighting) {
     notes: s.notes,
   };
 }
-
-export const flightView = (log: OpenedLog, f: Flight) => viewFlight(f, log.ref, log.codes);
 
 export const duration = (min: number | null) => (min === null ? "" : durShort(min).replace(/ /g, " "));
 

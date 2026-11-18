@@ -65,15 +65,6 @@ function formatter(tz: string): Intl.DateTimeFormat {
   return f;
 }
 
-export function isValidTimeZone(tz: string): boolean {
-  try {
-    formatter(tz);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /** Wall-clock parts of an instant in a time zone. */
 function wallParts(epochMs: number, tz: string) {
   const parts: Record<string, number> = {};

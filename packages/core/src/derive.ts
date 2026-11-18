@@ -76,13 +76,6 @@ export function routeKey(f: Flight, ref: RefIndex): string | null {
   return [a, b].sort().join("-");
 }
 
-export function directedRouteKey(f: Flight, ref: RefIndex): string | null {
-  const a = airportCode(f.fromAirportId, ref);
-  const b = airportCode(arrivalAirportId(f), ref);
-  if (!a || !b) return null;
-  return `${a}-${b}`;
-}
-
 export function recordDate(table: "flights" | "sightings", r: Flight | Sighting): string | null {
   return table === "flights" ? flightDay(r as Flight) : (r as Sighting).seenOn;
 }

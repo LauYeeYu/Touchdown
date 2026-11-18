@@ -826,6 +826,3 @@ export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[]
   });
   return result;
 }
-
-export const tableOfChange = (c: InboxChange): TableName | null =>
-  c.op === "edit" || c.op === "delete" ? c.table : c.op === "airframe" || c.op === "merge" || c.op === "facts" ? "airframes" : c.op === "track" || c.op === "removeTrack" ? "flights" : null;

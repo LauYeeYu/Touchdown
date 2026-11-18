@@ -56,9 +56,6 @@ export function loadFamilyFacts(): FamilyFacts[] {
   return rowsToObjects(facts as RefTableFile);
 }
 
-/** The figures' attribution line and the date they were read. */
-export const typeSpecsSource = { sources: (specs as RefTableFile).sources, version: (specs as RefTableFile).version };
-
 /** The Wikidata figures' attribution line and the date they were read. */
 export const typeWikidataSource = { sources: (wikidata as RefTableFile).sources, version: (wikidata as RefTableFile).version };
 
