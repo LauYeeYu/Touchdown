@@ -245,6 +245,11 @@
   gap: 10px;
 }
 
+.video-preview__play {
+  width: 32px;
+  height: 32px;
+}
+
 .video-preview__play .icon {
   width: 15px;
   height: 15px;

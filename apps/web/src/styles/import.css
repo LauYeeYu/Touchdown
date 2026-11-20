@@ -328,6 +328,8 @@
 
 .agent-command__copy {
   flex: none;
+  width: 32px;
+  height: 32px;
 }
 
 /* A row's suggestions, under its findings: tonal boxes with the change, the reason, and Use or Dismiss. */

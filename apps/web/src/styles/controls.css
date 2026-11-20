@@ -513,6 +513,7 @@ a.btn--primary {
 }
 
 .input--big {
+  height: 48px;
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -618,6 +619,7 @@ a.btn--primary {
 }
 
 .disclosure--form > summary {
+  gap: 8px;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--ink);
@@ -777,6 +779,8 @@ a.btn--primary {
 }
 
 .filter-panel__back {
+  width: 28px;
+  height: 28px;
   margin-left: -6px;
 }
 

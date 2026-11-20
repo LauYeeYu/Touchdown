@@ -162,6 +162,8 @@ a.shares-list__title:hover {
 
 .link-box__copy {
   flex: none;
+  width: 32px;
+  height: 32px;
 }
 
 /* The message to send with an invitation link. */
