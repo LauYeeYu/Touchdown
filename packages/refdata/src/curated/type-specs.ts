@@ -631,6 +631,13 @@ export const typeSpecOverrides: Record<string, Partial<TypeSpecValues>> = {
   A388: { engines: "4 × Rolls-Royce Trent 970/972 or Engine Alliance GP7270" },
   // Ilyushin Il-96, "Specifications" table, row "Seats (3/2/1-class)": 237/263/300 for the Il-96-300.
   IL96: { seatsTypical: 263, seatsMax: 300 },
+  // Airbus A320neo family, "Composite wing": the neo's wing is "the existing, mostly metal A320 family wing", with "over
+  // 95 percent airframe commonality with the current A320" ("New engine option"). Airbus A320 family, "Specifications":
+  // "Wingsweep: 25 degrees", "Wing area: 124 m2 (1,330 sq ft)" for the A319 and A320, "128 m2 (1,380 sq ft)" for the
+  // A321, whose wing the A321neo strengthens ("A321neo": "structural strengthening in the landing gear and wing").
+  A19N: { sweepDeg: 25, wingAreaM2: 124 },
+  A20N: { sweepDeg: 25, wingAreaM2: 124 },
+  A21N: { sweepDeg: 25, wingAreaM2: 128 },
   // Airbus A350, "Wing": "a wingspan that is common to the proposed variants. Its 64.75 m (212.4 ft) wingspan …",
   // "The A350's wing has a 31.9° sweep angle".
   A359: { sweepDeg: 31.9 },
