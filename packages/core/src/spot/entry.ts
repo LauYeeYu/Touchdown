@@ -303,13 +303,16 @@ export function evidenceForAgent(list: Evidence[]): AgentEvidence[] {
   return list.map((e) => ({ source: e.source, typeCode: e.typeCode, model: e.model, operator: e.operator, asOf: e.asOf, note: e.note }));
 }
 
-/** The sighting being checked (its date and place), left out of the log so a row already in it does not vouch for itself. */
-export type LogSelf = { date?: string | null; airport?: string | null };
+/**
+ * The record being checked, left out of the log so a row already in it does not vouch for itself: a record in the
+ * log by its id, a sighting typed in a session by its date and place.
+ */
+export type LogSelf = { id?: string; date?: string | null; airport?: string | null };
 
 function logRecords(store: Store, ref: RefIndex, registration: string, self?: LogSelf) {
   const key = registrationMatchForm(registration);
   const selfAirport = ref.airportByCode(self?.airport)?.id ?? null;
-  const isSelf = (s: { seenOn: string | null; airportId: string | null }) => !!self && (s.seenOn ?? null) === (self.date ?? null) && s.airportId === selfAirport;
+  const isSelf = (s: { id: string; seenOn: string | null; airportId: string | null }) => !!self && (self.id ? s.id === self.id : (s.seenOn ?? null) === (self.date ?? null) && s.airportId === selfAirport);
   return [
     ...store
       .all("sightings")
@@ -317,7 +320,7 @@ function logRecords(store: Store, ref: RefIndex, registration: string, self?: Lo
       .map((s) => ({ date: s.seenOn, typeCode: s.typeCode, model: s.model, op: s.operatorId, specialLivery: s.specialLivery, flown: false })),
     ...store
       .all("flights")
-      .filter((f) => f.registration && registrationMatchForm(f.registration) === key)
+      .filter((f) => f.registration && registrationMatchForm(f.registration) === key && f.id !== self?.id)
       .map((f) => ({ date: f.scheduledDate, typeCode: f.typeCode, model: f.model, op: f.airlineId, specialLivery: f.specialLivery, flown: true })),
   ];
 }

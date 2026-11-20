@@ -40,4 +40,5 @@ export * from "./xlsx.ts";
 export * from "./edit.ts";
 export * from "./tracks.ts";
 export * from "./agent/check.ts";
+export * from "./agent/logcheck.ts";
 export * from "./spot/entry.ts";

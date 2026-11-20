@@ -126,8 +126,11 @@ function operatorText(id: string | null | undefined, raw: string | null | undefi
   return o ? (o.icao ?? o.iata ?? o.name) : str(raw);
 }
 
+/** A row's values: an import's row, or a record in the log. */
+type RowValues = { table: "flights"; values: Partial<FlightValues> } | { table: "sightings"; values: Partial<SightingValues> };
+
 /** The fields of a row, as Touchdown reads them now, keyed by agent field. */
-export function recordFields(c: Candidate, ref: RefIndex): Partial<Record<AgentField, string>> {
+export function recordFields(c: RowValues, ref: RefIndex): Partial<Record<AgentField, string>> {
   const out: Partial<Record<AgentField, string>> = {};
   const put = (k: AgentField, v: string | null) => {
     if (v) out[k] = v;
@@ -159,7 +162,8 @@ export function recordFields(c: Candidate, ref: RefIndex): Partial<Record<AgentF
   return out;
 }
 
-function asTyped(c: Candidate, fields: Partial<Record<AgentField, string>>): Partial<Record<AgentField, string>> {
+/** What the row says as typed, where it differs from the fields Touchdown reads from it. */
+export function asTypedFields(c: RowValues, fields: Partial<Record<AgentField, string>>): Partial<Record<AgentField, string>> {
   const v = c.values as Record<string, unknown>;
   const raw: [AgentField, unknown][] =
     c.table === "sightings"
@@ -187,7 +191,7 @@ export function buildCheckRequest(
   const records = source.candidates.slice(0, CHECK_MAX_RECORDS).map((c, i): CheckRecord => {
     const fields = recordFields(c, ref);
     const findings = [...new Set([...c.issues.filter((x) => x.severity !== "info").map((x) => x.message), ...(opts.findings?.get(i) ?? [])])];
-    const rec: CheckRecord = { recordId: recordIdOf(c), kind: c.table === "sightings" ? "sighting" : "flight", fields, asTyped: asTyped(c, fields), findings };
+    const rec: CheckRecord = { recordId: recordIdOf(c), kind: c.table === "sightings" ? "sighting" : "flight", fields, asTyped: asTypedFields(c, fields), findings };
     const notes = str((c.values as { notes?: string | null }).notes);
     if (opts.includeNotes && notes) rec.notes = notes;
     return rec;
