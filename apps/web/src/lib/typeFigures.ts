@@ -116,7 +116,7 @@ export function typeFigures(helicopter = false): TypeFigure[] {
       text: (s) => (s.cruiseMach && s.cruiseKmh ? `${t("format.measure.mach", { n: s.cruiseMach })} · ${knots(s.cruiseKmh)}` : s.cruiseMach ? t("format.measure.mach", { n: s.cruiseMach }) : s.cruiseKmh ? knots(s.cruiseKmh) : null),
       diff: (d) => signed(d, knots),
     },
-    { key: "area", label: t("aircraft.types.figure.area"), value: (s) => s.wingAreaM2, text: (s) => (s.wingAreaM2 ? t("format.measure.m2", { n: nf.format(Math.round(s.wingAreaM2)) }) : null), diff: (d) => signed(d, (abs) => t("format.measure.m2", { n: nf.format(Math.round(abs)) })) },
+    { key: "area", label: t("aircraft.types.figure.area"), value: (s) => s.wingAreaM2, text: (s) => (s.wingAreaM2 ? t("format.measure.m2", { n: n1.format(s.wingAreaM2) }) : null), diff: (d) => signed(d, (abs) => t("format.measure.m2", { n: n1.format(abs) })) },
     { key: "sweep", label: t("aircraft.types.figure.sweep"), value: (s) => s.sweepDeg, text: (s) => (s.sweepDeg !== null ? t("format.measure.deg", { n: n1.format(s.sweepDeg) }) : null), diff: (d) => signed(d, (abs) => t("format.measure.deg", { n: n1.format(abs) })) },
   ];
   return figures.map((x) => ({
