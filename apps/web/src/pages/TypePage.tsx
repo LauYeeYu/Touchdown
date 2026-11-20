@@ -14,6 +14,7 @@ import { Icon } from "../lib/icons.tsx";
 import { headline } from "../lib/i18n.tsx";
 import { typeName } from "../lib/format.ts";
 import { familyTypes, metres, typeFigures, weight } from "../lib/typeFigures.ts";
+import { Measured } from "../components/Measured.tsx";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useVisitor } from "../lib/visitor.ts";
 import { aircraftViews } from "../lib/views.ts";
@@ -105,13 +106,13 @@ export function TypePage() {
           {figures
             .filter((x) => x.key !== "area" && x.key !== "sweep" && x.text(specs))
             .map((x) => (
-              <Fact key={x.key} label={x.label} value={x.text(specs)} />
+              <Fact key={x.key} label={x.label} value={<Measured text={x.text(specs)!} others={x.others(specs)} />} />
             ))}
           {specs.engines && <Fact label={t("aircraft.types.figure.engines")} value={specs.engines} />}
           {figures
             .filter((x) => (x.key === "area" || x.key === "sweep") && x.text(specs))
             .map((x) => (
-              <Fact key={x.key} label={x.label} value={x.text(specs)} />
+              <Fact key={x.key} label={x.label} value={<Measured text={x.text(specs)!} others={x.others(specs)} />} />
             ))}
         </dl>
       )}

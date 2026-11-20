@@ -179,6 +179,21 @@
   margin-top: 32px;
 }
 
+/* A figure with the same in other units in the app's tooltip (components/Measured.tsx): a dotted underline shows while
+   the pointer is over it. It holds the words for screen readers, so they stay in a table that scrolls sideways instead
+   of widening the page. */
+.measured {
+  position: relative;
+  text-decoration: underline dotted transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  transition: text-decoration-color 160ms var(--ease);
+}
+
+.measured:hover {
+  text-decoration-color: var(--ink-3);
+}
+
 /* The family's type codes side by side: drawn to one scale on their tails' line, this one's column marked. */
 .type-family__intro {
   margin: 0;

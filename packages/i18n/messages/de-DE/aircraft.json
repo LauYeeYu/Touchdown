@@ -122,6 +122,7 @@
   "types.row.length": "{length} lang",
   "types.row.seats": "{seats} Sitze",
   "types.between": "{low}–{high}",
+  "types.otherUnits": "({units})",
   "types.figure.mtow": "Höchstabfluggewicht",
   "types.figure.length": "Länge",
   "types.figure.span": "{rotor, select, yes {Rotordurchmesser} other {Spannweite}}",

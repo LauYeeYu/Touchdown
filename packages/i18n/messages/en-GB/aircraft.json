@@ -122,6 +122,7 @@
   "types.row.length": "{length} long",
   "types.row.seats": "{seats} seats",
   "types.between": "{low}–{high}",
+  "types.otherUnits": "({units})",
   "types.figure.mtow": "Maximum take-off weight",
   "types.figure.length": "Length",
   "types.figure.span": "{rotor, select, yes {Rotor diameter} other {Wingspan}}",

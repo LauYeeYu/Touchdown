@@ -11,6 +11,7 @@ import { BackLink } from "../lib/back.tsx";
 import { Icon } from "../lib/icons.tsx";
 import { typeName } from "../lib/format.ts";
 import { typeFigures } from "../lib/typeFigures.ts";
+import { Measured } from "../components/Measured.tsx";
 import { useTypeInfo, type TypeInfo } from "../lib/typeInfo.ts";
 import { drawingOf } from "../components/Silhouette.tsx";
 import { TypePicker } from "../components/TypePicker.tsx";
@@ -128,13 +129,13 @@ export function TypeCompare() {
               return (
                 <tr key={x.key}>
                   <th scope="row">{x.label}</th>
-                  <td className="tabular">{x.text(sa) ?? "—"}</td>
+                  <td className="tabular">{x.text(sa) ? <Measured text={x.text(sa)!} others={x.others(sa)} /> : "—"}</td>
                   <td className="type-compare__bars" aria-hidden="true">
                     <span className="type-compare__bar type-compare__bar--a" style={{ width: `${((va ?? 0) / most) * 100}%` }} />
                     <span className="type-compare__bar type-compare__bar--b" style={{ width: `${((vb ?? 0) / most) * 100}%` }} />
                   </td>
-                  <td className="tabular">{x.text(sb) ?? "—"}</td>
-                  <td className="num tabular">{va !== null && vb !== null ? x.diff(vb - va, va) : "—"}</td>
+                  <td className="tabular">{x.text(sb) ? <Measured text={x.text(sb)!} others={x.others(sb)} /> : "—"}</td>
+                  <td className="num tabular">{va !== null && vb !== null ? <Measured text={x.diff(vb - va, va)} others={x.diffOthers(vb - va, va)} /> : "—"}</td>
                 </tr>
               );
             })}

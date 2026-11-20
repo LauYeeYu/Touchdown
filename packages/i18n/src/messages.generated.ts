@@ -208,6 +208,7 @@ export interface MessageArgs {
   "aircraft.types.row.length": { length: "text" };
   "aircraft.types.row.seats": { seats: "text" };
   "aircraft.types.between": { high: "text"; low: "text" };
+  "aircraft.types.otherUnits": { units: "text" };
   "aircraft.types.figure.mtow": {};
   "aircraft.types.figure.length": {};
   "aircraft.types.figure.span": { rotor: "choice" };
@@ -1761,6 +1762,12 @@ export interface MessageArgs {
   "format.measure.mach": { n: "number" };
   "format.measure.m2": { n: "text" };
   "format.measure.deg": { n: "text" };
+  "format.measure.ft": { n: "text" };
+  "format.measure.ftIn": { ft: "text"; in: "text" };
+  "format.measure.lb": { n: "text" };
+  "format.measure.kmh": { n: "text" };
+  "format.measure.mph": { n: "text" };
+  "format.measure.sqft": { n: "text" };
   "guide.title": {};
   "guide.intro": {};
   "guide.mode.standard": {};

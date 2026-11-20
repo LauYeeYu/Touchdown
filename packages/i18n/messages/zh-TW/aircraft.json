@@ -122,6 +122,7 @@
   "types.row.length": "長{length}",
   "types.row.seats": "{seats}座",
   "types.between": "{low}–{high}",
+  "types.otherUnits": "（{units}）",
   "types.figure.mtow": "最大起飛重量",
   "types.figure.length": "長度",
   "types.figure.span": "{rotor, select, yes {旋翼直徑} other {翼展}}",

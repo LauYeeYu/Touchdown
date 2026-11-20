@@ -19,5 +19,11 @@
   "measure.kt": "{n}\u00a0kt",
   "measure.mach": "Mach\u00a0{n, number}",
   "measure.m2": "{n}\u00a0m²",
-  "measure.deg": "{n}°"
+  "measure.deg": "{n}°",
+  "measure.ft": "{n}\u00a0ft",
+  "measure.ftIn": "{ft}\u00a0ft {in}\u00a0in",
+  "measure.lb": "{n}\u00a0lb",
+  "measure.kmh": "{n}\u00a0km/h",
+  "measure.mph": "{n}\u00a0mph",
+  "measure.sqft": "{n}\u00a0ft²"
 }

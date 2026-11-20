@@ -7,6 +7,7 @@ import { useApp } from "../data/context.tsx";
 import { Link } from "../lib/link.tsx";
 import { nf, typeName } from "../lib/format.ts";
 import { typeFigures } from "../lib/typeFigures.ts";
+import { Measured } from "./Measured.tsx";
 import { noFigures, useTypeInfo } from "../lib/typeInfo.ts";
 import type { TypeCounts } from "../lib/typeEntries.ts";
 import { Silhouette } from "./Silhouette.tsx";
@@ -65,8 +66,12 @@ export function TypeFamilyTable({ codes, current, counts, visitor, rotor }: { co
                     const diff = c !== current && v !== null && own !== null ? x.diff(v - own, own) : null;
                     return (
                       <td key={c}>
-                        <span className="tabular">{x.text(s) ?? "—"}</span>
-                        {diff && diff !== "=" && <span className="type-family__diff tabular">{diff}</span>}
+                        <span className="tabular">{x.text(s) ? <Measured text={x.text(s)!} others={x.others(s)} /> : "—"}</span>
+                        {diff && diff !== "=" && (
+                          <span className="type-family__diff tabular">
+                            <Measured text={diff} others={x.diffOthers(v! - own!, own!)} />
+                          </span>
+                        )}
                       </td>
                     );
                   })}

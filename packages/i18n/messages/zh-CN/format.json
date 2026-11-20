@@ -19,5 +19,11 @@
   "measure.kt": "{n}\u202f节",
   "measure.mach": "{n, number}\u202f马\u2060赫",
   "measure.m2": "{n}\u202f平\u2060方\u2060米",
-  "measure.deg": "{n}°"
+  "measure.deg": "{n}°",
+  "measure.ft": "{n}\u202f英\u2060尺",
+  "measure.ftIn": "{ft}\u202f英\u2060尺{in}\u202f英\u2060寸",
+  "measure.lb": "{n}\u202f磅",
+  "measure.kmh": "{n}\u202f公\u2060里/\u2060小\u2060时",
+  "measure.mph": "{n}\u202f英\u2060里/\u2060小\u2060时",
+  "measure.sqft": "{n}\u202f平\u2060方\u2060英\u2060尺"
 }
