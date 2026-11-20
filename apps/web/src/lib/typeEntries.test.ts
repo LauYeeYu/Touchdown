@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { loadRefTables } from "@touchdown/refdata";
 import { TYPES_PAGES } from "../../../../packages/server/src/handler.ts";
-import { slugOf } from "./typeEntries.ts";
-import { mergeTypeData } from "./typeInfo.ts";
+import { RefIndex } from "@touchdown/core";
+import { searched, slugOf, typeEntries } from "./typeEntries.ts";
+import { loadTypeInfo, mergeTypeData } from "./typeInfo.ts";
 
 describe("a manufacturer's address", () => {
   it("is its own for every manufacturer, and one the server opens to anyone", () => {
@@ -55,5 +56,20 @@ describe("a type's figures", () => {
     expect(all.article).toEqual({ title: "Made-up airliner", revision: 3 });
     expect(mergeTypeData("X1", wiki, data, article)!.article).toBeNull();
     expect(mergeTypeData("X1", undefined, undefined, article)!.spanM).toBe(33);
+  });
+});
+
+describe("the list's search", () => {
+  it("finds the types it names before their family, and the family alone for its own name, but for a code typed whole", async () => {
+    const all = typeEntries(new RefIndex(loadRefTables()), await loadTypeInfo(), { flown: new Map(), seen: new Map() });
+    const keys = (q: string) => searched(all, q, () => true).map((e) => e.key);
+    expect(keys("748")).toEqual(expect.arrayContaining(["B747", "type:B748"]));
+    expect(keys("748").indexOf("B747")).toBe(keys("748").indexOf("type:B748") + 1);
+    expect(keys("747").filter((k) => k.startsWith("type:"))).toEqual([]);
+    expect(keys("A320")).toEqual(expect.arrayContaining(["A320", "type:A320"]));
+    expect(keys("A320").filter((k) => k.startsWith("type:"))).toEqual(["type:A320"]);
+    expect(keys("a320neo").filter((k) => k.startsWith("type:"))).toEqual(["type:A19N", "type:A20N", "type:A21N"]);
+    // The page's other filters hold for the types as for the families.
+    expect(searched(all, "748", (e) => e.key !== "type:B748").map((e) => e.key)).not.toContain("type:B748");
   });
 });

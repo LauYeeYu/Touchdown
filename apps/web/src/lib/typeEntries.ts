@@ -1,10 +1,11 @@
 // The aircraft types as the types pages list them (docs/31-ui.md, "Aircraft types"): each curated family as one entry
 // and every type code without a family as one of its own, under its manufacturer, with its roles, what the log has of it and
-// when it first flew. Shared by the list, the manufacturers and a manufacturer's page.
+// when it first flew; and each type of a family as an entry of its own too, which a search lists above its family. Shared
+// by the list, the manufacturers and a manufacturer's page.
 
 import { useMemo } from "react";
 import { withoutAccents, type Family, type RefIndex, type TypeRole } from "@touchdown/core";
-import { searchText } from "@touchdown/core/view";
+import { searchFold, searchMatcher, searchText } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { typeName } from "./format.ts";
 import { familyTypes } from "./typeFigures.ts";
@@ -107,12 +108,25 @@ function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: 
   return { key, family, name, manufacturer, codes, main, drawn, usual, roles, flown, seen, firstFlight, text };
 }
 
-/** Every entry, by manufacturer and name, and the manufacturers, by name. */
-export function typeEntries(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts): { entries: TypeEntry[]; manufacturers: TypeManufacturer[] } {
+export interface TypeEntries {
+  entries: TypeEntry[];
+  manufacturers: TypeManufacturer[];
+  /** A family's types, each an entry of its own (keyed "type:<code>", leading to the type), by the family's id, in order. */
+  members: Map<string, TypeEntry[]>;
+}
+
+/** Every entry, by manufacturer and name, the manufacturers, by name, and the families' types. */
+export function typeEntries(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts): TypeEntries {
   const entries: TypeEntry[] = [];
+  const members = new Map<string, TypeEntry[]>();
   for (const fam of ref.families.values()) {
     const codes = familyTypes(ref, fam.id, info);
-    if (codes.length) entries.push(entryOf(ref, info, counts, fam.id, fam, fam.name, fam.manufacturer, codes));
+    if (!codes.length) continue;
+    entries.push(entryOf(ref, info, counts, fam.id, fam, fam.name, fam.manufacturer, codes));
+    members.set(
+      fam.id,
+      codes.map((c) => entryOf(ref, info, counts, `type:${c}`, null, typeName(c, ref), fam.manufacturer, [c])),
+    );
   }
   for (const type of ref.types.values()) {
     if ((type.familyId && ref.family(type.familyId)) || !hasTypePage(ref, type.designator)) continue;
@@ -126,11 +140,31 @@ export function typeEntries(ref: RefIndex, info: TypeInfo | null, counts: TypeCo
     m.codes += e.codes.length;
     if (e.family) m.families++;
   }
-  return { entries, manufacturers: [...byManufacturer.values()] };
+  return { entries, manufacturers: [...byManufacturer.values()], members };
+}
+
+/**
+ * The entries a search finds: each family it finds, after the types of it the search names, the more precise answer
+ * first, each leading to its page ("748" finds the 747-8, then the Boeing 747). A search for the family's own name finds
+ * the family alone ("747"), but for the code typed whole ("A320"). `keep` is the page's other filters, for the types as
+ * for the families.
+ */
+export function searched(all: TypeEntries, query: string, keep: (e: TypeEntry) => boolean): TypeEntry[] {
+  const found = searchMatcher(query);
+  if (!found) return all.entries.filter(keep);
+  const whole = searchFold(query);
+  return all.entries
+    .filter((e) => keep(e) && found(e.text))
+    .flatMap((e) => {
+      if (!e.family) return [e];
+      const ownName = found(searchText([e.name, e.family.id]));
+      const named = (all.members.get(e.key) ?? []).filter((m) => found(m.text) && (!ownName || searchFold(m.main) === whole));
+      return [...named.filter(keep), e];
+    });
 }
 
 /** typeEntries for the page, with the log's counts, made again when the log or the types' information changes. */
-export function useTypeEntries(): { entries: TypeEntry[]; manufacturers: TypeManufacturer[] } {
+export function useTypeEntries(): TypeEntries {
   const { app } = useApp();
   const info = useTypeInfo();
   const counts = useTypeCounts();

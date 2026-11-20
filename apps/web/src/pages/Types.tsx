@@ -14,7 +14,7 @@ import { useVisitor } from "../lib/visitor.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useApp } from "../data/context.tsx";
 import { useViewState } from "../lib/viewState.ts";
-import { slugOf, useTypeCounts, useTypeEntries, type TypeEntry, type TypeManufacturer } from "../lib/typeEntries.ts";
+import { searched, slugOf, useTypeCounts, useTypeEntries, type TypeEntry, type TypeManufacturer } from "../lib/typeEntries.ts";
 import { Select } from "../components/Select.tsx";
 import { Silhouette } from "../components/Silhouette.tsx";
 import { TypeRow } from "../components/TypeRow.tsx";
@@ -60,7 +60,8 @@ const letterOf = (name: string) => {
 };
 
 export function Types() {
-  const { entries, manufacturers } = useTypeEntries();
+  const all = useTypeEntries();
+  const { entries, manufacturers } = all;
   const counts = useTypeCounts();
   // A visitor who is not signed in has no log: every type, and no counts.
   const visitor = useVisitor();
@@ -73,10 +74,11 @@ export function Types() {
 
   const needle = q.trim();
   const search = useMemo(() => searchMatcher(needle), [needle]);
-  const shown = useMemo(
-    () => entries.filter((e) => (show === "all" || e.flown + e.seen > 0) && (role === "all" || e.roles.includes(role)) && (!search || search(e.text))),
-    [entries, show, role, search],
-  );
+  const shown = useMemo(() => {
+    const keep = (e: TypeEntry) => (show === "all" || e.flown + e.seen > 0) && (role === "all" || e.roles.includes(role));
+    // A search finds the types it names too, each above its family (lib/typeEntries.ts, `searched`).
+    return search ? searched(all, needle, keep) : entries.filter(keep);
+  }, [all, entries, show, role, search]);
   // A search lists the types it finds, whatever the view.
   const listing = !!search || view === "list";
 
