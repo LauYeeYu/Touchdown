@@ -631,6 +631,13 @@ export const typeSpecOverrides: Record<string, Partial<TypeSpecValues>> = {
   A388: { engines: "4 × Rolls-Royce Trent 970/972 or Engine Alliance GP7270" },
   // Ilyushin Il-96, "Specifications" table, row "Seats (3/2/1-class)": 237/263/300 for the Il-96-300.
   IL96: { seatsTypical: 263, seatsMax: 300 },
+  // Airbus A330, "Specifications": "25% chord wingsweep: 30°". Airbus A330neo: "Its two versions are based on the A330-200
+  // and -300", "95% of the parts would be common with the A330ceo", with "New winglets, 3.7 metres wider", the 64 m of
+  // "Specifications (A330-941)" for both; "The 251 t A330-800 was certified by EASA in April 2022". Airbus BelugaXL,
+  // "Design": "The A330 wings, main landing-gear, central and aft fuselage form a semi-built platform".
+  A337: { sweepDeg: 30 },
+  A338: { spanM: 64, sweepDeg: 30, mtowKg: 251000 },
+  A339: { sweepDeg: 30 },
   // Airbus A320neo family, "Composite wing": the neo's wing is "the existing, mostly metal A320 family wing", with "over
   // 95 percent airframe commonality with the current A320" ("New engine option"). Airbus A320 family, "Specifications":
   // "Wingsweep: 25 degrees", "Wing area: 124 m2 (1,330 sq ft)" for the A319 and A320, "128 m2 (1,380 sq ft)" for the
