@@ -125,6 +125,8 @@ Decided, built (G11, Q-SILHOUETTE; `apps/web/src/lib/silhouette.ts`, `packages/r
 
 ## Airframe index
 
+Not scheduled (Decided): the web app does not look registrations up, and the CLI reads the OpenSky snapshot itself ([40](40-roadmap.md), "Later"). The plan, kept for when it is:
+
 Facts about individual airframes. Too large to ship whole with the app (hundreds of thousands of rows), so it is built into a sharded static index and fetched on demand.
 
 **Inputs (merged by the refdata build):**
@@ -142,7 +144,7 @@ Facts about individual airframes. Too large to ship whole with the app (hundreds
 
 ## Live lookups (through the lookup service)
 
-Used when the static index has no entry or is stale. Results are cached by the lookup service.
+The lookup service is not scheduled, as the airframe index is not. Used when the static index has no entry or is stale. Results are cached by the lookup service.
 
 | Source | Endpoint | Gives | Terms |
 |--------|----------|-------|-------|
@@ -157,7 +159,7 @@ Built so far (`touchdown spot`, [21](21-import-export.md)):
 
 ## Airframe facts
 
-How an aircraft in the log gets its serial number (MSN), line number, first flight and delivery dates. The airframe index above is the long-term plan; this section is what the CLI and the web app do now.
+How an aircraft in the log gets its serial number (MSN), line number, first flight and delivery dates. The airframe index above is not scheduled; this section is what the CLI and the web app do.
 
 ### Sources
 
@@ -259,7 +261,7 @@ See [23](23-tracks-and-maps.md) for how tracks are matched and drawn.
 
 ## Lookup service API (proposed)
 
-Stateless; no user data stored; responses cached.
+Not scheduled. Stateless; no user data stored; responses cached.
 
 | Endpoint | Does |
 |----------|------|

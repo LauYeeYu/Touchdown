@@ -38,7 +38,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 4: Lookups and auto-fill
 
-- Deliver: the site's own sign-in ([33](33-accounts-and-sign-in.md): passwords and Google, invitations, sessions, People and Account in Settings) and the server that runs on Cloudflare or any machine; the first deployment (Worker with static assets and D1, custom domain, GitHub Actions deploys) behind it, airframe index build, lookup service, auto-fill suggestions, external rules (X-), reference links to airfleets / planespotters / aviation.flights.
+- Deliver: the site's own sign-in ([33](33-accounts-and-sign-in.md): passwords and Google, invitations, sessions, People and Account in Settings) and the server that runs on Cloudflare or any machine; the first deployment (Worker with static assets and D1, custom domain, GitHub Actions deploys) behind it; registration lookups and auto-fill in the CLI (`touchdown spot`, `touchdown airframes`), external rules (X-), reference links to airfleets / planespotters / aviation.flights. The web app does not look registrations up (Decided): sightings are added mostly on a computer, where the CLI looks them up and the agent checks them, and the web app has the user's log and text pasted from an airframe page.
 - Done when: most of the user's records link to confirmed airframes, the provisional share is reported, and auto-fill never overwrites a user value.
 - Built so far: the site's own sign-in ([33](33-accounts-and-sign-in.md)): the server in `packages/server` (accounts, passwords hashed in the browser, Google, invitations, reset links, sessions, the gate), the sign-in pages, Settings → Account and People, one browser database per account; the Cloudflare Worker with D1 and the Node server (`npm run serve`), both tried locally; the security headers; the GitHub Actions deploy and the first deployment. `touchdown spot` looks registrations up from the CLI (the user's log, the OpenSky snapshot, adsbdb, Flightradar24 opt-in) and fills sightings typed in a session ([21](21-import-export.md)).
 
@@ -99,6 +99,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Local bridge between the web app and the CLI.
 - AeroAPI flight lookup and "capture during flight".
+- A registration lookup in the web app: adsbdb from the browser (it allows any site), then the airframe index for serial numbers ([13](13-reference-data.md), "Airframe index"). Not planned while sightings are added mostly on a computer.
 - Dropbox / OneDrive adapters.
 - Server backends: local SQLite file, Postgres / Supabase, Cloudflare D1 (Q-SERVER-DB).
 - The SQLite file backend in the user's storage, with conversion to and from JSON tables ([12](12-storage-and-sync.md), "File backend: SQLite file"): the log as one file the user can open with SQLite tools. Not a way to open faster: the app opens from the browser's copy, and a first download waits on requests, not on size.

@@ -27,11 +27,13 @@ How the parts fit together. Built on the decisions in [12](12-storage-and-sync.m
 | Core package | Inside the web app and the CLI | No | Proposed |
 | Storage package | Inside the web app and the CLI | Moves the user's rows between the local store and the chosen backend | Decided (generic, schema-driven; see 12) |
 | Companion CLI | User's computer | Reads check requests only | Decided (local CLI) |
-| Lookup service | Cloudflare Worker | No. It sees registrations and flight numbers being looked up, not who asked. | Decided (Q-LOOKUP) |
+| Lookup service | Cloudflare Worker | No. It sees registrations and flight numbers being looked up, not who asked. | Not scheduled: lookups are made by the CLI (Q-LOOKUP, [40](40-roadmap.md), "Later") |
 | Accounts and sharing | The same Worker, with Cloudflare D1 | Standard mode only: the user's email, an encrypted key to their storage, the terms accepted, their links' settings. Never the log. | Decided ([32](32-modes-and-sharing.md)) |
 | Reference data build | Developer machine / CI | No | Proposed |
 
 ## Why a lookup service
+
+Not scheduled (Decided): the web app does not look registrations up, since sightings are added mostly on a computer, where the CLI looks them up from the user's computer (`touchdown spot`, `airframes`, `tracks`). The plan, kept for when it is:
 
 The app is static, so it cannot hide API keys, and many data providers block browser requests from other sites (CORS). A small stateless function solves both:
 - forwards lookups to providers, adding keys where needed;

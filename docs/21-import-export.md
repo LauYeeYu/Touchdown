@@ -210,7 +210,7 @@ The CLI reads the log and writes only to the inbox; the one exception is `touchd
 - the airframe facts are checked against the user's records and stored on the airframe, as in [13](13-reference-data.md), "Airframe facts";
 - the batch records the agent (`agentChecker`) and how many rows the agent changed (`rowsEdited`).
 
-Open: typing in the web app instead of the terminal, which needs the local bridge or the lookup service (phase 4).
+Not planned (Decided): typing a session in the web app with lookups, which would need the local bridge or the lookup service. Sightings are added mostly on a computer, so the terminal's session stays the way to type them with lookups.
 
 ## Source: records from the command line (`touchdown add`)
 
