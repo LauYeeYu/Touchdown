@@ -56,10 +56,6 @@ export function TypeFamily() {
             </Link>
           </p>
         </div>
-        <Link className="btn btn--quiet btn--small" to="/types/compare" search={{ a: entry.main }}>
-          <Icon name="arrow-left-right" />
-          {t("aircraft.types.compare")}
-        </Link>
       </header>
       <p className="type-page__lead">
         {headline(
