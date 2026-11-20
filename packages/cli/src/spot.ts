@@ -18,7 +18,6 @@ import {
   INBOX_SCHEMA,
   INBOX_VERSION,
   inboxAircraft,
-  logEvidence,
   logLivery,
   missingFields,
   normaliseRegistration,
@@ -53,19 +52,15 @@ import { refTables } from "./reftables.ts";
 import { findAgent, runAgent, type Agent } from "./agents.ts";
 import { readSheetFile } from "./columns.ts";
 import { findingsOf, PROMPT_FILE, recordSelfTest, selfTest, selfTestPassed, TIMEOUT_MS } from "./check.ts";
-import { adsbdb } from "./providers/adsbdb.ts";
-import { fr24Evidence, fr24Pages, fr24Url } from "./providers/fr24.ts";
-import { openSkyEvidence, openSkyIndex, type OpenSkyRow } from "./providers/opensky.ts";
+import { registrationLookups } from "./lookups.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { agentForRun, AGENT_NAME, agentRules, savedStorage, type AgentChoice } from "./settings.ts";
 import { INBOX_DIR, inboxPlace, loadLog, writeInboxFile } from "./log.ts";
 import { chosenStorage, type OpenedStorage } from "./storage.ts";
 import { bold, colour, dim, duration, fit, green, red, tc, width, wrap, yellow } from "./term.ts";
 
-const CACHE = privatePath("cache/airframes");
 const HISTORY_FILE = privatePath("cache/spot-history.txt");
 const HISTORY_SIZE = 500;
-const MAX_AGE_DAYS = 90;
 const PARALLEL = 3;
 // The web app in development, which picks up the inbox (apps/web/vite.config.ts).
 const WEB_APP = process.env.TOUCHDOWN_WEB ?? "http://127.0.0.1:5173";
@@ -278,44 +273,12 @@ async function spotSession(args: string[], atEnd: (close: () => Promise<void>) =
     said.add(key);
     note(yellow(`  ${line}`));
   };
-  const openSky = openSkyIndex((l) => console.log(dim(`  ${l}`)));
-  const adsb = o.adsbdb ? adsbdb(ref, { cacheDir: CACHE, maxAgeDays: MAX_AGE_DAYS, delayMs: 1000, offline: o.offline }) : null;
-  let fr24 = o.fr24 ? fr24Pages({ port: o.chromePort, delayMs: 10_000, cacheDir: CACHE, maxAgeDays: MAX_AGE_DAYS, offline: o.offline }) : null;
-  if (fr24) atEnd(fr24.close);
-
-  /** What the sources say. `self` is the sighting's place, so a row already in the log does not vouch for itself; `quick` asks adsbdb only when OpenSky does not know the aircraft (a whole spreadsheet). */
-  const lookUp = async (registration: string, date: string, opts: { self?: string | null; quick?: boolean } = {}): Promise<Evidence[]> => {
-    const out: Evidence[] = [];
-    if (log) {
-      const e = logEvidence(log, ref, registration, date, { date, airport: opts.self ?? null });
-      if (e) out.push(e);
-    }
-    const index = await openSky();
-    if (index instanceof Map) {
-      const rows = index.get(registrationMatchForm(registration)) ?? [];
-      // A reused registration has several rows: the one registered on the date, else the latest.
-      const held = (r: OpenSkyRow) => (!r.registered || r.registered <= date) && (!r.regUntil || date <= r.regUntil);
-      const row = [...(rows.some(held) ? rows.filter(held) : rows)].sort((a, b) => b.updated.localeCompare(a.updated))[0];
-      if (row) out.push(openSkyEvidence(row, ref));
-    } else sourceNote("opensky", t("cliWrite.spot.openSkyUnused", { error: index.error }));
-    if (adsb && !(opts.quick && out.some((e) => e.source === "opensky"))) {
-      const r = await adsb.lookup(registration);
-      if ("error" in r) sourceNote("adsbdb", t("cliWrite.spot.adsbdbError", { error: r.error }));
-      else if (r.evidence) out.push(r.evidence);
-    }
-    if (fr24) {
-      const url = fr24Url(registration);
-      const page = await fr24.read(registration, url);
-      if ("blocked" in page) {
-        sourceNote("fr24", t("cliWrite.spot.fr24Blocked", { why: page.blocked }));
-        await fr24.close();
-        fr24 = null;
-      } else {
-        const e = fr24Evidence(registration, page, ref, url);
-        if (e) out.push(e);
-      }
-    }
-    return out;
+  const lookups = registrationLookups(ref, log, o, { progress: (l) => console.log(dim(`  ${l}`)), problem: sourceNote });
+  atEnd(lookups.close);
+  /** What the sources say about a typed sighting's registration, the sighting itself left out of the log. */
+  const lookUp = (registration: string, typed: SpotValues, quick = false) => {
+    const date = typed.date ?? today;
+    return lookups.lookUp(registration, date, { self: { date, airport: typed.airport ?? null }, quick });
   };
 
   // ---------- output ----------
@@ -456,7 +419,7 @@ async function spotSession(args: string[], atEnd: (close: () => Promise<void>) =
     }
 
     showStatus(`  ${t("cliWrite.spot.lookingUp", { registration: parsed.typed.registration })}`);
-    const evidence = await lookUp(parsed.typed.registration, typed.date ?? today, { self: typed.airport });
+    const evidence = await lookUp(parsed.typed.registration, typed);
     const e: Entry = {
       n: target?.n ?? ++typedCount,
       line,
@@ -511,7 +474,7 @@ async function spotSession(args: string[], atEnd: (close: () => Promise<void>) =
       notes: v.notes,
     };
     const typed = Object.fromEntries(Object.entries(given).filter(([, x]) => !!x)) as SpotValues;
-    const evidence = await lookUp(registration, typed.date ?? today, { self: typed.airport, quick: true });
+    const evidence = await lookUp(registration, typed, true);
     const e: Entry = {
       n: ++typedCount,
       line: t("cli.row", { n: c.sourceRow }),
@@ -855,11 +818,11 @@ async function spotSession(args: string[], atEnd: (close: () => Promise<void>) =
   const label = (text: string) => `  ${text.padEnd(10)}`;
   console.log(bold(t("cliWrite.spot.header.title")));
   console.log(`${label(t("cliWrite.spot.header.place"))}${describeSettings()}`);
-  const sources = [log ? t("cliWrite.spot.header.log", { inStorage: storage ? "yes" : "no", storage: storage?.name ?? "", count: logSize }) : null, t("cliWrite.spot.header.openSky"), adsb ? "adsbdb" : null, fr24 ? t("cliWrite.spot.header.fr24", { port: o.chromePort }) : null].filter(Boolean);
+  const sources = [log ? t("cliWrite.spot.header.log", { inStorage: storage ? "yes" : "no", storage: storage?.name ?? "", count: logSize }) : null, t("cliWrite.spot.header.openSky"), lookups.usesAdsbdb ? "adsbdb" : null, lookups.usesFr24() ? t("cliWrite.spot.header.fr24", { port: o.chromePort }) : null].filter(Boolean);
   console.log(`${label(t("cliWrite.spot.header.sources"))}${sources.join(", ")}${o.offline ? dim(` ${t("cliWrite.spot.header.offline")}`) : ""}`);
   console.log(`${label(t("cliWrite.spot.header.agent"))}${agent ? t("cliWrite.spot.header.lockedDown", { agent: agent.name, version: agent.version }) : AGENT_NAME.none}  ${dim(t("cliWrite.spot.header.agentChange"))}`);
   console.log(`${label(t("cliWrite.spot.header.savesTo"))}${place ? t("cliWrite.spot.placeFile", { place: place.name, file: basename(out) }) : outShown} ${dim(t("cliWrite.spot.header.review"))}`);
-  const ready = await openSky();
+  const ready = await lookups.openSky();
   if (!(ready instanceof Map)) console.log(yellow(`  ${t("cliWrite.spot.openSkyUnused", { error: ready.error })}`));
 
   if (o.file) {
@@ -907,7 +870,7 @@ async function spotSession(args: string[], atEnd: (close: () => Promise<void>) =
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     await finish(questionsOn(rl));
     rl.close();
-    await fr24?.close();
+    await lookups.close();
     return;
   }
 
@@ -1041,7 +1004,7 @@ async function spotSession(args: string[], atEnd: (close: () => Promise<void>) =
   }
   process.stdin.off("keypress", onKey);
   rl.close();
-  await fr24?.close();
+  await lookups.close();
 
   function help() {
     console.log(`\n${tc("cli.help.spotSession", {}, { bold })}\n`);

@@ -304,9 +304,9 @@ export function evidenceForAgent(list: Evidence[]): AgentEvidence[] {
 }
 
 /** The sighting being checked (its date and place), left out of the log so a row already in it does not vouch for itself. */
-type Self = { date?: string | null; airport?: string | null };
+export type LogSelf = { date?: string | null; airport?: string | null };
 
-function logRecords(store: Store, ref: RefIndex, registration: string, self?: Self) {
+function logRecords(store: Store, ref: RefIndex, registration: string, self?: LogSelf) {
   const key = registrationMatchForm(registration);
   const selfAirport = ref.airportByCode(self?.airport)?.id ?? null;
   const isSelf = (s: { seenOn: string | null; airportId: string | null }) => !!self && (s.seenOn ?? null) === (self.date ?? null) && s.airportId === selfAirport;
@@ -326,7 +326,7 @@ function logRecords(store: Store, ref: RefIndex, registration: string, self?: Se
  * The special livery the user's log has for a registration, recorded nearest the date. It is never filled in:
  * the user is asked whether the aircraft still wore it (docs/21, "Special livery").
  */
-export function logLivery(store: Store, ref: RefIndex, registration: string, date: string, self?: Self): WornLivery | null {
+export function logLivery(store: Store, ref: RefIndex, registration: string, date: string, self?: LogSelf): WornLivery | null {
   return nearestLivery(logRecords(store, ref, registration, self), date);
 }
 
@@ -334,7 +334,7 @@ export function logLivery(store: Store, ref: RefIndex, registration: string, dat
  * What the user's own records say about a registration: the type, model and airline of the record nearest the
  * date, and how often the aircraft is in the log. null when it is not.
  */
-export function logEvidence(store: Store, ref: RefIndex, registration: string, date: string, self?: Self): Evidence | null {
+export function logEvidence(store: Store, ref: RefIndex, registration: string, date: string, self?: LogSelf): Evidence | null {
   const recs = logRecords(store, ref, registration, self);
   if (!recs.length) return null;
   const dated = recs.filter((r): r is typeof r & { date: string } => !!r.date).sort((a, b) => a.date.localeCompare(b.date));
