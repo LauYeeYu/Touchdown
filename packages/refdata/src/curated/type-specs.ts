@@ -202,6 +202,7 @@ export const typeSpecSources: FamilySpecSources[] = [
       { article: "Boeing 747-400", section: "^Comparison$", columns: { "747-400": "B744" } },
       one("Boeing 747-400", "B744"),
       one("Boeing 747-8", "B748"), // 747-8 Intercontinental
+      { article: "Boeing 747-8", section: "^Comparison$", columns: { "747-8I": "B748" } }, // fills the cruise speed
       one("Boeing 747SP", "B74S"),
       one("Shuttle Carrier Aircraft", "BSCA"),
       { article: "Boeing Dreamlifter", columns: { "747 Dreamlifter": "BLCF" } },
@@ -642,7 +643,19 @@ export const typeSpecOverrides: Record<string, Partial<TypeSpecValues>> = {
   // Boeing 747, "Specifications (Boeing 747-200B …)", "Length: 225 ft 2 in (68.6 m)": the fuselage's length. The
   // 747-200B is 231 ft 10 in long overall, as the 747-100, -300 and -400 are (the 747-400's article and Wikidata's
   // 747-300 give 70.6 m). No mapped article states it, so it is left out and the drawing takes the 747-300's.
-  B742: { lengthM: null },
+  B742: { lengthM: null, sweepDeg: 37.5, cruiseMach: 0.85, cruiseKmh: 900 },
+  // Boeing 747, "Design": "Its wings have a high sweep angle of 37.5° for a fast, efficient cruise speed of Mach 0.84
+  // to 0.88, depending on the variant", every 747's wing; the lead: "It has a pronounced 37.5° wing sweep, allowing a
+  // Mach 0.85 (490 kn; 900 km/h) cruise speed" (the original variants, the 747-100 and -200 above). Boeing 747-8,
+  // "Design": "The sweep and basic structure of the wing were retained". The 747-300's "increased cruise speed" is not
+  // given as a figure.
+  B741: { sweepDeg: 37.5, cruiseMach: 0.85, cruiseKmh: 900 },
+  B74R: { sweepDeg: 37.5, cruiseMach: 0.85, cruiseKmh: 900 },
+  B743: { sweepDeg: 37.5 },
+  B744: { sweepDeg: 37.5 },
+  B748: { sweepDeg: 37.5 },
+  B74S: { sweepDeg: 37.5 },
+  BLCF: { sweepDeg: 37.5 },
   // Boeing 777X, "Comparison" table, row "Engine (×2)": one cell for both models, a list of the GE9X's versions;
   // "Specifications (777-9)", "Powerplant: 2 × General Electric GE9X-105B1A and subvariants".
   B778: { engines: "2 × General Electric GE9X" },
