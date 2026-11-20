@@ -57,6 +57,7 @@ npm run dev -w @touchdown/web     # http://127.0.0.1:5173
 | `./touchdown flights`, `stats`, `issues`, … | Your log as the web app shows it: also `flight REF`, `sightings`, `sessions`, `aircraft`, `airport CODE`, `imports`. `--json` for agents. |
 | `./touchdown edit REF --set seat=14A`, `delete`, `undo`, … | Change your log: also `aircraft edit` and `merge`, `issues accept`, `reopen` and `fix`, `families`, `settings`. Each change waits in the inbox until you review and import it, on the Import page or with `./touchdown review`. |
 | `./touchdown check FILE` | Have the agent check a spreadsheet, or a request saved from the Import page. |
+| `./touchdown check log` | Have the agent check the records in your log it has not seen yet, such as sightings added in the web app, and put the corrections you take in the inbox for review. |
 | `./touchdown backup`, `export flights`, `export myfr24` | Download a backup of your log, a table as CSV, or a file of your flights for my.flightradar24.com's import, as Settings does. |
 | `./touchdown render flight REF`, `render log 2025 --4k` | Make a video of a flight, an aircraft or your log as Share › Video does, longer (up to 10 minutes) or in 4K, in Chrome without a window. |
 | `./touchdown import FILES… --out FILE.zip` | Read files and write a backup from them alone, to restore in Settings (with `--airframes`, serial numbers and first flights). |

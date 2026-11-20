@@ -21,7 +21,7 @@ describe("the records a log check takes", () => {
     // One aircraft's records together, by registration, then by date.
     expect(ids(recordsToCheck(store, ref, new Map()))).toEqual([flight.id, seen.id, again.id]);
 
-    const checked = new Map([[logRecordKey(rec("sightings", seen)), logRecordFingerprint(store, ref, rec("sightings", seen))]]);
+    const checked = new Map([[logRecordKey(rec("sightings", seen)), [logRecordFingerprint(store, ref, rec("sightings", seen))]]]);
     expect(ids(recordsToCheck(store, ref, checked))).toEqual([flight.id, again.id]);
     // Changed since it was checked: taken again.
     saveSighting(store, ref, { ...seen, typeCodeRaw: "B39M" }, seen.id);

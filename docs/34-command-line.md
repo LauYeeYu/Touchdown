@@ -79,6 +79,7 @@ Field names in `--set` and in JSON are the ones `add` takes ([21](21-import-expo
 |---|---|
 | `inbox` (built) | Lists the files waiting, shows one, removes one, sends files saved on this computer. |
 | `review [NAME]` (built) | Reviews the oldest file waiting, or NAME, in the terminal, then imports it on confirmation. With `--check`, the agent checks the file's rows first, as "Check with an agent" on the Import page ([22](22-agent-verification.md)). |
+| `check log` (built) | The agent checks the records already in the log that it has not seen, such as sightings added in the web app, against what the lookups say about each aircraft. The suggestions the user takes go to the inbox as one change file of edits naming the agent, for review ([22](22-agent-verification.md), "Records in the log"). |
 
 ### Private fields
 
@@ -138,12 +139,12 @@ Decided, built. The inbox file has a version 3 (versions 1 and 2 are still read)
 }
 ```
 
-- `set` and `clear` name stored fields; a sighting's edit may carry `tags`, its full list.
+- `set` and `clear` name stored fields; a sighting's edit may carry `tags`, its full list. An edit `touchdown check log` writes carries `agent` (`claude` or `codex`): the review labels it as the agent's suggestion, and imported, each field it sets is recorded with the agent as its source and the batch with the agent that checked it ([22](22-agent-verification.md), "Records in the log").
 - A `track` change carries the whole track, at most 2,000 points, each `[unix seconds, lat, lon, altitude ft, ground speed kt, heading]` (the last three may be null), and its distance along every point of the file. It replaces the flight's track; one the flight has already is done.
 - `rev` is the record's version the change was made against. If the record changed after that (in the web app, or by another import), the review says so and leaves the record alone unless the user takes the change; taken, it changes only the fields it names. A change whose values the log has already is done, and a file whose changes are all done leaves the inbox.
 - A private field travels in the file only when the user gave one ("Private fields", above).
 - A finding is named by its rule and fingerprint, so a change file about a finding that has gone away (fixed meanwhile) is reported as such, not applied to something else.
-- File names say what made them: `edit-<date>-<time>.json`, `delete-…`, `track-…`, `aircraft-…`, `issues-…`, `undo-…`, `families-…`, `settings-…`, as `add-…` and `spot-…` do.
+- File names say what made them: `edit-<date>-<time>.json`, `delete-…`, `track-…`, `aircraft-…`, `issues-…`, `undo-…`, `families-…`, `settings-…`, `check-…`, as `add-…` and `spot-…` do.
 - Imported, the changes are one import batch (`mappingPreset` `touchdown_changes`). Every row they touch, the airframe links worked out again included, gets a history row with its version before (none for a row they create), so undoing the import puts each back, a deleted row included. A track's points have no versions of their own: the points each track had before go into one history row for that track, so undoing a `track` or `removeTrack` change puts the old track back whole. Undoing an import whose records were changed since, by an edit or by a later import, asks first.
 
 ## The review

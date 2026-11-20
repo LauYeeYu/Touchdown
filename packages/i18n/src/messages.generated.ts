@@ -1224,6 +1224,17 @@ export interface MessageArgs {
   "cliWrite.check.checked": { "<dim>": "tag"; agent: "text"; cost: "text"; hasCost: "choice"; hasModel: "choice"; model: "text"; rows: "number"; time: "text"; version: "text" };
   "cliWrite.check.result": { file: "text" };
   "cliWrite.check.next": {};
+  "cliWrite.checkLog.since": { value: "text" };
+  "cliWrite.checkLog.input": { count: "number"; from: "text"; limited: "choice"; since: "text"; total: "text"; which: "choice" };
+  "cliWrite.checkLog.nothing": { which: "choice" };
+  "cliWrite.checkLog.yourLog": {};
+  "cliWrite.checkLog.lookingUp": { done: "text"; total: "text" };
+  "cliWrite.checkLog.lookedUp": { count: "number" };
+  "cliWrite.checkLog.noAnswer": { count: "number" };
+  "cliWrite.checkLog.nothingToChange": { count: "number" };
+  "cliWrite.checkLog.notTaken": { error: "text"; record: "text" };
+  "cliWrite.checkLog.noneTaken": {};
+  "cliWrite.checkLog.remembered": {};
   "cliWrite.providers.adsbdb.noAnswer": { problem: "text" };
   "cliWrite.providers.adsbdb.slowDown": {};
   "cliWrite.providers.adsbdb.status": { status: "text" };

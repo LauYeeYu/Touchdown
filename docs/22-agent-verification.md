@@ -49,6 +49,21 @@ When the user has chosen an agent, the terminal asks it about the columns of a s
 - Answer: for each column, a field from the list allowed for the rows (or `ignore`) and a reason. A field another column holds already is not given to a second.
 - The readings are proposals: at a terminal the user confirms each; without one they are used for that run only and not remembered.
 
+## Records in the log
+
+Decided, built (`touchdown check log`, `packages/cli/src/logcheck.ts`, `packages/core/src/agent/logcheck.ts`). The checks above run on records on their way in. A record added in the web app's forms goes straight into the log, so it is checked later, on a computer, with the same agent and the lookups of a spotting session.
+
+| Part | Rule |
+|---|---|
+| Which records | Those the agent has not seen as they are now. This computer keeps, for each log, the fields of each record the agent answered for (`data/private/cache/log-check.json`), and a record is sent again only when its fields change. A record from an import the agent checked (a spotting session with the agent, `review --check`) counts as seen. `--since DATE` takes the records added or changed on that date or later, seen or not, and `--all-records` every record. `--limit N` takes the first N. |
+| Order | By registration, then date, so one aircraft's records go to the agent in the same call. |
+| What is sent | As for an import's row (fields, the value as typed where it differs, the findings, notes only when the CLI is set to send them), with each lookup's answer as `evidence`: the user's log with the record itself left out, the OpenSky snapshot, adsbdb, and Flightradar24 with `--fr24`. A sighting's phase goes when it has one, and a sighting seen in several phases is sent without one, so no suggestion replaces them. |
+| The suggestions | Shown one by one in the terminal with the agent's reason and confidence, and used only when the user says so; `--use-high` takes the highly confident ones without asking. Without a terminal, they are listed and none is taken. |
+| What is written | The suggestions taken, one `edit` per record naming the agent (`agent`), go to the inbox as one change file (`check-<date>-<time>.json`, [34](34-command-line.md), "Change files"). Nothing reaches the log until the Import page's review or `touchdown review` imports it. Imported, each field the agent set is recorded with the agent as its source, and the batch with the agent that checked it. |
+| Seen afterwards | The records the agent answered for, as they are and as they will be once the changes taken are imported, so the next run does not send them again either way. A record whose call got no valid answer is sent again. |
+
+The prompt, the lockdown, the self-test, the batches and the answer checks are those of every other check.
+
 ## Request (what the agent sees)
 
 Only what verification needs:
@@ -59,7 +74,7 @@ Only what verification needs:
 | The deterministic findings' messages for these rows | OAuth tokens, API keys, file paths, the file's name |
 | Per call, the slice of reference data it needs: every type in the families of the types and models named, with their names and up to three example models; the operators and airports named | |
 | The user's rules (see below) | |
-| For a spotting session: the words of the line not placed in a field, and each lookup's type code, model, operator, date and note (for the user's log, how often and when the aircraft was seen) | Serial numbers and page addresses from the lookups |
+| For a spotting session: the words of the line not placed in a field, and each lookup's type code, model, operator, date and note (for the user's log, how often and when the aircraft was seen). For a record already in the log, the lookups only | Serial numbers and page addresses from the lookups |
 
 The CLI refuses a request with any other key, a field not allowed for the record's kind, an over-long value, or more than 5,000 records. `--dry-run` prints exactly what the first call would send.
 

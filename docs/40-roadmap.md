@@ -46,6 +46,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 - Deliver: `touchdown check` for Claude Code and Codex, request/result schemas, verifier prompt, user rules, version check, self-test with injection canaries, file hand-off through the user's storage.
 - Done when: injection test rows produce only schema-valid output with no side effects, and suggestions appear in the import review.
+- Built since: the check of records already in the log (`touchdown check log`, [22](22-agent-verification.md), "Records in the log"), for records added in the web app, which no import check sees. Its suggestions travel as a change file for review.
 
 ## Phase 6: Tracks and exports
 

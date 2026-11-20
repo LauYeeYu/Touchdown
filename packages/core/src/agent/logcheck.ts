@@ -33,17 +33,17 @@ export function logRecordFingerprint(store: Store, ref: RefIndex, r: LogRecord):
 /**
  * The records a log check takes (docs/22, "Records in the log"). With `all`, every flight and sighting; with `since`
  * (a date), those added or changed on it or later; otherwise those the agent has not seen as they are now: not in
- * `checked` (record key → fingerprint, kept by the CLI) with the same fields, and not from an import the agent
+ * `checked` (record key → the fingerprints it was seen with, kept by the CLI), and not from an import the agent
  * checked. In order of registration, then date, so one aircraft's records go to the agent together.
  */
-export function recordsToCheck(store: Store, ref: RefIndex, checked: ReadonlyMap<string, string>, o: { all?: boolean; since?: string | null } = {}): LogRecord[] {
+export function recordsToCheck(store: Store, ref: RefIndex, checked: ReadonlyMap<string, readonly string[]>, o: { all?: boolean; since?: string | null } = {}): LogRecord[] {
   const agentBatches = new Set(store.all("import_batches").filter((b) => b.agentChecker === "claude" || b.agentChecker === "codex").map((b) => b.id));
   const all: LogRecord[] = [...store.all("flights").map((row) => ({ table: "flights" as const, row })), ...store.all("sightings").map((row) => ({ table: "sightings" as const, row }))];
   const taken = all.filter((r) => {
     if (o.all) return true;
     if (o.since) return (r.row.updatedAt ?? "").slice(0, 10) >= o.since;
     const seen = checked.get(logRecordKey(r));
-    if (seen !== undefined) return seen !== logRecordFingerprint(store, ref, r);
+    if (seen !== undefined) return !seen.includes(logRecordFingerprint(store, ref, r));
     return !(r.row.sourceBatchId && agentBatches.has(r.row.sourceBatchId));
   });
   const date = (r: LogRecord) => (r.table === "flights" ? r.row.scheduledDate : r.row.seenOn) ?? "";

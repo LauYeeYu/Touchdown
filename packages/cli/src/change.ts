@@ -171,7 +171,7 @@ const severityMark = (f: Finding) => (f.severity === "error" ? red("!") : f.seve
  * Check the changes against the log, report them, and write those with something to do to the inbox as one file
  * named after the command. Never returns.
  */
-export async function writeChanges(log: OpenedLog, command: string, changes: InboxChange[], c: Common, notes: string[] = []): Promise<never> {
+export async function writeChanges(log: OpenedLog, command: string, changes: InboxChange[], c: Pick<Common, "json" | "dryRun" | "keepErrors">, notes: string[] = []): Promise<never> {
   const plan = planChanges(log.store, log.ref, changes, { codes: log.codes, unit: log.unit, models: log.models });
   const open = plan.changes.filter((p) => p.status === "pending");
   const errors = plan.findings.filter((f) => f.severity === "error");

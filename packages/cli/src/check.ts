@@ -32,6 +32,7 @@ import {
   type RejectedAnswer,
 } from "@touchdown/core";
 import { refTables } from "./reftables.ts";
+import { checkLogCommand } from "./logcheck.ts";
 import { findAgent, runAgent, type Agent } from "./agents.ts";
 import { readSheetFile } from "./columns.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
@@ -44,7 +45,7 @@ export const TIMEOUT_MS = 5 * 60_000;
 const DEFAULT_PARALLEL = 3;
 
 /** An agent field's name in the terminal: "type code", "flight number". */
-const fieldLabel = (field: string) => {
+export const fieldLabel = (field: string) => {
   const key = `cliWrite.check.field.${field}`;
   return has(key) ? tDynamic(key) : field;
 };
@@ -404,6 +405,8 @@ export async function runCheck(agent: Agent, ref: RefIndex, request: CheckReques
 // ---------- the command ----------
 
 export async function checkCommand(args: string[]): Promise<void> {
+  // The records already in the log (logcheck.ts), rather than a file.
+  if (args[0] === "log") return checkLogCommand(args.slice(1), () => usage(args.includes("--help") || args.includes("-h") ? 0 : 1));
   const o = options(args);
   const ref = new RefIndex(refTables());
   // Chosen at the terminal the first time and remembered; --agent for one run. A dry run needs none.
