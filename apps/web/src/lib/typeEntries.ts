@@ -1,7 +1,7 @@
-// The aircraft types as the types pages list them (docs/31-ui.md, "Aircraft types"): each curated family as one entry
-// and every type code without a family as one of its own, under its manufacturer, with its roles, what the log has of it and
-// when it first flew; and each type of a family as an entry of its own too, which a search lists above its family. Shared
-// by the list, the manufacturers and a manufacturer's page.
+// The aircraft types as the types pages list them (docs/31-ui.md, "Aircraft types"): each curated family of more than one
+// type as one entry, and every other type code as one of its own, a family of one type included, under its manufacturer,
+// with its roles, what the log has of it and when it first flew; and each type of a family as an entry of its own too,
+// which a search lists above its family. Shared by the list, the manufacturers and a manufacturer's page.
 
 import { useMemo } from "react";
 import { withoutAccents, type Family, type RefIndex, type TypeRole } from "@touchdown/core";
@@ -30,8 +30,9 @@ export interface TypeCounts {
 }
 
 export interface TypeEntry {
-  /** The family's id, or the type code of a type without one. */
+  /** The family's id, or the type code of a type without one or of a family's only type. */
   key: string;
+  /** A family of more than one type. A family's only type is an entry of a type, with its family's history. */
   family: Family | null;
   name: string;
   manufacturer: string;
@@ -45,7 +46,7 @@ export interface TypeEntry {
   roles: TypeRole[];
   flown: number;
   seen: number;
-  /** When the family (its article) or the type (Wikidata) first flew: YYYY, YYYY-MM or YYYY-MM-DD. */
+  /** When the family (its article) or the type (its family's article, else Wikidata) first flew: YYYY, YYYY-MM or YYYY-MM-DD. */
   firstFlight: string | null;
   /** Its names, manufacturer, family and codes, and the names its types go by, as a search reads them (`searchText`). */
   text: string;
@@ -81,6 +82,12 @@ export function typeNames(code: string, ref: RefIndex, info: TypeInfo | null): s
   return [code, typeName(code, ref), s?.wikipedia?.article, s?.article?.title, s?.wikidata?.label].filter((n): n is string => !!n);
 }
 
+/** The only type of a family of one type, whose page stands for the family's (docs/31): null for another family. */
+export function onlyType(ref: RefIndex, familyId: string): string | null {
+  const codes = familyTypes(ref, familyId, null);
+  return codes.length === 1 ? codes[0]! : null;
+}
+
 /**
  * A manufacturer's or a family's address: its name in lower case, without accents, words joined by hyphens
  * ("Aérospatiale-BAC" → "aerospatiale-bac", "Boeing 737" → "boeing-737").
@@ -91,7 +98,8 @@ export const slugOf = (name: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: string, family: Family | null, name: string, manufacturer: string, codes: string[]): TypeEntry {
+/** An entry: a family's when `family` is given, else a type's, `of` the family of one type it is (for its history and a search). */
+function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: string, family: Family | null, name: string, manufacturer: string, codes: string[], of?: Family): TypeEntry {
   const n = (c: string) => (counts.flown.get(c) ?? 0) + (counts.seen.get(c) ?? 0);
   const flown = codes.reduce((s, c) => s + (counts.flown.get(c) ?? 0), 0);
   const seen = codes.reduce((s, c) => s + (counts.seen.get(c) ?? 0), 0);
@@ -103,8 +111,8 @@ function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: 
   const drawn = drawable(main, logged);
   const usual = drawable(first, codes);
   const roles = info ? [...new Set(codes.map((c) => info.role(c, ref)))] : [];
-  const firstFlight = family ? (info?.facts(family.id)?.firstFlight ?? null) : (info?.specs(main)?.firstFlight ?? null);
-  const text = searchText([name, manufacturer, family?.id, ...codes.flatMap((c) => typeNames(c, ref, info))]);
+  const firstFlight = family ? (info?.facts(family.id)?.firstFlight ?? null) : ((of && info?.facts(of.id)?.firstFlight) ?? info?.specs(main)?.firstFlight ?? null);
+  const text = searchText([name, manufacturer, family?.id, of?.name, of?.id, ...codes.flatMap((c) => typeNames(c, ref, info))]);
   return { key, family, name, manufacturer, codes, main, drawn, usual, roles, flown, seen, firstFlight, text };
 }
 
@@ -115,13 +123,18 @@ export interface TypeEntries {
   members: Map<string, TypeEntry[]>;
 }
 
-/** Every entry, by manufacturer and name, the manufacturers, by name, and the families' types. */
+/** Every entry, by manufacturer and name, the manufacturers, by name, and the types of each family of more than one. */
 export function typeEntries(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts): TypeEntries {
   const entries: TypeEntry[] = [];
   const members = new Map<string, TypeEntry[]>();
   for (const fam of ref.families.values()) {
     const codes = familyTypes(ref, fam.id, info);
     if (!codes.length) continue;
+    // A family of one type is that type in these pages, its row leading to the type's page.
+    if (codes.length === 1) {
+      entries.push(entryOf(ref, info, counts, codes[0]!, null, typeName(codes[0]!, ref), fam.manufacturer, codes, fam));
+      continue;
+    }
     entries.push(entryOf(ref, info, counts, fam.id, fam, fam.name, fam.manufacturer, codes));
     members.set(
       fam.id,

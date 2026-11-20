@@ -26,7 +26,7 @@ import { PoseChoice, TypeDrawing, type MovedSpan } from "../components/TypeDrawi
 import { TypeFamilyTable } from "../components/TypeFamilyTable.tsx";
 import { TypeAircraft, TypeHistory, type History } from "../components/TypeSections.tsx";
 import { NotFound } from "./NotFound.tsx";
-import { hasTypePage, slugOf, useTypeCounts } from "../lib/typeEntries.ts";
+import { hasTypePage, onlyType, slugOf, useTypeCounts } from "../lib/typeEntries.ts";
 
 export function TypePage() {
   const { code } = useParams({ from: "/types/$code" });
@@ -42,7 +42,8 @@ export function TypePage() {
   if (!type || !hasTypePage(ref, code)) return <NotFound />;
 
   const name = typeName(code, ref);
-  const fam = ref.family(type.familyId);
+  // A family of one type is that type: the page shows no family, only its history.
+  const fam = type.familyId && !onlyType(ref, type.familyId) ? (ref.family(type.familyId) ?? null) : null;
   const specs = info?.specs(code) ?? null;
   // The family's history from its article, else the type's own from Wikidata.
   const familyFacts = info?.facts(type.familyId) ?? null;

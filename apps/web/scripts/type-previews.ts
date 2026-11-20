@@ -14,7 +14,7 @@ import { loadRefTables } from "@touchdown/refdata";
 import { previewFile, type CompareBase, type CompareDrawing, type TypePreviews } from "@touchdown/server";
 import { typeName } from "../src/lib/format.ts";
 import { extentOf, planformParts, planformPath } from "../src/lib/silhouette.ts";
-import { slugOf, typeEntries } from "../src/lib/typeEntries.ts";
+import { onlyType, slugOf, typeEntries } from "../src/lib/typeEntries.ts";
 import { metres, weight } from "../src/lib/typeFigures.ts";
 import { loadTypeInfo, type TypeInfo } from "../src/lib/typeInfo.ts";
 import { C, H, W, keep as keepAt, logo, num, picture as paper, pixels } from "./picture.ts";
@@ -175,6 +175,12 @@ if (!only) {
         const year = e.firstFlight?.slice(0, 4) ?? "none";
         pages[`/types/families/${slugOf(e.family.name)}`] = [e.family.name, t("aircraft.types.family.lead", { codes: e.codes.length, year }), images.get(e.usual) ?? listImage];
       }
+    }
+    // A family of one type is that type: its address, which the page leads on to the type's, has the type's preview.
+    for (const fam of ref.families.values()) {
+      const code = onlyType(ref, fam.id);
+      const preview = code && pages[`/types/${code}`];
+      if (preview) pages[`/types/families/${slugOf(fam.name)}`] = preview;
     }
     for (const m of manufacturers) pages[`/types/manufacturers/${m.slug}`] = [m.name, t("aircraft.types.manufacturer.lead", { codes: m.codes, families: m.families }), listImage];
     // In the files the server reads each page's from.

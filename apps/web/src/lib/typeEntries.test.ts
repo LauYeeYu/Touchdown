@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { loadRefTables } from "@touchdown/refdata";
 import { TYPES_PAGES } from "../../../../packages/server/src/handler.ts";
 import { RefIndex } from "@touchdown/core";
-import { searched, slugOf, typeEntries } from "./typeEntries.ts";
+import { onlyType, searched, slugOf, typeEntries } from "./typeEntries.ts";
+import { typeName } from "./format.ts";
 import { loadTypeInfo, mergeTypeData } from "./typeInfo.ts";
 
 describe("a manufacturer's address", () => {
@@ -71,5 +72,19 @@ describe("the list's search", () => {
     expect(keys("a320neo").filter((k) => k.startsWith("type:"))).toEqual(["type:A19N", "type:A20N", "type:A21N"]);
     // The page's other filters hold for the types as for the families.
     expect(searched(all, "748", (e) => e.key !== "type:B748").map((e) => e.key)).not.toContain("type:B748");
+  });
+});
+
+describe("a family of one type", () => {
+  it("is its type in the lists, with its family's history, and a search for the family finds it", async () => {
+    const ref = new RefIndex(loadRefTables());
+    const info = await loadTypeInfo();
+    const all = typeEntries(ref, info, { flown: new Map(), seen: new Map() });
+    expect([onlyType(ref, "Concorde"), onlyType(ref, "B747")]).toEqual(["CONC", null]);
+    const concorde = all.entries.find((e) => e.codes.includes("CONC"))!;
+    expect([concorde.key, concorde.family, concorde.name, concorde.manufacturer]).toEqual(["CONC", null, typeName("CONC", ref), "Aérospatiale-BAC"]);
+    expect(concorde.firstFlight).toBe(info.facts("Concorde")!.firstFlight);
+    expect(all.entries.filter((e) => e.family).every((e) => e.codes.length > 1)).toBe(true);
+    expect(searched(all, "concorde", () => true).map((e) => e.key)).toEqual(["CONC"]);
   });
 });

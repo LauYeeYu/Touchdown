@@ -1,9 +1,10 @@
 // A family's page (docs/31-ui.md, "Aircraft types"), from a family's row on Aircraft types or a manufacturer's page and
 // from the family on a type's page: its name and manufacturer, a sentence of its type codes and what the log has of
-// them, the codes side by side at one scale, its history, the log's aircraft of its types and where it comes from.
+// them, the codes side by side at one scale, its history, the log's aircraft of its types and where it comes from. A
+// family of one type has the type's page instead, and its address leads there.
 
 import { useMemo } from "react";
-import { useParams } from "@tanstack/react-router";
+import { Navigate, useParams } from "@tanstack/react-router";
 import { t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { Link } from "../lib/link.tsx";
@@ -13,7 +14,7 @@ import { headline } from "../lib/i18n.tsx";
 import { useVisitor } from "../lib/visitor.ts";
 import { aircraftViews } from "../lib/views.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
-import { slugOf, useTypeCounts, useTypeEntries } from "../lib/typeEntries.ts";
+import { onlyType, slugOf, useTypeCounts, useTypeEntries } from "../lib/typeEntries.ts";
 import { TypeFamilyTable } from "../components/TypeFamilyTable.tsx";
 import { TypeAircraft, TypeHistory } from "../components/TypeSections.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -30,7 +31,12 @@ export function TypeFamily() {
   const entry = entries.find((e) => e.family && slugOf(e.family.name) === slug);
   const codes = entry?.codes ?? [];
   const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode && codes.includes(v.airframe.typeCode)), [store, version, codes]);
-  if (!entry?.family) return <NotFound />;
+  if (!entry?.family) {
+    // A family of one type is that type: a link to its page, from before, opens the type's.
+    const one = [...ref.families.values()].find((f) => slugOf(f.name) === slug);
+    const code = one && onlyType(ref, one.id);
+    return code ? <Navigate to="/types/$code" params={{ code }} replace /> : <NotFound />;
+  }
 
   const fam = entry.family;
   const facts = info?.facts(fam.id) ?? null;
