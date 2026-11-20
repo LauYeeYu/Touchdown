@@ -318,6 +318,7 @@ export interface MessageArgs {
   "airport.own.add": {};
   "airport.own.note": {};
   "changes.action.edit": {};
+  "changes.action.agentEdit": {};
   "changes.action.delete": {};
   "changes.action.airframe": {};
   "changes.action.merge": {};
@@ -2129,6 +2130,7 @@ export interface MessageArgs {
   "importer.changes.clear": {};
   "importer.changes.tags": {};
   "importer.changes.phases": {};
+  "importer.changes.agent": {};
   "importer.changes.merge": {};
   "importer.changes.unknownFinding": {};
   "importer.changes.note": {};

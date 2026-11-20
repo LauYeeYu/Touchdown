@@ -1,5 +1,6 @@
 {
   "action.edit": "編輯",
+  "action.agentEdit": "AI助理的建議",
   "action.delete": "刪除",
   "action.airframe": "飛機資料",
   "action.merge": "合併飛機",

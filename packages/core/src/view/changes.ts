@@ -300,7 +300,7 @@ export function planChanges(store: Store, ref: RefIndex, changes: InboxChange[],
     changes.forEach((c, index) => {
       // As the import goes: in order, after the changes taken before this one.
       const { status, note } = changeStatus(taken, ref, c, onTaken.get);
-      const p: PlannedChange = { index, change: o.showPrivate ? c : masked(c), action: t(ACTION[c.op]), title: "", lines: [], status, note };
+      const p: PlannedChange = { index, change: o.showPrivate ? c : masked(c), action: c.op === "edit" && c.agent ? t("changes.action.agentEdit") : t(ACTION[c.op]), title: "", lines: [], status, note };
       const active = status === "pending" || status === "changed";
       // What the change is about, and the rows it touches, before it.
       const rowOf = (table: "flights" | "sightings" | "airframes", id: string) => {

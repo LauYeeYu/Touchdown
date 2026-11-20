@@ -94,6 +94,7 @@
   "changes.clear": "clear格式错误",
   "changes.tags": "标签格式错误",
   "changes.phases": "阶段格式错误",
+  "changes.agent": "agent应为claude或codex",
   "changes.merge": "需要两架不同的飞机",
   "changes.unknownFinding": "未知的问题",
   "changes.note": "说明格式错误",

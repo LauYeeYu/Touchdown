@@ -31,7 +31,8 @@ export type RecordTable = "flights" | "sightings";
 export type LogSettings = Partial<Pick<Settings, "codeDisplay" | "distanceUnit" | "modelNaming">>;
 
 export type InboxChange =
-  | { op: "edit"; table: RecordTable; id: string; rev: number; set: Record<string, string | number | boolean | null>; clear: string[]; tags?: string[]; phases?: string[] }
+  /** `agent`: the agent that suggested the edit (`touchdown check log`), recorded as its values' source. */
+  | { op: "edit"; table: RecordTable; id: string; rev: number; set: Record<string, string | number | boolean | null>; clear: string[]; tags?: string[]; phases?: string[]; agent?: "claude" | "codex" }
   | { op: "delete"; table: RecordTable; id: string; rev: number }
   | { op: "airframe"; id: string; rev: number; set: Record<string, string | null>; clear: string[] }
   | { op: "merge"; into: string; from: string }
@@ -187,7 +188,7 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
     switch (c.op) {
       case "edit":
       case "delete": {
-        if (keys(c.op === "edit" ? ["table", "id", "rev", "set", "clear", "tags", "phases"] : ["table", "id", "rev"]).length) return bad(t("importer.changes.unexpectedKeys"));
+        if (keys(c.op === "edit" ? ["table", "id", "rev", "set", "clear", "tags", "phases", "agent"] : ["table", "id", "rev"]).length) return bad(t("importer.changes.unexpectedKeys"));
         if (c.table !== "flights" && c.table !== "sightings") return bad(t("importer.changes.table"));
         if (!isId(c.id) || !isRev(c.rev)) return bad(t("importer.changes.idRev"));
         if (c.op === "delete") break;
@@ -198,6 +199,7 @@ export function readChanges(list: unknown): { changes: InboxChange[] } | { error
         if (!Array.isArray(c.clear) || c.clear.some((k) => typeof k !== "string" || !fields.has(k))) return bad(t("importer.changes.clear"));
         if (c.tags !== undefined && (c.table !== "sightings" || !Array.isArray(c.tags) || c.tags.length > 20 || c.tags.some((t) => typeof t !== "string" || !TAG_RE.test(t)))) return bad(t("importer.changes.tags"));
         if (c.phases !== undefined && (c.table !== "sightings" || !Array.isArray(c.phases) || c.phases.some((p) => !(PHASES as readonly unknown[]).includes(p)))) return bad(t("importer.changes.phases"));
+        if (c.agent !== undefined && c.agent !== "claude" && c.agent !== "codex") return bad(t("importer.changes.agent"));
         break;
       }
       case "airframe": {
@@ -693,6 +695,11 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
         saveSighting(store, ref, values, c.id, c.tags, { ...opts, keepNormalised });
         if (c.phases !== undefined) setPhases(store, c.id, c.phases);
       }
+      // The agent's values, as an import records those it took (docs/22): each field it set, not the raw text beside it.
+      if (c.agent) {
+        const recordedAt = toUtcIso(opts.now ?? Date.now());
+        for (const field of [...Object.keys(c.set), ...c.clear].filter((f) => !f.endsWith("Raw"))) store.insert("field_provenance", { ownerTable: c.table, ownerId: c.id, field, source: "agent", detail: c.agent, recordedAt });
+      }
       return null;
     }
     case "delete":
@@ -792,6 +799,8 @@ export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[]
     }
   });
   const result: AppliedChanges = { batchId: "", applied: 0, skipped: 0, messages: [] };
+  // The agent whose suggestions were taken, for the batch (the import page's list says which imports it checked).
+  let agentChecker: "claude" | "codex" | "none" = "none";
   try {
     store.batch(() => {
       result.batchId = store.insert("import_batches", { createdAt: toUtcIso(now), sourceKind: "manual", fileName: meta.fileName, mappingPreset: "touchdown_changes", rowsRead: changes.length, agentChecker: "none", status: "committed" }).id;
@@ -805,6 +814,7 @@ export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[]
         }
         const message = applyChange(store, ref, c, findings, { now, history: false });
         if (message) result.messages.push(message);
+        if (c.op === "edit" && c.agent) agentChecker = c.agent;
         cached = null;
         result.applied++;
       });
@@ -822,7 +832,7 @@ export function applyChanges(store: Store, ref: RefIndex, changes: InboxChange[]
       const points = [...seen.values()].filter((p): p is Record<string, unknown> => p !== null);
       store.insert("record_history", { tableName: "track_points", recordId: trackId, recordRev: null, row: points.length ? { points } : null, changedAt: toUtcIso(now), batchId: result.batchId, reason: "import" });
     }
-    store.update("import_batches", result.batchId, { rowsAccepted: result.applied, rowsRejected: result.skipped });
+    store.update("import_batches", result.batchId, { rowsAccepted: result.applied, rowsRejected: result.skipped, agentChecker });
   });
   return result;
 }

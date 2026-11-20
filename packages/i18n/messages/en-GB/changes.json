@@ -1,5 +1,6 @@
 {
   "action.edit": "Edit",
+  "action.agentEdit": "The agent's suggestion",
   "action.delete": "Delete",
   "action.airframe": "Aircraft facts",
   "action.merge": "Merge aircraft",

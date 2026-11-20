@@ -275,6 +275,27 @@ describe("importing a change file", () => {
     expect(store.get("sightings", s.id)).toMatchObject({ typeCode: "B73X" });
     expect(store.get("import_batches", first.batchId)!.status).toBe("undone");
   });
+
+  it("records an agent's edit as the agent's: its fields' source, the batch and the review's label", () => {
+    const { ref, store, sighting } = aLog();
+    const r = sightingEdit(store, ref, sighting, { typeCode: "B39M", airline: "UAL" });
+    if ("error" in r) throw new Error(r.error);
+    const change: InboxChange = { ...r.change, agent: "codex" };
+    expect(readChanges([change])).toMatchObject({ changes: [{ op: "edit", agent: "codex" }] });
+    expect(readChanges([{ ...change, agent: "gpt" }])).toMatchObject({ error: expect.stringMatching(/agent is claude or codex/) });
+    expect(planChanges(store, ref, [change]).changes[0]!.action).toBe("The agent's suggestion");
+    const applied = applyChanges(store, ref, [change], () => true, { fileName: "check-log.json", now: NOW });
+    expect(store.get("sightings", sighting.id)).toMatchObject({ typeCode: "B39M", operatorId: "op_ual" });
+    const sources = store.all("field_provenance").filter((p) => p.ownerId === sighting.id && p.source === "agent");
+    expect(sources.map((p) => [p.field, p.detail]).sort()).toEqual([
+      ["operatorId", "codex"],
+      ["typeCode", "codex"],
+    ]);
+    expect(store.get("import_batches", applied.batchId)!.agentChecker).toBe("codex");
+    // A user's own edit is still the user's.
+    const own = applyChanges(store, ref, [{ op: "edit", table: "sightings", id: sighting.id, rev: store.get("sightings", sighting.id)!.rev, set: { livery: "Star Alliance" }, clear: [] }], () => true, { fileName: "edit.json", now: NOW + 1000 });
+    expect(store.get("import_batches", own.batchId)!.agentChecker).toBe("none");
+  });
 });
 
 describe("saved Statistics views in a change file", () => {

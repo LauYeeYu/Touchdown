@@ -94,6 +94,7 @@
   "changes.clear": "fehlerhaftes clear",
   "changes.tags": "fehlerhafte Tags",
   "changes.phases": "fehlerhafte Phasen",
+  "changes.agent": "agent ist claude oder codex",
   "changes.merge": "braucht zwei verschiedene Flugzeuge",
   "changes.unknownFinding": "unbekannter Hinweis",
   "changes.note": "fehlerhafte Notiz",

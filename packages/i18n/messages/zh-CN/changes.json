@@ -1,5 +1,6 @@
 {
   "action.edit": "编辑",
+  "action.agentEdit": "AI助手的建议",
   "action.delete": "删除",
   "action.airframe": "飞机资料",
   "action.merge": "合并飞机",

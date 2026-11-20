@@ -94,6 +94,7 @@
   "changes.clear": "malformed clear",
   "changes.tags": "malformed tags",
   "changes.phases": "malformed phases",
+  "changes.agent": "agent is claude or codex",
   "changes.merge": "needs two different aircraft",
   "changes.unknownFinding": "unknown finding",
   "changes.note": "malformed note",

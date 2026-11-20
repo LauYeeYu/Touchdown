@@ -1,5 +1,6 @@
 {
   "action.edit": "Bearbeiten",
+  "action.agentEdit": "Vorschlag des Agenten",
   "action.delete": "Löschen",
   "action.airframe": "Flugzeugdaten",
   "action.merge": "Flugzeuge zusammenführen",
