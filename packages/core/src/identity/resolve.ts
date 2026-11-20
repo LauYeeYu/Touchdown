@@ -36,6 +36,33 @@ function within(date: string | null, from: string | null, to: string | null): bo
   return (!from || from <= date) && (!to || date <= to);
 }
 
+type Periods = Map<string, { airframeId: string; from: string | null; to: string | null }[]>;
+
+/** Each registration's periods, by its match form: the aircraft that held it, and when. */
+function periodsByRegistration(store: Store): Periods {
+  const periods: Periods = new Map();
+  for (const p of store.all("registration_periods")) {
+    if (!p.registration || !store.get("airframes", p.airframeId)) continue;
+    const key = registrationMatchForm(p.registration);
+    const list = periods.get(key) ?? [];
+    list.push({ airframeId: p.airframeId, from: p.validFrom, to: p.validTo });
+    periods.set(key, list);
+  }
+  return periods;
+}
+
+/** Flights and sightings, oldest first, so a provisional airframe is keyed by the first date it was seen. */
+function recordsByDate(store: Store): RecordRef[] {
+  const records: RecordRef[] = [
+    ...store.all("flights").map((row) => ({ table: "flights" as const, row, date: recordDate("flights", row) })),
+    ...store.all("sightings").map((row) => ({ table: "sightings" as const, row, date: recordDate("sightings", row) })),
+  ];
+  return records.sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999") || a.row.id.localeCompare(b.row.id));
+}
+
+/** The aircraft that held a record's registration on its date. */
+const holders = (periods: Periods, key: string, date: string | null) => [...new Set((periods.get(key) ?? []).filter((p) => within(date, p.from, p.to)).map((p) => p.airframeId))];
+
 /** Records whose airframe link the user set by hand; the resolver leaves them alone. */
 export function userPinnedAirframes(store: Store): Set<string> {
   const out = new Set<string>();
@@ -164,22 +191,8 @@ export function resolveAirframes(store: Store, ref: RefIndex): ResolveResult {
     const result: ResolveResult = { linked: 0, created: 0, removed: 0, merged: mergeDuplicateAirframes(store), overlaps: [] };
     const pinned = userPinnedAirframes(store);
 
-    // Registration (match form) → periods.
-    const periods = new Map<string, { airframeId: string; from: string | null; to: string | null }[]>();
-    for (const p of store.all("registration_periods")) {
-      if (!p.registration || !store.get("airframes", p.airframeId)) continue;
-      const key = registrationMatchForm(p.registration);
-      const list = periods.get(key) ?? [];
-      list.push({ airframeId: p.airframeId, from: p.validFrom, to: p.validTo });
-      periods.set(key, list);
-    }
-
-    const records: RecordRef[] = [
-      ...store.all("flights").map((row) => ({ table: "flights" as const, row, date: recordDate("flights", row) })),
-      ...store.all("sightings").map((row) => ({ table: "sightings" as const, row, date: recordDate("sightings", row) })),
-    ];
-    // Oldest first, so a provisional airframe is keyed by the first date it was seen.
-    records.sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999") || a.row.id.localeCompare(b.row.id));
+    const periods = periodsByRegistration(store);
+    const records = recordsByDate(store);
 
     const link = (r: RecordRef, airframeId: string | null) => {
       if (r.row.airframeId !== airframeId) {
@@ -198,8 +211,7 @@ export function resolveAirframes(store: Store, ref: RefIndex): ResolveResult {
         continue;
       }
       const key = registrationMatchForm(r.row.registration);
-      const candidates = (periods.get(key) ?? []).filter((p) => within(r.date, p.from, p.to));
-      const ids = [...new Set(candidates.map((c) => c.airframeId))];
+      const ids = holders(periods, key, r.date);
       if (ids.length === 1) {
         link(r, ids[0]!);
         continue;
@@ -232,6 +244,22 @@ export function resolveAirframes(store: Store, ref: RefIndex): ResolveResult {
     result.removed = refreshAirframeFacts(store, ref);
     return result;
   });
+}
+
+/**
+ * Records whose registration two aircraft held on their date (C-REG-OVERLAP), from the links as they stand and without
+ * writing: what `resolveAirframes` finds in a log it has resolved, for the checks of a log that has only been read.
+ */
+export function registrationOverlaps(store: Store): RegOverlap[] {
+  const periods = periodsByRegistration(store);
+  const pinned = userPinnedAirframes(store);
+  const out: RegOverlap[] = [];
+  for (const r of recordsByDate(store)) {
+    if (!r.row.registration || pinned.has(`${r.table}:${r.row.id}`)) continue;
+    const ids = holders(periods, registrationMatchForm(r.row.registration), r.date);
+    if (ids.length > 1) out.push({ table: r.table, id: r.row.id, registration: r.row.registration, airframeIds: ids });
+  }
+  return out;
 }
 
 function mostCommon(values: (string | null)[]): string | null {

@@ -1,7 +1,7 @@
 // Records as the reading commands show them: JSON with ids, codes and names resolved, and the labels the web app
 // uses. Private fields only say whether they are recorded (docs/34, "Private fields").
 
-import { checkAll, flightDay, phasesOf, resolveAirframes, type Finding, type Flight, type Sighting, type TableName } from "@touchdown/core";
+import { checkAll, flightDay, phasesOf, registrationOverlaps, type Finding, type Flight, type Sighting, type TableName } from "@touchdown/core";
 import { dateTimeLabel, durShort, modelLabel, routeExtension, typeName, type FlightView } from "@touchdown/core/view";
 import { privateFields, type OpenedLog } from "./read.ts";
 
@@ -111,12 +111,9 @@ export const dayOf = (f: Flight) => flightDay(f) ?? f.scheduledDate ?? "";
 
 // ---------- findings ----------
 
-/**
- * Open findings (not accepted), as the Issues page lists them. Airframes are linked again first, in memory only,
- * so findings about one registration on two aircraft are found.
- */
+/** Open findings (not accepted), as the Issues page lists them, one registration on two aircraft included. */
 export function openFindings(log: OpenedLog): Finding[] {
-  const { overlaps } = resolveAirframes(log.store, log.ref);
+  const overlaps = registrationOverlaps(log.store);
   const acked = new Set(log.store.all("issue_acks").map((a) => `${a.ruleId}|${a.fingerprint}`));
   return checkAll(log.store, log.ref, { overlaps }).filter((f) => !acked.has(`${f.ruleId}|${f.fingerprint}`));
 }

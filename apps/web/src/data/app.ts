@@ -19,6 +19,7 @@ import {
   RefIndex,
   refOverridesOf,
   reopenFinding,
+  registrationOverlaps,
   resolveAirframes,
   rowKey,
   rowVersion,
@@ -49,7 +50,6 @@ import {
   type OwnAirportValues,
   type ParsedSource,
   type RefTables,
-  type ResolveResult,
   type Row,
   type Settings,
   type SightingValues,
@@ -150,7 +150,7 @@ export class AppData {
   private closed = false;
   /** The copy held the storage's tables when this tab read it. */
   private tablesAtOpen = false;
-  private cache: { version: number; findings: Finding[]; resolvedOverlaps: ReturnType<typeof resolveAirframes>["overlaps"] } | null = null;
+  private cache: { version: number; findings: Finding[] } | null = null;
   /** How this browser keeps the log; null until the first run has asked (docs/32). */
   connection: Connection | null = null;
   /** The share page's copy of a link's content (src/share/data.ts) is read-only: pages leave out what changes the log. */
@@ -319,7 +319,7 @@ export class AppData {
     if (this.reconcileTimer) return;
     this.reconcileTimer = setTimeout(() => {
       this.reconcileTimer = null;
-      this.keep(reconcile(this.store, this.ref).resolved);
+      reconcile(this.store, this.ref);
     }, 0);
   }
 
@@ -704,10 +704,10 @@ export class AppData {
 
   private derived() {
     if (this.cache?.version === this.version) return this.cache;
-    // Resolution is kept current by every write; this only collects overlaps for the checks.
-    const overlaps = this.cache?.resolvedOverlaps ?? [];
-    const findings = checkAll(this.store, this.ref, { overlaps });
-    this.cache = { version: this.version, findings, resolvedOverlaps: overlaps };
+    // Every write links records to aircraft again; the overlaps are read from those links as they stand, so a log
+    // only opened has them too.
+    const findings = checkAll(this.store, this.ref, { overlaps: registrationOverlaps(this.store) });
+    this.cache = { version: this.version, findings };
     return this.cache;
   }
 
@@ -752,8 +752,7 @@ export class AppData {
   }
 
   resolveConflict(id: string, use: "kept" | "other") {
-    const out = resolveConflict(this.store, this.ref, id, use);
-    if (out) this.keep(out.resolved);
+    resolveConflict(this.store, this.ref, id, use);
   }
 
   findingsFor(table: TableName, id: string): Finding[] {
@@ -771,37 +770,27 @@ export class AppData {
 
   // ---------- writes ----------
   // The changes themselves are in the core package (edit.ts), shared with the CLI. Each links records to airframes
-  // again; its overlaps are kept for the checks, and findings worked out before they arrived are dropped.
-
-  private keep(r: ResolveResult) {
-    this.cache = { version: -1, findings: [], resolvedOverlaps: r.overlaps };
-  }
+  // again.
 
   private resolve() {
-    this.keep(resolveAirframes(this.store, this.ref));
+    resolveAirframes(this.store, this.ref);
   }
 
   saveFlight(values: Partial<FlightValues>, id?: string): Row<"flights"> {
-    const r = saveFlight(this.store, this.ref, values, id);
-    this.keep(r.resolved);
-    return r.row;
+    return saveFlight(this.store, this.ref, values, id).row;
   }
 
   /** `phases`: every phase it was seen in, replacing those it has. */
   saveSighting(values: Partial<SightingValues>, id?: string, tags?: string[], phases?: string[]): Row<"sightings"> {
-    const r = this.store.batch(() => {
+    return this.store.batch(() => {
       const out = saveSighting(this.store, this.ref, values, id, tags);
       if (phases) setPhases(this.store, out.row.id, phases);
-      return out;
+      return out.row;
     });
-    this.keep(r.resolved);
-    return r.row;
   }
 
   saveSightings(list: { values: Partial<SightingValues>; tags?: string[] }[]): number {
-    const r = saveSightings(this.store, this.ref, list);
-    this.keep(r.resolved);
-    return r.count;
+    return saveSightings(this.store, this.ref, list).count;
   }
 
   phasesOf(sightingId: string): string[] {
@@ -813,16 +802,16 @@ export class AppData {
   }
 
   deleteRecord(table: "flights" | "sightings", id: string) {
-    this.keep(deleteRecord(this.store, this.ref, table, id).resolved);
+    deleteRecord(this.store, this.ref, table, id);
   }
 
   updateAirframe(id: string, patch: Partial<Row<"airframes">>) {
-    this.keep(updateAirframe(this.store, this.ref, id, patch).resolved);
+    updateAirframe(this.store, this.ref, id, patch);
   }
 
   /** Move every record of `from` to `into` and remove `from` (docs/11, "Merge airframes"). */
   mergeAirframes(into: string, from: string) {
-    this.keep(mergeAirframes(this.store, this.ref, into, from).resolved);
+    mergeAirframes(this.store, this.ref, into, from);
   }
 
   /** Add an airport of the user's own, or change one, and link the records with its code; returns what it did. */
@@ -834,9 +823,7 @@ export class AppData {
 
   /** Apply a suggested fix; returns what to tell the user when it did more than the one record. */
   applyFix(fix: SuggestedFix): string | null {
-    const r = applyFix(this.store, this.ref, fix);
-    this.keep(r.resolved);
-    return r.message;
+    return applyFix(this.store, this.ref, fix).message;
   }
 
   acceptFinding(f: Finding, note: string | null = null) {

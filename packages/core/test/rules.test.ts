@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attachTrack, checkAll, flightName, normaliseFlight, normaliseSighting, resolveAirframes, type FlightValues, type SightingValues, type TrackPointInput } from "../src/index.ts";
+import { attachTrack, checkAll, flightName, normaliseFlight, normaliseSighting, registrationOverlaps, resolveAirframes, type FlightValues, type SightingValues, type TrackPointInput } from "../src/index.ts";
 import { newStore, ref } from "./fixtures.ts";
 
 const TODAY = "2026-10-01";
@@ -229,6 +229,19 @@ describe("cross-record rules", () => {
     const res = resolveAirframes(store, ref);
     expect(res.overlaps).toHaveLength(1);
     expect(ids(checkAll(store, ref, { today: TODAY, overlaps: res.overlaps }))).toContain("C-REG-OVERLAP");
+  });
+
+  it("C-REG-OVERLAP is found in a log that has only been read, without writing", () => {
+    const { store } = run([goodFlight, { ...goodFlight, scheduledDate: "2019-06-01", boardingAt: null, takeoffAt: null, landingAt: null }]);
+    const other = store.insert("airframes", { identityKey: "msn:airbus:1", provisional: false });
+    store.insert("registration_periods", { airframeId: other.id, registration: "N3001X", validFrom: "2020-01-01", validTo: null });
+    const res = resolveAirframes(store, ref);
+    let writes = 0;
+    store.subscribe(() => writes++);
+    // The 2019 flight is before the second aircraft held the registration: only the 2025 one is in question.
+    expect(registrationOverlaps(store)).toEqual(res.overlaps);
+    expect(registrationOverlaps(store)).toHaveLength(1);
+    expect(writes).toBe(0);
   });
 });
 
