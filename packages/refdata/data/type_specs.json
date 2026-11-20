@@ -97,6 +97,7 @@
 ["B743","Boeing 747",1384394049,null,null,null,null,null,37.5,null,null,null,null,null,null,null],
 ["B744","Boeing 747-400",1385360915,null,null,null,null,null,37.5,396893,13490,910,0.855,416,null,"4 × PW4000 or GE CF6 or RR RB211"],
 ["B748","Boeing 747-8",1383601682,76.25,68.4,20,6.5,554,37.5,447696,14310,908,0.855,467,null,"4 × General Electric GEnx-2B67"],
+["B74D","Boeing 747-400",1385360915,null,59.64,null,null,null,37.5,null,null,null,null,568,660,null],
 ["B74R","Boeing 747",1384394049,null,null,null,null,null,37.5,null,null,900,0.85,null,null,null],
 ["B74S","Boeing 747SP",1383869751,55.85,59.64,20.06,null,null,37.5,317515,10800,null,null,331,null,"4 × Pratt & Whitney JT9D-7J"],
 ["B752","Boeing 757",1383964795,47.3,38,13.6,3.76,185.3,null,115660,7250,null,null,200,219,"2 × Rolls-Royce RB211-535-E4 or Pratt & Whitney PW2000-37/40/43"],

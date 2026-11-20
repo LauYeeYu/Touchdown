@@ -200,7 +200,7 @@ export const typeSpecSources: FamilySpecSources[] = [
     sources: [
       one("Boeing 747", "B742", { linkOnly: ["B741", "B743", "B74R"] }), // 747-200B
       { article: "Boeing 747-400", section: "^Comparison$", columns: { "747-400": "B744" } },
-      one("Boeing 747-400", "B744"),
+      one("Boeing 747-400", "B744", { linkOnly: ["B74D"] }),
       one("Boeing 747-8", "B748"), // 747-8 Intercontinental
       { article: "Boeing 747-8", section: "^Comparison$", columns: { "747-8I": "B748" } }, // fills the cruise speed
       one("Boeing 747SP", "B74S"),
@@ -653,6 +653,13 @@ export const typeSpecOverrides: Record<string, Partial<TypeSpecValues>> = {
   B74R: { sweepDeg: 37.5, cruiseMach: 0.85, cruiseKmh: 900 },
   B743: { sweepDeg: 37.5 },
   B744: { sweepDeg: 37.5 },
+  // Boeing 747-400, "747-400D": "capable of seating a maximum of 568 passengers in a two-class configuration or 660
+  // passengers in a single-class configuration. The -400D lacks the wingtip extensions and winglets included on other
+  // variants"; "Design": "The 747-400's wingspan was stretched by 17 feet (5.2 m) over the Classic 747 through wingtip
+  // extensions", so the -400D's is the Classic's, 195 ft 8 in (59.64 m, the article's metres rounded to 59.6) in Boeing
+  // 747's "Specifications (Boeing 747-200B …)". Its sweep is every 747's, above. Neither article gives its length,
+  // height, weight, range or engines.
+  B74D: { seatsTypical: 568, seatsMax: 660, spanM: 59.64, sweepDeg: 37.5 },
   B748: { sweepDeg: 37.5 },
   B74S: { sweepDeg: 37.5 },
   BLCF: { sweepDeg: 37.5 },
