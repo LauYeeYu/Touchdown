@@ -10,6 +10,7 @@ import { useApp } from "../data/context.tsx";
 import { extentOf, movedParts, planformLayers, planformPath } from "../lib/silhouette.ts";
 import { useTypeMotion, type TypeMove } from "../lib/motion.ts";
 import { useTypeInfo, type TypeInfo } from "../lib/typeInfo.ts";
+import { AIRLINER_MARKER, MARKER_SIZE, type TrackMarker } from "../lib/trackStatus.ts";
 
 /**
  * How much of its box a fitted silhouette fills: `least` for the smallest aircraft, and the rest of the box by its
@@ -50,6 +51,17 @@ export function drawingOf(code: string | null | undefined, info: TypeInfo | null
     }
   }
   return drawn.get(code)!;
+}
+
+/**
+ * The marker at a position of a flight's track: its type from above, its longer side `size` pixels, as the usual
+ * airliner's is, else the usual airliner for a type without a drawing or before the types' information loads.
+ */
+export function trackMarker(code: string | null | undefined, info: TypeInfo | null, ref: RefIndex, size = MARKER_SIZE): TrackMarker {
+  const d = drawingOf(code, info, ref);
+  if (!d) return AIRLINER_MARKER;
+  const [x0, y0, x1, y1] = d.extent;
+  return { path: d.path, scale: size / Math.max(x1 - x0, y1 - y0, 1e-6), centre: [(x0 + x1) / 2, (y0 + y1) / 2] };
 }
 
 /** No moving parts. */

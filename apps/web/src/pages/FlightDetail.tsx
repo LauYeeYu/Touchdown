@@ -13,6 +13,7 @@ import { sortedFlights } from "../lib/views.ts";
 import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, trackIndex } from "../lib/mapdata.ts";
 import { trackSamples } from "../lib/trackStatus.ts";
+import { useTypeInfo } from "../lib/typeInfo.ts";
 import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
@@ -29,7 +30,7 @@ import type { FigureContent } from "../lib/figure.ts";
 import { flightFigure } from "../lib/preview.ts";
 import { flightWords } from "../lib/figureWords.ts";
 import { Credit, Photo } from "../components/Photo.tsx";
-import { Silhouette } from "../components/Silhouette.tsx";
+import { Silhouette, trackMarker } from "../components/Silhouette.tsx";
 import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.tsx";
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
@@ -61,6 +62,7 @@ export function FlightDetail() {
   const trackInput = useRef<HTMLInputElement>(null);
   const mapStyle = useMapStyle();
   const shareList = useShares(app.connection?.mode === "standard");
+  const info = useTypeInfo();
 
   const all = sortedFlights(store, ref);
   const idx = all.findIndex((v) => v.f.id === id);
@@ -77,6 +79,8 @@ export function FlightDetail() {
   const track = trackIndex(store).get(f.id) ?? null;
   // The recorded positions with what was recorded at each, for the map's and the globe's hover.
   const samples = track ? trackSamples(store, f.id) : [];
+  // Pointing at the track shows the flight's aircraft there, its type from above.
+  const marker = trackMarker(f.typeCode, info, ref);
   const takeoffMs = f.takeoffAt ? Date.parse(f.takeoffAt) : NaN;
   const takeoff = Number.isNaN(takeoffMs) ? null : takeoffMs / 1000;
   // The route as the maps draw it: the recorded stretches and the gaps between them.
@@ -284,6 +288,7 @@ export function FlightDetail() {
         greatCircles={track ? [[[A.lon, A.lat], [B.lon, B.lat]]] : undefined}
         samples={samples}
         takeoff={takeoff}
+        marker={marker}
         head={mapHead}
         label={t("flights.detail.map.globe", routeWhat)}
         onAirportClick={reachable("/airports/$id", undefined) ? (airport) => navigate({ to: "/airports/$id", params: { id: airport } }) : undefined}
@@ -291,7 +296,7 @@ export function FlightDetail() {
     ) : (
       <div className="map-wrap">
         <div className="legend">{mapHead}</div>
-        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} lone={mark?.lone} recorded={!!track} pending={!!trackRow && !track} samples={samples} takeoff={takeoff} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={t("flights.detail.map.flat", routeWhat)} />
+        <FlightMap from={[A.lon, A.lat]} to={[B.lon, B.lat]} fromCode={primaryCode(A)} toCode={primaryCode(B)} line={mark?.line ?? []} gaps={mark?.gaps} lone={mark?.lone} recorded={!!track} pending={!!trackRow && !track} samples={samples} takeoff={takeoff} marker={marker} onAirportClick={reachable("/airports/$id", undefined) ? (which) => navigate({ to: "/airports/$id", params: { id: which === "from" ? A.id : B.id } }) : undefined} label={t("flights.detail.map.flat", routeWhat)} />
       </div>
     );
 

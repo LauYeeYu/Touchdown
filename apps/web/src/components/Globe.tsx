@@ -10,7 +10,7 @@ import type { FeatureCollection } from "geojson";
 import world from "world-atlas/countries-110m.json";
 import { t } from "@touchdown/i18n";
 import { airportTip, ARRIVE_MS, routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
-import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
+import { AIRLINER_MARKER, gapTip, MARKER_DISC, nearest, sampleTip, trackGaps, type TrackGap, type TrackMarker, type TrackSample } from "../lib/trackStatus.ts";
 import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
@@ -42,6 +42,8 @@ interface Props {
   samples?: TrackSample[];
   /** Takeoff in Unix seconds, for the time since takeoff. */
   takeoff?: number | null;
+  /** The aircraft drawn at a recorded position: its type from above, else the usual airliner. */
+  marker?: TrackMarker;
 }
 
 type Hover =
@@ -125,7 +127,7 @@ function within(st: { fitScale: number; width: number; height: number }, scale: 
   return Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, scale));
 }
 
-export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [], samples = [], takeoff = null }, handle) {
+export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [], samples = [], takeoff = null, marker = AIRLINER_MARKER }, handle) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const state = useRef({
@@ -146,8 +148,8 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
   const one = flights.length === 1 ? flights[0]! : null;
   if (gapsFor.current.samples !== samples) gapsFor.current = { samples, gaps: one && samples.length > 1 ? trackGaps(samples, one.from, one.to, one.fromCode, one.toCode) : [] };
   const loading = useContext(TrackLoading);
-  const data = useRef({ flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps, loading });
-  data.current = { flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, gaps: gapsFor.current.gaps, loading };
+  const data = useRef({ flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, marker, gaps: gapsFor.current.gaps, loading });
+  data.current = { flights, spots, onFlightClick, onAirportClick, contained, greatCircles, samples, takeoff, marker, gaps: gapsFor.current.gaps, loading };
 
   const fit = () => {
     const st = state.current;
@@ -350,15 +352,17 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
           ctx.globalAlpha = 0.9;
           ctx.fillStyle = c.paper;
           ctx.beginPath();
-          ctx.arc(xy[0], xy[1], 12, 0, Math.PI * 2);
+          ctx.arc(xy[0], xy[1], MARKER_DISC, 0, Math.PI * 2);
           ctx.fill();
           ctx.globalAlpha = 1;
           ctx.save();
           ctx.translate(xy[0], xy[1]);
           ctx.rotate((screenAngle(smp, st.hover.i, (q) => proj(q) as [number, number] | null) * Math.PI) / 180);
-          ctx.translate(-12, -12);
-          const plane = new Path2D(AIRLINER_TOP);
-          ctx.lineWidth = 1.4;
+          const m = data.current.marker;
+          ctx.scale(m.scale, m.scale);
+          ctx.translate(-m.centre[0], -m.centre[1]);
+          const plane = new Path2D(m.path);
+          ctx.lineWidth = 1.4 / m.scale;
           ctx.strokeStyle = c.paper;
           ctx.stroke(plane);
           ctx.fillStyle = c.ink;

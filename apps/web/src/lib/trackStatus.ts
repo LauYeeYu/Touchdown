@@ -149,6 +149,23 @@ export function gapTip(g: TrackGap): string {
 /** A top-down airliner pointing north in a 24-unit box, centred on (12, 12): the hover marker, turned to the track. */
 export const AIRLINER_TOP = "M12 2c.8 0 1.3 1 1.3 2.2V9l7.7 4.6v2l-7.7-2.3v4.6l2.2 1.7V21L12 20l-3.5 1v-1.4l2.2-1.7v-4.6L3 15.6v-2L10.7 9V4.2C10.7 3 11.2 2 12 2z";
 
+/**
+ * The aircraft drawn at a position of its track, from above and pointing north: its path, drawn `scale` pixels to a
+ * unit about `centre`, which goes on the position. Turned to the track as it is drawn.
+ */
+export interface TrackMarker {
+  path: string;
+  scale: number;
+  centre: [number, number];
+}
+
+/** The marker's longer side in pixels, large enough to tell the type, and the radius of the paper disc under it. */
+export const MARKER_SIZE = 28;
+export const MARKER_DISC = 17;
+
+/** The usual airliner, for an aircraft whose type has no drawing (components/Silhouette.tsx, `trackMarker`). */
+export const AIRLINER_MARKER: TrackMarker = { path: AIRLINER_TOP, scale: MARKER_SIZE / 20, centre: [12, 12] };
+
 /** The nearest of `points` (screen positions, null where hidden) within `radius` of (x, y); -1 when none is. */
 export function nearest(points: ([number, number] | null)[], x: number, y: number, radius: number): number {
   let best = -1;

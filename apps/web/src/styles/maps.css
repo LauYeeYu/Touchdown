@@ -211,6 +211,8 @@
   stroke: var(--paper);
   stroke-width: 1.4;
   paint-order: stroke;
+  /* The type's drawing is in metres, scaled down to the marker: its outline stays 1.4 pixels. */
+  vector-effect: non-scaling-stroke;
 }
 
 /* Drawn over the gap's own dots, on the same path with the same spacing: the dots darken and grow, nothing moves. */

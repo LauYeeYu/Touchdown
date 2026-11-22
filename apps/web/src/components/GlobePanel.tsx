@@ -8,7 +8,7 @@ import { t } from "@touchdown/i18n";
 import { Globe, type GlobeHandle } from "./Globe.tsx";
 import type { MapFlight, MapSpot } from "./maps.tsx";
 import { Icon } from "../lib/icons.tsx";
-import type { TrackSample } from "../lib/trackStatus.ts";
+import type { TrackMarker, TrackSample } from "../lib/trackStatus.ts";
 import { TrackLoadingNote } from "../lib/trackLoading.tsx";
 
 interface Props {
@@ -26,12 +26,14 @@ interface Props {
   /** One flight's recorded positions, for the hover on its track (Globe). */
   samples?: TrackSample[];
   takeoff?: number | null;
+  /** The aircraft drawn at a recorded position (Globe). */
+  marker?: TrackMarker;
   /** The stage's height in a page, to match the flat map it replaces; by default it follows the window. */
   height?: number;
   className?: string;
 }
 
-export function GlobePanel({ flights, spots, label, head, note, onFlightClick, onAirportClick, greatCircles, samples, takeoff, height, className = "" }: Props) {
+export function GlobePanel({ flights, spots, label, head, note, onFlightClick, onAirportClick, greatCircles, samples, takeoff, marker, height, className = "" }: Props) {
   const panel = useRef<HTMLDivElement>(null);
   const globe = useRef<GlobeHandle>(null);
   const [full, setFull] = useState(false);
@@ -65,7 +67,7 @@ export function GlobePanel({ flights, spots, label, head, note, onFlightClick, o
     <div className={`map-wrap globe-panel${full ? " is-full" : ""}${className ? ` ${className}` : ""}`} ref={panel}>
       {head && <div className="legend globe-panel__head">{head}</div>}
       <div className="globe-stage" style={height && !full ? { height } : undefined}>
-        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} samples={samples} takeoff={takeoff} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={t("maps.globe.label", { label, zoom })} />
+        <Globe ref={globe} flights={flights} spots={spots} greatCircles={greatCircles} samples={samples} takeoff={takeoff} marker={marker} contained={!full} onFlightClick={onFlightClick} onAirportClick={onAirportClick} label={t("maps.globe.label", { label, zoom })} />
         <button type="button" className="globe-expand" onClick={toggle} aria-label={full ? t("maps.globe.collapseLabel") : t("maps.globe.expandLabel")}>
           <Icon name={full ? "minimize-2" : "maximize-2"} />
           {full ? t("maps.globe.collapse") : t("maps.globe.expand")}

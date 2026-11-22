@@ -10,7 +10,7 @@ import type { Feature, FeatureCollection, Geometry } from "geojson";
 import world from "world-atlas/countries-110m.json";
 import { t } from "@touchdown/i18n";
 import { esc, hideTip, showTip } from "./overlay.tsx";
-import { AIRLINER_TOP, gapTip, nearest, sampleTip, trackGaps, type TrackGap, type TrackSample } from "../lib/trackStatus.ts";
+import { AIRLINER_MARKER, gapTip, MARKER_DISC, nearest, sampleTip, trackGaps, type TrackGap, type TrackMarker, type TrackSample } from "../lib/trackStatus.ts";
 import { TrackLoadingNote, useTracksLoading } from "../lib/trackLoading.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
 
@@ -570,6 +570,8 @@ interface FlightMapProps {
   samples?: TrackSample[];
   /** Takeoff in Unix seconds, for the time since takeoff. */
   takeoff?: number | null;
+  /** The aircraft drawn at a recorded position: its type from above, else the usual airliner. */
+  marker?: TrackMarker;
 }
 
 /** What the pointer can find on a flight map, as last drawn. */
@@ -596,13 +598,13 @@ export function screenAngle(samples: TrackSample[], i: number, proj: (p: LonLat)
   return s0 && s1 ? (Math.atan2(s1[1] - s0[1], s1[0] - s0[0]) * 180) / Math.PI + 90 : 0;
 }
 
-export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = [], recorded, pending = false, label, onAirportClick, samples = [], takeoff = null }: FlightMapProps) {
+export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = [], recorded, pending = false, label, onAirportClick, samples = [], takeoff = null, marker = AIRLINER_MARKER }: FlightMapProps) {
   const ref = useRef<SVGSVGElement>(null);
   const clickRef = useRef(onAirportClick);
   clickRef.current = onAirportClick;
   const hover = useRef<TrackHover | null>(null);
-  const track = useRef({ samples, takeoff });
-  track.current = { samples, takeoff };
+  const track = useRef({ samples, takeoff, marker });
+  track.current = { samples, takeoff, marker };
   const arrivals = useArrivals();
   const view = useRef<View | null>(null);
   useWidth(
@@ -706,13 +708,13 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
       const k = svg.viewBox.baseVal.width / r.width;
       const x = (e.clientX - r.left) * k;
       const y = (e.clientY - r.top) * k;
-      const { samples: pts, takeoff: off } = track.current;
+      const { samples: pts, takeoff: off, marker: m } = track.current;
       const i = nearest(h.points, x, y, 14);
       if (i >= 0) {
         const q = h.points[i]!;
         const angle = screenAngle(pts, i, (p) => h.proj(p) as [number, number] | null);
-        el(h.layer, "circle", { class: "track-hover__disc", cx: q[0], cy: q[1], r: 12 });
-        el(h.layer, "path", { class: "track-hover__plane", d: AIRLINER_TOP, transform: `translate(${q[0]} ${q[1]}) rotate(${angle.toFixed(1)}) translate(-12 -12)` });
+        el(h.layer, "circle", { class: "track-hover__disc", cx: q[0], cy: q[1], r: MARKER_DISC });
+        el(h.layer, "path", { class: "track-hover__plane", d: m.path, transform: `translate(${q[0]} ${q[1]}) rotate(${angle.toFixed(1)}) scale(${m.scale}) translate(${-m.centre[0]} ${-m.centre[1]})` });
         showTip(sampleTip(pts, i, off), e.clientX, e.clientY);
         return;
       }
