@@ -1633,6 +1633,7 @@ export interface MessageArgs {
   "flights.filters.allAirlines": {};
   "flights.filters.recordedOnly": {};
   "flights.missingTracks.title": {};
+  "flights.missingTracks.about": {};
   "flights.missingTracks.button": { count: "text" };
   "flights.empty.filtered": {};
   "flights.empty.period": {};
@@ -1667,6 +1668,7 @@ export interface MessageArgs {
   "flights.detail.track.menu.button": {};
   "flights.detail.track.add.label": {};
   "flights.detail.track.add.title": {};
+  "flights.detail.track.add.about": {};
   "flights.detail.track.unusable": { problem: "text" };
   "flights.detail.track.replace": {};
   "flights.detail.track.save": {};

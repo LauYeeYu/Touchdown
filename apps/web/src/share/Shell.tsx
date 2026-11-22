@@ -14,6 +14,7 @@ import { FootCredits } from "../components/FootCredits.tsx";
 import type { ShareData } from "./data.ts";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { tx } from "../lib/i18n.tsx";
+import { Hint } from "../components/HelpTip.tsx";
 
 const nav = (): { to: string; label: string; icon: IconName; match: (p: string) => boolean }[] => [
   { to: "/", label: t("share.nav.home"), icon: "house", match: (p) => p === "/" },
@@ -51,10 +52,10 @@ export function ShareShell() {
           )}
           <div className="masthead__tools">
             {tracks && (
-              <span className="sync" title={t("share.tracks.about")}>
+              <Hint className="sync" text={t("share.tracks.about")}>
                 <Icon name="route" />
                 <span className="sync__text">{t("share.tracks.progress", { done: tracks.done, total: tracks.total })}</span>
-              </span>
+              </Hint>
             )}
           </div>
         </div>

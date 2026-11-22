@@ -732,6 +732,38 @@ a.btn--primary {
   background: var(--surface-mid);
 }
 
+/* Beside a control whose own title says the same to a mouse: only where there is no hover (components/HelpTip.tsx). */
+.help-tip--touch {
+  display: none;
+}
+
+@media (hover: none) {
+  .help-tip--touch {
+    display: inline-grid;
+  }
+}
+
+/* Words or a swatch that show what they mean on hover or a tap (components/HelpTip.tsx, `Hint`): a button that looks as
+   its content does. Without hover (a phone), a faint dotted underline says a tap shows more. */
+.hint {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: help;
+}
+
+@media (hover: none) {
+  .hint {
+    text-decoration: underline dotted var(--rule-hover);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+  }
+}
+
 .filter-chip__edit {
   display: inline-flex;
   align-items: baseline;

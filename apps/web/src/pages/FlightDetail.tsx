@@ -23,7 +23,7 @@ import { GlobePanel } from "../components/GlobePanel.tsx";
 import { MapStyleSwitch, useMapStyle } from "../components/MapStyle.tsx";
 import { AltitudeChart } from "../components/charts.tsx";
 import { Duration } from "../components/Duration.tsx";
-import { HelpTip } from "../components/HelpTip.tsx";
+import { HelpTip, Hint } from "../components/HelpTip.tsx";
 import { flightVideo } from "../lib/videoContent.ts";
 import type { VideoContent } from "../lib/video.ts";
 import type { FigureContent } from "../lib/figure.ts";
@@ -251,25 +251,31 @@ export function FlightDetail() {
     <>
       {track ? (
         <>
-          <span className="legend__item" title={[t("flights.detail.legend.recordedTitle"), trackRow?.attribution].filter(Boolean).join(" ")}>
+          {/* What the legend's items mean, and where the track comes from, on hover or a tap (components/HelpTip.tsx). */}
+          <Hint className="legend__item" text={[t("flights.detail.legend.recordedTitle"), trackRow?.attribution].filter(Boolean).join(" ")}>
             <span className="swatch-line" />
             {t("flights.detail.recordedTrack")}
-          </span>
+          </Hint>
           {!!mark?.gaps?.length && (
-            <span className="legend__item" title={t("flights.detail.legend.gapTitle")}>
+            <Hint className="legend__item" text={t("flights.detail.legend.gapTitle")}>
               <span className="swatch-line swatch-line--unrecorded" />
               {t("flights.legend.notRecorded")}
-            </span>
+            </Hint>
           )}
           <span className="legend__item">
             <span className="swatch-line swatch-line--faint" />
             {t("flights.detail.legend.greatCircle")}
           </span>
         </>
-      ) : (
-        <span className="legend__item" title={trackRow && !shared ? t("flights.detail.legend.syncTitle") : undefined}>
+      ) : trackRow && !shared ? (
+        <Hint className="legend__item" text={t("flights.detail.legend.syncTitle")}>
           <span className="swatch-line" />
-          {trackRow ? (shared ? t("flights.detail.legend.loading") : t("flights.detail.legend.notHere")) : t("flights.detail.legend.none")}
+          {t("flights.detail.legend.notHere")}
+        </Hint>
+      ) : (
+        <span className="legend__item">
+          <span className="swatch-line" />
+          {trackRow ? t("flights.detail.legend.loading") : t("flights.detail.legend.none")}
         </span>
       )}
       <MapStyleSwitch value={mapStyle.style} onChange={mapStyle.set} />
@@ -417,10 +423,14 @@ export function FlightDetail() {
                 {t("flights.detail.track.menu.button")}
               </MenuButton>
             ) : (
-              <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack} title={t("flights.detail.track.add.title")}>
-                <Icon name="route" />
-                {t("flights.detail.track.add.label")}
-              </button>
+              <>
+                <button type="button" className="btn btn--quiet btn--small" onClick={chooseTrack} title={t("flights.detail.track.add.title")}>
+                  <Icon name="route" />
+                  {t("flights.detail.track.add.label")}
+                </button>
+                {/* The title's words, for a phone, which shows no title. */}
+                <HelpTip touch label={t("flights.detail.track.add.about")} text={t("flights.detail.track.add.title")} />
+              </>
             )}
             <button type="button" className="btn btn--quiet btn--small" onClick={remove}>
               <Icon name="trash" />
@@ -582,9 +592,13 @@ export function FlightDetail() {
             <h2 className="section__title" id="alt-title">
               {t("flights.detail.altitude.title")}
             </h2>
-            <span className="section__aside" title={trackRow?.attribution ?? undefined}>
-              {t("common.count.points", { count: altitude.length })}
-            </span>
+            {trackRow?.attribution ? (
+              <Hint className="section__aside" text={trackRow.attribution}>
+                {t("common.count.points", { count: altitude.length })}
+              </Hint>
+            ) : (
+              <span className="section__aside">{t("common.count.points", { count: altitude.length })}</span>
+            )}
           </div>
           <div className="chart">
             <AltitudeChart

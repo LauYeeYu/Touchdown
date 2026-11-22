@@ -13,6 +13,7 @@ import { sortedFlights, type FlightView } from "../lib/views.ts";
 import { mapFlights, trackIndex, trackInfo } from "../lib/mapdata.ts";
 import { airlineLabel, dateOnly, distance, durShort, monthNames, nf } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
+import { HelpTip } from "../components/HelpTip.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
 import { usePhrases } from "../components/Phrase.tsx";
@@ -259,6 +260,8 @@ export function Flights() {
             {t("flights.missingTracks.button", { count: withoutTrack })}
           </button>
         )}
+        {/* The title's words, for a phone, which shows no title. */}
+        {withoutTrack > 0 && !shared && <HelpTip touch label={t("flights.missingTracks.about")} text={t("flights.missingTracks.title")} />}
         <span className="filters__count">
           {t("common.count.flights", { count: shown.length })} · {distance(shownKm, unit)}
         </span>
