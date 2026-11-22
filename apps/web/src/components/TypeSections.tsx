@@ -48,11 +48,23 @@ export function TypeAircraft({ aircraft, title }: { aircraft: AircraftView[]; ti
             <Link to="/aircraft/$id" params={{ id: v.airframe.id }}>
               {v.registration ?? t("aircraft.noRegistration")}
             </Link>
-            {v.flights.length > 0 && <span className="dot dot--flown" title={t("common.count.flights", { count: v.flights.length })} />}
-            {v.sightings.length > 0 && <span className="dot dot--spotted" title={t("common.count.sightings", { count: v.sightings.length })} />}
+            {/* Each count beside its dot, so a phone, which shows no title, has it too. */}
+            {v.flights.length > 0 && <Count n={v.flights.length} kind="flown" words={t("common.count.flights", { count: v.flights.length })} />}
+            {v.sightings.length > 0 && <Count n={v.sightings.length} kind="spotted" words={t("common.count.sightings", { count: v.sightings.length })} />}
           </li>
         ))}
       </ul>
     </section>
+  );
+}
+
+/** A count beside its dot: the number to see, the words for a screen reader. */
+function Count({ n, kind, words }: { n: number; kind: "flown" | "spotted"; words: string }) {
+  return (
+    <span className="type-aircraft__count">
+      <span className={`dot dot--${kind}`} aria-hidden="true" />
+      <span aria-hidden="true">{nf.format(n)}</span>
+      <span className="visually-hidden">{words}</span>
+    </span>
   );
 }
