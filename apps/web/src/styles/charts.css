@@ -136,6 +136,14 @@
   line-height: 1.35;
 }
 
+/* Without hover (a phone), which shows no title, the whole label. */
+@media (hover: none) {
+  .ranked__label {
+    display: block;
+    -webkit-line-clamp: none;
+  }
+}
+
 /* The bar shows each count against the largest; there is no "full" to show, so no track behind it. */
 /* Bars, not dots: 8px tall with 2px corners, so even a short bar reads as a length. They grow from the start
    when they appear and move to new lengths when the period changes. */
