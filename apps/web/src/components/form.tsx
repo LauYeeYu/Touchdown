@@ -87,6 +87,8 @@ export function Picker({ value, onChange, options, placeholder, label, resolved,
   const [active, setActive] = useState(0);
   const listId = useId();
   const blurTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // A finger pressing an option, where it landed: it picks the option on lifting there, not when it scrolls the list.
+  const pressed = useRef<{ id: number; x: number; y: number } | null>(null);
   const list = useMemo(() => (open ? options(value) : []), [open, value, options]);
   const choose = (o: PickerOption) => {
     onChange(o.value);
@@ -111,7 +113,7 @@ export function Picker({ value, onChange, options, placeholder, label, resolved,
           setActive(0);
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => (blurTimer.current = setTimeout(() => setOpen(false), 120))}
+        onBlur={() => (blurTimer.current = setTimeout(() => !pressed.current && setOpen(false), 120))}
         onKeyDown={(e) => {
           if (!list.length) return;
           if (e.key === "ArrowDown") {
@@ -137,8 +139,16 @@ export function Picker({ value, onChange, options, placeholder, label, resolved,
               onPointerDown={(e) => {
                 e.preventDefault();
                 clearTimeout(blurTimer.current);
-                choose(o);
+                // A mouse picks at once; a finger on lifting, unless it moved, as it does to scroll the list.
+                if (e.pointerType === "mouse") choose(o);
+                else pressed.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
               }}
+              onPointerUp={(e) => {
+                const p = pressed.current;
+                pressed.current = null;
+                if (p?.id === e.pointerId && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 10) choose(o);
+              }}
+              onPointerCancel={() => (pressed.current = null)}
               onPointerEnter={() => setActive(i)}
             >
               <b>{o.value}</b>
