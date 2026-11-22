@@ -459,6 +459,13 @@
   color: var(--ink);
 }
 
+/* A second line under a number, smaller: an airport's aircraft seen on fewer days than sightings. */
+.row__num .row__sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
 .row__track {
   display: grid;
   place-items: center;

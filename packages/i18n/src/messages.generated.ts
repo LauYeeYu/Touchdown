@@ -1348,6 +1348,7 @@ export interface MessageArgs {
   "cliWrite.render.chromeFailed": { reason: "text" };
   "common.count.flights": { count: "number" };
   "common.count.sightings": { count: "number" };
+  "common.count.days": { count: "number" };
   "common.count.aircraft": { count: "number" };
   "common.count.countries": { count: "number" };
   "common.count.records": { count: "number" };

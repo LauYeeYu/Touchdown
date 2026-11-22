@@ -1,6 +1,7 @@
 {
   "count.flights": "{count, plural, other {#個航班}}",
   "count.sightings": "{count, plural, other {#筆拍攝紀錄}}",
+  "count.days": "{count, plural, other {#天}}",
   "count.aircraft": "{count, plural, other {#架飛機}}",
   "count.countries": "{count, plural, other {#個國家}}",
   "count.records": "{count, plural, other {#筆紀錄}}",

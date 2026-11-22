@@ -273,6 +273,8 @@ export function AirportPage() {
                   <span className="row__num tabular" title={t("airport.seenHere", { count: e.days.size || 1 })}>
                     <span className="dot dot--spotted" />
                     {e.count}
+                    {/* On fewer days than sightings: the days under the count, which a phone, without the title, shows too. */}
+                    {e.days.size > 0 && e.days.size < e.count && <span className="row__sub">{t("common.count.days", { count: e.days.size })}</span>}
                   </span>
                   <span className="row__num tabular" title={flown ? t("airport.flownOn", { where: shared ? "link" : "log" }) : ""}>
                     {flown > 0 && <span className="dot dot--flown" />}

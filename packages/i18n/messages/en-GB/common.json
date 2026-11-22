@@ -1,6 +1,7 @@
 {
   "count.flights": "{count, plural, one {#\u00a0flight} other {#\u00a0flights}}",
   "count.sightings": "{count, plural, one {#\u00a0sighting} other {#\u00a0sightings}}",
+  "count.days": "{count, plural, one {#\u00a0day} other {#\u00a0days}}",
   "count.aircraft": "{count, plural, one {#\u00a0aircraft} other {#\u00a0aircraft}}",
   "count.countries": "{count, plural, one {#\u00a0country} other {#\u00a0countries}}",
   "count.records": "{count, plural, one {#\u00a0record} other {#\u00a0records}}",
