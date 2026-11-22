@@ -309,6 +309,24 @@
   background: var(--ink-2);
 }
 
+/* A finger's thumb is larger. */
+@media (pointer: coarse) {
+  .video-preview__scrub {
+    height: 32px;
+  }
+
+  .video-preview__scrub::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -9px;
+  }
+
+  .video-preview__scrub::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+  }
+}
+
 .video-preview__scrub:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
