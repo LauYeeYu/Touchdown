@@ -9,7 +9,7 @@ import { feature } from "topojson-client";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import world from "world-atlas/countries-110m.json";
 import { t } from "@touchdown/i18n";
-import { esc, hideTip, showTip } from "./overlay.tsx";
+import { esc, hideTip, showTip, whenTouchedOutside } from "./overlay.tsx";
 import { AIRLINER_MARKER, gapTip, MARKER_DISC, nearest, sampleTip, trackGaps, type TrackGap, type TrackMarker, type TrackSample } from "../lib/trackStatus.ts";
 import { TrackLoadingNote, useTracksLoading } from "../lib/trackLoading.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
@@ -336,21 +336,79 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
   const dataKey = flights.map((f) => `${f.id}:${f.track?.length ?? 0}`).join(",") + "|" + spots.map((s) => `${s.code}:${s.aircraft}`).join(",");
   const arrivals = useArrivals();
   const view = useRef<View | null>(null);
+  // A finger's first tap on a route, a spotting place or an airport shows what a mouse's hover does, its tooltip and,
+  // for a route, its highlight; a second tap on the same opens it. A tap anywhere else puts it away. `finger`: the
+  // last pointer down was not a mouse; `shown`: what a tap shows now.
+  const tap = useRef<{ finger: boolean; shown: string | null; arc: MapFlight | null }>({ finger: false, shown: null, arc: null });
+  const putAway = () => {
+    const tc = tap.current;
+    if (tc.arc) handlers.current.onArcLeave?.(tc.arc);
+    if (tc.shown) hideTip();
+    tc.shown = null;
+    tc.arc = null;
+  };
+  useEffect(() => {
+    const svg = ref.current!;
+    const down = (e: PointerEvent) => {
+      tap.current.finger = e.pointerType !== "mouse";
+      if (tap.current.finger && !(e.target as Element).closest(".arc-hit, .spot-hit, .airport-hit, .airport-label")) putAway();
+    };
+    svg.addEventListener("pointerdown", down, true);
+    const outside = whenTouchedOutside(svg, putAway);
+    return () => {
+      svg.removeEventListener("pointerdown", down, true);
+      outside();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useWidth(
     ref,
     (width) => {
       const svg = ref.current!;
       const m = mode === "auto" ? (width < 720 ? "fit" : "world") : mode;
-      const clickable = (node: SVGElement, airportId: string) => {
-        if (!handlers.current.onAirportClick) return;
-        node.classList.add("is-clickable");
-        node.addEventListener("click", () => {
-          hideTip();
-          handlers.current.onAirportClick?.(airportId);
+      /** A finger's first tap on `key`: shows its tooltip (and a route's highlight) and says so, the tap going no further. */
+      const firstTap = (key: string, tip: string, ev: MouseEvent, arc?: MapFlight) => {
+        const tc = tap.current;
+        if (!tc.finger || tc.shown === key) return false;
+        putAway();
+        tc.shown = key;
+        tc.arc = arc ?? null;
+        showTip(tip, ev.clientX, ev.clientY, true);
+        if (arc) handlers.current.onArcEnter?.(arc);
+        return true;
+      };
+      /** A place's target: a finger's first tap shows its tooltip, and a click (a second tap) or Enter opens it. */
+      const tappable = (node: SVGElement, key: string, tip: string, airportId: string) => {
+        const open = handlers.current.onAirportClick
+          ? () => {
+              putAway();
+              hideTip();
+              handlers.current.onAirportClick?.(airportId);
+            }
+          : null;
+        if (open) node.classList.add("is-clickable");
+        node.addEventListener("click", (ev) => {
+          if (!firstTap(key, tip, ev as MouseEvent)) open?.();
         });
-        node.addEventListener("keydown", (ev) => {
-          if ((ev as KeyboardEvent).key === "Enter") handlers.current.onAirportClick?.(airportId);
+        if (open)
+          node.addEventListener("keydown", (ev) => {
+            if ((ev as KeyboardEvent).key === "Enter") open();
+          });
+      };
+      /** The tooltip a mouse's hover shows over `node`; a finger's is a tap's (`firstTap`). */
+      const hoverTip = (node: SVGElement, tip: string, on?: () => void, off?: () => void) => {
+        const show = (ev: PointerEvent) => {
+          if (ev.pointerType !== "mouse") return;
+          showTip(tip, ev.clientX, ev.clientY);
+          on?.();
+        };
+        node.addEventListener("pointerenter", show);
+        node.addEventListener("pointermove", (ev) => ev.pointerType === "mouse" && showTip(tip, ev.clientX, ev.clientY));
+        node.addEventListener("pointerleave", (ev) => {
+          if (ev.pointerType !== "mouse") return;
+          hideTip();
+          off?.();
         });
       };
       const lines = flights.map((f) => ({ type: "MultiLineString" as const, coordinates: f.line }));
@@ -432,19 +490,22 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
       }
       flights.forEach((f, i) => {
         const hit = el(arcs, "path", { class: "arc-hit", "data-id": f.id, d: path(routes[i]!) ?? "" });
-        hit.addEventListener("pointerenter", (ev) => {
-          showTip(f.tip, ev.clientX, ev.clientY);
-          handlers.current.onArcEnter?.(f);
+        hoverTip(
+          hit,
+          f.tip,
+          () => handlers.current.onArcEnter?.(f),
+          () => handlers.current.onArcLeave?.(f),
+        );
+        hit.addEventListener("click", (ev) => {
+          if (firstTap(`flight:${f.id}`, f.tip, ev, f)) return;
+          putAway();
+          handlers.current.onArcClick?.(f);
         });
-        hit.addEventListener("pointermove", (ev) => showTip(f.tip, ev.clientX, ev.clientY));
-        hit.addEventListener("pointerleave", () => {
-          hideTip();
-          handlers.current.onArcLeave?.(f);
-        });
-        hit.addEventListener("click", () => handlers.current.onArcClick?.(f));
       });
 
       const spotR = new Map<string, number>();
+      // Each place's tooltip by its code, for its label too.
+      const tips = new Map<string, string>();
       if (spots.length) {
         const max = Math.max(...spots.map((s) => s.aircraft), 1);
         const r = scaleSqrt().domain([0, max]).range([4, width < 600 ? 9 : 13]);
@@ -454,10 +515,22 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           if (!xy) continue;
           spotR.set(s.code, r(s.aircraft));
           const c = el(g, "circle", { class: `spot${s.both ? " is-both" : ""}`, cx: xy[0], cy: xy[1], r: r(s.aircraft), tabindex: 0, role: "link", "aria-label": t("maps.spot.label", { label: s.label }) });
-          c.addEventListener("pointerenter", (ev) => showTip(s.tip, ev.clientX, ev.clientY));
-          c.addEventListener("pointermove", (ev) => showTip(s.tip, ev.clientX, ev.clientY));
-          c.addEventListener("pointerleave", hideTip);
-          clickable(c, s.airportId);
+          // A target at least 24px across over it, so a small place is easy to point at and tap.
+          const hit = el(g, "circle", { class: "spot-hit", cx: xy[0], cy: xy[1], r: Math.max(12, r(s.aircraft)), "aria-hidden": "true" });
+          tips.set(s.code, s.tip);
+          hoverTip(
+            hit,
+            s.tip,
+            () => c.classList.add("is-hover"),
+            () => c.classList.remove("is-hover"),
+          );
+          tappable(hit, `place:${s.code}`, s.tip, s.airportId);
+          if (handlers.current.onAirportClick) {
+            c.classList.add("is-clickable");
+            c.addEventListener("keydown", (ev) => {
+              if ((ev as KeyboardEvent).key === "Enter") handlers.current.onAirportClick?.(s.airportId);
+            });
+          }
         }
       }
 
@@ -477,18 +550,16 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         if (!xy) continue;
         const dot = el(apG, "circle", { class: "airport", "data-code": code, cx: xy[0], cy: xy[1], r: 4 });
         // A larger invisible target, so the small dot is easy to point at and tap.
-        const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 11, tabindex: 0, role: "link", "aria-label": t("maps.airport.label", { name: v.name, count: v.n }) });
+        const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 12, tabindex: 0, role: "link", "aria-label": t("maps.airport.label", { name: v.name, count: v.n }) });
         const tip = `<strong>${esc(t("format.nameWithCode", { name: v.name, code }))}</strong><br><span class="muted">${esc(airportTip(flights, v.id, v.n))}</span>`;
-        hit.addEventListener("pointerenter", (ev) => {
-          dot.classList.add("is-hover");
-          showTip(tip, ev.clientX, ev.clientY);
-        });
-        hit.addEventListener("pointermove", (ev) => showTip(tip, ev.clientX, ev.clientY));
-        hit.addEventListener("pointerleave", () => {
-          dot.classList.remove("is-hover");
-          hideTip();
-        });
-        clickable(hit, v.id);
+        tips.set(code, tip);
+        hoverTip(
+          hit,
+          tip,
+          () => dot.classList.add("is-hover"),
+          () => dot.classList.remove("is-hover"),
+        );
+        tappable(hit, `place:${code}`, tip, v.id);
       }
       const spotIds = new Map(spots.map((s) => [s.code, s.airportId]));
       const marks = [...new Set([...visits.keys(), ...spotR.keys()])]
@@ -520,7 +591,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           boxes.push(pick[3]);
           const t = el(apG, "text", { class: "airport-label is-link", "data-code": d.code, x: pick[0], y: pick[1], "text-anchor": pick[2] });
           t.textContent = d.code;
-          if (d.id) clickable(t, d.id);
+          if (d.id) tappable(t, `place:${d.code}`, tips.get(d.code) ?? "", d.id);
         });
       apply(svg);
       const now: View = { proj, vb, width };
@@ -690,51 +761,93 @@ export function FlightMap({ from, to, fromCode, toCode, line, gaps = [], lone = 
     [from.join(), to.join(), line.map((l) => l.length).join(), gaps.length, samples.length],
   );
 
-  // Pointing at the track: the nearest recorded position within 14px, else a gap within 8px. A tap does the same.
+  // Pointing at the track: the nearest recorded position within 14px, else a gap within 8px, and for a finger twice as
+  // far. A finger that lands on the track follows it: the page does not scroll under it, and the aircraft and its state
+  // go with the finger, the nearest position within 64px, until it lifts. Anywhere else a finger scrolls the page.
   useEffect(() => {
     const svg = ref.current!;
+    let following: number | null = null;
+    // Only what the track showed: the tooltip is the page's, and a chart may be showing it.
     const clear = () => {
-      hover.current?.layer.replaceChildren();
-      hover.current?.gapLayer.replaceChildren();
+      const h = hover.current;
+      if (!h?.layer.hasChildNodes() && !h?.gapLayer.hasChildNodes()) return;
+      h.layer.replaceChildren();
+      h.gapLayer.replaceChildren();
       hideTip();
     };
-    const show = (e: PointerEvent) => {
+    /** The point under (cx, cy) in the map's units, and the recorded position or gap within `radius` pixels of it. */
+    const find = (cx: number, cy: number, radius: number) => {
+      const h = hover.current;
+      if (!h) return null;
+      const r = svg.getBoundingClientRect();
+      const k = svg.viewBox.baseVal.width / r.width;
+      const [x, y] = [(cx - r.left) * k, (cy - r.top) * k];
+      const i = nearest(h.points, x, y, radius * k);
+      if (i >= 0) return { kind: "sample" as const, i };
+      const g = h.gaps.find(({ screen }) => screen.some((a, n) => n > 0 && segmentDistance(x, y, screen[n - 1]!, a) < (radius * k * 8) / 14));
+      return g ? { kind: "gap" as const, g } : null;
+    };
+    const show = (e: PointerEvent, radius: number) => {
       const h = hover.current;
       if (!h) return;
       h.layer.replaceChildren();
       h.gapLayer.replaceChildren();
       if ((e.target as Element).closest(".is-clickable")) return hideTip();
-      const r = svg.getBoundingClientRect();
-      const k = svg.viewBox.baseVal.width / r.width;
-      const x = (e.clientX - r.left) * k;
-      const y = (e.clientY - r.top) * k;
-      const { samples: pts, takeoff: off, marker: m } = track.current;
-      const i = nearest(h.points, x, y, 14);
-      if (i >= 0) {
-        const q = h.points[i]!;
-        const angle = screenAngle(pts, i, (p) => h.proj(p) as [number, number] | null);
+      const touch = e.pointerType !== "mouse";
+      const found = find(e.clientX, e.clientY, radius);
+      if (found?.kind === "sample") {
+        const { samples: pts, takeoff: off, marker: m } = track.current;
+        const q = h.points[found.i]!;
+        const angle = screenAngle(pts, found.i, (p) => h.proj(p) as [number, number] | null);
         el(h.layer, "circle", { class: "track-hover__disc", cx: q[0], cy: q[1], r: MARKER_DISC });
         el(h.layer, "path", { class: "track-hover__plane", d: m.path, transform: `translate(${q[0]} ${q[1]}) rotate(${angle.toFixed(1)}) scale(${m.scale}) translate(${-m.centre[0]} ${-m.centre[1]})` });
-        showTip(sampleTip(pts, i, off), e.clientX, e.clientY);
+        showTip(sampleTip(pts, found.i, off), e.clientX, e.clientY, touch);
         return;
       }
-      const g = h.gaps.find(({ screen }) => screen.some((a, n) => n > 0 && segmentDistance(x, y, screen[n - 1]!, a) < 8));
-      if (g) {
-        el(h.gapLayer, "path", { class: "track-hover__gap", d: h.path({ type: "LineString", coordinates: [g.gap.from, g.gap.to] }) ?? "" });
-        showTip(gapTip(g.gap), e.clientX, e.clientY);
+      if (found?.kind === "gap") {
+        el(h.gapLayer, "path", { class: "track-hover__gap", d: h.path({ type: "LineString", coordinates: [found.g.gap.from, found.g.gap.to] }) ?? "" });
+        showTip(gapTip(found.g.gap), e.clientX, e.clientY, touch);
         return;
       }
       hideTip();
     };
-    const down = (e: PointerEvent) => e.pointerType !== "mouse" && show(e);
+    const onTrack = (cx: number, cy: number, target: EventTarget | null) => !(target as Element | null)?.closest(".is-clickable") && !!find(cx, cy, 28);
+    const move = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") show(e, 14);
+      else if (e.pointerId === following) show(e, 64);
+    };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") return;
+      if (onTrack(e.clientX, e.clientY, e.target)) {
+        following = e.pointerId;
+        svg.setPointerCapture(e.pointerId);
+      }
+      show(e, 28);
+    };
+    const up = (e: PointerEvent) => {
+      if (e.pointerId === following) following = null;
+    };
+    // The page scrolls under a finger unless it lands on the track: there the gesture is the map's.
+    const touchStart = (e: TouchEvent) => {
+      const f = e.touches[0];
+      if (e.touches.length === 1 && f && onTrack(f.clientX, f.clientY, e.target)) e.preventDefault();
+    };
     const leave = (e: PointerEvent) => e.pointerType === "mouse" && clear();
-    svg.addEventListener("pointermove", show);
+    const outside = whenTouchedOutside(svg, clear);
+    svg.addEventListener("pointermove", move);
     svg.addEventListener("pointerdown", down);
+    svg.addEventListener("pointerup", up);
+    svg.addEventListener("pointercancel", up);
     svg.addEventListener("pointerleave", leave);
+    svg.addEventListener("touchstart", touchStart, { passive: false });
     return () => {
-      svg.removeEventListener("pointermove", show);
+      svg.removeEventListener("pointermove", move);
       svg.removeEventListener("pointerdown", down);
+      svg.removeEventListener("pointerup", up);
+      svg.removeEventListener("pointercancel", up);
       svg.removeEventListener("pointerleave", leave);
+      svg.removeEventListener("touchstart", touchStart);
+      outside();
       hideTip();
     };
   }, []);

@@ -11,7 +11,7 @@ import world from "world-atlas/countries-110m.json";
 import { t } from "@touchdown/i18n";
 import { airportTip, ARRIVE_MS, routeSamplesOf, screenAngle, type MapFlight, type MapSpot } from "./maps.tsx";
 import { AIRLINER_MARKER, gapTip, MARKER_DISC, nearest, sampleTip, trackGaps, type TrackGap, type TrackMarker, type TrackSample } from "../lib/trackStatus.ts";
-import { esc as escHtml, hideTip, showTip } from "./overlay.tsx";
+import { esc as escHtml, hideTip, showTip, whenTouchedOutside } from "./overlay.tsx";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
 
@@ -121,6 +121,9 @@ function segmentDistance(px: number, py: number, ax: number, ay: number, bx: num
   const t = len ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len)) : 0;
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
+
+/** How much wider a finger's target is than a mouse's, in pixels. */
+const FINGER = 10;
 
 /** A scale kept within the globe's zoom: from 0.3 of the stage's shorter side to 40 times the scale that fits it. */
 function within(st: { fitScale: number; width: number; height: number }, scale: number): number {
@@ -510,6 +513,8 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     let pinch: { dist: number; scale: number } | null = null;
     // Safari's trackpad pinch under way: the scale it started from.
     let gesture: number | null = null;
+    // A finger following the track, by its pointer.
+    let following: number | null = null;
     let last = { x: 0, y: 0, t: 0 };
     // The last moments of a drag, for its speed when it ends: one move alone is too uneven to go by.
     let trail: { x: number; y: number; t: number }[] = [];
@@ -520,38 +525,50 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
 
-    const hitTest = (x: number, y: number) => {
-      const proj = geoOrthographic().clipAngle(90).rotate([st.rot[0], st.rot[1], 0]).scale(st.scale).translate([st.width / 2, st.height / 2]);
-      const centre: LonLat = [-st.rot[0], -st.rot[1]];
+    const view = () => ({
+      proj: geoOrthographic().clipAngle(90).rotate([st.rot[0], st.rot[1], 0]).scale(st.scale).translate([st.width / 2, st.height / 2]),
+      centre: [-st.rot[0], -st.rot[1]] as LonLat,
+    });
+
+    /** On a flight's track: the recorded position within `radius` pixels of (x, y), else a gap within 7/12 of that. */
+    const trackAt = (x: number, y: number, radius: number) => {
+      const { proj, centre } = view();
+      const { samples: smp, gaps } = data.current;
+      if (smp.length < 2) return null;
+      const shown = (p: LonLat) => (geoDistance(p, centre) < Math.PI / 2 - 0.01 ? (proj(p) as [number, number] | null) : null);
+      const i = nearest(smp.map((s) => shown(s.at)), x, y, radius);
+      if (i >= 0) return { kind: "sample" as const, i };
+      for (const g of gaps) {
+        const f = geoInterpolate(g.from, g.to);
+        let prev: [number, number] | null = null;
+        for (let k = 0; k <= 40; k++) {
+          const q = shown(f(k / 40) as LonLat);
+          if (q && prev && segmentDistance(x, y, prev[0], prev[1], q[0], q[1]) < (radius * 7) / 12) return { kind: "gap" as const, g };
+          prev = q;
+        }
+      }
+      return null;
+    };
+
+    /** What is under (x, y): a spotting place, an airport, the track, a route. `slack` widens each for a finger. */
+    const hitTest = (x: number, y: number, slack = 0) => {
+      const { proj, centre } = view();
       const { flights: fl, spots: sp } = data.current;
       const maxAircraft = Math.max(1, ...sp.map((s) => s.aircraft));
       for (const s of sp) {
         if (geoDistance(s.at, centre) > Math.PI / 2) continue;
         const xy = proj(s.at);
-        if (xy && Math.hypot(xy[0] - x, xy[1] - y) < 4 + 9 * Math.sqrt(s.aircraft / maxAircraft) + 3) return { kind: "spot" as const, s };
+        if (xy && Math.hypot(xy[0] - x, xy[1] - y) < 4 + 9 * Math.sqrt(s.aircraft / maxAircraft) + 3 + slack) return { kind: "spot" as const, s };
       }
       for (const a of airportMarks(fl, sp)) {
         if (!a.flights || geoDistance(a.at, centre) > Math.PI / 2) continue;
         const xy = proj(a.at);
-        if (xy && Math.hypot(xy[0] - x, xy[1] - y) < 9) return { kind: "airport" as const, a };
+        if (xy && Math.hypot(xy[0] - x, xy[1] - y) < 9 + slack) return { kind: "airport" as const, a };
       }
-      const { samples: smp, gaps } = data.current;
-      if (smp.length > 1) {
-        const shown = (p: LonLat) => (geoDistance(p, centre) < Math.PI / 2 - 0.01 ? (proj(p) as [number, number] | null) : null);
-        const i = nearest(smp.map((s) => shown(s.at)), x, y, 12);
-        if (i >= 0) return { kind: "sample" as const, i };
-        for (const g of gaps) {
-          const f = geoInterpolate(g.from, g.to);
-          let prev: [number, number] | null = null;
-          for (let k = 0; k <= 40; k++) {
-            const q = shown(f(k / 40) as LonLat);
-            if (q && prev && segmentDistance(x, y, prev[0], prev[1], q[0], q[1]) < 7) return { kind: "gap" as const, g };
-            prev = q;
-          }
-        }
-      }
+      const onTrack = trackAt(x, y, 12 + slack);
+      if (onTrack) return onTrack;
       let best: MapFlight | null = null;
-      let bestD = 8;
+      let bestD = 8 + slack;
       for (const f of fl) {
         const pts = routePoints(f);
         const step = Math.max(1, Math.floor(pts.length / 120));
@@ -574,15 +591,16 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       return best ? { kind: "flight" as const, f: best } : null;
     };
 
+    /** Whether two things under the pointer are the same. */
+    const sameAs = (a: Hover, b: Hover) =>
+      (a?.kind === "flight" && b?.kind === "flight" && a.f.id === b.f.id) ||
+      (a?.kind === "spot" && b?.kind === "spot" && a.s.code === b.s.code) ||
+      (a?.kind === "airport" && b?.kind === "airport" && a.a.id === b.a.id) ||
+      (a?.kind === "sample" && b?.kind === "sample" && a.i === b.i) ||
+      (a?.kind === "gap" && b?.kind === "gap" && a.g === b.g);
+
     const setHover = (h: Hover, e?: PointerEvent) => {
-      const prev = st.hover;
-      const same =
-        (prev?.kind === "flight" && h?.kind === "flight" && prev.f.id === h.f.id) ||
-        (prev?.kind === "spot" && h?.kind === "spot" && prev.s.code === h.s.code) ||
-        (prev?.kind === "airport" && h?.kind === "airport" && prev.a.id === h.a.id) ||
-        (prev?.kind === "sample" && h?.kind === "sample" && prev.i === h.i) ||
-        (prev?.kind === "gap" && h?.kind === "gap" && prev.g === h.g);
-      if (!same) {
+      if (!sameAs(st.hover, h)) {
         st.hover = h;
         st.dirty = true;
       }
@@ -598,7 +616,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
                 : h.kind === "spot"
                   ? h.s.tip
                   : `<strong>${escHtml(t("format.nameWithCode", { name: h.a.name, code: h.a.code }))}</strong><br><span class="muted">${escHtml(airportTip(data.current.flights, h.a.id, h.a.flights))}</span>`;
-        showTip(tip, e.clientX, e.clientY);
+        showTip(tip, e.clientX, e.clientY, e.pointerType !== "mouse");
       } else hideTip();
     };
 
@@ -614,6 +632,12 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         const [a, b] = [...pointers.values()];
         pinch = { dist: Math.hypot(a!.x - b!.x, a!.y - b!.y), scale: st.scale };
         drag = null;
+        following = null;
+      } else if (e.pointerType !== "mouse" && trackAt(p.x, p.y, 12 + FINGER)) {
+        // A finger that lands on the track follows it, the globe still, as on the flat map.
+        following = e.pointerId;
+        drag = null;
+        setHover(trackAt(p.x, p.y, 12 + FINGER), e);
       } else {
         drag = { x: p.x, y: p.y, rot: [...st.rot] as [number, number], moved: 0, t: performance.now(), coasting: false };
         last = { x: p.x, y: p.y, t: performance.now() };
@@ -630,6 +654,11 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         const d = Math.hypot(a!.x - b!.x, a!.y - b!.y);
         st.scale = within(st, (pinch.scale * d) / pinch.dist);
         st.dirty = true;
+        return;
+      }
+      if (e.pointerId === following) {
+        const h = trackAt(p.x, p.y, 64);
+        if (h) setHover(h, e);
         return;
       }
       if (drag) {
@@ -651,7 +680,11 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         st.velocity = [((p.x - from.x) * k * 16) / dt, (-(p.y - from.y) * k * 16) / dt];
         last = { x: p.x, y: p.y, t: now };
         st.dirty = true;
-        if (drag.moved > 4) hideTip();
+        // A finger turning the globe puts away what a tap showed.
+        if (drag.moved > 4) {
+          if (e.pointerType !== "mouse" && st.hover) setHover(null);
+          else hideTip();
+        }
         // A trackpad's three-finger drag goes on for a moment after the fingers lift, without moving, before it ends.
         // A drag that stops while still fast coasts at once, as it would have on release.
         clearTimeout(still);
@@ -670,6 +703,10 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     const up = (e: PointerEvent) => {
       pointers.delete(e.pointerId);
       clearTimeout(still);
+      if (e.pointerId === following) {
+        following = null;
+        return;
+      }
       if (pinch && pointers.size < 2) {
         pinch = null;
         drag = null;
@@ -683,8 +720,11 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         const recent = performance.now() - last.t < 60;
         drag = null;
         if (clicked) {
-          const h = hitTest(p.x, p.y);
-          if (h?.kind === "flight") data.current.onFlightClick?.(h.f);
+          const finger = e.pointerType !== "mouse";
+          const h = hitTest(p.x, p.y, finger ? FINGER : 0);
+          // A finger's first tap on a route or a place shows its tooltip, as a mouse's hover does; a second opens it.
+          if (finger && (h?.kind === "flight" || h?.kind === "airport" || h?.kind === "spot") && !sameAs(st.hover, h)) setHover(h, e);
+          else if (h?.kind === "flight") data.current.onFlightClick?.(h.f);
           else if (h?.kind === "airport" && data.current.onAirportClick) {
             hideTip();
             data.current.onAirportClick(h.a.id);
@@ -702,6 +742,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     const cancel = (e: PointerEvent) => {
       pointers.delete(e.pointerId);
       clearTimeout(still);
+      following = null;
       if (drag) {
         st.rot = drag.rot;
         st.dirty = true;
@@ -771,6 +812,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     cv.addEventListener("pointercancel", cancel);
     cv.addEventListener("pointerleave", leave);
     cv.addEventListener("wheel", wheel, { passive: false });
+    const outside = whenTouchedOutside(cv, () => st.hover && setHover(null));
     cv.addEventListener("gesturestart", gestureStart);
     cv.addEventListener("gesturechange", gestureChange);
     cv.addEventListener("gestureend", gestureEnd);
@@ -782,6 +824,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       cv.removeEventListener("pointercancel", cancel);
       cv.removeEventListener("pointerleave", leave);
       cv.removeEventListener("wheel", wheel);
+      outside();
       cv.removeEventListener("gesturestart", gestureStart);
       cv.removeEventListener("gesturechange", gestureChange);
       cv.removeEventListener("gestureend", gestureEnd);

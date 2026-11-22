@@ -4,21 +4,42 @@ import { useEffect, useRef, useState } from "react";
 
 let tipEl: HTMLDivElement | null = null;
 
-export function showTip(html: string, x: number, y: number) {
+/**
+ * Shows the tooltip at a point: below and to the right of a mouse's pointer, or for a finger (`touch`) above it and
+ * centred on it, where the hand does not cover it, else below it when there is no room above.
+ */
+export function showTip(html: string, x: number, y: number, touch = false) {
   if (!tipEl) return;
   tipEl.innerHTML = html;
   tipEl.classList.add("is-on");
   const r = tipEl.getBoundingClientRect();
-  let left = x + 14;
-  let top = y + 14;
-  if (left + r.width > window.innerWidth - 8) left = x - r.width - 14;
-  if (top + r.height > window.innerHeight - 8) top = y - r.height - 14;
+  let left = touch ? x - r.width / 2 : x + 14;
+  let top = touch ? y - r.height - 36 : y + 14;
+  if (touch) {
+    left = Math.min(left, window.innerWidth - r.width - 8);
+    if (top < 8) top = y + 36;
+  } else {
+    if (left + r.width > window.innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > window.innerHeight - 8) top = y - r.height - 14;
+  }
   tipEl.style.left = `${Math.max(8, left)}px`;
   tipEl.style.top = `${Math.max(8, top)}px`;
 }
 
 export function hideTip() {
   tipEl?.classList.remove("is-on");
+}
+
+/**
+ * Calls `away` when a finger touches the page outside `el`, to put away what a tap on `el` showed before the page
+ * scrolls under the finger (a mouse puts it away on leaving). Returns the remover.
+ */
+export function whenTouchedOutside(el: Element, away: () => void): () => void {
+  const down = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse" && !el.contains(e.target as Node)) away();
+  };
+  document.addEventListener("pointerdown", down);
+  return () => document.removeEventListener("pointerdown", down);
 }
 
 /** Escape text for tooltip HTML. */

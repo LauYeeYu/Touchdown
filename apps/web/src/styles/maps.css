@@ -157,6 +157,13 @@
   cursor: pointer;
 }
 
+/* A finger's target along a route is wider than a mouse's. */
+@media (pointer: coarse) {
+  .map .arc-hit {
+    stroke-width: 20;
+  }
+}
+
 /* The great circle beside a recorded track, for reference: clearer than the grid's lines, but fainter than the track's
    grey gaps, so they read apart from it. */
 .map .gc {
@@ -487,16 +494,13 @@
   border-radius: inherit;
 }
 
+/* A finger turns the globe every way, in a page too: the page scrolls from outside it, and an in-page globe is never
+   taller than 58% of the window (280px on a phone's flight page). */
 .globe__canvas {
   display: block;
   cursor: grab;
   touch-action: none;
   border-radius: inherit;
-}
-
-/* In a page, a vertical swipe scrolls the page; sideways turns the globe. */
-.globe--contained .globe__canvas {
-  touch-action: pan-y;
 }
 
 .globe__canvas:focus-visible {
@@ -575,7 +579,12 @@
   text-decoration: underline;
 }
 
-.map .spot.is-clickable:hover {
+.map .spot-hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.map .spot.is-hover.is-clickable {
   stroke: var(--ink);
 }
 
