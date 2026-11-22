@@ -12,6 +12,7 @@ import { headline } from "../lib/i18n.tsx";
 import { useVisitor } from "../lib/visitor.ts";
 import { useViewState } from "../lib/viewState.ts";
 import { useTypeCounts, useTypeEntries } from "../lib/typeEntries.ts";
+import { usePageTitle } from "../lib/title.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useApp } from "../data/context.tsx";
 import { TypeRow } from "../components/TypeRow.tsx";
@@ -28,6 +29,7 @@ export function TypeManufacturer() {
   // Kept with the visit, so Back from a type's page shows the role chosen (docs/31, "Going back").
   const [role, setRole] = useViewState<TypeRole | "all">("role", "all");
   const manufacturer = manufacturers.find((m) => m.slug === slug);
+  usePageTitle(manufacturer?.name ?? null);
   if (!manufacturer) return <NotFound />;
 
   const roles = ROLES.filter((r) => manufacturer.entries.some((e) => e.roles.includes(r)));

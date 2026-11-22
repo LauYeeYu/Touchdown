@@ -15,6 +15,7 @@ import { useTypeInfo } from "../lib/typeInfo.ts";
 import { useApp } from "../data/context.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { searched, slugOf, useTypeCounts, useTypeEntries, type TypeEntry, type TypeManufacturer } from "../lib/typeEntries.ts";
+import { usePageTitle } from "../lib/title.ts";
 import { Select } from "../components/Select.tsx";
 import { Silhouette } from "../components/Silhouette.tsx";
 import { TypeRow } from "../components/TypeRow.tsx";
@@ -60,6 +61,7 @@ const letterOf = (name: string) => {
 };
 
 export function Types() {
+  usePageTitle(t("aircraft.types.title"));
   const all = useTypeEntries();
   const { entries, manufacturers } = all;
   const counts = useTypeCounts();

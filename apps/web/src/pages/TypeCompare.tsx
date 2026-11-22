@@ -16,6 +16,7 @@ import { useTypeInfo, type TypeInfo } from "../lib/typeInfo.ts";
 import { drawingOf } from "../components/Silhouette.tsx";
 import { TypePicker } from "../components/TypePicker.tsx";
 import { hasTypePage, useTypeCounts } from "../lib/typeEntries.ts";
+import { usePageTitle } from "../lib/title.ts";
 
 /** The pair Compare starts with when the log has neither flights nor sightings. */
 const START = ["A320", "B738"];
@@ -33,6 +34,7 @@ export function TypeCompare() {
   const { ref } = app;
   const info = useTypeInfo();
   const counts = useTypeCounts();
+  usePageTitle(t("aircraft.types.compare.title"));
 
   // Every type with figures; the log's most flown and most seen to start with.
   const hasFigures = (code: string) => withFigures(info, code);

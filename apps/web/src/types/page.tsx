@@ -50,7 +50,6 @@ export async function showTypes(): Promise<void> {
   // This browser's languages: a visitor has no account to choose one in.
   await startLanguage(null);
   document.documentElement.lang = locale();
-  document.title = t("aircraft.types.title");
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <TypesPages />

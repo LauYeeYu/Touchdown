@@ -15,6 +15,7 @@ import { useVisitor } from "../lib/visitor.ts";
 import { aircraftViews } from "../lib/views.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { onlyType, slugOf, useTypeCounts, useTypeEntries } from "../lib/typeEntries.ts";
+import { usePageTitle } from "../lib/title.ts";
 import { TypeFamilyTable } from "../components/TypeFamilyTable.tsx";
 import { TypeAircraft, TypeHistory } from "../components/TypeSections.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -29,6 +30,7 @@ export function TypeFamily() {
   const visitor = useVisitor();
   const { entries } = useTypeEntries();
   const entry = entries.find((e) => e.family && slugOf(e.family.name) === slug);
+  usePageTitle(entry?.family?.name ?? null);
   const codes = entry?.codes ?? [];
   const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode && codes.includes(v.airframe.typeCode)), [store, version, codes]);
   if (!entry?.family) {

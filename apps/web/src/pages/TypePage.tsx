@@ -27,6 +27,7 @@ import { TypeFamilyTable } from "../components/TypeFamilyTable.tsx";
 import { TypeAircraft, TypeHistory, type History } from "../components/TypeSections.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { hasTypePage, onlyType, slugOf, useTypeCounts } from "../lib/typeEntries.ts";
+import { usePageTitle } from "../lib/title.ts";
 
 export function TypePage() {
   const { code } = useParams({ from: "/types/$code" });
@@ -39,6 +40,7 @@ export function TypePage() {
   const type = ref.type(code);
   const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode === code), [store, version, code]);
   const [pose, setPose] = useViewState<Pose>("drawing.pose", "animated");
+  usePageTitle(type && hasTypePage(ref, code) ? typeName(code, ref) : null);
   if (!type || !hasTypePage(ref, code)) return <NotFound />;
 
   const name = typeName(code, ref);
