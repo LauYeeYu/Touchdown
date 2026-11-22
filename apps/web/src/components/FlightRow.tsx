@@ -48,8 +48,9 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
         className={`row${active ? " is-active" : ""}`}
         to="/flights/$id"
         params={{ id: v.f.id }}
-        onPointerEnter={() => onHover?.(true)}
-        onPointerLeave={() => onHover?.(false)}
+        // A mouse's hover only: a finger scrolling the list over a row would flash its route on the map.
+        onPointerEnter={(e) => e.pointerType === "mouse" && onHover?.(true)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && onHover?.(false)}
         onFocus={() => onHover?.(true)}
         onBlur={() => onHover?.(false)}
       >
