@@ -80,6 +80,7 @@ interface Colours {
   landEdge: string;
   grid: string;
   rule: string;
+  greatCircle: string;
   flown: string;
   spotted: string;
   ink: string;
@@ -91,7 +92,7 @@ interface Colours {
 function readColours(): Colours {
   const cs = getComputedStyle(document.documentElement);
   const v = (n: string) => cs.getPropertyValue(n).trim();
-  return { sphere: v("--globe-sphere") || v("--sphere"), land: v("--land"), landEdge: v("--land-edge"), grid: v("--grid"), rule: v("--rule-strong"), flown: v("--flown"), spotted: v("--spotted"), ink: v("--ink"), ink2: v("--ink-2"), ink3: v("--ink-3"), paper: v("--paper") };
+  return { sphere: v("--globe-sphere") || v("--sphere"), land: v("--land"), landEdge: v("--land-edge"), grid: v("--grid"), rule: v("--rule-strong"), greatCircle: v("--great-circle"), flown: v("--flown"), spotted: v("--spotted"), ink: v("--ink"), ink2: v("--ink-2"), ink3: v("--ink-3"), paper: v("--paper") };
 }
 
 /** Points along a route, for hit testing and framing. */
@@ -256,9 +257,10 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       ctx.strokeStyle = c.landEdge;
       ctx.stroke();
 
-      // The great circle beside a flight's recorded track: faint, as on its flat map.
+      // The great circle beside a flight's recorded track: clearer than the grid, fainter than the track's gaps, as on
+      // its flat map.
       if (gc.length) {
-        ctx.strokeStyle = c.rule;
+        ctx.strokeStyle = c.greatCircle;
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 4]);
         ctx.beginPath();

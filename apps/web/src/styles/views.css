@@ -885,7 +885,7 @@
 }
 
 .swatch-line--faint {
-  border-top: 1px dashed var(--rule-strong);
+  border-top: 1px dashed var(--great-circle);
 }
 
 @media (max-width: 960px) {

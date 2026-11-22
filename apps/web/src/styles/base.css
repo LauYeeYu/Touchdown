@@ -107,6 +107,8 @@
   --good: #2e7d4f;
   --land: #e6e0d1;
   --land-edge: #f6f3eb;
+  /* The great circle beside a recorded track: clearer than the grid's lines, fainter than a track's grey gap dots. */
+  --great-circle: #b0a99b;
   --sans: "Source Sans 3 Text", "Source Sans 3 Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* Material-style tonal surfaces: a warm neutral palette at the page's hue (HCT 105, chroma 5). */
   --surface-lowest: #fffdf8;
@@ -202,6 +204,7 @@
     --good: #63b886;
     --land: #2a2823;
     --land-edge: #171613;
+    --great-circle: #656157;
     --shadow-pop: 0 6px 18px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 }
@@ -256,6 +259,7 @@
   --good: #63b886;
   --land: #2a2823;
   --land-edge: #171613;
+  --great-circle: #656157;
   --shadow-pop: 0 6px 18px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 

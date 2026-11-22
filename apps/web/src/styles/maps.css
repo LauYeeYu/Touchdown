@@ -157,10 +157,11 @@
   cursor: pointer;
 }
 
-/* The great circle beside a recorded track, for reference: faint, so the track's grey gaps read apart from it. */
+/* The great circle beside a recorded track, for reference: clearer than the grid's lines, but fainter than the track's
+   grey gaps, so they read apart from it. */
 .map .gc {
   fill: none;
-  stroke: var(--rule-strong);
+  stroke: var(--great-circle);
   stroke-width: 1;
   stroke-dasharray: 3 4;
 }

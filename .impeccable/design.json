@@ -456,6 +456,23 @@
           "#f1eee6"
         ]
       },
+      "great-circle": {
+        "role": "neutral",
+        "displayName": "Great circle",
+        "theme": "light",
+        "canonical": "#b0a99b",
+        "oklch": "oklch(73.7% 0.021 85)",
+        "tonalRamp": [
+          "#0f0a03",
+          "#2a2419",
+          "#474135",
+          "#676154",
+          "#888274",
+          "#aba496",
+          "#cfc8ba",
+          "#f5eedf"
+        ]
+      },
       "sphere": {
         "role": "neutral",
         "displayName": "Globe Disc",
@@ -1116,6 +1133,23 @@
           "#a6a5a1",
           "#cac9c5",
           "#f0eeea"
+        ]
+      },
+      "great-circle-dark": {
+        "role": "neutral",
+        "displayName": "Great circle (dark)",
+        "theme": "dark",
+        "canonical": "#656157",
+        "oklch": "oklch(49.3% 0.016 89)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#28251c",
+          "#464239",
+          "#656157",
+          "#868277",
+          "#a9a59a",
+          "#cdc9bd",
+          "#f3eee2"
         ]
       },
       "sphere-dark": {
