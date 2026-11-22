@@ -39,7 +39,7 @@ These pages are a small separate bundle with its own build (`vite.signin.config.
 - The owner opens Settings → People → "Invite someone" and gets a link, `https://<site>/join/<token>`. It works once, for 7 days. The owner may note who it is for; the note is only for the owner's list.
 - With the link comes a message to send with it, with "Copy message" (built, `apps/web/src/lib/invitation.ts`): what Touchdown is, the link and when it ends, and one line pointing to the README for adding records from a computer with the command line or an agent. The command line's steps stay in the README, so the message is short for someone who only uses the site.
 - The token is 128 random bits. The server stores only its hash.
-- People lists the members (name, email, how they sign in, when they last signed in) and the open invitations, which can be withdrawn.
+- People lists the members (name, email, how they sign in, when they last signed in, in UTC: a member's own time zone is not recorded) and the open invitations, which can be withdrawn.
 
 ## Suspending and removing
 

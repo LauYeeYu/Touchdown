@@ -12,6 +12,7 @@ export {
   localDay,
   dateTimeLabel,
   momentLabel,
+  momentLabelUtc,
   momentDay,
   momentShort,
   offsetLabel,

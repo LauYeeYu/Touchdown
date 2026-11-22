@@ -7,7 +7,7 @@ import type { AppData } from "../data/app.ts";
 import { account, AuthError, type Link, type Me, type OpenInvite, type Person } from "../data/account.ts";
 import { forgetOffline } from "../data/offline.ts";
 import { MIN_PASSWORD, passwordProblem } from "../lib/passwordKey.ts";
-import { momentDay, momentLabel } from "../lib/format.ts";
+import { momentDay, momentLabel, momentLabelUtc } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, TextInput } from "./form.tsx";
 import { toast } from "./overlay.tsx";
@@ -403,7 +403,8 @@ function PeopleSection({ me }: { me: Me }) {
             <span>
               {t("account.members.name", { name: p.name, role: p.role })}
               {p.suspendedAt && <span className="pill member-suspended">{t("account.members.suspendedTag")}</span>}
-              <small>{t("account.members.details", { email: p.email, methods: p.password && p.google ? "both" : p.password ? "password" : p.google ? "google" : "none", when: when(p.lastSeenAt) })}</small>
+              {/* In UTC: a member's own time zone is not recorded, and the owner's would say a time of day they never saw. */}
+              <small>{t("account.members.details", { email: p.email, methods: p.password && p.google ? "both" : p.password ? "password" : p.google ? "google" : "none", when: p.lastSeenAt ? momentLabelUtc(Date.parse(p.lastSeenAt)) : t("account.never") })}</small>
             </span>
             {p.id !== me.id && (
               <div className="button-row button-row--tight">

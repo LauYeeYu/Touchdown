@@ -90,6 +90,15 @@ export function momentShort(ms: number): string {
   return t("format.momentShort", { day: momentDay(ms), time: momentTime(new Date(ms)) });
 }
 
+/**
+ * A moment in UTC, with its date: "23 Oct 2026, 14:05 UTC". For another person's moment, such as a member's last sign-in:
+ * their own time zone is not recorded, and this device's would say a time of day they never saw.
+ */
+export function momentLabelUtc(ms: number): string {
+  const d = new Date(ms);
+  return t("format.moment", { day: dayMonthYear(d.toISOString().slice(0, 10)), time: `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`, offset: "UTC" });
+}
+
 /** A moment on this device's clock, with its date and UTC offset: "23 Oct 2026, 14:05 UTC+1". Times are 24-hour. */
 export function momentLabel(ms: number): string {
   const d = new Date(ms);
