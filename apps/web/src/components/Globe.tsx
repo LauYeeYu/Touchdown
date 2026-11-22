@@ -119,6 +119,11 @@ function segmentDistance(px: number, py: number, ax: number, ay: number, bx: num
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
+/** A scale kept within the globe's zoom: from 0.3 of the stage's shorter side to 40 times the scale that fits it. */
+function within(st: { fitScale: number; width: number; height: number }, scale: number): number {
+  return Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, scale));
+}
+
 export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [], samples = [], takeoff = null }, handle) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -168,7 +173,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
   useImperativeHandle(handle, () => ({
     zoomBy: (factor) => {
       const st = state.current;
-      st.scale = Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, st.scale * factor));
+      st.scale = within(st, st.scale * factor);
       st.dirty = true;
     },
     reset: () => fit(),
@@ -497,6 +502,8 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     const pointers = new Map<number, { x: number; y: number }>();
     let drag: { x: number; y: number; rot: [number, number]; moved: number; t: number; coasting: boolean } | null = null;
     let pinch: { dist: number; scale: number } | null = null;
+    // Safari's trackpad pinch under way: the scale it started from.
+    let gesture: number | null = null;
     let last = { x: 0, y: 0, t: 0 };
     // The last moments of a drag, for its speed when it ends: one move alone is too uneven to go by.
     let trail: { x: number; y: number; t: number }[] = [];
@@ -615,7 +622,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       if (pinch && pointers.size === 2) {
         const [a, b] = [...pointers.values()];
         const d = Math.hypot(a!.x - b!.x, a!.y - b!.y);
-        st.scale = Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, (pinch.scale * d) / pinch.dist));
+        st.scale = within(st, (pinch.scale * d) / pinch.dist);
         st.dirty = true;
         return;
       }
@@ -705,11 +712,35 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     };
 
     const wheel = (e: WheelEvent) => {
-      // A trackpad pinch arrives as a wheel event with ctrlKey set.
+      // A trackpad pinch arrives as a wheel event with ctrlKey set, but in Safari as gesture events (below).
       if (data.current.contained && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      st.scale = Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, st.scale * Math.exp(-e.deltaY * 0.0015)));
+      if (gesture !== null) return;
+      // In pixels: a line as 16, a page as the stage's height. A pinch's small steps follow the fingers, as a touch
+      // screen's pinch does, and a wheel's notch (about 100 pixels) zooms as the + button does (1.4 times). One event
+      // zooms by 1.65 times at most, so a mouse's wheel with Ctrl, read as a pinch, does not leap.
+      const px = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? st.height : 1);
+      const per = e.ctrlKey ? 100 : 300;
+      st.scale = within(st, st.scale * Math.exp(-Math.max(-per / 2, Math.min(per / 2, px)) / per));
       st.dirty = true;
+    };
+
+    // Safari's trackpad pinch, its scale from the gesture's start. A touch screen's pinch is the pointers' (above).
+    const gestureStart = (e: Event) => {
+      if (pointers.size) return;
+      e.preventDefault();
+      gesture = st.scale;
+    };
+    const gestureChange = (e: Event) => {
+      if (gesture === null) return;
+      e.preventDefault();
+      st.scale = within(st, gesture * (e as Event & { scale: number }).scale);
+      st.dirty = true;
+    };
+    const gestureEnd = (e: Event) => {
+      if (gesture === null) return;
+      e.preventDefault();
+      gesture = null;
     };
 
     const key = (e: KeyboardEvent) => {
@@ -718,8 +749,8 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       else if (e.key === "ArrowRight") st.rot = [st.rot[0] - step, st.rot[1]];
       else if (e.key === "ArrowUp") st.rot = [st.rot[0], Math.max(-89, st.rot[1] - step)];
       else if (e.key === "ArrowDown") st.rot = [st.rot[0], Math.min(89, st.rot[1] + step)];
-      else if (e.key === "+" || e.key === "=") st.scale = Math.min(st.fitScale * 40, st.scale * 1.25);
-      else if (e.key === "-" || e.key === "_") st.scale = Math.max(Math.min(st.width, st.height) * 0.3, st.scale / 1.25);
+      else if (e.key === "+" || e.key === "=") st.scale = within(st, st.scale * 1.25);
+      else if (e.key === "-" || e.key === "_") st.scale = within(st, st.scale / 1.25);
       else if (e.key === "0") {
         st.rot = [...st.fitRot];
         st.scale = st.fitScale;
@@ -734,6 +765,9 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     cv.addEventListener("pointercancel", cancel);
     cv.addEventListener("pointerleave", leave);
     cv.addEventListener("wheel", wheel, { passive: false });
+    cv.addEventListener("gesturestart", gestureStart);
+    cv.addEventListener("gesturechange", gestureChange);
+    cv.addEventListener("gestureend", gestureEnd);
     cv.addEventListener("keydown", key);
     return () => {
       cv.removeEventListener("pointerdown", down);
@@ -742,6 +776,9 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       cv.removeEventListener("pointercancel", cancel);
       cv.removeEventListener("pointerleave", leave);
       cv.removeEventListener("wheel", wheel);
+      cv.removeEventListener("gesturestart", gestureStart);
+      cv.removeEventListener("gesturechange", gestureChange);
+      cv.removeEventListener("gestureend", gestureEnd);
       cv.removeEventListener("keydown", key);
       clearTimeout(still);
       hideTip();
