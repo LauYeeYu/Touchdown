@@ -1,11 +1,12 @@
 // Small charts, drawn as in the prototype: thin bars with rounded tops anchored to the baseline, one direct
-// label on the highest bar, recessive grid, and a hover tooltip per month.
+// label on the highest bar, recessive grid, and a tooltip per month. A mouse shows it on hover; a finger on a tap, or
+// sliding sideways along the chart (a vertical swipe scrolls the page), and it stays until the finger touches elsewhere.
 
 import { useEffect, useRef } from "react";
 import { scaleLinear } from "d3-scale";
 import { t } from "@touchdown/i18n";
 import { monthNames, nf } from "../lib/format.ts";
-import { hideTip, showTip } from "./overlay.tsx";
+import { hideTip, showTip, whenTouchedOutside } from "./overlay.tsx";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -36,6 +37,7 @@ export function MonthChart({ values, color, count, futureFrom, yearLabel }: Mont
   const key = values.join(",") + `|${futureFrom}|${yearLabel}`;
   useEffect(() => {
     const container = host.current!;
+    let clear = () => {};
     const draw = () => {
       const width = Math.max(280, container.clientWidth);
       const height = 168;
@@ -71,20 +73,34 @@ export function MonthChart({ values, color, count, futureFrom, yearLabel }: Mont
         else if (v > 0) bars.push(el(g, "path", { class: "bar", "data-i": i, fill: color, d: roundedTopBar(cx - bw / 2, y(v), bw, ih - y(v), 4) }));
         if (i === maxIndex && v > 0) el(g, "text", { class: "bar-label", x: cx, y: y(v) - 6, "text-anchor": "middle" }).textContent = nf.format(v);
         el(g, "text", { class: "tick-label", x: cx, y: ih + 17, "text-anchor": "middle" }).textContent = initials[i]!;
-        const hit = el(g, "rect", { class: "bar-hit", x: band * i, y: -m.top, width: band, height: ih + m.top + 20 });
-        const month = yearLabel ? t("stats.chart.monthYear", { month: months[i]!, year: yearLabel }) : months[i]!;
-        const tip = `<strong>${month}</strong><br><span class="muted">${future ? t("stats.chart.notYet") : count(v)}</span>`;
-        const enter = (ev: PointerEvent) => {
-          for (const b of bars) b.classList.toggle("is-dim", Number(b.dataset.i) !== i);
-          showTip(tip, ev.clientX, ev.clientY);
-        };
-        hit.addEventListener("pointerenter", enter);
-        hit.addEventListener("pointermove", enter);
-        hit.addEventListener("pointerleave", () => {
-          for (const b of bars) b.classList.remove("is-dim");
-          hideTip();
-        });
       });
+      const tips = values.map((v, i) => {
+        const month = yearLabel ? t("stats.chart.monthYear", { month: months[i]!, year: yearLabel }) : months[i]!;
+        const future = futureFrom !== null && i >= futureFrom;
+        return `<strong>${month}</strong><br><span class="muted">${future ? t("stats.chart.notYet") : count(v)}</span>`;
+      });
+      // The month under the pointer, by its column: one target over the whole plot, so a finger sliding along it moves
+      // from month to month.
+      const hit = el(g, "rect", { class: "bar-hit", x: 0, y: -m.top, width: iw, height: ih + m.top + 20 });
+      let shown = false;
+      const show = (ev: PointerEvent) => {
+        const r = hit.getBoundingClientRect();
+        const i = Math.max(0, Math.min(11, Math.floor(((ev.clientX - r.left) / r.width) * 12)));
+        for (const b of bars) b.classList.toggle("is-dim", Number(b.dataset.i) !== i);
+        showTip(tips[i]!, ev.clientX, ev.clientY, ev.pointerType !== "mouse");
+        shown = true;
+      };
+      // Only what this chart showed: the tooltip is the page's, and another chart may be showing it.
+      clear = () => {
+        if (!shown) return;
+        shown = false;
+        for (const b of bars) b.classList.remove("is-dim");
+        hideTip();
+      };
+      hit.addEventListener("pointerdown", show);
+      hit.addEventListener("pointermove", show);
+      hit.addEventListener("pointerleave", (ev) => ev.pointerType === "mouse" && clear());
+      hit.addEventListener("pointercancel", () => clear());
     };
     draw();
     let last = container.clientWidth;
@@ -95,7 +111,11 @@ export function MonthChart({ values, color, count, futureFrom, yearLabel }: Mont
       }
     });
     ro.observe(container);
-    return () => ro.disconnect();
+    const outside = whenTouchedOutside(container, () => clear());
+    return () => {
+      ro.disconnect();
+      outside();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, color]);
   return <div ref={host} className="chart__plot" />;
@@ -114,6 +134,7 @@ export function AltitudeChart({ points }: { points: AltitudePoint[] }) {
   const key = `${points.length}|${points[0]?.min}|${points[points.length - 1]?.min}`;
   useEffect(() => {
     const container = host.current!;
+    let clear = () => {};
     const draw = () => {
       const width = Math.max(280, container.clientWidth);
       const height = 200;
@@ -145,7 +166,9 @@ export function AltitudeChart({ points }: { points: AltitudePoint[] }) {
       const cross = el(g, "line", { class: "crosshair", y1: 0, y2: ih, style: "display:none" });
       const dot = el(g, "circle", { class: "cursor-dot", r: 4.5, style: "display:none" });
       const hit = el(g, "rect", { width: iw, height: ih, fill: "transparent" });
-      hit.addEventListener("pointermove", (ev) => {
+      let shown = false;
+      const show = (ev: PointerEvent) => {
+        shown = true;
         const r = hit.getBoundingClientRect();
         const at = x.invert(ev.clientX - r.left);
         let best = points[0]!;
@@ -159,13 +182,20 @@ export function AltitudeChart({ points }: { points: AltitudePoint[] }) {
         const h = Math.floor(best.min / 60);
         const mm = Math.round(best.min % 60);
         const after = h ? t("stats.chart.afterHours", { h, m: mm }) : t("stats.chart.afterMinutes", { m: mm });
-        showTip(`<strong>${t("stats.chart.feet", { alt: best.alt })}${best.gs !== null ? ` · ${t("stats.chart.knots", { gs: best.gs })}` : ""}</strong><br><span class="muted">${after} · ${best.clock}</span>`, ev.clientX, ev.clientY);
-      });
-      hit.addEventListener("pointerleave", () => {
+        showTip(`<strong>${t("stats.chart.feet", { alt: best.alt })}${best.gs !== null ? ` · ${t("stats.chart.knots", { gs: best.gs })}` : ""}</strong><br><span class="muted">${after} · ${best.clock}</span>`, ev.clientX, ev.clientY, ev.pointerType !== "mouse");
+      };
+      // Only what this chart showed: the tooltip is the page's, and another chart may be showing it.
+      clear = () => {
+        if (!shown) return;
+        shown = false;
         cross.setAttribute("style", "display:none");
         dot.setAttribute("style", "display:none");
         hideTip();
-      });
+      };
+      hit.addEventListener("pointerdown", show);
+      hit.addEventListener("pointermove", show);
+      hit.addEventListener("pointerleave", (ev) => ev.pointerType === "mouse" && clear());
+      hit.addEventListener("pointercancel", () => clear());
     };
     draw();
     let last = container.clientWidth;
@@ -176,7 +206,11 @@ export function AltitudeChart({ points }: { points: AltitudePoint[] }) {
       }
     });
     ro.observe(container);
-    return () => ro.disconnect();
+    const outside = whenTouchedOutside(container, () => clear());
+    return () => {
+      ro.disconnect();
+      outside();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return <div ref={host} className="chart__plot" />;

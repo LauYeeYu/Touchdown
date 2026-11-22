@@ -90,6 +90,11 @@
   stroke-width: 2;
 }
 
+/* A finger sliding sideways along a chart reads it; a vertical swipe scrolls the page (components/charts.tsx). */
+.chart__plot {
+  touch-action: pan-y;
+}
+
 .chart__plot svg {
   display: block;
 }
