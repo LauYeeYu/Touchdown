@@ -157,10 +157,11 @@
   cursor: pointer;
 }
 
-/* A finger's target along a route is wider than a mouse's. */
+/* A finger's tap finds its route by the distance from the line (WorldMap's routeAt), so on a touch screen the browser
+   has no route target to move a tap onto. */
 @media (pointer: coarse) {
   .map .arc-hit {
-    stroke-width: 20;
+    pointer-events: none;
   }
 }
 

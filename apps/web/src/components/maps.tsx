@@ -18,6 +18,12 @@ import { reducedMotion } from "../lib/reducedMotion.ts";
 const MIN_LON = 24;
 const MIN_LAT = 14;
 
+/** How far from a route's line, in pixels, a finger's tap on the world map still takes it. */
+const FINGER_REACH = 10;
+
+/** The world map's places: a finger's tap on one takes it before any route. */
+const PLACES = ".spot-hit, .airport-hit, .airport-label";
+
 export type LonLat = [number, number];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -252,6 +258,19 @@ export function routeSamplesOf(f: MapFlight): LonLat[] {
   return out;
 }
 
+/** A geometry's lines as the projection draws them, resampled and clipped, in the map's units. */
+function drawnLines(proj: GeoProjection, g: Geometry): [number, number][][] {
+  const lines: [number, number][][] = [];
+  geoPath(proj, {
+    beginPath: () => {},
+    moveTo: (x, y) => void lines.push([[x, y]]),
+    lineTo: (x, y) => void lines.at(-1)?.push([x, y]),
+    closePath: () => {},
+    arc: () => {},
+  })(g);
+  return lines;
+}
+
 function routeSamples(flights: MapFlight[]): LonLat[][] {
   return flights.map(routeSamplesOf);
 }
@@ -338,8 +357,11 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
   const view = useRef<View | null>(null);
   // A finger's first tap on a route, a spotting place or an airport shows what a mouse's hover does, its tooltip and,
   // for a route, its highlight; a second tap on the same opens it. A tap anywhere else puts it away. `finger`: the
-  // last pointer down was not a mouse; `shown`: what a tap shows now.
-  const tap = useRef<{ finger: boolean; shown: string | null; arc: MapFlight | null }>({ finger: false, shown: null, arc: null });
+  // last pointer down was not a mouse; `shown`: what a tap shows now. `route`: the route a finger came down on, where
+  // it touched (`routeAt`), and null on a place.
+  const tap = useRef<{ finger: boolean; shown: string | null; arc: MapFlight | null; route: { f: MapFlight; x: number; y: number } | null }>({ finger: false, shown: null, arc: null, route: null });
+  // Each route's lines as drawn, in the map's units, for `routeAt`.
+  const drawn = useRef<{ f: MapFlight; lines: [number, number][][] }[]>([]);
   const putAway = () => {
     const tc = tap.current;
     if (tc.arc) handlers.current.onArcLeave?.(tc.arc);
@@ -347,16 +369,74 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
     tc.shown = null;
     tc.arc = null;
   };
+  /** A finger's first tap on `key`: shows its tooltip (and a route's highlight) and says so, the tap going no further. */
+  const firstTap = (key: string, tip: string, x: number, y: number, arc?: MapFlight) => {
+    const tc = tap.current;
+    if (!tc.finger || tc.shown === key) return false;
+    putAway();
+    tc.shown = key;
+    tc.arc = arc ?? null;
+    showTip(tip, x, y, true);
+    if (arc) handlers.current.onArcEnter?.(arc);
+    return true;
+  };
+  /** The route whose line is nearest the point on screen, within a finger's reach of it, the muted left out. */
+  const routeAt = (cx: number, cy: number): MapFlight | null => {
+    const m = ref.current?.getScreenCTM();
+    if (!m) return null;
+    const p = new DOMPoint(cx, cy).matrixTransform(m.inverse());
+    const muted = highlight.current.mutedIds;
+    let best: MapFlight | null = null;
+    // Of routes as near, the last, whose mouse target is on top.
+    let min = FINGER_REACH / Math.hypot(m.a, m.b);
+    for (const { f, lines } of drawn.current) {
+      if (muted?.has(f.id)) continue;
+      for (const line of lines)
+        for (let i = 1; i < line.length; i++) {
+          const d = segmentDistance(p.x, p.y, line[i - 1]!, line[i]!);
+          if (d <= min) [min, best] = [d, f];
+        }
+    }
+    return best;
+  };
+  // A finger takes a route by the distance from its line to where the finger touched, not by the browser's targets:
+  // a phone's browser moves a tap's click onto a target near it, and takes a line's target to be the rectangle round
+  // it, so a tap beside a route, or nearer another, would take it.
   useEffect(() => {
     const svg = ref.current!;
     const down = (e: PointerEvent) => {
-      tap.current.finger = e.pointerType !== "mouse";
-      if (tap.current.finger && !(e.target as Element).closest(".arc-hit, .spot-hit, .airport-hit, .airport-label")) putAway();
+      const tc = tap.current;
+      tc.finger = e.pointerType !== "mouse";
+      tc.route = null;
+      if (!tc.finger) return;
+      // A place under the finger itself takes the tap. The event's target may be one only near it, where the browser
+      // moved it to.
+      const onPlace = document.elementsFromPoint(e.clientX, e.clientY).some((n) => n.matches(PLACES));
+      const f = onPlace ? null : routeAt(e.clientX, e.clientY);
+      if (f) tc.route = { f, x: e.clientX, y: e.clientY };
+      else if (!(e.target as Element).closest(PLACES)) putAway();
+    };
+    const click = (e: MouseEvent) => {
+      const tc = tap.current;
+      if (!tc.finger) return;
+      const r = tc.route;
+      if (!r) {
+        // A place's click goes on to it. One the browser moved onto a route's target, away from every line, goes nowhere.
+        if ((e.target as Element).closest(".arc-hit")) e.stopPropagation();
+        return;
+      }
+      // The route's, wherever the browser put the click.
+      e.stopPropagation();
+      if (firstTap(`flight:${r.f.id}`, r.f.tip, r.x, r.y, r.f)) return;
+      putAway();
+      handlers.current.onArcClick?.(r.f);
     };
     svg.addEventListener("pointerdown", down, true);
+    svg.addEventListener("click", click, true);
     const outside = whenTouchedOutside(svg, putAway);
     return () => {
       svg.removeEventListener("pointerdown", down, true);
+      svg.removeEventListener("click", click, true);
       outside();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -367,17 +447,6 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
     (width) => {
       const svg = ref.current!;
       const m = mode === "auto" ? (width < 720 ? "fit" : "world") : mode;
-      /** A finger's first tap on `key`: shows its tooltip (and a route's highlight) and says so, the tap going no further. */
-      const firstTap = (key: string, tip: string, ev: MouseEvent, arc?: MapFlight) => {
-        const tc = tap.current;
-        if (!tc.finger || tc.shown === key) return false;
-        putAway();
-        tc.shown = key;
-        tc.arc = arc ?? null;
-        showTip(tip, ev.clientX, ev.clientY, true);
-        if (arc) handlers.current.onArcEnter?.(arc);
-        return true;
-      };
       /** A place's target: a finger's first tap shows its tooltip, and a click (a second tap) or Enter opens it. */
       const tappable = (node: SVGElement, key: string, tip: string, airportId: string) => {
         const open = handlers.current.onAirportClick
@@ -389,7 +458,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           : null;
         if (open) node.classList.add("is-clickable");
         node.addEventListener("click", (ev) => {
-          if (!firstTap(key, tip, ev as MouseEvent)) open?.();
+          if (!firstTap(key, tip, ev.clientX, ev.clientY)) open?.();
         });
         if (open)
           node.addEventListener("keydown", (ev) => {
@@ -488,6 +557,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           }
         }
       }
+      // A mouse's target along each route. A finger's tap finds its route by distance (`routeAt`).
       flights.forEach((f, i) => {
         const hit = el(arcs, "path", { class: "arc-hit", "data-id": f.id, d: path(routes[i]!) ?? "" });
         hoverTip(
@@ -496,12 +566,12 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           () => handlers.current.onArcEnter?.(f),
           () => handlers.current.onArcLeave?.(f),
         );
-        hit.addEventListener("click", (ev) => {
-          if (firstTap(`flight:${f.id}`, f.tip, ev, f)) return;
+        hit.addEventListener("click", () => {
           putAway();
           handlers.current.onArcClick?.(f);
         });
       });
+      drawn.current = flights.map((f, i) => ({ f, lines: drawnLines(proj, routes[i]!) }));
 
       const spotR = new Map<string, number>();
       // Each place's tooltip by its code, for its label too.
