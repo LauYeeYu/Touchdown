@@ -194,6 +194,13 @@
   text-decoration-color: var(--ink-3);
 }
 
+/* Without hover (a phone), the underline always shows, faint, to say a tap shows the other units. */
+@media (hover: none) {
+  .measured {
+    text-decoration-color: var(--rule-hover);
+  }
+}
+
 /* The family's type codes side by side: drawn to one scale on their tails' line, this one's column marked. */
 .type-family__intro {
   margin: 0;
