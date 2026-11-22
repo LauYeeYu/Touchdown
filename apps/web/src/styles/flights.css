@@ -1,8 +1,10 @@
 /* A flight's page (styles/app.css imports the parts in order). */
 
+/* The two airports in columns of one width, so the arc and the time and distance under it sit in the page's middle
+   whatever the airports' names; a long name wraps in its column. */
 .route-hero {
   display: grid;
-  grid-template-columns: auto minmax(120px, 1fr) auto;
+  grid-template-columns: 1fr minmax(120px, 1.5fr) 1fr;
   align-items: end;
   gap: 28px;
   margin-top: 36px;
@@ -212,6 +214,7 @@
   }
 
   .route-hero {
+    grid-template-columns: 1fr minmax(88px, 1fr) 1fr;
     gap: 12px;
     margin-top: 28px;
   }
@@ -232,6 +235,16 @@
 
   .route-hero__mid svg {
     height: 40px;
+  }
+
+  /* The time and the distance each on a line of their own, without the dot, in the arc's narrow column. */
+  .route-hero__stat b,
+  .route-hero__km {
+    display: block;
+  }
+
+  .route-hero__dot {
+    display: none;
   }
 
   .times {

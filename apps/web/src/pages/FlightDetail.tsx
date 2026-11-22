@@ -349,8 +349,8 @@ export function FlightDetail() {
                 <Duration min={v.min} pad={false} />
               </b>
             )}
-            {v.min !== null && v.km !== null && " · "}
-            {v.km !== null && distance(v.km, unit)}
+            {v.min !== null && v.km !== null && <span className="route-hero__dot"> · </span>}
+            {v.km !== null && <span className="route-hero__km">{distance(v.km, unit)}</span>}
           </div>
         </div>
         <div className="route-hero__end route-hero__end--to">
