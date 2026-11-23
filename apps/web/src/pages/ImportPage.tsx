@@ -21,6 +21,7 @@ import {
   readInbox,
   readXlsx,
   recordIdOf,
+  stillToCome,
   storedFields,
   type AgentField,
   type AgentSuggestion,
@@ -503,7 +504,11 @@ export function ImportPage() {
                 <div className="review-row__head">
                   <span className={`status status--${m.kind}`}>{m.kind === "new" ? t("import.review.status.new") : m.kind === "update" ? t("import.review.status.update") : m.kind === "conflict" ? t("import.review.status.conflict") : m.kind === "duplicate" ? t("import.review.status.duplicate") : t("import.review.status.identical")}</span>
                   <span className="review-row__title">
-                    <b>{l.title}</b>
+                    <b>
+                      {l.title}
+                      {/* A flight still to come comes in as planned (docs/21, "Planned flights"). */}
+                      {m.candidate.table === "flights" && (m.kind === "new" || m.kind === "duplicate") && stillToCome(m.candidate.values, app.ref) && <span className="pill review-row__pill">{t("flights.list.planned")}</span>}
+                    </b>
                     <small>
                       {t("import.review.row", { row: m.candidate.sourceRow })}
                       {l.sub && ` · ${l.sub}`}
