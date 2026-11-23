@@ -3,8 +3,8 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { t } from "@touchdown/i18n";
-import { cityName, looksLikeOperatorName, parseDateTime, parseFlightNumber, todayIn, withPrivate, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
+import { sentenceGap, t } from "@touchdown/i18n";
+import { cityName, looksLikeOperatorName, parseDateTime, parseFlightNumber, stillToCome, todayIn, withPrivate, zonedDateTime, type Flight, type FlightValues } from "@touchdown/core";
 import { useApp } from "../data/context.tsx";
 import { BackLink } from "../lib/back.tsx";
 import { textCode } from "../lib/codes.ts";
@@ -19,7 +19,8 @@ import { Select } from "../components/Select.tsx";
 import { Disclosure } from "../components/Disclosure.tsx";
 import { NotFound } from "./NotFound.tsx";
 
-type TimeKey = "boarding" | "takeoff" | "landing";
+// Departure and arrival: the ticket's scheduled gate times, which a planned flight has before it flies.
+type TimeKey = "boarding" | "takeoff" | "landing" | "departure" | "arrival";
 
 interface Draft {
   scheduledDate: string;
@@ -75,7 +76,7 @@ function fromFlight(f: Flight | null): Draft {
     notes: s(f?.notes),
     ticketNumber: s(f?.ticketNumber),
     bookingRef: s(f?.bookingRef),
-    times: { boarding: split(f?.boardingAt ?? null), takeoff: split(f?.takeoffAt ?? null), landing: split(f?.landingAt ?? null) },
+    times: { boarding: split(f?.boardingAt ?? null), takeoff: split(f?.takeoffAt ?? null), landing: split(f?.landingAt ?? null), departure: split(f?.departureScheduledAt ?? null), arrival: split(f?.arrivalScheduledAt ?? null) },
   };
 }
 
@@ -96,7 +97,7 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
   useEffect(() => {
     setD((x) => {
       const t = { ...x.times };
-      for (const k of ["boarding", "takeoff", "landing"] as TimeKey[]) if (!t[k].time && x.scheduledDate) t[k] = { ...t[k], date: x.scheduledDate };
+      for (const k of ["boarding", "takeoff", "landing", "departure", "arrival"] as TimeKey[]) if (!t[k].time && x.scheduledDate) t[k] = { ...t[k], date: x.scheduledDate };
       return { ...x, times: t };
     });
   }, [d.scheduledDate]);
@@ -137,6 +138,8 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
       boardingAt: at("boarding", from?.tz),
       takeoffAt: at("takeoff", from?.tz),
       landingAt: at("landing", to?.tz),
+      departureScheduledAt: at("departure", from?.tz),
+      arrivalScheduledAt: at("arrival", to?.tz),
       // Links are resolved again from the codes, unless a code is unchanged: an imported flight may have been
       // matched by a more precise code (ICAO) than the one shown.
       airlineId: existing && airlineRaw === (existing.airlineRaw ?? "") ? existing.airlineId : null,
@@ -145,7 +148,16 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
     };
   }, [d, airlineRaw, from, to, existing]);
 
-  const deferred = useDeferredValue(values);
+  // Its departure still to come at the departure airport, the flight is saved as planned (docs/31, "Planned flights"),
+  // and the checks take it as one: its date to come is no fault.
+  const upcoming = stillToCome({ ...values, fromAirportId: from?.id ?? null, toAirportId: to?.id ?? null }, ref);
+  // The times asked for: the ticket's departure and arrival for a day to come, takeoff and landing for a day gone, and
+  // all of them for today at the departure airport, until a departure still to come makes the flight planned.
+  const today = todayIn(from?.tz);
+  const scheduledTimes = upcoming || (!!d.scheduledDate && d.scheduledDate >= today);
+  const flownTimes = !upcoming;
+  const checked = useMemo(() => ({ ...values, planned: upcoming ? true : null }), [values, upcoming]);
+  const deferred = useDeferredValue(checked);
   const findings = useMemo(() => draftFindings(app, "flights", deferred, existing?.id).filter((f) => f.ruleId !== "V-INCOMPLETE"), [app, deferred, existing?.id]);
 
   if (edit && !existing) return <NotFound what={t("flights.notFound.log")} back={{ to: "/flights", label: t("flights.allFlights") }} />;
@@ -203,10 +215,30 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
 
         <h2 className="form-section">{t("flightForm.section.times")}</h2>
         <p className="form-sub">{t("flightForm.section.timesIntro")}</p>
+        {upcoming && (
+          <p className="review-line form-planned">
+            <Icon name="tickets-plane" />
+            <span>
+              {t("flightForm.planned.note")}
+              {sentenceGap()}
+              {t("flightForm.hint.planned")}
+            </span>
+          </p>
+        )}
         <div className="form-grid">
           <DateTimeField label={t("flightForm.field.boarding")} {...dt(d, "boarding", setTime)} hint={tzHint("boarding", from?.tz, textCode(from, d.fromRaw))} />
-          <DateTimeField label={t("flightForm.field.takeoff")} {...dt(d, "takeoff", setTime)} hint={tzHint("takeoff", from?.tz, textCode(from, d.fromRaw))} />
-          <DateTimeField label={t("flightForm.field.landing")} {...dt(d, "landing", setTime)} hint={tzHint("landing", to?.tz, textCode(to, d.toRaw))} />
+          {scheduledTimes && (
+            <>
+              <DateTimeField label={t("flightForm.field.departure")} {...dt(d, "departure", setTime)} hint={tzHint("departure", from?.tz, textCode(from, d.fromRaw))} />
+              <DateTimeField label={t("flightForm.field.arrival")} {...dt(d, "arrival", setTime)} hint={tzHint("arrival", to?.tz, textCode(to, d.toRaw))} />
+            </>
+          )}
+          {flownTimes && (
+            <>
+              <DateTimeField label={t("flightForm.field.takeoff")} {...dt(d, "takeoff", setTime)} hint={tzHint("takeoff", from?.tz, textCode(from, d.fromRaw))} />
+              <DateTimeField label={t("flightForm.field.landing")} {...dt(d, "landing", setTime)} hint={tzHint("landing", to?.tz, textCode(to, d.toRaw))} />
+            </>
+          )}
         </div>
 
         {findings.length > 0 && (
@@ -218,6 +250,13 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
 
         <Disclosure className="disclosure--form" summary={t("flightForm.more")} defaultOpen={edit}>
           <div className="form-grid">
+            {/* A flown flight's scheduled times, as the ticket gave them, when the times above do not ask for them. */}
+            {!scheduledTimes && (
+              <>
+                <DateTimeField label={t("flightForm.field.departureScheduled")} {...dt(d, "departure", setTime)} hint={tzHint("departure", from?.tz, textCode(from, d.fromRaw))} />
+                <DateTimeField label={t("flightForm.field.arrivalScheduled")} {...dt(d, "arrival", setTime)} hint={tzHint("arrival", to?.tz, textCode(to, d.toRaw))} />
+              </>
+            )}
             <Field label={t("flightForm.field.seat")}>
               <TextInput value={d.seat} onChange={(e) => set("seat", e.target.value)} placeholder="14A" />
             </Field>

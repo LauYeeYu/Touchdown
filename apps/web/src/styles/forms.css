@@ -390,3 +390,8 @@
   background: var(--surface-mid);
   box-shadow: var(--shadow-2);
 }
+
+/* A flight still to come in the flight form: it is saved as planned (docs/31, "Planned flights"). */
+.form-planned {
+  margin: 0 0 14px;
+}

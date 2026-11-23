@@ -1541,6 +1541,12 @@ export interface MessageArgs {
   "flightForm.field.boarding": {};
   "flightForm.field.takeoff": {};
   "flightForm.field.landing": {};
+  "flightForm.field.departure": {};
+  "flightForm.field.arrival": {};
+  "flightForm.field.departureScheduled": {};
+  "flightForm.field.arrivalScheduled": {};
+  "flightForm.hint.planned": {};
+  "flightForm.planned.note": {};
   "flightForm.field.seat": {};
   "flightForm.field.seatPosition": {};
   "flightForm.field.cabin": {};
