@@ -170,7 +170,7 @@ D-ABCD,45001,KBOS,DLH,Germany,Boeing,B757,B752,B757-2Q8,Parked,,`;
   });
 });
 
-import { attachTrack, matchTrack, parseTrackCsv, simplifyTrack, normaliseFlight } from "../src/index.ts";
+import { attachTrack, copyStore, matchTrack, parseTrackCsv, simplifyTrack, normaliseFlight } from "../src/index.ts";
 
 describe("recorded tracks", () => {
   // A made-up track from Boston to JFK, one point a minute, in the FR24 playback format.
@@ -368,5 +368,34 @@ G-ABCD,45000,KBOS,Example Motors,GB,Boeing,B737,B738,B737-8H4,Parked,,`;
     const ops = store.all("operator_overrides");
     expect(ops.map((o) => o.name)).toEqual(["Example Motors"]);
     expect(store.all("sightings")[0]!.operatorId).toBe(ops[0]!.id);
+  });
+});
+
+describe("planned flights", () => {
+  const HEAD = "Date,Airlines,Flight Number,Seat,Class,Departure,Gate,Boarding Time,Departure Time,Destination,Landing Time,Duration,Distance (km),Route,ETKT,Manufacturer,Plane Family,Type Code,Aircraft,Registration Number,First Flight Date,Special Livery,Misc";
+  const NOW = Date.parse("2026-11-23T12:00Z");
+
+  it("brings a flight still to come in as planned, and one flown as flown", () => {
+    const store = newStore();
+    const src = parseSource(readCsv(`${HEAD}\n14-Dec-2026,XY,XY733,1A,Y,FRA,,,09:10,LHR,,,,,,,,,,,,,\n14-Mar-2026,XY,XY734,1A,Y,LHR,,,12:10,FRA,,,,,,,,,,,,,`), "plans.csv", ref)!;
+    commitImport(store, ref, src, matchCandidates(store, src.candidates), new Map(), { now: NOW });
+    const by = (n: string) => store.all("flights").find((f) => f.flightNumber === n)!;
+    expect(by("XY733").planned).toBe(true);
+    expect(by("XY734").planned).toBeNull();
+    expect(checkAll(store, ref, { now: NOW }).filter((f) => f.ruleId === "V-DATE-SANE")).toEqual([]);
+  });
+
+  it("confirms a planned flight that a row brings news of once its time has passed, not before", () => {
+    const store = newStore();
+    store.insert("flights", { ...normaliseFlight({ scheduledDate: "2026-12-14", flightNumber: "XY733", fromRaw: "FRA", toRaw: "LHR" }, ref), planned: true, remindAt: "2026-12-16T09:00Z" });
+    const src = parseSource(readCsv(`${HEAD}\n14-Dec-2026,XY,XY733,1A,Y,FRA,A1,08:40,09:10,LHR,09:55,01:45,650,FRA-LHR,,,,,,,,,`), "flown.csv", ref)!;
+    const before = copyStore(store);
+    commitImport(before, ref, src, matchCandidates(before, src.candidates), new Map(), { now: NOW });
+    expect(before.all("flights")[0]!.planned).toBe(true);
+    commitImport(store, ref, src, matchCandidates(store, src.candidates), new Map(), { now: Date.parse("2026-12-15T12:00Z") });
+    const f = store.all("flights")[0]!;
+    expect(f.planned).toBeNull();
+    expect(f.remindAt).toBeNull();
+    expect(f.takeoffAt).toBe("2026-12-14T09:10+01:00");
   });
 });

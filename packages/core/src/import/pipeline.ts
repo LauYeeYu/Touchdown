@@ -6,6 +6,7 @@ import { TABLES, type Flight, type FlightValues, type Sighting, type SightingVal
 import type { Store } from "../store.ts";
 import type { Candidate, ParsedSource } from "./candidate.ts";
 import { flightDay } from "../derive.ts";
+import { flightStatus, stillToCome } from "../planned.ts";
 import { addDays, instant, parseDateTime, toUtcIso } from "../time/index.ts";
 import { resolveAirframes } from "../identity/resolve.ts";
 import { addPhases, phasesOf, settlePhases, type Phase } from "../phases.ts";
@@ -66,8 +67,9 @@ function afterMidnightCorrections(existing: Flight, incoming: Partial<FlightValu
   return out;
 }
 
-// Bookkeeping fields that never count as a difference.
-const IGNORE = new Set(["sourceKind", "sourceBatchId", "sourceRow", "airframeId"]);
+// Bookkeeping fields that never count as a difference. Whether a flight is planned comes from the clock when it is
+// imported, not from the row.
+const IGNORE = new Set(["sourceKind", "sourceBatchId", "sourceRow", "airframeId", "planned", "remindAt"]);
 // Raw columns follow their normalised field; a different spelling of the same value is not a conflict.
 const RAW_OF: Record<string, string> = {
   airlineRaw: "airlineId",
@@ -286,7 +288,9 @@ export function commitImport(
         return;
       }
       if (m.kind === "new" || m.kind === "duplicate") {
-        const row = store.insert(c.table, { ...c.values, sourceBatchId: batch.id } as never);
+        // A flight whose departure is still to come comes in as planned (docs/21, "Planned flights").
+        const plan = c.table === "flights" ? { planned: stillToCome(c.values as Partial<FlightValues>, ref, now) ? true : null, remindAt: null } : {};
+        const row = store.insert(c.table, { ...c.values, ...plan, sourceBatchId: batch.id } as never);
         id = row.id;
         written = new Set(Object.entries(c.values).filter(([, v]) => v !== null && v !== undefined && v !== "").map(([k]) => k));
         result.created++;
@@ -296,6 +300,11 @@ export function commitImport(
         for (const f of m.fills) patch[f] = (c.values as Record<string, unknown>)[f];
         for (const x of m.corrections) if (!d.rejectCorrections?.includes(x.field)) patch[x.field] = x.incoming;
         for (const f of d.takeIncoming ?? []) patch[f] = (c.values as Record<string, unknown>)[f];
+        // A planned flight the row brings news of once its time has passed is confirmed: the row says what happened.
+        if (c.table === "flights" && Object.keys(patch).length && (existing as Flight).planned && flightStatus({ ...(existing as Flight), ...patch }, ref, now) !== "upcoming") {
+          patch.planned = null;
+          patch.remindAt = null;
+        }
         // A row whose differing values were all kept changes nothing: no history, so it does not count as a later
         // change of the record when an earlier import is undone.
         if (Object.keys(patch).length) {
