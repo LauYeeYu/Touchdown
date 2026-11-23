@@ -35,6 +35,8 @@ export const MIGRATIONS: { to: number; addColumns?: { table: TableName | "*"; co
   // The language and the date format are kept in the log, for every device, instead of in each browser (docs/31,
   // "Language"). Empty until chosen.
   { to: 8, addColumns: [{ table: "settings", column: "language" }, { table: "settings", column: "dateFormat" }] },
+  // Planned flights (docs/10, "A flight's status"): both empty on older rows, which are flown flights.
+  { to: 9, addColumns: [{ table: "flights", column: "planned" }, { table: "flights", column: "remindAt" }] },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */

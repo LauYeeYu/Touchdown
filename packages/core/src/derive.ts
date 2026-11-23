@@ -38,7 +38,7 @@ export function nextLegOf(a: Flight, b: Flight): boolean {
   return !!day && (next === day || next === addDays(day, 1));
 }
 
-export function greatCircleKm(f: Flight, ref: RefIndex): number | null {
+export function greatCircleKm(f: Pick<Flight, "fromAirportId" | "toAirportId" | "divertedToAirportId">, ref: RefIndex): number | null {
   const a = ref.airport(f.fromAirportId);
   const b = ref.airport(arrivalAirportId(f));
   if (!a || !b) return null;

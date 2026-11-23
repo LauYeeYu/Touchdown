@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -69,6 +69,10 @@ export const flights = table("flights", "user", [
   c.real("distanceKmOverride"),
   c.integer("durationMinOverride"),
   c.text("notes"),
+  // A planned flight (docs/10, "A flight's status"): added before it flew and not confirmed since, and when to remind
+  // the user again to confirm it.
+  c.boolean("planned"),
+  c.datetime("remindAt"),
   ...sourceColumns,
 ]);
 
