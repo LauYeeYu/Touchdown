@@ -10,7 +10,7 @@ import type { ShareKind } from "@touchdown/core/share";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { account } from "../data/account.ts";
 import { useApp } from "../data/context.tsx";
-import { linkFor, shares, TermsNeeded, useShares, type ShareLink } from "../data/shares.ts";
+import { linkFor, loadShares, shares, sharesNow, TermsNeeded, useShares, type ShareLink } from "../data/shares.ts";
 import { standard as standardMode } from "../data/standard.ts";
 import { momentLabel } from "../lib/format.ts";
 import { tx } from "../lib/i18n.tsx";
@@ -60,6 +60,25 @@ export function openedText(l: ShareLink): string {
   return l.lastOpenedAt ? t("sharing.opened.last", { count: l.timesOpened, last: momentLabel(Date.parse(l.lastOpenedAt)) }) : t("sharing.opened.times", { count: l.timesOpened });
 }
 
+/**
+ * The account's name, which a whole log's pages show and its Share dialog says: read when the log's Share button
+ * shows, so the dialog opens with its words whole, not with a sentence added once the name arrives. Undefined until
+ * read, null when it cannot be.
+ */
+let ownerName: string | null | undefined;
+let ownerReading: Promise<string | null> | null = null;
+function readOwner(): Promise<string | null> {
+  ownerReading ??= account.me().then(
+    (me) => me.name,
+    () => null,
+  ).then((name) => {
+    ownerName = name;
+    ownerReading = null;
+    return name;
+  });
+  return ownerReading;
+}
+
 /** Copy a link's address, saying so. */
 export function copyLink(url: string) {
   void navigator.clipboard?.writeText(url).then(
@@ -76,6 +95,10 @@ export function ShareButton({ icon = false, ...props }: ShareProps & { icon?: bo
   const { app } = useApp();
   const list = useShares(app.connection?.mode === "standard" && !app.readOnly);
   const [open, setOpen] = useState(false);
+  const owner = props.kind === "log" && app.connection?.mode === "standard" && !app.readOnly;
+  useEffect(() => {
+    if (owner && ownerName === undefined) void readOwner();
+  }, [owner]);
   if (app.readOnly) return null;
   const link = props.kind === "flights" ? null : linkFor(list, props.kind, props.subject ?? null);
   const dialog = open && <ShareDialog {...props} onClose={() => setOpen(false)} />;
@@ -121,7 +144,12 @@ export function ShareDialog({ kind, subject = null, anchor = null, image, video,
   const linkTitle = useId();
   const filesTitle = useId();
   // A whole log's pages name the account's owner, so the dialog says so: left out if the name cannot be read.
-  const [owner, setOwner] = useState<string | null>(null);
+  const named = kind === "log" && standard;
+  const [owner, setOwner] = useState<string | null | undefined>(named ? ownerName : null);
+  // Until the links and the owner's name are read, the link's part waits, so its words appear once and stay. Links
+  // that cannot be read leave it as with none, its button off.
+  const [unread, setUnread] = useState(false);
+  const ready = (list !== null || unread) && owner !== undefined;
   // The image or the video dialog over this one; this dialog stays under it until a file is sent.
   const [figure, setFigure] = useState<{ content: FigureContent; name: (ext: string) => string } | null>(null);
   const [film, setFilm] = useState<{ content: VideoContent; name: string } | null>(null);
@@ -136,8 +164,11 @@ export function ShareDialog({ kind, subject = null, anchor = null, image, video,
     dialog.current?.showModal();
   }, []);
   useEffect(() => {
-    if (kind === "log" && standard) void account.me().then((me) => setOwner(me.name), () => {});
-  }, [kind, standard]);
+    if (named) void readOwner().then(setOwner);
+  }, [named]);
+  useEffect(() => {
+    if (standard && linkKind && !sharesNow()) loadShares().catch(() => setUnread(true));
+  }, [standard, linkKind]);
   const titled = kind === "log" && owner && (
     <>
       {sentenceGap()}
@@ -189,6 +220,8 @@ export function ShareDialog({ kind, subject = null, anchor = null, image, video,
             {t("sharing.changeInSettings")}
           </Link>
         </>
+      ) : !ready ? (
+        <div className="share-section__waiting" aria-busy="true" />
       ) : (
         <>
           {link ? (

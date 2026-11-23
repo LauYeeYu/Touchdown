@@ -393,6 +393,12 @@
   margin-top: 0;
 }
 
+/* The link's part while its links and the owner's name are read: about the height of its words and buttons, so the
+   dialog grows little when they appear. */
+.share-section__waiting {
+  min-height: 7rem;
+}
+
 /* "Change in Settings" and "All shared links": links among the dialog's words, smaller, in ink-2. */
 .share-dialog__all {
   font-size: 0.875rem;
