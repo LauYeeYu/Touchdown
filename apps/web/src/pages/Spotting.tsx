@@ -4,7 +4,7 @@ import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
 import { phaseIndex, sightingStats, type Sighting } from "@touchdown/core";
-import { searchMatcher, searchText } from "@touchdown/core/view";
+import { countedFlights, searchMatcher, searchText } from "@touchdown/core/view";
 import { list, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
@@ -44,7 +44,7 @@ export function Spotting() {
     const phases = phaseIndex(store);
     const ss = sightingStats(sightings, { ref, airframes, phases }, before);
     const sessions = sessionsOf(store).filter((s) => inPeriod(s.date, year));
-    const flown = new Set(store.all("flights").map((f) => f.airframeId).filter(Boolean));
+    const flown = new Set(countedFlights(store, ref).map((f) => f.airframeId).filter(Boolean));
     const review = new Set(app.findings().filter((f) => f.severity !== "info").flatMap((f) => f.records.filter((r) => r.table === "sightings").map((r) => r.id)));
     const tags = new Map<string, string[]>();
     for (const t of store.all("sighting_tags")) if (t.tag) tags.set(t.sightingId, [...(tags.get(t.sightingId) ?? []), t.tag]);

@@ -27,12 +27,12 @@ const utc = (t: string | null) => {
   return ms === null ? null : toUtcIso(ms).slice(0, 16).replace("T", " ");
 };
 
-/** The flights with no recorded track, oldest first. */
+/** The flights with no recorded track, oldest first. Planned flights wait until they are confirmed (docs/23, "Backfill"). */
 export function flightsWithoutTrack(store: Store, ref: RefIndex): MissingTrack[] {
   const tracked = new Set(store.all("tracks").map((t) => t.flightId));
   return store
     .all("flights")
-    .filter((f) => !tracked.has(f.id))
+    .filter((f) => !tracked.has(f.id) && !f.planned)
     .map((f) => ({
       id: f.id,
       date: flightDay(f),

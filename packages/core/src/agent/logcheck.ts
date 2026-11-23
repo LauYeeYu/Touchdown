@@ -38,7 +38,8 @@ export function logRecordFingerprint(store: Store, ref: RefIndex, r: LogRecord):
  */
 export function recordsToCheck(store: Store, ref: RefIndex, checked: ReadonlyMap<string, readonly string[]>, o: { all?: boolean; since?: string | null } = {}): LogRecord[] {
   const agentBatches = new Set(store.all("import_batches").filter((b) => b.agentChecker === "claude" || b.agentChecker === "codex").map((b) => b.id));
-  const all: LogRecord[] = [...store.all("flights").map((row) => ({ table: "flights" as const, row })), ...store.all("sightings").map((row) => ({ table: "sightings" as const, row }))];
+  // A planned flight waits until it is confirmed: its aircraft is rarely known before (docs/22, "Records in the log").
+  const all: LogRecord[] = [...store.all("flights").filter((row) => !row.planned).map((row) => ({ table: "flights" as const, row })), ...store.all("sightings").map((row) => ({ table: "sightings" as const, row }))];
   const taken = all.filter((r) => {
     if (o.all) return true;
     if (o.since) return (r.row.updatedAt ?? "").slice(0, 10) >= o.since;

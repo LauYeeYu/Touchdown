@@ -47,7 +47,7 @@ export function AircraftDetail() {
   const navigate = useNavigate();
   const settings = app.settings();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const views = useMemo(() => aircraftViews(store), [store, version]);
+  const views = useMemo(() => aircraftViews(store, ref), [store, version]);
   const v = views.find((x) => x.airframe.id === id);
   const [msn, setMsn] = useState("");
   const [ffd, setFfd] = useState("");

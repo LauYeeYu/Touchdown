@@ -32,7 +32,7 @@ export function TypeFamily() {
   const entry = entries.find((e) => e.family && slugOf(e.family.name) === slug);
   usePageTitle(entry?.family?.name ?? null);
   const codes = entry?.codes ?? [];
-  const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode && codes.includes(v.airframe.typeCode)), [store, version, codes]);
+  const aircraft = useMemo(() => aircraftViews(store, ref).filter((v) => v.airframe.typeCode && codes.includes(v.airframe.typeCode)), [store, version, codes]);
   if (!entry?.family) {
     // A family of one type is that type: a link to its page, from before, opens the type's.
     const one = [...ref.families.values()].find((f) => slugOf(f.name) === slug);

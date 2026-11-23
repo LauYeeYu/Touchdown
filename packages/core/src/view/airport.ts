@@ -73,7 +73,7 @@ export function airportSummary(store: Store, ref: RefIndex, id: string, year: st
   const transitIds = new Set(visits.transits.flatMap((t) => [t.arrive.id, t.depart.id]));
   const sightings = allSightings.filter((s) => inPeriod(s.seenOn, year));
   const flownOn = new Map<string, number>();
-  for (const f of store.all("flights")) if (f.airframeId) flownOn.set(f.airframeId, (flownOn.get(f.airframeId) ?? 0) + 1);
+  for (const v of all) if (v.f.airframeId) flownOn.set(v.f.airframeId, (flownOn.get(v.f.airframeId) ?? 0) + 1);
   const byAirframe = new Map<string, Spotted>();
   for (const s of sightings) {
     const key = s.airframeId ?? `s:${s.id}`;

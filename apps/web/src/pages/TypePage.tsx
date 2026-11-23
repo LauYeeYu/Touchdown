@@ -38,7 +38,7 @@ export function TypePage() {
   // A visitor who is not signed in has no log: the page says nothing about one.
   const visitor = useVisitor();
   const type = ref.type(code);
-  const aircraft = useMemo(() => aircraftViews(store).filter((v) => v.airframe.typeCode === code), [store, version, code]);
+  const aircraft = useMemo(() => aircraftViews(store, ref).filter((v) => v.airframe.typeCode === code), [store, version, code]);
   const [pose, setPose] = useViewState<Pose>("drawing.pose", "animated");
   usePageTitle(type && hasTypePage(ref, code) ? typeName(code, ref) : null);
   if (!type || !hasTypePage(ref, code)) return <NotFound />;

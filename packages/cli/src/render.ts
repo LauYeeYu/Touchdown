@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, extname, join, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { flightDay, isPrivateTable, TABLES, type TableName } from "@touchdown/core";
-import { inPeriod } from "@touchdown/core/view";
+import { countedFlights, inPeriod } from "@touchdown/core/view";
 import type { RenderError, RenderJob, RenderStart, RenderSubject } from "@touchdown/core/render";
 import { locale, t } from "@touchdown/i18n/cli";
 import { privatePath, ROOT, shownPath, userPath } from "./paths.ts";
@@ -134,7 +134,7 @@ export async function renderCommand(args: string[]) {
   if (o.subject.kind === "log") {
     const year = o.subject.year;
     subject = { kind: "log", year };
-    flights = log.store.all("flights").filter((f) => inPeriod(flightDay(f) ?? f.scheduledDate, year)).map((f) => f.id);
+    flights = countedFlights(log.store, log.ref).filter((f) => inPeriod(flightDay(f) ?? f.scheduledDate, year)).map((f) => f.id);
   } else if (o.subject.kind === "flight") {
     const found = findFlight(log.store, o.subject.ref);
     if (!("row" in found)) return notFound(false, found);
@@ -145,7 +145,7 @@ export async function renderCommand(args: string[]) {
     if (!("row" in found)) return notFound(false, found);
     const id = found.row.id;
     subject = { kind: "aircraft", id };
-    flights = log.store.all("flights").filter((f) => f.airframeId === id).map((f) => f.id);
+    flights = countedFlights(log.store, log.ref).filter((f) => f.airframeId === id).map((f) => f.id);
   }
   const [width, height] = pixelsOf(o);
   const job: RenderJob = { subject, width, height, fps: o.fps, theme: o.theme, seconds: o.seconds, view: o.view, codes: o.codes, language: locale(), tables: await tablesOf(log, flights) };

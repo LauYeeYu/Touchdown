@@ -82,12 +82,15 @@ export function myFr24States(store: Store): Map<string, MyFr24State> {
   return out;
 }
 
-/** The flights a myFR24 file holds, oldest first: every flight, or only those not in myFR24 already. */
+/**
+ * The flights a myFR24 file holds, oldest first: every flight, or only those not in myFR24 already. Never a planned
+ * one, still to come or not yet confirmed: myFR24 would take it as flown (docs/21, "Exports").
+ */
 export function myFr24Flights(store: Store, onlyNew = false): Flight[] {
   const fr24 = fr24Index(store);
   return store
     .all("flights")
-    .filter((f) => !onlyNew || !inMyFr24(f, fr24.get(f.id)))
+    .filter((f) => !f.planned && (!onlyNew || !inMyFr24(f, fr24.get(f.id))))
     .sort((a, b) => (a.scheduledDate ?? flightDay(a) ?? "").localeCompare(b.scheduledDate ?? flightDay(b) ?? "") || (a.takeoffAt ?? "").localeCompare(b.takeoffAt ?? ""));
 }
 

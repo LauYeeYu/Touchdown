@@ -86,7 +86,7 @@ function build(data: AppData): Indexes {
   // Aircraft: the identity. Maker, series and serial number when known, as the identity key writes them; until
   // then the registration it was first seen with and that day, which is what the provisional identity is made of
   // (docs/11).
-  const views = aircraftViews(store).filter((v) => v.flights.length || v.sightings.length);
+  const views = aircraftViews(store, ref).filter((v) => v.flights.length || v.sightings.length);
   const aircraft = views.map((v) => {
     const a = v.airframe;
     let base: string;

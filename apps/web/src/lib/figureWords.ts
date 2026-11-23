@@ -58,7 +58,7 @@ export function flightWords(d: LogData, v: FlightView): FigureWords {
 
 /** An aircraft's: its registration and type, as its page's heading. */
 export function aircraftWords(d: LogData, airframeId: string): FigureWords | null {
-  const v = aircraftViews(d.store).find((x) => x.airframe.id === airframeId);
+  const v = aircraftViews(d.store, d.ref).find((x) => x.airframe.id === airframeId);
   if (!v) return null;
   const a = v.airframe;
   const typeText = a.model ? modelLabel(a.model, a.typeCode, d.ref, d.settings.modelNaming ?? "standard") : typeName(a.typeCode, d.ref);

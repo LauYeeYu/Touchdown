@@ -100,7 +100,8 @@ export async function tracksCommand(args: string[]) {
   };
 
   const tracked = new Set(log.store.all("tracks").map((t) => t.flightId));
-  let flights = log.store.all("flights").filter((f) => !tracked.has(f.id));
+  // A planned flight waits until it is confirmed: a miss would be remembered (docs/23, "Backfill").
+  let flights = log.store.all("flights").filter((f) => !tracked.has(f.id) && !f.planned);
   if (c.values.has("--only")) {
     const ids = new Set<string>();
     for (const ref of c.values.get("--only")!.split(",").map((s) => s.trim()).filter(Boolean)) {

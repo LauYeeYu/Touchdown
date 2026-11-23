@@ -41,7 +41,7 @@ export function Home() {
   const d = useMemo(() => {
     const p = periodOf({ store, ref, settings: app.settings() }, year);
     const sessions = sessionsOf(store).filter((s) => inPeriod(s.date, year));
-    const both = flownAndPhotographed(store, year);
+    const both = flownAndPhotographed(store, ref, year);
     const bothIds = new Set(both.map((b) => b.airframe.id));
     const marks = mapFlights(p.views, ref, unit, bothIds, store);
     const spots = mapSpots(p.sightings, ref, bothIds);

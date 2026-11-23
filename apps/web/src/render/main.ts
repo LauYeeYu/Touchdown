@@ -70,7 +70,7 @@ function contentOf(job: RenderJob, d: LogData): { content: VideoContent; name: s
   // The log or a year of it, as Home's video: its flights and its sightings, with Home's words.
   const p = periodOf(d, s.year);
   if (!p.views.length && !p.sightings.length) throw new NothingToShow();
-  const bothIds = new Set(flownAndPhotographed(d.store, s.year).map((x) => x.airframe.id));
+  const bothIds = new Set(flownAndPhotographed(d.store, d.ref, s.year).map((x) => x.airframe.id));
   const words = periodWords(d, s.year, p, mapSpots(p.sightings, d.ref, bothIds).length);
   return { content: periodVideo(log, p.views, { title: words.title, stats: words.stats }, p.sightings), name: `touchdown-${s.year}.mp4` };
 }

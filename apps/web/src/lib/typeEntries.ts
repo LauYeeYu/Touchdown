@@ -5,7 +5,7 @@
 
 import { useMemo } from "react";
 import { withoutAccents, type Family, type RefIndex, type TypeRole } from "@touchdown/core";
-import { searchFold, searchMatcher, searchText } from "@touchdown/core/view";
+import { countedFlights, searchFold, searchMatcher, searchText } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { typeName } from "./format.ts";
 import { familyTypes } from "./typeFigures.ts";
@@ -17,7 +17,7 @@ export function useTypeCounts(): TypeCounts {
   return useMemo(() => {
     const flown = new Map<string, number>();
     const seen = new Map<string, number>();
-    for (const f of app.store.all("flights")) if (f.typeCode) flown.set(f.typeCode, (flown.get(f.typeCode) ?? 0) + 1);
+    for (const f of countedFlights(app.store, app.ref)) if (f.typeCode) flown.set(f.typeCode, (flown.get(f.typeCode) ?? 0) + 1);
     for (const s of app.store.all("sightings")) if (s.typeCode) seen.set(s.typeCode, (seen.get(s.typeCode) ?? 0) + 1);
     return { flown, seen };
     // eslint-disable-next-line react-hooks/exhaustive-deps

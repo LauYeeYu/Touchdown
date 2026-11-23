@@ -354,7 +354,7 @@ export async function aircraftChangeCommand(args: string[]) {
     } catch (e) {
       return fail(c.json, t("cliWrite.change.aircraft.pasteUnreadable", { file: pasteFrom, error: (e as Error).message }));
     }
-    const reg = aircraftViews(log.store).find((v) => v.airframe.id === a.id)?.registration ?? c.positional[0]!.split("@")[0]!;
+    const reg = aircraftViews(log.store, log.ref).find((v) => v.airframe.id === a.id)?.registration ?? c.positional[0]!.split("@")[0]!;
     const { pasted, patch, problem } = pastedFactsFor(log.store, log.ref, a, reg, text);
     if (!pasted.msn && !pasted.lineNumber && !pasted.firstFlightDate && !pasted.deliveryDate) return fail(c.json, t("cliWrite.change.aircraft.nothingPasted", { hasMonth: pasted.firstFlightMonth ? "yes" : "no", month: pasted.firstFlightMonth ?? "" }), EXIT.notFound);
     const named: Record<string, string> = { msn: "msn", lineNumber: "lineNumber", firstFlightDate: "firstFlight", deliveryDate: "delivered", manufacturer: "manufacturer" };

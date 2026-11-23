@@ -126,7 +126,7 @@ export async function statsCommand(args: string[]) {
     sightings,
     ctx,
   );
-  const both = flownAndPhotographed(store, year);
+  const both = flownAndPhotographed(store, ref, year);
   const unit = log.unit;
   const dist = (km: number) => distance(km, unit);
 

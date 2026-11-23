@@ -40,7 +40,7 @@ export function AircraftList() {
   const [sort, setSort] = useViewState<"last" | "count" | "reg">("sort", "last");
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const views = useMemo(() => aircraftViews(store).filter((v) => v.flights.length || v.sightings.length), [store, version]);
+  const views = useMemo(() => aircraftViews(store, ref).filter((v) => v.flights.length || v.sightings.length), [store, version]);
   // Each aircraft's special liveries, in the order its records first name them.
   const liveries = useMemo(
     () =>

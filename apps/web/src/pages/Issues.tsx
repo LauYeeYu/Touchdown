@@ -86,7 +86,7 @@ function ConflictRecord({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) 
   const table = c.tableName as TableName;
   if (table === "flights" || table === "sightings") return <RecordLink r={{ table, id: c.recordId }} app={app} />;
   if (table === "airframes") {
-    const v = aircraftViews(app.store).find((x) => x.airframe.id === c.recordId);
+    const v = aircraftViews(app.store, app.ref).find((x) => x.airframe.id === c.recordId);
     return v ? (
       <Link to="/aircraft/$id" params={{ id: c.recordId }}>
         {v.registration ?? t("issues.record.aircraft")}

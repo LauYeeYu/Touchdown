@@ -2,6 +2,7 @@
 
 import { flightDay, flightDistanceKm, flightDurationMin, routeKey } from "../derive.ts";
 import { flownDistances, type FlownDistance } from "../flown.ts";
+import { flightStatus, type FlightStatus } from "../planned.ts";
 import type { RefIndex } from "../ref/index.ts";
 import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
@@ -19,9 +20,11 @@ export interface FlightView {
   route: string | null;
   fromCode: string;
   toCode: string;
+  /** Upcoming, due or flown, at the time the view was made (docs/10, "A flight's status"). */
+  status: FlightStatus;
 }
 
-export function viewFlight(f: Flight, ref: RefIndex, style: CodeStyle = "iata", flown?: ReadonlyMap<string, FlownDistance>): FlightView {
+export function viewFlight(f: Flight, ref: RefIndex, style: CodeStyle = "iata", flown?: ReadonlyMap<string, FlownDistance>, now = Date.now()): FlightView {
   const from = ref.airport(f.fromAirportId);
   const to = ref.airport(f.divertedToAirportId ?? f.toAirportId);
   return {
@@ -34,15 +37,28 @@ export function viewFlight(f: Flight, ref: RefIndex, style: CodeStyle = "iata", 
     // As text, in the user's codes ("LHR", "EGLL" or "LHR/EGLL"); large type and maps use primaryCode.
     fromCode: textCode(from, f.fromRaw, style) || "?",
     toCode: textCode(to, f.toRaw, style) || "?",
+    status: flightStatus(f, ref, now),
   };
 }
 
-/** Flights in time order (by takeoff instant where known, else flight day). */
-export function sortedFlights(store: Store, ref: RefIndex, style: CodeStyle = "iata"): FlightView[] {
+export interface FlightsOptions {
+  /** The clock a planned flight's status is read against; by default now. */
+  now?: number;
+  /** Planned flights still to come too, for the lists and maps that show them (docs/31, "Planned flights"). */
+  planned?: boolean;
+}
+
+/**
+ * Flights in time order (by takeoff instant where known, else flight day): the flights counted, unless `planned`
+ * asks for those still to come too. A figure or a count is never made of a planned flight still to come (docs/24).
+ */
+export function sortedFlights(store: Store, ref: RefIndex, style: CodeStyle = "iata", opts: FlightsOptions = {}): FlightView[] {
   const flown = flownDistances(store, ref);
+  const now = opts.now ?? Date.now();
   return store
     .all("flights")
-    .map((f) => viewFlight(f, ref, style, flown))
+    .map((f) => viewFlight(f, ref, style, flown, now))
+    .filter((v) => opts.planned || v.status !== "upcoming")
     .sort((a, b) => (a.f.takeoffAt && b.f.takeoffAt ? Date.parse(a.f.takeoffAt) - Date.parse(b.f.takeoffAt) : (a.day ?? "").localeCompare(b.day ?? "")) || a.f.id.localeCompare(b.f.id));
 }
 
@@ -86,9 +102,14 @@ export interface BothEntry {
   sighting: Sighting;
 }
 
+/** The flights counted at `now`: every flight but a planned one still to come (docs/24). */
+export function countedFlights(store: Store, ref: RefIndex, now = Date.now()): Flight[] {
+  return store.all("flights").filter((f) => flightStatus(f, ref, now) !== "upcoming");
+}
+
 /** Aircraft flown on and photographed, both within the period. */
-export function flownAndPhotographed(store: Store, year: string): BothEntry[] {
-  const flights = store.all("flights").filter((f) => f.airframeId && inPeriod(flightDay(f), year));
+export function flownAndPhotographed(store: Store, ref: RefIndex, year: string): BothEntry[] {
+  const flights = countedFlights(store, ref).filter((f) => f.airframeId && inPeriod(flightDay(f), year));
   const sightings = store.all("sightings").filter((s) => s.airframeId && inPeriod(s.seenOn, year));
   const sByAirframe = new Map<string, Sighting>();
   for (const s of sightings.sort((a, b) => (a.seenOn ?? "").localeCompare(b.seenOn ?? ""))) if (!sByAirframe.has(s.airframeId!)) sByAirframe.set(s.airframeId!, s);
@@ -111,7 +132,8 @@ export interface AircraftView {
   last: string | null;
 }
 
-export function aircraftViews(store: Store): AircraftView[] {
+/** Each aircraft with the user's records of it: the flights counted, never a planned one still to come. */
+export function aircraftViews(store: Store, ref: RefIndex): AircraftView[] {
   const byId = new Map<string, AircraftView>();
   for (const a of store.all("airframes")) byId.set(a.id, { airframe: a, registration: null, flights: [], sightings: [], operatorId: null, first: null, last: null });
   const touch = (v: AircraftView, d: string | null) => {
@@ -119,7 +141,7 @@ export function aircraftViews(store: Store): AircraftView[] {
     if (!v.first || d < v.first) v.first = d;
     if (!v.last || d > v.last) v.last = d;
   };
-  for (const f of store.all("flights")) {
+  for (const f of countedFlights(store, ref)) {
     const v = f.airframeId ? byId.get(f.airframeId) : undefined;
     if (!v) continue;
     v.flights.push(f);

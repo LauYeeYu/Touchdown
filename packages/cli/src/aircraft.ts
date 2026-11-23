@@ -56,7 +56,7 @@ export async function aircraftCommand(args: string[]) {
   const sort = a.values.get("--sort") ?? "last";
   if (!["last", "count", "reg"].includes(sort)) return fail(json, t("cliRead.aircraft.sortInvalid"));
   const matches = searchMatcher(a.values.get("--search") ?? "");
-  const views = aircraftViews(log.store).filter((v) => v.flights.length || v.sightings.length);
+  const views = aircraftViews(log.store, log.ref).filter((v) => v.flights.length || v.sightings.length);
   const shown = views
     .filter((v) => !a.flags.has("--flown") || v.flights.length > 0)
     .filter((v) => !a.flags.has("--both") || (v.flights.length > 0 && v.sightings.length > 0))
@@ -105,7 +105,7 @@ export async function aircraftCommand(args: string[]) {
 function oneAircraft(log: OpenedLog, json: boolean, text: string) {
   const found = findAircraft(log.store, text);
   if (!("row" in found)) return notFound(json, found);
-  const v = aircraftViews(log.store).find((x) => x.airframe.id === found.row.id)!;
+  const v = aircraftViews(log.store, log.ref).find((x) => x.airframe.id === found.row.id)!;
   const a = v.airframe;
   const regs = log.store.all("registration_periods").filter((p) => p.airframeId === a.id);
   const events = [
