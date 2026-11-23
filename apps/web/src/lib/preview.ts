@@ -39,7 +39,8 @@ export async function previewInput(app: AppData, link: Pick<ShareLink, "kind" | 
   let flights: MapFlight[] = [];
   let spots: FigureSpot[] = [];
   if (link.kind === "flight") {
-    const v = all.find((x) => x.f.id === link.subject);
+    // A planned flight still to come has its link too, to send before the trip (docs/32).
+    const v = sortedFlights(store, ref, undefined, { planned: true }).find((x) => x.f.id === link.subject);
     if (!v) return null;
     const name = flightName(v.f);
     const place = (id: string | null, raw: string | null) => cityOf(id, ref) ?? raw ?? "?";
@@ -104,7 +105,7 @@ export async function refreshPreviews(app: AppData): Promise<number> {
 }
 
 /** The flights on a figure for a flight's own page: as its map draws them. */
-export const flightFigure = (app: AppData, f: Flight) => mapFlights(sortedFlights(app.store, app.ref).filter((v) => v.f.id === f.id), app.ref, app.settings().distanceUnit ?? "km", new Set(), app.store);
+export const flightFigure = (app: AppData, f: Flight) => mapFlights(sortedFlights(app.store, app.ref, undefined, { planned: true }).filter((v) => v.f.id === f.id), app.ref, app.settings().distanceUnit ?? "km", new Set(), app.store);
 
 /**
  * What a share link shows, as an image's content: its preview's map, its title and the line under it, for the share

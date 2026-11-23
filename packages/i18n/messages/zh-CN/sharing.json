@@ -13,6 +13,7 @@
   "flights.share": "分享这些航班",
   "dialog.title": "{kind, select, flight {分享这个航班} sighting {分享这条拍摄记录} aircraft {分享这架飞机} flights {分享这些航班} other {分享整个日志}}",
   "dialog.owner": "分享页面会称你为“{owner}”，例如“{owner}已乘坐12个航班”。可在设置的“账户”中更改。",
+  "dialog.planned": "你的预订航班也会显示。",
   "dialog.shared": "在你停止分享之前，任何人拿到这个链接都能直接打开，无需登录。链接显示的是日志的最新内容。",
   "dialog.new": "{kind, select, flight {任何人拿到链接都能看到这个航班，包括备注和照片链接。} sighting {任何人拿到链接都能看到这条拍摄记录，包括备注和照片链接。} aircraft {任何人拿到链接都能看到这架飞机，以及你乘坐它的航班和拍摄它的记录，包括备注和照片链接。} other {任何人拿到链接都能看到你的整个日志，包括备注和照片链接。}}票号和订座编号一律不分享。",
   "send": "发送…",

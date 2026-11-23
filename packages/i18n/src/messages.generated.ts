@@ -2797,6 +2797,7 @@ export interface MessageArgs {
   "sharing.flights.share": {};
   "sharing.dialog.title": { kind: "choice" };
   "sharing.dialog.owner": { owner: "text" };
+  "sharing.dialog.planned": {};
   "sharing.dialog.shared": {};
   "sharing.dialog.new": { kind: "choice" };
   "sharing.send": {};

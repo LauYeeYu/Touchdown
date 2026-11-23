@@ -10,6 +10,7 @@ import type { ShareKind } from "@touchdown/core/share";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { account } from "../data/account.ts";
 import { useApp } from "../data/context.tsx";
+import { flightStatus } from "@touchdown/core";
 import { linkFor, loadShares, shares, sharesNow, TermsNeeded, useShares, type ShareLink } from "../data/shares.ts";
 import { standard as standardMode } from "../data/standard.ts";
 import { momentLabel } from "../lib/format.ts";
@@ -169,10 +170,22 @@ export function ShareDialog({ kind, subject = null, anchor = null, image, video,
   useEffect(() => {
     if (standard && linkKind && !sharesNow()) loadShares().catch(() => setUnread(true));
   }, [standard, linkKind]);
-  const titled = kind === "log" && owner && (
+  // A whole log's link shows its planned flights still to come, as the app does (docs/32, "What a link shows").
+  const planned = kind === "log" && app.store.all("flights").some((f) => flightStatus(f, app.ref) === "upcoming");
+  const titled = kind === "log" && (owner || planned) && (
     <>
-      {sentenceGap()}
-      {tx("sharing.dialog.owner", { owner: <bdi>{owner}</bdi> })}
+      {owner && (
+        <>
+          {sentenceGap()}
+          {tx("sharing.dialog.owner", { owner: <bdi>{owner}</bdi> })}
+        </>
+      )}
+      {planned && (
+        <>
+          {sentenceGap()}
+          {t("sharing.dialog.planned")}
+        </>
+      )}
     </>
   );
 

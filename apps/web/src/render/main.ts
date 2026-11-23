@@ -53,7 +53,7 @@ function contentOf(job: RenderJob, d: LogData): { content: VideoContent; name: s
   const log: VideoLog = { store: d.store, ref: d.ref, settings: () => d.settings };
   const s = job.subject;
   if (s.kind === "flight") {
-    const v = sortedFlights(d.store, d.ref).find((x) => x.f.id === s.id);
+    const v = sortedFlights(d.store, d.ref, { planned: true }).find((x) => x.f.id === s.id);
     const a = v && d.ref.airport(v.f.fromAirportId);
     const b = v && d.ref.airport(v.f.divertedToAirportId ?? v.f.toAirportId);
     if (!v || !a || !b) throw new NothingToShow();
