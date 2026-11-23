@@ -71,6 +71,14 @@ export function FlightRow({ v, track, review, active, badge, onHover }: Props) {
             <ArrowGlyph />
             {v.toCode}
             {badge}
+            {/* A planned flight still to come, and one whose time has passed, waiting for the owner to confirm it. */}
+            {v.status === "upcoming" && <span className="pill">{t("flights.list.planned")}</span>}
+            {v.status === "due" && !app.readOnly && (
+              <span className="review">
+                <Icon name="tickets-plane" />
+                {t("flights.list.toConfirm")}
+              </span>
+            )}
             {review && (
               <span className="review" title={t("flights.row.review.title")}>
                 <Icon name="info" />

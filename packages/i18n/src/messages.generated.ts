@@ -1701,6 +1701,8 @@ export interface MessageArgs {
   "flights.detail.map.globe": { flight: "text"; from: "text"; numbered: "choice"; to: "text" };
   "flights.detail.map.flat": { flight: "text"; from: "text"; numbered: "choice"; to: "text" };
   "flights.detail.lead": { "<phrase>": "tag"; airborne: "choice"; aircraft: "choice"; article: "choice"; built: "choice"; city: "text"; days: "number"; duration: "text"; kind: "choice"; landing: "choice"; landingPart: "choice"; livery: "choice"; liveryName: "text"; reg: "text"; type: "text"; year: "text" };
+  "flights.list.planned": {};
+  "flights.list.toConfirm": {};
   "flights.detail.flownOn": { count: "number"; name: "text"; voice: "choice" };
   "flights.detail.photographed": { city: "text"; date: "text"; dated: "choice"; name: "text"; place: "choice"; voice: "choice" };
   "flights.detail.livery.alt": { reg: "text"; registered: "choice"; type: "text" };

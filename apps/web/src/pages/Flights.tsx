@@ -47,7 +47,9 @@ export function Flights() {
   const { focus, bind } = usePhrases();
 
   const data = useMemo(() => {
-    const views = sortedFlights(store, ref).filter((v) => inPeriod(v.day, year));
+    // The period's flights, planned ones still to come too, which the list and the map show but nothing counts.
+    const listed = sortedFlights(store, ref, { planned: true }).filter((v) => inPeriod(v.day, year));
+    const views = listed.filter((v) => v.status !== "upcoming");
     const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
     const fs = flightStats(views.map((v) => v.f), { ref, airframes, flown: flownDistances(store, ref) });
     const tracks = trackIndex(store);
@@ -55,11 +57,11 @@ export function Flights() {
     const review = new Set(app.findings().filter((f) => f.severity !== "info").flatMap((f) => f.records.filter((r) => r.table === "flights").map((r) => r.id)));
     // Every year's, as the list it downloads: what someone else could look for.
     const withoutTrack = flightsWithoutTrack(store, ref).length;
-    return { views, fs, tracks, trackMeta, review, withoutTrack };
+    return { listed, views, fs, tracks, trackMeta, review, withoutTrack };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, year]);
 
-  const { views, fs, tracks, trackMeta, review, withoutTrack } = data;
+  const { listed, views, fs, tracks, trackMeta, review, withoutTrack } = data;
   const airlines = [...new Set(views.map((v) => v.f.airlineId).filter((x): x is string => !!x))].sort((a, b) => airlineLabel(a, ref).localeCompare(airlineLabel(b, ref)));
   const needle = q.trim();
   const search = useMemo(() => flightSearch(needle, ref), [needle, ref]);
@@ -68,45 +70,47 @@ export function Flights() {
     if (recordedOnly && !tracks.has(v.f.id)) return false;
     return search(v);
   };
-  const shown = views.filter(matches);
+  const shown = listed.filter(matches);
+  // What the figures, the image and the video count: never a planned flight still to come.
+  const shownCounted = shown.filter((v) => v.status !== "upcoming");
   const shownIds = new Set(shown.map((v) => v.f.id));
   const shownKey = shown.map((v) => v.f.id).join(",");
   // The map draws the whole period, so a search or a filter never moves it: the flights left out turn grey.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const marks = useMemo(() => mapFlights(views, ref, unit, new Set(), store), [data, unit]);
+  const marks = useMemo(() => mapFlights(listed, ref, unit, new Set(), store), [data, unit]);
   /**
    * The flights shown, on a map as an image (components/FigureDialog.tsx): the period, how many and how far, and as
    * statistics the figures this page shows above its map, for the flights shown.
    */
   const figureContent = (): FigureContent => {
     const st = flightStats(
-      shown.map((v) => v.f),
+      shownCounted.map((v) => v.f),
       { ref, airframes: new Map(store.all("airframes").map((a) => [a.id, a])), flown: flownDistances(store, ref) },
     );
     const km = st.distanceKm.value;
-    const far = st.longestByDistance ? shown.find((v) => v.f.id === st.longestByDistance!.id) : undefined;
+    const far = st.longestByDistance ? shownCounted.find((v) => v.f.id === st.longestByDistance!.id) : undefined;
     const route = st.byRoute.items[0];
     const company = st.byAirline.items[0];
     const [a, b] = route ? routeCodes(route.key, ref, " ").split(" ") : [];
     const stats = [
-      { label: t("stats.flights.flights"), value: nf.format(shown.length), detail: km > 0 ? distance(km, unit) : undefined },
-      st.minutes.value > 0 ? { label: t("home.facts.time"), value: durShort(st.minutes.value), detail: t("home.facts.timeDetail", { count: shown.length - st.minutes.leftOut }) } : null,
+      { label: t("stats.flights.flights"), value: nf.format(shownCounted.length), detail: km > 0 ? distance(km, unit) : undefined },
+      st.minutes.value > 0 ? { label: t("home.facts.time"), value: durShort(st.minutes.value), detail: t("home.facts.timeDetail", { count: shownCounted.length - st.minutes.leftOut }) } : null,
       far?.km ? { label: t("home.facts.longest"), value: `${far.fromCode} → ${far.toCode}`, detail: [distance(far.km, unit), flightName(far.f)].filter(Boolean).join(" · ") } : null,
       route && route.count > 1 ? { label: t("flights.facts.topRoute"), value: `${a} ⇄ ${b}`, detail: t("common.count.times", { count: route.count }) } : null,
       company ? { label: t("home.facts.airline", { count: st.byAirline.top.length }), value: list(st.byAirline.top.map((id) => airlineLabel(id, ref))), detail: t("common.count.flights", { count: company.count }) } : null,
     ];
     return {
-      flights: marks.filter((m) => shownIds.has(m.id)),
+      flights: marks.filter((m) => shownIds.has(m.id) && !m.planned),
       title: t("flights.figure.title", { period: year === "all" ? "all" : "year", year }),
-      subtitle: [t("common.count.flights", { count: shown.length }), km > 0 && distance(km, unit)].filter(Boolean).join(" · "),
+      subtitle: [t("common.count.flights", { count: shownCounted.length }), km > 0 && distance(km, unit)].filter(Boolean).join(" · "),
       stats: stats.filter((x) => x !== null),
     };
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const muted = useMemo(() => (shown.length < views.length ? new Set(views.filter((v) => !shownIds.has(v.f.id)).map((v) => v.f.id)) : null), [shownKey, data]);
+  const muted = useMemo(() => (shown.length < listed.length ? new Set(listed.filter((v) => !shownIds.has(v.f.id)).map((v) => v.f.id)) : null), [shownKey, data]);
   const hasGaps = marks.some((m) => m.gaps?.length && shownIds.has(m.id));
   const recordedShown = marks.filter((m) => m.track && shownIds.has(m.id)).length;
-  const shownKm = shown.reduce((s, v) => s + (v.km ?? 0), 0);
+  const shownKm = shownCounted.reduce((s, v) => s + (v.km ?? 0), 0);
 
   const shared = app.readOnly;
   const longest = fs.longestByDistance ? views.find((v) => v.f.id === fs.longestByDistance!.id) : undefined;
@@ -124,6 +128,7 @@ export function Flights() {
   const monthOf = (v: FlightView) => v.day?.slice(0, 7) ?? "undated";
   const monthTotals = new Map<string, { count: number; km: number }>();
   for (const v of newestFirst) {
+    if (v.status === "upcoming") continue;
     const t = monthTotals.get(monthOf(v)) ?? { count: 0, km: 0 };
     t.count++;
     t.km += v.km ?? 0;
@@ -150,11 +155,11 @@ export function Flights() {
               kind="flights"
               image={{ content: figureContent, name: (ext) => `touchdown-flights-${year === "all" ? "all" : year}.${ext}` }}
               video={
-                shown.length > 0
+                shownCounted.length > 0
                   ? {
                       content: () => {
                         const words = figureContent();
-                        return periodVideo(app, shown, { title: words.title ?? "", stats: words.stats });
+                        return periodVideo(app, shownCounted, { title: words.title ?? "", stats: words.stats });
                       },
                       name: `touchdown-flights-${year === "all" ? "all" : year}.mp4`,
                     }
@@ -205,10 +210,10 @@ export function Flights() {
         <div className="legend">
           <span className="legend__item">
             <span className="swatch-line" />
-            {recordedShown === shown.length && shown.length
-              ? t("flights.legend.allRecorded", { count: shown.length })
+            {recordedShown === shownCounted.length && shownCounted.length
+              ? t("flights.legend.allRecorded", { count: shownCounted.length })
               : recordedShown
-                ? t("flights.legend.someRecorded", { recorded: recordedShown, count: shown.length })
+                ? t("flights.legend.someRecorded", { recorded: recordedShown, count: shownCounted.length })
                 : t("flights.legend.noneRecorded")}
           </span>
           {hasGaps && (
@@ -234,7 +239,7 @@ export function Flights() {
           onArcLeave={() => setHover(null)}
           onArcClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
           onAirportClick={(id) => navigate({ to: "/airports/$id", params: { id } })}
-          label={t("flights.map.label", { filtered: muted ? "yes" : "no", count: views.length, shown: shown.length })}
+          label={t("flights.map.label", { filtered: muted ? "yes" : "no", count: listed.length, shown: shown.length })}
         />
       </div>
       <div className="filters" role="search">
@@ -263,14 +268,14 @@ export function Flights() {
         {/* The title's words, for a phone, which shows no title. */}
         {withoutTrack > 0 && !shared && <HelpTip touch label={t("flights.missingTracks.about")} text={t("flights.missingTracks.title")} />}
         <span className="filters__count">
-          {t("common.count.flights", { count: shown.length })} · {distance(shownKm, unit)}
+          {t("common.count.flights", { count: shownCounted.length })} · {distance(shownKm, unit)}
         </span>
       </div>
       <div ref={paging.top} className="list-top" />
       {!shown.length ? (
         <div className="empty">
-          <p>{views.length ? t("flights.empty.filtered") : t("flights.empty.period")}</p>
-          {views.length > 0 && (
+          <p>{listed.length ? t("flights.empty.filtered") : t("flights.empty.period")}</p>
+          {listed.length > 0 && (
             <button type="button" className="btn btn--quiet" onClick={clear}>
               {t("flights.empty.clear")}
             </button>
@@ -278,14 +283,17 @@ export function Flights() {
         </div>
       ) : (
         [...groups].map(([ym, list]) => {
-          const month = monthTotals.get(ym)!;
+          const month = monthTotals.get(ym);
           return (
             <section className="month" key={ym} aria-label={ym === "undated" ? t("flights.noDate") : dateOnly(`${ym}-01`, { month: "long", year: "numeric" })}>
               <div className="month__head">
                 <h2 className="month__title">{ym === "undated" ? t("flights.noDate") : year === "all" || ym.slice(0, 4) !== year ? dateOnly(`${ym}-01`, { month: "long", year: "numeric" }) : monthNames()[Number(ym.slice(5)) - 1]}</h2>
-                <span className="month__sum">
-                  {t("common.count.flights", { count: month.count })} · {distance(month.km, unit)}
-                </span>
+                {/* A month of planned flights only has nothing to count yet. */}
+                {month && (
+                  <span className="month__sum">
+                    {t("common.count.flights", { count: month.count })} · {distance(month.km, unit)}
+                  </span>
+                )}
               </div>
               <ul className="rows">
                 {list.map((v) => (
