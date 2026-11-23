@@ -105,6 +105,10 @@ filler, no exclamation marks.
 | departure, arrival | Abflug, Ankunft | 出发, 到达 | 出發, 抵達 |
 | takeoff, landing | Start, Landung | 起飞, 降落 | 起飛, 降落 |
 | scheduled | planmäßig | 计划, a date that slipped 原定 | 表定 |
+| planned flight (added before it flies), Planned | geplanter Flug, Geplant | 预订航班, a label 已预订 | 預訂航班, a label 已預訂 |
+| to confirm (a planned flight whose time has passed) | zu bestätigen | 待确认 | 待確認 |
+| Coming up (the next planned flights) | Demnächst | 即将出行 | 即將出發 |
+| Remind me later | Später erinnern | 稍后提醒 | 稍後提醒 |
 | diverted to | umgeleitet nach | 备降 | 轉降 |
 | gate, terminal | Gate, Terminal | 登机口, 航站楼 | 登機門, 航廈 |
 | seat | Sitzplatz | 座位 | 座位 |
