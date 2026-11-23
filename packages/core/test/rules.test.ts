@@ -305,3 +305,28 @@ describe("a flight against its timetable and its track", () => {
     expect(tracked(line(ORD), "partial").found("V-TRACK-ROUTE")).toHaveLength(0);
   });
 });
+
+describe("planned flights", () => {
+  // A made-up flight booked ahead: no aircraft known yet.
+  const booked: Partial<FlightValues> = { scheduledDate: "2026-12-14", flightNumber: "DL300", airlineRaw: "DL", fromRaw: "BOS", toRaw: "SEA", departureScheduledAt: "2026-12-14T08:00-05:00", arrivalScheduledAt: "2026-12-14T11:05-08:00", planned: true };
+  const check = (f: Partial<FlightValues>, now: string) => {
+    const store = newStore();
+    store.insert("flights", normaliseFlight(f, ref));
+    return ids(checkAll(store, ref, { now: Date.parse(now) }));
+  };
+
+  it("finds no fault in the date of a planned flight still to come, nor asks for its aircraft", () => {
+    expect(check(booked, "2026-11-23T12:00Z")).toEqual([]);
+  });
+
+  it("asks for the aircraft once the flight's time has passed", () => {
+    expect(check(booked, "2026-12-14T19:06Z")).toContain("V-INCOMPLETE");
+  });
+
+  it("finds a date to come wrong on a flight not planned, read at the departure airport", () => {
+    const tokyo: Partial<FlightValues> = { scheduledDate: "2026-11-24", flightNumber: "DL300", fromRaw: "HND", toRaw: "SEA", registrationRaw: "N3001X" };
+    // 14:00 UTC on the 23rd is 23:00 in Tokyo, still the 23rd there; at 15:30 UTC it is the 24th.
+    expect(check(tokyo, "2026-11-23T14:00Z")).toContain("V-DATE-SANE");
+    expect(check(tokyo, "2026-11-23T15:30Z")).not.toContain("V-DATE-SANE");
+  });
+});

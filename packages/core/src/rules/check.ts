@@ -15,6 +15,7 @@ import { isSeatFormat, parseFlightNumber } from "../normalise/flight.ts";
 import { addDays, daysBetween, formatOffset, instant, localDateOf, offsetAt, parseDateTime, todayIn, zonedDateTime } from "../time/index.ts";
 import { trackRouteProblem, trackTimeProblem } from "../tracks.ts";
 import { flownDistances, type FlownDistance } from "../flown.ts";
+import { flightStatus } from "../planned.ts";
 
 export const FIRST_POWERED_FLIGHT = "1903-12-17";
 
@@ -53,7 +54,10 @@ function missingLabel(field: string): string {
 }
 
 export interface CheckOptions {
-  today?: string; // YYYY-MM-DD; defaults to the runtime's local date
+  /** YYYY-MM-DD, the same everywhere; by default the date at `now` at each record's airport (docs/20, V-DATE-SANE). */
+  today?: string;
+  /** The clock a planned flight's status is read against (docs/10, "A flight's status"); by default now. */
+  now?: number;
   overlaps?: { table: "flights" | "sightings"; id: string; registration: string; airframeIds: string[] }[];
 }
 
@@ -115,14 +119,16 @@ function sightingLabel(s: Sighting): string {
 
 export function checkAll(store: Store, ref: RefIndex, opts: CheckOptions = {}): Finding[] {
   const out = new Collector();
-  const today = opts.today ?? todayIn();
+  const now = opts.now ?? Date.now();
+  // Today at an airport: a date in the future is read where the record is, not where the user is.
+  const today: TodayAt = (tz) => opts.today ?? todayIn(tz ?? undefined, now);
   const flights = store.all("flights");
   const sightings = store.all("sightings");
   const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
   const tracks = new Map(store.all("tracks").map((t) => [t.flightId, t]));
 
   const flown = flownDistances(store, ref);
-  for (const f of flights) checkFlight(out, f, ref, today, airframes, tracks.get(f.id) ?? null, flown);
+  for (const f of flights) checkFlight(out, f, ref, today, now, airframes, tracks.get(f.id) ?? null, flown);
   for (const s of sightings) checkSighting(out, s, ref, today, airframes);
   checkCross(out, flights, sightings, airframes, ref, opts, privateIndex(store));
   return out.findings;
@@ -167,10 +173,13 @@ function checkAircraftFields(
   }
 }
 
-function checkDate(out: Collector, r: RecordRef, field: string, date: string | null, today: string, label: string) {
+type TodayAt = (tz: string | null | undefined) => string;
+
+/** A date not before the first powered flight, and not in the future unless it is a planned flight's. */
+function checkDate(out: Collector, r: RecordRef, field: string, date: string | null, today: string, label: string, planned = false) {
   if (!date) return;
   if (date < FIRST_POWERED_FLIGHT) out.add("V-DATE-SANE", "error", [r], [field], t("rules.dateBeforeFlight", { label, date }), [date]);
-  else if (date > today) out.add("V-DATE-SANE", "error", [r], [field], t("rules.dateFuture", { label, date }), [date]);
+  else if (!planned && date > today) out.add("V-DATE-SANE", "error", [r], [field], t("rules.dateFuture", { label, date }), [date]);
 }
 
 function checkFirstFlight(out: Collector, r: RecordRef, date: string | null, airframes: Map<string, Airframe>, airframeId: string | null, label: string) {
@@ -182,11 +191,11 @@ function checkFirstFlight(out: Collector, r: RecordRef, date: string | null, air
 
 // ---------- flights ----------
 
-function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, airframes: Map<string, Airframe>, track: Track | null, flown: ReadonlyMap<string, FlownDistance>) {
+function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: TodayAt, now: number, airframes: Map<string, Airframe>, track: Track | null, flown: ReadonlyMap<string, FlownDistance>) {
   const r = F(f.id);
   const label = flightLabel(f);
   const day = flightDay(f);
-  checkDate(out, r, "scheduledDate", f.scheduledDate ?? day, today, label);
+  checkDate(out, r, "scheduledDate", f.scheduledDate ?? day, today(ref.airport(f.fromAirportId)?.tz), label, !!f.planned);
 
   const from = ref.airport(f.fromAirportId);
   const to = ref.airport(f.toAirportId);
@@ -300,7 +309,8 @@ function checkFlight(out: Collector, f: Flight, ref: RefIndex, today: string, ai
     !f.toAirportId && "arrival airport",
     !f.registration && "registration",
   ].filter(Boolean) as string[];
-  if (missing.length) out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: series(missing.map(missingLabel)) }), missing);
+  // A planned flight still to come has no aircraft yet: it is asked for once its time has passed.
+  if (missing.length && flightStatus(f, ref, now) !== "upcoming") out.add("V-INCOMPLETE", "info", [r], [], t("rules.incomplete", { label, fields: series(missing.map(missingLabel)) }), missing);
 }
 
 /**
@@ -326,10 +336,10 @@ function afterMidnightFix(f: Flight, r: RecordRef, ka: string, kb: string, fromT
 
 // ---------- sightings ----------
 
-function checkSighting(out: Collector, s: Sighting, ref: RefIndex, today: string, airframes: Map<string, Airframe>) {
+function checkSighting(out: Collector, s: Sighting, ref: RefIndex, today: TodayAt, airframes: Map<string, Airframe>) {
   const r = S(s.id);
   const label = sightingLabel(s);
-  checkDate(out, r, "seenOn", s.seenOn, today, label);
+  checkDate(out, r, "seenOn", s.seenOn, today(ref.airport(s.airportId)?.tz), label);
   if (s.seenAt && s.seenOn && localDateOf(s.seenAt) !== s.seenOn) {
     out.add("V-TIMES-ORDER", "error", [r], ["seenAt"], t("rules.seenAt", { label, time: s.seenAt, date: s.seenOn }), [s.seenAt, s.seenOn]);
   }
