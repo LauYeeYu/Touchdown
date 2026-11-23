@@ -1,5 +1,5 @@
-// Interactive globe: drag to turn, scroll or pinch to zoom, point at a route or a spotting location for
-// details, click a route to open the flight. Arrow keys turn it and + / − zoom, for keyboard use.
+// Interactive globe: drag to turn, scroll or pinch to zoom about the pointer (lib/globeZoom.ts), point at a route or a
+// spotting location for details, click a route to open the flight. Arrow keys turn it and + / − zoom, for keyboard use.
 // Drawn on a canvas with d3-geo (orthographic), from the same marks as the flat maps. Inside a page that
 // scrolls (`contained`), scrolling and vertical swipes move the page; a pinch or Ctrl-scroll zooms.
 
@@ -14,6 +14,7 @@ import { AIRLINER_MARKER, gapTip, MARKER_DISC, nearest, sampleTip, trackGaps, ty
 import { esc as escHtml, hideTip, showTip, whenTouchedOutside } from "./overlay.tsx";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
+import { turnFor } from "../lib/globeZoom.ts";
 
 /** While tracks load, a great circle waiting for its flight's track is drawn this much fainter, as on the flat maps. */
 const PENDING_ALPHA = 0.45;
@@ -128,6 +129,28 @@ const FINGER = 10;
 /** A scale kept within the globe's zoom: from 0.3 of the stage's shorter side to 40 times the scale that fits it. */
 function within(st: { fitScale: number; width: number; height: number }, scale: number): number {
   return Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, scale));
+}
+
+interface View {
+  rot: [number, number];
+  scale: number;
+  fitScale: number;
+  width: number;
+  height: number;
+  dirty: boolean;
+}
+
+/** The place on the globe at (x, y) in the stage, or null off its edge. */
+function placeAt(st: View, x: number, y: number): LonLat | null {
+  const q = geoOrthographic().rotate([st.rot[0], st.rot[1], 0]).scale(st.scale).translate([st.width / 2, st.height / 2]).invert!([x, y]);
+  return q && Number.isFinite(q[0]) && Number.isFinite(q[1]) ? (q as LonLat) : null;
+}
+
+/** Sets the scale and turns the globe so that `at` stays at (x, y), as far as a turn without roll can. */
+function scaleAbout(st: View, scale: number, x: number, y: number, at: LonLat | null) {
+  st.scale = within(st, scale);
+  if (at) st.rot = turnFor(at, (x - st.width / 2) / st.scale, (st.height / 2 - y) / st.scale, st.rot) ?? st.rot;
+  st.dirty = true;
 }
 
 export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [], samples = [], takeoff = null, marker = AIRLINER_MARKER }, handle) {
@@ -510,9 +533,10 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     const st = state.current;
     const pointers = new Map<number, { x: number; y: number }>();
     let drag: { x: number; y: number; rot: [number, number]; moved: number; t: number; coasting: boolean } | null = null;
-    let pinch: { dist: number; scale: number } | null = null;
-    // Safari's trackpad pinch under way: the scale it started from.
-    let gesture: number | null = null;
+    // A touch screen's pinch: the fingers' distance, the scale and the place between them as it began.
+    let pinch: { dist: number; scale: number; at: LonLat | null } | null = null;
+    // Safari's trackpad pinch under way: the scale it started from, and where the pointer was.
+    let gesture: { scale: number; x: number; y: number; at: LonLat | null } | null = null;
     // A finger following the track, by its pointer.
     let following: number | null = null;
     let last = { x: 0, y: 0, t: 0 };
@@ -520,7 +544,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     let trail: { x: number; y: number; t: number }[] = [];
     let still: ReturnType<typeof setTimeout> | undefined;
 
-    const local = (e: PointerEvent | WheelEvent) => {
+    const local = (e: { clientX: number; clientY: number }) => {
       const r = cv.getBoundingClientRect();
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
@@ -630,7 +654,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       st.inertia = 0;
       if (pointers.size === 2) {
         const [a, b] = [...pointers.values()];
-        pinch = { dist: Math.hypot(a!.x - b!.x, a!.y - b!.y), scale: st.scale };
+        pinch = { dist: Math.hypot(a!.x - b!.x, a!.y - b!.y), scale: st.scale, at: placeAt(st, (a!.x + b!.x) / 2, (a!.y + b!.y) / 2) };
         drag = null;
         following = null;
       } else if (e.pointerType !== "mouse" && trackAt(p.x, p.y, 12 + FINGER)) {
@@ -649,11 +673,11 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     const move = (e: PointerEvent) => {
       const p = local(e);
       if (pointers.has(e.pointerId)) pointers.set(e.pointerId, p);
+      // The fingers' pinch zooms as far as they spread, the place between them staying between them.
       if (pinch && pointers.size === 2) {
         const [a, b] = [...pointers.values()];
         const d = Math.hypot(a!.x - b!.x, a!.y - b!.y);
-        st.scale = within(st, (pinch.scale * d) / pinch.dist);
-        st.dirty = true;
+        scaleAbout(st, (pinch.scale * d) / pinch.dist, (a!.x + b!.x) / 2, (a!.y + b!.y) / 2, pinch.at);
         return;
       }
       if (e.pointerId === following) {
@@ -768,21 +792,21 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       // zooms by 1.65 times at most, so a mouse's wheel with Ctrl, read as a pinch, does not leap.
       const px = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? st.height : 1);
       const per = e.ctrlKey ? 100 : 300;
-      st.scale = within(st, st.scale * Math.exp(-Math.max(-per / 2, Math.min(per / 2, px)) / per));
-      st.dirty = true;
+      const p = local(e);
+      scaleAbout(st, st.scale * Math.exp(-Math.max(-per / 2, Math.min(per / 2, px)) / per), p.x, p.y, placeAt(st, p.x, p.y));
     };
 
     // Safari's trackpad pinch, its scale from the gesture's start. A touch screen's pinch is the pointers' (above).
     const gestureStart = (e: Event) => {
       if (pointers.size) return;
       e.preventDefault();
-      gesture = st.scale;
+      const p = local(e as Event & { clientX: number; clientY: number });
+      gesture = { scale: st.scale, ...p, at: placeAt(st, p.x, p.y) };
     };
     const gestureChange = (e: Event) => {
       if (gesture === null) return;
       e.preventDefault();
-      st.scale = within(st, gesture * (e as Event & { scale: number }).scale);
-      st.dirty = true;
+      scaleAbout(st, gesture.scale * (e as Event & { scale: number }).scale, gesture.x, gesture.y, gesture.at);
     };
     const gestureEnd = (e: Event) => {
       if (gesture === null) return;
