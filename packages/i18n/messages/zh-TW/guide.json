@@ -46,7 +46,7 @@
   "spreadsheet.figure.unclear": "不確定，匯入時會問你",
   "add.title": "新增航班和拍攝紀錄",
   "add.button": "點選每個頁面頂端的 + 按鈕。",
-  "add.flight": "<link>航班</link>要先填航班號碼和日期，其餘都可以不填。",
+  "add.flight": "<link>航班</link>要先填航班號碼和日期，其餘都可以不填。尚未出發的航班會儲存為預訂航班，飛行後Touchdown會提醒你確認。",
   "add.session": "<link>拍攝場次</link>只需輸入一次日期和機場，然後逐一輸入註冊號。",
   "add.figure.flight": "航班",
   "add.figure.flight.sub": "先填航班號碼和日期",

@@ -46,7 +46,7 @@
   "spreadsheet.figure.unclear": "Unklar, also fragt Import nach",
   "add.title": "Flüge und Sichtungen hinzufügen",
   "add.button": "Dafür gibt es oben auf jeder Seite die Schaltfläche +.",
-  "add.flight": "Ein <link>Flug</link> braucht zuerst Flugnummer und Datum. Der Rest ist optional.",
+  "add.flight": "Ein <link>Flug</link> braucht zuerst Flugnummer und Datum. Der Rest ist optional. Ein Flug, der noch bevorsteht, wird als geplant gespeichert, und nach dem Flug bittet Touchdown dich, ihn zu bestätigen.",
   "add.session": "In einer <link>Spotting-Session</link> gibst du Tag und Flughafen einmal ein und dann ein Kennzeichen nach dem anderen.",
   "add.figure.flight": "Flug",
   "add.figure.flight.sub": "Zuerst Flugnummer und Datum",

@@ -46,7 +46,7 @@
   "spreadsheet.figure.unclear": "Unclear, so Import asks you",
   "add.title": "Adding flights and sightings",
   "add.button": "Use the + button at the top of every page.",
-  "add.flight": "A <link>flight</link> needs its flight number and date first. The rest is optional.",
+  "add.flight": "A <link>flight</link> needs its flight number and date first. The rest is optional. A flight still to come is saved as planned, and once it has flown Touchdown asks you to confirm it.",
   "add.session": "A <link>spotting session</link> takes the day and the airport once, then one registration after another.",
   "add.figure.flight": "Flight",
   "add.figure.flight.sub": "Flight number and date first",

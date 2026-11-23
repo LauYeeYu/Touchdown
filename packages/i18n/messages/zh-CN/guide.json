@@ -46,7 +46,7 @@
   "spreadsheet.figure.unclear": "拿不准，导入时会问你",
   "add.title": "添加航班和拍摄记录",
   "add.button": "点击每个页面顶部的 + 按钮。",
-  "add.flight": "<link>航班</link>先填航班号和日期，其余可以不填。",
+  "add.flight": "<link>航班</link>先填航班号和日期，其余可以不填。尚未出行的航班会保存为预订航班，飞行后Touchdown会提醒你确认。",
   "add.session": "<link>拍摄场次</link>只需填一次日期和机场，然后逐个输入注册号。",
   "add.figure.flight": "航班",
   "add.figure.flight.sub": "先填航班号和日期",
