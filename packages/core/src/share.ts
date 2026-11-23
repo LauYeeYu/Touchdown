@@ -50,7 +50,8 @@ export interface ShareContent {
 export type ShareAnchor = `flights/${string}` | `sightings/${string}`;
 
 const SYSTEM = new Set(["rev", "updatedAt", "updatedBy", "basedOn", "versionVector", "deleted"]);
-const BOOKKEEPING = new Set(["sourceKind", "sourceBatchId", "sourceRow"]);
+// A planned flight's reminder time is the owner's alone, like the import's bookkeeping (docs/32, "What a link shows").
+const BOOKKEEPING = new Set(["sourceKind", "sourceBatchId", "sourceRow", "remindAt"]);
 const PRIVATE = new Set(PRIVATE_FIELDS);
 
 /** A row as a link shows it: its own columns, without sync columns, import bookkeeping or anything private. */

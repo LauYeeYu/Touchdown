@@ -115,3 +115,16 @@ describe("a share link's content", () => {
     }
   });
 });
+
+describe("planned flights on a link", () => {
+  it("show as planned, without the owner's reminder time", () => {
+    const store = newStore();
+    const f = saveFlight(store, ref, { scheduledDate: "2026-12-14", flightNumber: "XY123", fromRaw: "LHR", toRaw: "JFK" }).row;
+    store.update("flights", f.id, { planned: true, remindAt: "2026-12-16T09:00Z" });
+    for (const [kind, subject] of [["flight", f.id], ["log", null]] as const) {
+      const row = shareContent(kind, subject, null, everything(store)).tables.flights!.find((r) => r.id === f.id)!;
+      expect(row.planned).toBe(true);
+      expect("remindAt" in row).toBe(false);
+    }
+  });
+});
