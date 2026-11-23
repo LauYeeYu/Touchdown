@@ -89,6 +89,7 @@
   "period.allTime": "All time",
   "period.earlier": "Earlier",
   "period.earlierYears": "Earlier years",
+  "period.otherYears": "Other years",
   "chart.monthYear": "{month} {year}",
   "chart.notYet": "Not yet",
   "chart.axisFeet": "{n}k ft",

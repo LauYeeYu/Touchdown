@@ -34,12 +34,12 @@ export function usePeriod(store: Store, version: number) {
     },
     () => current,
   );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const years = useMemo(() => yearsIn(store), [store, version]);
   const thisYear = todayIn().slice(0, 4);
+  // The current year is always offered, even before its first record (docs/31, "Period control").
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const years = useMemo(() => yearsIn(store, thisYear), [store, version, thisYear]);
   const valid = [...years, "all"];
-  const fallback = years.includes(thisYear) ? thisYear : (years[years.length - 1] ?? "all");
-  const year = stored && valid.includes(stored) ? stored : fallback;
+  const year = stored && valid.includes(stored) ? stored : thisYear;
   const setYear = useCallback((y: string) => setStored(y), []);
   return { year, setYear, years, thisYear };
 }

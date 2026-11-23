@@ -3140,6 +3140,7 @@ export interface MessageArgs {
   "stats.period.allTime": {};
   "stats.period.earlier": {};
   "stats.period.earlierYears": {};
+  "stats.period.otherYears": {};
   "stats.chart.monthYear": { month: "text"; year: "text" };
   "stats.chart.notYet": {};
   "stats.chart.axisFeet": { n: "text" };

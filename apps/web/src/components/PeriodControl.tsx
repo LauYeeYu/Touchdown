@@ -1,10 +1,12 @@
-// Period control (docs/31-ui.md): segmented buttons while they fit, at most the three most recent years
-// plus "All time"; older years in an "Earlier" menu; one menu button on very narrow screens. The selected
-// segment is shown by fill and check, and every segment reserves room for its longest label, so the
-// control never changes width when the selection changes. It is marked `data-setting`: one setting shared by every
-// page, not a page's own view (scripts/check-back.ts leaves it alone).
+// Period control (docs/31-ui.md, "Period control"): segmented buttons while they fit, the current year and "All time"
+// always among them, and as room allows up to two more years, a later one first (planned flights), then earlier ones.
+// The other years are in a menu segment, "Earlier", or "Other years" when it holds a later year. On very narrow
+// screens: a menu of every year, and "All time". The selected segment is shown by fill and check, and every segment
+// reserves room for its longest label, so the control never changes width when the selection changes. It is marked
+// `data-setting`: one setting shared by every page, not a page's own view (scripts/check-back.ts leaves it alone).
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { todayIn } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
 import { Icon } from "../lib/icons.tsx";
 
@@ -16,44 +18,43 @@ interface Props {
   onChange: (y: string) => void;
 }
 
-function Segments({ year, years, k, onPick, onMenu, menuOpen, triggerRef }: {
+/**
+ * The years shown as segments, `k` of them, in date order: the current year, then later years, then earlier ones, the
+ * nearest first. The rest, newest first, go in the menu.
+ */
+export function periodSegments(years: string[], k: number, current: string): { shown: string[]; rest: string[] } {
+  const order = [...years.filter((y) => y === current), ...years.filter((y) => y > current), ...years.filter((y) => y < current).reverse()];
+  const shown = order.slice(0, k).sort();
+  return { shown, rest: years.filter((y) => !shown.includes(y)).reverse() };
+}
+
+function Segments({ year, years, k, current, onPick, onMenu, menuOpen, triggerRef }: {
   year: string;
   years: string[];
   k: number;
+  current: string;
   onPick?: (y: string) => void;
   onMenu?: () => void;
   menuOpen?: boolean;
   triggerRef?: React.Ref<HTMLButtonElement>;
 }) {
-  if (k === 0) {
-    return (
-      <div className="segmented" role="group" aria-label={t("stats.period.label")} data-setting="period">
-        <button type="button" className="seg seg--menu" aria-haspopup="menu" aria-expanded={!!menuOpen} aria-pressed="true" onClick={onMenu} ref={triggerRef}>
-          <Icon name="check" className="seg__check" />
-          <span className="seg__label" data-ghost={t("stats.period.allTime")}>
-            <span>{label(year)}</span>
-          </span>
-          <Icon name="chevron-down" className="seg__chev" />
-        </button>
-      </div>
-    );
-  }
-  const recent = years.slice(-k);
-  const earlier = years.slice(0, years.length - recent.length);
-  const pickedEarlier = earlier.includes(year);
-  const ghost = earlier.reduce((a, b) => (a.length >= b.length ? a : b), t("stats.period.earlier"));
+  const { shown, rest } = periodSegments(years, k, current);
+  const picked = rest.includes(year);
+  // On the narrowest screens the menu holds every year and shows the one chosen, else the current year.
+  const menuLabel = k === 0 ? (picked ? year : current) : picked ? year : rest.some((y) => y > current) ? t("stats.period.otherYears") : t("stats.period.earlier");
+  const ghost = [...rest, k === 0 ? current : rest.some((y) => y > current) ? t("stats.period.otherYears") : t("stats.period.earlier")].reduce((a, b) => (a.length >= b.length ? a : b), "");
   return (
     <div className="segmented" role="group" aria-label={t("stats.period.label")} data-setting="period">
-      {earlier.length > 0 && (
-        <button type="button" className="seg seg--menu" aria-haspopup="menu" aria-expanded={!!menuOpen} aria-pressed={pickedEarlier} onClick={onMenu} ref={triggerRef}>
+      {rest.length > 0 && (
+        <button type="button" className="seg seg--menu" aria-haspopup="menu" aria-expanded={!!menuOpen} aria-pressed={picked} onClick={onMenu} ref={triggerRef}>
           <Icon name="check" className="seg__check" />
           <span className="seg__label" data-ghost={ghost}>
-            <span>{pickedEarlier ? year : t("stats.period.earlier")}</span>
+            <span>{menuLabel}</span>
           </span>
           <Icon name="chevron-down" className="seg__chev" />
         </button>
       )}
-      {[...recent, "all"].map((y) => (
+      {[...shown, "all"].map((y) => (
         <button key={y} type="button" className="seg" data-year={y} aria-pressed={y === year} onClick={() => onPick?.(y)}>
           <Icon name="check" className="seg__check" />
           {label(y)}
@@ -69,6 +70,7 @@ export function PeriodControl({ year, years, onChange }: Props) {
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const maxK = Math.min(3, years.length);
+  const current = todayIn().slice(0, 4);
   const [k, setK] = useState(maxK);
   const [open, setOpen] = useState(false);
   const key = years.join(",");
@@ -93,8 +95,7 @@ export function PeriodControl({ year, years, onChange }: Props) {
     return () => ro.disconnect();
   }, [key, maxK]);
 
-  const recent = k ? years.slice(-k) : [];
-  const menuYears = k === 0 ? [...years, "all"].reverse() : years.slice(0, years.length - recent.length).reverse();
+  const menuYears = periodSegments(years, k, current).rest;
 
   useEffect(() => {
     if (!open) return;
@@ -131,13 +132,13 @@ export function PeriodControl({ year, years, onChange }: Props) {
     <div className="period-host" ref={host}>
       <div className="period-measure" ref={measure} aria-hidden="true">
         {Array.from({ length: maxK }, (_, i) => (
-          <Segments key={i} year={year} years={years} k={maxK - i} />
+          <Segments key={i} year={year} years={years} k={maxK - i} current={current} />
         ))}
       </div>
       <div className="period">
-        <Segments year={year} years={years} k={k} onPick={pick} onMenu={() => setOpen((o) => !o)} menuOpen={open} triggerRef={trigger} />
+        <Segments year={year} years={years} k={k} current={current} onPick={pick} onMenu={() => setOpen((o) => !o)} menuOpen={open} triggerRef={trigger} />
         {open && menuYears.length > 0 && (
-          <div className="menu" role="menu" aria-label={k === 0 ? t("stats.period.label") : t("stats.period.earlierYears")} ref={menu} onKeyDown={onMenuKey} style={{ left: trigger.current?.offsetLeft ?? 0 }}>
+          <div className="menu" role="menu" aria-label={k === 0 ? t("stats.period.label") : menuYears.some((y) => y > current) ? t("stats.period.otherYears") : t("stats.period.earlierYears")} ref={menu} onKeyDown={onMenuKey} style={{ left: trigger.current?.offsetLeft ?? 0 }}>
             {menuYears.map((y) => (
               <button key={y} type="button" role="menuitemradio" className="menu__item" aria-checked={y === year} onClick={() => pick(y)}>
                 <Icon name="check" className="menu__check" />
