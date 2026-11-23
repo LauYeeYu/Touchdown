@@ -24,6 +24,8 @@ import {
   rowKey,
   rowVersion,
   saveFlight,
+  confirmFlight,
+  remindLater,
   saveOwnAirport,
   saveSighting,
   saveSightings,
@@ -64,6 +66,7 @@ import { hasTables, savedSyncState, SYNC_CHECKED, SyncController, TabSync, type 
 import type { SavedRow, TabMessage, Tabs } from "./tabs.ts";
 import { groupTrackPoints, hasTrackKey } from "./trackPoints.ts";
 import { localValue, setLocalValue } from "../lib/localValue.ts";
+import { watchPlanned } from "../lib/plannedClock.ts";
 
 function deviceId(): string {
   const kept = localValue("td-device");
@@ -200,6 +203,8 @@ export class AppData {
       tell(this.listeners);
     });
     tabs.listen((m) => this.hear(m));
+    // A planned flight's time passing changes what the pages show and what the checks find, with nothing written.
+    watchPlanned(store, ref, () => this.notify());
   }
 
   /** `done` hears each step as it finishes; with "log", the number of records read. */
@@ -776,8 +781,19 @@ export class AppData {
     resolveAirframes(this.store, this.ref);
   }
 
+  /** Saved in the form: planned exactly when its departure is still to come, so saving it after its time confirms it. */
   saveFlight(values: Partial<FlightValues>, id?: string): Row<"flights"> {
-    return saveFlight(this.store, this.ref, values, id).row;
+    return saveFlight(this.store, this.ref, values, id, { plan: true }).row;
+  }
+
+  /** A planned flight confirmed as flown (docs/31, "Confirming"). */
+  confirmFlight(id: string): void {
+    confirmFlight(this.store, id);
+  }
+
+  /** "Remind me later": the reminder to confirm these flights comes back at `at`, on every device. */
+  remindLater(ids: string[], at: number): void {
+    remindLater(this.store, ids, at);
   }
 
   /** `phases`: every phase it was seen in, replacing those it has. */

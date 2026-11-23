@@ -6,6 +6,7 @@ import { logNeedsMoreAirports, phasesOf, refOverridesOf, RefIndex, settingsOf, S
 import type { ShareContent } from "@touchdown/core/share";
 import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
+import { watchPlanned } from "../lib/plannedClock.ts";
 
 /** The link's id: the page is /p/<id>. */
 export const shareId = () => location.pathname.split("/")[2] ?? "";
@@ -140,6 +141,8 @@ export class ShareData {
   ) {
     store.subscribe(() => this.notify());
     reader.subscribe(() => this.notify());
+    // A planned flight starts to count on a link at the same moment as in the app (docs/32, "What a link shows").
+    watchPlanned(store, ref, () => this.notify());
   }
 
   /** As the app's data, for its pages: they read only what this class has. */
