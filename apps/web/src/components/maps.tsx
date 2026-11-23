@@ -50,6 +50,8 @@ export interface MapFlight {
   lone?: LonLat[];
   /** It has a recorded track whose positions are not here yet (they load after the page): the great circle stands in. */
   pending?: boolean;
+  /** A planned flight still to come: its great circle, dashed, thinner and fainter, under the flown routes (docs/23). */
+  planned?: boolean;
 }
 
 export interface MapSpot {
@@ -534,12 +536,14 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
       const arcPaths: SVGPathElement[] = [];
       let order = 0;
       const arrival = arrivals(flights);
-      flights.forEach((f, i) => {
+      // Planned flights first, so the flown routes are drawn over them, and found first under a pointer.
+      const drawOrder = flights.map((f, i) => [f, i] as const).sort(([a], [b]) => Number(!!b.planned) - Number(!!a.planned));
+      drawOrder.forEach(([f, i]) => {
         const d = path(lines[i]!) ?? "";
         const a = arrival(f.id);
         const fresh = a ? " is-arriving" : "";
         if (a) fadeFrom(el(arcs, "path", { class: "arc arc--leaving", d: path({ type: "MultiLineString", coordinates: a.was }) ?? "" }), a);
-        const line = el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.pending ? " arc--pending" : ""}${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d });
+        const line = el(arcs, "path", { class: `arc${f.track ? " arc--track" : ""}${f.pending ? " arc--pending" : ""}${f.planned ? " arc--planned" : ""}${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d });
         arcPaths.push(a ? fadeFrom(line, a) : line);
         for (const g of f.gaps ?? []) {
           const gap = el(arcs, "path", { class: `arc arc--gap${f.both ? " is-both" : ""}${fresh}`, "data-id": f.id, "data-route": f.route, "data-order": order++, d: path({ type: "LineString", coordinates: g }) ?? "" });
@@ -558,7 +562,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         }
       }
       // A mouse's target along each route. A finger's tap finds its route by distance (`routeAt`).
-      flights.forEach((f, i) => {
+      drawOrder.forEach(([f, i]) => {
         const hit = el(arcs, "path", { class: "arc-hit", "data-id": f.id, d: path(routes[i]!) ?? "" });
         hoverTip(
           hit,

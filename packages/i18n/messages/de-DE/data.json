@@ -40,6 +40,7 @@
   "trackLoading.many": "Flugwege werden geladen<count> · {done, number} von {total, number}</count>",
   "map.flight": "Flug",
   "map.noDate": "Kein Datum",
+  "map.planned": "Geplant",
   "map.spot.label": "{name}: {count, plural, one {#\u00a0Flugzeug} other {#\u00a0Flugzeuge}} gesehen",
   "map.spot.seen": "{aircraft, plural, one {#\u00a0Flugzeug} other {#\u00a0Flugzeuge}} an {days, plural, one {#\u00a0Tag} other {#\u00a0Tagen}} gesehen",
   "map.spot.last": "zuletzt am {date}",

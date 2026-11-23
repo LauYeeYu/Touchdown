@@ -135,6 +135,15 @@
   }
 }
 
+/* A planned flight still to come (docs/23, "Maps in the app"): its great circle dashed, thinner and fainter than a flown
+   route, drawn under them. Pointed at, it comes forward as any route does. */
+.map .arc--planned {
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+  stroke-linecap: butt;
+  opacity: 0.6;
+}
+
 /* The stretch of a partial track that was not recorded: the great circle in grey dots, since gold means the aircraft
    was there. */
 .map .arc--gap {

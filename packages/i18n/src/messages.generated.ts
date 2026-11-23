@@ -1494,6 +1494,7 @@ export interface MessageArgs {
   "data.trackLoading.many": { "<count>": "tag"; done: "number"; total: "number" };
   "data.map.flight": {};
   "data.map.noDate": {};
+  "data.map.planned": {};
   "data.map.spot.label": { count: "number"; name: "text" };
   "data.map.spot.seen": { aircraft: "number"; days: "number" };
   "data.map.spot.last": { date: "text" };

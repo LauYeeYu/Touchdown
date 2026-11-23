@@ -350,15 +350,18 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
           ctx.stroke();
           alpha *= k;
         }
-        ctx.globalAlpha = alpha;
+        // A planned flight still to come: its great circle dashed, and on a globe of many flights thinner and fainter.
+        const planned = !!f.planned && !single;
+        ctx.globalAlpha = planned && fl.length > 1 ? alpha * 0.7 : alpha;
         ctx.strokeStyle = c.flown;
-        ctx.lineWidth = width;
-        ctx.lineCap = "round";
+        ctx.lineWidth = planned && fl.length > 1 ? width * 0.75 : width;
+        ctx.lineCap = f.planned ? "butt" : "round";
         ctx.lineJoin = "round";
-        ctx.setLineDash([]);
+        ctx.setLineDash(f.planned ? [6, 5] : []);
         ctx.beginPath();
         path({ type: "MultiLineString", coordinates: f.line });
         ctx.stroke();
+        ctx.setLineDash([]);
         // What the track does not record: grey dots, since gold means the aircraft was there.
         if (f.gaps?.length) {
           ctx.strokeStyle = c.ink3;
@@ -385,7 +388,8 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         }
         ctx.globalAlpha = 1;
       };
-      for (const f of fl) if (f.id !== hoverId) drawRoute(f, lineWidth, hoverId ? 0.22 : 0.85);
+      // Planned flights first, under the flown routes.
+      for (const f of [...fl].sort((a, b) => Number(!!b.planned) - Number(!!a.planned))) if (f.id !== hoverId) drawRoute(f, lineWidth, hoverId ? 0.22 : 0.85);
       const hovered = hoverId ? fl.find((f) => f.id === hoverId) : undefined;
       if (hovered) drawRoute(hovered, lineWidth + 1.6, 1);
       // A gap under the pointer, over its own dots.

@@ -40,6 +40,7 @@
   "trackLoading.many": "Loading tracks<count> · {done, number} of {total, number}</count>",
   "map.flight": "Flight",
   "map.noDate": "No date",
+  "map.planned": "Planned",
   "map.spot.label": "{name}: {count, plural, one {#\u00a0aircraft} other {#\u00a0aircraft}} seen",
   "map.spot.seen": "{aircraft, plural, one {#\u00a0aircraft} other {#\u00a0aircraft}} seen on {days, plural, one {#\u00a0day} other {#\u00a0days}}",
   "map.spot.last": "last {date}",

@@ -40,6 +40,7 @@
   "trackLoading.many": "正在加载轨迹<count> · {done, number}/{total, number}</count>",
   "map.flight": "航班",
   "map.noDate": "无日期",
+  "map.planned": "已预订",
   "map.spot.label": "{name}：拍到{count, plural, other {#架飞机}}",
   "map.spot.seen": "{days, plural, other {#天}}里拍到{aircraft, plural, other {#架飞机}}",
   "map.spot.last": "最近一次\u2060{date}",
