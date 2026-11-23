@@ -14,7 +14,7 @@ import { AIRLINER_MARKER, gapTip, MARKER_DISC, nearest, sampleTip, trackGaps, ty
 import { esc as escHtml, hideTip, showTip, whenTouchedOutside } from "./overlay.tsx";
 import { TrackLoading } from "../lib/trackLoading.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
-import { turnFor } from "../lib/globeZoom.ts";
+import { PINCH, STEP, turnFor, wheelZoom } from "../lib/globeZoom.ts";
 
 /** While tracks load, a great circle waiting for its flight's track is drawn this much fainter, as on the flat maps. */
 const PENDING_ALPHA = 0.45;
@@ -131,6 +131,25 @@ function within(st: { fitScale: number; width: number; height: number }, scale: 
   return Math.min(st.fitScale * 40, Math.max(Math.min(st.width, st.height) * 0.3, scale));
 }
 
+/**
+ * A zoom under way towards the scale `to`, that keeps the place `at` at (x, y) in the stage: `v` its speed, in e-folds
+ * of the scale a second, and `t` the time of its last frame.
+ */
+interface Zooming {
+  to: number;
+  x: number;
+  y: number;
+  at: LonLat | null;
+  t: number;
+  v: number;
+}
+
+/**
+ * A zoom's smoothing time in seconds. It follows its scale as a critically damped spring does, so a notch eases in
+ * and out over about 200ms, and the notches of a turning wheel run together, its speed carried from one to the next.
+ */
+const SMOOTH = 0.09;
+
 interface View {
   rot: [number, number];
   scale: number;
@@ -138,6 +157,8 @@ interface View {
   width: number;
   height: number;
   dirty: boolean;
+  inertia: number;
+  zoom: Zooming | null;
 }
 
 /** The place on the globe at (x, y) in the stage, or null off its edge. */
@@ -151,6 +172,18 @@ function scaleAbout(st: View, scale: number, x: number, y: number, at: LonLat | 
   st.scale = within(st, scale);
   if (at) st.rot = turnFor(at, (x - st.width / 2) / st.scale, (st.height / 2 - y) / st.scale, st.rot) ?? st.rot;
   st.dirty = true;
+}
+
+/** Zooms by `factor` about (x, y) in the stage, by default its centre: eased, unless `ease` is false or the reader asks for less motion. */
+function zoomAbout(st: View, factor: number, x = st.width / 2, y = st.height / 2, ease = true) {
+  st.inertia = 0;
+  const to = within(st, (st.zoom?.to ?? st.scale) * factor);
+  const at = placeAt(st, x, y);
+  if (ease && !reducedMotion()) st.zoom = { to, x, y, at, t: st.zoom?.t ?? performance.now(), v: st.zoom?.v ?? 0 };
+  else {
+    st.zoom = null;
+    scaleAbout(st, to, x, y, at);
+  }
 }
 
 export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, spots, onFlightClick, onAirportClick, label, contained = false, greatCircles = [], samples = [], takeoff = null, marker = AIRLINER_MARKER }, handle) {
@@ -168,6 +201,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     colours: null as Colours | null,
     velocity: [0, 0] as [number, number],
     inertia: 0,
+    zoom: null as Zooming | null,
   });
   // The track's gaps are worked out again only when its positions change.
   const gapsFor = useRef<{ samples: TrackSample[]; gaps: TrackGap[] }>({ samples: [], gaps: [] });
@@ -196,15 +230,12 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
     }
     st.rot = [...st.fitRot];
     st.scale = st.fitScale;
+    st.zoom = null;
     st.dirty = true;
   };
 
   useImperativeHandle(handle, () => ({
-    zoomBy: (factor) => {
-      const st = state.current;
-      st.scale = within(st, st.scale * factor);
-      st.dirty = true;
-    },
+    zoomBy: (factor) => zoomAbout(state.current, factor),
     reset: () => fit(),
   }));
 
@@ -478,6 +509,23 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         for (const [id, a] of arriving.current) if (now - a.at >= ARRIVE_MS) arriving.current.delete(id);
         st.dirty = true;
       }
+      // A zoom under way: the spring's exact step, on the scale's logarithm, over the time since the last frame.
+      if (st.zoom) {
+        const z = st.zoom;
+        const now = performance.now();
+        const dt = Math.min(0.1, (now - z.t) / 1000);
+        z.t = now;
+        z.to = within(st, z.to);
+        const w = 2 / SMOOTH;
+        const c = Math.log(st.scale / z.to);
+        const k = z.v + w * c;
+        const e = Math.exp(-w * dt);
+        const next = (c + k * dt) * e;
+        z.v = (z.v - w * k * dt) * e;
+        const done = Math.abs(next) < 0.002 && Math.abs(z.v) < 0.05;
+        scaleAbout(st, done ? z.to : z.to * Math.exp(next), z.x, z.y, z.at);
+        if (done) st.zoom = null;
+      }
       if (st.inertia > 0) {
         st.rot = [st.rot[0] + st.velocity[0], Math.max(-89, Math.min(89, st.rot[1] + st.velocity[1]))];
         st.velocity = [st.velocity[0] * 0.92, st.velocity[1] * 0.92];
@@ -652,6 +700,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       const p = local(e);
       pointers.set(e.pointerId, p);
       st.inertia = 0;
+      st.zoom = null;
       if (pointers.size === 2) {
         const [a, b] = [...pointers.values()];
         pinch = { dist: Math.hypot(a!.x - b!.x, a!.y - b!.y), scale: st.scale, at: placeAt(st, (a!.x + b!.x) / 2, (a!.y + b!.y) / 2) };
@@ -787,26 +836,25 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       if (data.current.contained && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       if (gesture !== null) return;
-      // In pixels: a line as 16, a page as the stage's height. A pinch's small steps follow the fingers, as a touch
-      // screen's pinch does, and a wheel's notch (about 100 pixels) zooms as the + button does (1.4 times). One event
-      // zooms by 1.65 times at most, so a mouse's wheel with Ctrl, read as a pinch, does not leap.
-      const px = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? st.height : 1);
-      const per = e.ctrlKey ? 100 : 300;
+      const { factor, ease } = wheelZoom(e, st.height);
       const p = local(e);
-      scaleAbout(st, st.scale * Math.exp(-Math.max(-per / 2, Math.min(per / 2, px)) / per), p.x, p.y, placeAt(st, p.x, p.y));
+      zoomAbout(st, factor, p.x, p.y, ease);
     };
 
-    // Safari's trackpad pinch, its scale from the gesture's start. A touch screen's pinch is the pointers' (above).
+    // Safari's trackpad pinch, its scale from the gesture's start, as far as Chrome's (lib/globeZoom.ts). A touch
+    // screen's pinch is the pointers' (above).
     const gestureStart = (e: Event) => {
       if (pointers.size) return;
       e.preventDefault();
       const p = local(e as Event & { clientX: number; clientY: number });
+      st.inertia = 0;
+      st.zoom = null;
       gesture = { scale: st.scale, ...p, at: placeAt(st, p.x, p.y) };
     };
     const gestureChange = (e: Event) => {
       if (gesture === null) return;
       e.preventDefault();
-      scaleAbout(st, gesture.scale * (e as Event & { scale: number }).scale, gesture.x, gesture.y, gesture.at);
+      scaleAbout(st, gesture.scale * (e as Event & { scale: number }).scale ** PINCH, gesture.x, gesture.y, gesture.at);
     };
     const gestureEnd = (e: Event) => {
       if (gesture === null) return;
@@ -820,11 +868,12 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       else if (e.key === "ArrowRight") st.rot = [st.rot[0] - step, st.rot[1]];
       else if (e.key === "ArrowUp") st.rot = [st.rot[0], Math.max(-89, st.rot[1] - step)];
       else if (e.key === "ArrowDown") st.rot = [st.rot[0], Math.min(89, st.rot[1] + step)];
-      else if (e.key === "+" || e.key === "=") st.scale = within(st, st.scale * 1.25);
-      else if (e.key === "-" || e.key === "_") st.scale = within(st, st.scale / 1.25);
+      else if (e.key === "+" || e.key === "=") zoomAbout(st, STEP);
+      else if (e.key === "-" || e.key === "_") zoomAbout(st, 1 / STEP);
       else if (e.key === "0") {
         st.rot = [...st.fitRot];
         st.scale = st.fitScale;
+        st.zoom = null;
       } else return;
       e.preventDefault();
       st.dirty = true;

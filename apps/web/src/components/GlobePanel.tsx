@@ -10,6 +10,7 @@ import type { MapFlight, MapSpot } from "./maps.tsx";
 import { Icon } from "../lib/icons.tsx";
 import type { TrackMarker, TrackSample } from "../lib/trackStatus.ts";
 import { TrackLoadingNote } from "../lib/trackLoading.tsx";
+import { STEP } from "../lib/globeZoom.ts";
 
 interface Props {
   flights: MapFlight[];
@@ -73,10 +74,10 @@ export function GlobePanel({ flights, spots, label, head, note, onFlightClick, o
           {full ? t("maps.globe.collapse") : t("maps.globe.expand")}
         </button>
         <div className="globe-controls" aria-label={t("maps.globe.controls")}>
-          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(1.4)} aria-label={t("maps.globe.zoomIn")} title={t("maps.globe.zoomIn")}>
+          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(STEP)} aria-label={t("maps.globe.zoomIn")} title={t("maps.globe.zoomIn")}>
             <Icon name="plus" />
           </button>
-          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(1 / 1.4)} aria-label={t("maps.globe.zoomOut")} title={t("maps.globe.zoomOut")}>
+          <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.zoomBy(1 / STEP)} aria-label={t("maps.globe.zoomOut")} title={t("maps.globe.zoomOut")}>
             <Icon name="minus" />
           </button>
           <button type="button" className="icon-btn globe-btn" onClick={() => globe.current?.reset()} aria-label={t("maps.globe.reset")} title={t("maps.globe.reset")}>

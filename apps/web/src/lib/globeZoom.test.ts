@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { geoOrthographic } from "d3-geo";
-import { turnFor } from "./globeZoom.ts";
+import { PINCH, STEP, turnFor, wheelZoom } from "./globeZoom.ts";
 
 describe("turnFor", () => {
   const at = (rot: [number, number], p: [number, number]) => geoOrthographic().rotate([rot[0], rot[1], 0]).scale(1).translate([0, 0])(p)!;
@@ -43,5 +43,38 @@ describe("turnFor", () => {
 
   it("gives up where only a rolled globe could show the place", () => {
     expect(turnFor([0, 85], 0.5, 0, [0, -60])).toBeNull();
+  });
+});
+
+describe("wheelZoom", () => {
+  it("takes a trackpad's pinch at once, as far as the fingers spread", () => {
+    // Chrome's pinch that doubles the fingers' spread, in its 18 steps.
+    let zoom = 1;
+    for (let i = 0; i < 18; i++) {
+      const z = wheelZoom({ deltaY: (-100 * Math.log(2)) / 18, deltaMode: 0, ctrlKey: true }, 800);
+      expect(z.ease).toBe(false);
+      zoom *= z.factor;
+    }
+    expect(zoom).toBeCloseTo(2 ** PINCH, 9);
+  });
+
+  it("eases a mouse's notch, one step whatever the browser and system", () => {
+    for (const e of [
+      { deltaY: -100, deltaMode: 0, ctrlKey: false },
+      { deltaY: -120, deltaMode: 0, ctrlKey: false },
+      { deltaY: -3, deltaMode: 1, ctrlKey: false },
+      { deltaY: -4.000244140625, deltaMode: 0, ctrlKey: false },
+      { deltaY: -4.000244140625 * 7, deltaMode: 0, ctrlKey: true },
+      { deltaY: -100, deltaMode: 0, ctrlKey: true },
+    ]) {
+      expect(wheelZoom(e, 800)).toEqual({ factor: STEP, ease: true });
+    }
+    expect(wheelZoom({ deltaY: 100, deltaMode: 0, ctrlKey: false }, 800)).toEqual({ factor: 1 / STEP, ease: true });
+  });
+
+  it("eases a trackpad's or a smooth-scrolling mouse's scrolling, a step for every 100 pixels", () => {
+    const z = wheelZoom({ deltaY: -25, deltaMode: 0, ctrlKey: false }, 800);
+    expect(z.ease).toBe(true);
+    expect(z.factor).toBeCloseTo(STEP ** 0.25, 9);
   });
 });
