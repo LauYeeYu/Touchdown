@@ -14,7 +14,7 @@ import { airportWithCode, primaryCode, secondaryCode } from "../lib/codes.ts";
 import { mapFlights, trackIndex } from "../lib/mapdata.ts";
 import { trackSamples } from "../lib/trackStatus.ts";
 import { useTypeInfo } from "../lib/typeInfo.ts";
-import { airlineLabel, CABIN_LABEL, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
+import { airlineLabel, CABIN_LABEL, cityOf, clock, dateOnly, dayLong, dayMonthYear, dayShort, distance, durLong, localDay, modelLabel, offsetLabel, REASON_LABEL, shortAirport, TRACK_SOURCE, typeName } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { FlightMap } from "../components/maps.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
@@ -35,6 +35,7 @@ import { flownIn, LiveryBand, photographedIn } from "../components/LiveryBand.ts
 import { FindingList } from "../components/Findings.tsx";
 import { toast } from "../components/overlay.tsx";
 import { MenuButton } from "../components/Menu.tsx";
+import { confirm, dueText, RemindLater } from "../components/PlannedReminder.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { TimeCell } from "../components/TimeCell.tsx";
 import { article, partOfDay } from "../lib/flightText.ts";
@@ -64,7 +65,8 @@ export function FlightDetail() {
   const shareList = useShares(app.connection?.mode === "standard");
   const info = useTypeInfo();
 
-  const all = sortedFlights(store, ref);
+  // Every flight, planned ones still to come too: the pager goes through them as Flights lists them.
+  const all = sortedFlights(store, ref, { planned: true });
   const idx = all.findIndex((v) => v.f.id === id);
   if (idx < 0) return <NotFound what={shared ? t("flights.notFound.link") : t("flights.notFound.log")} back={{ to: "/flights", label: t("flights.allFlights") }} />;
   const v = all[idx]!;
@@ -87,7 +89,9 @@ export function FlightDetail() {
   const mark = A && B ? mapFlights([v], ref, unit, new Set(), store, Infinity)[0]! : null;
   const trackRow = store.all("tracks").find((t) => t.flightId === f.id);
   const findings = app.findingsFor("flights", f.id);
-  const onThis = f.airframeId ? all.filter((o) => o.f.airframeId === f.airframeId) : [v];
+  // A planned flight still to come (docs/31, "Planned flights"); one whose time has passed is due, not confirmed yet.
+  const upcoming = v.status === "upcoming";
+  const onThis = f.airframeId ? all.filter((o) => o.f.airframeId === f.airframeId && (o.status !== "upcoming" || o.f.id === f.id)) : [v];
   const spotted = f.airframeId ? store.all("sightings").filter((s) => s.airframeId === f.airframeId).sort((a, b) => (a.seenOn ?? "").localeCompare(b.seenOn ?? "")) : [];
   const built = airframe?.firstFlightDate?.slice(0, 4) ?? null;
   const age = built && v.day ? Number(v.day.slice(0, 4)) - Number(built) : null;
@@ -391,6 +395,7 @@ export function FlightDetail() {
           <b>{day ? dayLong(day) : t("flights.detail.noDate")}</b>
           {flightName(f) && ` · ${flightName(f)}`}
           {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
+          {upcoming && <span className="pill flight-date__pill">{t("flights.list.planned")}</span>}
         </p>
         {shared ? (
           samples.length > 1 && (
@@ -409,7 +414,8 @@ export function FlightDetail() {
             </Link>
             {/* The link, the image and the video, in one dialog: the video where both airports are known. */}
             <ShareButton kind="flight" subject={f.id} image={{ content: figureContent, name: fileName }} video={A && B ? { content: videoContent, name: fileName("mp4") } : undefined} />
-            {trackRow ? (
+            {/* A flight has no track before it flies. */}
+            {upcoming ? null : trackRow ? (
               <MenuButton
                 className="btn btn--quiet btn--small"
                 label={t("flights.detail.recordedTrack")}
@@ -454,7 +460,16 @@ export function FlightDetail() {
       </div>
 
       <p className="lead lead--flight">
-        {tx(
+        {/* A planned flight: still to come, or in the owner's app, its time passed and not confirmed yet. */}
+        {upcoming ? tx("flights.detail.planned.lead", {
+          voice: voice.kind,
+          name: who,
+          from: cityOf(f.fromAirportId, ref) || (f.fromRaw ?? ""),
+          to: cityOf(f.divertedToAirportId ?? f.toAirportId, ref) || (f.toRaw ?? ""),
+        }) : v.status === "due" && !shared ? t("flights.detail.planned.leadDue", {
+          from: cityOf(f.fromAirportId, ref) || (f.fromRaw ?? ""),
+          to: cityOf(f.divertedToAirportId ?? f.toAirportId, ref) || (f.toRaw ?? ""),
+        }) : tx(
           "flights.detail.lead",
           {
             kind,
@@ -525,12 +540,39 @@ export function FlightDetail() {
           ]}
         />
       )}
+      {v.status === "due" && !shared && (
+        /* As the track file's panel: the reminder's words, then Confirm, Update and "Remind me later". */
+        <div className="finding planned-band" role="status">
+          <Icon name="tickets-plane" />
+          <div className="finding__body">
+            <p className="finding__text">
+              {dueText(f, ref)}
+              {sentenceGap()}
+              {t("flights.planned.delete")}
+            </p>
+            <div className="finding__actions">
+              <button type="button" className="btn btn--primary btn--small" onClick={() => confirm(app, f.id)}>
+                <Icon name="check" />
+                {t("flights.planned.confirm")}
+              </button>
+              <Link className="btn btn--quiet btn--small" to="/flights/$id/edit" params={{ id: f.id }}>
+                <Icon name="pencil" />
+                {t("flights.planned.update")}
+              </Link>
+              <RemindLater app={app} ids={[f.id]} />
+            </div>
+          </div>
+        </div>
+      )}
       {pickedPanel}
       {routeMap}
 
-      {(f.boardingAt || f.takeoffAt || f.landingAt || v.km !== null || extension) && (
+      {(f.boardingAt || f.takeoffAt || f.landingAt || f.departureScheduledAt || f.arrivalScheduledAt || v.km !== null || extension) && (
         <div className="times">
           {f.boardingAt && <TimeCell label={t("flights.detail.time.boarding")} dt={f.boardingAt} />}
+          {/* The ticket's times, until the flight's own are known: a planned flight's (docs/31, "Planned flights"). */}
+          {f.departureScheduledAt && !f.takeoffAt && <TimeCell label={t("flights.detail.time.departure", { code: v.fromCode })} dt={f.departureScheduledAt} />}
+          {f.arrivalScheduledAt && !f.landingAt && <TimeCell label={t("flights.detail.time.arrival", { code: v.toCode })} dt={f.arrivalScheduledAt} />}
           {f.takeoffAt && (
             <TimeCell
               label={t("flights.detail.time.takeoff", { code: v.fromCode })}

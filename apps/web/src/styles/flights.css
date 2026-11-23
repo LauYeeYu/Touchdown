@@ -294,3 +294,15 @@
   text-decoration: underline;
   text-underline-offset: 1px;
 }
+
+/* A planned flight whose time has passed, on its page (docs/31, "Planned flights"): the reminder in the track file's
+   panel, above the map. */
+.planned-band {
+  margin-top: 24px;
+}
+
+/* "Planned" after a flight still to come's date and number. */
+.flight-date__pill {
+  margin-left: 10px;
+  vertical-align: 1px;
+}

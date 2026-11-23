@@ -6,6 +6,7 @@ import { useApp } from "../data/context.tsx";
 import { Icon, type IconName } from "../lib/icons.tsx";
 import { MenuButton } from "./Menu.tsx";
 import { NoteBar } from "./NoteBar.tsx";
+import { PlannedBar } from "./PlannedReminder.tsx";
 import { recordsText, sessionPhrase, useInboxWatcher, useWaitingSessions } from "../data/inbox.ts";
 import { LAST_BACKUP, LAST_CHANGE, metaNumber } from "../data/connection.ts";
 import type { SyncInfo } from "../data/sync.ts";
@@ -335,6 +336,7 @@ export function Shell() {
           {backupDue.last ? t("shell.note.backupLast", { date: dayMonthYear(todayIn(undefined, backupDue.last)) }) : t("shell.note.backupNever")}
         </NoteBar>
       )}
+      <PlannedBar />
       {shown.length > 0 && path !== "/import" && (
         <NoteBar
           icon="inbox"
