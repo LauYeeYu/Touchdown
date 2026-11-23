@@ -44,6 +44,8 @@ Built, all of them. What they show is worked out by the code the web app's pages
 | Import history | `imports` | The import batches, for `undo`. |
 | Maps and the globe | `render flight REF \| aircraft REF \| log [YEAR]` (built, [Videos](#videos)) | A video as Share › Video makes it, longer (up to 10 minutes) or larger (4K). Images are made in the web app ([23](23-tracks-and-maps.md)). |
 
+Planned flights (Decided, F5; [31](31-ui.md), "Planned flights"): `flights` lists a planned flight in its month, marked "planned" while still to come and "to confirm" once its time has passed, and `flights --planned` lists only the planned ones, soonest first, whatever the year. `flight REF` says which, with the scheduled times at their airports. `stats` and every other figure count as the app does ([24](24-statistics.md)), against the computer's clock.
+
 ### Changing
 
 Built, all of them. Each writes one inbox file and checks it first, as `add` does: against the log as it is now, with every rule, reporting what each change would do (before and after) and the findings it would bring. With an error among those, nothing is written unless `--keep-errors`; `--dry-run` writes nothing. A change with nothing left to do is reported and left out. The code is `packages/cli/src/change.ts`.
@@ -53,6 +55,7 @@ Built, all of them. Each writes one inbox file and checks it first, as `add` doe
 | Add a flight, a sighting, a session | `add` (built), `spot` (built) |
 | Edit a flight or a sighting | `edit REF --set FIELD=VALUE … --clear FIELD …`, or a JSON list of edits (a file, or `-` for stdin): `[{ "ref": "XY123@2025-04-02", "set": { "seat": "14A" }, "clear": ["gate"] }]`. A sighting's `phase` takes every phase it was seen in, comma-separated (`--set phase=landing,taxiing`). |
 | Delete one | `delete REF…` |
+| Confirm a planned flight | `edit REF --clear planned`, or any `edit` that updates it once its time has passed. `add` and `import` take a flight still to come as planned ([21](21-import-export.md), "Import pipeline"). |
 | (CLI only) Find recorded tracks | `tracks [--only REF,…] [--limit N] [--refresh]`: every flight without a track looked up in adsb.lol's history and written as `track` changes, the flights without one listed with the reason ([23](23-tracks-and-maps.md), "Backfill") |
 | Add, replace or remove a flight's recorded track | `track REF FILE` (an FR24 CSV or KML, or a KML or GPX file with times), `track REF --remove`: the file is read, cut to the flight's leg when it runs over more than one flight, and checked against the flight as the flight page does ([23](23-tracks-and-maps.md), "Sources"); a refusal says why and writes nothing |
 | Edit an aircraft's facts | `aircraft edit REF --set msn=… --set firstFlight=…`, or `--paste FILE` (or `-`): text copied off the aircraft's page, read and checked as the aircraft page's "Paste from a web page" does (`pastedFactsFor` in core), with the same warning when the page may be about another aircraft |

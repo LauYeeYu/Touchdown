@@ -7,7 +7,8 @@ Metric definitions for flights, sightings, and both together (requirements G3, P
 - Statistics are computed in the browser from the local store. Data volume (thousands of records) does not need a database engine; plain TypeScript aggregation is enough.
 - "Aircraft" always means distinct airframes (requirement I4). Provisional airframes are counted, and the count of provisional ones is shown next to the total.
 - Every metric lists the fields it needs. Records missing them are left out, and the UI shows "N records left out (missing X)".
-- Deleted records (tombstones) are never counted. Only flown flights exist in the log.
+- Deleted records (tombstones) are never counted.
+- A planned flight still to come is never counted: not in a figure, a list's totals, a ranking, a record, an aircraft's or an airport's count, the Statistics page or the custom view. Once its time has passed it counts like a flown flight, before the user confirms it ([10](10-domain-model.md), "A flight's status"; [31](31-ui.md), "Planned flights"). The figures change on their own at that moment, without a reload.
 - Ties in "most frequent" are all shown (the sheet joins them; the app lists them).
 - Codes are shown in the user's chosen style (IATA, ICAO, or both).
 

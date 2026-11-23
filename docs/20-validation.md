@@ -30,7 +30,7 @@ Severity:
 | Id | Applies to | Check | Severity | Auto-fix |
 |----|-----------|-------|----------|----------|
 | V-REG-FORMAT | registration | Matches a known national prefix pattern. | warning | Add/remove dash, uppercase. |
-| V-DATE-SANE | date | Not before 1903; not in the future (only flown flights are logged). | error | |
+| V-DATE-SANE | date | Not before 1903. Not in the future, unless it is a planned flight's ([10](10-domain-model.md), "A flight's status"): a flight saved or imported with its departure still to come is planned. "Still to come" is read at the departure airport (a sighting's: at its location), as an instant, or for a date alone, a date after that airport's today, never the viewer's. | error | |
 | V-AIRPORT-KNOWN | from, to, location | Code resolves to one airport (IATA or ICAO, any case), among the airports, the small airfields and the user's own ([13](13-reference-data.md), "Airports"). | error | A code known now but not linked (saved before its airport was known): "Use White Waltham Airfield (EGLM)", which links every record with that code (built). A code no table has: in the web app, "Add EGLM as an airport…" opens the form for an airport of the user's own ([31](31-ui.md), "Airports of your own"; built). |
 | V-AIRPORT-SAME | flight | `from` ≠ `to` (unless the user marks it as a return-to-gate or local flight). | warning | |
 | V-OPERATOR-KNOWN | airline, operator | Code resolves (IATA or ICAO, case-insensitive), or the name of an airline or of an operator of the user's own. `AAl` → `AAL`. | error | Case fix. A company's name that is no airline ("Example Motors"): "Add … as an operator", which links every record with that name. Imports and saving in the app add such a name by themselves (built). |
@@ -50,7 +50,7 @@ Severity:
 | V-DISTANCE-DIFF | flight | Entered distance within 3% of great-circle distance. | info | Use computed value. |
 | V-BEFORE-FIRST-FLIGHT | flight, sighting | Record date ≥ airframe first flight date. | error | |
 | V-REG-COUNTRY | registration, operator | Registration country vs operator country: for a flight, the airline that flew it when one is recorded (`operatingAirlineId`), else the one that sold it. Leasing makes this common, so only info. | info | |
-| V-INCOMPLETE | any | Lists empty fields that stats or maps need (airports, date, registration). | info | Offer auto-fill. |
+| V-INCOMPLETE | any | Lists empty fields that stats or maps need (airports, date, registration). Not for an upcoming planned flight, whose aircraft is not known yet. | info | Offer auto-fill. |
 | V-PRIVATE-IN-NOTES | notes | Notes look like a ticket number or booking reference. | info | Move to private field. |
 
 ## Cross-record rules (C-)

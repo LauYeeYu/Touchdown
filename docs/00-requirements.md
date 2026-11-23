@@ -87,12 +87,12 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 | F2 | Get the recorded track (CSV/KML) for each flight. Draw a great-circle path when no track exists. | Doc, Chat | Decided |
 | F3 | Adding a flight must be quick. | Doc | Decided |
 | F4 | Export the path as a figure and as a video, for a single flight, a date range or year, and all flights. | Doc, Chat | Decided |
+| F5 | Planned flights: a flight can be added before it is flown. It shows as planned and is not counted until its time has passed. Then it counts, and the app reminds the user to confirm it or update it with what happened, a reminder the user can put off to a time they choose. Share links show planned flights as the app does ([31](31-ui.md), "Planned flights"). First decided as out of scope: only flown flights were logged. | Chat | Decided (changed) |
 
 ## Out of scope (for now)
 
 - Social features beyond share links: friend lists, feeds, public profiles (U2).
 - A native mobile app. The web app must work in Chrome on Android. iOS is not a target. (Decided)
-- Planned (future) flights. Only flights already flown are logged. (Decided)
 - Tracking a die-cast model collection. The sheet's Misc column is only a note to the user. (Decided)
 
 ## Appendix A: Original requirement notes

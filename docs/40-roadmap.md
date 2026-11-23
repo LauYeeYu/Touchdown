@@ -96,6 +96,17 @@ The order puts the riskiest part first: the data model and identity rules are te
   - No copy carries the location or camera data, and no photo reaches the agent unless the user allowed it (tests).
   - Backups and daily copies hold the photos' rows, not their files.
 
+## Phase 11: Planned flights
+
+- Deliver (F5, [31](31-ui.md), "Planned flights"): schema version 9 (`flights.planned`, `flights.remindAt`), a flight's status worked out in core and used by every figure, list and map, in the web app, on share links and in the command line; the form's times for a flight still to come; Home's "Coming up"; dashed routes; the reminder bar and the flight page's band with "Remind me later"; the period control's years.
+- Needs: phase 3 (sync) for `remindAt` across devices, phase 8 (share links), phase 9 (the command line).
+- Done when:
+  - A flight saved with its departure still to come is planned, and one saved after it is flown, whatever the time zone of the computer and of the airports (tests across zones, a date alone included).
+  - A planned flight counts nowhere until its time has passed, then everywhere, at the same moment in the app, on a link and in the command line, without a reload (tests).
+  - The reminder shows once its time has passed, "Remind me later" quiets it on every device until the time chosen, and Confirm, an edit after its time or an import ends it (tests).
+  - A link shows planned flights as the app does and never the reminder or `remindAt` (tests over every kind).
+  - The period control shows the current year and All time at every width, and the years menu and All time on the narrowest screen (checked in en-GB and zh-CN).
+
 ## Later (not scheduled)
 
 - Local bridge between the web app and the CLI.

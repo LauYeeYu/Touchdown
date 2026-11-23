@@ -55,7 +55,7 @@ Decided, built (`touchdown check log`, `packages/cli/src/logcheck.ts`, `packages
 
 | Part | Rule |
 |---|---|
-| Which records | Those the agent has not seen as they are now. This computer keeps, for each log, the fields of each record the agent answered for (`data/private/cache/log-check.json`), and a record is sent again only when its fields change. A record from an import the agent checked (a spotting session with the agent, `review --check`) counts as seen. `--since DATE` takes the records added or changed on that date or later, seen or not, and `--all-records` every record. `--limit N` takes the first N. |
+| Which records | Those the agent has not seen as they are now, except planned flights, still to come or not yet confirmed: their aircraft is rarely known before the user updates them ([31](31-ui.md), "Planned flights"). This computer keeps, for each log, the fields of each record the agent answered for (`data/private/cache/log-check.json`), and a record is sent again only when its fields change. A record from an import the agent checked (a spotting session with the agent, `review --check`) counts as seen. `--since DATE` takes the records added or changed on that date or later, seen or not, and `--all-records` every record. `--limit N` takes the first N. |
 | Order | By registration, then date, so one aircraft's records go to the agent in the same call. |
 | What is sent | As for an import's row (fields, the value as typed where it differs, the findings, notes only when the CLI is set to send them), with each lookup's answer as `evidence`: the user's log with the record itself left out, the OpenSky snapshot, adsbdb, and Flightradar24 with `--fr24`. A sighting's phase goes when it has one, and a sighting seen in several phases is sent without one, so no suggestion replaces them. |
 | The suggestions | Shown one by one in the terminal with the agent's reason and confidence, and used only when the user says so; `--use-high` takes the highly confident ones without asking. Without a terminal, they are listed and none is taken. |
@@ -114,7 +114,7 @@ The CLI and the app both check the result:
 1. It matches the schema.
 2. Every `recordId` was in the request, once.
 3. `field` is allowed for the record's kind; `notes` only for a line typed in a spotting session.
-4. `suggested` passes that field's format rule from [20](20-validation.md): a type code must be a known designator, a registration must match a country's format, an operator, airline or airport must be a known code, a date valid and not in the future, a phase one of the phases. A suggestion equal to the current value is dropped, as is a second one for the same field.
+4. `suggested` passes that field's format rule from [20](20-validation.md): a type code must be a known designator, a registration must match a country's format, an operator, airline or airport must be a known code, a date valid and not in the future (a planned flight's may be), a phase one of the phases. A suggestion equal to the current value is dropped, as is a second one for the same field.
 5. Anything that fails is dropped and reported as rejected. The app checks a result file again on loading, and refuses one made for another file.
 
 ## Verification rules (the "Importing prompts" tab)

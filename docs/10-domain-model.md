@@ -175,6 +175,8 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `distanceKmOverride` | real | | Empty = use the derived great-circle distance. |
 | `durationMinOverride` | integer | | Empty = use landing − takeoff. |
 | `notes` | text | | Free text for the user, including URLs. |
+| `planned` | boolean | `true` | Decided. Added before it was flown, and not confirmed since ([31](31-ui.md), "Planned flights"). Set when the flight is saved or imported with its departure still to come, cleared when the user confirms it. Empty for a flown flight. |
+| `remindAt` | datetime | `2026-12-16T09:40Z` | Decided. A planned flight's next reminder, in UTC, when the user put the reminder to confirm it off ("Remind me later"). Empty: remind as soon as the flight's time has passed. Never on a share link, like the import bookkeeping below. |
 | `sourceKind` | enum | `fr24_csv` | `manual`, `fr24_csv`, `sheet`, `csv`, `api` |
 | `sourceBatchId` | ref import_batches | | |
 | `sourceRow` | integer | | Row number in the source file. |
@@ -182,6 +184,18 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 **flight_private**: a flight's private data, kept in the `private/` folder apart from the tables a share link reads ([32](32-modes-and-sharing.md), "Private data"). One row per flight, its id the flight's id. `flightId` (ref flights), `ticketNumber` (text; 13 digits + `/coupon`), `bookingRef` (text; PNR). Both private.
 
 Derived, not stored: manufacturer and family (from type), route, distance (unless overridden: the distance flown along the recorded track when its positions are here, else the great circle; [23](23-tracks-and-maps.md), "Distance"), duration (unless overridden), and the **flight day** (local date of `takeoffAt`, else `departureAt`, else `scheduledDate`; used for stats, calendars, and ordering).
+
+**A flight's status** (Decided, derived, not stored). Worked out against the clock wherever the flight is shown, so a planned flight changes status on its own when its time passes, on every device and on a share link, without anything being written:
+
+| Status | When | Counted in statistics |
+|---|---|---|
+| Upcoming | `planned`, and its time has not passed | No |
+| Due | `planned`, and its time has passed: flown, as far as the app knows, but not confirmed by the user | Yes |
+| Flown | Not `planned` | Yes |
+
+- **Still to come**, when a flight is saved: its departure (`departureScheduledAt`, else `takeoffAt`, else `departureAt`) is after now. With only a date, the date is after today at the departure airport. A flight with a date of today and no time is taken as flown, as before.
+- **Its time has passed**: after its arrival (`arrivalScheduledAt`, else `landingAt`, else `arrivalAt`). Without one, after its departure and the time the flight should take (the great circle at 800 km/h and 30 minutes, or an hour when the arrival airport is not known). With only a date, at the end of that date at the departure airport, or, when the airport's time zone is not known, at the end of that date at UTC−12, the last place where it ends.
+- **Time zones.** Every comparison is between instants (UTC). A stored date-time carries its offset, so it is one instant wherever it is read. A date alone is read in the departure airport's time zone, never the viewer's: a flight from Tokyo on 24 November is still to come in London on the evening of the 23rd only until midnight in Tokyo.
 
 ### sightings
 
@@ -315,3 +329,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 | 6 | `sighting_phases` table: a sighting holds every status it was seen in. Opening the log moves each sighting's `phase`, and statuses an older import wrote into the notes ("Also taxiing"), into it. |
 | 7 | `flight_private` table, and the `private/` folder for it, `record_history` and `sync_conflicts` ([32](32-modes-and-sharing.md), "Private data"). Opening the log moves each flight's `ticketNumber` and `bookingRef` into `flight_private`; the JSON tables backend moves the history and conflict files from `tables/` to `private/`. |
 | 8 | `settings.language` and `settings.dateFormat`, kept in each browser before. |
+| 9 | `flights.planned` and `flights.remindAt`, for planned flights. Older rows have neither: they are flown flights. |
