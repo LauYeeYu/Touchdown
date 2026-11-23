@@ -10,6 +10,7 @@
   "facts.aircraft": "Most flown aircraft",
   "facts.type": "Most spotted type",
   "issues": "{count, plural, one {#\u00a0entry to review} other {#\u00a0entries to review}}",
+  "comingUp.title": "Coming up",
   "map.flights": "Flights, recorded track where there is one",
   "map.spots": "Spotting locations, sized by aircraft seen",
   "map.airports": "Airports flown through",

@@ -10,6 +10,7 @@
   "facts.aircraft": "Meistgeflogenes Flugzeug",
   "facts.type": "Meistgesichteter Typ",
   "issues": "{count, plural, one {#\u00a0Eintrag zu prüfen} other {#\u00a0Einträge zu prüfen}}",
+  "comingUp.title": "Demnächst",
   "map.flights": "Flüge, wo vorhanden mit aufgezeichnetem Flugweg",
   "map.spots": "Spotting-Orte, Größe nach gesehenen Flugzeugen",
   "map.airports": "Angeflogene Flughäfen",

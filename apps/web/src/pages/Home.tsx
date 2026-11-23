@@ -10,9 +10,9 @@ import { airportWithCode, textCode } from "../lib/codes.ts";
 import { BigCode } from "../components/BigCode.tsx";
 import { ShareButton } from "../components/ShareDialog.tsx";
 import { usePeriod, inPeriod } from "../lib/period.ts";
-import { sessionsOf, flownAndPhotographed } from "../lib/views.ts";
+import { sessionsOf, flownAndPhotographed, upcomingFlights, type FlightView } from "../lib/views.ts";
 import { mapFlights, mapSpots } from "../lib/mapdata.ts";
-import { airlineLabel, cityOf, dateOnly, dayShort, distance, monthNames, typeName } from "../lib/format.ts";
+import { airlineLabel, cityOf, clock, dateOnly, dayShort, distance, localDay, monthNames, typeName } from "../lib/format.ts";
 import { ArrowGlyph, Icon } from "../lib/icons.tsx";
 import { PeriodControl } from "../components/PeriodControl.tsx";
 import { WorldMap } from "../components/maps.tsx";
@@ -45,7 +45,15 @@ export function Home() {
     const bothIds = new Set(both.map((b) => b.airframe.id));
     const marks = mapFlights(p.views, ref, unit, bothIds, store);
     const spots = mapSpots(p.sightings, ref, bothIds);
-    return { ...p, sessions, both, bothIds, marks, spots };
+    // Planned flights still to come: the next ones, whatever the period, and the period's on the map, dashed. The
+    // period's image and video leave them out (docs/23).
+    const upcoming = upcomingFlights(store, ref);
+    const plannedMarks = mapFlights(
+      upcoming.filter((v) => inPeriod(v.day, year)),
+      ref,
+      unit,
+    );
+    return { ...p, sessions, both, bothIds, marks, spots, upcoming, plannedMarks };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, ref, version, year, unit]);
 
@@ -180,6 +188,7 @@ export function Home() {
           <Link to="/issues">{t("home.issues", { count: issues.length })}</Link>
         </p>
       )}
+      {d.upcoming.length > 0 && <ComingUp flights={d.upcoming.slice(0, 3)} />}
 
       <div className="map-wrap">
         <div className="legend">
@@ -204,7 +213,7 @@ export function Home() {
           </div>
         </div>
         <WorldMap
-          flights={d.marks}
+          flights={d.plannedMarks.length ? [...d.marks, ...d.plannedMarks] : d.marks}
           spots={d.spots}
           className={focus ? `is-focus-${focus}` : ""}
           onArcClick={(f) => navigate({ to: "/flights/$id", params: { id: f.id } })}
@@ -398,5 +407,37 @@ export function Home() {
         </Disclosure>
       </section>
     </div>
+  );
+}
+
+/**
+ * The next planned flights, soonest first, whatever the period (docs/31, "Planned flights"): the day and the departure
+ * time at the departure airport, the flight and the route, each opening its flight.
+ */
+function ComingUp({ flights }: { flights: FlightView[] }) {
+  return (
+    <section className="coming-up" aria-labelledby="coming-up-title">
+      <h2 className="coming-up__title" id="coming-up-title">
+        <Icon name="tickets-plane" />
+        {t("home.comingUp.title")}
+      </h2>
+      <ul className="coming-up__list">
+        {flights.map((v) => {
+          const leaves = v.f.departureScheduledAt ?? v.f.takeoffAt ?? v.f.departureAt;
+          const day = localDay(leaves) ?? v.day;
+          const when = day ? (leaves ? t("format.momentShort", { day: dayShort(day), time: clock(leaves) }) : dayShort(day)) : t("data.map.noDate");
+          return (
+            <li key={v.f.id}>
+              <Link className="coming-up__row" to="/flights/$id" params={{ id: v.f.id }}>
+                <span className="coming-up__when">{when}</span>
+                <span className="coming-up__what">
+                  {[flightName(v.f), `${v.fromCode} → ${v.toCode}`].filter(Boolean).join(" · ")}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

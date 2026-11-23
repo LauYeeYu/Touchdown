@@ -10,6 +10,7 @@
   "facts.aircraft": "乘坐最多的飞机",
   "facts.type": "拍到最多的机型",
   "issues": "{count, plural, other {#项待检查}}",
+  "comingUp.title": "即将出行",
   "map.flights": "航班（有轨迹时按轨迹绘制）",
   "map.spots": "拍摄地点，大小表示拍到的飞机数",
   "map.airports": "到访过的机场",

@@ -1088,3 +1088,46 @@
     transition: background-color 180ms var(--ease);
   }
 }
+
+/* Home's next planned flights (docs/31, "Planned flights"): a short list under the figures, each row the day and time
+   it leaves, then the flight and its route. */
+.coming-up {
+  margin: 14px 0 0;
+}
+
+.coming-up__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.coming-up__list {
+  margin: 0;
+  padding: 0 0 0 24px;
+  list-style: none;
+}
+
+.coming-up__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
+  padding: 2px 0;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.coming-up__row:hover .coming-up__what,
+.coming-up__row:focus-visible .coming-up__what {
+  text-decoration: underline;
+}
+
+.coming-up__when {
+  min-width: 9.5em;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}

@@ -10,6 +10,7 @@
   "facts.aircraft": "最常搭乘的飛機",
   "facts.type": "最常拍到的機型",
   "issues": "{count, plural, other {#筆紀錄待檢查}}",
+  "comingUp.title": "即將出發",
   "map.flights": "航班（有軌跡時顯示軌跡）",
   "map.spots": "拍攝地點，大小依拍到的飛機數量",
   "map.airports": "搭機經過的機場",

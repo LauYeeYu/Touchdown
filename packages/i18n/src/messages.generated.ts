@@ -1884,6 +1884,7 @@ export interface MessageArgs {
   "home.facts.aircraft": {};
   "home.facts.type": {};
   "home.issues": { count: "number" };
+  "home.comingUp.title": {};
   "home.map.flights": {};
   "home.map.spots": {};
   "home.map.airports": {};
