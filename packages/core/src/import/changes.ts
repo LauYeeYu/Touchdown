@@ -688,7 +688,8 @@ export function applyChange(store: Store, ref: RefIndex, c: InboxChange, finding
       // A registration, type or model fixed after it was typed keeps its fix when the edit leaves it alone.
       const touched = new Set([...Object.keys(c.set), ...c.clear]);
       const keepNormalised = RAW_OF.filter(([raw, norm]) => !touched.has(raw) && !touched.has(norm)).map(([, norm]) => norm);
-      if (c.table === "flights") saveFlight(store, ref, values, c.id, { ...opts, keepNormalised });
+      // The user's edit: a planned flight edited once its time has passed is confirmed (docs/31, "Confirming").
+      if (c.table === "flights") saveFlight(store, ref, values, c.id, { ...opts, keepNormalised, plan: !c.agent });
       else {
         // The phases are kept in their own table and the row's phase column stays empty: read back with the row, it would clear them.
         if (!("phase" in c.set) && !c.clear.includes("phase")) delete values.phase;

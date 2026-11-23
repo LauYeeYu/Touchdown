@@ -16,6 +16,7 @@ import { resolveAirframes, type ResolveResult } from "./identity/resolve.ts";
 import { toUtcIso } from "./time/index.ts";
 import { setPhases } from "./phases.ts";
 import { setPrivate, splitPrivate } from "./private.ts";
+import { stillToCome } from "./planned.ts";
 
 export interface EditOptions {
   /** The time recorded in history and provenance; defaults to now. */
@@ -27,6 +28,11 @@ export interface EditOptions {
    * after it was typed (a suggested fix, the agent check) that a change to other fields leaves alone.
    */
   keepNormalised?: string[];
+  /**
+   * A flight saved by the user, in the form or with `touchdown edit`: planned exactly when its departure is still to
+   * come at `now`, so an edit once its time has passed confirms it (docs/31, "Planned flights").
+   */
+  plan?: boolean;
 }
 
 /** The normalised record, with the fields to keep as the values give them. */
@@ -78,7 +84,8 @@ function withNamedOperator<T extends Partial<FlightValues> | Partial<SightingVal
 export function saveFlight(store: Store, ref: RefIndex, values: Partial<FlightValues>, id?: string, opts: EditOptions = {}): { row: Row<"flights">; resolved: ResolveResult } {
   return store.batch(() => {
     const { rest, given } = splitPrivate(values);
-    const v = withNamedOperator(store, ref, kept(normaliseFlight(rest, ref), rest, opts.keepNormalised), "airlineRaw", "airlineId");
+    const normalised = withNamedOperator(store, ref, kept(normaliseFlight(rest, ref), rest, opts.keepNormalised), "airlineRaw", "airlineId");
+    const v = opts.plan ? { ...normalised, ...plannedOnSave({ ...(id ? store.get("flights", id) : null), ...normalised }, ref, opts.now) } : normalised;
     let row: Row<"flights">;
     if (id) {
       keepHistory(store, "flights", id, opts);
@@ -88,6 +95,28 @@ export function saveFlight(store: Store, ref: RefIndex, values: Partial<FlightVa
     if (Object.keys(given).length || row.ticketNumber != null || row.bookingRef != null) setPrivate(store, row.id, given);
     const resolved = resolveAirframes(store, ref);
     return { row: store.get("flights", row.id)!, resolved };
+  });
+}
+
+/** A flight saved by the user at `now` is planned exactly when its departure is still to come; confirmed, it is reminded of no more. */
+export function plannedOnSave(f: Parameters<typeof stillToCome>[0], ref: RefIndex, now = Date.now()): Pick<FlightValues, "planned"> | Pick<FlightValues, "planned" | "remindAt"> {
+  return stillToCome(f, ref, now) ? { planned: true } : { planned: null, remindAt: null };
+}
+
+/** The user confirms a planned flight: flown, as it was planned (docs/31, "Confirming"). One edit, kept in the history. */
+export function confirmFlight(store: Store, id: string, opts: EditOptions = {}): void {
+  const cur = store.get("flights", id);
+  if (!cur?.planned) return;
+  store.batch(() => {
+    keepHistory(store, "flights", id, opts);
+    store.update("flights", id, { planned: null, remindAt: null });
+  });
+}
+
+/** Remind the user again at `at` to confirm these planned flights ("Remind me later", docs/31). */
+export function remindLater(store: Store, ids: string[], at: number): void {
+  store.batch(() => {
+    for (const id of ids) if (store.get("flights", id)?.planned) store.update("flights", id, { remindAt: toUtcIso(at) });
   });
 }
 
