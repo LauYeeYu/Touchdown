@@ -55,6 +55,8 @@ export function flightJson(log: OpenedLog, v: FlightView) {
     arrival: f.arrivalAt,
     durationMin: v.min,
     distanceKm: v.km === null ? null : Math.round(v.km),
+    // Upcoming, due or flown (docs/10, "A flight's status").
+    status: v.status,
     registration: f.registration,
     typeCode: f.typeCode,
     type: typeName(f.typeCode, log.ref) || null,

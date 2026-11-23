@@ -9,7 +9,7 @@ import { argsOrHelp, fail, fields, findAirport, findFlight, notFound, openOrFail
 import { bold, dim, red, yellow, tc } from "./term.ts";
 
 export const flightsHelp = () => `${usage(`./touchdown flights [--year Y | all] [--airline X] [--airport X] [--type X] [--search TEXT] [--recorded]
-                         [--log FILE] [--json]`)}
+                         [--planned] [--log FILE] [--json]`)}
 
 ${t("cliRead.flights.help")}
 
@@ -20,6 +20,7 @@ ${optionLines(16, [
   ["--type X", t("cliRead.flights.option.type")],
   ["--search TEXT", t("cliRead.flights.option.search")],
   ["--recorded", t("cliRead.flights.option.recorded")],
+  ["--planned", t("cliRead.flights.option.planned")],
 ])}
 ${readOptions(16)}`;
 
@@ -77,7 +78,7 @@ const trackWord = (log: OpenedLog, f: Flight) => {
 };
 
 export async function flightsCommand(args: string[]) {
-  const a = argsOrHelp(args, { values: ["--year", "--airline", "--airport", "--type", "--search"], flags: ["--recorded"] }, flightsHelp());
+  const a = argsOrHelp(args, { values: ["--year", "--airline", "--airport", "--type", "--search"], flags: ["--recorded", "--planned"] }, flightsHelp());
   const json = a.flags.has("--json");
   // With the tracks' positions, so each flight's distance is the one flown, as the web app shows it.
   const log = await openOrFail(json, a.values.get("--log"), { tracks: true });
@@ -88,26 +89,36 @@ export async function flightsCommand(args: string[]) {
   const type = a.values.get("--type")?.toUpperCase();
   const search = flightSearch(a.values.get("--search") ?? "", log.ref);
   const recorded = a.flags.has("--recorded");
+  // Only the planned flights, soonest first, whatever the year (docs/34, "Reading").
+  const planned = a.flags.has("--planned");
   const tracked = new Set(log.store.all("tracks").map((t) => t.flightId));
 
-  const shown = sortedFlights(log.store, log.ref, log.codes)
-    .filter((v) => inPeriod(v.day, year))
+  const listed = sortedFlights(log.store, log.ref, log.codes, { planned: true })
+    .filter((v) => (planned ? v.f.planned : inPeriod(v.day, year)))
     .filter((v) => !airline || v.f.airlineId === airline)
     .filter((v) => !airport || v.f.fromAirportId === airport || v.f.toAirportId === airport || arrivalAirportId(v.f) === airport)
     .filter((v) => !type || v.f.typeCode === type)
     .filter((v) => !recorded || tracked.has(v.f.id))
-    .filter(search)
-    .reverse();
-  const km = shown.reduce((n, v) => n + (v.km ?? 0), 0);
+    .filter(search);
+  const shown = planned ? listed : listed.reverse();
+  // The count and the distance leave out planned flights still to come, as every figure does (docs/24).
+  const counted = shown.filter((v) => v.status !== "upcoming");
+  const km = counted.reduce((n, v) => n + (v.km ?? 0), 0);
 
-  if (json) return printJson({ ok: true, from: log.from, year, count: shown.length, distanceKm: Math.round(km), flights: shown.map((v) => flightJson(log, v)) });
-  const summary = km ? tc("cliRead.flights.summaryDistance", { count: shown.length, year, distance: plain(distance(km, log.unit)) }, { b: bold }) : tc("cliRead.flights.summary", { count: shown.length, year }, { b: bold });
+  if (json) return printJson({ ok: true, from: log.from, year: planned ? null : year, count: counted.length, distanceKm: Math.round(km), flights: shown.map((v) => flightJson(log, v)) });
+  const summary = planned
+    ? tc("cliRead.flights.summaryPlanned", { count: shown.length }, { b: bold })
+    : km
+      ? tc("cliRead.flights.summaryDistance", { count: counted.length, year, distance: plain(distance(km, log.unit)) }, { b: bold })
+      : tc("cliRead.flights.summary", { count: counted.length, year }, { b: bold });
   console.log(`${summary} ${dim(readFrom(log))}`);
   if (!shown.length) return;
   console.log("");
+  // A planned flight is marked after its route: still to come, or its time passed and not confirmed yet.
+  const mark = (v: FlightView) => (v.status === "upcoming" ? ` (${t("cliRead.flights.mark.planned")})` : v.status === "due" ? ` (${t("cliRead.flights.mark.toConfirm")})` : "");
   const rows = shown.map((v) => [
     v.day ?? "",
-    route(v),
+    route(v) + mark(v),
     flightName(v.f) ?? "",
     airlineLabel(v.f.airlineId, log.ref) || v.f.airlineRaw || "",
     [aircraftLabel(log, v.f.typeCode, null), v.f.registration].filter(Boolean).join(" · "),
@@ -144,7 +155,7 @@ export async function flightCommand(args: string[]) {
   if (!("row" in found)) return notFound(json, found);
   const f = found.row;
   await withTrackPoints(log, f.id);
-  const v = sortedFlights(log.store, log.ref, log.codes).find((x) => x.f.id === f.id)!;
+  const v = sortedFlights(log.store, log.ref, log.codes, { planned: true }).find((x) => x.f.id === f.id)!;
   const shape = flightJson(log, v);
   const findings = findingsOf(openFindings(log), "flights", f.id);
 
@@ -160,10 +171,13 @@ export async function flightCommand(args: string[]) {
     [t("cliRead.flight.field.from"), airportWithCode(f.fromAirportId, log.ref, f.fromRaw, log.codes)],
     [t("cliRead.flight.field.to"), airportWithCode(f.toAirportId, log.ref, f.toRaw, log.codes)],
     [t("cliRead.flight.field.divertedTo"), f.divertedToAirportId ? airportWithCode(arrival, log.ref, null, log.codes) : null],
+    [t("cliRead.flight.field.status"), v.status === "upcoming" ? t("cliRead.flight.status.upcoming") : v.status === "due" ? t("cliRead.flight.status.due", { ref: a.positional[0]! }) : null],
     [t("cliRead.flight.field.boarding"), timeLabel(f.boardingAt)],
+    [t("cliRead.flight.field.scheduledDeparture"), timeLabel(f.departureScheduledAt)],
     [t("cliRead.flight.field.departure"), timeLabel(f.departureAt)],
     [t("cliRead.flight.field.takeoff"), timeLabel(f.takeoffAt)],
     [t("cliRead.flight.field.landing"), timeLabel(f.landingAt)],
+    [t("cliRead.flight.field.scheduledArrival"), timeLabel(f.arrivalScheduledAt)],
     [t("cliRead.flight.field.arrival"), timeLabel(f.arrivalAt)],
     [t("cliRead.flight.field.duration"), duration(v.min)],
     [t("cliRead.flight.field.distance"), v.km === null ? null : distance(v.km, log.unit)],
