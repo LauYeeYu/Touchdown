@@ -314,3 +314,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 | 5 | `versionVector` system column and the `sync_conflicts` table, for merging edits field by field ([12](12-storage-and-sync.md)). Older rows have no vector until they are next changed. |
 | 6 | `sighting_phases` table: a sighting holds every status it was seen in. Opening the log moves each sighting's `phase`, and statuses an older import wrote into the notes ("Also taxiing"), into it. |
 | 7 | `flight_private` table, and the `private/` folder for it, `record_history` and `sync_conflicts` ([32](32-modes-and-sharing.md), "Private data"). Opening the log moves each flight's `ticketNumber` and `bookingRef` into `flight_private`; the JSON tables backend moves the history and conflict files from `tables/` to `private/`. |
+| 8 | `settings.language` and `settings.dateFormat`, kept in each browser before. |
