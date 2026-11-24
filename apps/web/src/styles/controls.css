@@ -1166,9 +1166,14 @@ button.select {
   color: var(--ink);
 }
 
+/* The clip would cut a focused field's 3px ring at the content's sides and bottom: the padding gives the ring
+   room inside the clip and the negative margins take that room back, so nothing moves. None at the top, where
+   the box would sit over the summary and take its clicks. */
 .disclosure::details-content {
   block-size: 0;
   overflow: clip;
+  padding: 0 4px 4px;
+  margin: 0 -4px -4px;
   opacity: 0;
   transition:
     block-size 280ms var(--ease),
