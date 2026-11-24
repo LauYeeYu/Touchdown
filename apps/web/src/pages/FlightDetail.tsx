@@ -673,8 +673,7 @@ export function FlightDetail() {
                     <span className="card__reg">{f.registration ?? t("flights.detail.aircraft.noReg")}</span>
                   )}
                   <span className="card__type">
-                    {typeText}
-                    {f.airlineId && ` · ${airlineLabel(f.airlineId, ref)}`}
+                    {[typeText, f.airlineId ? airlineLabel(f.airlineId, ref) : ""].filter(Boolean).join(" · ")}
                   </span>
                 </div>
                 <Silhouette code={f.typeCode} size={48} />
