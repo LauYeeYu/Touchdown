@@ -5,6 +5,7 @@
 import account from "../messages/en-GB/account.json" with { type: "json" };
 import aircraft from "../messages/en-GB/aircraft.json" with { type: "json" };
 import airport from "../messages/en-GB/airport.json" with { type: "json" };
+import badges from "../messages/en-GB/badges.json" with { type: "json" };
 import changes from "../messages/en-GB/changes.json" with { type: "json" };
 import common from "../messages/en-GB/common.json" with { type: "json" };
 import core from "../messages/en-GB/core.json" with { type: "json" };
@@ -39,6 +40,7 @@ export const EN_GB: Catalog = {
   account,
   aircraft,
   airport,
+  badges,
   changes,
   common,
   core,
