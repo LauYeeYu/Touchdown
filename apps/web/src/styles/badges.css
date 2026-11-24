@@ -1,0 +1,308 @@
+/* Badges (DESIGN.md, "Badge stamps"; docs/31, "Badges"): passport stamps in one ink, printed on the page. */
+
+.stamp {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.stamp--flown {
+  color: var(--flown);
+}
+
+.stamp--spotted {
+  color: var(--spotted);
+}
+
+.stamp--both {
+  color: var(--ink-2);
+}
+
+.stamp__ring,
+.stamp__inner {
+  fill: none;
+  stroke: currentColor;
+}
+
+.stamp__ring {
+  stroke-width: 2.5;
+}
+
+.stamp__inner {
+  stroke-width: 1;
+}
+
+.stamp--both .stamp__ring--a {
+  stroke: var(--flown);
+}
+
+.stamp--both .stamp__ring--b {
+  stroke: var(--spotted);
+}
+
+.stamp--tiny .stamp__ring {
+  stroke-width: 9;
+}
+
+.stamp--tiny .stamp__glyph {
+  stroke-width: 2;
+}
+
+.stamp__fill {
+  fill: currentColor;
+}
+
+.stamp__glyph {
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Words and codes in the ink's text shade, so they read. */
+.stamp__code,
+.stamp__words {
+  fill: var(--flown-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stamp--spotted .stamp__code,
+.stamp--spotted .stamp__words {
+  fill: var(--spotted-ink);
+}
+
+.stamp--both .stamp__code,
+.stamp--both .stamp__words {
+  fill: var(--ink-2);
+}
+
+.stamp__code {
+  letter-spacing: 0.03em;
+}
+
+.stamp__words {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.stamp--not-yet,
+.stamp--not-yet .stamp__code {
+  color: var(--rule-hover);
+  fill: var(--rule-hover);
+}
+
+.stamp--not-yet .stamp__ring {
+  stroke: var(--rule-hover);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+/* ---------- Statistics, Badges tab ---------- */
+
+.badges {
+  margin-top: 32px;
+}
+
+.badges__group {
+  margin-top: 44px;
+}
+
+.badges__group:first-child {
+  margin-top: 0;
+}
+
+.badges__title {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.badges__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 32px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badge-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.badge-cell p {
+  margin: 0;
+}
+
+.badge-cell .badge-cell__name {
+  margin-top: 14px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.badge-cell--not-yet .badge-cell__name {
+  color: var(--ink-2);
+}
+
+.badge-cell .badge-cell__rule {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+
+.badge-cell .badge-cell__by {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.badge-cell__date {
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-cell__by a {
+  color: var(--ink-2);
+  text-underline-offset: 3px;
+}
+
+.badge-cell__by a:hover {
+  color: var(--ink);
+}
+
+.badge-cell__parts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+
+.badge-cell__parts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-cell__parts li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.25px currentColor;
+}
+
+.badge-cell--flown .badge-cell__parts .is-done {
+  color: var(--flown-ink);
+}
+
+.badge-cell--spotted .badge-cell__parts .is-done {
+  color: var(--spotted-ink);
+}
+
+.badge-cell--flown .badge-cell__parts .is-done::before {
+  background: var(--flown);
+  box-shadow: none;
+}
+
+.badge-cell--spotted .badge-cell__parts .is-done::before {
+  background: var(--spotted);
+  box-shadow: none;
+}
+
+.badge-cell .badge-cell__level {
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.badges__note {
+  margin: 44px 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+/* ---------- Home ---------- */
+
+.badges__row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 24px 12px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.badge-cell--small .badge-cell__name {
+  margin-top: 10px;
+  font-size: 0.875rem;
+}
+
+.badge-cell--small .badge-cell__date {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+/* ---------- A flight's page and Coming up ---------- */
+
+.flight-badges__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flight-badges__list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.flight-badges__list a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.coming-up__earns {
+  color: var(--ink-2);
+}
+
+@media (max-width: 720px) {
+  .badges__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .badges__row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .badges__row > :nth-child(n + 4) {
+    display: none;
+  }
+
+}

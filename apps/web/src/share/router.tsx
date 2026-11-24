@@ -58,7 +58,7 @@ export function shareRouter(data: ShareData) {
         createRoute({ getParentRoute: () => root, path: "/spotting", component: Spotting }),
         createRoute({ getParentRoute: () => root, path: "/aircraft", component: AircraftList }),
         createRoute({ getParentRoute: () => root, path: "/airports/$id", component: AirportPage, params: airportParams }),
-        createRoute({ getParentRoute: () => root, path: "/stats", component: Stats }),
+        createRoute({ getParentRoute: () => root, path: "/stats", component: Stats, validateSearch: (s: Record<string, unknown>): { tab?: "badges" } => (s.tab === "badges" ? { tab: "badges" } : {}) }),
       ]
     : [];
   const own = kind === "flight" ? [flight] : kind === "sighting" ? [sighting, sightingForm] : [flight, sighting, sightingForm, aircraftOne];

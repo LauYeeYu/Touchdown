@@ -3,8 +3,9 @@
 import { useMemo, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "../lib/link.tsx";
-import { flightName, todayIn } from "@touchdown/core";
-import { sentenceGap, t } from "@touchdown/i18n";
+import { flightName, flownDistances, todayIn } from "@touchdown/core";
+import { badgeName, badgesIfFlown } from "@touchdown/core/view";
+import { list, sentenceGap, t } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { airportWithCode, textCode } from "../lib/codes.ts";
 import { BigCode } from "../components/BigCode.tsx";
@@ -22,6 +23,7 @@ import { Silhouette } from "../components/Silhouette.tsx";
 import { Duration } from "../components/Duration.tsx";
 import { Fig, Phrase, usePhrases } from "../components/Phrase.tsx";
 import { EmptyLog } from "./EmptyLog.tsx";
+import { HomeBadges } from "../components/Badges.tsx";
 import { Disclosure } from "../components/Disclosure.tsx";
 import { Fact, Keep } from "../components/Facts.tsx";
 import { Name, voiceOf } from "../lib/voice.tsx";
@@ -313,6 +315,8 @@ export function Home() {
         </div>
       </section>
 
+      <HomeBadges />
+
       <section className="section" aria-labelledby="both-title">
         <div className="section__head">
           <h2 className="section__title" id="both-title">
@@ -415,6 +419,13 @@ export function Home() {
  * time at the departure airport, the flight and the route, each opening its flight.
  */
 function ComingUp({ flights }: { flights: FlightView[] }) {
+  const { app, version } = useApp();
+  // What each would earn once flown, worked out as if it had (docs/31, "Badges").
+  const earns = useMemo(
+    () => new Map(flights.map((v) => [v.f.id, badgesIfFlown(app.store, app.ref, v.f, { flown: flownDistances(app.store, app.ref) }).map(badgeName)])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [flights, app, version],
+  );
   return (
     <section className="coming-up" aria-labelledby="coming-up-title">
       <h2 className="coming-up__title" id="coming-up-title">
@@ -433,6 +444,7 @@ function ComingUp({ flights }: { flights: FlightView[] }) {
                 <span className="coming-up__what">
                   {[flightName(v.f), `${v.fromCode} → ${v.toCode}`].filter(Boolean).join(" · ")}
                 </span>
+                {!!earns.get(v.f.id)?.length && <span className="coming-up__earns">{t("badges.comingUp.earns", { badges: list(earns.get(v.f.id)!) })}</span>}
               </Link>
             </li>
           );

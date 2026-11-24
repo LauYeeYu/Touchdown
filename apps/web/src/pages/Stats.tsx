@@ -2,7 +2,7 @@
 // view (a pivot) of any one or two dimensions by one measure. Every number says what it left out.
 
 import { useContext, useMemo } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { sentenceGap, t } from "@touchdown/i18n";
 import { ageLeftOutText, ageText, aircraftAges, countedFlights, ageTodayNote, averageAge, byAge, extensionPercent, routeExtensionByRoute, routeExtensions, seatPositionLabel, STATUS_WORD, type AgeNow, type AgeOrder, type AgeWhenFlown, type AircraftAges, type RouteExtension, type RouteExtensionByRoute } from "@touchdown/core/view";
 import { combinedStats, EARTH_CIRCUMFERENCE_KM, flightDay, flightName, flightStats, flownDistances, phaseIndex, sightingStats, todayIn, type Flight, type Measured, type RefIndex, type Settings, type Sighting, type StatsContext, type Store } from "@touchdown/core";
@@ -27,8 +27,9 @@ import { Select } from "../components/Select.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { TrackLoading, TrackLoadingNote } from "../lib/trackLoading.tsx";
 import { tx } from "../lib/i18n.tsx";
+import { BadgesTab } from "../components/Badges.tsx";
 
-type Tab = "flights" | "sightings" | "both" | "pivot";
+type Tab = "flights" | "sightings" | "both" | "pivot" | "badges";
 
 function measuredText(m: Measured, fmt: (n: number) => string = (n) => nf.format(n)) {
   return fmt(m.value);
@@ -41,7 +42,9 @@ export function Stats() {
   const settings = app.settings();
   const unit = settings.distanceUnit ?? "km";
   // Kept for Back (lib/viewState.ts), as are the custom view's choices.
-  const [tab, setTab] = useViewState<Tab>("tab", "flights");
+  // All badges (Home, a flight's page) opens the Badges tab.
+  const search = useSearch({ strict: false }) as { tab?: string };
+  const [tab, setTab] = useViewState<Tab>("tab", search.tab === "badges" ? "badges" : "flights");
   const [showFlights, setShowFlights] = useViewState("showFlights", true);
   const [showSpots, setShowSpots] = useViewState("showSpots", true);
   const [airline, setAirline] = useViewState("airline", "");
@@ -141,6 +144,7 @@ export function Stats() {
           ["sightings", t("stats.tabs.sightings")],
           ["both", t("stats.tabs.both")],
           ["pivot", t("stats.tabs.custom")],
+          ["badges", t("badges.tab")],
         ]}
       />
 
@@ -322,6 +326,7 @@ export function Stats() {
       )}
 
       {tab === "pivot" && <CustomView ctx={ctx} flights={flights} sightings={sightings} />}
+      {tab === "badges" && <BadgesTab />}
     </div>
   );
 }
