@@ -24,7 +24,11 @@ export function Tabs<K extends string>({ items, value, onChange, label }: Props<
     const place = () => {
       const t = el.querySelector<HTMLElement>('[aria-selected="true"] .stable-label');
       if (!t) return;
+      // A row wider than a phone scrolls sideways: bring the selected tab into it, such as Badges opened from Home.
       const lr = el.getBoundingClientRect();
+      const br = t.parentElement!.getBoundingClientRect();
+      if (br.right > lr.right) el.scrollLeft += br.right - lr.right + 16;
+      else if (br.left < lr.left) el.scrollLeft -= lr.left - br.left + 16;
       const tr = t.getBoundingClientRect();
       setBar({ x: tr.left - lr.left + el.scrollLeft, w: tr.width });
     };
