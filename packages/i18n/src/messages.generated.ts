@@ -761,6 +761,13 @@ export interface MessageArgs {
   "cliRead.imports.column.file": {};
   "cliRead.imports.column.rows": {};
   "cliRead.imports.column.id": {};
+  "cliRead.badges.help": {};
+  "cliRead.badges.option.all": {};
+  "cliRead.badges.count": { "<b>": "tag"; count: "number"; left: "number" };
+  "cliRead.badges.notYet": {};
+  "cliRead.badges.column.badge": {};
+  "cliRead.badges.column.earned": {};
+  "cliRead.badges.column.by": {};
   "cliRead.stats.help": {};
   "cliRead.stats.option.top": {};
   "cliRead.stats.option.by": { dimensions: "text" };

@@ -60,6 +60,7 @@ import { renderCommand, renderHelp } from "./render.ts";
 import { tracksCommand, tracksHelp } from "./tracklookup.ts";
 import { deleteCommand, deleteHelp, editCommand, editHelp, familiesCommand, familiesHelp, settingsCommand, settingsHelp, trackCommand, trackHelp, undoCommand, undoHelp, viewsHelp } from "./change.ts";
 import { importsCommand, importsHelp, issuesCommand, issuesHelp } from "./issues.ts";
+import { badgesCommand, badgesHelp } from "./badges.ts";
 import { flightCommand, flightHelp, flightsCommand, flightsHelp, sessionsCommand, sessionsHelp, sightingsCommand, sightingsHelp } from "./records.ts";
 import { privatePath, shownPath, userPath } from "./paths.ts";
 import { AGENT_NAME, chooseAgent, installedVersion, saveAgent, savedAgent, savedRules, savedSendNotes, saveRules, saveSendNotes } from "./settings.ts";
@@ -107,6 +108,7 @@ const HELP: Record<string, () => string> = {
   stats: statsHelp,
   issues: issuesHelp,
   imports: importsHelp,
+  badges: badgesHelp,
   edit: editHelp,
   delete: deleteHelp,
   track: trackHelp,
@@ -310,6 +312,7 @@ async function main(argv: string[]) {
   if (cmd === "stats") return statsCommand(all);
   if (cmd === "issues") return issuesCommand(all);
   if (cmd === "imports") return importsCommand(all);
+  if (cmd === "badges") return badgesCommand(all);
   if (cmd === "edit") return editCommand(all);
   if (cmd === "delete") return deleteCommand(all);
   if (cmd === "track") return trackCommand(all);
