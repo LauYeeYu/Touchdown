@@ -52,7 +52,10 @@ function usePhoto(reg: string | null | undefined) {
       live = false;
     };
   }, [reg]);
-  return state.reg === reg ? state : { reg: reg ?? null, info: null, done: !reg };
+  // Without a registration there is nothing to look up: done at once, not loading. (The first state's `reg` is null
+  // too, so it must not be taken for the answer.)
+  if (!reg) return { reg: null, info: null, done: true };
+  return state.reg === reg ? state : { reg, info: null, done: false };
 }
 
 export function Photo({ reg, alt }: { reg: string | null | undefined; alt: string }) {
