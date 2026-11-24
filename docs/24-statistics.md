@@ -124,6 +124,120 @@ Saved views: the user can save a custom view (dimensions, measure, filters) unde
 | Spotted but never flown | families/types with sightings and no flights |
 | Airframe timeline | for one airframe: flights, sightings, registrations, operators by date |
 
+## Badges
+
+Decided (G13). Badges mark things done in the log: a 747 flown, an aircraft photographed at its factory, the Equator crossed. Where they are shown is in [31](31-ui.md), "Badges".
+
+### Rules
+
+- Worked out from the log each time, like every figure here, and never stored, so an edit or a deletion changes them at once. The code is in the core package (`badges` in `@touchdown/core/view`), shared by the web app, share links and the command line.
+- Counted flights and sightings only: a planned flight counts from the moment its time has passed, as everywhere ([General rules](#general-rules)).
+- A badge is earned by a record: the first, in date order, that meets its rule, or for a rule over several records the one that completes it. The badge's date is that record's day (the flight day, or the day seen), and it links to it. Records without a day come after the dated ones. Importing an old log earns its badges on their own dates.
+- A badge's ink is that of what earns it: flown gold for flights, spotted blue for sightings, half and half for the two together (DESIGN.md, "The Two Inks Rule").
+- A badge not yet earned is shown greyed with its rule. A hidden one is not shown until it is earned.
+- Some badges have parts: each part is ticked with the record that earned it. A badge earned by any part (a maker's factories, Tricky approaches) is earned at its first. A badge that needs every part (Full family, Six continents) is earned at its last.
+- Some have levels (Registers, Special liveries): earned at the first, then showing the highest reached and the next.
+- A record's type is its own type code, else its aircraft's. A flight's airports are its departure and its arrival, the diversion airport when it diverted. Its local times are read from its stored times, which carry their airport's UTC offset: takeoff, else gate departure, else the scheduled departure; landing, else gate arrival, else the scheduled arrival.
+- Lines on the globe are great circles between the airports. A recorded track is not used, so a badge does not depend on which flights have one.
+- Distance is the flight's distance as in the flights summary (entered, else along its track, else the great circle).
+
+### Factories
+
+| Badge | Earned by | Ink |
+|---|---|---|
+| One per maker ("Boeing factories") | A sighting at one of the maker's factory airfields ([Factory airfields](#factory-airfields)) of an aircraft the maker built (its type's manufacturer), on a day the site was building them. Parts: the maker's sites. | spotted |
+| Parts on the way | A sighting of a Beluga, BelugaXL or Dreamlifter (`A3ST`, `A337`, `BLCF`), the freighters that carry parts between factories. | spotted |
+| Test registration | A sighting of an aircraft on a registration it wears only on test flights before delivery ([Factory airfields](#factory-airfields)). | spotted |
+| Saw it built (hidden) | A flight on an aircraft photographed earlier at one of its maker's factory airfields. | both |
+
+### Aircraft
+
+| Badge | Earned by | Ink |
+|---|---|---|
+| Queen of the Skies | A flight on a 747 (the `B747` family). | flown |
+| Superjumbo | A flight on an A380 (`A388`). | flown |
+| Four engines | A flight on a four-engined type. | flown |
+| Full family | Flights on an A318, an A319, an A320 and an A321, the A319, A320 and A321 counting as ceo or neo. Parts: the four. | flown |
+| Fresh off the line | A flight on an aircraft delivered 30 days before or less, or, without a delivery date, first flown 60 days before or less. | flown |
+| Veteran | A flight on an aircraft first flown 30 years before or more. | flown |
+| Old friend | The fifth flight on the same aircraft. | flown |
+| Both sides of the fence | A flight on an aircraft also photographed, in either order: earned by the later of the two. | both |
+| Supersonic (hidden) | A flight on Concorde or the Tu-144. | flown |
+
+### The globe
+
+| Badge | Earned by | Ink |
+|---|---|---|
+| Across the Equator | A flight between the two hemispheres. | flown |
+| Across the date line | A flight whose great circle crosses the 180° meridian. The date line itself bends around islands, so the meridian is what counts. | flown |
+| Arctic Circle | A flight whose great circle reaches 66°34′ N or further north. | flown |
+| Back to yesterday | A flight that lands on an earlier date, at the arrival airport, than it took off at the departure airport. | flown |
+| Ultra long haul | A flight of 14,000 km or more. | flown |
+| Short hop | A flight under 50 km. | flown |
+| Thin air | A flight to or from an airport 3,000 m (9,843 ft) above sea level or higher. | flown |
+| Below sea level (hidden) | A flight to or from an airport below sea level. | flown |
+| Six continents | Flights to or from Africa, Asia, Europe, North America, South America and Oceania. Parts: the six. An airport's continent is its country's ([Continents](#continents)). | flown |
+| Antarctica (hidden) | A flight to or from an airport in Antarctica. | flown |
+| Around the world | 40,075 km flown in all, the Earth's circumference at the Equator. | flown |
+| To the Moon | 384,400 km flown in all, the Moon's mean distance. | flown |
+| And back | 768,800 km flown in all. | flown |
+
+### Places
+
+| Badge | Earned by | Ink |
+|---|---|---|
+| Maho Beach | A sighting at Princess Juliana, St Maarten (SXM). | spotted |
+| Tricky approaches | A flight to or from Paro (PBH), Lukla (LUA), St Barthélemy (SBH), Gibraltar (GIB) or Madeira (FNC). Parts: the five. | flown |
+| Beach landing (hidden) | A flight to or from Barra (BRR), whose runway is the beach. | flown |
+| Kai Tak (hidden) | A flight to or from Hong Kong on a day before 6 July 1998, when Kai Tak closed. | flown |
+
+### Flights and spotting
+
+| Badge | Earned by | Ink |
+|---|---|---|
+| Red-eye | A flight that takes off between 21:00 and 01:59 and lands between 05:00 and 09:59, local times, at least 3 hours later. | flown |
+| New Year in the air | A flight in the air at midnight on 1 January at its departure or its arrival airport's time. | flown |
+| Plan B | A flight that diverted. | flown |
+| Up front | A flight in business or first. | flown |
+| Patience | A flight that reached its gate 3 hours or more after its scheduled arrival. | flown |
+| Registers | Aircraft photographed from 10, 25 and 50 countries' registers, by their registrations' prefixes. Levels: 10, 25, 50. | spotted |
+| Special liveries | 10 and 50 special liveries photographed, each aircraft and livery once. Levels: 10, 50. | spotted |
+| Big day | 100 aircraft photographed in one day. | spotted |
+
+### Factory airfields
+
+Curated in the core package (`packages/core/src/badges/factories.ts`), each site with its source. A sighting counts on a day between the site's first and last year of building. One badge per maker. A maker's aircraft are the types whose manufacturer the reference tables give as that maker (for McDonnell Douglas also Douglas, for Beechcraft also Hawker Beechcraft and Raytheon).
+
+| Maker | Sites (years) |
+|---|---|
+| Boeing | PAE Everett (1967–), RNT Renton (1957–), BFI Boeing Field, flight test and delivery (1967–), CHS Charleston (2011–), LGB Long Beach (1997–2015) |
+| McDonnell Douglas | LGB Long Beach (1941–2001) |
+| Airbus | TLS Toulouse (1972–), XFW Hamburg Finkenwerder (1993–), TSN Tianjin (2008–), BFM Mobile (2015–), YMX Mirabel, the A220 (2013–) |
+| ATR | TLS Toulouse (1984–) |
+| Embraer | SJK São José dos Campos (1969–), MLB Melbourne, Florida (2011–) |
+| COMAC | PVG Shanghai Pudong (2017–) |
+| Bombardier | YUL Montréal-Trudeau (1980–), YMX Mirabel, the CRJ (1999–2020), YYZ Toronto Pearson, the Global (2023–), ICT Wichita, the Learjet (1990–2021) |
+| De Havilland Canada | YYC Calgary (2008–) |
+| Gulfstream | SAV Savannah (1967–) |
+| Dassault | BOD Bordeaux-Mérignac (1949–) |
+| Pilatus | BXO Buochs (1991–) |
+| Honda | GSO Greensboro (2015–) |
+| Cessna | ICT Wichita (1972–), IDP Independence (1996–), BEC Beech Factory, the Longitude (2017–) |
+| Beechcraft | BEC Beech Factory (1932–) |
+| Fokker | AMS Schiphol (1951–1997) |
+| Lockheed | PMD Palmdale, the TriStar (1968–1984) |
+| Saab | LPI Linköping (1983–) |
+| Sukhoi | UHKD Dzemgi, Komsomolsk-on-Amur (2008–) |
+| Irkut | UIIR Irkutsk Northwest (2017–) |
+
+Left out because the reference tables do not hold the airfield: Downsview (De Havilland Canada's Dash 8 and Bombardier's Global until 2022 and 2024), Gavião Peixoto (Embraer), Hatfield and Woodford (the BAe 146 and Avro RJ), Kyiv Sviatoshyn (Antonov). A few start years are the first year confirmed rather than the first year of building, as the file says.
+
+Test registrations: the French test and delivery class (`F-W…`, Airbus and ATR at Toulouse among others) and Airbus Hamburg's `D-AV…`. Boeing's temporary registrations follow no pattern, and those of Tianjin, Mobile and Mirabel are not documented, so they are not recognised.
+
+### Continents
+
+Curated in the core package (`packages/core/src/badges/continents.ts`): each country's continent as the United Nations' geographic regions (M49) place it, so Central America and the Caribbean are North America, Australia and the Pacific islands Oceania, and Cyprus and the Caucasus Asia. Three countries on two continents go by the airport's longitude: Russia (Europe west of 60° E, the Urals), Turkey (Europe west of 29° E, the Bosphorus) and Egypt (Asia east of 32.35° E, the Suez Canal). Kazakhstan counts as Asia.
+
 ## Maps
 
 - Flights map: every flight as a recorded track if one exists, otherwise a great-circle line. Line weight or colour by count. Airports sized by visits.

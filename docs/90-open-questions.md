@@ -10,6 +10,8 @@ None. Phase 1 test data is in `data/private/`.
 
 | Id | Question | Phase | Proposed default |
 |----|----------|-------|------------------|
+| Q-BADGE-GRANTED | Badges the owner grants ([31](31-ui.md), "Badges"): kept on the server with the account, which the owner already manages, or in the member's log, which the owner cannot write? Shown on the member's share links too? Which ones besides "Alpha user"? | Later | On the server with the account, so the owner grants it from People without touching the member's storage, and sent to the member's pages with the account. |
+| Q-BADGE-SEEN | The first-earned animation ([31](31-ui.md), "Badges"): for every badge or only the hidden ones? Where is it remembered that a badge was seen: in the browser (it plays again on each device) or in the log's settings (once, on any device)? On Home, the Badges tab, or a toast wherever the user is when it is earned? | Later | Hidden badges only, so it stays a surprise. Remembered in the log's settings, so it plays once. Played on the Badges tab and on Home, never as a toast. |
 | Q-SERVER-DB | For the later server backends (Postgres / Supabase, Cloudflare D1): does each user bring their own instance, or does the owner host one for friends (their data would then sit in the owner's account)? | Later | Each user brings their own. |
 
 ## Implementation checks (not for the user)

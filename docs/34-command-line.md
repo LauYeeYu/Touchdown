@@ -42,6 +42,7 @@ Built, all of them. What they show is worked out by the code the web app's pages
 | An airport | `airport CODE [--year Y]` | The airport page's facts and lists. |
 | Issues | `issues [--severity S] [--rule ID] [--accepted]` | Fields changed on two devices (values shown except private ones; choosing is on the Issues page for now), then open findings, grouped as on the Issues page, each with its id and suggested fixes; or the accepted ones. |
 | Import history | `imports` | The import batches, for `undo`. |
+| Statistics, Badges tab | `badges [--all]` | The badges earned, by group, each with its date and the record that earned it, its parts and its level ([24](24-statistics.md), "Badges"); with `--all`, also those still to earn, with their rules (never the hidden ones). |
 | Maps and the globe | `render flight REF \| aircraft REF \| log [YEAR]` (built, [Videos](#videos)) | A video as Share › Video makes it, longer (up to 10 minutes) or larger (4K). Images are made in the web app ([23](23-tracks-and-maps.md)). |
 
 Planned flights (Decided, F5; [31](31-ui.md), "Planned flights"): `flights` lists a planned flight in its month, marked "planned" while still to come and "to confirm" once its time has passed, and `flights --planned` lists only the planned ones, soonest first, whatever the year. `flight REF` says which, with the scheduled times at their airports. `stats` and every other figure count as the app does ([24](24-statistics.md)), against the computer's clock.

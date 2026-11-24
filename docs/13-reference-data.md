@@ -44,6 +44,10 @@ An airfield's zone, where no source gives one, is the nearest airport's in its c
 
 An airport in neither table is added by the user (`airport_overrides`, [10](10-domain-model.md); [31](31-ui.md), "Airports of your own"): a code, a name, a place, a country, a position and a time zone. It comes before the reference data, with the same code too. Records saved before their airport was known (an import from before the airfields, or a code added later) are linked by a fix ([20](20-validation.md), V-AIRPORT-KNOWN).
 
+### Badges' tables
+
+The factory airfields and the continents that the badges read ([24](24-statistics.md), "Badges") are short curated tables in the core package, not built from a source: each factory site carries the source it was checked against.
+
 ### Names in other languages
 
 Built (G12, [31](31-ui.md), "Language"): airports, the places they serve and airlines are shown in the interface's language where Wikidata has a name in it. `npm run build-names -w @touchdown/refdata` (`scripts/names.ts`, after `build-data`) asks Wikidata (CC0) for the labels of every airport with an ICAO or IATA code (P239, P238), of the place it serves (P931), and of every airline with an ICAO code (P230), and writes `data/names/<tag>.json`.
