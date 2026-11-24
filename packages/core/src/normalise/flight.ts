@@ -98,8 +98,9 @@ export interface ParsedFareClass {
 }
 
 /**
- * The flight log's "Class" column holds a booking class letter (K), a fare brand (Basic Economy), a fare
- * brand with the letter in parentheses (Main Cabin (L)), or a letter with the brand in parentheses (X (COACH)).
+ * The flight log's "Class" column holds a booking class (K, or two letters such as United's XN), a fare brand
+ * (Basic Economy), a fare brand with the class in parentheses (Main Cabin (L)), or a class with the brand in
+ * parentheses (X (COACH)).
  */
 export function parseFareClass(raw: string | null | undefined): ParsedFareClass {
   const empty: ParsedFareClass = { bookingClass: null, fareBrand: null, cabinClass: null };
@@ -109,11 +110,11 @@ export function parseFareClass(raw: string | null | undefined): ParsedFareClass 
   let bookingClass: string | null = null;
   let fareBrand: string | null = null;
   let m: RegExpExecArray | null;
-  if (/^[A-Za-z]$/.test(v)) bookingClass = v.toUpperCase();
-  else if ((m = /^(.*?)\s*\(([A-Za-z])\)$/.exec(v))) {
+  if (/^[A-Za-z]{1,2}$/.test(v)) bookingClass = v.toUpperCase();
+  else if ((m = /^(.*?)\s*\(([A-Za-z]{1,2})\)$/.exec(v))) {
     fareBrand = m[1]!.trim() || null;
     bookingClass = m[2]!.toUpperCase();
-  } else if ((m = /^([A-Za-z])\s*\((.+)\)$/.exec(v))) {
+  } else if ((m = /^([A-Za-z]{1,2})\s*\((.+)\)$/.exec(v))) {
     bookingClass = m[1]!.toUpperCase();
     fareBrand = m[2]!.trim();
   } else fareBrand = v;

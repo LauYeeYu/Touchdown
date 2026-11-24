@@ -275,7 +275,7 @@ export function FlightForm({ edit = false }: { edit?: boolean }) {
               <TextInput value={d.fareBrand} onChange={(e) => set("fareBrand", e.target.value)} placeholder="Main Cabin" />
             </Field>
             <Field label={t("flightForm.field.bookingClass")}>
-              <TextInput value={d.bookingClass} onChange={(e) => set("bookingClass", e.target.value)} maxLength={1} placeholder="T" />
+              <TextInput value={d.bookingClass} onChange={(e) => set("bookingClass", e.target.value)} maxLength={2} placeholder="T" />
             </Field>
             <Field label={t("flightForm.field.reason")}>
               <Select<Draft["reason"]>

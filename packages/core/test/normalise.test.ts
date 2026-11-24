@@ -56,6 +56,10 @@ describe("flight fields", () => {
     expect(parseFareClass("Basic Economy")).toEqual({ bookingClass: null, fareBrand: "Basic Economy", cabinClass: "economy" });
     expect(parseFareClass("Main Cabin (L)")).toEqual({ bookingClass: "L", fareBrand: "Main Cabin", cabinClass: "economy" });
     expect(parseFareClass("X (COACH)")).toEqual({ bookingClass: "X", fareBrand: "COACH", cabinClass: "economy" });
+    expect(parseFareClass("xn")).toEqual({ bookingClass: "XN", fareBrand: null, cabinClass: "economy" });
+    expect(parseFareClass("Economy (XN)")).toEqual({ bookingClass: "XN", fareBrand: "Economy", cabinClass: "economy" });
+    expect(parseFareClass("PZ (Polaris)")).toEqual({ bookingClass: "PZ", fareBrand: "Polaris", cabinClass: "business" });
+    expect(parseFareClass("Economy (XNN)").bookingClass).toBeNull();
     expect(parseFareClass("Business Saver").cabinClass).toBe("business");
   });
 

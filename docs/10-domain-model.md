@@ -161,7 +161,7 @@ Built by `packages/refdata` from the sources in [13](13-reference-data.md), vers
 | `seat` | text | `14A` | |
 | `seatPosition` | enum | `window` | `window`, `middle`, `aisle`. When empty, a guess from the seat letter is shown as derived. |
 | `cabinClass` | enum | `economy` | `economy`, `premium_economy`, `business`, `first`, `private` |
-| `bookingClass` | text | `T` | Single letter. |
+| `bookingClass` | text | `T` | One or two letters (`XN` at United). |
 | `fareBrand` | text | `Basic` | |
 | `reason` | enum | `leisure` | `leisure`, `business`, `crew`, `other` (same set as FR24). |
 | `ticketNumber` | text | | **Private.** Input only: writing the flight moves it into `flight_private`, and it stays empty here ([32](32-modes-and-sharing.md), "Private data"). |

@@ -52,7 +52,7 @@ Three shapes occur:
 - a fare brand name (`Basic Economy`, `Saver`);
 - a fare brand with the booking class in parentheses (`Economy (K)`).
 
-Import rule: a single letter → `bookingClass`; text → `fareBrand`; a letter in parentheses inside text → `bookingClass` too. `cabinClass` is set to `economy` unless the user says otherwise.
+Import rule: one or two letters (`K`, or `XN` at United) → `bookingClass`; text → `fareBrand`; one or two letters in parentheses inside text → `bookingClass` too. `cabinClass` is set to `economy` unless the user says otherwise.
 
 ### Notes column (text next to the table)
 

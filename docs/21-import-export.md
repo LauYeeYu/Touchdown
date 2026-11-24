@@ -90,7 +90,7 @@ Decided, built. Every spreadsheet other than the myFR24 export is read through a
 | Field | Rule |
 |-------|------|
 | Date | A date, a spreadsheet serial number, `15/03/2025` (day first) or `15-Mar-2025`. For flights, the scheduled date. |
-| Class or fare (flights) | Single letter → `bookingClass`. Text → `fareBrand`. A letter in parentheses inside text (`Main Classic (T)`) → both. |
+| Class or fare (flights) | One or two letters (`T`, `XN`) → `bookingClass`. Text → `fareBrand`. One or two letters in parentheses inside text (`Main Classic (T)`) → both. |
 | Boarding, takeoff, landing times (flights) | Clock times only (or Excel day fractions). Combined with the date into full date-times `boardingAt`, `takeoffAt`, `landingAt`; see "Building date-times from clock times". Takeoff and landing mean wheels off and touchdown, as in Flightradar24. |
 | Model (both) | Parsed from the compact or standard style into the standard form (D4). |
 | Phase (sightings) | Touching-down → `landing`, Taking-off → `taking_off`, other known words; anything else is stored as `other` with a note. |
