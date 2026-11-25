@@ -46,7 +46,6 @@ export type StampGlyph =
   | "newYear"
   | "diverted"
   | "seat"
-  | "hourglass"
   | "fresh"
   | "factory"
   | "flag"
@@ -372,10 +371,6 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   flightStamp("newYear", "flights", { kind: "glyph", glyph: "newYear" }, (x) => inAirAtNewYear(x.leaves, x.lands));
   flightStamp("planB", "flights", { kind: "glyph", glyph: "diverted" }, (x) => !!x.f.divertedToAirportId);
   flightStamp("upFront", "flights", { kind: "glyph", glyph: "seat" }, (x) => x.f.cabinClass === "business" || x.f.cabinClass === "first");
-  flightStamp("patience", "flights", { kind: "glyph", glyph: "hourglass" }, (x) => {
-    const [due, got] = [instant(x.f.arrivalScheduledAt), instant(x.f.arrivalAt)];
-    return due !== null && got !== null && got - due >= 3 * HOUR;
-  });
 
   // ---------- Spotting ----------
   const levels = (needs: number[], keyOf: (x: SightingIn) => string | null) => {

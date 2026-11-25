@@ -88,8 +88,6 @@
   "planB.rule": "Ein Flug, der umgeleitet wurde",
   "upFront.name": "Ganz vorn",
   "upFront.rule": "Ein Flug in der Business oder First",
-  "patience.name": "Geduld",
-  "patience.rule": "Ein Flug, der 3 Stunden oder mehr zu spät am Gate war",
   "registers.name": "Register",
   "registers.rule": "Flugzeuge aus den Registern von {count} Ländern fotografiert",
   "registers.level": "{have, plural, one {# Register} other {# Register}}{next, plural, =0 {} other { · nächstes bei #}}",

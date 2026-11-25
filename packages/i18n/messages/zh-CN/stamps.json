@@ -88,8 +88,6 @@
   "planB.rule": "备降的航班",
   "upFront.name": "前舱",
   "upFront.rule": "乘坐商务舱或头等舱",
-  "patience.name": "耐心",
-  "patience.rule": "晚到登机口3小时或以上的航班",
   "registers.name": "注册国",
   "registers.rule": "拍到来自{count}个国家注册的飞机",
   "registers.level": "{have, plural, other {#个注册国}}{next, plural, =0 {} other {，下一级为#个}}",

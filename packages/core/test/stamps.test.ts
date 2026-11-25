@@ -107,9 +107,9 @@ describe("stamps earned by one flight", () => {
     const hop = flight(store, { scheduledDate: "2024-05-03", fromAirportId: "ap_egpa", toAirportId: "ap_egew" });
     const diverted = flight(store, { scheduledDate: "2024-05-04", fromAirportId: "ap_egll", toAirportId: "ap_kjfk", divertedToAirportId: "ap_kbos" });
     const front = flight(store, { scheduledDate: "2024-05-05", fromAirportId: "ap_egll", toAirportId: "ap_kjfk", cabinClass: "first" });
-    const late = flight(store, { scheduledDate: "2024-05-06", fromAirportId: "ap_egll", toAirportId: "ap_kjfk", arrivalScheduledAt: "2024-05-06T13:00-04:00", arrivalAt: "2024-05-06T16:05-04:00" });
     const b = of(store);
-    expect([earned(b.get("thinAir")), earned(b.get("belowSeaLevel")), earned(b.get("shortHop")), earned(b.get("planB")), earned(b.get("upFront")), earned(b.get("patience"))]).toEqual([high.id, low.id, hop.id, diverted.id, front.id, late.id]);
+    expect([earned(b.get("thinAir")), earned(b.get("belowSeaLevel")), earned(b.get("shortHop")), earned(b.get("planB")), earned(b.get("upFront"))]).toEqual([high.id, low.id, hop.id, diverted.id, front.id]);
+    expect(b.has("patience")).toBe(false);
   });
 
   it("dates Kai Tak by the flight's day", () => {

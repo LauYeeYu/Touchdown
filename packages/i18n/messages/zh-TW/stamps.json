@@ -88,8 +88,6 @@
   "planB.rule": "轉降的航班",
   "upFront.name": "前艙",
   "upFront.rule": "搭乘商務艙或頭等艙",
-  "patience.name": "耐心",
-  "patience.rule": "晚到登機門3小時或以上的航班",
   "registers.name": "註冊國",
   "registers.rule": "拍到來自{count}個國家註冊的飛機",
   "registers.level": "{have, plural, other {#個註冊國}}{next, plural, =0 {} other {，下一級為#個}}",

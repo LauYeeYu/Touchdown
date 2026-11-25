@@ -88,8 +88,6 @@
   "planB.rule": "A flight that diverted",
   "upFront.name": "Up front",
   "upFront.rule": "A flight in business or first",
-  "patience.name": "Patience",
-  "patience.rule": "A flight that reached its gate 3 hours late or more",
   "registers.name": "Registers",
   "registers.rule": "Aircraft photographed from {count} countries' registers",
   "registers.level": "{have, plural, one {# register} other {# registers}}{next, plural, =0 {} other { · next at #}}",
