@@ -149,7 +149,7 @@ function ConflictItem({ c, app }: { c: Row<"sync_conflicts">; app: AppData }) {
 export function Issues() {
   const { app, version } = useApp();
   // Kept for Back (lib/viewState.ts).
-  const [tab, setTab] = useViewState<"open" | "accepted">("tab", "open");
+  const [tab, setTab] = useViewState<"open" | "accepted">("tab", "open", ["open", "accepted"]);
   const [sevList, setSev] = useViewState<Sev[]>("severities", ["error", "warning"]);
   const sev = new Set(sevList);
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -39,7 +39,7 @@ export function TypePage() {
   const visitor = useVisitor();
   const type = ref.type(code);
   const aircraft = useMemo(() => aircraftViews(store, ref).filter((v) => v.airframe.typeCode === code), [store, version, code]);
-  const [pose, setPose] = useViewState<Pose>("drawing.pose", "animated");
+  const [pose, setPose] = useViewState<Pose>("drawing.pose", "animated", ["animated", "rest", "moved"]);
   usePageTitle(type && hasTypePage(ref, code) ? typeName(code, ref) : null);
   if (!type || !hasTypePage(ref, code)) return <NotFound />;
 

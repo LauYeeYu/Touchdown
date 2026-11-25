@@ -29,7 +29,8 @@ import { TrackLoading, TrackLoadingNote } from "../lib/trackLoading.tsx";
 import { tx } from "../lib/i18n.tsx";
 import { StampsTab } from "../components/Stamps.tsx";
 
-type Tab = "flights" | "sightings" | "both" | "pivot" | "stamps";
+const TABS = ["flights", "sightings", "both", "pivot", "stamps"] as const;
+type Tab = (typeof TABS)[number];
 
 function measuredText(m: Measured, fmt: (n: number) => string = (n) => nf.format(n)) {
   return fmt(m.value);
@@ -44,12 +45,12 @@ export function Stats() {
   // Kept for Back (lib/viewState.ts), as are the custom view's choices.
   // All stamps (Home, a flight's page) opens the Stamps tab.
   const search = useSearch({ strict: false }) as { tab?: string };
-  const [tab, setTab] = useViewState<Tab>("tab", search.tab === "stamps" ? "stamps" : "flights");
+  const [tab, setTab] = useViewState<Tab>("tab", search.tab === "stamps" ? "stamps" : "flights", TABS);
   const [showFlights, setShowFlights] = useViewState("showFlights", true);
   const [showSpots, setShowSpots] = useViewState("showSpots", true);
   const [airline, setAirline] = useViewState("airline", "");
-  const [extensionSort, setExtensionSort] = useViewState<ExtensionSort>("extensionSort", "extra");
-  const [ageOrder, setAgeOrder] = useViewState<AgeOrder>("ageOrder", "oldest");
+  const [extensionSort, setExtensionSort] = useViewState<ExtensionSort>("extensionSort", "extra", ["percent", "extra"]);
+  const [ageOrder, setAgeOrder] = useViewState<AgeOrder>("ageOrder", "oldest", ["oldest", "youngest"]);
   const navigate = useNavigate();
   const tracksLoading = useContext(TrackLoading);
 

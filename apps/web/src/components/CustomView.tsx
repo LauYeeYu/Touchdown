@@ -49,8 +49,8 @@ export function CustomView({ ctx, flights, sightings }: { ctx: StatsContext; fli
   const { app } = useApp();
   const { ref, store } = app;
   const unit = app.settings().distanceUnit ?? "km";
-  const [dataset, setDataset] = useViewState<Dataset>("custom.dataset", "sightings");
-  const [measure, setMeasure] = useViewState<Measure>("custom.measure", "aircraft");
+  const [dataset, setDataset] = useViewState<Dataset>("custom.dataset", "sightings", ["flights", "sightings"]);
+  const [measure, setMeasure] = useViewState<Measure>("custom.measure", "aircraft", ["records", "aircraft", "distance", "time"]);
   const [rowId, setRowId] = useViewState("custom.rows", "airline");
   const [colId, setColId] = useViewState("custom.columns", "family");
   const [filters, setFilters] = useViewState<PivotFilter[]>("custom.filters", []);

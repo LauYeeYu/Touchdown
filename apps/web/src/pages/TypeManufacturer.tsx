@@ -27,7 +27,7 @@ export function TypeManufacturer() {
   const { app } = useApp();
   const info = useTypeInfo();
   // Kept with the visit, so Back from a type's page shows the role chosen (docs/31, "Going back").
-  const [role, setRole] = useViewState<TypeRole | "all">("role", "all");
+  const [role, setRole] = useViewState<TypeRole | "all">("role", "all", ["all", ...ROLES]);
   const manufacturer = manufacturers.find((m) => m.slug === slug);
   usePageTitle(manufacturer?.name ?? null);
   if (!manufacturer) return <NotFound />;

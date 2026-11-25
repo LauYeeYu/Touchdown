@@ -55,9 +55,9 @@ export function Types() {
   // Kept with the visit, so Back from a type's page shows the list as it was left (docs/31, "Going back").
   const [q, setQ] = useViewState("q", "");
   // Every type to start with: "In your log" narrows it.
-  const [show, setShow] = useViewState<"log" | "all">("show", "all");
-  const [role, setRole] = useViewState<TypeRole | "all">("role", "all");
-  const [view, setView] = useViewState<"manufacturers" | "list">("view", "manufacturers");
+  const [show, setShow] = useViewState<"log" | "all">("show", "all", ["log", "all"]);
+  const [role, setRole] = useViewState<TypeRole | "all">("role", "all", ["all", ...ROLES]);
+  const [view, setView] = useViewState<"manufacturers" | "list">("view", "manufacturers", ["manufacturers", "list"]);
 
   const needle = q.trim();
   const search = useMemo(() => searchMatcher(needle), [needle]);

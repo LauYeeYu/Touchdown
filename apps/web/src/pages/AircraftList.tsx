@@ -34,10 +34,8 @@ export function AircraftList() {
   const voice = voiceOf(app);
   // Kept for Back (lib/viewState.ts).
   const [q, setQ] = useViewState("q", "");
-  const [kept, setFilter] = useViewState<Filter>("filter", "all");
-  // A filter kept from before a chip was removed shows everything.
-  const filter = FILTERS.some(([k]) => k === kept) ? kept : "all";
-  const [sort, setSort] = useViewState<"last" | "count" | "reg">("sort", "last");
+  const [filter, setFilter] = useViewState<Filter>("filter", "all", FILTERS.map(([k]) => k));
+  const [sort, setSort] = useViewState<"last" | "count" | "reg">("sort", "last", ["last", "count", "reg"]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const views = useMemo(() => aircraftViews(store, ref).filter((v) => v.flights.length || v.sightings.length), [store, version]);
