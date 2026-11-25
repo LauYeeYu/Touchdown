@@ -205,11 +205,11 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 
 ### Stamps the owner gives
 
-Decided, built (Q-STAMP-GRANTED). A few stamps are not worked out from the log: the site's owner gives them to people from People in Settings, and can take one back ([33](33-accounts-and-sign-in.md), "Stamps the owner gives"). The server keeps them with the account (`granted_stamps`), not in the person's log, which the owner cannot write. The account's pages receive them with the account, the command line when it is signed in, and a whole log's share link with its content. They are listed last, in their own group, From Touchdown, only once given, each dated the day it was given (in UTC) with no record to open, in the page's own ink rather than gold or blue, as they say nothing of flights or sightings. The list is curated in the core package (`packages/core/src/stamps/granted.ts`); the server stores a stamp's id, so an id is never renamed.
+Decided, built (Q-STAMP-GRANTED). A few stamps are not worked out from the log: the site's owner gives them to people from People in Settings, and can take one back ([33](33-accounts-and-sign-in.md), "Stamps the owner gives"). The server keeps them with the account (`granted_stamps`), not in the person's log, which the owner cannot write. The account's pages receive them with the account, the command line when it is signed in, and a whole log's share link with its content. They are listed last, in their own group, From Touchdown, only once given, each dated the day it was given (in UTC) with no record to open, in the page's own ink rather than gold or blue, as they say nothing of flights or sightings. The list is curated in the core package (`packages/core/src/stamps/granted.ts`); the server stores a stamp's id, so an id is never renamed. Alpha user counts as a hidden stamp: it is pressed onto the page the first time its owner sees it ([31](31-ui.md), "Stamps").
 
 | Stamp | Given for | Inside |
 |---|---|---|
-| Alpha user | Among the first people invited to Touchdown | α |
+| Alpha user (hidden) | Among the first people invited to Touchdown | α |
 | Bug finder | A problem in Touchdown found and reported | a bug |
 | Translator | Help with Touchdown's translations | 文A |
 

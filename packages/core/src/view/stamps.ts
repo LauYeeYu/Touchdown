@@ -112,6 +112,9 @@ export interface StampOptions {
   granted?: readonly GrantedStamp[];
 }
 
+/** The stamps the owner gives that count as hidden: pressed onto the page the first time their owner sees one. */
+const GRANTED_HIDDEN: ReadonlySet<GrantedStampId> = new Set(["alpha"]);
+
 /** What is inside each stamp the owner gives. */
 const GRANTED_EMBLEMS: Record<GrantedStampId, StampEmblem> = {
   alpha: { kind: "text", text: "α" },
@@ -439,7 +442,7 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
 
 /** A stamp the site's owner gave, dated the day it was given (in UTC): as the Stamps tab lists it, and People shows it. */
 export function grantedStamp(id: GrantedStampId, grantedAt: string): Stamp {
-  return { id: `granted.${id}`, group: "granted", ink: "granted", hidden: false, emblem: GRANTED_EMBLEMS[id], by: { table: "granted", id, day: grantedAt.slice(0, 10) } };
+  return { id: `granted.${id}`, group: "granted", ink: "granted", hidden: GRANTED_HIDDEN.has(id), emblem: GRANTED_EMBLEMS[id], by: { table: "granted", id, day: grantedAt.slice(0, 10) } };
 }
 
 /** The stamps a flight earned: those whose earning record it is. */

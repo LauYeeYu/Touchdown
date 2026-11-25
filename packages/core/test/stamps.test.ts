@@ -236,7 +236,10 @@ describe("stamps the owner gives", () => {
     const list = stamps(store, ref, { granted });
     const given = list.filter((b) => b.group === "granted");
     expect(given.map((b) => b.id)).toEqual(["granted.alpha", "granted.translator"]);
-    expect(given[0]).toMatchObject({ ink: "granted", hidden: false, by: { table: "granted", id: "alpha", day: "2025-11-20" } });
+    // Alpha user counts as hidden, so it is pressed onto the page the first time it is shown. The others do not.
+    expect(given[0]).toMatchObject({ ink: "granted", hidden: true, by: { table: "granted", id: "alpha", day: "2025-11-20" } });
+    expect(given[1]!.hidden).toBe(false);
+    expect([...stampsToPress(store, list)]).toEqual(["granted.alpha"]);
     expect(list.at(-1)!.id).toBe("granted.translator");
     expect(stamps(store, ref).some((b) => b.group === "granted")).toBe(false);
   });
