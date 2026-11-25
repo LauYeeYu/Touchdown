@@ -1,10 +1,10 @@
 // Stamps on the pages (docs/31, "Stamps"): Statistics' Stamps tab, Home's latest, and the stamps a flight earned.
 // Worked out from the log in core (`stamps`), on a share link from the records it holds, as in the app, with the
-// stamps the site's owner gave from the account (or the link).
+// stamps the site's owner gave from the account (or the link). A hidden stamp is pressed onto the page the first time.
 
-import { useMemo } from "react";
-import { flightName, flownDistances, type Flight } from "@touchdown/core";
-import { stampLevel, stampName, stampRule, stamps as allStamps, STAMP_GROUPS, stampsOf, dayMonthYear, shownStamps, type Stamp, type StampPart } from "@touchdown/core/view";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { flightName, flownDistances, markStampsSeen, type Flight } from "@touchdown/core";
+import { stampLevel, stampName, stampRule, stamps as allStamps, STAMP_GROUPS, stampsOf, stampsToPress, dayMonthYear, shownStamps, type Stamp, type StampPart } from "@touchdown/core/view";
 import { t, tDynamic } from "@touchdown/i18n";
 import { useApp } from "../data/context.tsx";
 import { primaryCode } from "../lib/codes.ts";
@@ -17,6 +17,52 @@ export function useStamps(): Stamp[] {
   const { app, version } = useApp();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => allStamps(app.store, app.ref, { flown: flownDistances(app.store, app.ref), granted: app.granted }), [app, version]);
+}
+
+/** The hidden stamps to press onto the page here: none on a share link, whose viewer is not the log's owner. */
+function useToPress(list: readonly Stamp[]): Set<string> {
+  const { app, version } = useApp();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => (app.readOnly ? new Set<string>() : stampsToPress(app.store, list)), [app, version, list]);
+}
+
+/**
+ * Holds a stamp. A hidden stamp shown for the first time (`press`) waits unseen until most of it is on screen, is
+ * pressed onto the page (DESIGN.md, "Stamps") and is then recorded in the log as seen, so it plays once on any device.
+ * Leaving before it lands leaves it for next time. With reduced motion it is simply there, and recorded once in view.
+ */
+function StampHold({ stamp, press, children }: { stamp: Stamp; press: boolean; children: ReactNode }) {
+  const { app } = useApp();
+  const ref = useRef<HTMLSpanElement>(null);
+  const [pressing, setPressing] = useState(false);
+  const recorded = useRef(false);
+  const record = () => {
+    if (recorded.current) return;
+    recorded.current = true;
+    markStampsSeen(app.store, [stamp.id]);
+  };
+  useEffect(() => {
+    const el = ref.current;
+    if (!press || !el) return;
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        if (still) record();
+        else setPressing(true);
+      },
+      { threshold: 0.6 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [press]);
+  return (
+    <span ref={ref} className={`stamp-hold${press ? " stamp-hold--press" : ""}${pressing ? " is-pressing" : ""}`} onAnimationEnd={(e) => e.animationName === "stamp-press" && record()}>
+      {children}
+    </span>
+  );
 }
 
 /** The stamps earned, newest first. */
@@ -57,13 +103,15 @@ function partLabel(b: Stamp, p: StampPart, ref: ReturnType<typeof useApp>["app"]
 }
 
 /** One stamp in the grid: the stamp, its name, its date and record or its rule, its parts and its level. */
-function StampCell({ stamp }: { stamp: Stamp }) {
+function StampCell({ stamp, press }: { stamp: Stamp; press: boolean }) {
   const { app } = useApp();
   const unit = app.settings().distanceUnit ?? "km";
   const level = stampLevel(stamp);
   return (
     <li className={`stamp-cell stamp-cell--${stamp.ink}${stamp.by ? "" : " stamp-cell--not-yet"}`}>
-      <StampMark stamp={stamp} />
+      <StampHold stamp={stamp} press={press}>
+        <StampMark stamp={stamp} />
+      </StampHold>
       <p className="stamp-cell__name">{stampName(stamp)}</p>
       <p className="stamp-cell__rule">{stampRule(stamp, unit)}</p>
       {stamp.by ? (
@@ -96,6 +144,7 @@ function StampCell({ stamp }: { stamp: Stamp }) {
 export function StampsTab() {
   const list = useStamps();
   const shown = shownStamps(list);
+  const toPress = useToPress(list);
   const hiddenLeft = list.some((b) => b.hidden && !b.by);
   return (
     <div className="stamps">
@@ -109,7 +158,7 @@ export function StampsTab() {
             </h3>
             <ul className="stamps__grid">
               {items.map((b) => (
-                <StampCell key={b.id} stamp={b} />
+                <StampCell key={b.id} stamp={b} press={toPress.has(b.id)} />
               ))}
             </ul>
           </section>
@@ -122,7 +171,9 @@ export function StampsTab() {
 
 /** Home's latest stamps, five on a desktop and three on a phone, with All stamps. Nothing before the first. */
 export function HomeStamps() {
-  const earned = latestEarned(useStamps()).slice(0, 5);
+  const list = useStamps();
+  const earned = latestEarned(list).slice(0, 5);
+  const toPress = useToPress(list);
   if (!earned.length) return null;
   return (
     <section className="section" aria-labelledby="stamps-title">
@@ -134,7 +185,9 @@ export function HomeStamps() {
       <ul className="stamps__row">
         {earned.map((b) => (
           <li key={b.id} className={`stamp-cell stamp-cell--small stamp-cell--${b.ink}`}>
-            <StampMark stamp={b} size={96} />
+            <StampHold stamp={b} press={toPress.has(b.id)}>
+              <StampMark stamp={b} size={96} />
+            </StampHold>
             <p className="stamp-cell__name">{stampName(b)}</p>
             {b.by?.day && <p className="stamp-cell__date">{dayMonthYear(b.by.day)}</p>}
           </li>

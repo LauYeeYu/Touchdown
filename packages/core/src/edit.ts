@@ -422,6 +422,20 @@ export function markMyFr24Export(store: Store, flightIds: string[], now = Date.n
   return todo.length;
 }
 
+/**
+ * Record that hidden stamps have been pressed onto the page (docs/31, "Stamps"), so their animation does not play again
+ * on any device. A stamp already recorded is left as it is.
+ */
+export function markStampsSeen(store: Store, stampIds: Iterable<string>, now = Date.now()): number {
+  const seen = new Set(store.all("stamps_seen").map((r) => r.stampId));
+  const todo = [...new Set(stampIds)].filter((id) => !seen.has(id));
+  const at = toUtcIso(now);
+  store.batch(() => {
+    for (const stampId of todo) store.insert("stamps_seen", { stampId, seenAt: at });
+  });
+  return todo.length;
+}
+
 /** Count a type in another family in the statistics, or (`familyId` null) in its own again. */
 export function setFamily(store: Store, designator: string, familyId: string | null) {
   store.batch(() => {

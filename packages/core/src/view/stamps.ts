@@ -2,7 +2,7 @@
 // stored. Each stamp is earned by a record: the first, in date order, that meets its rule, or for a rule over several
 // records the one that completes it. Its date is that record's day. The words are in the message files
 // (`stamps.<id>.name`, `stamps.<id>.rule`); here are the rules. The stamps the site's owner gives come from the
-// account instead (`granted`).
+// account instead (`granted`), and which hidden ones have been shown from the log's stamps_seen table.
 
 import type { FlownDistance } from "../flown.ts";
 import type { RefIndex } from "../ref/index.ts";
@@ -455,6 +455,15 @@ export function stampsIfFlown(store: Store, ref: RefIndex, flight: Flight, opts:
 /** The stamps to list: every one earned, and those still to earn that are not hidden. */
 export function shownStamps(list: readonly Stamp[]): Stamp[] {
   return list.filter((b) => b.by || !b.hidden);
+}
+
+/**
+ * The hidden stamps earned and not yet shown on any device (the log's stamps_seen table): each is pressed onto the page
+ * with an animation the first time the Stamps tab or Home shows it (docs/31, "Stamps").
+ */
+export function stampsToPress(store: Store, list: readonly Stamp[]): Set<string> {
+  const seen = new Set(store.all("stamps_seen").map((r) => r.stampId));
+  return new Set(list.filter((b) => b.hidden && b.by && !seen.has(b.id)).map((b) => b.id));
 }
 
 // ---------- Words ----------

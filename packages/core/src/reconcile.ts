@@ -169,6 +169,16 @@ function findingsAcceptedTwice(store: Store, report: ReconcileReport) {
   }
 }
 
+/** A hidden stamp shown on two devices before either heard of the other: the first row stays. */
+function stampsSeenTwice(store: Store, report: ReconcileReport) {
+  for (const [, ...rest] of groupsOf(store, "stamps_seen", (r) => (r.stampId ? String(r.stampId) : null))) {
+    for (const from of rest) {
+      store.remove("stamps_seen", String(from.id));
+      report.merged++;
+    }
+  }
+}
+
 /** Rows of child tables made twice with the same meaning: the first stays, taking the values it has none of. */
 function childrenAddedTwice(store: Store, now: number, report: ReconcileReport) {
   const keys: [TableName, (r: Values) => string | null][] = [
@@ -303,6 +313,7 @@ export function reconcile(store: Store, ref: RefIndex, now: number = Date.now())
     airportsAddedTwice(store, now, report);
     familiesChosenTwice(store, now, report);
     findingsAcceptedTwice(store, report);
+    stampsSeenTwice(store, report);
     childrenAddedTwice(store, now, report);
     viewsNamedTwice(store, report);
     tracksAttachedTwice(store, report);

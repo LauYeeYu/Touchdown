@@ -109,7 +109,7 @@ The order puts the riskiest part first: the data model and identity rules are te
 
 ## Phase 12: Stamps
 
-- Deliver (G13, [24](24-statistics.md), "Stamps"; [31](31-ui.md), "Stamps"): every stamp worked out in core from the log, with the factory airfields and continents curated beside it; the stamps on Statistics' Stamps tab, on Home, on a flight's page and in Coming up; a whole log's share link; `touchdown stamps`. Then the stamps the site's owner gives from People, kept on the server with the account (Q-STAMP-GRANTED).
+- Deliver (G13, [24](24-statistics.md), "Stamps"; [31](31-ui.md), "Stamps"): every stamp worked out in core from the log, with the factory airfields and continents curated beside it; the stamps on Statistics' Stamps tab, on Home, on a flight's page and in Coming up; a whole log's share link; `touchdown stamps`. Then the stamps the site's owner gives from People, kept on the server with the account (Q-STAMP-GRANTED), and the first press of a hidden stamp, recorded in the log so it plays once (Q-STAMP-SEEN, schema version 10).
 - Needs: phase 8 (share links), phase 9 (the command line), phase 11 (planned flights, for what counts and Coming up).
 - Done when:
   - Each stamp is earned by the record its rule names, on that record's day, and by no record that falls short of it (tests per stamp, a time zone and a date line case included).
@@ -118,10 +118,10 @@ The order puts the riskiest part first: the data model and identity rules are te
   - A whole log's link shows the stamps as the app does, and a link to one record shows none.
   - The stamps read right in en-GB and zh-CN, light and dark, at a desktop's width and a phone's.
   - Only the owner gives a stamp, only one of core's list, and it shows on the account's pages and its whole log's link at once and goes with the account (tests).
+  - A hidden stamp is pressed once on any device: recorded when it lands, two devices' records settled into one, and never on a share link (tests).
 
 ## Later (not scheduled)
 
-- Stamps, next ([31](31-ui.md), "Stamps"): an animation the first time a stamp is earned, perhaps for the hidden ones only (Q-STAMP-SEEN).
 - Local bridge between the web app and the CLI.
 - AeroAPI flight lookup and "capture during flight".
 - A registration lookup in the web app: adsbdb from the browser (it allows any site), then the airframe index for serial numbers ([13](13-reference-data.md), "Airframe index"). Not planned while sightings are added mostly on a computer.

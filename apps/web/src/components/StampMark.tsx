@@ -71,7 +71,8 @@ export function StampMark({ stamp, size = 128, words = true }: { stamp: Stamp; s
       viewBox="0 0 128 128"
       width={size}
       height={size}
-      style={earned ? { transform: `rotate(${tiltOf(stamp.id)}deg)` } : undefined}
+      // The tilt as a variable, so the first press can turn the stamp onto it (stamps.css).
+      style={earned ? ({ "--tilt": `${tiltOf(stamp.id)}deg` } as React.CSSProperties) : undefined}
       aria-hidden="true"
     >
       <path className="stamp__ring stamp__ring--a" d="M64 4A60 60 0 0 0 64 124" />

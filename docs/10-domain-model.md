@@ -63,7 +63,7 @@ User data
   flights ─ flight_private                       (private/)
   any user row ─< field_provenance, external_ids, record_history, sync_conflicts   (the last two: private/)
   import_batches        issue_acks ─< issue_ack_records
-  settings, family_overrides, saved_views ─< saved_view_filters
+  settings, family_overrides, saved_views ─< saved_view_filters, stamps_seen
   airport_overrides, operator_overrides, aircraft_type_overrides
 ```
 
@@ -311,6 +311,8 @@ The values of `storageBackend` and `storageAdapter` come from one registry in co
 **saved_views**: `name` (text), `dataset` (enum `flights`, `sightings`, `both`), `rowDimension`, `columnDimension`, `measure` (text, from the lists in [24](24-statistics.md)).
 **saved_view_filters**: `viewId` (ref saved_views), `dimension` (text), `operator` (enum `eq`, `in`, `between`), `value` (text). One row a value, written with `in`: the rows of one dimension keep a record with any of their values, and the dimensions all hold ([24](24-statistics.md), "Custom view"). `eq` is read the same way; `between` is not used yet.
 
+**stamps_seen**: a hidden stamp whose first press has played ([31](31-ui.md), "Stamps"), so it plays once on any device. `stampId` (text: the stamp's id, `supersonic`), `seenAt` (datetime). One row a stamp: two devices that show it before either hears of the other each add one, and the first is kept ([12](12-storage-and-sync.md), "Settling what two devices made").
+
 **airport_overrides**, **operator_overrides**, **aircraft_type_overrides**: the same columns as the reference tables, plus system columns.
 
 An **airport_overrides** row is an airport of the user's own ([31](31-ui.md), "Airports of your own"): its id is a ULID, its code is in `icao` (four letters or digits) or `iata` (three), and it is used only with a position and a time zone. It comes before the reference tables, with the same code too. One code is one row: adding a code the user has an airport for changes that one, and two devices that add the same code end with one ([12](12-storage-and-sync.md), "Settling what two devices made").
@@ -330,3 +332,4 @@ The schema has a single version number. Every change (new column, rename, new ta
 | 7 | `flight_private` table, and the `private/` folder for it, `record_history` and `sync_conflicts` ([32](32-modes-and-sharing.md), "Private data"). Opening the log moves each flight's `ticketNumber` and `bookingRef` into `flight_private`; the JSON tables backend moves the history and conflict files from `tables/` to `private/`. |
 | 8 | `settings.language` and `settings.dateFormat`, kept in each browser before. |
 | 9 | `flights.planned` and `flights.remindAt`, for planned flights. Older rows have neither: they are flown flights. |
+| 10 | `stamps_seen` table: the hidden stamps whose first press has played. It starts empty, so each hidden stamp already earned plays once. |

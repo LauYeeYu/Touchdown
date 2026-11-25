@@ -693,6 +693,8 @@ Under the stamp, centred: the name at 0.9375rem 600, the rule at 0.8125rem in `i
 
 The Stamps tab sets them in a grid of 128px stamps, five columns on a desktop and two to three on a phone (auto-fill, at least 148px), 32px by 16px gaps, under 1rem 650 group titles. Home's row uses 96px stamps with the name and the date only. A flight's page names its stamps in a line of small 28px stamps, ring and emblem only, each before its name. No stamp casts a shadow or sits on a panel: the stamps are printed on the page.
 
+A hidden stamp, the first time it is shown on the Stamps tab or on Home, is pressed onto the page (`StampHold` in `components/Stamps.tsx`, `stamps.css`), one more exception to the motion rules, the owner's choice like the drawings' moving parts. It stays unseen, its name and rule in place, until 60% of it is in view. Then it comes down in 520ms: from 1.5 times its size, turned 14° more than its tilt and transparent, it accelerates onto its place (an ease-in to 58% of the time), lands 5% small at full ink and settles to its size on the standard ease. As it lands, a 2px ring in its ink (`ink-2` for a stamp of both) spreads from 94% to 128% of its size and fades from 40% over 480ms, like ink squeezed from under a rubber stamp. Once, recorded when it lands; with reduced motion the stamp is simply there.
+
 In Settings, People, the owner gives stamps with a row of small chips under each person (28px high, 0.8125rem, after "Stamps" in `ink-3`): one chip each, `selected-container` with a 14px check once given, the outlined chip otherwise. A press opens a confirmation (Confirmations) with the stamp drawn at 72px beside the question, as it is or as it will be.
 
 ### Confirmations

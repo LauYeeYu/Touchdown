@@ -37,6 +37,9 @@ export const MIGRATIONS: { to: number; addColumns?: { table: TableName | "*"; co
   { to: 8, addColumns: [{ table: "settings", column: "language" }, { table: "settings", column: "dateFormat" }] },
   // Planned flights (docs/10, "A flight's status"): both empty on older rows, which are flown flights.
   { to: 9, addColumns: [{ table: "flights", column: "planned" }, { table: "flights", column: "remindAt" }] },
+  // Hidden stamps whose first-earned animation has played (docs/31, "Stamps"): the new stamps_seen table starts empty,
+  // so each hidden stamp already earned plays once more.
+  { to: 10 },
 ];
 
 /** A table file written with an older schema version, brought up to this one. Newer or unknown files are left. */

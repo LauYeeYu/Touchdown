@@ -152,6 +152,16 @@ describe("settling what two devices made side by side", () => {
     expect(log.all("issue_acks")).toMatchObject([{ note: "Two legs · Right" }]);
   });
 
+  it("keeps one row for a hidden stamp shown on both", () => {
+    const { a, b, together } = twoDevices();
+    a.insert("stamps_seen", { stampId: "supersonic", seenAt: "2026-03-01T10:00:00Z" });
+    b.insert("stamps_seen", { stampId: "supersonic", seenAt: "2026-03-01T10:00:05Z" });
+    b.insert("stamps_seen", { stampId: "kaiTak", seenAt: "2026-03-01T10:00:05Z" });
+    const log = together();
+    expect(reconcile(log, ref(), NOW).report.merged).toBe(1);
+    expect(log.all("stamps_seen").map((r) => r.stampId).sort()).toEqual(["kaiTak", "supersonic"]);
+  });
+
   it("removes a tag added twice and numbers a saved view's name taken twice", () => {
     const { a, b, together } = twoDevices();
     const s = saveSighting(a, ref(), { seenOn: "2026-04-02", airportRaw: "BOS", registrationRaw: "N904ZZ" }).row;

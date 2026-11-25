@@ -3,7 +3,7 @@
 import { c, table, type RowOf, type TableDef, type ValuesOf } from "./columns.ts";
 
 export const SCHEMA_NAME = "touchdown";
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export const SOURCE_KINDS = ["manual", "fr24_csv", "sheet", "csv", "api"] as const;
 export const SEAT_POSITIONS = ["window", "middle", "aisle"] as const;
@@ -287,6 +287,12 @@ export const settings = table("settings", "settings", [
   c.text("storageAccount"),
 ]);
 
+/**
+ * A hidden stamp whose first-earned animation has played (docs/31-ui.md, "Stamps"), so it plays once on any device. One
+ * row a stamp, by its id ("supersonic"). Two devices that show it at once each add one, and reconcile keeps the first.
+ */
+export const stampsSeen = table("stamps_seen", "user", [c.text("stampId", { required: true }), c.datetime("seenAt")]);
+
 export const familyOverrides = table("family_overrides", "user", [
   c.ref("designator", "aircraft_types"),
   c.ref("familyId", "families"),
@@ -363,6 +369,7 @@ export const TABLES = {
   family_overrides: familyOverrides,
   saved_views: savedViews,
   saved_view_filters: savedViewFilters,
+  stamps_seen: stampsSeen,
   airport_overrides: airportOverrides,
   operator_overrides: operatorOverrides,
   aircraft_type_overrides: aircraftTypeOverrides,

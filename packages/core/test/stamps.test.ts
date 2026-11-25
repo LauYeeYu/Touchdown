@@ -1,8 +1,8 @@
 // Stamps (docs/24-statistics.md, "Stamps"): each earned by the record its rule names, on that record's day, and by no
 // record that falls short of it. Every flight, sighting and registration here is made up.
 import { describe, expect, it } from "vitest";
-import { POPULAR_MAKERS, RefIndex, slugOf, type Airport, type AircraftType, type Flight, type Store } from "../src/index.ts";
-import { FACTORIES, stamps, stampsIfFlown, stampsOf, crossesDateLine, greatCircleMaxLat, shownStamps, type GrantedStamp, type Stamp } from "../src/view/index.ts";
+import { markStampsSeen, POPULAR_MAKERS, RefIndex, slugOf, type Airport, type AircraftType, type Flight, type Store } from "../src/index.ts";
+import { FACTORIES, stamps, stampsIfFlown, stampsOf, stampsToPress, crossesDateLine, greatCircleMaxLat, shownStamps, type GrantedStamp, type Stamp } from "../src/view/index.ts";
 import { newStore, refTables } from "./fixtures.ts";
 
 const airport = (icao: string, iata: string, country: string, lat: number, lon: number, elevationFt: number, tz: string): Airport => ({ id: `ap_${icao.toLowerCase()}`, icao, iata, name: iata, city: iata, country, lat, lon, elevationFt, tz });
@@ -239,5 +239,19 @@ describe("stamps the owner gives", () => {
     expect(given[0]).toMatchObject({ ink: "granted", hidden: false, by: { table: "granted", id: "alpha", day: "2025-11-20" } });
     expect(list.at(-1)!.id).toBe("granted.translator");
     expect(stamps(store, ref).some((b) => b.group === "granted")).toBe(false);
+  });
+});
+
+describe("the first press of a hidden stamp", () => {
+  it("presses each hidden stamp earned once, until it is recorded as seen", () => {
+    const store = newStore();
+    flight(store, { scheduledDate: "1999-08-01", typeCode: "CONC", fromAirportId: "ap_egll", toAirportId: "ap_kjfk" });
+    const press = () => [...stampsToPress(store, stamps(store, ref))];
+    // Four engines is earned too, but it is not hidden.
+    expect(press()).toEqual(["supersonic"]);
+    expect(markStampsSeen(store, ["supersonic"], Date.UTC(2026, 10, 25))).toBe(1);
+    expect(press()).toEqual([]);
+    expect(markStampsSeen(store, ["supersonic"])).toBe(0);
+    expect(store.all("stamps_seen")).toMatchObject([{ stampId: "supersonic", seenAt: "2026-11-25T00:00:00Z" }]);
   });
 });

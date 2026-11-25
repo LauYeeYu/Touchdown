@@ -1,9 +1,11 @@
 /* Stamps (DESIGN.md, "Stamps"; docs/31, "Stamps"): passport stamps in one ink, printed on the page. */
 
+/* An earned stamp's tilt is set on it as --tilt (StampMark.tsx); one not yet earned stands upright. */
 .stamp {
   display: block;
   flex: none;
   overflow: visible;
+  transform: rotate(var(--tilt, 0deg));
 }
 
 .stamp--flown {
@@ -106,6 +108,78 @@
   stroke: var(--rule-hover);
   stroke-width: 1.5;
   stroke-dasharray: 3 5;
+}
+
+/* A hidden stamp the first time it is shown (Stamps.tsx, StampHold): unseen until most of it is in view, then pressed
+   onto the page from above, turned a little more than its tilt and larger, landing a touch small before it settles,
+   with a ring of ink spreading from it as it lands. Once, and not at all with reduced motion. */
+.stamp-hold {
+  position: relative;
+  display: block;
+}
+
+.stamp-hold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--ink-2);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stamp-cell--flown .stamp-hold::after {
+  box-shadow: 0 0 0 2px var(--flown);
+}
+
+.stamp-cell--spotted .stamp-hold::after {
+  box-shadow: 0 0 0 2px var(--spotted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stamp-hold--press:not(.is-pressing) .stamp {
+    opacity: 0;
+  }
+
+  .stamp-hold--press.is-pressing .stamp {
+    animation: stamp-press 520ms both;
+  }
+
+  .stamp-hold--press.is-pressing::after {
+    /* Forwards only: during its delay the ring stays unseen, until the stamp lands. */
+    animation: stamp-ink 480ms 300ms var(--ease) forwards;
+  }
+}
+
+@keyframes stamp-press {
+  0% {
+    opacity: 0;
+    transform: rotate(calc(var(--tilt, 0deg) - 14deg)) scale(1.5);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.45);
+  }
+
+  58% {
+    opacity: 1;
+    transform: rotate(var(--tilt, 0deg)) scale(0.95);
+    animation-timing-function: var(--ease);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotate(var(--tilt, 0deg)) scale(1);
+  }
+}
+
+@keyframes stamp-ink {
+  from {
+    opacity: 0.4;
+    transform: scale(0.94);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.28);
+  }
 }
 
 /* ---------- Statistics, Stamps tab ---------- */
