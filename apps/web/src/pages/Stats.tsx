@@ -27,9 +27,9 @@ import { Select } from "../components/Select.tsx";
 import { useViewState } from "../lib/viewState.ts";
 import { TrackLoading, TrackLoadingNote } from "../lib/trackLoading.tsx";
 import { tx } from "../lib/i18n.tsx";
-import { BadgesTab } from "../components/Badges.tsx";
+import { StampsTab } from "../components/Stamps.tsx";
 
-type Tab = "flights" | "sightings" | "both" | "pivot" | "badges";
+type Tab = "flights" | "sightings" | "both" | "pivot" | "stamps";
 
 function measuredText(m: Measured, fmt: (n: number) => string = (n) => nf.format(n)) {
   return fmt(m.value);
@@ -42,9 +42,9 @@ export function Stats() {
   const settings = app.settings();
   const unit = settings.distanceUnit ?? "km";
   // Kept for Back (lib/viewState.ts), as are the custom view's choices.
-  // All badges (Home, a flight's page) opens the Badges tab.
+  // All stamps (Home, a flight's page) opens the Stamps tab.
   const search = useSearch({ strict: false }) as { tab?: string };
-  const [tab, setTab] = useViewState<Tab>("tab", search.tab === "badges" ? "badges" : "flights");
+  const [tab, setTab] = useViewState<Tab>("tab", search.tab === "stamps" ? "stamps" : "flights");
   const [showFlights, setShowFlights] = useViewState("showFlights", true);
   const [showSpots, setShowSpots] = useViewState("showSpots", true);
   const [airline, setAirline] = useViewState("airline", "");
@@ -144,7 +144,7 @@ export function Stats() {
           ["sightings", t("stats.tabs.sightings")],
           ["both", t("stats.tabs.both")],
           ["pivot", t("stats.tabs.custom")],
-          ["badges", t("badges.tab")],
+          ["stamps", t("stamps.tab")],
         ]}
       />
 
@@ -326,7 +326,7 @@ export function Stats() {
       )}
 
       {tab === "pivot" && <CustomView ctx={ctx} flights={flights} sightings={sightings} />}
-      {tab === "badges" && <BadgesTab />}
+      {tab === "stamps" && <StampsTab />}
     </div>
   );
 }

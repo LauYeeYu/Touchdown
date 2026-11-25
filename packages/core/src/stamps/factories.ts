@@ -1,4 +1,4 @@
-// Factory airfields, for the factory badges (docs/24-statistics.md, "Factory airfields"): where each maker's aircraft
+// Factory airfields, for the factory stamps (docs/24-statistics.md, "Factory airfields"): where each maker's aircraft
 // are finally assembled, flown off the line or delivered, and the years the site did it. Each site names the source it
 // was checked against. Curated by hand: a site that opens or closes is a line here.
 
@@ -14,9 +14,9 @@ export interface FactorySite {
 }
 
 export interface Factory {
-  /** Stable, in the badge's id: `factory.<id>`. */
+  /** Stable, in the stamp's id: `factory.<id>`. */
   id: string;
-  /** The maker as the badge names it, in the reference tables' spelling. */
+  /** The maker as the stamp names it, in the reference tables' spelling. */
   maker: string;
   /** The values of the reference types' `manufacturer` that count as built by it. */
   manufacturers: readonly string[];
@@ -198,7 +198,7 @@ export const FACTORIES: readonly Factory[] = [
 ];
 
 /**
- * Registrations worn only on test flights before delivery, for the Test registration badge. Only patterns that a
+ * Registrations worn only on test flights before delivery, for the Test registration stamp. Only patterns that a
  * delivered aircraft never wears.
  */
 export const TEST_REGISTRATIONS: readonly RegExp[] = [

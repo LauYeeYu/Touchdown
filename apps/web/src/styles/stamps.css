@@ -1,4 +1,4 @@
-/* Badges (DESIGN.md, "Badge stamps"; docs/31, "Badges"): passport stamps in one ink, printed on the page. */
+/* Stamps (DESIGN.md, "Stamps"; docs/31, "Stamps"): passport stamps in one ink, printed on the page. */
 
 .stamp {
   display: block;
@@ -101,27 +101,27 @@
   stroke-dasharray: 3 5;
 }
 
-/* ---------- Statistics, Badges tab ---------- */
+/* ---------- Statistics, Stamps tab ---------- */
 
-.badges {
+.stamps {
   margin-top: 32px;
 }
 
-.badges__group {
+.stamps__group {
   margin-top: 44px;
 }
 
-.badges__group:first-child {
+.stamps__group:first-child {
   margin-top: 0;
 }
 
-.badges__title {
+.stamps__title {
   margin: 0 0 20px;
   font-size: 1rem;
   font-weight: 650;
 }
 
-.badges__grid {
+.stamps__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 32px 16px;
@@ -130,7 +130,7 @@
   list-style: none;
 }
 
-.badge-cell {
+.stamp-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -138,29 +138,29 @@
   text-align: center;
 }
 
-.badge-cell p {
+.stamp-cell p {
   margin: 0;
 }
 
-.badge-cell .badge-cell__name {
+.stamp-cell .stamp-cell__name {
   margin-top: 14px;
   font-size: 0.9375rem;
   font-weight: 600;
   line-height: 1.3;
 }
 
-.badge-cell--not-yet .badge-cell__name {
+.stamp-cell--not-yet .stamp-cell__name {
   color: var(--ink-2);
 }
 
-.badge-cell .badge-cell__rule {
+.stamp-cell .stamp-cell__rule {
   margin-top: 2px;
   font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--ink-3);
 }
 
-.badge-cell .badge-cell__by {
+.stamp-cell .stamp-cell__by {
   display: flex;
   flex-direction: column;
   margin-top: 4px;
@@ -169,20 +169,20 @@
   color: var(--ink-2);
 }
 
-.badge-cell__date {
+.stamp-cell__date {
   font-variant-numeric: tabular-nums;
 }
 
-.badge-cell__by a {
+.stamp-cell__by a {
   color: var(--ink-2);
   text-underline-offset: 3px;
 }
 
-.badge-cell__by a:hover {
+.stamp-cell__by a:hover {
   color: var(--ink);
 }
 
-.badge-cell__parts {
+.stamp-cell__parts {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -196,13 +196,13 @@
   color: var(--ink-3);
 }
 
-.badge-cell__parts li {
+.stamp-cell__parts li {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.badge-cell__parts li::before {
+.stamp-cell__parts li::before {
   content: "";
   width: 6px;
   height: 6px;
@@ -210,32 +210,32 @@
   box-shadow: inset 0 0 0 1.25px currentColor;
 }
 
-.badge-cell--flown .badge-cell__parts .is-done {
+.stamp-cell--flown .stamp-cell__parts .is-done {
   color: var(--flown-ink);
 }
 
-.badge-cell--spotted .badge-cell__parts .is-done {
+.stamp-cell--spotted .stamp-cell__parts .is-done {
   color: var(--spotted-ink);
 }
 
-.badge-cell--flown .badge-cell__parts .is-done::before {
+.stamp-cell--flown .stamp-cell__parts .is-done::before {
   background: var(--flown);
   box-shadow: none;
 }
 
-.badge-cell--spotted .badge-cell__parts .is-done::before {
+.stamp-cell--spotted .stamp-cell__parts .is-done::before {
   background: var(--spotted);
   box-shadow: none;
 }
 
-.badge-cell .badge-cell__level {
+.stamp-cell .stamp-cell__level {
   margin-top: 6px;
   font-size: 0.8125rem;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
-.badges__note {
+.stamps__note {
   margin: 44px 0 0;
   font-size: 0.875rem;
   color: var(--ink-3);
@@ -243,7 +243,7 @@
 
 /* ---------- Home ---------- */
 
-.badges__row {
+.stamps__row {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 24px 12px;
@@ -252,12 +252,12 @@
   list-style: none;
 }
 
-.badge-cell--small .badge-cell__name {
+.stamp-cell--small .stamp-cell__name {
   margin-top: 10px;
   font-size: 0.875rem;
 }
 
-.badge-cell--small .badge-cell__date {
+.stamp-cell--small .stamp-cell__date {
   margin-top: 2px;
   font-size: 0.8125rem;
   color: var(--ink-3);
@@ -265,7 +265,7 @@
 
 /* ---------- A flight's page and Coming up ---------- */
 
-.flight-badges__list {
+.flight-stamps__list {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -274,7 +274,7 @@
   list-style: none;
 }
 
-.flight-badges__list a {
+.flight-stamps__list a {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -283,7 +283,7 @@
   text-decoration: none;
 }
 
-.flight-badges__list a:hover {
+.flight-stamps__list a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -293,15 +293,15 @@
 }
 
 @media (max-width: 720px) {
-  .badges__grid {
+  .stamps__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .badges__row {
+  .stamps__row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .badges__row > :nth-child(n + 4) {
+  .stamps__row > :nth-child(n + 4) {
     display: none;
   }
 

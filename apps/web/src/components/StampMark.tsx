@@ -1,17 +1,17 @@
-// A badge as a passport stamp (DESIGN.md, "Badge stamps"; docs/31, "Badges"): a ring in the badge's ink, two half
-// circles so a badge of both inks is gold and blue, the emblem inside (the type's silhouette, an airport's code, a few
+// A stamp, drawn as a passport stamp (DESIGN.md, "Stamps"; docs/31, "Stamps"): a ring in the stamp's ink, two half
+// circles so a stamp of both inks is gold and blue, the emblem inside (the type's silhouette, an airport's code, a few
 // characters or a drawing), a line of words above it and the date below. Earned, it is tilted a little, always by
 // the same angle; not yet, it is a dashed outline without words.
 
 import { useMemo } from "react";
-import { dateOnly, makerName, type Badge } from "@touchdown/core/view";
+import { dateOnly, makerName, type Stamp } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { primaryCode } from "../lib/codes.ts";
-import { BADGE_GLYPHS } from "../lib/badgeGlyphs.tsx";
+import { STAMP_GLYPHS } from "../lib/stampGlyphs.tsx";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { drawingOf } from "./Silhouette.tsx";
 
-/** The same small tilt for a badge every time, from its id: up to 6° either way, never quite upright. */
+/** The same small tilt for a stamp every time, from its id: up to 6° either way, never quite upright. */
 function tiltOf(id: string): number {
   let h = 2166136261;
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
@@ -19,17 +19,17 @@ function tiltOf(id: string): number {
   return Math.round((a * 2 - 1) * 60) / 10 || 2;
 }
 
-export function BadgeStamp({ badge, size = 128, words = true }: { badge: Badge; size?: number; words?: boolean }) {
+export function StampMark({ stamp, size = 128, words = true }: { stamp: Stamp; size?: number; words?: boolean }) {
   const { app } = useApp();
   const info = useTypeInfo();
-  const { emblem } = badge;
-  const earned = !!badge.by;
+  const { emblem } = stamp;
+  const earned = !!stamp.by;
   const drawing = useMemo(() => (emblem.kind === "type" ? drawingOf(emblem.code, info, app.ref) : null), [emblem, info, app.ref]);
   // The words inside only where there is room for them, and only once earned.
   const inside = words && earned && size >= 120;
-  const top = inside ? (badge.factory ? makerName(badge.factory.maker) : emblem.kind === "type" ? emblem.code : "") : "";
+  const top = inside ? (stamp.factory ? makerName(stamp.factory.maker) : emblem.kind === "type" ? emblem.code : "") : "";
   // The date in figures, in the chosen date style ("14/03/2025", "2025/03/14"), so it fits the ring in every language.
-  const date = inside && badge.by?.day ? dateOnly(badge.by.day, { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
+  const date = inside && stamp.by?.day ? dateOnly(stamp.by.day, { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
   const text = emblem.kind === "airport" ? primaryCode(app.ref.airport(emblem.id)) : emblem.kind === "text" ? emblem.text : null;
 
   // A small stamp (a flight's page) keeps one thick ring and a larger emblem, so it still reads at 28px.
@@ -46,7 +46,7 @@ export function BadgeStamp({ badge, size = 128, words = true }: { badge: Badge; 
       </svg>
     );
   } else if (emblem.kind === "glyph") {
-    mark = <svg x={tiny ? 26 : 40} y={tiny ? 26 : 40} width={tiny ? 76 : 48} height={tiny ? 76 : 48} viewBox="0 0 24 24" className="stamp__glyph" dangerouslySetInnerHTML={{ __html: BADGE_GLYPHS[emblem.glyph] }} />;
+    mark = <svg x={tiny ? 26 : 40} y={tiny ? 26 : 40} width={tiny ? 76 : 48} height={tiny ? 76 : 48} viewBox="0 0 24 24" className="stamp__glyph" dangerouslySetInnerHTML={{ __html: STAMP_GLYPHS[emblem.glyph] }} />;
   } else {
     const code = text ?? (emblem.kind === "type" ? emblem.code : "");
     mark = (
@@ -58,11 +58,11 @@ export function BadgeStamp({ badge, size = 128, words = true }: { badge: Badge; 
 
   return (
     <svg
-      className={`stamp stamp--${badge.ink}${earned ? "" : " stamp--not-yet"}${tiny ? " stamp--tiny" : ""}`}
+      className={`stamp stamp--${stamp.ink}${earned ? "" : " stamp--not-yet"}${tiny ? " stamp--tiny" : ""}`}
       viewBox="0 0 128 128"
       width={size}
       height={size}
-      style={earned ? { transform: `rotate(${tiltOf(badge.id)}deg)` } : undefined}
+      style={earned ? { transform: `rotate(${tiltOf(stamp.id)}deg)` } : undefined}
       aria-hidden="true"
     >
       <path className="stamp__ring stamp__ring--a" d="M64 4A60 60 0 0 0 64 124" />

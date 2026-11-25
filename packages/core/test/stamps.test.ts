@@ -1,8 +1,8 @@
-// Badges (docs/24-statistics.md, "Badges"): each earned by the record its rule names, on that record's day, and by no
+// Stamps (docs/24-statistics.md, "Stamps"): each earned by the record its rule names, on that record's day, and by no
 // record that falls short of it. Every flight, sighting and registration here is made up.
 import { describe, expect, it } from "vitest";
 import { RefIndex, type Airport, type AircraftType, type Flight, type Store } from "../src/index.ts";
-import { badges, badgesIfFlown, badgesOf, crossesDateLine, greatCircleMaxLat, shownBadges, type Badge } from "../src/view/index.ts";
+import { stamps, stampsIfFlown, stampsOf, crossesDateLine, greatCircleMaxLat, shownStamps, type Stamp } from "../src/view/index.ts";
 import { newStore, refTables } from "./fixtures.ts";
 
 const airport = (icao: string, iata: string, country: string, lat: number, lon: number, elevationFt: number, tz: string): Airport => ({ id: `ap_${icao.toLowerCase()}`, icao, iata, name: iata, city: iata, country, lat, lon, elevationFt, tz });
@@ -40,11 +40,11 @@ const ref = new RefIndex({
 });
 
 const flight = (store: Store, v: Partial<Flight>) => store.insert("flights", { flightNumber: "XY1", ...v });
-const of = (store: Store, opts = {}) => new Map(badges(store, ref, { now: Date.UTC(2026, 6, 1), ...opts }).map((b) => [b.id, b]));
-const earned = (b: Badge | undefined) => b?.by?.id ?? null;
+const of = (store: Store, opts = {}) => new Map(stamps(store, ref, { now: Date.UTC(2026, 6, 1), ...opts }).map((b) => [b.id, b]));
+const earned = (b: Stamp | undefined) => b?.by?.id ?? null;
 
-describe("badges earned by one flight", () => {
-  it("dates a badge by the first flight that meets its rule, not a later one", () => {
+describe("stamps earned by one flight", () => {
+  it("dates a stamp by the first flight that meets its rule, not a later one", () => {
     const store = newStore();
     const later = flight(store, { scheduledDate: "2025-08-01", typeCode: "B744", fromAirportId: "ap_egll", toAirportId: "ap_kjfk" });
     const first = flight(store, { scheduledDate: "2024-03-14", typeCode: "B744", fromAirportId: "ap_eddf", toAirportId: "ap_kjfk" });
@@ -60,7 +60,7 @@ describe("badges earned by one flight", () => {
     const store = newStore();
     const planned = flight(store, { scheduledDate: "2026-12-14", planned: true, typeCode: "A388", fromAirportId: "ap_egll", toAirportId: "ap_yssy" });
     expect(earned(of(store).get("superjumbo"))).toBeNull();
-    expect(badgesIfFlown(store, ref, planned, { now: Date.UTC(2026, 6, 1) }).map((b) => b.id)).toEqual(expect.arrayContaining(["superjumbo", "equator", "fourEngines"]));
+    expect(stampsIfFlown(store, ref, planned, { now: Date.UTC(2026, 6, 1) }).map((b) => b.id)).toEqual(expect.arrayContaining(["superjumbo", "equator", "fourEngines"]));
     expect(earned(of(store, { now: Date.UTC(2026, 11, 16) }).get("superjumbo"))).toBe(planned.id);
   });
 
@@ -121,7 +121,7 @@ describe("badges earned by one flight", () => {
   });
 });
 
-describe("badges over several records", () => {
+describe("stamps over several records", () => {
   it("earns Full family at the last of the four sizes, the neo counting", () => {
     const store = newStore();
     flight(store, { scheduledDate: "2020-01-01", typeCode: "A318" });
@@ -174,7 +174,7 @@ describe("badges over several records", () => {
   });
 });
 
-describe("factory badges", () => {
+describe("factory stamps", () => {
   it("counts a sighting at a maker's site of an aircraft it built, while the site built them", () => {
     const store = newStore();
     store.insert("sightings", { seenOn: "2024-06-01", airportId: "ap_kpae", typeCode: "A320", registration: "N1001A" });
@@ -208,13 +208,13 @@ describe("factory badges", () => {
 });
 
 describe("what is shown", () => {
-  it("leaves a hidden badge out until it is earned, and lists one not yet earned", () => {
+  it("leaves a hidden stamp out until it is earned, and lists one not yet earned", () => {
     const store = newStore();
-    const ids = () => shownBadges(badges(store, ref)).map((b) => b.id);
+    const ids = () => shownStamps(stamps(store, ref)).map((b) => b.id);
     expect(ids()).toContain("superjumbo");
     expect(ids()).not.toContain("supersonic");
     const f = flight(store, { scheduledDate: "1999-08-01", typeCode: "CONC", fromAirportId: "ap_egll", toAirportId: "ap_kjfk" });
     expect(ids()).toContain("supersonic");
-    expect(badgesOf(badges(store, ref), f.id).map((b) => b.id)).toEqual(expect.arrayContaining(["supersonic", "fourEngines"]));
+    expect(stampsOf(stamps(store, ref), f.id).map((b) => b.id)).toEqual(expect.arrayContaining(["supersonic", "fourEngines"]));
   });
 });

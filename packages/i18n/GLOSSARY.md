@@ -109,8 +109,8 @@ filler, no exclamation marks.
 | to confirm (a planned flight whose time has passed) | zu bestätigen | 待确认 | 待確認 |
 | Coming up (the next planned flights) | Demnächst | 即将出行 | 即將出發 |
 | Remind me later | Später erinnern | 稍后提醒 | 稍後提醒 |
-| badge (earned for something done in the log) | Abzeichen | 徽章（枚） | 徽章（枚） |
-| earn, earned (a badge) | verdienen, verdient | 获得 | 獲得 |
+| stamp (earned for something done in the log, drawn as a passport stamp) | Stempel | 印章（枚） | 印章（枚） |
+| earn, earned (a stamp) | erhalten, erhalten | 获得 | 獲得 |
 | factory airfield (where a maker builds its aircraft) | Werksflugplatz | 工厂机场 | 工廠機場 |
 | test registration (worn only before delivery) | Testkennzeichen | 试飞注册号 | 試飛註冊號 |
 | diverted to | umgeleitet nach | 备降 | 轉降 |

@@ -1,11 +1,11 @@
-// Each country's continent, for the Six continents and Antarctica badges (docs/24-statistics.md, "Continents"): as
+// Each country's continent, for the Six continents and Antarctica stamps (docs/24-statistics.md, "Continents"): as
 // the United Nations' geographic regions (M49) place it, so Central America and the Caribbean are North America,
 // Australia and the Pacific islands Oceania, and Cyprus and the Caucasus Asia. Three countries on two continents go by
 // the airport's longitude.
 
 export type Continent = "AF" | "AN" | "AS" | "EU" | "NA" | "OC" | "SA";
 
-/** The six continents the Six continents badge needs, in the order its parts are listed. */
+/** The six continents the Six continents stamp needs, in the order its parts are listed. */
 export const SIX_CONTINENTS: readonly Continent[] = ["AF", "AS", "EU", "NA", "SA", "OC"];
 
 const LISTS: Record<Continent, string> = {

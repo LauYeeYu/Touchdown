@@ -1,7 +1,7 @@
-// Badges (G13, docs/24-statistics.md, "Badges"): things done in the log, worked out from it each time and never
-// stored. Each badge is earned by a record: the first, in date order, that meets its rule, or for a rule over several
+// Stamps (G13, docs/24-statistics.md, "Stamps"): things done in the log, worked out from it each time and never
+// stored. Each stamp is earned by a record: the first, in date order, that meets its rule, or for a rule over several
 // records the one that completes it. Its date is that record's day. The words are in the message files
-// (`badges.<id>.name`, `badges.<id>.rule`); here are the rules.
+// (`stamps.<id>.name`, `stamps.<id>.rule`); here are the rules.
 
 import type { FlownDistance } from "../flown.ts";
 import type { RefIndex } from "../ref/index.ts";
@@ -10,25 +10,25 @@ import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { arrivalAirportId, flightDay, flightDistanceKm } from "../derive.ts";
 import { daysBetween, instant, localDateOf, parseDateTime } from "../time/index.ts";
-import { continentOf, SIX_CONTINENTS } from "../badges/continents.ts";
-import { FACTORIES, PARTS_FREIGHTERS, TEST_REGISTRATIONS, type Factory, type FactorySite } from "../badges/factories.ts";
+import { continentOf, SIX_CONTINENTS } from "../stamps/continents.ts";
+import { FACTORIES, PARTS_FREIGHTERS, TEST_REGISTRATIONS, type Factory, type FactorySite } from "../stamps/factories.ts";
 import { countedFlights } from "./views.ts";
 import { t, tDynamic } from "@touchdown/i18n";
 import type { Settings } from "../schema/tables.ts";
 import { airportCode } from "../derive.ts";
 import { distance, makerName, nf } from "./format.ts";
 
-export { FACTORIES, type Factory, type FactorySite } from "../badges/factories.ts";
-export { continentOf, SIX_CONTINENTS, type Continent } from "../badges/continents.ts";
+export { FACTORIES, type Factory, type FactorySite } from "../stamps/factories.ts";
+export { continentOf, SIX_CONTINENTS, type Continent } from "../stamps/continents.ts";
 
-export type BadgeGroup = "factories" | "aircraft" | "globe" | "places" | "flights" | "spotting";
-export const BADGE_GROUPS: readonly BadgeGroup[] = ["factories", "aircraft", "globe", "places", "flights", "spotting"];
+export type StampGroup = "factories" | "aircraft" | "globe" | "places" | "flights" | "spotting";
+export const STAMP_GROUPS: readonly StampGroup[] = ["factories", "aircraft", "globe", "places", "flights", "spotting"];
 
-/** Flown gold, spotted blue, or half and half for a badge earned by a flight and a sighting together. */
-export type BadgeInk = "flown" | "spotted" | "both";
+/** Flown gold, spotted blue, or half and half for a stamp earned by a flight and a sighting together. */
+export type StampInk = "flown" | "spotted" | "both";
 
-/** The small drawings inside a stamp (the web app's `lib/badgeGlyphs.tsx`). */
-export type BadgeGlyph =
+/** The small drawings inside a stamp (the web app's `lib/stampGlyphs.tsx`). */
+export type StampGlyph =
   | "equator"
   | "dateLine"
   | "arctic"
@@ -53,45 +53,45 @@ export type BadgeGlyph =
   | "palette";
 
 /** Inside the stamp: a type's silhouette, an airport's code (in the chosen code style), a few characters or a drawing. */
-export type BadgeEmblem = { kind: "type"; code: string } | { kind: "airport"; id: string } | { kind: "text"; text: string } | { kind: "glyph"; glyph: BadgeGlyph };
+export type StampEmblem = { kind: "type"; code: string } | { kind: "airport"; id: string } | { kind: "text"; text: string } | { kind: "glyph"; glyph: StampGlyph };
 
-/** The record that earned a badge, a part or a level, and its day (the flight day, or the day seen). */
-export interface BadgeRecord {
+/** The record that earned a stamp, a part or a level, and its day (the flight day, or the day seen). */
+export interface StampRecord {
   table: "flights" | "sightings";
   id: string;
   day: string | null;
 }
 
-export interface BadgePart {
+export interface StampPart {
   /** An airport's id, a type's designator or a continent's code, by the parts' kind. */
   key: string;
-  by: BadgeRecord | null;
+  by: StampRecord | null;
 }
 
-export interface BadgeLevel {
+export interface StampLevel {
   need: number;
-  by: BadgeRecord | null;
+  by: StampRecord | null;
 }
 
-export interface Badge {
-  /** Stable: "queen", "dateLine", "factory.boeing". The messages are `badges.<id>.name` and `.rule`, a factory's `badges.factory.*`. */
+export interface Stamp {
+  /** Stable: "queen", "dateLine", "factory.boeing". The messages are `stamps.<id>.name` and `.rule`, a factory's `stamps.factory.*`. */
   id: string;
-  group: BadgeGroup;
-  ink: BadgeInk;
+  group: StampGroup;
+  ink: StampInk;
   /** Not shown until earned. */
   hidden: boolean;
-  emblem: BadgeEmblem;
+  emblem: StampEmblem;
   /** The record that earned it; null while not earned. */
-  by: BadgeRecord | null;
+  by: StampRecord | null;
   /** Earned by any part, or only by all (`all`), each ticked by its own record. */
-  parts?: { kind: "airport" | "type" | "continent"; all: boolean; list: BadgePart[] };
+  parts?: { kind: "airport" | "type" | "continent"; all: boolean; list: StampPart[] };
   /** Earned at the first level: how many so far, and the record that reached each. */
-  levels?: { have: number; list: BadgeLevel[] };
-  /** A factory badge's maker. */
+  levels?: { have: number; list: StampLevel[] };
+  /** A factory stamp's maker. */
   factory?: Factory;
 }
 
-export interface BadgeOptions {
+export interface StampOptions {
   now?: number;
   /** Each flight's distance along its recorded track (`flownDistances`), as Statistics counts it. */
   flown?: ReadonlyMap<string, FlownDistance>;
@@ -103,7 +103,7 @@ const HOUR = 3600_000;
 
 /** A record with what the rules read, and the instant it sorts by. */
 interface Hit {
-  rec: BadgeRecord;
+  rec: StampRecord;
   at: number;
 }
 interface FlightIn extends Hit {
@@ -169,8 +169,8 @@ function inAirAtNewYear(leaves: string | null, lands: string | null): boolean {
   return false;
 }
 
-/** Every badge, earned or not, hidden ones included, in the order of the groups. */
-export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Badge[] {
+/** Every stamp, earned or not, hidden ones included, in the order of the groups. */
+export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): Stamp[] {
   const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
   const counted = countedFlights(store, ref, opts.now);
   const ids = new Set(counted.map((f) => f.id));
@@ -210,12 +210,12 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
     }))
     .sort(byTime);
 
-  const out: Badge[] = [];
-  const add = (b: Omit<Badge, "by" | "hidden"> & { by: Hit | null; hidden?: boolean }) => out.push({ ...b, hidden: b.hidden ?? false, by: b.by?.rec ?? null });
-  const flightBadge = (id: string, group: BadgeGroup, emblem: BadgeEmblem, ok: (x: FlightIn) => boolean, hidden = false) => add({ id, group, ink: "flown", emblem, by: first(flights, ok), hidden });
-  const sightingBadge = (id: string, group: BadgeGroup, emblem: BadgeEmblem, ok: (x: SightingIn) => boolean, hidden = false) => add({ id, group, ink: "spotted", emblem, by: first(sightings, ok), hidden });
+  const out: Stamp[] = [];
+  const add = (b: Omit<Stamp, "by" | "hidden"> & { by: Hit | null; hidden?: boolean }) => out.push({ ...b, hidden: b.hidden ?? false, by: b.by?.rec ?? null });
+  const flightStamp = (id: string, group: StampGroup, emblem: StampEmblem, ok: (x: FlightIn) => boolean, hidden = false) => add({ id, group, ink: "flown", emblem, by: first(flights, ok), hidden });
+  const sightingStamp = (id: string, group: StampGroup, emblem: StampEmblem, ok: (x: SightingIn) => boolean, hidden = false) => add({ id, group, ink: "spotted", emblem, by: first(sightings, ok), hidden });
   const airportId = (icao: string) => ref.airportByCode(icao)?.id ?? null;
-  const airportEmblem = (icao: string): BadgeEmblem => {
+  const airportEmblem = (icao: string): StampEmblem => {
     const id = airportId(icao);
     return id ? { kind: "airport", id } : { kind: "text", text: icao };
   };
@@ -252,7 +252,7 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
   }
   const freighter = first(sightings, (x) => !!x.type && PARTS_FREIGHTERS.includes(x.type));
   add({ id: "partsOnTheWay", group: "factories", ink: "spotted", emblem: { kind: "type", code: freighter?.type ?? "BLCF" }, by: freighter });
-  sightingBadge("testRegistration", "factories", { kind: "text", text: "F-WW" }, (x) => !!x.s.registration && TEST_REGISTRATIONS.some((re) => re.test(x.s.registration!)));
+  sightingStamp("testRegistration", "factories", { kind: "text", text: "F-WW" }, (x) => !!x.s.registration && TEST_REGISTRATIONS.some((re) => re.test(x.s.registration!)));
   const built = first(flights, (x) => {
     const s = x.airframe ? atFactory.get(x.airframe.id) : undefined;
     return !!s && byTime(s, x) < 0;
@@ -261,8 +261,8 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
 
   // ---------- Aircraft ----------
   const family = (x: FlightIn) => ref.familyIdOf(x.type);
-  flightBadge("queen", "aircraft", { kind: "type", code: "B744" }, (x) => family(x) === "B747");
-  flightBadge("superjumbo", "aircraft", { kind: "type", code: "A388" }, (x) => x.type === "A388");
+  flightStamp("queen", "aircraft", { kind: "type", code: "B744" }, (x) => family(x) === "B747");
+  flightStamp("superjumbo", "aircraft", { kind: "type", code: "A388" }, (x) => x.type === "A388");
   const four = first(flights, (x) => ref.type(x.type)?.engineCount === 4);
   add({ id: "fourEngines", group: "aircraft", ink: "flown", emblem: { kind: "type", code: four?.type ?? "A343" }, by: four });
   const SIZES: [string, string[]][] = [
@@ -272,19 +272,19 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
     ["A321", ["A321", "A21N"]],
   ];
   add({ id: "fullFamily", group: "aircraft", ink: "flown", emblem: { kind: "type", code: "A320" }, ...parted("type", true, SIZES.map(([key, codes]) => ({ key, hit: first(flights, (x) => !!x.type && codes.includes(x.type)) }))) });
-  flightBadge("freshOffTheLine", "aircraft", { kind: "glyph", glyph: "fresh" }, (x) => {
+  flightStamp("freshOffTheLine", "aircraft", { kind: "glyph", glyph: "fresh" }, (x) => {
     const day = x.rec.day;
     const a = x.airframe;
     if (!day || !a) return false;
     const since = a.deliveryDate ? daysBetween(a.deliveryDate, day) : a.firstFlightDate ? daysBetween(a.firstFlightDate, day) : null;
     return since !== null && since >= 0 && since <= (a.deliveryDate ? 30 : 60);
   });
-  flightBadge("veteran", "aircraft", { kind: "text", text: "30+" }, (x) => {
+  flightStamp("veteran", "aircraft", { kind: "text", text: "30+" }, (x) => {
     const born = x.airframe?.firstFlightDate;
     return !!born && !!x.rec.day && x.rec.day >= `${Number(born.slice(0, 4)) + 30}${born.slice(4)}`;
   });
   const times = new Map<string, number>();
-  flightBadge("oldFriend", "aircraft", { kind: "text", text: "5×" }, (x) => {
+  flightStamp("oldFriend", "aircraft", { kind: "text", text: "5×" }, (x) => {
     if (!x.airframe) return false;
     const n = (times.get(x.airframe.id) ?? 0) + 1;
     times.set(x.airframe.id, n);
@@ -302,35 +302,35 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
     if (both && (!fence || byTime(both, fence.hit) < 0)) fence = { hit: both, type: f.type ?? s!.type };
   }
   add({ id: "bothSides", group: "aircraft", ink: "both", emblem: { kind: "type", code: fence?.type ?? "A320" }, by: fence?.hit ?? null });
-  flightBadge("supersonic", "aircraft", { kind: "type", code: "CONC" }, (x) => x.type === "CONC" || x.type === "T144", true);
+  flightStamp("supersonic", "aircraft", { kind: "type", code: "CONC" }, (x) => x.type === "CONC" || x.type === "T144", true);
 
   // ---------- The globe ----------
   const route = (x: FlightIn) => (x.from && x.to ? ([x.from, x.to] as const) : null);
-  flightBadge("equator", "globe", { kind: "glyph", glyph: "equator" }, (x) => {
+  flightStamp("equator", "globe", { kind: "glyph", glyph: "equator" }, (x) => {
     const r = route(x);
     return !!r && r[0].lat * r[1].lat < 0;
   });
-  flightBadge("dateLine", "globe", { kind: "glyph", glyph: "dateLine" }, (x) => {
+  flightStamp("dateLine", "globe", { kind: "glyph", glyph: "dateLine" }, (x) => {
     const r = route(x);
     return !!r && crossesDateLine(r[0], r[1]);
   });
-  flightBadge("arcticCircle", "globe", { kind: "glyph", glyph: "arctic" }, (x) => {
+  flightStamp("arcticCircle", "globe", { kind: "glyph", glyph: "arctic" }, (x) => {
     const r = route(x);
     return !!r && greatCircleMaxLat(r[0], r[1]) >= 66 + 34 / 60;
   });
-  flightBadge("backToYesterday", "globe", { kind: "glyph", glyph: "yesterday" }, (x) => {
+  flightStamp("backToYesterday", "globe", { kind: "glyph", glyph: "yesterday" }, (x) => {
     const [d0, d1] = [localDateOf(x.leaves), localDateOf(x.lands)];
     return !!d0 && !!d1 && d1 < d0;
   });
   const km = (x: FlightIn) => flightDistanceKm(x.f, ref, opts.flown);
-  flightBadge("ultraLongHaul", "globe", { kind: "glyph", glyph: "longHaul" }, (x) => (km(x) ?? 0) >= 14_000);
-  flightBadge("shortHop", "globe", { kind: "glyph", glyph: "hop" }, (x) => {
+  flightStamp("ultraLongHaul", "globe", { kind: "glyph", glyph: "longHaul" }, (x) => (km(x) ?? 0) >= 14_000);
+  flightStamp("shortHop", "globe", { kind: "glyph", glyph: "hop" }, (x) => {
     const d = km(x);
     return d !== null && d > 0 && d < 50 && x.from?.id !== x.to?.id;
   });
   const THIN = 3000 / 0.3048;
-  flightBadge("thinAir", "globe", { kind: "glyph", glyph: "mountain" }, (x) => x.airports.some((a) => (a.elevationFt ?? 0) >= THIN));
-  flightBadge("belowSeaLevel", "globe", { kind: "glyph", glyph: "waves" }, (x) => x.airports.some((a) => a.elevationFt !== null && a.elevationFt < 0), true);
+  flightStamp("thinAir", "globe", { kind: "glyph", glyph: "mountain" }, (x) => x.airports.some((a) => (a.elevationFt ?? 0) >= THIN));
+  flightStamp("belowSeaLevel", "globe", { kind: "glyph", glyph: "waves" }, (x) => x.airports.some((a) => a.elevationFt !== null && a.elevationFt < 0), true);
   add({
     id: "sixContinents",
     group: "globe",
@@ -338,7 +338,7 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
     emblem: { kind: "glyph", glyph: "continents" },
     ...parted("continent", true, SIX_CONTINENTS.map((c) => ({ key: c, hit: first(flights, (x) => x.airports.some((a) => continentOf(a) === c)) }))),
   });
-  flightBadge("antarctica", "globe", { kind: "glyph", glyph: "snow" }, (x) => x.airports.some((a) => continentOf(a) === "AN"), true);
+  flightStamp("antarctica", "globe", { kind: "glyph", glyph: "snow" }, (x) => x.airports.some((a) => continentOf(a) === "AN"), true);
   let total = 0;
   const reached: (FlightIn | null)[] = [null, null, null];
   const LAPS = [40_075, 384_400, 768_800];
@@ -353,26 +353,26 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
   add({ id: "andBack", group: "globe", ink: "flown", emblem: { kind: "glyph", glyph: "moonBack" }, by: reached[2] ?? null });
 
   // ---------- Places ----------
-  sightingBadge("mahoBeach", "places", airportEmblem("TNCM"), (x) => x.airport?.icao === "TNCM");
+  sightingStamp("mahoBeach", "places", airportEmblem("TNCM"), (x) => x.airport?.icao === "TNCM");
   const TRICKY = ["VQPR", "VNLK", "TFFJ", "LXGB", "LPMA"];
   const tricky = TRICKY.flatMap((icao) => {
     const id = airportId(icao);
     return id ? [{ key: id, icao, hit: first(flights, (x) => x.airports.some((a) => a.icao === icao)) }] : [];
   });
   add({ id: "trickyApproaches", group: "places", ink: "flown", emblem: airportEmblem((tricky.find((p) => p.hit) ?? tricky[0])?.icao ?? "VQPR"), ...parted("airport", false, tricky) });
-  flightBadge("beachLanding", "places", airportEmblem("EGPR"), (x) => x.airports.some((a) => a.icao === "EGPR"), true);
-  flightBadge("kaiTak", "places", airportEmblem("VHHH"), (x) => !!x.rec.day && x.rec.day < "1998-07-06" && x.airports.some((a) => a.icao === "VHHH"), true);
+  flightStamp("beachLanding", "places", airportEmblem("EGPR"), (x) => x.airports.some((a) => a.icao === "EGPR"), true);
+  flightStamp("kaiTak", "places", airportEmblem("VHHH"), (x) => !!x.rec.day && x.rec.day < "1998-07-06" && x.airports.some((a) => a.icao === "VHHH"), true);
 
   // ---------- Flights ----------
-  flightBadge("redEye", "flights", { kind: "glyph", glyph: "redEye" }, (x) => {
+  flightStamp("redEye", "flights", { kind: "glyph", glyph: "redEye" }, (x) => {
     const [h0, h1] = [hourOf(x.leaves), hourOf(x.lands)];
     const [t0, t1] = [instant(x.leaves), instant(x.lands)];
     return (h0 >= 21 || h0 <= 1) && h1 >= 5 && h1 <= 9 && t0 !== null && t1 !== null && t1 - t0 >= 3 * HOUR;
   });
-  flightBadge("newYear", "flights", { kind: "glyph", glyph: "newYear" }, (x) => inAirAtNewYear(x.leaves, x.lands));
-  flightBadge("planB", "flights", { kind: "glyph", glyph: "diverted" }, (x) => !!x.f.divertedToAirportId);
-  flightBadge("upFront", "flights", { kind: "glyph", glyph: "seat" }, (x) => x.f.cabinClass === "business" || x.f.cabinClass === "first");
-  flightBadge("patience", "flights", { kind: "glyph", glyph: "hourglass" }, (x) => {
+  flightStamp("newYear", "flights", { kind: "glyph", glyph: "newYear" }, (x) => inAirAtNewYear(x.leaves, x.lands));
+  flightStamp("planB", "flights", { kind: "glyph", glyph: "diverted" }, (x) => !!x.f.divertedToAirportId);
+  flightStamp("upFront", "flights", { kind: "glyph", glyph: "seat" }, (x) => x.f.cabinClass === "business" || x.f.cabinClass === "first");
+  flightStamp("patience", "flights", { kind: "glyph", glyph: "hourglass" }, (x) => {
     const [due, got] = [instant(x.f.arrivalScheduledAt), instant(x.f.arrivalAt)];
     return due !== null && got !== null && got - due >= 3 * HOUR;
   });
@@ -401,7 +401,7 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
     }),
   });
   const days = new Map<string, Set<string>>();
-  sightingBadge("bigDay", "spotting", { kind: "text", text: "100" }, (x) => {
+  sightingStamp("bigDay", "spotting", { kind: "text", text: "100" }, (x) => {
     if (!x.rec.day) return false;
     const set = days.get(x.rec.day) ?? new Set<string>();
     days.set(x.rec.day, set);
@@ -413,53 +413,53 @@ export function badges(store: Store, ref: RefIndex, opts: BadgeOptions = {}): Ba
   return out;
 }
 
-/** The badges a flight earned: those whose earning record it is. */
-export function badgesOf(list: readonly Badge[], flightId: string): Badge[] {
+/** The stamps a flight earned: those whose earning record it is. */
+export function stampsOf(list: readonly Stamp[], flightId: string): Stamp[] {
   return list.filter((b) => b.by?.table === "flights" && b.by.id === flightId);
 }
 
-/** The badges a planned flight would earn once flown, as Coming up says (docs/31, "Badges"). */
-export function badgesIfFlown(store: Store, ref: RefIndex, flight: Flight, opts: BadgeOptions = {}): Badge[] {
-  return badgesOf(badges(store, ref, { ...opts, asFlown: [...(opts.asFlown ?? []), flight] }), flight.id);
+/** The stamps a planned flight would earn once flown, as Coming up says (docs/31, "Stamps"). */
+export function stampsIfFlown(store: Store, ref: RefIndex, flight: Flight, opts: StampOptions = {}): Stamp[] {
+  return stampsOf(stamps(store, ref, { ...opts, asFlown: [...(opts.asFlown ?? []), flight] }), flight.id);
 }
 
-/** The badges to list: every one earned, and those still to earn that are not hidden. */
-export function shownBadges(list: readonly Badge[]): Badge[] {
+/** The stamps to list: every one earned, and those still to earn that are not hidden. */
+export function shownStamps(list: readonly Stamp[]): Stamp[] {
   return list.filter((b) => b.by || !b.hidden);
 }
 
 // ---------- Words ----------
 
-/** A badge's name, in the interface's language. */
-export function badgeName(b: Badge): string {
-  return b.factory ? t("badges.factory.name", { maker: makerName(b.factory.maker) }) : tDynamic(`badges.${b.id}.name`);
+/** A stamp's name, in the interface's language. */
+export function stampName(b: Stamp): string {
+  return b.factory ? t("stamps.factory.name", { maker: makerName(b.factory.maker) }) : tDynamic(`stamps.${b.id}.name`);
 }
 
-/** The level a badge with levels is working towards: the first not reached, else the last. */
-function nextLevel(b: Badge): BadgeLevel | null {
+/** The level a stamp with levels is working towards: the first not reached, else the last. */
+function nextLevel(b: Stamp): StampLevel | null {
   const list = b.levels?.list ?? [];
   return list.find((l) => !l.by) ?? list[list.length - 1] ?? null;
 }
 
-/** A badge's rule, its distances in the log's unit. */
-export function badgeRule(b: Badge, unit: Settings["distanceUnit"] = "km"): string {
-  if (b.factory) return t("badges.factory.rule", { maker: makerName(b.factory.maker), count: b.parts?.list.length ?? b.factory.sites.length });
+/** A stamp's rule, its distances in the log's unit. */
+export function stampRule(b: Stamp, unit: Settings["distanceUnit"] = "km"): string {
+  if (b.factory) return t("stamps.factory.rule", { maker: makerName(b.factory.maker), count: b.parts?.list.length ?? b.factory.sites.length });
   const km = { ultraLongHaul: 14_000, shortHop: 50, aroundTheWorld: 40_075, toTheMoon: 384_400, andBack: 768_800 }[b.id];
   const height = unit === "km" ? t("format.measure.m", { n: nf.format(3000) }) : t("format.measure.ft", { n: nf.format(9843) });
-  return tDynamic(`badges.${b.id}.rule`, { distance: km ? distance(km, unit) : "", height, count: nextLevel(b)?.need ?? 0 });
+  return tDynamic(`stamps.${b.id}.rule`, { distance: km ? distance(km, unit) : "", height, count: nextLevel(b)?.need ?? 0 });
 }
 
-/** How far a badge with levels has got: "25 registers · next at 50". Null for one without levels. */
-export function badgeLevel(b: Badge): string | null {
+/** How far a stamp with levels has got: "25 registers · next at 50". Null for one without levels. */
+export function stampLevel(b: Stamp): string | null {
   if (!b.levels) return null;
   const next = b.levels.list.find((l) => !l.by);
-  return tDynamic(`badges.${b.id}.level`, { have: b.levels.have, next: next?.need ?? 0 });
+  return tDynamic(`stamps.${b.id}.level`, { have: b.levels.have, next: next?.need ?? 0 });
 }
 
 /** A part's label: an airport's code in the chosen style, a type's code, or a continent's name. */
-export function badgePartLabel(b: Badge, part: BadgePart, ref: RefIndex, style: Settings["codeDisplay"] = "iata"): string {
+export function stampPartLabel(b: Stamp, part: StampPart, ref: RefIndex, style: Settings["codeDisplay"] = "iata"): string {
   const kind = b.parts?.kind;
   if (kind === "airport") return airportCode(part.key, ref, style === "icao" ? "icao" : "iata") ?? part.key;
-  if (kind === "continent") return tDynamic(`badges.continent.${part.key}`);
+  if (kind === "continent") return tDynamic(`stamps.continent.${part.key}`);
   return part.key;
 }

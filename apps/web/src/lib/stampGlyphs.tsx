@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: ISC AND Apache-2.0
-// The small drawings inside a badge stamp (DESIGN.md, "Badge stamps"), in a 24-unit box at Lucide's stroke: Lucide
+// The small drawings inside a stamp (DESIGN.md, "Stamps"), in a 24-unit box at Lucide's stroke: Lucide
 // icons (ISC licence) where one says it, and globes, routes and a moon drawn in the same stroke. Paths are static.
 
-import type { BadgeGlyph } from "@touchdown/core/view";
+import type { StampGlyph } from "@touchdown/core/view";
 
 const globe = '<circle cx="12" cy="12" r="9"/>';
 const faint = (inner: string) => `<g opacity=".45">${inner}</g>`;
 
-export const BADGE_GLYPHS: Record<BadgeGlyph, string> = {
+export const STAMP_GLYPHS: Record<StampGlyph, string> = {
   equator: `${globe}${faint('<ellipse cx="12" cy="12" rx="4.5" ry="9"/>')}<path d="M3 12h18" stroke-width="2.4"/>`,
   dateLine: `${globe}${faint('<ellipse cx="12" cy="12" rx="9" ry="3.2"/>')}<path d="M12 3v18" stroke-dasharray="1.6 1.8"/><path d="M4.6 15.6C8 10.2 14.6 8.6 19.6 10.6" stroke-width="2.2"/>`,
   arctic: `${globe}${faint('<ellipse cx="12" cy="12" rx="9" ry="3.2"/><ellipse cx="12" cy="12" rx="4.5" ry="9"/>')}<path d="M6.3 5.2C8 6.1 16 6.1 17.7 5.2" stroke-width="2.2"/>`,

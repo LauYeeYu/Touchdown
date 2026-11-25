@@ -44,9 +44,9 @@ An airfield's zone, where no source gives one, is the nearest airport's in its c
 
 An airport in neither table is added by the user (`airport_overrides`, [10](10-domain-model.md); [31](31-ui.md), "Airports of your own"): a code, a name, a place, a country, a position and a time zone. It comes before the reference data, with the same code too. Records saved before their airport was known (an import from before the airfields, or a code added later) are linked by a fix ([20](20-validation.md), V-AIRPORT-KNOWN).
 
-### Badges' tables
+### Stamps' tables
 
-The factory airfields and the continents that the badges read ([24](24-statistics.md), "Badges") are short curated tables in the core package, not built from a source: each factory site carries the source it was checked against.
+The factory airfields and the continents that the stamps read ([24](24-statistics.md), "Stamps") are short curated tables in the core package, not built from a source: each factory site carries the source it was checked against.
 
 ### Names in other languages
 

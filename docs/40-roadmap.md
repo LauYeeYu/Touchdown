@@ -107,20 +107,20 @@ The order puts the riskiest part first: the data model and identity rules are te
   - A link shows planned flights as the app does and never the reminder or `remindAt` (tests over every kind).
   - The period control shows the current year and All time at every width, and the years menu and All time on the narrowest screen (checked in en-GB and zh-CN).
 
-## Phase 12: Badges
+## Phase 12: Stamps
 
-- Deliver (G13, [24](24-statistics.md), "Badges"; [31](31-ui.md), "Badges"): every badge worked out in core from the log, with the factory airfields and continents curated beside it; the stamps on Statistics' Badges tab, on Home, on a flight's page and in Coming up; a whole log's share link; `touchdown badges`.
+- Deliver (G13, [24](24-statistics.md), "Stamps"; [31](31-ui.md), "Stamps"): every stamp worked out in core from the log, with the factory airfields and continents curated beside it; the stamps on Statistics' Stamps tab, on Home, on a flight's page and in Coming up; a whole log's share link; `touchdown stamps`.
 - Needs: phase 8 (share links), phase 9 (the command line), phase 11 (planned flights, for what counts and Coming up).
 - Done when:
-  - Each badge is earned by the record its rule names, on that record's day, and by no record that falls short of it (tests per badge, a time zone and a date line case included).
+  - Each stamp is earned by the record its rule names, on that record's day, and by no record that falls short of it (tests per stamp, a time zone and a date line case included).
   - A planned flight earns nothing until its time has passed, and Coming up names what it would earn (tests).
-  - A hidden badge does not show until earned, and one not yet earned shows greyed with its rule.
-  - A whole log's link shows the badges as the app does, and a link to one record shows none.
+  - A hidden stamp does not show until earned, and one not yet earned shows greyed with its rule.
+  - A whole log's link shows the stamps as the app does, and a link to one record shows none.
   - The stamps read right in en-GB and zh-CN, light and dark, at a desktop's width and a phone's.
 
 ## Later (not scheduled)
 
-- Badges, next ([31](31-ui.md), "Badges"): badges the owner grants, such as "Alpha user" (Q-BADGE-GRANTED), and an animation the first time a badge is earned, perhaps for the hidden ones only (Q-BADGE-SEEN).
+- Stamps, next ([31](31-ui.md), "Stamps"): stamps the owner grants, such as "Alpha user" (Q-STAMP-GRANTED), and an animation the first time a stamp is earned, perhaps for the hidden ones only (Q-STAMP-SEEN).
 - Local bridge between the web app and the CLI.
 - AeroAPI flight lookup and "capture during flight".
 - A registration lookup in the web app: adsbdb from the browser (it allows any site), then the airframe index for serial numbers ([13](13-reference-data.md), "Airframe index"). Not planned while sightings are added mostly on a computer.

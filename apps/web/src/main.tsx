@@ -60,7 +60,7 @@ const session = createRoute({ getParentRoute: () => root, path: "/spotting/sessi
 const sightingEdit = createRoute({ getParentRoute: () => root, path: "/spotting/$id/edit", component: () => <SightingForm edit />, params: slugParams("sightings") });
 const aircraft = createRoute({ getParentRoute: () => root, path: "/aircraft", component: AircraftList });
 const aircraftOne = createRoute({ getParentRoute: () => root, path: "/aircraft/$id", component: AircraftDetail, params: slugParams("aircraft") });
-const stats = createRoute({ getParentRoute: () => root, path: "/stats", component: Stats, validateSearch: (s: Record<string, unknown>): { tab?: "badges" } => (s.tab === "badges" ? { tab: "badges" } : {}) });
+const stats = createRoute({ getParentRoute: () => root, path: "/stats", component: Stats, validateSearch: (s: Record<string, unknown>): { tab?: "stamps" } => (s.tab === "stamps" ? { tab: "stamps" } : {}) });
 // The map and the globe once had pages of their own; the globe now heads Statistics.
 const map = createRoute({ getParentRoute: () => root, path: "/map", beforeLoad: () => { throw redirect({ to: "/stats", replace: true }); } });
 const airport = createRoute({ getParentRoute: () => root, path: "/airports/$id", component: AirportPage, params: airportParams });

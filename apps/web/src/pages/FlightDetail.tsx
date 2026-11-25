@@ -40,7 +40,7 @@ import { NotFound } from "./NotFound.tsx";
 import { TimeCell } from "../components/TimeCell.tsx";
 import { article, partOfDay } from "../lib/flightText.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
-import { FlightBadges } from "../components/Badges.tsx";
+import { FlightStamps } from "../components/Stamps.tsx";
 import { tx } from "../lib/i18n.tsx";
 
 /** A track file the user chose for the flight: what it would save, or why it cannot be used. */
@@ -808,8 +808,8 @@ export function FlightDetail() {
               </div>
             )}
           </dl>
-          {/* A link to one record lacks the rest of the log its badges depend on (docs/31, "Badges"). */}
-          {voice.kind !== "none" && <FlightBadges flight={f} />}
+          {/* A link to one record lacks the rest of the log its stamps depend on (docs/31, "Stamps"). */}
+          {voice.kind !== "none" && <FlightStamps flight={f} />}
           {f.notes && (
             <>
               <h3 className="subhead">{t("flights.detail.notes")}</h3>
