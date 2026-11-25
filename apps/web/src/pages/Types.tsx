@@ -4,7 +4,7 @@
 // hundred at a time as the page scrolls. "In your log" and a role narrow both.
 
 import { useEffect, useMemo, useRef } from "react";
-import { withoutAccents, type TypeRole } from "@touchdown/core";
+import { POPULAR_MAKERS, withoutAccents, type TypeRole } from "@touchdown/core";
 import { searchMatcher } from "@touchdown/core/view";
 import { t } from "@touchdown/i18n";
 import { Link } from "../lib/link.tsx";
@@ -21,21 +21,6 @@ import { Silhouette } from "../components/Silhouette.tsx";
 import { TypeRow } from "../components/TypeRow.tsx";
 
 export const ROLES: TypeRole[] = ["airliner", "business", "light", "helicopter", "military", "other"];
-/**
- * The manufacturers shown as cards, by their addresses in alphabetical order: the best known of the role chosen, of
- * those with types drawn with their family's shape or their own, and the airliners' for every role. Other aircraft
- * have too few such types for cards.
- */
-const AIRLINER_MAKERS = ["aerospatiale-bac", "airbus", "boeing", "bombardier", "comac", "embraer", "ilyushin", "lockheed", "mcdonnell-douglas", "tupolev"];
-const POPULAR: Record<TypeRole | "all", string[]> = {
-  all: AIRLINER_MAKERS,
-  airliner: AIRLINER_MAKERS,
-  business: ["beechcraft", "bombardier", "cessna", "daher", "dassault", "embraer", "gulfstream", "hawker-beechcraft", "honda", "pilatus"],
-  light: ["beechcraft", "cessna", "cirrus", "de-havilland-canada", "diamond", "mooney", "pilatus", "piper", "quest", "tecnam"],
-  helicopter: ["agustawestland", "airbus-helicopters", "bell", "bell-boeing", "boeing-vertol", "kamov", "leonardo", "mil", "robinson", "sikorsky"],
-  military: ["airbus", "boeing", "dassault", "embraer", "fairchild", "lockheed", "northrop", "northrop-grumman", "saab", "tupolev"],
-  other: [],
-};
 /** The types a card draws where they are chosen and of the role, in order: else the manufacturer's types with the most codes. */
 const CARD_TYPES: Record<string, string[]> = {
   airbus: ["A320", "A333", "A388"],
@@ -164,7 +149,7 @@ function Manufacturers({ entries, all, role }: { entries: TypeEntry[]; all: Type
     return [...chosen, ...rest].slice(0, 3);
   };
   // The role's popular manufacturers the filters leave a type to draw of: none, and there are no cards.
-  const main = POPULAR[role].flatMap((slug) => {
+  const main = POPULAR_MAKERS[role].flatMap((slug) => {
     const m = manufacturers.find((x) => x.manufacturer.slug === slug);
     const shapes = m ? drawn(slug, m.entries) : [];
     return m && shapes.length ? [{ ...m, shapes }] : [];

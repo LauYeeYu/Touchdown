@@ -4,7 +4,7 @@
 // which a search lists above its family. Shared by the list, the manufacturers and a manufacturer's page.
 
 import { useMemo } from "react";
-import { withoutAccents, type Family, type RefIndex, type TypeRole } from "@touchdown/core";
+import { slugOf, type Family, type RefIndex, type TypeRole } from "@touchdown/core";
 import { countedFlights, searchFold, searchMatcher, searchText } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { typeName } from "./format.ts";
@@ -88,15 +88,8 @@ export function onlyType(ref: RefIndex, familyId: string): string | null {
   return codes.length === 1 ? codes[0]! : null;
 }
 
-/**
- * A manufacturer's or a family's address: its name in lower case, without accents, words joined by hyphens
- * ("Aérospatiale-BAC" → "aerospatiale-bac", "Boeing 737" → "boeing-737").
- */
-export const slugOf = (name: string) =>
-  withoutAccents(name)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+// A manufacturer's or a family's address, from core, where the factory stamps use it too.
+export { slugOf };
 
 /** An entry: a family's when `family` is given, else a type's, `of` the family of one type it is (for its history and a search). */
 function entryOf(ref: RefIndex, info: TypeInfo | null, counts: TypeCounts, key: string, family: Family | null, name: string, manufacturer: string, codes: string[], of?: Family): TypeEntry {

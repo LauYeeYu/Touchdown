@@ -205,31 +205,19 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 
 ### Factory airfields
 
-Curated in the core package (`packages/core/src/stamps/factories.ts`), each site with its source. A sighting counts on a day between the site's first and last year of building. One stamp per maker. A maker's aircraft are the types whose manufacturer the reference tables give as that maker (for McDonnell Douglas also Douglas, for Beechcraft also Hawker Beechcraft and Raytheon).
+Curated in the core package (`packages/core/src/stamps/factories.ts`), each site with its source. A sighting counts on a day between the site's first and last year of building. One stamp per maker, and only for the makers the aircraft types pages show as popular for every role (`POPULAR_MAKERS.all` in core, [31](31-ui.md), "Aircraft types"), so that the stamps stay few and well known; a test keeps the two lists together. Of those, Aérospatiale-BAC, Ilyushin and Tupolev have no factory airfield here yet. A maker's aircraft are the types whose manufacturer the reference tables give as that maker (for McDonnell Douglas also Douglas). Saw it built counts the same sites.
 
 | Maker | Sites (years) |
 |---|---|
 | Boeing | PAE Everett (1967–), RNT Renton (1957–), BFI Boeing Field, flight test and delivery (1967–), CHS Charleston (2011–), LGB Long Beach (1997–2015) |
 | McDonnell Douglas | LGB Long Beach (1941–2001) |
 | Airbus | TLS Toulouse (1972–), XFW Hamburg Finkenwerder (1993–), TSN Tianjin (2008–), BFM Mobile (2015–), YMX Mirabel, the A220 (2013–) |
-| ATR | TLS Toulouse (1984–) |
 | Embraer | SJK São José dos Campos (1969–), MLB Melbourne, Florida (2011–) |
 | COMAC | PVG Shanghai Pudong (2017–) |
 | Bombardier | YUL Montréal-Trudeau (1980–), YMX Mirabel, the CRJ (1999–2020), YYZ Toronto Pearson, the Global (2023–), ICT Wichita, the Learjet (1990–2021) |
-| De Havilland Canada | YYC Calgary (2008–) |
-| Gulfstream | SAV Savannah (1967–) |
-| Dassault | BOD Bordeaux-Mérignac (1949–) |
-| Pilatus | BXO Buochs (1991–) |
-| Honda | GSO Greensboro (2015–) |
-| Cessna | ICT Wichita (1972–), IDP Independence (1996–), BEC Beech Factory, the Longitude (2017–) |
-| Beechcraft | BEC Beech Factory (1932–) |
-| Fokker | AMS Schiphol (1951–1997) |
 | Lockheed | PMD Palmdale, the TriStar (1968–1984) |
-| Saab | LPI Linköping (1983–) |
-| Sukhoi | UHKD Dzemgi, Komsomolsk-on-Amur (2008–) |
-| Irkut | UIIR Irkutsk Northwest (2017–) |
 
-Left out because the reference tables do not hold the airfield: Downsview (De Havilland Canada's Dash 8 and Bombardier's Global until 2022 and 2024), Gavião Peixoto (Embraer), Hatfield and Woodford (the BAe 146 and Avro RJ), Kyiv Sviatoshyn (Antonov). A few start years are the first year confirmed rather than the first year of building, as the file says.
+Left out because the reference tables do not hold the airfield: Downsview (Bombardier's Global until 2024), Gavião Peixoto (Embraer). A few start years are the first year confirmed rather than the first year of building, as the file says.
 
 Test registrations: the French test and delivery class (`F-W…`, Airbus and ATR at Toulouse among others) and Airbus Hamburg's `D-AV…`. Boeing's temporary registrations follow no pattern, and those of Tianjin, Mobile and Mirabel are not documented, so they are not recognised.
 

@@ -1,8 +1,8 @@
 // Stamps (docs/24-statistics.md, "Stamps"): each earned by the record its rule names, on that record's day, and by no
 // record that falls short of it. Every flight, sighting and registration here is made up.
 import { describe, expect, it } from "vitest";
-import { RefIndex, type Airport, type AircraftType, type Flight, type Store } from "../src/index.ts";
-import { stamps, stampsIfFlown, stampsOf, crossesDateLine, greatCircleMaxLat, shownStamps, type Stamp } from "../src/view/index.ts";
+import { POPULAR_MAKERS, RefIndex, slugOf, type Airport, type AircraftType, type Flight, type Store } from "../src/index.ts";
+import { FACTORIES, stamps, stampsIfFlown, stampsOf, crossesDateLine, greatCircleMaxLat, shownStamps, type Stamp } from "../src/view/index.ts";
 import { newStore, refTables } from "./fixtures.ts";
 
 const airport = (icao: string, iata: string, country: string, lat: number, lon: number, elevationFt: number, tz: string): Airport => ({ id: `ap_${icao.toLowerCase()}`, icao, iata, name: iata, city: iata, country, lat, lon, elevationFt, tz });
@@ -175,6 +175,11 @@ describe("stamps over several records", () => {
 });
 
 describe("factory stamps", () => {
+  it("has one for each popular maker of the aircraft types pages that has a factory airfield, and no other", () => {
+    expect(FACTORIES.map((f) => slugOf(f.maker)).filter((slug) => !POPULAR_MAKERS.all.includes(slug))).toEqual([]);
+    expect(stamps(newStore(), ref).filter((b) => b.factory).map((b) => b.id)).toEqual(["factory.boeing", "factory.mcdonnellDouglas", "factory.airbus", "factory.embraer", "factory.comac", "factory.bombardier", "factory.lockheed"]);
+  });
+
   it("counts a sighting at a maker's site of an aircraft it built, while the site built them", () => {
     const store = newStore();
     store.insert("sightings", { seenOn: "2024-06-01", airportId: "ap_kpae", typeCode: "A320", registration: "N1001A" });

@@ -4,6 +4,7 @@
 import type { Airport, AircraftType, Family, ModelPattern, Operator, RefTables, RegistrationPrefix } from "./types.ts";
 
 export * from "./types.ts";
+export * from "./popular.ts";
 
 export interface RefOverrides {
   airports?: Airport[];

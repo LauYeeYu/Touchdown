@@ -1,6 +1,7 @@
 // Factory airfields, for the factory stamps (docs/24-statistics.md, "Factory airfields"): where each maker's aircraft
 // are finally assembled, flown off the line or delivered, and the years the site did it. Each site names the source it
-// was checked against. Curated by hand: a site that opens or closes is a line here.
+// was checked against. Curated by hand: a site that opens or closes is a line here. Only the makers the aircraft types
+// pages show as popular for every role (`POPULAR_MAKERS.all`), so that the stamps stay few and well known.
 
 export interface FactorySite {
   /** The airfield's ICAO code, as the reference tables hold it. */
@@ -58,14 +59,6 @@ export const FACTORIES: readonly Factory[] = [
     ],
   },
   {
-    id: "atr",
-    maker: "ATR",
-    manufacturers: ["ATR"],
-    sites: [
-      { icao: "LFBO", builds: "every ATR 42 and 72", from: 1984, to: null, source: "https://en.wikipedia.org/wiki/ATR_72" },
-    ],
-  },
-  {
     id: "embraer",
     maker: "Embraer",
     manufacturers: ["Embraer"],
@@ -95,104 +88,11 @@ export const FACTORIES: readonly Factory[] = [
     ],
   },
   {
-    id: "deHavillandCanada",
-    maker: "De Havilland Canada",
-    manufacturers: ["De Havilland Canada"],
-    sites: [
-      // Downsview, where the Dash 8 was built until 2022, is not in the reference tables.
-      { icao: "CYYC", builds: "Twin Otter Series 400, DHC-515", from: 2008, to: null, source: "https://en.wikipedia.org/wiki/Viking_DHC-6_Twin_Otter" },
-    ],
-  },
-  {
-    id: "gulfstream",
-    maker: "Gulfstream",
-    manufacturers: ["Gulfstream"],
-    sites: [
-      { icao: "KSAV", builds: "every Gulfstream from the GII", from: 1967, to: null, source: "https://en.wikipedia.org/wiki/Gulfstream_Aerospace" },
-    ],
-  },
-  {
-    id: "dassault",
-    maker: "Dassault",
-    manufacturers: ["Dassault"],
-    sites: [
-      { icao: "LFBD", builds: "every Falcon, final assembly and flight test", from: 1949, to: null, source: "https://www.dassault-aviation.com/en/passion/history/sites/merignac/" },
-    ],
-  },
-  {
-    id: "pilatus",
-    maker: "Pilatus",
-    manufacturers: ["Pilatus"],
-    sites: [
-      // From the PC-12's first flight. The PC-6 was built there earlier.
-      { icao: "LSZC", builds: "PC-12 and PC-24, the PC-6 before them, built in Stans beside the airfield", from: 1991, to: null, source: "https://www.airportbuochs.ch/en/ueber-uns/" },
-    ],
-  },
-  {
-    id: "honda",
-    maker: "Honda",
-    manufacturers: ["Honda"],
-    sites: [
-      { icao: "KGSO", builds: "HondaJet", from: 2015, to: null, source: "https://global.honda/en/newsroom/news/2015/c151224eng.html" },
-    ],
-  },
-  {
-    id: "cessna",
-    maker: "Cessna",
-    manufacturers: ["Cessna"],
-    sites: [
-      // From the first Citation deliveries. Cessna built in Wichita long before.
-      { icao: "KICT", builds: "Citations", from: 1972, to: null, source: "https://en.wikipedia.org/wiki/Wichita_Dwight_D._Eisenhower_National_Airport" },
-      { icao: "KIDP", builds: "piston singles, Citation Mustang and M2", from: 1996, to: null, source: "https://investor.textron.com" },
-      { icao: "KBEC", builds: "Citation Longitude, beside the King Air", from: 2017, to: null, source: "https://www.ainonline.com/aviation-news/business-aviation/2016-01-14/citation-longitude-be-built-alongside-king-airs" },
-    ],
-  },
-  {
-    id: "beechcraft",
-    maker: "Beechcraft",
-    manufacturers: ["Beechcraft", "Hawker Beechcraft", "Raytheon"],
-    sites: [
-      { icao: "KBEC", builds: "King Air, Baron, Bonanza", from: 1932, to: null, source: "https://www.ainonline.com/aviation-news/business-aviation/2016-01-14/citation-longitude-be-built-alongside-king-airs" },
-    ],
-  },
-  {
-    id: "fokker",
-    maker: "Fokker",
-    manufacturers: ["Fokker"],
-    sites: [
-      { icao: "EHAM", builds: "F27, Fokker 50, 70 and 100, at Schiphol-Oost", from: 1951, to: 1997, source: "https://en.wikipedia.org/wiki/Fokker_50" },
-    ],
-  },
-  {
     id: "lockheed",
     maker: "Lockheed",
     manufacturers: ["Lockheed"],
     sites: [
       { icao: "KPMD", builds: "L-1011 TriStar", from: 1968, to: 1984, source: "https://en.wikipedia.org/wiki/Palmdale_Regional_Airport" },
-    ],
-  },
-  {
-    id: "saab",
-    maker: "Saab",
-    manufacturers: ["Saab"],
-    sites: [
-      { icao: "ESSL", builds: "Saab 340 and 2000 (to 1999), and the Gripen", from: 1983, to: null, source: "https://en.wikipedia.org/wiki/Saab_340" },
-    ],
-  },
-  {
-    id: "sukhoi",
-    maker: "Sukhoi",
-    manufacturers: ["Sukhoi"],
-    sites: [
-      { icao: "UHKD", builds: "Superjet 100, at Dzemgi", from: 2008, to: null, source: "https://en.wikipedia.org/wiki/Sukhoi_Superjet_100" },
-    ],
-  },
-  {
-    id: "irkut",
-    maker: "Irkut",
-    manufacturers: ["Irkut"],
-    sites: [
-      { icao: "UIIR", builds: "MC-21", from: 2017, to: null, source: "https://en.wikipedia.org/wiki/Irkut_MC-21" },
     ],
   },
 ];
