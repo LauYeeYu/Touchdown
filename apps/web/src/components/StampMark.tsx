@@ -4,12 +4,21 @@
 // the same angle; not yet, it is a dashed outline without words.
 
 import { useMemo } from "react";
-import { dateOnly, makerName, type Stamp } from "@touchdown/core/view";
+import { makerName, type Stamp } from "@touchdown/core/view";
 import { useApp } from "../data/context.tsx";
 import { primaryCode } from "../lib/codes.ts";
 import { STAMP_GLYPHS } from "../lib/stampGlyphs.tsx";
 import { useTypeInfo } from "../lib/typeInfo.ts";
 import { drawingOf } from "./Silhouette.tsx";
+
+/** The months as passports and park stamps print them, after ICAO's passports (Doc 9303): three letters, in English. */
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+/** A day as a stamp prints it: "03 DEC 2025", the same in every language, as on a passport or a park's stamp. */
+export function stampDate(day: string): string {
+  const [y, m, d] = day.split("-");
+  return `${d} ${MONTHS[Number(m) - 1]} ${y}`;
+}
 
 /** The same small tilt for a stamp every time, from its id: up to 6° either way, never quite upright. */
 function tiltOf(id: string): number {
@@ -28,8 +37,8 @@ export function StampMark({ stamp, size = 128, words = true }: { stamp: Stamp; s
   // The words inside only where there is room for them, and only once earned.
   const inside = words && earned && size >= 120;
   const top = inside ? (stamp.factory ? makerName(stamp.factory.maker) : emblem.kind === "type" ? emblem.code : "") : "";
-  // The date in figures, in the chosen date style ("14/03/2025", "2025/03/14"), so it fits the ring in every language.
-  const date = inside && stamp.by?.day ? dateOnly(stamp.by.day, { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
+  // The date as passports and park stamps print it ("14 MAR 2025"); the cell under the stamp gives it in the reader's way.
+  const date = inside && stamp.by?.day ? stampDate(stamp.by.day) : "";
   const text = emblem.kind === "airport" ? primaryCode(app.ref.airport(emblem.id)) : emblem.kind === "text" ? emblem.text : null;
 
   // A small stamp (a flight's page) keeps one thick ring and a larger emblem, so it still reads at 28px.
