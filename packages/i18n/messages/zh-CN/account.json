@@ -81,5 +81,13 @@
   "members.suspendConfirm": "要暂停{name}吗？对方会在所有设备上退出登录且无法再登录，分享链接也会失效。账户、存储连接和链接都会保留，之后可以恢复。",
   "members.suspended": "已暂停{name}。",
   "members.reinstated": "{name}可以重新登录了，分享链接也已恢复。",
+  "members.stamps": "给{name}的印章",
+  "members.stampsLabel": "印章",
+  "members.stampGive.title": "要把“{stamp}”印章授予{name}吗？",
+  "members.stampGive.text": "它会和对方的其他印章一起，出现在对方的页面和整个日志的分享链接上。",
+  "members.stampGive.button": "授予印章",
+  "members.stampTake.title": "要收回{name}的“{stamp}”印章吗？",
+  "members.stampTake.text": "它将不再出现在对方的页面和整个日志的分享链接上。再次授予时，日期为那一天。",
+  "members.stampTake.button": "收回",
   "members.resetNote": "供{name}设置新密码。仅可使用一次，有效期至\u2060{until}。设置后，对方会在所有设备上退出登录。"
 }

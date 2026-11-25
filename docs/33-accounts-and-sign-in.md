@@ -16,7 +16,7 @@ How people get into the hosted site (U3): the website signs them in itself, and 
 
 ## People and roles
 
-- **Owner:** runs the site. Invites people, removes them, and makes password reset links. One owner (Decided, Q-SIGNIN-DEFAULTS).
+- **Owner:** runs the site. Invites people, removes them, makes password reset links, and gives stamps. One owner (Decided, Q-SIGNIN-DEFAULTS).
 - **Member:** everyone else. Uses the app; manages their own account.
 
 ## Pages anyone can open
@@ -51,6 +51,10 @@ Decided, built (Q-USER-REMOVAL):
 | **Remove** | Deletes their account, sign-in methods and sessions at once, and their Standard-mode rows: the key to their storage, their acceptance of the terms, their share links and the links' previews ([32](32-modes-and-sharing.md)). | Nothing. A new invitation makes a new account. |
 
 Either way their log stays in their own storage. The owner cannot suspend or remove themselves.
+
+## Stamps the owner gives
+
+Decided, built (Q-STAMP-GRANTED). In People, the owner gives a person one of the stamps in core's list, such as Alpha user, or takes it back, each after a confirmation ([24](24-statistics.md), "Stamps the owner gives"; [31](31-ui.md), "Stamps"), the owner included. The server keeps it with the account (`granted_stamps`), so the owner never writes to the person's storage. `/auth/me` returns the account's stamps, which the web app keeps in the browser so they show offline too, and a whole log's share link sends them with its content. Giving a stamp again keeps its first date. Suspending keeps them; removing deletes them with the account.
 
 ## Passwords
 
@@ -119,14 +123,14 @@ All under `/auth/` (built):
 | `POST /auth/join` | Invitation token, name, email, password key. |
 | `POST /auth/reset` | Reset token, new password key. |
 | `POST /auth/setup` | Setup secret, name, email, password key. |
-| `GET /auth/me` | The signed-in account: name, email, role, the interface's language it chose, sign-in methods (with when the password was last changed), and its sessions (an id, the device, whether it is the command line's). |
+| `GET /auth/me` | The signed-in account: name, email, role, the interface's language it chose, sign-in methods (with when the password was last changed), its sessions (an id, the device, whether it is the command line's), and the stamps the owner gave it (an id and when). |
 | `POST /auth/signout`, `POST /auth/signout-others` | End this session, or the others. |
 | `POST /auth/sessions/end` | End one of the account's sessions, by its id from `/auth/me` (the hash of its token, which does not open it). |
 | `POST /auth/cli/approve` | The browser allows the command line: a one-time code for its PKCE challenge ("The command line"). |
 | `POST /auth/cli/token` | The command line's code and verifier; returns its session token. |
 | `POST /auth/name`, `POST /auth/password`, `POST /auth/email`, `DELETE /auth/google` | Account changes. |
 | `POST /auth/language` | The interface's language chosen in Settings (a language tag, or null for none), kept with the account so a share link opens in it on any browser where its owner is signed in. The web app sends it when the language is chosen, and when the log's language differs from the account's (chosen on another device). Not open to the command line. |
-| `GET /auth/people`, `POST /auth/invites`, `DELETE /auth/invites/<id>`, `DELETE /auth/people/<id>`, `POST /auth/people/<id>/reset`, `POST /auth/people/<id>/suspend`, `POST /auth/people/<id>/reinstate` | Owner only. |
+| `GET /auth/people`, `POST /auth/invites`, `DELETE /auth/invites/<id>`, `DELETE /auth/people/<id>`, `POST /auth/people/<id>/reset`, `POST /auth/people/<id>/suspend`, `POST /auth/people/<id>/reinstate`, `POST` and `DELETE /auth/people/<id>/stamps/<stamp>` | Owner only. People lists each person's stamps. |
 
 Errors come as `{ "error": "…" }` in the request's language: the first of the `Accept-Language` header's languages that the interface has, else UK English (Q-I18N). The language the account chose in Settings is not used, so an error before signing in reads the same as one after.
 
@@ -143,10 +147,11 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packa
 | `sessions` | `tokenHash`, `accountId`, `createdAt`, `lastUsedAt`, `expiresAt`, `device`, `kind` (`cli` for the command line) |
 | `cli_logins` | `codeHash`, `accountId`, `challenge`, `system`, `createdAt`, `expiresAt`: the command line's sign-ins under way |
 | `invites` | `id`, `tokenHash`, `purpose` (`join`, `reset`), `accountId` (for a reset), `note`, `createdBy`, `createdAt`, `expiresAt`, `usedAt`, `usedBy` |
+| `granted_stamps` | `accountId`, `stamp` (an id from core's list), `grantedAt`, `grantedBy`: the stamps the owner gave (server schema version 7) |
 
 | `google_logins` | `stateHash`, `nonce`, `verifier`, `next`, `invite`, `name`, `linkAccountId`, `expiresAt`, `purpose` (`signin` or `storage`, for Standard): Google sign-ins under way |
 
-Standard mode's tables (`storage_connections`, `consents`, `shares`, `share_previews`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added the first two and `google_logins.purpose`, version 3 `sessions.kind` and `cli_logins`, version 6 `accounts.suspendedAt` and `share_previews`, and the server upgrades an older database when it starts.
+Standard mode's tables (`storage_connections`, `consents`, `shares`, `share_previews`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added the first two and `google_logins.purpose`, version 3 `sessions.kind` and `cli_logins`, version 6 `accounts.suspendedAt` and `share_previews`, version 7 `granted_stamps`, and the server upgrades an older database when it starts.
 
 Never stored: passwords, Google's tokens, IP addresses, request contents. No request logs.
 

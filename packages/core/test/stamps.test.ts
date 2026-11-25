@@ -2,7 +2,7 @@
 // record that falls short of it. Every flight, sighting and registration here is made up.
 import { describe, expect, it } from "vitest";
 import { POPULAR_MAKERS, RefIndex, slugOf, type Airport, type AircraftType, type Flight, type Store } from "../src/index.ts";
-import { FACTORIES, stamps, stampsIfFlown, stampsOf, crossesDateLine, greatCircleMaxLat, shownStamps, type Stamp } from "../src/view/index.ts";
+import { FACTORIES, stamps, stampsIfFlown, stampsOf, crossesDateLine, greatCircleMaxLat, shownStamps, type GrantedStamp, type Stamp } from "../src/view/index.ts";
 import { newStore, refTables } from "./fixtures.ts";
 
 const airport = (icao: string, iata: string, country: string, lat: number, lon: number, elevationFt: number, tz: string): Airport => ({ id: `ap_${icao.toLowerCase()}`, icao, iata, name: iata, city: iata, country, lat, lon, elevationFt, tz });
@@ -221,5 +221,23 @@ describe("what is shown", () => {
     const f = flight(store, { scheduledDate: "1999-08-01", typeCode: "CONC", fromAirportId: "ap_egll", toAirportId: "ap_kjfk" });
     expect(ids()).toContain("supersonic");
     expect(stampsOf(stamps(store, ref), f.id).map((b) => b.id)).toEqual(expect.arrayContaining(["supersonic", "fourEngines"]));
+  });
+});
+
+describe("stamps the owner gives", () => {
+  it("lists only those given, last, dated the day they were given, with no record", () => {
+    const store = newStore();
+    const granted = [
+      { id: "translator", grantedAt: "2026-02-03T09:00:00Z" },
+      { id: "alpha", grantedAt: "2025-11-20T18:30:00Z" },
+      // An id the list no longer has is left out.
+      { id: "gone", grantedAt: "2025-11-20T18:30:00Z" } as unknown as GrantedStamp,
+    ] as GrantedStamp[];
+    const list = stamps(store, ref, { granted });
+    const given = list.filter((b) => b.group === "granted");
+    expect(given.map((b) => b.id)).toEqual(["granted.alpha", "granted.translator"]);
+    expect(given[0]).toMatchObject({ ink: "granted", hidden: false, by: { table: "granted", id: "alpha", day: "2025-11-20" } });
+    expect(list.at(-1)!.id).toBe("granted.translator");
+    expect(stamps(store, ref).some((b) => b.group === "granted")).toBe(false);
   });
 });

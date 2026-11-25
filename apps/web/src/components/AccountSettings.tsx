@@ -2,14 +2,18 @@
 // where it is signed in, signing out; and for the owner, invitations, reset links and removing someone.
 
 import { useEffect, useState, type FormEvent } from "react";
-import { t } from "@touchdown/i18n";
+import { t, tDynamic } from "@touchdown/i18n";
+import { GRANTED_STAMP_IDS, type GrantedStampId } from "@touchdown/core/share";
+import { grantedStamp } from "@touchdown/core/view";
 import type { AppData } from "../data/app.ts";
-import { account, AuthError, type Link, type Me, type OpenInvite, type Person } from "../data/account.ts";
+import { account, AuthError, rememberGranted, type Link, type Me, type OpenInvite, type Person } from "../data/account.ts";
 import { forgetOffline } from "../data/offline.ts";
 import { MIN_PASSWORD, passwordProblem } from "../lib/passwordKey.ts";
 import { momentDay, momentLabel, momentLabelUtc } from "../lib/format.ts";
 import { Icon } from "../lib/icons.tsx";
 import { Field, TextInput } from "./form.tsx";
+import { ConfirmDialog } from "./ConfirmDialog.tsx";
+import { StampMark } from "./StampMark.tsx";
 import { toast } from "./overlay.tsx";
 import { invitationMessage } from "../lib/invitation.ts";
 import { tx } from "../lib/i18n.tsx";
@@ -327,12 +331,60 @@ export function AccountSection({ app }: { app: AppData }) {
           </button>
         )}
       </div>
-      {me.role === "owner" && <PeopleSection me={me} />}
+      {me.role === "owner" && <PeopleSection me={me} app={app} />}
     </>
   );
 }
 
-function PeopleSection({ me }: { me: Me }) {
+/**
+ * The stamps the owner gives a person (docs/24, "Stamps the owner gives"): one chip each, pressed when given. Giving one
+ * or taking it back asks first, in the app's confirmation with the stamp drawn beside it, so a slip of the pointer
+ * changes nothing. Given to the owner themself, their own pages follow at once.
+ */
+function MemberStamps({ person, me, app, onChange }: { person: Person; me: Me; app: AppData; onChange: () => void }) {
+  const [asking, setAsking] = useState<{ id: GrantedStampId; given: boolean } | null>(null);
+  const change = async ({ id, given }: { id: GrantedStampId; given: boolean }) => {
+    await (given ? account.withdrawStamp(person.id, id) : account.grantStamp(person.id, id));
+    onChange();
+    if (person.id === me.id) {
+      const { stamps } = await account.me();
+      app.setGranted(stamps);
+      rememberGranted(stamps);
+    }
+  };
+  const words = asking && { name: person.name, stamp: tDynamic(`stamps.granted.${asking.id}.name`) };
+  return (
+    <>
+      <span className="member-stamps" role="group" aria-label={t("account.members.stamps", { name: person.name })}>
+        <span className="member-stamps__label" aria-hidden="true">
+          {t("account.members.stampsLabel")}
+        </span>
+        {GRANTED_STAMP_IDS.map((id) => {
+          const given = person.stamps.some((s) => s.id === id);
+          return (
+            <button key={id} type="button" className="chip" aria-pressed={given} aria-haspopup="dialog" onClick={() => setAsking({ id, given })}>
+              {given && <Icon name="check" />}
+              {tDynamic(`stamps.granted.${id}.name`)}
+            </button>
+          );
+        })}
+      </span>
+      {asking && words && (
+        <ConfirmDialog
+          title={asking.given ? t("account.members.stampTake.title", words) : t("account.members.stampGive.title", words)}
+          text={asking.given ? t("account.members.stampTake.text") : t("account.members.stampGive.text")}
+          action={asking.given ? t("account.members.stampTake.button") : t("account.members.stampGive.button")}
+          // The stamp as it is, or as it will be: given today.
+          art={<StampMark stamp={grantedStamp(asking.id, person.stamps.find((s) => s.id === asking.id)?.grantedAt ?? new Date().toISOString())} size={72} />}
+          onConfirm={() => change(asking)}
+          onClose={() => setAsking(null)}
+        />
+      )}
+    </>
+  );
+}
+
+function PeopleSection({ me, app }: { me: Me; app: AppData }) {
   const [data, setData] = useState<{ people: Person[]; invites: OpenInvite[] } | null>(null);
   const [note, setNote] = useState("");
   const [made, setMade] = useState<{ link: Link; for: string } | null>(null);
@@ -405,6 +457,7 @@ function PeopleSection({ me }: { me: Me }) {
               {p.suspendedAt && <span className="pill member-suspended">{t("account.members.suspendedTag")}</span>}
               {/* In UTC: a member's own time zone is not recorded, and the owner's would say a time of day they never saw. */}
               <small>{t("account.members.details", { email: p.email, methods: p.password && p.google ? "both" : p.password ? "password" : p.google ? "google" : "none", when: p.lastSeenAt ? momentLabelUtc(Date.parse(p.lastSeenAt)) : t("account.never") })}</small>
+              <MemberStamps person={p} me={me} app={app} onChange={load} />
             </span>
             {p.id !== me.id && (
               <div className="button-row button-row--tight">

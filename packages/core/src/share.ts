@@ -5,10 +5,13 @@
 // rest of core.
 
 import { PRIVATE_FIELDS, TABLES, type TableName } from "./schema/tables.ts";
+import type { GrantedStamp } from "./stamps/granted.ts";
 
 // Reading the log's files as this version does, for the server.
 export { SCHEMA_VERSION } from "./schema/tables.ts";
 export { upgradeTableFile, type TableFile } from "./schema/upgrade.ts";
+// The stamps the owner gives, which the server keeps and sends with a whole log.
+export { GRANTED_STAMP_IDS, isGrantedStampId, type GrantedStamp, type GrantedStampId } from "./stamps/granted.ts";
 
 export const SHARE_KINDS = ["flight", "sighting", "aircraft", "log"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
@@ -44,6 +47,8 @@ export interface ShareContent {
   tables: ShareTables;
   /** A whole log's owner, by their account's name as they wrote it, for the page's title. The server adds it. */
   owner?: string;
+  /** The stamps the site's owner gave a whole log's owner, shown with the others. The server adds them. */
+  granted?: GrantedStamp[];
 }
 
 /** An aircraft link's anchor: one of the aircraft's flights or sightings, followed when the aircraft is merged away. */

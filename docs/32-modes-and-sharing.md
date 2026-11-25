@@ -147,7 +147,7 @@ The pages speak of the log, not to its owner: "So far in 2026, 41 flights …", 
 
 Planned flights (Decided, F5): a link shows them as the app does ([31](31-ui.md), "Planned flights"), in the link's voice: the whole log's "Coming up" on Home, dashed routes on its maps, "Planned" in Flights, and their own pages. A flight still to come can have its own link, to send before the trip. The viewer's page works out each flight's status against its own clock, as the app does, so a flight starts to count on a link at the same moment as in the app, and a cached link is never out of date for it. The owner's alone, and never on a link: the reminder, the band and "To confirm" of a flight not yet confirmed, and its `remindAt`, left out of the link's rows with the import bookkeeping. The Share dialog of a whole log with planned flights still to come says they show on the link.
 
-Stamps (Decided, G13): a whole log's link shows them as the app does, worked out on the viewer's page from the records it receives ([31](31-ui.md), "Stamps"). A link to one flight, sighting or aircraft shows none, since they depend on the rest of the log.
+Stamps (Decided, G13): a whole log's link shows them as the app does, worked out on the viewer's page from the records it receives ([31](31-ui.md), "Stamps"), with the stamps the site's owner gave the log's owner, which the server adds to the content as it reads it, as it adds the owner's name, so one given or taken back shows at once ([24](24-statistics.md), "Stamps the owner gives"). A link to one flight, sighting or aircraft shows none, since they depend on the rest of the log. A hidden stamp is not pressed onto a link's page: its viewer is not the log's owner.
 
 #### One link per thing
 

@@ -693,3 +693,28 @@
   width: 15px;
   height: 15px;
 }
+
+/* A confirmation (components/ConfirmDialog.tsx): the Share dialog's card, narrower, with a picture of what changes
+   (a stamp in People) to the left of the question and what it does. On a phone the picture stays beside them. */
+.confirm-dialog {
+  width: min(28rem, calc(100vw - 32px));
+}
+
+.confirm-dialog__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.confirm-dialog__art {
+  flex: none;
+  padding-top: 2px;
+}
+
+.confirm-dialog__words {
+  min-width: 0;
+}
+
+.confirm-dialog .share-dialog__text {
+  margin-bottom: 0;
+}

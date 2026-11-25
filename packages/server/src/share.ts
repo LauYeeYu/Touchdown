@@ -8,7 +8,7 @@ import type { TableName } from "@touchdown/core";
 import { t } from "@touchdown/i18n/server";
 import { googleAccess, GoogleError } from "./google.ts";
 import { b64url } from "./crypto.ts";
-import { body, checkOrigin, Fail, json, siteOrigin, standardOn, storageKey, TERMS_VERSION, toUtcIso, type Server, type StorageRow } from "./handler.ts";
+import { body, checkOrigin, Fail, grantedStamps, json, siteOrigin, standardOn, storageKey, TERMS_VERSION, toUtcIso, type Server, type StorageRow } from "./handler.ts";
 
 /** What the server keeps a link's content in, under the versions of the files it came from. */
 export interface ShareCache {
@@ -289,8 +289,10 @@ export async function sharePage(request: Request, s: Server, url: URL, now: numb
     if (m[2] === "content") {
       // Counted when the content is asked for, so a chat app's preview of the page is not.
       await s.db.run("UPDATE shares SET timesOpened = timesOpened + 1, lastOpenedAt = ? WHERE id = ?", [toUtcIso(now), share.id]);
-      // A whole log is titled with its owner's name, added here so that the cache never keeps a name changed since.
-      const body = share.kind === "log" ? `{"owner":${JSON.stringify(share.ownerName)},${text.slice(1)}` : text;
+      // A whole log is titled with its owner's name and shows the stamps the site's owner gave them, added here so that
+      // the cache never keeps a name changed or a stamp given since.
+      const granted = share.kind === "log" ? ((await grantedStamps(s, [share.accountId])).get(share.accountId) ?? []) : [];
+      const body = share.kind === "log" ? `{"owner":${JSON.stringify(share.ownerName)},"granted":${JSON.stringify(granted)},${text.slice(1)}` : text;
       return new Response(body, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
     }
 

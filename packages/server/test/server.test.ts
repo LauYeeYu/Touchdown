@@ -417,6 +417,38 @@ describe("the owner's people", () => {
     expect((await call(s, owner, "POST", `/auth/people/${ownerId}/suspend`)).status).toBe(400);
   });
 
+  it("gives someone a stamp, which their account shows, takes it back, and forgets it with the account", async () => {
+    const { s, owner, tick } = await withOwner();
+    const t = await invite(s, owner);
+    const sam: Jar = { cookie: null };
+    await call(s, sam, "POST", "/auth/join", { invite: t, name: "Sam", email: "sam@example.org", key: keyOf("sam") });
+    const samId = ((await call(s, owner, "GET", "/auth/people")).json.people as { id: string; name: string }[]).find((p) => p.name === "Sam")!.id;
+    expect((await call(s, sam, "GET", "/auth/me")).json.stamps).toEqual([]);
+
+    expect((await call(s, owner, "POST", `/auth/people/${samId}/stamps/alpha`)).status).toBe(200);
+    tick(60_000);
+    expect((await call(s, owner, "POST", `/auth/people/${samId}/stamps/translator`)).status).toBe(200);
+    // Given again, it keeps its first date.
+    expect((await call(s, owner, "POST", `/auth/people/${samId}/stamps/alpha`)).status).toBe(200);
+    expect((await call(s, sam, "GET", "/auth/me")).json.stamps).toEqual([
+      { id: "alpha", grantedAt: "2026-10-24T09:00:00Z" },
+      { id: "translator", grantedAt: "2026-10-24T09:01:00Z" },
+    ]);
+    const listed = (await call(s, owner, "GET", "/auth/people")).json.people as { name: string; stamps: { id: string }[] }[];
+    expect(listed.find((p) => p.name === "Sam")?.stamps.map((x) => x.id)).toEqual(["alpha", "translator"]);
+    expect(listed.find((p) => p.name === "Owner")?.stamps).toEqual([]);
+
+    expect((await call(s, owner, "DELETE", `/auth/people/${samId}/stamps/alpha`)).status).toBe(200);
+    expect((await call(s, sam, "GET", "/auth/me")).json.stamps).toMatchObject([{ id: "translator" }]);
+    // Only the owner gives one, only one of the list, and only to someone there is.
+    expect((await call(s, sam, "POST", `/auth/people/${samId}/stamps/alpha`)).status).toBe(403);
+    expect((await call(s, owner, "POST", `/auth/people/${samId}/stamps/queen`)).status).toBe(404);
+    expect((await call(s, owner, "POST", "/auth/people/nobody/stamps/alpha")).status).toBe(404);
+
+    expect((await call(s, owner, "DELETE", `/auth/people/${samId}`)).status).toBe(200);
+    expect(await s.db.all("SELECT * FROM granted_stamps")).toEqual([]);
+  });
+
   it("changes the email address only with the current password, and not to one in use", async () => {
     const { s, owner } = await withOwner();
     const t = await invite(s, owner);
@@ -759,7 +791,8 @@ describe("Standard mode's storage key", () => {
     ]);
     const s: Server = { db, config: { origins: [SITE] }, assets: { fetch: async () => new Response("") } };
     expect((await call(s, { cookie: null }, "GET", "/auth/site")).json.siteId).toBe("old-site");
-    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 6 });
+    expect(await db.first("SELECT schemaVersion FROM site")).toEqual({ schemaVersion: 7 });
+    await expect(db.first("SELECT stamp FROM granted_stamps LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT subject FROM shares LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT purpose FROM google_logins LIMIT 1")).resolves.toBeNull();
     await expect(db.first("SELECT kind FROM sessions LIMIT 1")).resolves.toBeNull();

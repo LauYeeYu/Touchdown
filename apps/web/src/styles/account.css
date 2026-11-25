@@ -420,6 +420,39 @@ a.shares-list__title:hover {
   vertical-align: 1px;
 }
 
+/* The stamps the owner gives a person, in Settings › People: a small label, then a chip for each, pressed when given. */
+.member-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.member-stamps__label {
+  margin-inline-end: 2px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.member-stamps .chip {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+}
+
+.member-stamps .chip .icon {
+  width: 14px;
+  height: 14px;
+  margin-inline-start: -2px;
+}
+
+.member-stamps .chip[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--selected-container);
+  color: var(--on-selected-container);
+}
+
 /* Here, after .account-item__text small, which it follows in the cascade. */
 .history-row small {
   font-size: 0.8125rem;

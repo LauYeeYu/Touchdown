@@ -1,7 +1,8 @@
 // Stamps (G13, docs/24-statistics.md, "Stamps"): things done in the log, worked out from it each time and never
 // stored. Each stamp is earned by a record: the first, in date order, that meets its rule, or for a rule over several
 // records the one that completes it. Its date is that record's day. The words are in the message files
-// (`stamps.<id>.name`, `stamps.<id>.rule`); here are the rules.
+// (`stamps.<id>.name`, `stamps.<id>.rule`); here are the rules. The stamps the site's owner gives come from the
+// account instead (`granted`).
 
 import type { FlownDistance } from "../flown.ts";
 import type { RefIndex } from "../ref/index.ts";
@@ -12,6 +13,7 @@ import { arrivalAirportId, flightDay, flightDistanceKm } from "../derive.ts";
 import { daysBetween, instant, localDateOf, parseDateTime } from "../time/index.ts";
 import { continentOf, SIX_CONTINENTS } from "../stamps/continents.ts";
 import { FACTORIES, PARTS_FREIGHTERS, TEST_REGISTRATIONS, type Factory, type FactorySite } from "../stamps/factories.ts";
+import { GRANTED_STAMP_IDS, type GrantedStamp, type GrantedStampId } from "../stamps/granted.ts";
 import { countedFlights } from "./views.ts";
 import { t, tDynamic } from "@touchdown/i18n";
 import type { Settings } from "../schema/tables.ts";
@@ -20,12 +22,17 @@ import { distance, makerName, nf } from "./format.ts";
 
 export { FACTORIES, type Factory, type FactorySite } from "../stamps/factories.ts";
 export { continentOf, SIX_CONTINENTS, type Continent } from "../stamps/continents.ts";
+export { GRANTED_STAMP_IDS, isGrantedStampId, type GrantedStamp, type GrantedStampId } from "../stamps/granted.ts";
 
-export type StampGroup = "factories" | "aircraft" | "globe" | "places" | "flights" | "spotting";
-export const STAMP_GROUPS: readonly StampGroup[] = ["factories", "aircraft", "globe", "places", "flights", "spotting"];
+/** The groups in the order they are listed. `granted`: the stamps the site's owner gave, listed only when given. */
+export type StampGroup = "factories" | "aircraft" | "globe" | "places" | "flights" | "spotting" | "granted";
+export const STAMP_GROUPS: readonly StampGroup[] = ["factories", "aircraft", "globe", "places", "flights", "spotting", "granted"];
 
-/** Flown gold, spotted blue, or half and half for a stamp earned by a flight and a sighting together. */
-export type StampInk = "flown" | "spotted" | "both";
+/**
+ * Flown gold, spotted blue, or half and half for a stamp earned by a flight and a sighting together. A stamp the owner
+ * gave is in the page's own ink, as it says nothing of flights or sightings.
+ */
+export type StampInk = "flown" | "spotted" | "both" | "granted";
 
 /** The small drawings inside a stamp (the web app's `lib/stampGlyphs.tsx`). */
 export type StampGlyph =
@@ -49,14 +56,19 @@ export type StampGlyph =
   | "fresh"
   | "factory"
   | "flag"
-  | "palette";
+  | "palette"
+  | "bug"
+  | "languages";
 
 /** Inside the stamp: a type's silhouette, an airport's code (in the chosen code style), a few characters or a drawing. */
 export type StampEmblem = { kind: "type"; code: string } | { kind: "airport"; id: string } | { kind: "text"; text: string } | { kind: "glyph"; glyph: StampGlyph };
 
-/** The record that earned a stamp, a part or a level, and its day (the flight day, or the day seen). */
+/**
+ * The record that earned a stamp, a part or a level, and its day (the flight day, or the day seen). For a stamp the owner
+ * gave, `granted` with the stamp's id and the day it was given: there is no record to open.
+ */
 export interface StampRecord {
-  table: "flights" | "sightings";
+  table: "flights" | "sightings" | "granted";
   id: string;
   day: string | null;
 }
@@ -96,7 +108,16 @@ export interface StampOptions {
   flown?: ReadonlyMap<string, FlownDistance>;
   /** Flights to count as flown though planned and still to come: what Coming up says one would earn. */
   asFlown?: readonly Flight[];
+  /** The stamps the site's owner gave the log's owner, from their account. */
+  granted?: readonly GrantedStamp[];
 }
+
+/** What is inside each stamp the owner gives. */
+const GRANTED_EMBLEMS: Record<GrantedStampId, StampEmblem> = {
+  alpha: { kind: "text", text: "α" },
+  bugFinder: { kind: "glyph", glyph: "bug" },
+  translator: { kind: "glyph", glyph: "languages" },
+};
 
 const HOUR = 3600_000;
 
@@ -405,7 +426,20 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
     return before === 99 && set.size === 100;
   });
 
+  // ---------- From Touchdown ----------
+  // Only those given, in the list's order, each dated the day it was given (in UTC, as the server keeps it).
+  const given = new Map((opts.granted ?? []).map((g) => [g.id, g.grantedAt] as const));
+  for (const id of GRANTED_STAMP_IDS) {
+    const at = given.get(id);
+    if (at) out.push(grantedStamp(id, at));
+  }
+
   return out;
+}
+
+/** A stamp the site's owner gave, dated the day it was given (in UTC): as the Stamps tab lists it, and People shows it. */
+export function grantedStamp(id: GrantedStampId, grantedAt: string): Stamp {
+  return { id: `granted.${id}`, group: "granted", ink: "granted", hidden: false, emblem: GRANTED_EMBLEMS[id], by: { table: "granted", id, day: grantedAt.slice(0, 10) } };
 }
 
 /** The stamps a flight earned: those whose earning record it is. */

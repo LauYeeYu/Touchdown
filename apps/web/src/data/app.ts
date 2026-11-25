@@ -59,6 +59,7 @@ import {
   type TableName,
 } from "@touchdown/core";
 import { isBasedOn, isNewer, mergeRow, type QueuedRow, type StoredRow as SyncRow, type SyncState } from "@touchdown/storage";
+import type { GrantedStamp } from "@touchdown/core/share";
 import { CONNECTION, LAST_BACKUP, LAST_CHANGE, setMeta, type Connection } from "./connection.ts";
 import { db, type OutboxRecord } from "./db.ts";
 import { forgetGoogleToken } from "./google.ts";
@@ -160,6 +161,8 @@ export class AppData {
   readonly readOnly: boolean = false;
   /** On a whole log's share link, its owner's name, for the pages' sentences (lib/voice.tsx). The app's own log is "you". */
   readonly sharedBy: string | null = null;
+  /** The stamps the site's owner gave this account (docs/24, "Stamps the owner gives"), from the server. */
+  granted: readonly GrantedStamp[] = [];
   /** Syncing, in Private and Standard mode. */
   sync: SyncHandle | null = null;
   private syncListeners = new Set<() => void>();
@@ -316,6 +319,13 @@ export class AppData {
   private notify() {
     this.version++;
     tell(this.listeners);
+  }
+
+  /** The account's granted stamps, as the server or this browser's copy has them; the pages follow a change. */
+  setGranted(list: readonly GrantedStamp[]) {
+    if (JSON.stringify(list) === JSON.stringify(this.granted)) return;
+    this.granted = list;
+    this.notify();
   }
 
   private reconcileTimer: ReturnType<typeof setTimeout> | null = null;

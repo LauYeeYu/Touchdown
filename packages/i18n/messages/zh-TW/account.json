@@ -81,5 +81,13 @@
   "members.suspendConfirm": "要暫停{name}嗎？對方會在所有裝置上登出且無法再登入，分享連結也會失效。帳戶、儲存空間連線和連結都會保留，之後可以恢復。",
   "members.suspended": "已暫停{name}。",
   "members.reinstated": "{name}可以重新登入了，分享連結也已恢復。",
+  "members.stamps": "給{name}的印章",
+  "members.stampsLabel": "印章",
+  "members.stampGive.title": "要把「{stamp}」印章頒給{name}嗎？",
+  "members.stampGive.text": "它會和對方的其他印章一起，出現在對方的頁面和整個日誌的分享連結上。",
+  "members.stampGive.button": "頒發印章",
+  "members.stampTake.title": "要收回{name}的「{stamp}」印章嗎？",
+  "members.stampTake.text": "它將不再出現在對方的頁面和整個日誌的分享連結上。再次頒發時，日期為那一天。",
+  "members.stampTake.button": "收回",
   "members.resetNote": "讓{name}設定新密碼。限用一次，有效期限至\u2060{until}。設定後，對方會在所有裝置上登出。"
 }

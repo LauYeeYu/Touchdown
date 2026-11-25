@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { createRootRoute, createRoute, createRouter, redirect, RouterProvider } from "@tanstack/react-router";
 import "./styles/app.css";
 import { AppData, type OpenStep } from "./data/app.ts";
-import { account, lastAccount, whoAmI } from "./data/account.ts";
+import { account, lastAccount, rememberedGranted, rememberGranted, whoAmI } from "./data/account.ts";
 import { db, openAccountDb } from "./data/db.ts";
 import { tabsFor } from "./data/tabs.ts";
 import { standardConnection } from "./data/connection.ts";
@@ -190,6 +190,11 @@ function boot(report: (p: Progress) => void): Promise<AppData> {
         opened = await AppData.open(tabs, (s, n) => s === "log" && n !== undefined && step(t("shell.opening.preparing", { count: n })));
       }
     }
+    // The stamps the site's owner gave the account, as the server says, else as this browser last heard (offline).
+    if (typeof me === "object") {
+      opened.setGranted(me.stamps ?? []);
+      rememberGranted(me.stamps ?? []);
+    } else opened.setGranted(rememberedGranted());
     const where = () => (opened.connection?.mode !== "local" && opened.connection?.adapter === "localfs" ? opened.connection.name : t("data.googleDrive"));
     // Standard (docs/32): back from connecting Google Drive, or a browser that has not chosen yet, or one syncing the
     // same Google Drive in Private, follows the account's Standard connection by itself.

@@ -1,5 +1,6 @@
 // Stamps on the pages (docs/31, "Stamps"): Statistics' Stamps tab, Home's latest, and the stamps a flight earned.
-// Worked out from the log in core (`stamps`), on a share link from the records it holds, as in the app.
+// Worked out from the log in core (`stamps`), on a share link from the records it holds, as in the app, with the
+// stamps the site's owner gave from the account (or the link).
 
 import { useMemo } from "react";
 import { flightName, flownDistances, type Flight } from "@touchdown/core";
@@ -15,7 +16,7 @@ import { StampMark } from "./StampMark.tsx";
 export function useStamps(): Stamp[] {
   const { app, version } = useApp();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => allStamps(app.store, app.ref, { flown: flownDistances(app.store, app.ref) }), [app, version]);
+  return useMemo(() => allStamps(app.store, app.ref, { flown: flownDistances(app.store, app.ref), granted: app.granted }), [app, version]);
 }
 
 /** The stamps earned, newest first. */
@@ -27,6 +28,8 @@ export function latestEarned(list: readonly Stamp[]): Stamp[] {
 function EarnedBy({ stamp }: { stamp: Stamp }) {
   const { app } = useApp();
   const by = stamp.by!;
+  // A stamp the owner gave has its day and no record.
+  if (by.table === "granted") return null;
   if (by.table === "flights") {
     const f = app.store.get("flights", by.id);
     if (!f) return null;

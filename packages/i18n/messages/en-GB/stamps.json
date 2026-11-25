@@ -7,6 +7,7 @@
   "group.places": "Places",
   "group.flights": "Flights",
   "group.spotting": "Spotting",
+  "group.granted": "From Touchdown",
   "notYet": "Not earned yet",
   "part.done": "{part}, done",
   "part.notYet": "{part}, not yet",
@@ -95,5 +96,11 @@
   "specialLiveries.rule": "{count} special liveries photographed",
   "specialLiveries.level": "{have, plural, one {# special livery} other {# special liveries}}{next, plural, =0 {} other { · next at #}}",
   "bigDay.name": "Big day",
-  "bigDay.rule": "100 aircraft photographed in one day"
+  "bigDay.rule": "100 aircraft photographed in one day",
+  "granted.alpha.name": "Alpha user",
+  "granted.alpha.rule": "Among the first people invited to Touchdown",
+  "granted.bugFinder.name": "Bug finder",
+  "granted.bugFinder.rule": "A problem in Touchdown found and reported",
+  "granted.translator.name": "Translator",
+  "granted.translator.rule": "Help with Touchdown's translations"
 }

@@ -310,6 +310,18 @@ describe("opening a share link", () => {
     expect(t.drive.downloads.length).toBe(read);
   });
 
+  it("shows the stamps the site's owner gave on a whole log, as they are now, and on no other link", async () => {
+    const t = await site();
+    const log = await make(t, { kind: "log" });
+    const flight = await make(t, { kind: "flight", subject: t.shared.id });
+    expect((await open(t.s, `/p/${log.json.id}/content`)).json.granted).toEqual([]);
+    const me = (await call(t.s, t.owner, "GET", "/auth/me")).json.id as string;
+    expect((await call(t.s, t.owner, "POST", `/auth/people/${me}/stamps/alpha`)).status).toBe(200);
+    // Given after the content was cached, it shows at once.
+    expect((await open(t.s, `/p/${log.json.id}/content`)).json.granted).toMatchObject([{ id: "alpha" }]);
+    expect((await open(t.s, `/p/${flight.json.id}/content`)).json.granted).toBeUndefined();
+  });
+
   it("shows the log as it is now: cached until a file changes, then read again", async () => {
     const t = await site();
     const made = await make(t, { kind: "flight", subject: t.shared.id });

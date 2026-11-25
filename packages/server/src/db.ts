@@ -17,7 +17,7 @@ export interface Database {
   batch(statements: Statement[]): Promise<void>;
 }
 
-export const SERVER_SCHEMA_VERSION = 6;
+export const SERVER_SCHEMA_VERSION = 7;
 
 /** The server's tables. Removing a row never relies on cascades: the code deletes dependent rows itself. */
 const TABLES = [
@@ -130,6 +130,15 @@ const TABLES = [
     lastOpenedAt TEXT
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS shares_thing ON shares (accountId, kind, subject)`,
+  // The stamps the owner gave an account (docs/33, "Server tables"; docs/24, "Stamps the owner gives"): by their id in
+  // core's list, removed with the account.
+  `CREATE TABLE IF NOT EXISTS granted_stamps (
+    accountId TEXT NOT NULL,
+    stamp TEXT NOT NULL,
+    grantedAt TEXT NOT NULL,
+    grantedBy TEXT NOT NULL,
+    PRIMARY KEY (accountId, stamp)
+  )`,
   // A link's preview for chat apps (docs/32, "Previews"): made by the owner's browser, deleted with the link.
   `CREATE TABLE IF NOT EXISTS share_previews (
     shareId TEXT PRIMARY KEY,

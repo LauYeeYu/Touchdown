@@ -3,7 +3,7 @@
 // leave out what changes the log when `readOnly` is set, and the store is never saved or synced.
 
 import { logNeedsMoreAirports, phasesOf, refOverridesOf, RefIndex, settingsOf, Store, tagsOf, type Finding, type Row, type Settings, type TableName } from "@touchdown/core";
-import type { ShareContent } from "@touchdown/core/share";
+import type { GrantedStamp, ShareContent } from "@touchdown/core/share";
 import { t } from "@touchdown/i18n";
 import type { AppData } from "../data/app.ts";
 import { watchPlanned } from "../lib/plannedClock.ts";
@@ -125,6 +125,11 @@ export class ShareData {
   /** The owner's name, sent with a whole log only: a link to one record names nobody. */
   get sharedBy(): string | null {
     return this.content.kind === "log" ? (this.content.owner ?? null) : null;
+  }
+
+  /** The stamps the site's owner gave a whole log's owner, shown with the others: a link to one record has none. */
+  get granted(): readonly GrantedStamp[] {
+    return this.content.kind === "log" ? (this.content.granted ?? []) : [];
   }
 
   /** Recorded tracks being read, for the masthead; null once all are in. */

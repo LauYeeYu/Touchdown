@@ -81,5 +81,13 @@
   "members.suspendConfirm": "Suspend {name}? They are signed out everywhere and cannot sign in, and their share links stop. Their account, storage connection and links are kept, so you can reinstate them.",
   "members.suspended": "{name} is suspended.",
   "members.reinstated": "{name} can sign in again, and their links work again.",
+  "members.stamps": "Stamps given to {name}",
+  "members.stampsLabel": "Stamps",
+  "members.stampGive.title": "Give {name} the {stamp} stamp?",
+  "members.stampGive.text": "It shows with their other stamps, on their pages and on the link to their whole log.",
+  "members.stampGive.button": "Give stamp",
+  "members.stampTake.title": "Take the {stamp} stamp back from {name}?",
+  "members.stampTake.text": "It no longer shows on their pages or on the link to their whole log. Given again, it is dated that day.",
+  "members.stampTake.button": "Take back",
   "members.resetNote": "For {name} to set a new password. Works once, until {until}. Setting it signs them out everywhere."
 }

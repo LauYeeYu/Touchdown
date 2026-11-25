@@ -7,6 +7,7 @@
   "group.places": "地点",
   "group.flights": "航班",
   "group.spotting": "拍摄",
+  "group.granted": "来自Touchdown",
   "notYet": "尚未获得",
   "part.done": "{part}，已完成",
   "part.notYet": "{part}，尚未完成",
@@ -95,5 +96,11 @@
   "specialLiveries.rule": "拍到{count}个特殊涂装",
   "specialLiveries.level": "{have, plural, other {#个特殊涂装}}{next, plural, =0 {} other {，下一级为#个}}",
   "bigDay.name": "丰收日",
-  "bigDay.rule": "一天内拍到100架飞机"
+  "bigDay.rule": "一天内拍到100架飞机",
+  "granted.alpha.name": "首批用户",
+  "granted.alpha.rule": "最早受邀使用Touchdown的用户之一",
+  "granted.bugFinder.name": "捉虫",
+  "granted.bugFinder.rule": "发现并报告了Touchdown的一个问题",
+  "granted.translator.name": "译者",
+  "granted.translator.rule": "帮助翻译Touchdown"
 }

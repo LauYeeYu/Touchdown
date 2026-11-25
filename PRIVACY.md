@@ -1,13 +1,13 @@
 # Touchdown privacy policy
 
-Effective 13 November 2026.
+Effective 25 November 2026.
 
 This policy covers the Touchdown website run from this repository by its owner, for people the owner invites. It says what the site keeps about you, where your log is, and what Touchdown does with data from Google.
 
 ## In short
 
 - Your flight and spotting log is not kept on Touchdown's server. It is in your browser and, if you choose, in your own storage (your Google Drive or a directory on your computer).
-- The server keeps only what it needs to sign you in: your name, email address, a hash of your password key, your Google account id if you sign in with Google or connect Google Drive in Standard mode, and your sign-in sessions. In Standard mode, if you choose it, it also keeps an encrypted key to your Google Drive.
+- The server keeps only what it needs to sign you in: your name, email address, a hash of your password key, your Google account id if you sign in with Google or connect Google Drive in Standard mode, and your sign-in sessions. It also keeps the stamps the owner gave you, if any. In Standard mode, if you choose it, it also keeps an encrypted key to your Google Drive.
 - In Standard mode you can share links to a flight, a sighting, an aircraft or your whole log. Anyone with a link can open it. The server reads what the link shows from your Google Drive when it is opened, and keeps only the link itself, how often it was opened and a preview of it for chat apps (see Share links).
 - The aircraft types pages are open to anyone. They show figures and drawings of aircraft types and nothing from anyone's log (see Aircraft types pages).
 - Touchdown never sees your password, sells nothing and shows no ads. It counts page views with Cloudflare Web Analytics, which sets no cookies and does not identify you (see Analytics).
@@ -21,6 +21,7 @@ The server runs on Cloudflare and keeps these, per account, in its database:
 | Name and email address | To show who you are, and to sign you in. |
 | The interface's language you chose in Settings, if you chose one | So a share link opens in your language in any browser where you are signed in. |
 | Whether you are the owner or a member, and when the owner suspended your account, if they did | The owner invites, suspends and removes people. |
+| The stamps the owner gave you, if any (such as Alpha user), and when | To show them with the stamps your log earns, on your pages and on a whole-log link. |
 | A hash of your password key | To check your password. Your browser turns the password into a key before sending it. The password itself never leaves your browser, and the server stores only a hash of the key. |
 | Your Google account id and Google email address, if you sign in with Google, or connect Google Drive in Standard mode (that Google account then also signs you in) | To recognise your Google account. |
 | Your sign-in sessions: a hash of each session's random token, when it began and was last used, and a short device label such as "Chrome on macOS", or "Command line on macOS" for the command-line tools | To keep you signed in, and to list where you are signed in. |
@@ -72,7 +73,7 @@ Standard mode is offered only after you accept its terms, which say the same as 
 In Standard mode you can share a link to a flight, a sighting, an aircraft or your whole log. You manage them on the Shared links page.
 
 - **Who can open a link:** anyone who has its address, without signing in, until you stop it. The address is random and cannot be guessed from the record.
-- **What it shows:** that page, read-only, with the notes and photo links on it. Never a ticket number or booking reference, never an entry you deleted, and nothing else from your log. A whole-log link shows every flight, the ones you have planned included, every sighting and aircraft, and your name as your account has it, in its title and sentences ("Sam's log", "Sam has flown 12 flights").
+- **What it shows:** that page, read-only, with the notes and photo links on it. Never a ticket number or booking reference, never an entry you deleted, and nothing else from your log. A whole-log link shows every flight, the ones you have planned included, every sighting and aircraft, and your name as your account has it, in its title and sentences ("Sam's log", "Sam has flown 12 flights"), with the stamps your log earned and those the owner gave you.
 - **How it works:** when the link is opened, the server reads the files the link needs from your Touchdown directory with the key above, picks out what the link shows and sends only that. It keeps the result in Cloudflare's cache for up to a day, under the version of the files it came from, so the next opening is quicker. Your log itself stays in your Google Drive.
 - **Preview:** when you make a link, your browser makes its preview: a title, a line under it and a picture of its map, from what the link shows. The server keeps it with the link and puts it in the page, so a chat app or a site the address is pasted into shows it. Anyone who sees the address sees the preview, as they could open the link. Your browser makes it again once a day after syncing, when what the link shows has changed. It is deleted with the link.
 - **What is recorded:** how many times a link was opened and when last. Not who opened it. A chat app reading the preview is not counted.
@@ -105,7 +106,7 @@ Touchdown sets one cookie to keep you signed in (`td_session`), and a short-live
 
 ## Keeping and deleting
 
-- Your account is kept until the owner removes it. Ask the owner if you want it removed. Removing it deletes your account, your sign-in methods, your sessions, any Standard mode key and your share links with their previews from the server at once. The owner can also suspend your account: your sessions end, you cannot sign in and your links do not open, but everything is kept until the owner reinstates the account or removes it.
+- Your account is kept until the owner removes it. Ask the owner if you want it removed. Removing it deletes your account, your sign-in methods, your sessions, the stamps the owner gave you, any Standard mode key and your share links with their previews from the server at once. The owner can also suspend your account: your sessions end, you cannot sign in and your links do not open, but everything is kept until the owner reinstates the account or removes it.
 - A share link is kept until you stop it, leave Standard mode or your account is removed.
 - Your log in your own storage is yours to keep or delete there.
 - Settings → "Delete all data in this browser" removes the browser's copy. Signing out removes it too in Private mode, once everything has synced.

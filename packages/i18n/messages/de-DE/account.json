@@ -81,5 +81,13 @@
   "members.suspendConfirm": "{name} sperren? {name} wird überall abgemeldet und kann sich nicht mehr anmelden, und die Freigabelinks funktionieren nicht mehr. Konto, Speicherverbindung und Links bleiben erhalten, sodass du {name} wieder entsperren kannst.",
   "members.suspended": "{name} ist gesperrt.",
   "members.reinstated": "{name} kann sich wieder anmelden, und die Links funktionieren wieder.",
+  "members.stamps": "Stempel für {name}",
+  "members.stampsLabel": "Stempel",
+  "members.stampGive.title": "{name} den Stempel „{stamp}“ geben?",
+  "members.stampGive.text": "Er erscheint bei den anderen Stempeln, in der App und auf dem Link zum ganzen Logbuch.",
+  "members.stampGive.button": "Stempel geben",
+  "members.stampTake.title": "Den Stempel „{stamp}“ von {name} zurücknehmen?",
+  "members.stampTake.text": "Er erscheint dann weder in der App noch auf dem Link zum ganzen Logbuch. Wird er wieder gegeben, trägt er das Datum dieses Tages.",
+  "members.stampTake.button": "Zurücknehmen",
   "members.resetNote": "Damit legt {name} ein neues Passwort fest. Einmal nutzbar bis {until}. Danach ist {name} überall abgemeldet."
 }

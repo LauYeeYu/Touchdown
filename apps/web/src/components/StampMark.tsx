@@ -59,7 +59,7 @@ export function StampMark({ stamp, size = 128, words = true }: { stamp: Stamp; s
   } else {
     const code = text ?? (emblem.kind === "type" ? emblem.code : "");
     mark = (
-      <text className="stamp__code" x={64} y={64} dominantBaseline="central" textAnchor="middle" fontSize={(code.length > 4 ? 22 : 30) * (tiny ? 1.5 : 1)}>
+      <text className="stamp__code" x={64} y={64} dominantBaseline="central" textAnchor="middle" fontSize={(code.length > 4 ? 22 : code.length === 1 ? 46 : 30) * (tiny ? 1.5 : 1)}>
         {code}
       </text>
     );

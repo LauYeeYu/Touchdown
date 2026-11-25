@@ -203,6 +203,16 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 | Special liveries | 10 and 50 special liveries photographed, each aircraft and livery once. Levels: 10, 50. | spotted |
 | Big day | 100 aircraft photographed in one day. | spotted |
 
+### Stamps the owner gives
+
+Decided, built (Q-STAMP-GRANTED). A few stamps are not worked out from the log: the site's owner gives them to people from People in Settings, and can take one back ([33](33-accounts-and-sign-in.md), "Stamps the owner gives"). The server keeps them with the account (`granted_stamps`), not in the person's log, which the owner cannot write. The account's pages receive them with the account, the command line when it is signed in, and a whole log's share link with its content. They are listed last, in their own group, From Touchdown, only once given, each dated the day it was given (in UTC) with no record to open, in the page's own ink rather than gold or blue, as they say nothing of flights or sightings. The list is curated in the core package (`packages/core/src/stamps/granted.ts`); the server stores a stamp's id, so an id is never renamed.
+
+| Stamp | Given for | Inside |
+|---|---|---|
+| Alpha user | Among the first people invited to Touchdown | α |
+| Bug finder | A problem in Touchdown found and reported | a bug |
+| Translator | Help with Touchdown's translations | 文A |
+
 ### Factory airfields
 
 Curated in the core package (`packages/core/src/stamps/factories.ts`), each site with its source. A sighting counts on a day between the site's first and last year of building. One stamp per maker, and only for the makers the aircraft types pages show as popular for every role (`POPULAR_MAKERS.all` in core, [31](31-ui.md), "Aircraft types"), so that the stamps stay few and well known; a test keeps the two lists together. Of those, Aérospatiale-BAC, Ilyushin and Tupolev have no factory airfield here yet. A maker's aircraft are the types whose manufacturer the reference tables give as that maker (for McDonnell Douglas also Douglas). Saw it built counts the same sites.

@@ -84,6 +84,14 @@ export interface MessageArgs {
   "account.members.suspendConfirm": { name: "text" };
   "account.members.suspended": { name: "text" };
   "account.members.reinstated": { name: "text" };
+  "account.members.stamps": { name: "text" };
+  "account.members.stampsLabel": {};
+  "account.members.stampGive.title": { name: "text"; stamp: "text" };
+  "account.members.stampGive.text": {};
+  "account.members.stampGive.button": {};
+  "account.members.stampTake.title": { name: "text"; stamp: "text" };
+  "account.members.stampTake.text": {};
+  "account.members.stampTake.button": {};
   "account.members.resetNote": { name: "text"; until: "text" };
   "aircraft.noRegistration": {};
   "aircraft.liveryName": { name: "text" };
@@ -3103,6 +3111,7 @@ export interface MessageArgs {
   "stamps.group.places": {};
   "stamps.group.flights": {};
   "stamps.group.spotting": {};
+  "stamps.group.granted": {};
   "stamps.notYet": {};
   "stamps.part.done": { part: "text" };
   "stamps.part.notYet": { part: "text" };
@@ -3192,6 +3201,12 @@ export interface MessageArgs {
   "stamps.specialLiveries.level": { have: "number"; next: "number" };
   "stamps.bigDay.name": {};
   "stamps.bigDay.rule": {};
+  "stamps.granted.alpha.name": {};
+  "stamps.granted.alpha.rule": {};
+  "stamps.granted.bugFinder.name": {};
+  "stamps.granted.bugFinder.rule": {};
+  "stamps.granted.translator.name": {};
+  "stamps.granted.translator.rule": {};
   "stats.tabs.label": {};
   "stats.tabs.flights": {};
   "stats.tabs.sightings": {};

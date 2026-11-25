@@ -7,6 +7,7 @@
   "group.places": "Orte",
   "group.flights": "Flüge",
   "group.spotting": "Spotting",
+  "group.granted": "Von Touchdown",
   "notYet": "Noch nicht erhalten",
   "part.done": "{part}, erledigt",
   "part.notYet": "{part}, noch nicht",
@@ -95,5 +96,11 @@
   "specialLiveries.rule": "{count} Sonderlackierungen fotografiert",
   "specialLiveries.level": "{have, plural, one {# Sonderlackierung} other {# Sonderlackierungen}}{next, plural, =0 {} other { · nächste bei #}}",
   "bigDay.name": "Großer Tag",
-  "bigDay.rule": "100 Flugzeuge an einem Tag fotografiert"
+  "bigDay.rule": "100 Flugzeuge an einem Tag fotografiert",
+  "granted.alpha.name": "Von Anfang an",
+  "granted.alpha.rule": "Unter den Ersten, die zu Touchdown eingeladen wurden",
+  "granted.bugFinder.name": "Fehler gefunden",
+  "granted.bugFinder.rule": "Einen Fehler in Touchdown gefunden und gemeldet",
+  "granted.translator.name": "Übersetzung",
+  "granted.translator.rule": "Hilfe bei den Übersetzungen von Touchdown"
 }

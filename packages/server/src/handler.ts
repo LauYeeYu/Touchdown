@@ -6,6 +6,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { localeOfHeader, t, useRequestLocale, type Locale } from "@touchdown/i18n/server";
 import { b64url, hashToken, newSalt, openToken, passwordHash, randomToken, sameString, sealToken, sha256, TOKEN_RE } from "./crypto.ts";
 import { siteId, type Database } from "./db.ts";
+import { isGrantedStampId, type GrantedStamp } from "@touchdown/core/share";
 import { clearGoogleCookie, DRIVE_FILE, GOOGLE_COOKIE, googleAccess, GoogleError, googleFinish, googlePurpose, googleRevoke, googleStart, type GoogleIdentity } from "./google.ts";
 import { withHeaders } from "./headers.ts";
 import { shareApi, sharePage, type ShareCache } from "./share.ts";
@@ -470,10 +471,11 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
   if (method === "GET" && path === "/auth/me") {
     const me = signedIn();
     const a = me.account;
-    const [pw, google, sessions] = await Promise.all([
+    const [pw, google, sessions, stamps] = await Promise.all([
       s.db.first<{ updatedAt: string }>("SELECT updatedAt FROM password_credentials WHERE accountId = ?", [a.id]),
       s.db.first<{ email: string }>("SELECT email FROM google_identities WHERE accountId = ?", [a.id]),
       s.db.all<{ tokenHash: string; device: string; createdAt: string; lastUsedAt: string; kind: string | null }>("SELECT tokenHash, device, createdAt, lastUsedAt, kind FROM sessions WHERE accountId = ? ORDER BY lastUsedAt DESC", [a.id]),
+      grantedStamps(s, [a.id]),
     ]);
     return withRenewal(
       json(200, {
@@ -487,6 +489,7 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
         google: google?.email ?? null,
         // A session's id is the hash of its token, which does not open it.
         sessions: sessions.map((x) => ({ id: x.tokenHash, device: x.device, cli: x.kind === "cli", createdAt: x.createdAt, lastUsedAt: x.lastUsedAt, current: x.tokenHash === me.tokenHash })),
+        stamps: stamps.get(a.id) ?? [],
       }),
     );
   }
@@ -629,9 +632,10 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
       "SELECT id, note, createdAt, expiresAt FROM invites WHERE purpose = 'join' AND usedAt IS NULL AND expiresAt > ? ORDER BY createdAt DESC",
       [nowIso],
     );
+    const stamps = await grantedStamps(s, people.map((p) => p.id));
     return withRenewal(
       json(200, {
-        people: people.map((p) => ({ id: p.id, name: p.name, email: p.email, role: p.role, password: !!p.hasPassword, google: p.googleEmail, createdAt: p.createdAt, lastSeenAt: p.lastSeenAt, suspendedAt: p.suspendedAt })),
+        people: people.map((p) => ({ id: p.id, name: p.name, email: p.email, role: p.role, password: !!p.hasPassword, google: p.googleEmail, createdAt: p.createdAt, lastSeenAt: p.lastSeenAt, suspendedAt: p.suspendedAt, stamps: stamps.get(p.id) ?? [] })),
         invites,
       }),
     );
@@ -679,6 +683,20 @@ async function auth(request: Request, s: Server, url: URL, now: number, site: st
         { sql: "DELETE FROM invites WHERE purpose = 'reset' AND accountId = ? AND usedAt IS NULL", params: [id] },
       ]);
     }
+    return withRenewal(json(200, { ok: true }));
+  }
+
+  // A stamp the owner gives a person, or takes back (docs/24, "Stamps the owner gives"): one of core's list, the owner
+  // included. Giving one already given keeps its first date.
+  const personStamp = path.match(/^\/auth\/people\/([^/]+)\/stamps\/([^/]+)$/);
+  if ((method === "POST" || method === "DELETE") && personStamp) {
+    const me = owner();
+    const id = personStamp[1]!;
+    const stamp = personStamp[2]!;
+    if (!isGrantedStampId(stamp)) throw new Fail(404, t("server.error.notFound"));
+    if (!(await s.db.first("SELECT id FROM accounts WHERE id = ?", [id]))) throw new Fail(404, t("server.error.noPerson"));
+    if (method === "POST") await s.db.run("INSERT OR IGNORE INTO granted_stamps (accountId, stamp, grantedAt, grantedBy) VALUES (?, ?, ?, ?)", [id, stamp, nowIso, me.account.id]);
+    else await s.db.run("DELETE FROM granted_stamps WHERE accountId = ? AND stamp = ?", [id, stamp]);
     return withRenewal(json(200, { ok: true }));
   }
 
@@ -752,6 +770,18 @@ async function createAccount(
   return id;
 }
 
+/** The stamps the owner gave each of these accounts, oldest first, by account. Ids no longer in core's list are left out. */
+export async function grantedStamps(s: Server, accountIds: string[]): Promise<Map<string, GrantedStamp[]>> {
+  const out = new Map<string, GrantedStamp[]>();
+  if (!accountIds.length) return out;
+  const rows = await s.db.all<{ accountId: string; stamp: string; grantedAt: string }>(
+    `SELECT accountId, stamp, grantedAt FROM granted_stamps WHERE accountId IN (${accountIds.map(() => "?").join(", ")}) ORDER BY grantedAt`,
+    accountIds,
+  );
+  for (const r of rows) if (isGrantedStampId(r.stamp)) out.set(r.accountId, [...(out.get(r.accountId) ?? []), { id: r.stamp, grantedAt: r.grantedAt }]);
+  return out;
+}
+
 async function removeAccount(s: Server, id: string) {
   await s.db.batch([
     { sql: "DELETE FROM sessions WHERE accountId = ?", params: [id] },
@@ -761,6 +791,7 @@ async function removeAccount(s: Server, id: string) {
     { sql: "DELETE FROM invites WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM storage_connections WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM consents WHERE accountId = ?", params: [id] },
+    { sql: "DELETE FROM granted_stamps WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM share_previews WHERE shareId IN (SELECT id FROM shares WHERE accountId = ?)", params: [id] },
     { sql: "DELETE FROM shares WHERE accountId = ?", params: [id] },
     { sql: "DELETE FROM accounts WHERE id = ?", params: [id] },

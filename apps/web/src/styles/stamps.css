@@ -18,6 +18,11 @@
   color: var(--ink-2);
 }
 
+/* Given by the site's owner: the page's own ink, as it says nothing of flights or sightings. */
+.stamp--granted {
+  color: var(--ink-2);
+}
+
 .stamp__ring,
 .stamp__inner {
   fill: none;
@@ -75,7 +80,9 @@
 }
 
 .stamp--both .stamp__code,
-.stamp--both .stamp__words {
+.stamp--both .stamp__words,
+.stamp--granted .stamp__code,
+.stamp--granted .stamp__words {
   fill: var(--ink-2);
 }
 
