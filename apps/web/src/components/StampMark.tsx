@@ -40,6 +40,9 @@ export function StampMark({ stamp, size = 128, words = true }: { stamp: Stamp; s
   // The date as passports and park stamps print it ("14 MAR 2025"); the cell under the stamp gives it in the reader's way.
   const date = inside && stamp.by?.day ? stampDate(stamp.by.day) : "";
   const text = emblem.kind === "airport" ? primaryCode(app.ref.airport(emblem.id)) : emblem.kind === "text" ? emblem.text : null;
+  // A line above and the date below frame the emblem at the centre. With only one of them, the emblem and that line
+  // move together by half the line and its gap, so the two are centred in the ring as a pair.
+  const shift = top && !date ? 7 : date && !top ? -7 : 0;
 
   // A small stamp (a flight's page) keeps one thick ring and a larger emblem, so it still reads at 28px.
   const tiny = size < 64;
@@ -83,17 +86,19 @@ export function StampMark({ stamp, size = 128, words = true }: { stamp: Stamp; s
           <path className="stamp__inner stamp__ring--b" d="M64 10A54 54 0 0 1 64 118" />
         </>
       )}
-      {top && (
-        <text className="stamp__words" x={64} y={31} textAnchor="middle">
-          {top}
-        </text>
-      )}
-      {mark}
-      {date && (
-        <text className="stamp__words" x={64} y={103} textAnchor="middle">
-          {date}
-        </text>
-      )}
+      <g transform={shift ? `translate(0 ${shift})` : undefined}>
+        {top && (
+          <text className="stamp__words" x={64} y={31} textAnchor="middle">
+            {top}
+          </text>
+        )}
+        {mark}
+        {date && (
+          <text className="stamp__words" x={64} y={103} textAnchor="middle">
+            {date}
+          </text>
+        )}
+      </g>
     </svg>
   );
 }
