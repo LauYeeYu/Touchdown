@@ -46,6 +46,9 @@ translated word for word.
 | Superjumbo (A380) | Superjumbo | 空中巨无霸 | 空中巨無霸 | German aviation press and Lufthansa use the English word. 空中巨无霸 is the Chinese name, China Southern's own among others (not 超级巨无霸, which no Chinese source was found using). |
 | Flying Pencil (A340-600) | Flying Pencil | 法棍 | 法棍 | Chinese spotters' name, given by the owner. No German name is established, and the literal one is the Do 17's. |
 | Atari Ferrari (757) | Atari-Ferrari | 空中美男子 | 空中美男子 | German uses the English pilots' name, hyphenated as German joins two names. The Chinese name is from Chinese aviation writing, chosen by the owner. |
+| Pride of Seattle (Boeings designed there before 2001) | Stolz von Seattle | 西雅图之光 | 西雅圖之光 | A fond wink at Boeing, never a joke about its accidents. "X之光" is how Chinese praises the best of a place or a make. |
+| Worth the wait (777X) | Gut Ding will Weile haben | 千呼万唤始出来 | 千呼萬喚始出來 | The proverbs each language uses for something long awaited, the Chinese one whole, chosen by the owner. |
+| Douglas in disguise (717) | Douglas inkognito | 改名换姓 | 改名換姓 | The MD-95 under Boeing's name: the idiom for changing one's name. |
 | Special liveries | Sonderlackierungen | 特殊涂装 | 彩繪機 | Taiwan's press and airlines call these aircraft 彩繪機. The stamp's rule and the rest of the interface keep the glossary's 特殊塗裝. |
 | Thin air | Dünne Luft | 空气稀薄 | 空氣稀薄 | Said as Chinese says it, chosen by the owner. Not 高高原, the CAAC term for an airport at 2438 m or higher, as the stamp's line is 3000 m. |
 | Short hop | Katzensprung | 一步之遥 | 一步之遙 | Kept by the owner, though the idiom more often means one step from a goal. |

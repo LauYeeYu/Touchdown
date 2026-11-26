@@ -12,6 +12,7 @@ import type { Store } from "../store.ts";
 import { arrivalAirportId, flightDay, flightDistanceKm } from "../derive.ts";
 import { daysBetween, instant, localDateOf, parseDateTime } from "../time/index.ts";
 import { continentOf, SIX_CONTINENTS } from "../stamps/continents.ts";
+import { SEATTLE_BOEINGS, TRIPLE_SEVEN_X } from "../stamps/boeing.ts";
 import { FACTORIES, PARTS_FREIGHTERS, TEST_REGISTRATIONS, type Factory, type FactorySite } from "../stamps/factories.ts";
 import { GRANTED_STAMP_IDS, type GrantedStamp, type GrantedStampId } from "../stamps/granted.ts";
 import { countedFlights } from "./views.ts";
@@ -290,6 +291,12 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   // The 757 flown is the emblem, so a 757-300 shows the longer one.
   const ferrari = first(flights, (x) => family(x) === "B757");
   add({ id: "atariFerrari", group: "aircraft", ink: "flown", emblem: { kind: "type", code: ferrari?.type ?? "B752" }, by: ferrari });
+  // Boeing, fondly: its Seattle years, the 777-9 that took its time, and the Douglas that took its name.
+  const seattle = first(flights, (x) => !!x.type && SEATTLE_BOEINGS.includes(x.type));
+  add({ id: "prideOfSeattle", group: "aircraft", ink: "flown", emblem: { kind: "type", code: seattle?.type ?? "B703" }, by: seattle });
+  const late = first(flights, (x) => !!x.type && TRIPLE_SEVEN_X.includes(x.type));
+  add({ id: "worthTheWait", group: "aircraft", ink: "flown", emblem: { kind: "type", code: late?.type ?? "B779" }, by: late });
+  flightStamp("douglasInDisguise", "aircraft", { kind: "type", code: "B712" }, (x) => x.type === "B712");
   const four = first(flights, (x) => ref.type(x.type)?.engineCount === 4);
   add({ id: "fourEngines", group: "aircraft", ink: "flown", emblem: { kind: "type", code: four?.type ?? "A343" }, by: four });
   const SIZES: [string, string[]][] = [

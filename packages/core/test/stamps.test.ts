@@ -34,6 +34,10 @@ const ref = new RefIndex({
     type("A346", "Airbus", "A340", 4),
     type("B752", "Boeing", "B757"),
     type("B753", "Boeing", "B757"),
+    type("B38M", "Boeing", "B737"),
+    type("B763", "Boeing", "B767"),
+    type("B778", "Boeing", "B777"),
+    type("B779", "Boeing", "B777"),
     type("A318", "Airbus", "A320"),
     type("A320", "Airbus", "A320"),
     type("CONC", "Aérospatiale-BAC", "Concorde", 4),
@@ -69,6 +73,27 @@ describe("stamps earned by one flight", () => {
     expect(earned(got.get("flyingPencil"))).toBe(pencil.id);
     expect(earned(got.get("atariFerrari"))).toBe(ferrari.id);
     expect(got.get("atariFerrari")!.emblem).toEqual({ kind: "type", code: "B753" });
+  });
+
+  it("keeps Pride of Seattle for the Boeings designed there before 2001", () => {
+    const store = newStore();
+    const at = (day: string, typeCode: string) => flight(store, { scheduledDate: day, typeCode, fromAirportId: "ap_egll", toAirportId: "ap_kjfk" });
+    at("2024-01-01", "B38M");
+    at("2024-01-02", "B788");
+    at("2024-01-03", "B712");
+    expect(earned(of(store).get("prideOfSeattle"))).toBeNull();
+    expect(earned(of(store).get("douglasInDisguise"))).not.toBeNull();
+    const seattle = at("2024-01-04", "B763");
+    at("2024-01-05", "B744");
+    at("2024-01-06", "B752");
+    expect(earned(of(store).get("prideOfSeattle"))).toBe(seattle.id);
+    expect(of(store).get("prideOfSeattle")!.emblem).toEqual({ kind: "type", code: "B763" });
+    expect(earned(of(store).get("worthTheWait"))).toBeNull();
+    const late = at("2024-01-07", "B778");
+    at("2024-01-08", "B779");
+    const got = of(store);
+    expect(earned(got.get("worthTheWait"))).toBe(late.id);
+    expect(got.get("worthTheWait")!.emblem).toEqual({ kind: "type", code: "B778" });
   });
 
   it("counts a planned flight only once its time has passed, and says what it would earn", () => {
