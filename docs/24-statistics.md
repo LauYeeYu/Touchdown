@@ -156,6 +156,8 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 |---|---|---|
 | Queen of the Skies | A flight on a 747 (the `B747` family). | flown |
 | Superjumbo | A flight on an A380 (`A388`). | flown |
+| Flying Pencil | A flight on an A340-600 (`A346`), named for its long, slim fuselage. The emblem is the A340-600. | flown |
+| Atari Ferrari | A flight on a 757 (the `B757` family), pilots' name for its sports car climb and its early glass cockpit. The emblem is the 757 flown, the -200 until one is. | flown |
 | Four engines | A flight on a four-engined type. | flown |
 | Full family | Flights on an A318, an A319, an A320 and an A321, the A319, A320 and A321 counting as ceo or neo. Parts: the four. | flown |
 | Fresh off the line | A flight on an aircraft delivered 30 days before or less, or, without a delivery date, first flown 60 days before or less. | flown |

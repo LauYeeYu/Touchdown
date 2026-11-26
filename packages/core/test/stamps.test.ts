@@ -31,6 +31,9 @@ const ref = new RefIndex({
     ...refTables.aircraftTypes,
     type("B744", "Boeing", "B747", 4),
     type("A388", "Airbus", "A380", 4),
+    type("A346", "Airbus", "A340", 4),
+    type("B752", "Boeing", "B757"),
+    type("B753", "Boeing", "B757"),
     type("A318", "Airbus", "A320"),
     type("A320", "Airbus", "A320"),
     type("CONC", "Aérospatiale-BAC", "Concorde", 4),
@@ -54,6 +57,18 @@ describe("stamps earned by one flight", () => {
     expect(earned(of(store).get("superjumbo"))).toBeNull();
     expect(earned(of(store).get("fourEngines"))).toBe(first.id);
     expect(later.id).not.toBe(first.id);
+  });
+
+  it("gives the A340-600 and the 757 a stamp each, the 757's showing the one flown", () => {
+    const store = newStore();
+    expect(of(store).get("atariFerrari")!.emblem).toEqual({ kind: "type", code: "B752" });
+    const pencil = flight(store, { scheduledDate: "2024-05-02", typeCode: "A346", fromAirportId: "ap_eddf", toAirportId: "ap_kjfk" });
+    const ferrari = flight(store, { scheduledDate: "2024-06-09", typeCode: "B753", fromAirportId: "ap_kjfk", toAirportId: "ap_egll" });
+    flight(store, { scheduledDate: "2024-07-01", typeCode: "B752", fromAirportId: "ap_egll", toAirportId: "ap_kjfk" });
+    const got = of(store);
+    expect(earned(got.get("flyingPencil"))).toBe(pencil.id);
+    expect(earned(got.get("atariFerrari"))).toBe(ferrari.id);
+    expect(got.get("atariFerrari")!.emblem).toEqual({ kind: "type", code: "B753" });
   });
 
   it("counts a planned flight only once its time has passed, and says what it would earn", () => {

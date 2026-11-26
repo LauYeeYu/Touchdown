@@ -3137,6 +3137,10 @@ export interface MessageArgs {
   "stamps.queen.rule": {};
   "stamps.superjumbo.name": {};
   "stamps.superjumbo.rule": {};
+  "stamps.flyingPencil.name": {};
+  "stamps.flyingPencil.rule": {};
+  "stamps.atariFerrari.name": {};
+  "stamps.atariFerrari.rule": {};
   "stamps.fourEngines.name": {};
   "stamps.fourEngines.rule": {};
   "stamps.fullFamily.name": {};

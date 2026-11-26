@@ -286,6 +286,10 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   const family = (x: FlightIn) => ref.familyIdOf(x.type);
   flightStamp("queen", "aircraft", { kind: "type", code: "B744" }, (x) => family(x) === "B747");
   flightStamp("superjumbo", "aircraft", { kind: "type", code: "A388" }, (x) => x.type === "A388");
+  flightStamp("flyingPencil", "aircraft", { kind: "type", code: "A346" }, (x) => x.type === "A346");
+  // The 757 flown is the emblem, so a 757-300 shows the longer one.
+  const ferrari = first(flights, (x) => family(x) === "B757");
+  add({ id: "atariFerrari", group: "aircraft", ink: "flown", emblem: { kind: "type", code: ferrari?.type ?? "B752" }, by: ferrari });
   const four = first(flights, (x) => ref.type(x.type)?.engineCount === 4);
   add({ id: "fourEngines", group: "aircraft", ink: "flown", emblem: { kind: "type", code: four?.type ?? "A343" }, by: four });
   const SIZES: [string, string[]][] = [
