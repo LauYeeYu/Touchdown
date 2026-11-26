@@ -38,7 +38,7 @@ import { MenuButton } from "../components/Menu.tsx";
 import { confirm, dueText, RemindLater } from "../components/PlannedReminder.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { TimeCell } from "../components/TimeCell.tsx";
-import { article, partOfDay } from "../lib/flightText.ts";
+import { article, flightWhen } from "../lib/flightText.ts";
 import { Name, voiceOf } from "../lib/voice.tsx";
 import { FlightStamps } from "../components/Stamps.tsx";
 import { tx } from "../lib/i18n.tsx";
@@ -102,11 +102,8 @@ export function FlightDetail() {
   const livery = f.specialLivery?.trim() ? liveryName(f.specialLivery) : null;
   const spottedInLivery = spotted.filter((s) => sameLivery(s.specialLivery, f.specialLivery));
 
-  const landDays = f.takeoffAt && f.landingAt ? daysBetween(localDay(f.takeoffAt)!, localDay(f.landingAt)!) : 0;
   const slipped = f.takeoffAt && f.scheduledDate ? daysBetween(f.scheduledDate, localDay(f.takeoffAt)!) : 0;
-  const tPart = f.takeoffAt ? partOfDay(f.takeoffAt) : null;
-  const kind = !tPart ? "plain" : landDays >= 1 && (tPart === "evening" || tPart === "night") ? "overnight" : (v.min ?? 0) >= 600 ? "longHaul" : tPart;
-  const landing = !f.landingAt ? "none" : landDays === 0 ? "sameDay" : landDays === 1 ? "nextDay" : "later";
+  const { kind, landing, landingPart, days: landDays } = flightWhen(f.takeoffAt, f.landingAt, v.min);
   const guessed = !f.seatPosition ? guessSeatPosition(f.seat, ref.familyIdOf(f.typeCode)) : null;
 
   const scrollToAircraft = () => {
@@ -486,7 +483,7 @@ export function FlightDetail() {
             year: built ?? "",
             landing: B ? landing : "none",
             city: B ? (cityName(B) ?? airportName(B)) : "",
-            landingPart: f.landingAt ? partOfDay(f.landingAt) : "",
+            landingPart,
             days: landDays,
           },
           {
