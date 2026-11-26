@@ -23,6 +23,34 @@ filler, no exclamation marks.
   Code, Codex, IATA, ICAO, GPX, KML, CSV, JSON. Google Drive takes Google's own name in each language.
 - Keep labels short: buttons, the choices of a setting and table headings sit in narrow places, on phones too.
 
+## Nicknames and other culture terms
+
+Some names are an enthusiasts' nickname rather than a description, such as the stamps named after an aircraft
+("Queen of the Skies", "Flying Pencil", "Atari Ferrari"). A nickname belongs to the people who use it, so it is never
+translated word for word.
+
+- Use the name that enthusiasts writing in the language give the thing, even when its words mean something else. The
+  A340-600's "Flying Pencil" is 法棍 in Chinese, and the 757's "Atari Ferrari" is 空中美男子.
+- Find it used by speakers of the language (their forums, aviation press, spotters' sites), not only in translations
+  of English articles. Say how strong the evidence is: one article or one forum comment is thin. When unsure, ask the
+  owner. A name the owner or a native speaker gives wins over a search.
+- Without a name of its own in the language, keep the English one, as German keeps "Superjumbo". Never make up a
+  literal translation that nobody says (雅达利法拉利 for "Atari Ferrari").
+- Check what else the words name in the language. "Fliegender Bleistift" is the German nickname of the Dornier Do 17,
+  a Second World War bomber, so German keeps "Flying Pencil" for the A340-600.
+- Note each choice in the table below, so a later change does not "correct" it back.
+
+| en-GB | de-DE | zh-CN | zh-TW | Why |
+|---|---|---|---|---|
+| Queen of the Skies (747) | Königin der Lüfte | 空中女王 | 空中女王 | The usual name in each language. |
+| Superjumbo (A380) | Superjumbo | 空中巨无霸 | 空中巨無霸 | German aviation press and Lufthansa use the English word. 空中巨无霸 is the Chinese name, China Southern's own among others (not 超级巨无霸, which no Chinese source was found using). |
+| Flying Pencil (A340-600) | Flying Pencil | 法棍 | 法棍 | Chinese spotters' name, given by the owner. No German name is established, and the literal one is the Do 17's. |
+| Atari Ferrari (757) | Atari-Ferrari | 空中美男子 | 空中美男子 | German uses the English pilots' name, hyphenated as German joins two names. The Chinese name is from Chinese aviation writing, chosen by the owner. |
+| Special liveries | Sonderlackierungen | 特殊涂装 | 彩繪機 | Taiwan's press and airlines call these aircraft 彩繪機. The stamp's rule and the rest of the interface keep the glossary's 特殊塗裝. |
+| Thin air | Dünne Luft | 空气稀薄 | 空氣稀薄 | Said as Chinese says it, chosen by the owner. Not 高高原, the CAAC term for an airport at 2438 m or higher, as the stamp's line is 3000 m. |
+| Short hop | Katzensprung | 一步之遥 | 一步之遙 | Kept by the owner, though the idiom more often means one step from a goal. |
+| Back to yesterday | Zurück ins Gestern | 回到昨天 | 回到昨天 | "Ins Gestern", as German writes it: "nach" goes with places. |
+
 ## The CLI
 
 - Help texts are laid out in columns. Keep each column where it starts, counting a Chinese character as two columns,
