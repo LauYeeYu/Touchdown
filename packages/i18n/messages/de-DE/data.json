@@ -44,7 +44,7 @@
   "map.spot.label": "{name}: {count, plural, one {#\u00a0Flugzeug} other {#\u00a0Flugzeuge}} gesehen",
   "map.spot.seen": "{aircraft, plural, one {#\u00a0Flugzeug} other {#\u00a0Flugzeuge}} an {days, plural, one {#\u00a0Tag} other {#\u00a0Tagen}} gesehen",
   "map.spot.last": "zuletzt am {date}",
-  "map.spot.open": "Klick öffnet die Flughafenseite",
+  "map.spot.open": "{touch, select, yes {Tippen öffnet die Flughafenseite} other {Klick öffnet die Flughafenseite}}",
   "track.span.minutes": "{m} Min.",
   "track.span.hours": "{h} Std. {m} Min.",
   "track.sinceTakeoff": "{span} nach dem Start",

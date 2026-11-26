@@ -61,7 +61,8 @@ export interface MapSpot {
   at: LonLat;
   aircraft: number;
   both: boolean;
-  tip: string;
+  /** Tooltip HTML (escaped), its hint worded for a finger's tap (`touch`) or a mouse's click. */
+  tip: (touch: boolean) => string;
   label: string; // accessible label
 }
 
@@ -236,11 +237,15 @@ export function centralMeridian(routes: LonLat[][], points: LonLat[]): number {
 }
 
 /** Points along a route, what is drawn solid and dashed alike, for framing, centring and pointing. */
-/** The second line of an airport's tooltip: its part in the one flight shown, else how many flights the map shows there. */
-export function airportTip(flights: MapFlight[], id: string, count: number): string {
+/**
+ * The second line of an airport's tooltip: its part in the one flight shown, else how many flights the map shows there,
+ * then how to open its page, worded for a finger's tap (`touch`) or a mouse's click.
+ */
+export function airportTip(flights: MapFlight[], id: string, count: number, touch: boolean): string {
   const [only] = flights;
-  if (flights.length === 1 && only) return t("maps.airport.role", { role: only.fromId === only.toId ? "both" : only.fromId === id ? "from" : "to" });
-  return t("maps.airport.tip", { count });
+  const how = touch ? "yes" : "no";
+  if (flights.length === 1 && only) return t("maps.airport.role", { role: only.fromId === only.toId ? "both" : only.fromId === id ? "from" : "to", touch: how });
+  return t("maps.airport.tip", { count, touch: how });
 }
 
 export function routeSamplesOf(f: MapFlight): LonLat[] {
@@ -596,14 +601,14 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           const c = el(g, "circle", { class: `spot${s.both ? " is-both" : ""}`, cx: xy[0], cy: xy[1], r: r(s.aircraft), tabindex: 0, role: "link", "aria-label": t("maps.spot.label", { label: s.label }) });
           // A target at least 24px across over it, so a small place is easy to point at and tap.
           const hit = el(g, "circle", { class: "spot-hit", cx: xy[0], cy: xy[1], r: Math.max(12, r(s.aircraft)), "aria-hidden": "true" });
-          tips.set(s.code, s.tip);
+          tips.set(s.code, s.tip(true));
           hoverTip(
             hit,
-            s.tip,
+            s.tip(false),
             () => c.classList.add("is-hover"),
             () => c.classList.remove("is-hover"),
           );
-          tappable(hit, `place:${s.code}`, s.tip, s.airportId);
+          tappable(hit, `place:${s.code}`, s.tip(true), s.airportId);
           if (handlers.current.onAirportClick) {
             c.classList.add("is-clickable");
             c.addEventListener("keydown", (ev) => {
@@ -630,15 +635,15 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
         const dot = el(apG, "circle", { class: "airport", "data-code": code, cx: xy[0], cy: xy[1], r: 4 });
         // A larger invisible target, so the small dot is easy to point at and tap.
         const hit = el(apG, "circle", { class: "airport-hit", cx: xy[0], cy: xy[1], r: 12, tabindex: 0, role: "link", "aria-label": t("maps.airport.label", { name: v.name, count: v.n }) });
-        const tip = `<strong>${esc(t("format.nameWithCode", { name: v.name, code }))}</strong><br><span class="muted">${esc(airportTip(flights, v.id, v.n))}</span>`;
-        tips.set(code, tip);
+        const tip = (touch: boolean) => `<strong>${esc(t("format.nameWithCode", { name: v.name, code }))}</strong><br><span class="muted">${esc(airportTip(flights, v.id, v.n, touch))}</span>`;
+        tips.set(code, tip(true));
         hoverTip(
           hit,
-          tip,
+          tip(false),
           () => dot.classList.add("is-hover"),
           () => dot.classList.remove("is-hover"),
         );
-        tappable(hit, `place:${code}`, tip, v.id);
+        tappable(hit, `place:${code}`, tip(true), v.id);
       }
       const spotIds = new Map(spots.map((s) => [s.code, s.airportId]));
       const marks = [...new Set([...visits.keys(), ...spotR.keys()])]

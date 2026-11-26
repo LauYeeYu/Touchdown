@@ -1522,7 +1522,7 @@ export interface MessageArgs {
   "data.map.spot.label": { count: "number"; name: "text" };
   "data.map.spot.seen": { aircraft: "number"; days: "number" };
   "data.map.spot.last": { date: "text" };
-  "data.map.spot.open": {};
+  "data.map.spot.open": { touch: "choice" };
   "data.track.span.minutes": { m: "text" };
   "data.track.span.hours": { h: "text"; m: "text" };
   "data.track.sinceTakeoff": { span: "text" };
@@ -2460,8 +2460,8 @@ export interface MessageArgs {
   "maps.globe.zoomOut": {};
   "maps.globe.reset": {};
   "maps.globe.hint": { opens: "choice"; zoom: "choice" };
-  "maps.airport.tip": { count: "number" };
-  "maps.airport.role": { role: "choice" };
+  "maps.airport.tip": { count: "number"; touch: "choice" };
+  "maps.airport.role": { role: "choice"; touch: "choice" };
   "maps.airport.label": { count: "number"; name: "text" };
   "maps.airport.open": { code: "text" };
   "maps.spot.label": { label: "text" };

@@ -185,6 +185,7 @@ translated word for word.
 | period | Zeitraum | 时间段 | 期間 |
 | Show all, Show fewer | Alle anzeigen, Weniger anzeigen | 显示全部, 收起 | 顯示全部, 收合 |
 | Undo | Rückgängig | 撤销 | 復原 |
+| click (a mouse), tap (a finger), worded for the pointer used (`{touch, select, …}`) | Klick, Tippen | 点击, 轻触 | 點選, 點一下 |
 | This is right (accepting a finding) | Das stimmt | 确认无误 | 確認無誤 |
 | route extension (distance beyond the great circle) | Streckenverlängerung | 航线绕行 | 繞航 |
 | track (a direction in degrees, in a position's tooltip) | Kurs | 航向 | 航向 |

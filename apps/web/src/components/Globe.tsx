@@ -682,6 +682,7 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       }
       cv.style.cursor = h?.kind === "sample" || h?.kind === "gap" ? "crosshair" : h ? "pointer" : drag ? "grabbing" : "grab";
       if (h && e) {
+        const touch = e.pointerType !== "mouse";
         const tip =
           h.kind === "sample"
             ? sampleTip(data.current.samples, h.i, data.current.takeoff)
@@ -690,9 +691,9 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
               : h.kind === "flight"
                 ? h.f.tip
                 : h.kind === "spot"
-                  ? h.s.tip
-                  : `<strong>${escHtml(t("format.nameWithCode", { name: h.a.name, code: h.a.code }))}</strong><br><span class="muted">${escHtml(airportTip(data.current.flights, h.a.id, h.a.flights))}</span>`;
-        showTip(tip, e.clientX, e.clientY, e.pointerType !== "mouse", opener(h));
+                  ? h.s.tip(touch)
+                  : `<strong>${escHtml(t("format.nameWithCode", { name: h.a.name, code: h.a.code }))}</strong><br><span class="muted">${escHtml(airportTip(data.current.flights, h.a.id, h.a.flights, touch))}</span>`;
+        showTip(tip, e.clientX, e.clientY, touch, opener(h));
       } else hideTip();
     };
 

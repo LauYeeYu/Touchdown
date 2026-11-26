@@ -118,7 +118,8 @@ export function mapSpots(sightings: Sighting[], ref: RefIndex, bothAirframes: Se
       aircraft: v.airframes.size,
       both: v.both,
       label: t("data.map.spot.label", { name, count: v.airframes.size }),
-      tip: `<strong>${esc(t("format.nameWithCode", { name, code: textCode(a) }))}</strong><br><span class="muted">${[t("data.map.spot.seen", { aircraft: v.airframes.size, days: v.days.size }), v.last ? t("data.map.spot.last", { date: dateOnly(v.last) }) : null, t("data.map.spot.open")].filter(Boolean).join(" · ")}</span>`,
+      tip: (touch) =>
+        `<strong>${esc(t("format.nameWithCode", { name, code: textCode(a) }))}</strong><br><span class="muted">${[t("data.map.spot.seen", { aircraft: v.airframes.size, days: v.days.size }), v.last ? t("data.map.spot.last", { date: dateOnly(v.last) }) : null, t("data.map.spot.open", { touch: touch ? "yes" : "no" })].filter(Boolean).join(" · ")}</span>`,
     });
   }
   return out;

@@ -44,7 +44,7 @@
   "map.spot.label": "{name}：拍到{count, plural, other {#架飞机}}",
   "map.spot.seen": "{days, plural, other {#天}}里拍到{aircraft, plural, other {#架飞机}}",
   "map.spot.last": "最近一次\u2060{date}",
-  "map.spot.open": "点击打开机场页面",
+  "map.spot.open": "{touch, select, yes {轻触打开机场页面} other {点击打开机场页面}}",
   "track.span.minutes": "{m}\u202f分\u2060钟",
   "track.span.hours": "{h}\u202f小\u2060时{m}\u202f分\u2060钟",
   "track.sinceTakeoff": "起飞后{span}",

@@ -44,7 +44,7 @@
   "map.spot.label": "{name}：拍到{count, plural, other {#架飛機}}",
   "map.spot.seen": "{days, plural, other {#天}}內拍到{aircraft, plural, other {#架飛機}}",
   "map.spot.last": "最近一次\u2060{date}",
-  "map.spot.open": "點選開啟機場頁面",
+  "map.spot.open": "{touch, select, yes {點一下開啟機場頁面} other {點選開啟機場頁面}}",
   "track.span.minutes": "{m}\u202f分\u2060鐘",
   "track.span.hours": "{h}\u202f小\u2060時{m}\u202f分\u2060鐘",
   "track.sinceTakeoff": "起飛後{span}",
