@@ -18,6 +18,8 @@ filler, no exclamation marks.
 - No semicolons (`;`, `；`): split the sentence or join it.
 - Headings, labels and tooltips name the thing. Only a real question to the user is a question.
 - A non-breaking space stays where the source has one (between a number and its unit or noun).
+- A type or model with a hyphen (`A340-\u2060600`, `MD-\u206095`) has a word joiner after the hyphen, so it never breaks
+  across two lines.
 - An apostrophe is `’` (U+2019). A plain `'` before `{`, `}`, `#` or `<` starts quoted text in the message syntax.
 - Names stay as they are: Touchdown, Flightradar24, myFR24, OpenSky, adsbdb, adsb.lol, FlightAware, Flighty, Claude
   Code, Codex, IATA, ICAO, GPX, KML, CSV, JSON. Google Drive takes Google's own name in each language.
