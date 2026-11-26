@@ -30,6 +30,8 @@ const ref = new RefIndex({
     airport("EETN", "TLL", "EE", 59.413, 24.833, 131, "Europe/Tallinn"),
     airport("GCLP", "LPA", "ES", 27.932, -15.387, 78, "Atlantic/Canary"),
     airport("GCFV", "FUE", "ES", 28.453, -13.864, 85, "Atlantic/Canary"),
+    airport("EDDM", "MUC", "DE", 48.354, 11.786, 1487, "Europe/Berlin"),
+    airport("LFBO", "TLS", "FR", 43.629, 1.364, 499, "Europe/Paris"),
   ],
   aircraftTypes: [
     ...refTables.aircraftTypes,
@@ -142,6 +144,15 @@ describe("stamps earned by one flight", () => {
     const ny = flight(store, { fromAirportId: "ap_eddf", toAirportId: "ap_egll", takeoffAt: "2025-12-31T23:50+01:00", landingAt: "2025-12-31T23:40+00:00" });
     flight(store, { fromAirportId: "ap_eddf", toAirportId: "ap_egll", takeoffAt: "2025-12-31T21:00+01:00", landingAt: "2025-12-31T21:30+00:00" });
     expect(earned(of(store).get("newYear"))).toBe(ny.id);
+  });
+
+  it("gives LH2222 to Toulouse its stamp, and no other flight numbered 2222", () => {
+    const store = newStore();
+    flight(store, { scheduledDate: "2024-03-01", flightNumber: "LH2222", fromAirportId: "ap_eddm", toAirportId: "ap_eddf" });
+    flight(store, { scheduledDate: "2024-03-02", flightNumber: "XY2222", fromAirportId: "ap_eddm", toAirportId: "ap_lfbo" });
+    expect(earned(of(store).get("lh2222"))).toBeNull();
+    const tls = flight(store, { scheduledDate: "2024-03-03", flightNumber: "lh 2222", fromAirportId: "ap_eddm", toAirportId: "ap_lfbo" });
+    expect(earned(of(store).get("lh2222"))).toBe(tls.id);
   });
 
   it("measures a short hop on the straight line between its airports, under 120 km", () => {

@@ -99,6 +99,8 @@
   "planB.rule": "备降的航班",
   "upFront.name": "前舱",
   "upFront.rule": "乘坐商务舱或头等舱",
+  "lh2222.name": "LH2222 to Toulouse",
+  "lh2222.rule": "乘坐一次飞往图卢兹的LH2222",
   "registers.name": "注册国",
   "registers.rule": "拍到来自{count}个国家注册的飞机",
   "registers.level": "{have, plural, other {#个注册国}}{next, plural, =0 {} other {，下一级为#个}}",

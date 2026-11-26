@@ -204,6 +204,7 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 | New Year in the air | A flight in the air at midnight on 1 January at its departure or its arrival airport's time. | flown |
 | Plan B | A flight that diverted. | flown |
 | Up front | A flight in business or first. | flown |
+| LH2222 to Toulouse | A flight on Lufthansa's LH2222 (or `DLH2222`) booked to Toulouse (`LFBO`), Munich's evening flight there, a favourite on Instagram for its number. Its name is English in every language. | flown |
 | Registers | Aircraft photographed from 10, 25 and 50 countries' registers, by their registrations' prefixes. Levels: 10, 25, 50. | spotted |
 | Special liveries | 10 and 50 special liveries photographed, each aircraft and livery once. Levels: 10, 50. | spotted |
 | Big day | 100 aircraft photographed in one day. | spotted |

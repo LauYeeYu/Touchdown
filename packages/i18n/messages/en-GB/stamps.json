@@ -99,6 +99,8 @@
   "planB.rule": "A flight that diverted",
   "upFront.name": "Up front",
   "upFront.rule": "A flight in business or first",
+  "lh2222.name": "LH2222 to Toulouse",
+  "lh2222.rule": "A flight on LH2222 to Toulouse",
   "registers.name": "Registers",
   "registers.rule": "Aircraft photographed from {count} countries' registers",
   "registers.level": "{have, plural, one {# register} other {# registers}}{next, plural, =0 {} other { · next at #}}",

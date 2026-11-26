@@ -99,6 +99,8 @@
   "planB.rule": "轉降的航班",
   "upFront.name": "前艙",
   "upFront.rule": "搭乘商務艙或頭等艙",
+  "lh2222.name": "LH2222 to Toulouse",
+  "lh2222.rule": "搭乘一次飛往土魯斯的LH2222",
   "registers.name": "註冊國",
   "registers.rule": "拍到來自{count}個國家註冊的飛機",
   "registers.level": "{have, plural, other {#個註冊國}}{next, plural, =0 {} other {，下一級為#個}}",

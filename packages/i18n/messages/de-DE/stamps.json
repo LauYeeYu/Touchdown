@@ -99,6 +99,8 @@
   "planB.rule": "Ein Flug, der umgeleitet wurde",
   "upFront.name": "Ganz vorn",
   "upFront.rule": "Ein Flug in der Business oder First",
+  "lh2222.name": "LH2222 to Toulouse",
+  "lh2222.rule": "Ein Flug mit LH2222 nach Toulouse",
   "registers.name": "Register",
   "registers.rule": "Flugzeuge aus den Registern von {count} Ländern fotografiert",
   "registers.level": "{have, plural, one {# Register} other {# Register}}{next, plural, =0 {} other { · nächstes bei #}}",

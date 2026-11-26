@@ -10,6 +10,7 @@ import type { Airport } from "../ref/types.ts";
 import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
 import { arrivalAirportId, flightDay, flightDistanceKm, greatCircleKm } from "../derive.ts";
+import { parseFlightNumber } from "../normalise/flight.ts";
 import { daysBetween, instant, localDateOf, parseDateTime } from "../time/index.ts";
 import { continentOf, SIX_CONTINENTS } from "../stamps/continents.ts";
 import { SEATTLE_BOEINGS, TRIPLE_SEVEN_X } from "../stamps/boeing.ts";
@@ -410,6 +411,11 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   flightStamp("newYear", "flights", { kind: "glyph", glyph: "newYear" }, (x) => inAirAtNewYear(x.leaves, x.lands));
   flightStamp("planB", "flights", { kind: "glyph", glyph: "diverted" }, (x) => !!x.f.divertedToAirportId);
   flightStamp("upFront", "flights", { kind: "glyph", glyph: "seat" }, (x) => x.f.cabinClass === "business" || x.f.cabinClass === "first");
+  // Lufthansa's Munich to Toulouse, a favourite on Instagram for its number: LH or DLH 2222, booked to Toulouse.
+  flightStamp("lh2222", "flights", { kind: "text", text: "2222" }, (x) => {
+    const n = parseFlightNumber(x.f.flightNumber);
+    return !!n && (n.designator === "LH" || n.designator === "DLH") && n.number === "2222" && ref.airport(x.f.toAirportId)?.icao === "LFBO";
+  });
 
   // ---------- Spotting ----------
   const levels = (needs: number[], keyOf: (x: SightingIn) => string | null) => {

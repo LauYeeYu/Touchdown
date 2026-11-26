@@ -3203,6 +3203,8 @@ export interface MessageArgs {
   "stamps.planB.rule": {};
   "stamps.upFront.name": {};
   "stamps.upFront.rule": {};
+  "stamps.lh2222.name": {};
+  "stamps.lh2222.rule": {};
   "stamps.registers.name": {};
   "stamps.registers.rule": { count: "text" };
   "stamps.registers.level": { have: "number"; next: "number" };
