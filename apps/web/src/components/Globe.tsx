@@ -831,8 +831,10 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
       cv.style.cursor = "grab";
     };
 
-    const leave = () => {
-      if (!drag) setHover(null);
+    // A mouse leaving puts away what it pointed at. A finger leaves as it lifts, straight after the tap, so what the tap
+    // showed stays until the next touch outside (whenTouchedOutside, below), a drag or another tap, as on the flat map.
+    const leave = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && !drag) setHover(null);
     };
 
     const wheel = (e: WheelEvent) => {
