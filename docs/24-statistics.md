@@ -178,7 +178,7 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 | Arctic Circle | A flight whose great circle reaches 66°34′ N or further north. | flown |
 | Back to yesterday | A flight that lands on an earlier date, at the arrival airport, than it took off at the departure airport. | flown |
 | Ultra long haul | A flight of 14,000 km or more. | flown |
-| Short hop | A flight under 50 km. | flown |
+| Short hop | A flight between airports less than 120 km apart, on the great circle between them whatever its track or distance, so Helsinki–Tallinn (101 km) and Tenerife North–Gran Canaria (112 km) count. | flown |
 | Thin air | A flight to or from an airport 3,000 m (9,843 ft) above sea level or higher. | flown |
 | Below sea level (hidden) | A flight to or from an airport below sea level. | flown |
 | Six continents | Flights to or from Africa, Asia, Europe, North America, South America and Oceania. Parts: the six. An airport's continent is its country's ([Continents](#continents)). | flown |

@@ -9,7 +9,7 @@ import type { RefIndex } from "../ref/index.ts";
 import type { Airport } from "../ref/types.ts";
 import type { Airframe, Flight, Sighting } from "../schema/tables.ts";
 import type { Store } from "../store.ts";
-import { arrivalAirportId, flightDay, flightDistanceKm } from "../derive.ts";
+import { arrivalAirportId, flightDay, flightDistanceKm, greatCircleKm } from "../derive.ts";
 import { daysBetween, instant, localDateOf, parseDateTime } from "../time/index.ts";
 import { continentOf, SIX_CONTINENTS } from "../stamps/continents.ts";
 import { SEATTLE_BOEINGS, TRIPLE_SEVEN_X } from "../stamps/boeing.ts";
@@ -193,6 +193,9 @@ function inAirAtNewYear(leaves: string | null, lands: string | null): boolean {
   return false;
 }
 
+/** Short hop: airports closer than this, in km, so Helsinki–Tallinn (101) and Tenerife North–Gran Canaria (112) count. */
+const SHORT_HOP_KM = 120;
+
 /** Every stamp, earned or not, hidden ones included, in the order of the groups. */
 export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): Stamp[] {
   const airframes = new Map(store.all("airframes").map((a) => [a.id, a]));
@@ -358,9 +361,10 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   });
   const km = (x: FlightIn) => flightDistanceKm(x.f, ref, opts.flown);
   flightStamp("ultraLongHaul", "globe", { kind: "glyph", glyph: "longHaul" }, (x) => (km(x) ?? 0) >= 14_000);
+  // On the straight line between the airports: a hop's climb-out and approach can add tens of kilometres to its track.
   flightStamp("shortHop", "globe", { kind: "glyph", glyph: "hop" }, (x) => {
-    const d = km(x);
-    return d !== null && d > 0 && d < 50 && x.from?.id !== x.to?.id;
+    const d = greatCircleKm(x.f, ref);
+    return d !== null && d > 0 && d < SHORT_HOP_KM;
   });
   const THIN = 3000 / 0.3048;
   flightStamp("thinAir", "globe", { kind: "glyph", glyph: "mountain" }, (x) => x.airports.some((a) => (a.elevationFt ?? 0) >= THIN));
@@ -496,7 +500,7 @@ function nextLevel(b: Stamp): StampLevel | null {
 /** A stamp's rule, its distances in the log's unit. */
 export function stampRule(b: Stamp, unit: Settings["distanceUnit"] = "km"): string {
   if (b.factory) return t("stamps.factory.rule", { maker: makerName(b.factory.maker), count: b.parts?.list.length ?? b.factory.sites.length });
-  const km = { ultraLongHaul: 14_000, shortHop: 50, aroundTheWorld: 40_075, toTheMoon: 384_400, andBack: 768_800 }[b.id];
+  const km = { ultraLongHaul: 14_000, shortHop: SHORT_HOP_KM, aroundTheWorld: 40_075, toTheMoon: 384_400, andBack: 768_800 }[b.id];
   const height = unit === "km" ? t("format.measure.m", { n: nf.format(3000) }) : t("format.measure.ft", { n: nf.format(9843) });
   return tDynamic(`stamps.${b.id}.rule`, { distance: km ? distance(km, unit) : "", height, count: nextLevel(b)?.need ?? 0 });
 }

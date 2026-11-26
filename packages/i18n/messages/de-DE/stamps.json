@@ -68,7 +68,7 @@
   "ultraLongHaul.name": "Ultralangstrecke",
   "ultraLongHaul.rule": "Ein Flug von {distance} oder mehr",
   "shortHop.name": "Katzensprung",
-  "shortHop.rule": "Ein Flug unter {distance}",
+  "shortHop.rule": "Ein Flug zwischen Flughäfen, die weniger als {distance} auseinanderliegen",
   "thinAir.name": "Dünne Luft",
   "thinAir.rule": "Ein Flug von oder zu einem Flughafen {height} über dem Meer oder höher",
   "belowSeaLevel.name": "Unter dem Meeresspiegel",

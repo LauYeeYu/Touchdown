@@ -26,6 +26,10 @@ const ref = new RefIndex({
     airport("TNCM", "SXM", "SX", 18.041, -63.109, 13, "America/Lower_Princes"),
     airport("KPAE", "PAE", "US", 47.906, -122.282, 606, "America/Los_Angeles"),
     airport("KLGB", "LGB", "US", 33.818, -118.152, 60, "America/Los_Angeles"),
+    airport("EFHK", "HEL", "FI", 60.318, 24.963, 179, "Europe/Helsinki"),
+    airport("EETN", "TLL", "EE", 59.413, 24.833, 131, "Europe/Tallinn"),
+    airport("GCLP", "LPA", "ES", 27.932, -15.387, 78, "Atlantic/Canary"),
+    airport("GCFV", "FUE", "ES", 28.453, -13.864, 85, "Atlantic/Canary"),
   ],
   aircraftTypes: [
     ...refTables.aircraftTypes,
@@ -138,6 +142,14 @@ describe("stamps earned by one flight", () => {
     const ny = flight(store, { fromAirportId: "ap_eddf", toAirportId: "ap_egll", takeoffAt: "2025-12-31T23:50+01:00", landingAt: "2025-12-31T23:40+00:00" });
     flight(store, { fromAirportId: "ap_eddf", toAirportId: "ap_egll", takeoffAt: "2025-12-31T21:00+01:00", landingAt: "2025-12-31T21:30+00:00" });
     expect(earned(of(store).get("newYear"))).toBe(ny.id);
+  });
+
+  it("measures a short hop on the straight line between its airports, under 120 km", () => {
+    const store = newStore();
+    flight(store, { scheduledDate: "2024-04-01", fromAirportId: "ap_gclp", toAirportId: "ap_gcfv" });
+    expect(earned(of(store).get("shortHop"))).toBeNull();
+    const hop = flight(store, { scheduledDate: "2024-04-02", fromAirportId: "ap_efhk", toAirportId: "ap_eetn", distanceKmOverride: 160 });
+    expect(earned(of(store).get("shortHop"))).toBe(hop.id);
   });
 
   it("knows thin air, below sea level, short hops, diversions and the cabin", () => {

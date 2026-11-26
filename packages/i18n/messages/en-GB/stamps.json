@@ -68,7 +68,7 @@
   "ultraLongHaul.name": "Ultra long haul",
   "ultraLongHaul.rule": "A flight of {distance} or more",
   "shortHop.name": "Short hop",
-  "shortHop.rule": "A flight under {distance}",
+  "shortHop.rule": "A flight between airports less than {distance} apart",
   "thinAir.name": "Thin air",
   "thinAir.rule": "A flight to or from an airport {height} above sea level or higher",
   "belowSeaLevel.name": "Below sea level",
