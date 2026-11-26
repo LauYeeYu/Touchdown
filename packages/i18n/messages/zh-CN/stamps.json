@@ -63,7 +63,7 @@
   "ultraLongHaul.rule": "{distance}或以上的航班",
   "shortHop.name": "一步之遥",
   "shortHop.rule": "不到{distance}的航班",
-  "thinAir.name": "稀薄空气",
+  "thinAir.name": "空气稀薄",
   "thinAir.rule": "往返海拔{height}或以上机场的航班",
   "belowSeaLevel.name": "海平面以下",
   "belowSeaLevel.rule": "往返海平面以下机场的航班",

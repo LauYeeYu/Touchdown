@@ -57,7 +57,7 @@
   "dateLine.rule": "Ein Flug über den 180. Längengrad",
   "arcticCircle.name": "Polarkreis",
   "arcticCircle.rule": "Ein Flug, dessen Großkreis 66°34′ N erreicht",
-  "backToYesterday.name": "Zurück nach gestern",
+  "backToYesterday.name": "Zurück ins Gestern",
   "backToYesterday.rule": "Ein Flug, der an einem früheren Datum landet, als er gestartet ist",
   "ultraLongHaul.name": "Ultralangstrecke",
   "ultraLongHaul.rule": "Ein Flug von {distance} oder mehr",
