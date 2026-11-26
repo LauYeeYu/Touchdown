@@ -151,6 +151,7 @@ describe("stamps earned by one flight", () => {
     flight(store, { scheduledDate: "2024-03-01", flightNumber: "LH2222", fromAirportId: "ap_eddm", toAirportId: "ap_eddf" });
     flight(store, { scheduledDate: "2024-03-02", flightNumber: "XY2222", fromAirportId: "ap_eddm", toAirportId: "ap_lfbo" });
     expect(earned(of(store).get("lh2222"))).toBeNull();
+    expect(of(store).get("lh2222")!.hidden).toBe(true);
     const tls = flight(store, { scheduledDate: "2024-03-03", flightNumber: "lh 2222", fromAirportId: "ap_eddm", toAirportId: "ap_lfbo" });
     expect(earned(of(store).get("lh2222"))).toBe(tls.id);
   });

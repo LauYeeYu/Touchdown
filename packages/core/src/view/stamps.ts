@@ -415,7 +415,7 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   flightStamp("lh2222", "flights", { kind: "text", text: "2222" }, (x) => {
     const n = parseFlightNumber(x.f.flightNumber);
     return !!n && (n.designator === "LH" || n.designator === "DLH") && n.number === "2222" && ref.airport(x.f.toAirportId)?.icao === "LFBO";
-  });
+  }, true);
 
   // ---------- Spotting ----------
   const levels = (needs: number[], keyOf: (x: SightingIn) => string | null) => {
