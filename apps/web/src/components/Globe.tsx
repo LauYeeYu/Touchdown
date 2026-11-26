@@ -692,8 +692,25 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
                 : h.kind === "spot"
                   ? h.s.tip
                   : `<strong>${escHtml(t("format.nameWithCode", { name: h.a.name, code: h.a.code }))}</strong><br><span class="muted">${escHtml(airportTip(data.current.flights, h.a.id, h.a.flights))}</span>`;
-        showTip(tip, e.clientX, e.clientY, e.pointerType !== "mouse");
+        showTip(tip, e.clientX, e.clientY, e.pointerType !== "mouse", opener(h));
       } else hideTip();
+    };
+
+    /** What a click on `h` opens: a route's flight, or a place's airport, when the globe was given what opens them. */
+    const opener = (h: Hover): (() => void) | undefined => {
+      const { onFlightClick, onAirportClick } = data.current;
+      const airportId = h?.kind === "airport" ? h.a.id : h?.kind === "spot" ? h.s.airportId : null;
+      if (h?.kind === "flight" && onFlightClick)
+        return () => {
+          setHover(null);
+          onFlightClick(h.f);
+        };
+      if (airportId && onAirportClick)
+        return () => {
+          setHover(null);
+          onAirportClick(airportId);
+        };
+      return undefined;
     };
 
     const down = (e: PointerEvent) => {
@@ -799,16 +816,12 @@ export const Globe = forwardRef<GlobeHandle, Props>(function Globe({ flights, sp
         if (clicked) {
           const finger = e.pointerType !== "mouse";
           const h = hitTest(p.x, p.y, finger ? FINGER : 0);
-          // A finger's first tap on a route or a place shows its tooltip, as a mouse's hover does; a second opens it.
-          if (finger && (h?.kind === "flight" || h?.kind === "airport" || h?.kind === "spot") && !sameAs(st.hover, h)) setHover(h, e);
-          else if (h?.kind === "flight") data.current.onFlightClick?.(h.f);
-          else if (h?.kind === "airport" && data.current.onAirportClick) {
-            hideTip();
-            data.current.onAirportClick(h.a.id);
-          } else if (h?.kind === "spot" && data.current.onAirportClick) {
-            hideTip();
-            data.current.onAirportClick(h.s.airportId);
-          } else setHover(h, e);
+          const open = opener(h);
+          // A finger's first tap on a route or a place shows its tooltip, as a mouse's hover does. A second tap, or a
+          // tap on the tooltip (showTip), opens it.
+          if (finger && open && !sameAs(st.hover, h)) setHover(h, e);
+          else if (open) open();
+          else setHover(h, e);
         } else if (recent && Math.hypot(...st.velocity) > 0.15) st.inertia = 1;
       }
       cv.style.cursor = "grab";

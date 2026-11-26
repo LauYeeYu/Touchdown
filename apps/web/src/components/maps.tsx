@@ -371,14 +371,17 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
     tc.shown = null;
     tc.arc = null;
   };
-  /** A finger's first tap on `key`: shows its tooltip (and a route's highlight) and says so, the tap going no further. */
-  const firstTap = (key: string, tip: string, x: number, y: number, arc?: MapFlight) => {
+  /**
+   * A finger's first tap on `key`: shows its tooltip (and a route's highlight) and says so, the tap going no further.
+   * `open` is what a second tap opens, as a tap on the tooltip does.
+   */
+  const firstTap = (key: string, tip: string, x: number, y: number, open: (() => void) | null, arc?: MapFlight) => {
     const tc = tap.current;
     if (!tc.finger || tc.shown === key) return false;
     putAway();
     tc.shown = key;
     tc.arc = arc ?? null;
-    showTip(tip, x, y, true);
+    showTip(tip, x, y, true, open ?? undefined);
     if (arc) handlers.current.onArcEnter?.(arc);
     return true;
   };
@@ -429,9 +432,11 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
       }
       // The route's, wherever the browser put the click.
       e.stopPropagation();
-      if (firstTap(`flight:${r.f.id}`, r.f.tip, r.x, r.y, r.f)) return;
-      putAway();
-      handlers.current.onArcClick?.(r.f);
+      const open = () => {
+        putAway();
+        handlers.current.onArcClick?.(r.f);
+      };
+      if (!firstTap(`flight:${r.f.id}`, r.f.tip, r.x, r.y, handlers.current.onArcClick ? open : null, r.f)) open();
     };
     svg.addEventListener("pointerdown", down, true);
     svg.addEventListener("click", click, true);
@@ -460,7 +465,7 @@ export function WorldMap({ flights, spots = [], mode = "auto", className = "", o
           : null;
         if (open) node.classList.add("is-clickable");
         node.addEventListener("click", (ev) => {
-          if (!firstTap(key, tip, ev.clientX, ev.clientY)) open?.();
+          if (!firstTap(key, tip, ev.clientX, ev.clientY, open)) open?.();
         });
         if (open)
           node.addEventListener("keydown", (ev) => {
