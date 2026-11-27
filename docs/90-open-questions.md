@@ -2,15 +2,12 @@
 
 Questions that need an answer from the user (or a check during implementation). Docs refer to them by id. When one is answered, record the answer here, update the affected docs, and change the requirement status in [00](00-requirements.md).
 
-## Blocking phase 1
-
-None. Phase 1 test data is in `data/private/`.
-
-## Blocking later phases
+## Open
 
 | Id | Question | Phase | Proposed default |
 |----|----------|-------|------------------|
 | Q-SERVER-DB | For the later server backends (Postgres / Supabase, Cloudflare D1): does each user bring their own instance, or does the owner host one for friends (their data would then sit in the owner's account)? | Later | Each user brings their own. |
+| Q-OPENSKY-FLIGHTS | Should `touchdown tracks` find the aircraft of a flight without a registration in OpenSky's flights data ([13](13-reference-data.md), "Flight lookups"), with the user's own OpenSky API client, and put the registration in the same inbox file as the track? | Later | Done by hand once, with the coverage docs/13 describes. Needs a place for the client credentials on the computer (like the agent settings) and the matching rules of docs/13 in code. |
 
 ## Implementation checks (not for the user)
 
@@ -18,7 +15,7 @@ None. Phase 1 test data is in `data/private/`.
 |----|-------|-------|
 | Q-FR24-IMPORT | Does myFR24 import accept fewer than 19 columns? Must airline names match FR24's names exactly? Test with a 2-row file. | 7 |
 | Q-DRIVE-SERVER | Does a refresh token from the authorisation-code flow (same web client, `drive.file`) reach the files the browser created with the token flow, and the other way round? | 8 |
-| Q-DRIVE-QUOTA | Recheck Google's announced 2026 Drive API quota and charge changes before launch. | 3 |
+| Q-DRIVE-QUOTA | Recheck Google's announced 2026 Drive API quota and charge changes ([12](12-storage-and-sync.md), "Google Drive details"). | 3 |
 | Q-AGENT-IMAGES | Can Claude Code and Codex be given an image in the locked-down call (no tools, no file access), as `touchdown photos` needs to read registrations ([25](25-photos.md), "The agent")? Claude Code through `--input-format stream-json` with an image block, Codex through `--image`: check that neither needs a tool or a readable path to see it. | 10 |
 | Q-PHOTO-SOURCEID | Is Lightroom's `xmpMM:OriginalDocumentID` in every export the same for one photo, through edits, virtual copies and catalogue moves? If not, recognise a photo by its capture time to the hundredth of a second and the camera's serial number. | 10 |
 
@@ -38,13 +35,11 @@ None. Phase 1 test data is in `data/private/`.
 | Q-DRIVE-RENEW | In Private mode with Google Drive, a sign-in lasts an hour, and renewing it needs a click (browsers open Google's popup only on one). Keep the "Sign in" bar, or renew some other way? | The browser renews it, and nothing is kept on the server: once the hour is nearly over, or over, the user's next click anywhere asks Google again for the log's account, and while they are signed in to Google its window closes by itself. Nothing is tried offline. When Google needs the user, the "Sign in" bar stays. The mode choice says so ([12](12-storage-and-sync.md), "Google Drive details"). Renewing when the app opens, by sending the page to Google and back, needs a redirect address registered in Google Cloud and is not built. (A refresh token kept in the browser and renewed through the server, which adds the client secret and keeps nothing, was offered and not chosen.) |
 | Q-DRIVE-CLI | Do the CLI's own Google client and the web app's reach each other's files with `drive.file`? | Not needed: the CLI signs in to the site and uses the web app's own Google access (from the server in Standard mode, handed over by the browser in Private mode), so it reaches the same files ([33](33-accounts-and-sign-in.md), "The command line"). |
 | — | Who uses it? | The user and some friends; data private per user. |
-| — | Storage format? | JSON files in the user's Google Drive; other sync methods pluggable; CSV fallback. Superseded by the generic schema decision below. |
 | — | Where does the agent check run? | Local companion CLI. |
 | — | How to count aircraft? | Once per airframe. |
 | — | Language? | TypeScript everywhere. |
 | — | Trace export scope? | Single flight, date range/year, all flights. |
 | — | "Pull the CSV for the flight"? | The recorded track (CSV/KML), great circle when missing. |
-| — | Photos? | Stay in Google Photos; optional link; app does not serve images. |
 | — | Livery? | `specialLivery` is for special liveries and stickers only. Regular variants (e.g. an airline's alternate standard colour schemes) go to `livery`. |
 | — | IATA or ICAO codes? | Both. |
 | Q-NAMING | How should aircraft models be named? | Store the standard manufacturer form; display style is a setting (standard `Boeing 777-322(ER)` or compact `B777-322ER`); accept both on input. |
@@ -66,14 +61,13 @@ None. Phase 1 test data is in `data/private/`.
 | Q-SHARE-AUDIENCE | Who can open a shared link? | For now, anyone with the link (a public page, the only route with user content outside the sign-in), with no access control and no end date: a link lasts until the user stops it. Choosing chosen invited users or every invited user may come later. (Changed: first answered as a choice per link among the three.) |
 | Q-SHARE-SCOPE | What can be shared? | One flight or sighting, an aircraft, the whole log (Statistics included). (Changed: statistics for a period was a kind of its own, dropped because the whole log's link has them.) |
 | Q-BACKEND-FIELD | Is the storage backend recorded? | Yes, in the user's settings and, in Standard mode, on the server, ready for new backends and for moving between them (S8). |
-| Q-DEPLOY | How is the site deployed, and when? | Cloudflare (Worker with static assets, Access, later D1). GitHub Actions deploys on every push to `master`, with a Cloudflare API token kept as a GitHub secret. The Worker config, custom domain included, is committed. The first deployment comes after phase 3 (sync). |
+| Q-DEPLOY | How is the site deployed, and when? | Cloudflare: a Worker with static assets and D1, behind the site's own sign-in (Q-ACCESS). GitHub Actions deploys every push to `master` while the repository variable `DEPLOY` is `on`, with a Cloudflare API token kept as a GitHub secret. The Worker config, custom domain included, is committed ([30](30-architecture.md), "Deployment"). |
 | Q-CSS-VERSION | How does a new deployment's CSS reach browsers? | Every stylesheet link carries `?v=<build date-time>`, so it reloads without depending on the browser's cache. |
 | Q-AGENT-DEFAULT | Is an agent used by default? | No. The first run of `spot` or `check` asks, with no agent as the default; `./touchdown agent` changes it. |
 | Q-SPOT-LIVERY | When the log has an aircraft in a special livery, is a new sighting of it filled with that livery? | No, the user is asked each time (spot, quick add, session add), since special liveries are painted over. Records already in the log that lack a livery the aircraft surely wore are found by C-LIVERY-MISSING, with a fix. |
-| Q-SPOT-ARRIVAL | How do sightings typed with `touchdown spot` reach the web app? | They wait for review: a bar and a list on the Import page, then Import. On the hosted site they travel through the inbox in the user's storage, whatever the backend (with Google Drive, the CLI signs in to Google once and uploads each session). |
+| Q-SPOT-ARRIVAL | How do sightings typed with `touchdown spot` reach the web app? | They wait for review: a bar and a list on the Import page, then Import, or `touchdown review` in the terminal. They travel through the inbox in the user's storage, whatever the backend (with Google Drive, through the web app's own access, Q-DRIVE-CLI). |
 | Q-PLANNED | Planned (future) flights? | Supported (changed, F5): a flight added before it flies is planned, counted once its time has passed, and confirmed by the user ([31](31-ui.md), "Planned flights"). First answered as not supported. |
 | Q-AIRSPACE | Should a map draw a flight around airspace its airline could not use (Russia, Belarus, Ukraine since 2021 and 2022)? | No. Not every closure can be known (which airspace, from when, to whose airlines, short closures), so some flights would be drawn around one and others would not: inconsistent and inaccurate. Maps draw the great circle; a recorded track shows the way flown. |
-| Q-OPENSKY-FLIGHTS | Should `touchdown tracks` find the aircraft of a flight without a registration in OpenSky's flights data ([13](13-reference-data.md), "Flight lookups"), with the user's own OpenSky API client, and put the registration in the same inbox file as the track? | Open. Done by hand once, with the coverage docs/13 describes. Needs a place for the client credentials on the computer (like the agent settings) and the matching rules of docs/13 in code. |
 | Q-MOBILE | Phone support? | Web app in Chrome on Android. No iOS support needed. |
 | Q-MODELS | Track die-cast models? | No. Misc is a note to the user; import it as notes. |
 | — | How are times stored? | Always as a full date-time with UTC offset; never a time alone. Plain dates only where only the day is known. |
@@ -82,7 +76,7 @@ None. Phase 1 test data is in `data/private/`.
 | — | Type and colour constraints for the interface? | Sans-serif only; keep the warm paper ground #FAF8F1 (white acceptable, not preferred); support dark mode. |
 | Q-AGENT-FLAGS | Does Claude Code `--json-schema` work with all tools disabled? Which Codex features must be disabled? | Claude Code 2.1: the answer comes through the `StructuredOutput` tool, so `--disallowedTools "*"` blocks it; use `--tools "" --allowedTools StructuredOutput`. Codex 0.156: turn off every feature that is on except a short list of plumbing features; with that, structured output and stdin work. Details in [22](22-agent-verification.md). |
 | Q-SIGNIN-DEFAULTS | The sign-in's values ([33](33-accounts-and-sign-in.md)). | Passwords hashed in the browser (Argon2id) before they are sent; at least 10 characters; invitations valid 7 days, reset links 24 hours; sessions 30 days from last use; one owner. |
-| Q-ACCESS | How is the hosted site gated? | The website signs people in itself, so it is not tied to Cloudflare: email and password, or Google; only people with an invitation link from the owner get an account; without a session only the sign-in pages (and later `/p/<id>`) open. The server runs on Cloudflare or any machine ([33](33-accounts-and-sign-in.md)). This replaced an earlier answer, Cloudflare Access. |
+| Q-ACCESS | How is the hosted site gated? | The website signs people in itself, so it is not tied to Cloudflare: email and password, or Google; only people with an invitation link from the owner get an account; without a session only the pages [33](33-accounts-and-sign-in.md), "Pages anyone can open", lists open. The server runs on Cloudflare or any machine ([33](33-accounts-and-sign-in.md)). This replaced an earlier answer, Cloudflare Access. |
 | Q-PHOTO-PICKER | Use the Google Photos Picker to fill a sighting's date and time from a photo? | No. Google Photos is no longer used once the photo design is built: copies of the user's photos are kept in the log's storage, brought in from an export of the photo software by `touchdown photos`, which reads each photo's capture time ([25](25-photos.md)). |
 | Q-PHOTO-REG | Do the photos already name their aircraft in the photo software: the registration as a keyword, in the title or caption, or in the file name? | Assume they do not. The agent reads the registration off each photo, photos taken seconds apart going to it together, and one that does name its aircraft in its words is read from them first ([25](25-photos.md), "The agent"). |
 | Q-OVERLAPS-OPEN | The web app worked out airframe overlaps (one registration held by two aircraft on a date, C-REG-OVERLAP) only after the first change in a session, so the Issues page could miss those findings until then. Work them out when the log opens, without writing? | Done. The checks read the overlaps from the records' links as they stand (`registrationOverlaps` in core), in the web app and in the CLI alike, so a log that has only been opened has them and nothing is written. |
