@@ -136,7 +136,7 @@ Errors come as `{ "error": "…" }` in the request's language: the first of the 
 
 ## Server tables
 
-SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packages/server/src/db.ts`, with the other server tables to come ([32](32-modes-and-sharing.md), "What the server stores"); created by the server when it starts.
+SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packages/server/src/db.ts`, with Standard mode's tables ([32](32-modes-and-sharing.md), "What the server stores"); created by the server when it starts.
 
 | Table | Columns |
 |---|---|
@@ -148,10 +148,9 @@ SQLite, in Cloudflare D1 or in a file next to the Node server. Defined in `packa
 | `cli_logins` | `codeHash`, `accountId`, `challenge`, `system`, `createdAt`, `expiresAt`: the command line's sign-ins under way |
 | `invites` | `id`, `tokenHash`, `purpose` (`join`, `reset`), `accountId` (for a reset), `note`, `createdBy`, `createdAt`, `expiresAt`, `usedAt`, `usedBy` |
 | `granted_stamps` | `accountId`, `stamp` (an id from core's list), `grantedAt`, `grantedBy`: the stamps the owner gave (server schema version 7) |
-
 | `google_logins` | `stateHash`, `nonce`, `verifier`, `next`, `invite`, `name`, `linkAccountId`, `expiresAt`, `purpose` (`signin` or `storage`, for Standard): Google sign-ins under way |
 
-Standard mode's tables (`storage_connections`, `consents`, `shares`, `share_previews`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added the first two and `google_logins.purpose`, version 3 `sessions.kind` and `cli_logins`, version 6 `accounts.suspendedAt` and `share_previews`, version 7 `granted_stamps`, and the server upgrades an older database when it starts.
+Standard mode's tables (`storage_connections`, `consents`, `shares`, `share_previews`) are in [32](32-modes-and-sharing.md), "What the server stores". The server's schema version is in `site`; version 2 added the first two and `google_logins.purpose`, version 3 `sessions.kind` and `cli_logins`, version 4 `shares`, version 5 `accounts.language`, version 6 `accounts.suspendedAt` and `share_previews`, version 7 `granted_stamps`, and the server upgrades an older database when it starts.
 
 Never stored: passwords, Google's tokens, IP addresses, request contents. No request logs.
 

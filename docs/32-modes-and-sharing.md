@@ -309,7 +309,7 @@ Not in the first version (Proposed):
 
 ## What the server stores
 
-Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Standard mode adds the tables below. They are defined with the server's other tables in `packages/server/src/db.ts` and live in its SQLite database: Cloudflare D1, or a file with the Node server (Proposed).
+Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Standard mode adds the tables below. They are defined with the server's other tables in `packages/server/src/db.ts` and live in its SQLite database: Cloudflare D1, or a file with the Node server. The server's schema version is kept with the account tables ([33](33-accounts-and-sign-in.md), "Server tables").
 
 | Table | Columns |
 |-------|---------|
@@ -317,14 +317,13 @@ Every user has an account for signing in ([33](33-accounts-and-sign-in.md)). Sta
 | `consents` | `accountId`, `termsVersion`, `acceptedAt` |
 | `shares` | `id`, `accountId`, `kind` (`flight`, `sighting`, `aircraft`, `log`), `subject` (the record's id; empty for `log`), `anchor` (an aircraft link's flight or sighting, as `flights/<id>` or `sightings/<id>`), `createdAt`, `timesOpened`, `lastOpenedAt` |
 | `share_previews` | `shareId`, `title`, `description`, `image` (the PNG, base64), `fingerprint`, `updatedAt` ([Previews](#previews), server schema version 6) |
-| `meta` | `schemaVersion` |
 
 Not stored on the server: the log or any part of it, but a link's preview, its words and picture, which the owner's browser sends (a link's row names its record only by id; the server's cache of a link's content lives in the Worker's cache, not the database, and expires on its own), access tokens, who opened a link, and request contents.
 
-Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` (AES-256-GCM under the `TOKEN_KEY` secret, `tokenKeyId` 1, `tokenFormat` 1: the refresh token in JSON; the row and account ids bound in as additional data), `consents` and `shares` (server schema version 4), `share_previews` (version 6).
+Leaving Standard deletes the user's rows in these tables; the account stays. Built: `storage_connections` and `consents` (server schema version 2), `shares` (version 4), `share_previews` (version 6).
 
-Protection (Proposed):
-- **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto in the Worker). The key is a Worker secret, and `tokenKeyId` allows rotation. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.
+Protection (Decided, built):
+- **Encryption.** Refresh tokens are encrypted with AES-256-GCM (Web Crypto) under the `TOKEN_KEY` secret. `tokenKeyId` (1 so far) allows rotation, and `tokenFormat` (1: the refresh token in JSON) numbers what is inside. The row id and account id are bound in as additional data, so a ciphertext cannot be moved to another row.
 - **Handling.** A token is decrypted only inside the request that needs it. It is never logged and never returned to a browser or the command line; they get short-lived access made with it.
 - **Who can reach the database.** Only the server, and the operator through the hosting account (Cloudflare) or the machine. The operator holds both the database and the secret, and the terms say so.
 - **Suspended and removed users.** Suspending someone in Settings → People keeps these rows, and their links open as links that do not exist until they are reinstated. Removing someone deletes their account and these rows ([33](33-accounts-and-sign-in.md), "Suspending and removing", Q-USER-REMOVAL).
