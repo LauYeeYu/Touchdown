@@ -1,6 +1,8 @@
 # Touchdown Plan
 
-Touchdown is a personal log of aircraft flown on and aircraft photographed, with statistics similar to my.flightradar24.com and Flighty. These docs are the plan. No code is written until the plan is approved.
+Touchdown is a personal log of aircraft flown on and aircraft photographed, with statistics similar to my.flightradar24.com and Flighty. These docs are the approved plan and describe what is built. Their statements say whether something is built, decided or still proposed ("Status markers" below). What is built and what is left, phase by phase, is in [40](40-roadmap.md).
+
+Each topic is described in one doc, and the others link to it. When the code and a doc disagree, the user decides which one is right, and the other is fixed.
 
 The docs are self-contained. The user's original requirement notes are copied in [00, Appendix A](00-requirements.md#appendix-a-original-requirement-notes), and the structure of the owner's old spreadsheets is in [01](01-existing-data.md). No external document is needed to read the plan. The docs contain no personal data; values from the owner's data are kept in `data/private/` (git-ignored).
 
@@ -30,9 +32,9 @@ Docs are numbered from low level to high level. Each one depends only on lower n
 | 40 | [Roadmap](40-roadmap.md) | Delivery | Phases and exit criteria. |
 | 90 | [Open questions](90-open-questions.md) | Tracking | Unanswered questions and recorded answers. |
 
-## Key decisions so far
+## Key decisions
 
-- Hosted static web app. Each user's data lives in their own storage (Google Drive first), as JSON tables or a SQLite file, both from one structured schema. Server databases can be added later. CSV always available. No central database by default.
+- A web app behind the site's own sign-in, for invited people only ([33](33-accounts-and-sign-in.md)). Each user's data lives in their own storage (Google Drive first), as JSON tables from one structured schema; a SQLite file and server databases can be added later. CSV always available. No central database.
 - Every precise time is a full date-time with UTC offset; never a time alone.
 - UK English spelling. Sans-serif interface on a warm paper ground, with light and dark themes.
 - Three data modes: Standard (recommended; the server keeps an encrypted key to the user's storage, for sync and share links), Private (no key on the server, no sharing) and Local (this browser only). Users can switch at any time.
@@ -40,9 +42,10 @@ Docs are numbered from low level to high level. Each one depends only on lower n
 - An aircraft is a physical airframe, identified by manufacturer + serial number. Registration is a dated attribute. Aircraft counts are per airframe.
 - Every field is optional. Checks never block saving.
 - The optional agent check runs Claude Code or Codex on the user's own computer, with no tools, and only produces suggestions.
-- Recorded tracks where available (adsb.lol, uploaded FR24 files); great circle otherwise.
+- Recorded tracks from files the user adds (a Flightradar24 download first), and from adsb.lol only when the user asks; great circle otherwise.
+- The command line (`./touchdown`) does with the log what the web app does, and changes reach the log only through a review ([34](34-command-line.md)).
 - TypeScript everywhere.
 
 ## Status markers
 
-Docs mark statements as **Decided** (confirmed by the user), **Proposed** (suggested, not yet confirmed), or **Open** (listed in [90](90-open-questions.md)).
+Docs mark statements as **Decided** (confirmed by the user), **Proposed** (suggested, not yet confirmed), or **Open** (listed in [90](90-open-questions.md)). **Built** means the code does it, usually with the files named. A design statement with no marker in a doc about something built describes what is built.
