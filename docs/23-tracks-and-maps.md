@@ -25,44 +25,26 @@ Decided: recorded tracks come from files the user adds, a Flightradar24 download
 
    Built: on the flight's page (Add track; once it has one, Track › Replace with a track file, or Remove the track) and with `touchdown track REF FILE` or `--remove` ([34](34-command-line.md)). The file is read in core (`readTrackFile` in `packages/core/src/tracks.ts`): an FR24 CSV; an FR24 KML trail (placemarks with a time and a point, altitude, speed and heading from each one's description) or any KML with a `gx:Track`; GPX track or route points with a time (elevation in metres, speed in metres a second). A line without times is not read. Before anything is saved the track is checked against that flight (`fitTrack`): its times must fall on the flight (overlapping takeoff to landing, with 3 hours' room on each side for a delay or a timetable time in the log, when both are known; else on the flight's day, give or take one), it must run from the departure towards the arrival, and a fragment too short to draw is refused; each refusal says why. The checks test the times and the length again whenever the flight changes (V-TRACK-TIMES and V-TRACK-ROUTE, [20](20-validation.md)), so a track the flight has since moved away from is flagged. A file that runs over more than the flight (Flightradar24 sometimes keeps one flight across a stop, or starts with the aircraft's previous flight) is cut into the aircraft's legs first (`fitTrackFile`, `trackLegs`): a leg ends where the aircraft was on the ground for 5 minutes or more between two stretches in the air (cut at the longest wait there), or where nothing was received for over 30 minutes while it could not have flown on, or for so long that the leg would outlast any flight (20 hours), whatever ground it covered; a stretch with nothing in the air (a return to the gate, a tow) joins the leg before it. Only the leg that fits the flight is kept, a complete one first, then the one nearest the logged times, and the page says the file held more. A file that already runs from the departure to the arrival is kept whole, so a flight with a stop logged as one flight keeps both legs. A track whose ends are within 30 km of the airports is complete, otherwise partial. The page shows what the file holds (points, distance, times, source, the track it replaces) and saves it only when the user confirms. Either way the track is saved as a one-change import (`track` or `removeTrack`, [34](34-command-line.md), "Change files"), so the import history can undo it, the replaced track's points included. Simplified to at most 2,000 points, as every track is.
 2. **adsb.lol history** (free, only when the user asks, to fill gaps; from 2023-02-16, thin until March 2023; [13](13-reference-data.md)). See below.
-3. **AeroAPI** (automatic, last 10 days, only if the user set a key).
-4. Nothing found: keep the great circle and record "no track found" with the date checked, so it is not retried every time.
+3. **AeroAPI** (later, with the lookup service: automatic, last 10 days, only if the user set a key).
+4. Nothing found: keep the great circle. `touchdown tracks` remembers the flights it found none for, so it does not ask again every time ("Backfill").
+
+Every track is simplified (Visvalingam–Whyatt) to at most 2,000 points, keeping its first and last, and records its provider, so exports can show "Track data: adsb.lol (ODbL)".
 
 ### Matching an adsb.lol trace to a flight
 
-adsb.lol stores one trace per aircraft (by ICAO hex) per UTC day. A day trace contains every flight that aircraft made that day.
+Built (`trackFromReadsb` in `packages/core/src/tracks.ts`). adsb.lol stores one trace per aircraft (by its transponder's hex code) per UTC day, holding every flight that aircraft made that day.
 
-```
-1. Get the hex: from the airframe's RegistrationPeriod for the flight date,
-   else from the lookup service. No hex -> stop (no track).
-2. Time window: departure − 3 h to arrival + 3 h in UTC. If times are unknown,
-   use `scheduledDate` from 00:00 local to the end of the next day.
-3. Fetch the trace for every UTC date the window touches (overnight flights need two).
-4. Split the trace into legs: a new leg starts after the aircraft is on the ground
-   or after a gap of more than 30 minutes.
-5. Pick the leg that starts within 30 km of `from` and ends within 30 km of `to`
-   (or `divertedTo`), and overlaps the time window.
-   - Exactly one -> use it.
-   - Several (e.g. a return-to-gate) -> the one closest to the expected times;
-     mark it for review.
-   - None -> try a looser match (start or end within 30 km, partial coverage over oceans),
-     mark it "partial"; otherwise stop.
-6. Simplify (Visvalingam–Whyatt) to at most 2,000 points, keeping takeoff
-   and landing points. Store as tracks/<flightId>.json.
-```
-
-Each track records its provider, so exports can show "Track data: adsb.lol (ODbL)".
+- The aircraft's hex code: the log's (`registration_periods.icaoHex`), else the FAA's scheme for a US N-number (`nNumberIcao` in core), else the OpenSky database's row for the registration (the one with the airframe's serial number, else the one registered on that day, else the newest). Without one there is no track.
+- The UTC days: takeoff − 3 h to landing + 3 h; without times, the flight's day at the departure airport and the day after.
+- The legs: the flight is cut out of the day's traces. Legs end where the aircraft was on the ground, where readsb marks a new leg, or at a gap it could not have flown through: too little ground covered for the time, or a leg that would last over 20 hours (a landing and a later flight elsewhere, perhaps on the next day's trace, can look like flying on). A gap over an ocean flown at speed stays in the leg. Each leg is checked as an uploaded file is (`fitTrack`, with its 3 hours' room around the logged takeoff and landing), and a leg flown under the flight's own callsign (the airline's ICAO code and the number, `DLH400` for LH400; the trace records the callsign) up to 12 hours, which still rules out the same flight number on another day. The leg under that callsign wins, else a complete one, else the nearest to the logged times (among partial legs, the one with the most points). A track that lies outside the logged times is still written, with a note saying how far off it is, so the user can check the flight's times at the review. Until they are corrected, V-TRACK-TIMES ([20](20-validation.md)) flags the flight.
 
 ### Backfill
 
 Decided: no background job. adsb.lol is read only when the user runs `touchdown tracks`, for the flights still without a track; nothing looks it up by itself, in the CLI or the web app. (Earlier plan, dropped: a background job checking every flight since 2023-02-16.)
 
-Built in the CLI as `touchdown tracks` ([34](34-command-line.md)), from adsb.lol's daily GitHub releases (adsb.lol's per-file server now answers scripts with a bot check, [13](13-reference-data.md)):
+Built in the CLI as `touchdown tracks` ([34](34-command-line.md)), from adsb.lol's daily GitHub releases (adsb.lol's per-file server now answers scripts with a bot check, [13](13-reference-data.md)), each flight matched as above:
 
-- The aircraft's hex code: the log's (`registration_periods.icaoHex`), else the FAA's scheme for a US N-number (`nNumberIcao` in core), else the OpenSky database's row for the registration (the one with the airframe's serial number, else the one registered on that day, else the newest).
-- The UTC days: takeoff − 3 h to landing + 3 h; without times, the flight's day at the departure airport and the day after.
 - A day's release is a tar of every aircraft's trace that day, in 256 folders by the last two hex digits, in a different order every day; each file is gzipped on its own. Small reads (64 KB, 4 MB apart, eight at a time) find the aircraft's folder, a bisection finds where it starts, and only that folder is read through. A folder smaller than the 4 MB between two reads is found by walking the folders between two reads that saw different ones. A read inside a large file sees no folder, so it is passed over, and the archive's start (the heatmaps) is walked file by file: 10 to 60 MB and 50 to 800 requests a flight instead of 1.5 to 3.5 GB. The code is `packages/cli/src/providers/adsblol.ts`.
-- The flight is cut out of the day's traces (`trackFromReadsb` in core): legs end where the aircraft was on the ground, where readsb marks a new leg, or at a gap it could not have flown through: too little ground covered for the time, or a leg that would last over 20 hours (a landing and a later flight elsewhere, perhaps on the next day's trace, can look like flying on). A gap over an ocean flown at speed stays in the leg. Each leg is checked as an uploaded file is (`fitTrack`, with its 3 hours' room around the logged takeoff and landing), and a leg flown under the flight's own callsign (the airline's ICAO code and the number, `DLH400` for LH400; the trace records the callsign) up to 12 hours, which still rules out the same flight number on another day. The leg under that callsign wins, else a complete one, else the nearest to the logged times (among partial legs, the one with the most points). A track that lies outside the logged times is still written, with a note saying how far off it is, so the user can check the flight's times at the review. Until they are corrected, V-TRACK-TIMES ([20](20-validation.md)) flags the flight.
 - Planned flights are left out, still to come or not yet confirmed: their registration and times are rarely known before the user updates them, and a miss would be remembered. Once confirmed, the next run looks for them. The list of flights without a track (Flights, `export missing-tracks`) leaves them out too.
 - The tracks found go to the inbox as `track` changes, reviewed and imported as one undoable import. The flights without one are listed with the reason and remembered on that computer (`data/private/cache/adsblol/flights.json`), so the next run does not ask again unless `--refresh`. The traces read and each day's map of folders are kept in `data/private/cache/adsblol`, a few hundred kilobytes a flight.
 
@@ -81,11 +63,7 @@ Decided, built. A flight's Track menu has "Download as KML" once its points are 
 
 ### Plausibility checks on any track
 
-- Starts and ends near the right airports.
-- Timestamps fall on the flight date.
-- No jumps faster than 1,200 kt between points (bad data).
-
-Failures are findings, not silent drops.
+Built, the same for a file and for adsb.lol. A track is checked against its flight before it is saved (`fitTrack`, "Sources"): its times must fall on the flight, and it must run from the departure towards the arrival; a refusal says why. Once saved, V-TRACK-TIMES and V-TRACK-ROUTE ([20](20-validation.md)) check it again whenever the flight changes, as findings. A point that would need more than 1,200 kt to reach from the one before, less than an hour earlier, is bad data and is dropped as the file is read.
 
 ### Distance
 
@@ -134,18 +112,7 @@ Where it shows: a flight's page (the times strip's last cell, with how much furt
 
 A period's image and video draw only the flights counted, never a planned flight still to come. A planned flight's own image and video draw its great circle.
 
-| Option | Values |
-|--------|--------|
-| Scope | single flight, date range or year, all flights (requirement F4) |
-| Projection | auto (fit to the paths), world (Equal Earth), regional (conic), globe (orthographic) |
-| Base map | Natural Earth land and borders (public domain), light or dark style |
-| Lines | colour by airline, year, type, or one colour; recorded tracks drawn as recorded, others as great circles |
-| Labels | airport codes (IATA/ICAO/none), title, date range, totals (flights, distance) |
-| Size | 1920×1080, 1080×1080, 1080×1920, A4/A3/US Letter at 300 dpi, custom |
-| Format | PNG, JPEG, WebP, SVG, PDF |
-| Privacy | never shows private fields; option to hide flight numbers and exact dates |
-
-Rendered with d3-geo on canvas (PNG) or as SVG. No map tiles in exports, so there are no tile licensing limits.
+Scope (requirement F4): a single flight, a date range or year, all flights. Drawn with d3-geo on Natural Earth (public domain), on canvas or as SVG. No map tiles in exports, so there are no tile licensing limits.
 
 Built (`apps/web/src/lib/figure.ts`, `components/FigureDialog.tsx`), from the Share dialog of a flight, a sighting, an aircraft, Flights and Home ("Image", [31](31-ui.md), "Share"): a dialog with a preview of the image as it will be saved, drawn again on every change, and its choices, kept in the browser for the next image.
 
@@ -210,7 +177,3 @@ Size, frames a second, theme, view and airport codes are kept in the browser for
 - FR24 downloads give complete gate-to-gate tracks for flights inside the subscription's history window.
 - adsb.lol gives complete tracks over the US and Europe; long oceanic flights only near the coasts (hours-long gaps over the ocean); almost nothing in regions with few community receivers, such as China. No traces were found for dates after mid-November 2025.
 - Flights outside both sources stay on great circles unless the user uploads a file.
-
-Matching lessons:
-- Match on takeoff time within ±3 hours plus both airports; allow the date to be off by one (see the myFR24 Date rule in [21](21-import-export.md)).
-- When the registration in the log does not match, search by flight number and date, then confirm by airports and times.
