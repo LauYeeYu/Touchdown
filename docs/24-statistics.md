@@ -243,9 +243,7 @@ Curated in the core package (`packages/core/src/stamps/continents.ts`): each cou
 
 ## Maps
 
-- Flights map: every flight as a recorded track if one exists, otherwise a great-circle line. Line weight or colour by count. Airports sized by visits.
-- Sightings map: airports/spots with aircraft counts.
-- Map exports (figure, video) are in [23](23-tracks-and-maps.md).
+The maps of flights and sightings, and their exports as images and videos, are in [23](23-tracks-and-maps.md), "Maps in the app".
 
 ## Testing
 
