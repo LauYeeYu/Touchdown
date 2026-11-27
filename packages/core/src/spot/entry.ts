@@ -1,4 +1,4 @@
-// A spotting session (`touchdown spot`, docs/21-import-export.md, "Spotting session"): each line the user types
+// A spotting session (`touchdown spot`, docs/21-import-export.md, "Source: spotting session"): each line the user types
 // is read into a sighting's fields; lookups (fetched by the CLI) say what they know about the registration; the
 // values are chosen from both, and what is still missing or doubtful is listed for the user.
 

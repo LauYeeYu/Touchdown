@@ -1,4 +1,4 @@
-// `touchdown add` (docs/21, "Adding records from the command line"): flights and sightings given as JSON, by the user
+// `touchdown add` (docs/21, "Source: records from the command line"): flights and sightings given as JSON, by the user
 // or by an agent working for them, checked as the Import page would check them against the log as it is now, then
 // put in the inbox for review in the web app. Nothing reaches the log without that review. Ticket numbers and booking
 // references are not taken: they are added in the web app (AGENTS.md, "Data and privacy").

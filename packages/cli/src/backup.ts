@@ -1,4 +1,4 @@
-// `touchdown backup` and `touchdown export` (docs/34, step 5): the web app's Settings, Data, from the command line.
+// `touchdown backup` and `touchdown export` (docs/34, "Changing"): the web app's Settings, Data, from the command line.
 // Both read the log and write nothing to it, so they need no review. A backup holds everything, private fields and
 // track points included, as the web app's does; an export leaves the private fields out unless --private, which
 // writes only to a file, never to the terminal.

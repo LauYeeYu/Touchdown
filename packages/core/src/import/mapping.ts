@@ -301,7 +301,7 @@ const TAGS: [RegExp, string][] = [
 ];
 
 /**
- * Split a sighting's free text into photo tags, a livery and notes (docs/21, "Special parsing"): known photo
+ * Split a sighting's free text into photo tags, a livery and notes (docs/21, "Source: any spreadsheet"): known photo
  * notes ("Partial body", "Too far") become tags; a part ending in "livery" is the livery when there is no
  * special livery; the rest stays as notes.
  */

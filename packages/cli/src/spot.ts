@@ -1,4 +1,4 @@
-// `touchdown spot` (docs/21-import-export.md, "Spotting session"): type the aircraft you saw, one per line. Each
+// `touchdown spot` (docs/21-import-export.md, "Source: spotting session"): type the aircraft you saw, one per line. Each
 // registration is looked up (your log, the OpenSky snapshot, adsbdb, and Flightradar24 when asked), empty fields
 // are filled from the sources, the agent checks the result and sorts out the words Touchdown could not place, and
 // you are asked for what is still missing. The sightings go to an inbox file for the Import page.

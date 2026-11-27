@@ -1,6 +1,6 @@
 // Links every flight and sighting to one physical airframe (docs/11-aircraft-identity.md,
 // "Resolving a record to an airframe"). This is the local part: registration periods already stored.
-// Lookups (step 5a–b) arrive with the lookup service in phase 4; until then an unknown registration
+// Lookups (step 5a–b) wait for the lookup service, which is not scheduled (docs/40, "Later"), so an unknown registration
 // gets a provisional airframe.
 
 import type { RefIndex } from "../ref/index.ts";

@@ -1,4 +1,4 @@
-// `touchdown import FILE…` (docs/34, step 5): a spreadsheet or the my.flightradar24.com export, read as the Import
+// `touchdown import FILE…` (docs/34, "Changing"): a spreadsheet or the my.flightradar24.com export, read as the Import
 // page reads it (the columns worked out, settled at the terminal or with --map, remembered by their headers), checked
 // against the log as it is now, then put in the inbox as one file for review: on the Import page or with
 // `touchdown review`, which read it exactly as they would read the file itself. Nothing reaches the log without that

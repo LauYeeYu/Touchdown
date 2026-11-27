@@ -217,7 +217,7 @@ export function deviceLabel(ua: string | null): string {
 
 // ---------- the handler ----------
 
-/** The language of the request being answered: its Accept-Language, not a setting (docs/33, "Language"). */
+/** The language of the request being answered: its Accept-Language, not a setting (docs/31, "Language"). */
 const requestLanguage = new AsyncLocalStorage<Locale>();
 let languages: Promise<void> | null = null;
 
