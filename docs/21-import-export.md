@@ -139,7 +139,7 @@ The same flights are in both the FR24 export and the flight log spreadsheet. The
 - FR24 has seat type, flight class, flight reason, notes, and FR24 ids.
 - Where both have a value and they differ (times, registration, type), the row is a conflict and the user picks.
 
-Comparing the times of matched flights also answers Q-FR24-TIMES (local or UTC).
+Both give local takeoff and touchdown times (Q-FR24-TIMES).
 
 ## Source: spotting session (`touchdown spot`)
 
@@ -192,7 +192,7 @@ A session's sightings are not in the log until the user reviews and imports them
 |---------|------------------------|
 | Google Drive | `touchdown login` signs the CLI in to the user's Touchdown site once, as a browser is signed in; `touchdown storage drive` then uses the access the web app uses ([33](33-accounts-and-sign-in.md), "The command line"): in Standard mode the site gives it, in Private mode the user's browser hands it over on the same computer. Both come from the web app's own Google client, so the CLI reaches the same Touchdown folder. Writing into a Google Drive for Desktop folder would not do, because the web app's `drive.file` access does not reach files another app created. |
 | Local folder | `touchdown storage folder PATH`: the folder the web app syncs with (or the folder holding its `Touchdown` folder). |
-| Local mode (this browser only) | There is no shared place. `spot` saves the session file and the user opens it on the Import page. (Proposed) |
+| Local mode (this browser only) | There is no shared place. `spot` saves the session file in `data/private/inbox/` and the user opens it on the Import page. |
 | Server backends (later) | The CLI signs in to the backend and writes to its `inbox` area. (Proposed) |
 
 The CLI reads the log and writes only to the inbox; the one exception is `touchdown review`, which imports a file the user has reviewed ([34](34-command-line.md), "Writing the log from the command line"). It never creates the Touchdown folder or a log, and never upgrades one: without a log it can see, `touchdown storage` says so and changes nothing, and a log with a newer schema stops it with a message to update.

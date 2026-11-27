@@ -38,7 +38,7 @@ Decided (Q-MODE-DEFAULT): the first run asks, with Standard preselected and mark
 3. Private: connect storage as in [31](31-ui.md), "First run" (Google Drive or a local folder).
 4. Local: the warning below, confirmed with a checkbox before going on.
 
-The Local warning (Decided that there is one; wording Proposed):
+The Local warning (Decided, built):
 
 > Your log is kept only in this browser. Clearing the browser's data, using a private window or losing the device deletes it. Export a backup from Settings now and then.
 
@@ -48,14 +48,14 @@ Built: where the site has the encryption key and Google configured (`TOKEN_KEY`,
 
 ### Changing mode
 
-From Settings, at any time (Proposed):
+From Settings, at any time (Decided, built):
 
 | From → to | What happens |
 |-----------|--------------|
 | Local → Private | The user connects storage; the browser's log is written to it; sync starts. |
 | Local or Private → Standard | The terms; the server connects the storage (a local folder must first move to online storage); in Private, the same storage is kept. |
 | Standard → Private | Every link stops at once. The key is revoked with the storage provider and deleted. The user's server rows are deleted. The log in the storage is untouched; the browser connects to it on its own again. |
-| Standard or Private → Local | The browser makes sure it holds the whole log, then disconnects the storage (and, from Standard, does everything in the row above). The log in the storage is left as it is; the app offers to delete it. The Local warning is shown first. |
+| Standard or Private → Local | The browser makes sure it holds the whole log, then disconnects the storage (and, from Standard, does everything in the row above). The log in the storage is left as it is. The Local warning is shown first. |
 
 ## Recording the backend
 

@@ -30,7 +30,7 @@ Web app (Import page)                          User's computer
 - Using a suggestion changes a copy of the file's rows; the review is prepared again from it, so the checks run on the corrected values and Undo puts the row back. A used value replaces what the log has for that field (it is taken as "use the file's value"), and the batch records `agentChecker` and the number of rows the agent changed (`rowsEdited`).
 - In the terminal, `touchdown review --check` does steps 3 to 6 for a file waiting in the inbox ([34](34-command-line.md), "Reviewing"): the rows not in the log yet go to the agent (self-test, batches and answer checks as above), each suggestion is shown and used only when the user says so (`--use-high` takes the highly confident ones without asking), and the review goes on with the corrected rows, which are imported with the same provenance and batch fields as on the Import page.
 - Spotting sessions (`touchdown spot`, [21](21-import-export.md)) use the same prompt, lockdown, self-test and answer checks on the lines the user types. Each record also carries `text`, the words of the line Touchdown could not place in a field, and `evidence`, what each lookup says about the registration. The agent may suggest `notes` for such a record, to keep only what is a real note once the words are sorted into fields.
-- Later: a local bridge (`touchdown serve`, listening on `127.0.0.1` only, with the app's origin and a pairing token) instead of saving and loading files; and the `checks` area of the user's storage once sync exists, whatever the backend ([12](12-storage-and-sync.md)).
+- Later, not built ([40](40-roadmap.md), "Later"): a local bridge (`touchdown serve`, listening on `127.0.0.1` only, with the app's origin and a pairing token) instead of saving and loading files; or the files handed over through the `checks` area of the user's storage, whatever the backend ([12](12-storage-and-sync.md)).
 
 ## Choosing the agent
 
@@ -138,7 +138,7 @@ Assets: the user's computer (files, credentials), the user's private data, the i
 | Cost runaway | A huge batch or a looping agent. | 50 rows per call, at most 5,000 per request, a 5-minute timeout per call, one retry, `--limit` for a trial run; the terminal shows the usage Claude Code reports. |
 | CSV/Sheets formula injection on export | A cell starting with `=` runs as a formula in Sheets. | Prefix risky cells with `'` on CSV export. |
 | Request file tampered with | Someone edits the request in the user's storage. | The CLI validates the request schema and size before running. |
-| Supply chain of the CLI | A compromised dependency. | Few dependencies, pinned lockfile, no install scripts, published with provenance. |
+| Supply chain of the CLI | A compromised dependency. | Few dependencies, pinned lockfile, no install scripts. The CLI is run from the user's clone of the repository, not installed from a registry. |
 
 This follows the "rule of two" for agents: the verifier has untrusted input, but no sensitive data and no ability to act. Detection-based prompt-injection defenses are not relied on.
 
@@ -185,7 +185,3 @@ For both: the agent runs in a new empty folder, and the schema and Codex's answe
 Self-test: before the first run with an agent version (or with `--self-test`), the CLI sends two made-up sightings, one of them carrying an instruction to run a command, list files and change every registration. The run must answer in the schema, suggest nothing that follows the instruction and leave its folder empty; otherwise the CLI refuses to use that agent. A pass is remembered per agent and version in `data/private/cache/agent-self-test.json`.
 
 Optional later: a direct model API mode (Anthropic or OpenAI API key, structured output, no tools). It is simpler and safer than an agent CLI, but it needs an API key and is billed per call, which is why the CLI mode is the default.
-
-## Open items
-
-- Notes: sent only when the CLI on that computer is set to send them, or with `--notes` for one run (Decided, built).

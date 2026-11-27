@@ -16,7 +16,7 @@ Where facts about airports, airlines, aircraft types, airframes, flights, and tr
 
 ## Static reference datasets
 
-Built by `packages/refdata` and shipped with the web app as versioned JSON. Rebuilt on a schedule (weekly is enough).
+Built by `packages/refdata` and shipped with the web app as versioned JSON. Rebuilt by hand (`npm run build-data -w @touchdown/refdata` and the commands after it) and committed, so the next deploy ships it.
 
 | Dataset | Source | Licence | Fields used | Notes |
 |---------|--------|---------|-------------|-------|
@@ -29,7 +29,7 @@ Built by `packages/refdata` and shipped with the web app as versioned JSON. Rebu
 | Model patterns | Our own table | Ours | designator → regex for manufacturer model designations | For V-MODEL-TYPE. |
 | Registration prefixes | Our own table, from ICAO nationality marks | Ours | prefix, country, pattern | |
 
-Attribution for ODC-By and ODbL sources is shown on an About page and in exports that contain derived data.
+Attribution for ODC-By and ODbL sources is shown under "Data and credits" in the footer of the app and of the share page (`components/FootCredits.tsx`).
 
 ### Airports
 

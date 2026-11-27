@@ -4,7 +4,7 @@ Metric definitions for flights, sightings, and both together (requirements G3, P
 
 ## General rules
 
-- Statistics are computed in the browser from the local store. Data volume (thousands of records) does not need a database engine; plain TypeScript aggregation is enough.
+- Statistics are computed from the log in memory, by the core package (`@touchdown/core/view`, the stats engine), in the browser, on a share link's page and in the CLI alike. Data volume (thousands of records) does not need a database engine; plain TypeScript aggregation is enough.
 - "Aircraft" always means distinct airframes (requirement I4). Provisional airframes are counted, and the count of provisional ones is shown next to the total.
 - Every metric lists the fields it needs. Records missing them are left out, and the UI shows "N records left out (missing X)".
 - Deleted records (tombstones) are never counted.

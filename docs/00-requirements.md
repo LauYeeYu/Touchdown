@@ -53,7 +53,7 @@ Status values: **Decided** (stated or confirmed by the user), **Proposed** (sugg
 |----|-------------|--------|--------|
 | I1 | One aircraft identification system. Every flight and sighting is linked through it. | Doc (Photos) | Decided |
 | I2 | Tolerate one registration being used by different aircraft over time. | Doc | Decided |
-| I3 | Answer: is registration + type code enough to identify an aircraft? Answer: no. See [11](11-aircraft-identity.md). | Doc | Proposed |
+| I3 | Answer: is registration + type code enough to identify an aircraft? Answer: no. See [11](11-aircraft-identity.md). | Doc | Decided |
 | I4 | "Number of aircraft" counts physical airframes. An airframe seen under two registrations counts once. | Chat | Decided |
 
 ## Data entry, filling, checking
