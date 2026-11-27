@@ -21,15 +21,15 @@ How the parts fit together. Built on the decisions in [12](12-storage-and-sync.m
                               external data providers (13)
 ```
 
-| Component | Runs where | Holds user data? | Decided / Proposed |
-|-----------|-----------|------------------|--------------------|
-| Web app | Static hosting; code runs in the browser | Only in the browser and the user's storage | Decided (static, TS) |
-| Core package | Inside the web app and the CLI | No | Proposed |
-| Storage package | Inside the web app and the CLI | Moves the user's rows between the local store and the chosen backend | Decided (generic, schema-driven; see 12) |
-| Companion CLI | User's computer | Reads check requests only | Decided (local CLI) |
-| Lookup service | Cloudflare Worker | No. It sees registrations and flight numbers being looked up, not who asked. | Not scheduled: lookups are made by the CLI (Q-LOOKUP, [40](40-roadmap.md), "Later") |
-| Accounts and sharing | The same Worker, with Cloudflare D1 | Standard mode only: the user's email, an encrypted key to their storage, the terms accepted, their links' settings. Never the log. | Decided ([32](32-modes-and-sharing.md)) |
-| Reference data build | Developer machine / CI | No | Proposed |
+| Component | Runs where | Holds user data? | Status |
+|-----------|-----------|------------------|--------|
+| Web app | Static files served behind the sign-in; code runs in the browser | Only in the browser and the user's storage | Built |
+| Core package | Inside the web app, the share page, the CLI and the server | No | Built |
+| Storage package | Inside the web app and the CLI | Moves the user's rows between the local store and the chosen backend | Built (generic, schema-driven; see 12) |
+| Companion CLI | User's computer | Reads the log from the user's storage and writes its inbox; `review` writes the log ([34](34-command-line.md)) | Built |
+| Lookup service | Cloudflare Worker | No. It would see registrations and flight numbers being looked up, not who asked. | Not scheduled: lookups are made by the CLI (Q-LOOKUP, [40](40-roadmap.md), "Later") |
+| Accounts and sharing | The same Worker, with Cloudflare D1 | Every account's name, email and sign-in ([33](33-accounts-and-sign-in.md)); in Standard mode also an encrypted key to the storage, the terms accepted, the links' settings and previews ([32](32-modes-and-sharing.md)). Never the log. | Built |
+| Reference data build | Developer machine, by hand (`npm run build-data` and the other `@touchdown/refdata` commands); its output is committed | No | Built |
 
 ## Why a lookup service
 
@@ -48,51 +48,55 @@ If the user prefers no server at all, the alternative is that each user enters t
 ## Repo layout
 
 ```
-apps/web/            web app; sign-in pages (signin.html); the Cloudflare Worker (worker/, wrangler.jsonc)
-packages/server/     the server: sign-in, invitations, sessions, the gate (33); D1 or SQLite file; Node entry
-packages/core/       schema (single source of truth) and generators, normalisation,
-                     identity resolver, validation rules, stats, importers/exporters, geo/time math
-packages/storage/    backend interface, sync engine, backends: json_tables
-                     (later: sqlite_file, sqlite_local, postgres, d1), file adapters: gdrive, localfs, manual
-packages/cli/        companion CLI (check, spot, the log's reading and changing commands, render; later: serve)
+apps/web/            web app (index.html); its other builds: sign-in pages (signin.html), share page
+                     (share.html), aircraft types pages (types.html), render page (render.html), the
+                     service worker; the Cloudflare Worker (worker/, wrangler.jsonc)
+packages/server/     the server: sign-in, invitations, sessions, the gate (33), Standard mode and share
+                     links (32); D1 or SQLite file; Node entry
+packages/core/       schema (src/schema, the single source of truth) and its generators, normalisation,
+                     identity resolver, validation rules, stats and the pages' figures (src/view),
+                     importers/exporters, stamps, geo/time math
+packages/storage/    backend interface, sync engine, the json_tables backend, the Google Drive adapter
+                     (later: sqlite_file, sqlite_local, postgres, d1)
+packages/cli/        companion CLI (./touchdown)
 packages/i18n/       the interface's words: message files by language, t(), plural forms (G12)
-packages/refdata/    scripts that build reference JSON (airports, operators, types)
-services/lookup/     lookup service
-prompts/             agent instructions (verifier.md)
-schema/              JSON Schemas generated from core (check request/result, files)
+packages/refdata/    scripts that build the reference JSON (airports, operators, types, names, figures)
+prompts/             agent instructions (verifier.md, mapper.md)
 docs/
 data/private/        personal data, git-ignored
 ```
 
 One npm workspace (npm ships with Node, so there is no extra package manager to install). The core package has no browser or Node-specific code, so the web app and the CLI share it.
 
-## Technology (proposed unless noted)
+## Technology
+
+Built with these, apart from the rows marked later.
 
 | Concern | Choice | Reason |
 |---------|--------|--------|
 | Language | TypeScript | Decided. |
 | Web framework | React + Vite | Largest ecosystem for tables, maps, charts. Static build. |
-| Routing / data tables | TanStack Router, TanStack Table | Typed, client-only. |
-| Schema | Zod-based table definitions in `packages/core/schema` | One definition generates TypeScript types, validators, JSON Schemas, and SQL DDL for SQLite / D1 / Postgres. |
+| Routing | TanStack Router | Typed, client-only. |
+| Schema | Zod-based table definitions in `packages/core/src/schema` | One definition generates TypeScript types, validators, JSON Schemas, and SQL DDL for SQLite / D1 / Postgres. |
 | SQLite in the browser (later) | Official SQLite WebAssembly build | Would open and write the SQLite file backend in Chrome (desktop and Android), once that backend is built ([12](12-storage-and-sync.md), "File backend: SQLite file"). |
 | Local store | IndexedDB via Dexie | Offline, survives reloads. One record per row, except track points: one record per track ([12](12-storage-and-sync.md), "Local store"). All rows are also held in memory (a personal log is a few MB), so pages compute from the core store directly; IndexedDB is the persistence under it. |
-| Time zones | Temporal API (polyfill until browsers ship it) | Correct local-time and day-offset math. |
+| Time zones | The runtime's time-zone data through `Intl` (`packages/core/src/time`) | Correct local-time and day-offset math without shipping zone data ([21](21-import-export.md), "Time zones and daylight saving"). |
 | Interactive map | d3-geo on Natural Earth land (world-atlas), drawn as SVG | Decided by the approved prototype: a quiet world map with arcs and spots, no tiles, no API key, same drawing code as the exports. |
 | Export rendering | d3-geo + Natural Earth (public domain) on canvas/SVG | Full control of the output, no tile licensing issues in exported images and videos. |
 | Video encoding | WebCodecs in the browser (Chrome, Edge, Firefox, Safari), H.264 else VP9, written as MP4 by the app's own writer (`apps/web/src/lib/mp4.ts`); no MediaRecorder fallback, as a screen recording drops frames when the page is busy. `touchdown render` runs the same page in a headless Chrome for long or 4K videos and writes each frame to a file as it comes ([34](34-command-line.md), "Videos") | No server and no library: the writer is a few hundred lines and records the colour space and an even frame rate. |
 | Charts | d3 scales and hand-drawn SVG | The few charts (months, altitude, ranked lists) follow the prototype's mark rules exactly; a chart library would add weight without saving code. |
 | CSV | Papa Parse | Handles quoting, encodings, large files. |
-| Google auth (Google Drive adapter) | Google Identity Services token flow, scope `drive.file` | No backend needed for auth. |
-| Offline | Service worker (PWA) | App loads without network; sync resumes later. Built (see "Offline" below). |
-| Lookup service | The `/api/*` routes of the same Cloudflare Worker that serves the app; Cache API for caching | Free plan is enough (see Deployment). |
-| Hosting | The server in `packages/server` ([33](33-accounts-and-sign-in.md)): a Cloudflare Worker with static assets and D1, or a Node server with a SQLite file on any machine | One codebase, so the site can move hosts. Starts on Cloudflare. |
-| Tests | Vitest (core, CLI), Playwright (web flows) | |
-| CLI packaging | Node, published to npm, run with `npx` | |
+| Google auth (Google Drive adapter) | Private mode: Google Identity Services token flow in the browser, scope `drive.file`. Standard mode: the server's authorisation-code flow ([32](32-modes-and-sharing.md), "Connecting storage") | Private needs no server for Google. |
+| Offline | Service worker (PWA) | App loads without network; sync resumes later (see "Offline" below). |
+| Lookup service (later) | The `/api/*` routes of the same Cloudflare Worker that serves the app; Cache API for caching | Free plan is enough (see Deployment). |
+| Hosting | The server in `packages/server` ([33](33-accounts-and-sign-in.md)): a Cloudflare Worker with static assets and D1, or a Node server with a SQLite file on any machine | One codebase, so the site can move hosts. Runs on Cloudflare. |
+| Tests | Vitest (every package and the web app); `npm run check-back` checks every page's Back in a headless Chrome ([31](31-ui.md), "Going back") | |
+| CLI packaging | Node, run from a clone of the repository with `./touchdown` (README, "Set up"). Not published. | |
 
 ## Security and privacy
 
-- Sign-in (U3, Decided, Q-ACCESS): the site signs people in itself ([33](33-accounts-and-sign-in.md)), with email and password or Google, and only people the owner invites get an account. No sign-in service sits in front of it, so it is not tied to one host. Passwords are hashed in the browser and never reach the server. Besides the sign-in pages, only the privacy policy and the terms (`/privacy`, `/terms`) and, later, the public share page `/p/<id>` ([32](32-modes-and-sharing.md)) open without a session; the share page serves one public link's content and nothing else.
-- The gate (Decided, built in `packages/server`): every request, for a page, a file or `/api/*`, goes through the server first, which checks the session cookie; without a valid session only the sign-in pages, the privacy policy and the terms answer ([33](33-accounts-and-sign-in.md)).
+- Sign-in (U3, Decided, Q-ACCESS): the site signs people in itself ([33](33-accounts-and-sign-in.md)), with email and password or Google, and only people the owner invites get an account. No sign-in service sits in front of it, so it is not tied to one host. Passwords are hashed in the browser and never reach the server.
+- The gate (Decided, built in `packages/server`): every request, for a page, a file or `/api/*`, goes through the server first, which checks the session cookie. Without a valid session only the pages [33](33-accounts-and-sign-in.md), "Pages anyone can open", lists answer: the sign-in pages, the privacy policy and the terms, a share link's page `/p/<id>`, which serves one public link's content and nothing else ([32](32-modes-and-sharing.md), "The public page"), and the aircraft types pages, which hold reference data only.
 - Inside the gate, each user still connects their own storage (for Google Drive, a Google sign-in with the `drive.file` scope; a local folder needs only the browser's permission). In Standard mode the server makes the connection and keeps an encrypted key ([32](32-modes-and-sharing.md)). The gate decides who may use the app; the storage connection decides whose data is read. Neither gives anyone access to another user's data.
 - The app keeps working offline from its cache, installed or not; when the session expires, the next online request sends the user to the sign-in page and removes the offline copy ("Offline" below).
 - On the server, per user: the account (email, name, role), how they sign in (a hash of the browser's password key, the Google account id) and their sessions ([33](33-accounts-and-sign-in.md)); in Standard mode also an encrypted key to the storage and their links' settings ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
@@ -104,7 +108,7 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 
 ## Deployment (Cloudflare)
 
-Built: the server (`packages/server`), the Worker that wraps it (`apps/web/worker/`, config in `apps/web/wrangler.jsonc`, D1 bound as `DB`) and the GitHub Actions workflow (`.github/workflows/deploy.yml`). The steps for the person running the site are in the README, "Running the hosted site".
+Built: the server (`packages/server`), the Worker that wraps it (`apps/web/worker/`, config in `apps/web/wrangler.jsonc`, D1 bound as `DB`) and the GitHub Actions workflow (`.github/workflows/deploy.yml`). The steps for the person running the site, and its settings and secrets, are in [33](33-accounts-and-sign-in.md), "Hosting".
 
 ```
 Worker "touchdown" (or the same server on any machine, 33)
@@ -112,10 +116,9 @@ Worker "touchdown" (or the same server on any machine, 33)
      /signin, /join/<id>, /reset/<id>, /setup, /auth/*
      /privacy, /terms     the privacy policy and the terms, built from PRIVACY.md and TERMS.md
                           the site's own sign-in, invitations and sessions (33)
-     static assets        apps/web build output + reference JSON + airframe index shards
+     static assets        apps/web build output + reference JSON
                           (single-page-app fallback for unknown paths)
-     /api/*               lookup service (13)
-     /api/storage/*       Standard mode: connecting storage, short-lived tokens (32)
+     /api/storage/*       Standard mode: terms, connecting Google Drive, short-lived access (32)
      /api/shares/*        Standard mode: making, changing and stopping links (32)
      /p/<id>              a shared link's page and content, without a session; the only path with
                           user content outside the sign-in
@@ -126,21 +129,20 @@ Worker "touchdown" (or the same server on any machine, 33)
                           the app for a signed-in browser (31)
      /types-files/*       their own code, styles and type reference data, and their previews for
                           chat apps, without a session
-     D1                   accounts, sessions, invitations (33); Standard-mode storage keys
-                          and link settings (32)
-     /api/storage/*       Standard mode: terms, connecting Google Drive, short-lived access (32)
-     secrets              setup secret, Google client secret, token encryption key (TOKEN_KEY),
-                          provider API keys; set with `wrangler secret put` or the dashboard
+     /cli/*               the command line's sign-in and Google Drive hand-over pages (33)
+     D1                   accounts, sessions, invitations (33); Standard-mode storage keys,
+                          link settings and previews (32)
+     secrets              setup secret, Google client secret, token encryption key (TOKEN_KEY);
+                          set with `wrangler secret put` or the dashboard
 ```
 
 - One Worker serves both the app and the API, so they share one origin: no CORS setup, one deployment.
 - The `workers.dev` and preview addresses are turned off in `wrangler.jsonc`, so the site has one address (built).
-- Free plan: every request runs the Worker (the session check, one database read), so pages and files count towards the 100,000 requests a day, with 10 ms of CPU each; a few users stay far below that. Password hashing happens in the browser, which keeps sign-in within the 10 ms ([33](33-accounts-and-sign-in.md)). The lookup service mostly waits on upstream servers, which does not count as CPU. The paid plan ($5/month) is the fallback if limits are reached; it is accepted (Decided) for share links' photos, each shown photo being one request ([25](25-photos.md), "Share links"). Recheck the limits before launch.
-- Airframe index shards (about 1,300 small files) ship as static assets. If the plan's per-version file limit is too low, they move to R2.
+- Free plan: every request runs the Worker (the session check, one database read), so pages and files count towards the 100,000 requests a day, with 10 ms of CPU each; a few users stay far below that. Password hashing happens in the browser, which keeps sign-in within the 10 ms ([33](33-accounts-and-sign-in.md)). The paid plan ($5/month) is the fallback if limits are reached; it is accepted (Decided) for share links' photos, each shown photo being one request ([25](25-photos.md), "Share links").
 - Deploys (Decided, built): GitHub Actions on every push to `master` runs the tests and the type check, builds the app and deploys with `wrangler` (pinned in `apps/web/package.json`), using a Cloudflare API token kept as a GitHub Actions secret. The deploy step runs only while the repository variable `DEPLOY` is `on`, which the owner sets once the sign-in is built, so the site is never open. Wrangler's telemetry is off in the workflow.
 - The Worker's config (`wrangler.jsonc`) names the custom domain and is committed (Decided): the address is not a secret, and the gate protects the site.
-- Reference data and the airframe index are rebuilt weekly in GitHub Actions (the source files are about 100 MB, too heavy for a Worker cron), then deployed with `wrangler`.
-- Google OAuth: the production origin (`*.workers.dev` or a custom domain) and a fixed staging origin are registered under Google's "Authorized JavaScript origins" setting. Sign-in with Google registers `/auth/google/callback` under "Authorized redirect URIs" ([33](33-accounts-and-sign-in.md)); Standard mode uses the same address, so nothing more is registered.md)). Per-upload preview URLs change, so they are not used for sign-in.
+- Reference data is rebuilt by hand with the `@touchdown/refdata` commands and committed, so a push deploys it with the app.
+- Google OAuth: the site's address (the custom domain) and the dev server's are registered under Google's "Authorized JavaScript origins" setting. Sign-in with Google registers `/auth/google/callback` under "Authorized redirect URIs" ([33](33-accounts-and-sign-in.md)); Standard mode uses the same address, so nothing more is registered.
 - Headers (built, `packages/server/src/headers.ts`; `vite preview` serves the build with the same ones):
   - Content Security Policy: everything from the site itself, plus Google's sign-in script and the Drive API, and planespotters.net's API and photos, and Cloudflare Web Analytics (`static.cloudflareinsights.com`, reporting to `cloudflareinsights.com` or the site's own `/cdn-cgi/rum`). No eval (the app tells Zod not to probe for it), but WebAssembly may be compiled (`'wasm-unsafe-eval'`, for the password hash and later SQLite); no inline styles, no frames of the site elsewhere. The theme is applied by a small inline script before first paint, so the policy allows that one script by hash; a test checks the hash against `index.html`. Google's sign-in script adds an inline style for its own sign-in button, which Touchdown does not use; it is blocked.
   - `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` turning off the camera, microphone, location and payment, and `X-Robots-Tag: noindex`.
@@ -153,19 +155,19 @@ Worker "touchdown" (or the same server on any machine, 33)
   - An app page is fetched from the network first, so online the gate decides as before. Only when the network cannot be reached is the cached page used. The sign-in pages, `/auth/`, `/api/`, share links (`/p/`, `/share-files/`), the types pages' own files (`/types-files/`), the privacy policy and terms, and `/cli/` are never served from the cache. The types pages themselves are app pages here: offline, a member's browser opens them in the app.
   - Offline, the app opens the log of the account last signed in on this browser ([33](33-accounts-and-sign-in.md)); with none, it says to connect and sign in.
   - Signing out, or a session the server no longer knows (expired, or ended from another device), removes the worker, its cache and the remembered account, so the log no longer opens here without signing in.
-- Logs: Worker logs are off (`observability` disabled), because page addresses and lookups reveal which aircraft a user is interested in. When `/api/*` needs logs, they stay minimal (no request bodies, no client identifiers).
+- Logs: Worker logs are off (`observability` disabled), because page addresses reveal which aircraft a user is interested in. When `/api/*` needs logs, they stay minimal (no request bodies, no client identifiers).
 - Cloudflare D1 holds the Standard-mode tables ([32](32-modes-and-sharing.md)). D1 as a storage backend (later, Q-SERVER-DB) can live in the same account.
 - Not on Cloudflare: the log (each user's storage) and the companion CLI (each user's computer). In Standard mode Cloudflare holds an encrypted key to the storage and the links' settings ([32](32-modes-and-sharing.md)).
 
 ## Multi-user
 
-Each friend uses the same hosted web app and their own storage. Server-side user data exists only in Standard mode: an encrypted key to the user's storage and their links' settings ([32](32-modes-and-sharing.md)); the log itself stays in the user's storage. Users see each other's data only through links shared with them. The other shared parts are the static app, the reference data, and the lookup service cache.
+Each friend uses the same hosted web app and their own storage. On the server each has an account ([33](33-accounts-and-sign-in.md)), and in Standard mode an encrypted key to their storage and their links' settings ([32](32-modes-and-sharing.md)); the log itself stays in the user's storage. Users see each other's data only through links shared with them. The other shared parts are the app and the reference data.
 
 ## Cost
 
 | Item | Cost |
 |------|------|
-| Static hosting, lookup service | Free tier |
+| Hosting (Worker, static assets) | Free tier |
 | Accounts, sessions, Standard-mode keys and links (Cloudflare D1) | Free tier |
 | Google Cloud project for OAuth | Free (non-sensitive scope, no verification) |
 | Domain | Optional, about $10/year |
