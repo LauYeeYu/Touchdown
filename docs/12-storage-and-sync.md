@@ -399,9 +399,4 @@ CSV export/import per table is available with every backend. It is the fallback 
 - OAuth tokens, API keys, session tokens.
 - Data from other users.
 
-## Private fields
-
-`ticketNumber` and `bookingRef` are stored in the user's own data (it is their data), but:
-- they are excluded from CSV exports unless the user ticks "include private fields";
-- they are never sent to the lookup service or to the agent check;
-- they are hidden in exported stats images and videos.
+Ticket numbers and booking references are the user's own data and are stored, apart from the rest of the log, in `private/`. Where they may go is in [32](32-modes-and-sharing.md), "Private data".

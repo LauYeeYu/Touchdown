@@ -98,7 +98,7 @@ One npm workspace (npm ships with Node, so there is no extra package manager to 
 - On the server, per user: the account (email, name, role), how they sign in (a hash of the browser's password key, the Google account id) and their sessions ([33](33-accounts-and-sign-in.md)); in Standard mode also an encrypted key to the storage and their links' settings ([32](32-modes-and-sharing.md)). Connecting storage only grants access to the user's own storage (with Google Drive, only the files Touchdown created).
 - Private mode: Google's access token stays in the browser until it expires (an hour), and no refresh token is on any server. Standard mode: one refresh token per user, encrypted, never logged or returned to a browser ([32](32-modes-and-sharing.md)).
 - Strict Content Security Policy. No ads. Analytics (Decided by the owner): Cloudflare Web Analytics, which Cloudflare adds to every page: page views with the page's address, referrer, browser, device, country and load times; no cookies, nothing tied to an account. Page addresses can name a registration or a flight's date and airports, and the owner sees totals per address; `PRIVACY.md` says so.
-- Private fields (ticket number, booking reference) never leave the user's storage and browser except in exports the user asks for with "include private fields".
+- Private fields (ticket number, booking reference) never leave the user's storage and browser except in exports the user asks for with "include private fields" ([32](32-modes-and-sharing.md), "Private data").
 - All imported text is treated as untrusted: escaped in the UI, never used as HTML, formula-guarded on CSV export.
 - Dependencies pinned with a lockfile; no install scripts in the CLI.
 
