@@ -71,7 +71,7 @@ Severity:
 
 ## External rules (X-)
 
-These need the lookup service ([13](13-reference-data.md)). They are skipped offline and shown as "not checked".
+Not built: these need the lookup service ([13](13-reference-data.md)), which is not scheduled ([40](40-roadmap.md), "Later"). Once built, they would be skipped offline and shown as "not checked". Until then the CLI compares the lookups' answers with what the user typed when it fills a record (`touchdown spot`, [21](21-import-export.md); `touchdown airframes`, [13](13-reference-data.md), "Checks before anything is stored").
 
 | Id | Check | Severity |
 |----|-------|----------|
@@ -81,7 +81,7 @@ These need the lookup service ([13](13-reference-data.md)). They are skipped off
 
 ## Auto-fill (requirement D5)
 
-Auto-fill runs after checks and fills only empty fields. Each filled value records its source in `field_provenance`.
+Auto-fill runs after checks and fills only empty fields. Each filled value records its source in `field_provenance`. The lookups are made by the CLI (`touchdown spot`, `touchdown airframes`); the flight lookup is not built ([13](13-reference-data.md), "Flight lookups").
 
 | Empty field | Filled from |
 |-------------|-------------|

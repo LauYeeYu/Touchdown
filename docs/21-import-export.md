@@ -36,7 +36,7 @@ Planned flights (Decided, F5; [31](31-ui.md), "Planned flights"), from every sou
 - A flight whose departure is still to come when it is imported comes in as planned, marked "Planned" in the review. Its date in the future is no error ([20](20-validation.md), V-DATE-SANE).
 - A row that matches a planned flight in the log (stage 4) updates it as any match does. Once the flight's time has passed, that confirms it: the import brings what happened, such as the myFR24 export of the flight once flown.
 
-Lookups during an import are batched, cached, and rate-limited. If the app is offline, external checks are marked "not checked" and can be re-run later.
+The web app looks nothing up during an import. Registrations are looked up on the user's computer before a file reaches the inbox (`touchdown spot`, below) or afterwards (`touchdown airframes`, [13](13-reference-data.md), "Airframe facts"), cached and rate-limited there.
 
 ## Source: my.flightradar24.com CSV
 
@@ -101,7 +101,7 @@ Decided, built. Every spreadsheet other than the myFR24 export is read through a
 | Ticket number, booking reference (flights) | Private fields: stored, never shown in samples, never sent to an agent. |
 | Not used | Manufacturer and family (derived from the type), route (derived from the airports), photo links. |
 
-From Google Sheets (with sync, phase 3): the user picks each sheet with the Google Picker, which grants access to that file only (`drive.file`); it is read with the Sheets API as unformatted values, so dates arrive as serial numbers and are converted exactly. Until then, export the sheet as CSV or `.xlsx`.
+From Google Sheets (Proposed, not built): the user would pick each sheet with the Google Picker, which grants access to that file only (`drive.file`), and it would be read with the Sheets API as unformatted values, so dates arrive as serial numbers and are converted exactly. Until then, export the sheet as CSV or `.xlsx`.
 
 ## Building date-times from clock times
 

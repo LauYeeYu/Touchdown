@@ -85,6 +85,8 @@ Input: the record's normalised registration `R`, date `D` (flights: the flight d
 
 The resolver runs on save, on import, and again when reference data or airframe facts are refreshed. It never changes the record's raw fields.
 
+Built (`packages/core/src/identity/resolve.ts`), but for steps 5a–b: the lookup service is not scheduled ([40](40-roadmap.md), "Later"), so an unknown registration gets a provisional airframe (5c). Its serial number comes later from `touchdown airframes` or from the user ([13](13-reference-data.md), "Airframe facts"), which confirms it and merges it with any airframe that has that number.
+
 ## A type mismatch, step by step
 
 1. Sighting A: `N999ZZ`, B752. Sighting B: `N999ZZ`, A319.

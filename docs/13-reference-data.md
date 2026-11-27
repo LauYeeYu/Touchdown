@@ -146,17 +146,17 @@ Facts about individual airframes. Too large to ship whole with the app (hundreds
 
 **Coverage expectation.** MSN and first flight will be known for most US aircraft and for most aircraft in the OpenSky snapshot. Aircraft registered outside the US after 2025-08 will often have no MSN, so their airframes stay provisional ([11](11-aircraft-identity.md)) until the user or a later source supplies it.
 
-## Live lookups (through the lookup service)
+## Live lookups
 
-The lookup service is not scheduled, as the airframe index is not. Used when the static index has no entry or is stale. Results are cached by the lookup service.
+Asked by the CLI from the user's computer (built, below). The lookup service, which would ask them for the web app when the airframe index has no entry or a stale one and cache the answers, is not scheduled, as the airframe index is not.
 
 | Source | Endpoint | Gives | Terms |
 |--------|----------|-------|-------|
 | [adsbdb](https://www.adsbdb.com/) | `GET /v0/aircraft/{reg or hex}` | type, manufacturer, hex, registration, owner, country | Free, no key. Aircraft data credited to PlaneBase. Route data may not be copied into other databases. Light, cached use only. |
 | [hexdb.io](https://hexdb.io/) | `/api/v1/aircraft/{hex}`, `/reg-hex?reg=` | registration, type, owner | "Please do not scrape." Light, cached use only. |
 
-Built so far (`touchdown spot`, [21](21-import-export.md)):
-- adsbdb is asked directly from the user's computer, one request a second. Answers, including "unknown aircraft", are cached for 90 days in `data/private/cache/airframes/adsbdb/`.
+Built (`touchdown spot`, [21](21-import-export.md); `touchdown check log`, [22](22-agent-verification.md)):
+- adsbdb is asked directly from the user's computer, one request a second. hexdb.io is not asked. Answers, including "unknown aircraft", are cached for 90 days in `data/private/cache/airframes/adsbdb/`.
 - The airline also comes from the OpenSky snapshot (only from rows whose free-text columns split cleanly) and, with `--fr24`, from Flightradar24 pages: the "AIRLINE" row and its "Code" row. When the operator holding the certificate is a different company, it goes to the agent as a note.
 - Models as these sources write them ("A320 232", "Boeing 787-9 Dreamliner") are turned into the standard form and kept only when they fit the type.
 - The web app credits the OpenSky Network and adsbdb (PlaneBase) in its footer.
@@ -263,9 +263,9 @@ See [23](23-tracks-and-maps.md) for how tracks are matched and drawn.
 | AeroAPI Personal | 10 days | As above | As above | Optional, user's own key. |
 | Great circle | Always | Free | — | Default when no recorded track exists. |
 
-## Lookup service API (proposed)
+## Lookup service API
 
-Not scheduled. Stateless; no user data stored; responses cached.
+Proposed, not scheduled ([30](30-architecture.md), "Why a lookup service"). Stateless; no user data stored; responses cached.
 
 | Endpoint | Does |
 |----------|------|
