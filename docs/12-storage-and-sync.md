@@ -165,7 +165,7 @@ A visible folder in the user's storage, created by the app:
 
 ```
 Touchdown/
-  manifest.json            { "schema": "touchdown", "schemaVersion": 8, "backend": "json_tables",
+  manifest.json            { "schema": "touchdown", "schemaVersion": 10, "backend": "json_tables",
                              "tables": { "flights": "tables/flights.json", ... }, "lastWriter": "dev_8f2c" }
   tables/
     flights.json
@@ -202,7 +202,7 @@ Table file format:
 ```json
 {
   "schema": "touchdown",
-  "schemaVersion": 8,
+  "schemaVersion": 10,
   "table": "flights",
   "columns": ["id", "rev", "updatedAt", "updatedBy", "deleted", "scheduledDate", "flightNumber", "takeoffAt", "..."],
   "rows": [
@@ -278,11 +278,8 @@ Who hosts these, and whether each user brings their own instance, is open (Q-SER
 
 - The stored schema version is in `manifest.json` (JSON tables) or the `meta` table (SQLite, server backends).
 - Migration steps are defined once in core (add column, rename column, add table, transform values). Each backend has a runner: JSON tables rewrite the files; SQL backends run generated DDL plus data updates.
-- Version 7 (built, `movePrivateFiles` in `packages/storage/src/jsonTables.ts`): tables marked private live in `private/`. Opening the log moves a file such a table still has in `tables/` (left by an older version): its rows are written into the file in `private/` as a push would write them, so a newer row there is never replaced, and only then is the old file removed. A device that stops half way finds the old file at its next opening and finishes. The flights' private values are moved by an edit in the first sync (step 3 of "Sync algorithm"; [32](32-modes-and-sharing.md), "Private data").
-- Version 8 (built): the settings gain `language` and `dateFormat`, which were kept in each browser before. Both start empty: each device follows its own browser's languages, and the language's own way of writing dates, until one is chosen in Settings.
-- Version 9 (built): flights gain `planned` and `remindAt`, for planned flights ([31](31-ui.md), "Planned flights"). Both start empty, so every older flight is a flown one. Nothing moves. An older app stops syncing at the first table file version 9 wrote and asks for a reload, as for every version since 5, so it never reads a planned flight as a flown one.
-- Version 10 (built): the `stamps_seen` table, the hidden stamps whose first press has played ([31](31-ui.md), "Stamps"). It starts empty, and nothing moves. An older app stops syncing at the first table file version 10 wrote and asks for a reload.
-- Built so far: adding columns (`MIGRATIONS` and `upgradeTableFile` in core). Table files and backups from an older version are upgraded as they are read, and written in the current version from then on; opening a JSON tables folder moves its manifest to the current version.
+- What each version changed is in [10](10-domain-model.md), "Schema versions"; how older data is brought up to each is under "Every version, checked" below.
+- Built: adding columns and tables (`MIGRATIONS` and `upgradeTableFile` in core). Table files and backups from an older version are upgraded as they are read, and written in the current version from then on; opening a JSON tables folder moves its manifest to the current version.
 - Decided: no backup is written before a migration, and moved values leave no `migration` history. A migration is made safe instead: it follows the rules under "Rules for a new version", and its tests run two devices through it at once and a device opening it on an old copy.
 - If the log, or a table file in it, was written by a newer version than the app understands, the app stops syncing and asks for a reload (built): a bar under the masthead, "A newer version of Touchdown has changed your log … Reload to update the app", with a Reload button, and "Reload to update" as the save state. The app is not read-only: edits made meanwhile are kept in the browser and sent after the reload, which loads the new version. Such a file is never written over. Table files of an older version are upgraded as they are read, so a newer app reads what an older one wrote. The command line refuses a log newer than itself ("git pull, then npm install"), and `review` refuses an older one until the web app has opened it once.
 - In development (`npm run dev`), the web app asks before it brings a log up to a newer schema version (built, the `upgrade` question of `JsonTablesBackend.open`): until the deploy, the site runs the older version and would stop syncing the log. "Cancel" leaves the log as it is and stops syncing until the page reloads, with the reason in the sync status. The built app does not ask.
@@ -313,15 +310,17 @@ What went wrong before this was decided, at version 7: the app moved ticket numb
 | 4 | The agent check's settings and `agent_rules` removed | Columns dropped when read. Rows of a table the schema no longer has are removed from the browser. | Fine. |
 | 5 | `versionVector`, `sync_conflicts` | Added as empty. A missing table file is an empty table. From here on an older app stops at a newer file. | Rows without vectors made an old copy list false conflicts. Fixed ("An old copy"). |
 | 6 | `sighting_phases`: statuses moved out of a sighting's `phase` and notes | Statuses not moved yet are read where they are (`phaseIndex`, `phasesOf`). The move makes the same rows on every device, and the same status added twice is folded into one by `reconcile`. | Was moved when the app opened. Fixed: moved after the pull. |
-| 7 | `flight_private`, and private tables in `private/` | Files moved on opening, as a push writes (a newer row is never replaced, the old file removed last). An older app's file written back to `tables/` is moved again. Ticket numbers moved by an edit after the pull. A link never shows them while they wait (`shareRow` drops private columns). | Was moved when the app opened. Fixed: moved after the pull. |
-| 9 | `flights.planned`, `flights.remindAt` | Added as empty: an older flight is a flown one. Nothing moves, so nothing is written when a copy opens. | Fine. |
+| 7 | `flight_private`, and private tables in `private/` | Opening the log moves a file a private table still has in `tables/` (`movePrivateFiles` in `packages/storage/src/jsonTables.ts`): its rows are written into the file in `private/` as a push would write them, so a newer row there is never replaced, and only then is the old file removed. A device that stops half way finds the old file at its next opening and finishes. An older app's file written back to `tables/` is moved again. Ticket numbers are moved by an edit after the pull ("Sync algorithm", step 3; [32](32-modes-and-sharing.md), "Private data"). A link never shows them while they wait (`shareRow` drops private columns). | Was moved when the app opened. Fixed: moved after the pull. |
+| 8 | `settings.language`, `settings.dateFormat` | Added as empty: each device follows its own browser's languages, and the language's own way of writing dates, until one is chosen in Settings. | Fine. |
+| 9 | `flights.planned`, `flights.remindAt` | Added as empty: an older flight is a flown one. Nothing moves, so nothing is written when a copy opens. An older app stops at the first file version 9 wrote, so it never reads a planned flight as a flown one. | Fine. |
+| 10 | `stamps_seen` | A missing table file is an empty table, so each hidden stamp already earned plays once. Nothing moves. | Fine. |
 
 The other stores with versions:
 
 | Store | Versions | Checked |
 |---|---|---|
 | Browser database (IndexedDB) | 1 rows, 2 one record per track, 3 the outbox | Upgrades run in one transaction and are checked against the original rows. A tab on the older version is told, and reloads. Fine. |
-| Server database | 1 to 4: what a Google sign-in is for, the session's kind, share links | Additive only: tables made when missing, a column added after checking it is missing. An older Worker still running during a deploy ignores what it does not know. Two instances adding one column at once fail one request, and the next request finds the column. Fine. |
+| Server database | 1 to 7 ([33](33-accounts-and-sign-in.md), "Server tables") | Additive only: tables made when missing, a column added after checking it is missing. An older Worker still running during a deploy ignores what it does not know. Two instances adding one column at once fail one request, and the next request finds the column. Fine. |
 | Inbox files | 1 to 3 | Versions 1, 2 and 3 are read. A newer file is refused with "an inbox file from another version of Touchdown". Fine. |
 | Backups | As the log | Read through the same upgrades. A Local browser moves values when it opens, a synced one after its first sync. A backup from a newer version is refused. Restored into a synced log, the backup's rows are old copies: the storage's versions are kept and only entries it lacks are added. |
 | The sync queue | Each row's starting version kept since version 5 | An edit left unsent since before then has no starting version: its row merges with every differing field listed. |
