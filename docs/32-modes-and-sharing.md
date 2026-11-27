@@ -282,7 +282,7 @@ Decided, built (`apps/web/src/pages/SharedLinks.tsx`, `components/ShareDialog.ts
 - **Empty.** "No shared links. Share a flight, a sighting or an aircraft from its page, or your whole log from here."
 - **Other modes.** In Private and Local the page says links need Standard mode, with "Change in Settings".
 
-Decided, built: Share is the one way to send something, a link, an image or a video ([31](31-ui.md), "Share"). The Share button sits on the flight, sighting and aircraft pages, in every mode but on a share link's pages, and reads "Shared" when the thing has a link. The whole log's is an icon at the end of Home's period control, a link icon once the log is shared. Flights has the same icon for the flights it shows, which have no link. The dialog has the link first in Standard mode, with "All shared links" beside its buttons, then "Image" and "Video", which open the image and video exports ([23](23-tracks-and-maps.md), "Export: figure", "Export: video") over it. In Private and Local the image and video come first, then "Share links need Standard mode…" with "Change in Settings". The link part of the dialog:
+Decided, built: Share is the one way to send something, a link, an image or a video. Where its button sits and how its dialog is laid out are in [31](31-ui.md), "Share". The button reads "Shared" when the thing has a link, and Home's icon for the whole log becomes a link icon once the log is shared. The link part of the dialog:
 
 | | The dialog |
 |---|---|
