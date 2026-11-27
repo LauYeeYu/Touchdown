@@ -2,7 +2,7 @@
 
 The data schema: every table, column, and type. This is the lowest layer; every other doc builds on it.
 
-The schema is defined once, in code (`packages/core/schema`), and is the single source of truth. From it the build generates TypeScript types, runtime validators, JSON Schemas (for JSON table files and the agent check), SQL table definitions for SQLite, Postgres, and Cloudflare D1, and CSV column lists. No backend stores anything the schema does not define. How backends store and sync these tables is in [12](12-storage-and-sync.md).
+The schema is defined once, in code (`packages/core/src/schema`), and is the single source of truth. From it the build generates TypeScript types, runtime validators, JSON Schemas (for JSON table files and the agent check), SQL table definitions for SQLite, Postgres, and Cloudflare D1, and CSV column lists. No backend stores anything the schema does not define. How backends store and sync these tables is in [12](12-storage-and-sync.md).
 
 ## Rules
 
