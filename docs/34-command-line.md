@@ -1,6 +1,6 @@
 # 34. The command line
 
-`./touchdown` on the user's computer, for the user and for agents working for them (Claude Code, Codex). This doc plans the CLI as a second way to use Touchdown, next to the web app ([31](31-ui.md)). The commands built so far are described where their subject is: spotting sessions and `add` in [21](21-import-export.md), the agent check in [22](22-agent-verification.md), sign-in in [33](33-accounts-and-sign-in.md).
+`./touchdown` on the user's computer, for the user and for agents working for them (Claude Code, Codex): a second way to use Touchdown, next to the web app ([31](31-ui.md)). This doc covers the CLI as a whole. Some commands are described where their subject is: spotting sessions and `add` in [21](21-import-export.md), the agent check in [22](22-agent-verification.md), `tracks` in [23](23-tracks-and-maps.md), `airframes` in [13](13-reference-data.md), sign-in in [33](33-accounts-and-sign-in.md).
 
 ## Principles
 
@@ -26,7 +26,7 @@ Decided, built (`packages/cli/src/language.ts`, Q-I18N): the CLI speaks the syst
 
 ## Commands
 
-Built commands are marked; the rest are Proposed. `REF` names a record: its id, or for a flight `XY123@2025-04-02`, for a sighting `G-ABCD@EGLL@2025-03-15`, for an aircraft its registration (on a date with `@DATE` when it was reused).
+Every command below is built, but for `photos` (Proposed, [25](25-photos.md)) and an airport of the user's own (Open). `REF` names a record: its id, or for a flight `XY123@2025-04-02`, for a sighting `G-ABCD@EGLL@2025-03-15`, for an aircraft its registration (on a date with `@DATE` when it was reused).
 
 ### Reading
 
@@ -173,14 +173,3 @@ Apart from `review`, the CLI reads the log and never writes it ([21](21-import-e
 - After sending, it reads the storage again: rows the storage shows are confirmed. Rows not yet shown back are kept, with their values, in `data/private/cli-sync.json` (readable only by the user, as they may hold private fields) and sent again by the next `review`, as the browser keeps its queue in IndexedDB. A review that stops halfway (offline, the laptop closed) is finished by the next run, with nothing lost or written twice (scripted test).
 - It still never creates the Touchdown folder or a log, and never upgrades one. It writes only to a log at its own schema version: an older log asks the user to open the web app once (which upgrades it); a newer one asks them to update the CLI.
 - In Local mode there is no storage it can reach, so `review` is not available; files are reviewed in the web app.
-
-## Build order (Proposed)
-
-Each step is usable on its own.
-
-1. Move the web app's operations to the core package; the web app uses them unchanged. (Built)
-2. The reading commands, with `--json`. (Built)
-3. Change files (version 3), the changing commands, and their review on the Import page. (Built)
-4. Writing the log from the CLI: the sync engine in Node, the device id, the queue file, and `touchdown review`. (Built)
-5. `import FILE` to the inbox, `backup` and `export`. (Built)
-6. What remained: saved Statistics views (`stats --view`, `stats views`), facts pasted from an aircraft's page (`aircraft edit --paste`), lookups of aircraft facts into the log (`airframes`, as `facts` changes), the agent check in the review (`review --check`), and `--json` for `storage` and `agent`. (Built)
