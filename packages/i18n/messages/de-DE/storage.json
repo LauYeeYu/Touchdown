@@ -1,5 +1,6 @@
 {
   "signInAgain": "Melde dich erneut an, um zu synchronisieren.",
+  "full": "Der Speicher ist voll, deshalb konnte Touchdown nichts hineinschreiben. Schaffe dort Platz und versuche es dann noch einmal.",
   "drive.permission": "Touchdown braucht die Erlaubnis, seine Dateien in Google Drive zu verwenden. Melde dich erneut an und erlaube es.",
   "drive.error": "Google Drive: {message}",
   "drive.noUpload": "Google Drive hat den Upload nicht gestartet.",

@@ -6,6 +6,7 @@
 // when two devices create the same file at the same moment, the older one is used and the newer one removed.
 
 import { t } from "@touchdown/i18n";
+import { StorageFull } from "./errors.ts";
 import type { FileAdapter, FileInfo } from "./types.ts";
 
 /** The user has to sign in to their storage again before sync can go on. */
@@ -401,6 +402,7 @@ export class GoogleDrive implements FileAdapter {
     } catch {
       // Not JSON: keep the status text.
     }
+    if (res.status === 403 && reason === "storageQuotaExceeded") throw new StorageFull();
     if (res.status === 403 && (reason === "insufficientPermissions" || reason === "insufficientFilePermissions")) {
       throw new SignInNeeded(t("storage.drive.permission"));
     }

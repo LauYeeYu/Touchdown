@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GoogleDrive, SignInNeeded, type DriveAuth } from "../src/index.ts";
+import { GoogleDrive, SignInNeeded, StorageFull, type DriveAuth } from "../src/index.ts";
 import { FakeDrive } from "./fakeDrive.ts";
 import { conflicts, device, race, settle, snapshot, testClock } from "./helpers.ts";
 
@@ -230,6 +230,24 @@ describe("Google Drive files", () => {
 
   it("reads the account's email address", async () => {
     expect(await adapter(new FakeDrive()).account()).toBe("pilot@example.com");
+  });
+
+  it("reports a full Drive as a full storage at once, leaving the files as they were", async () => {
+    const drive = new FakeDrive();
+    const files = adapter(drive);
+    await files.write("tables/flights.json", text("one"));
+    drive.full = true;
+
+    await expect(files.write("tables/flights.json", text("two"))).rejects.toBeInstanceOf(StorageFull);
+    await expect(files.write("tables/sightings.json", text("new"))).rejects.toBeInstanceOf(StorageFull);
+    await expect(files.write("attachments/big.bin", new Uint8Array(6 * 1024 * 1024))).rejects.toBeInstanceOf(StorageFull);
+    expect(files.waits).toEqual([]);
+    expect(read(drive.current("tables/flights.json"))).toBe("one");
+    expect(drive.at("tables/sightings.json")).toHaveLength(0);
+
+    drive.full = false;
+    await files.write("tables/flights.json", text("two"));
+    expect(read(drive.current("tables/flights.json"))).toBe("two");
   });
 });
 

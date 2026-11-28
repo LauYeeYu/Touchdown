@@ -1,5 +1,6 @@
 {
   "signInAgain": "需要重新登录才能同步。",
+  "full": "存储空间已满，Touchdown无法写入。请腾出空间后再试。",
   "drive.permission": "Touchdown需要你授权，才能使用它在Google云端硬盘中的文件。请重新登录并授权。",
   "drive.error": "Google云端硬盘：{message}",
   "drive.noUpload": "Google云端硬盘未能开始上传。",

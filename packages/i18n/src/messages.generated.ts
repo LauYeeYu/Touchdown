@@ -3327,6 +3327,7 @@ export interface MessageArgs {
   "stats.chart.afterHours": { h: "text"; m: "text" };
   "stats.chart.afterMinutes": { m: "text" };
   "storage.signInAgain": {};
+  "storage.full": {};
   "storage.drive.permission": {};
   "storage.drive.error": { message: "text" };
   "storage.drive.noUpload": {};

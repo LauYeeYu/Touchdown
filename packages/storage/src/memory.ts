@@ -1,5 +1,6 @@
 // A folder held in memory: for tests, and for trying sync without an account.
 
+import { StorageFull } from "./errors.ts";
 import type { FileAdapter, FileInfo } from "./types.ts";
 
 export class MemoryFolder implements FileAdapter {
@@ -7,6 +8,8 @@ export class MemoryFolder implements FileAdapter {
   private counter = 0;
   /** Awaited before every operation. Tests set it to interleave devices. */
   pause: () => Promise<void> = async () => {};
+  /** While true, every write is refused as a full storage would refuse it. */
+  full = false;
 
   async list(dir: string): Promise<FileInfo[]> {
     await this.pause();
@@ -27,6 +30,7 @@ export class MemoryFolder implements FileAdapter {
 
   async write(path: string, data: Uint8Array) {
     await this.pause();
+    if (this.full) throw new StorageFull();
     const version = `v${++this.counter}`;
     this.files.set(path, { data: data.slice(), version });
     return { version };

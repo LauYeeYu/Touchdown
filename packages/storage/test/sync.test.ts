@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { commitImport, matchCandidates, parseSource, reconcile, RefIndex, rowVersion, saveFlight, SCHEMA_VERSION, Store, TABLES, updateSettings, type TableName } from "@touchdown/core";
 import { loadRefTables } from "@touchdown/refdata";
-import { JsonTablesBackend, MemoryFolder, MemorySyncState, mergeText, SchemaTooNewError, SyncEngine, UpgradeHeld } from "../src/index.ts";
-import { conflicts, device, FLIGHTS, race, settle, snapshot, testClock, versions, type Device } from "./helpers.ts";
+import { JsonTablesBackend, MemoryFolder, MemorySyncState, mergeText, SchemaTooNewError, StorageFull, SyncEngine, UpgradeHeld } from "../src/index.ts";
+import { conflicts, device, FLIGHTS, race, reopen, settle, snapshot, testClock, versions, type Device } from "./helpers.ts";
 
 describe("sync between devices", () => {
   it("sends a log to empty storage and brings it to another device", async () => {
@@ -26,6 +26,38 @@ describe("sync between devices", () => {
     expect(folder.files.has(`tracks/${tr.id}.json`)).toBe(true);
     expect(a.engine.waiting).toBe(0);
     expect(b.engine.waiting).toBe(0);
+  });
+
+  it("keeps every edit while the storage is full, and sends them all once there is space", async () => {
+    const clock = testClock();
+    const folder = new MemoryFolder();
+    const a = await device(folder, "dev_a", clock.now);
+    const b = await device(folder, "dev_b", clock.now);
+    const f = a.store.insert("flights", { flightNumber: "XY100" });
+    await settle([a, b]);
+
+    folder.full = true;
+    clock.tick();
+    a.store.update("flights", f.id, { seat: "1A" });
+    const g = a.store.insert("flights", { flightNumber: "XY200" });
+    const tr = a.store.insert("tracks", { flightId: g.id, provider: "adsblol" });
+    a.store.putRaw("track_points", [{ trackId: tr.id, seq: 0, t: 0, lat: 51.47, lon: -0.45, altitudeFt: null, groundSpeedKt: null, headingDeg: null }] as never);
+    await expect(a.engine.sync()).rejects.toBeInstanceOf(StorageFull);
+    const waiting = a.engine.waiting;
+    expect(waiting).toBeGreaterThanOrEqual(3);
+
+    // Opened again before there is space, as after a reload: nothing is lost, and nothing is sent.
+    const again = await reopen(folder, a, clock.now);
+    expect(again.engine.waiting).toBe(waiting);
+    await expect(again.engine.sync()).rejects.toBeInstanceOf(StorageFull);
+
+    folder.full = false;
+    await settle([again, b]);
+    expect(again.engine.waiting).toBe(0);
+    expect(b.store.get("flights", f.id)?.seat).toBe("1A");
+    expect(b.store.get("flights", g.id)?.flightNumber).toBe("XY200");
+    expect(b.store.all("track_points")).toHaveLength(1);
+    expect(snapshot(b.store)).toEqual(snapshot(again.store));
   });
 
   it("brings edits and deletions to the other device", async () => {

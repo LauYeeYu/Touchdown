@@ -5,9 +5,11 @@ import { t } from "@touchdown/i18n/cli";
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import type { FileAdapter, FileInfo } from "@touchdown/storage";
+import { StorageFull, type FileAdapter, type FileInfo } from "@touchdown/storage";
 
 const missing = (e: unknown) => (e as NodeJS.ErrnoException).code === "ENOENT" || (e as NodeJS.ErrnoException).code === "ENOTDIR";
+/** The disk is full, or the user's share of it is used up. */
+const noSpace = (e: unknown) => (e as NodeJS.ErrnoException).code === "ENOSPC" || (e as NodeJS.ErrnoException).code === "EDQUOT";
 
 export class NodeFolder implements FileAdapter {
   readonly root: string;
@@ -51,13 +53,19 @@ export class NodeFolder implements FileAdapter {
     }
   }
 
-  /** Written to a hidden file first and renamed, so a reader never sees half a file. */
+  /** Written to a hidden file first and renamed, so a reader never sees half a file. A full disk leaves no hidden file behind. */
   async write(path: string, data: Uint8Array) {
     const at = this.full(path);
-    mkdirSync(dirname(at), { recursive: true });
     const temp = join(dirname(at), `.${basename(at)}.${randomBytes(4).toString("hex")}.tmp`);
-    writeFileSync(temp, data);
-    renameSync(temp, at);
+    try {
+      mkdirSync(dirname(at), { recursive: true });
+      writeFileSync(temp, data);
+      renameSync(temp, at);
+    } catch (e) {
+      rmSync(temp, { force: true });
+      if (noSpace(e)) throw new StorageFull();
+      throw e;
+    }
     return { version: NodeFolder.version(at) };
   }
 

@@ -2,7 +2,7 @@
 // local-folder adapter (docs/12, "File adapters"). The folder may sit inside Dropbox, OneDrive, iCloud Drive or
 // Google Drive for desktop, which then carry it to the user's other computers.
 
-import type { FileAdapter, FileInfo } from "@touchdown/storage";
+import { StorageFull, type FileAdapter, type FileInfo } from "@touchdown/storage";
 
 // Parts of the API that TypeScript's DOM library does not describe yet.
 type Access = { mode: "readwrite" };
@@ -116,12 +116,29 @@ export class LocalFolder implements FileAdapter {
     return { data: new Uint8Array(await f.arrayBuffer()), version: LocalFolder.version(f) };
   }
 
+  /**
+   * The browser writes to a copy and puts it in place on `close`, so a full disk leaves a file as it was. A new file
+   * is made empty before its content is written, so one the disk refused is removed again: an empty manifest.json
+   * would stop the log from opening.
+   */
   async write(path: string, data: Uint8Array) {
-    const handle = (await this.file(path, true))!;
-    const out = await handle.createWritable();
-    await out.write(data as BufferSource);
-    await out.close();
-    return { version: LocalFolder.version(await handle.getFile()) };
+    const existed = (await this.file(path, false)) !== null;
+    try {
+      const handle = (await this.file(path, true))!;
+      const out = await handle.createWritable();
+      try {
+        await out.write(data as BufferSource);
+        await out.close();
+      } catch (e) {
+        await out.abort().catch(() => undefined);
+        throw e;
+      }
+      return { version: LocalFolder.version(await handle.getFile()) };
+    } catch (e) {
+      if (!existed) await this.remove(path).catch(() => undefined);
+      if ((e as DOMException).name === "QuotaExceededError") throw new StorageFull();
+      throw e;
+    }
   }
 
   async remove(path: string) {

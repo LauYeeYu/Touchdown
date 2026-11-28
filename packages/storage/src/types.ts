@@ -21,6 +21,7 @@ export interface FileAdapter {
   /** Files directly in a folder; an empty list when the folder does not exist. */
   list(dir: string): Promise<FileInfo[]>;
   read(path: string): Promise<{ data: Uint8Array; version: string } | null>;
+  /** Throws `StorageFull` when the storage has no space left for it. */
   write(path: string, data: Uint8Array): Promise<{ version: string }>;
   remove(path: string): Promise<void>;
 }

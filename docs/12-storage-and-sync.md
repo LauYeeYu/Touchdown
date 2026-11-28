@@ -86,7 +86,7 @@ interface Backend {
 interface FileAdapter {                                         // used by file backends only
   list(path: string): Promise<FileInfo[]>;
   read(path: string): Promise<{ data: Uint8Array; version: string } | null>;
-  write(path: string, data: Uint8Array): Promise<{ version: string }>;
+  write(path: string, data: Uint8Array): Promise<{ version: string }>;  // throws StorageFull when there is no space
   remove(path: string): Promise<void>;
 }
 ```
