@@ -285,12 +285,8 @@ describe("factory stamps", () => {
     expect(earned(of(store).get("factory.mcdonnellDouglas"))).toBe(md.id);
   });
 
-  it("knows a test registration, and a flight on an aircraft photographed at its factory", () => {
+  it("knows a flight on an aircraft photographed at its factory", () => {
     const store = newStore();
-    store.insert("sightings", { seenOn: "2024-01-01", registration: "F-GKXA" });
-    expect(earned(of(store).get("testRegistration"))).toBeNull();
-    const test = store.insert("sightings", { seenOn: "2024-01-02", registration: "F-WWBA" });
-    expect(earned(of(store).get("testRegistration"))).toBe(test.id);
     const plane = store.insert("airframes", { typeCode: "B77W" });
     const before = flight(store, { scheduledDate: "2023-05-01", airframeId: plane.id });
     store.insert("sightings", { seenOn: "2023-06-01", airportId: "ap_kpae", airframeId: plane.id, registration: "N1005A" });

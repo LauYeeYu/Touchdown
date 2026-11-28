@@ -151,7 +151,6 @@ translated word for word.
 | stamp (earned for something done in the log, drawn as a passport stamp) | Stempel | 印章（枚） | 印章（枚） |
 | earn, earned (a stamp) | erhalten, erhalten | 获得 | 獲得 |
 | factory airfield (where a maker builds its aircraft) | Werksflugplatz | 工厂机场 | 工廠機場 |
-| test registration (worn only before delivery) | Testkennzeichen | 试飞注册号 | 試飛註冊號 |
 | diverted to | umgeleitet nach | 备降 | 轉降 |
 | gate, terminal | Gate, Terminal | 登机口, 航站楼 | 登機門, 航廈 |
 | seat | Sitzplatz | 座位 | 座位 |

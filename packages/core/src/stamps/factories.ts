@@ -97,17 +97,5 @@ export const FACTORIES: readonly Factory[] = [
   },
 ];
 
-/**
- * Registrations worn only on test flights before delivery, for the Test registration stamp. Only patterns that a
- * delivered aircraft never wears.
- */
-export const TEST_REGISTRATIONS: readonly RegExp[] = [
-  // France's test and delivery class (F-W): Airbus and ATR at Toulouse (F-WW), A350s and Mobile's A321s (F-WZ),
-  // Falcons on their way to completion. https://en.wikipedia.org/wiki/List_of_aircraft_registration_prefixes
-  /^F-W[A-Z]{3}$/,
-  // Airbus at Hamburg. https://www.airport-data.com/aircraft/D-AVVI.html
-  /^D-AV[A-Z]{2}$/,
-];
-
 /** The freighters that carry aircraft parts between factories: the Beluga, the BelugaXL and the Dreamlifter. */
 export const PARTS_FREIGHTERS: readonly string[] = ["A3ST", "A337", "BLCF"];

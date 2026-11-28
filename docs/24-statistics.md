@@ -147,7 +147,6 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 |---|---|---|
 | One per maker ("Boeing factories") | A sighting at one of the maker's factory airfields ([Factory airfields](#factory-airfields)) of an aircraft the maker built (its type's manufacturer), on a day the site was building them. Parts: the maker's sites. | spotted |
 | Parts on the way | A sighting of a Beluga, BelugaXL or Dreamlifter (`A3ST`, `A337`, `BLCF`), the freighters that carry parts between factories. | spotted |
-| Test registration | A sighting of an aircraft on a registration it wears only on test flights before delivery ([Factory airfields](#factory-airfields)). | spotted |
 | Saw it built (hidden) | A flight on an aircraft photographed earlier at one of its maker's factory airfields. | both |
 
 ### Aircraft
@@ -239,8 +238,6 @@ Curated in the core package (`packages/core/src/stamps/factories.ts`), each site
 | Lockheed | PMD Palmdale, the TriStar (1968–1984) |
 
 Left out because the reference tables do not hold the airfield: Downsview (Bombardier's Global until 2024), Gavião Peixoto (Embraer). A few start years are the first year confirmed rather than the first year of building, as the file says.
-
-Test registrations: the French test and delivery class (`F-W…`, Airbus and ATR at Toulouse among others) and Airbus Hamburg's `D-AV…`. Boeing's temporary registrations follow no pattern, and those of Tianjin, Mobile and Mirabel are not documented, so they are not recognised.
 
 ### Continents
 

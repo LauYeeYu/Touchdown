@@ -25,8 +25,6 @@
   "factory.rule": "An aircraft built by {maker}, photographed at {count, plural, one {its factory airfield} other {one of its # factory airfields}}",
   "partsOnTheWay.name": "Parts on the way",
   "partsOnTheWay.rule": "A Beluga, BelugaXL or Dreamlifter photographed, the freighters that carry parts between factories",
-  "testRegistration.name": "Test registration",
-  "testRegistration.rule": "An aircraft photographed on a registration it wears only on test flights before delivery",
   "sawItBuilt.name": "Saw it built",
   "sawItBuilt.rule": "A flight on an aircraft photographed earlier at its maker's factory",
   "queen.name": "Queen of the Skies",

@@ -3129,8 +3129,6 @@ export interface MessageArgs {
   "stamps.factory.rule": { count: "number"; maker: "text" };
   "stamps.partsOnTheWay.name": {};
   "stamps.partsOnTheWay.rule": {};
-  "stamps.testRegistration.name": {};
-  "stamps.testRegistration.rule": {};
   "stamps.sawItBuilt.name": {};
   "stamps.sawItBuilt.rule": {};
   "stamps.queen.name": {};

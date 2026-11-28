@@ -14,7 +14,7 @@ import { parseFlightNumber } from "../normalise/flight.ts";
 import { daysBetween, instant, localDateOf, parseDateTime } from "../time/index.ts";
 import { continentOf, SIX_CONTINENTS } from "../stamps/continents.ts";
 import { SEATTLE_BOEINGS, TRIPLE_SEVEN_X } from "../stamps/boeing.ts";
-import { FACTORIES, PARTS_FREIGHTERS, TEST_REGISTRATIONS, type Factory, type FactorySite } from "../stamps/factories.ts";
+import { FACTORIES, PARTS_FREIGHTERS, type Factory, type FactorySite } from "../stamps/factories.ts";
 import { GRANTED_STAMP_IDS, type GrantedStamp, type GrantedStampId } from "../stamps/granted.ts";
 import { countedFlights } from "./views.ts";
 import { t, tDynamic } from "@touchdown/i18n";
@@ -280,7 +280,6 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   }
   const freighter = first(sightings, (x) => !!x.type && PARTS_FREIGHTERS.includes(x.type));
   add({ id: "partsOnTheWay", group: "factories", ink: "spotted", emblem: { kind: "type", code: freighter?.type ?? "BLCF" }, by: freighter });
-  sightingStamp("testRegistration", "factories", { kind: "text", text: "F-WW" }, (x) => !!x.s.registration && TEST_REGISTRATIONS.some((re) => re.test(x.s.registration!)));
   const built = first(flights, (x) => {
     const s = x.airframe ? atFactory.get(x.airframe.id) : undefined;
     return !!s && byTime(s, x) < 0;

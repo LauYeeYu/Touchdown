@@ -25,8 +25,6 @@
   "factory.rule": "{count, plural, =1 {在{maker}的工廠機場} other {在{maker}的#個工廠機場之一}}拍到一架{maker}製造的飛機",
   "partsOnTheWay.name": "零件在途",
   "partsOnTheWay.rule": "拍到Beluga、BelugaXL或夢想運輸者，在工廠之間運送零件的貨機",
-  "testRegistration.name": "試飛註冊號",
-  "testRegistration.rule": "拍到一架掛著交機前試飛專用註冊號的飛機",
   "sawItBuilt.name": "見證出廠",
   "sawItBuilt.rule": "搭乘一架先前在製造商工廠拍到的飛機",
   "queen.name": "空中女王",
