@@ -44,6 +44,7 @@ const ref = new RefIndex({
     type("B763", "Boeing", "B767"),
     type("B778", "Boeing", "B777"),
     type("B779", "Boeing", "B777"),
+    type("A359", "Airbus", "A350"),
     type("A318", "Airbus", "A320"),
     type("A320", "Airbus", "A320"),
     type("CONC", "Aérospatiale-BAC", "Concorde", 4),
@@ -79,6 +80,30 @@ describe("stamps earned by one flight", () => {
     expect(earned(got.get("flyingPencil"))).toBe(pencil.id);
     expect(earned(got.get("atariFerrari"))).toBe(ferrari.id);
     expect(got.get("atariFerrari")!.emblem).toEqual({ kind: "type", code: "B753" });
+  });
+
+  it("gives the 737, 767, 777, 787 and A350 a stamp each, showing the type flown", () => {
+    const store = newStore();
+    const IDS: [string, string][] = [
+      ["babyBoeing", "B732"],
+      ["etops", "B762"],
+      ["tripleSeven", "B772"],
+      ["dreamliner", "B788"],
+      ["zorroMask", "A359"],
+    ];
+    for (const [id, code] of IDS) expect(of(store).get(id)!.emblem).toEqual({ kind: "type", code });
+    const at = (day: string, typeCode: string) => flight(store, { scheduledDate: day, typeCode, fromAirportId: "ap_egll", toAirportId: "ap_kjfk" });
+    at("2024-01-01", "A320");
+    const flown = [at("2024-01-02", "B38M"), at("2024-01-03", "B763"), at("2024-01-04", "B779"), at("2024-01-05", "B788"), at("2024-01-06", "A359")];
+    at("2024-01-07", "B738");
+    at("2024-01-08", "B778");
+    const got = of(store);
+    IDS.forEach(([id], i) => {
+      expect(earned(got.get(id))).toBe(flown[i]!.id);
+      expect(got.get(id)!.emblem).toEqual({ kind: "type", code: flown[i]!.typeCode });
+    });
+    // The 777-9 is a 777 too, so it earns Triple Seven as well as Worth the wait.
+    expect(earned(got.get("worthTheWait"))).toBe(flown[2]!.id);
   });
 
   it("keeps Pride of Seattle for the Boeings designed there before 2001", () => {

@@ -158,6 +158,11 @@ Decided (G13). Stamps mark things done in the log: a 747 flown, an aircraft phot
 | Superjumbo | A flight on an A380 (`A388`). | flown |
 | Flying Pencil | A flight on an A340-600 (`A346`), named for its long, slim fuselage. The emblem is the A340-600. | flown |
 | Atari Ferrari | A flight on a 757 (the `B757` family), pilots' name for its sports car climb and its early glass cockpit. The emblem is the 757 flown, the -200 until one is. | flown |
+| Baby Boeing | A flight on a 737 (the `B737` family), named when the first 737s looked a smaller 707 or 727. German uses Lufthansa's name for its 737s, "Bobby". The emblem is the 737 flown, the -200 until one is. | flown |
+| Engines turn or passengers swim | A flight on a 767 (the `B767` family), the first airliner to carry passengers under ETOPS, the rules for twin-engined jets far from an airport (TWA, Boston to Paris, 1985). The name is pilots' joke on the letters of ETOPS. The emblem is the 767 flown, the -200 until one is. | flown |
+| Triple Seven | A flight on a 777 (the `B777` family), a 777X included, which also earns Worth the wait. The emblem is the 777 flown, the -200 until one is. | flown |
+| Dreamliner | A flight on a 787 (the `B787` family), by Boeing's own name for it. The emblem is the 787 flown, the -8 until one is. | flown |
+| Zorro mask | A flight on an A350 (the `A350` family), named for the black frame round its cockpit windows. The emblem is the A350 flown, the -900 until one is. | flown |
 | Pride of Seattle | A flight on a Boeing designed in Seattle and first flown before the head office moved to Chicago in 2001: the 707 and 720, 727, 737 up to the -900, 747 up to the -400, 757, 767, 777-200 and -300 (`SEATTLE_BOEINGS` in `packages/core/src/stamps/boeing.ts`). Not the 717, the 777-300ER and -200LR, the 787, the 747-8, the 737 MAX or the 777X. A fond look back at Boeing, never a joke about its accidents. The emblem is the type flown, the 707 until one is. | flown |
 | Worth the wait | A flight on a 777X, the 777-8 or the 777-9 (`B778`, `B779`), launched in 2013 to enter service in 2020, and years late. The emblem is the type flown, the 777-9 until one is. | flown |
 | Douglas in disguise | A flight on a 717 (`B712`), designed by McDonnell Douglas as the MD-95 and given Boeing's name after the merger. | flown |

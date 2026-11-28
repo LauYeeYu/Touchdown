@@ -3141,6 +3141,16 @@ export interface MessageArgs {
   "stamps.flyingPencil.rule": {};
   "stamps.atariFerrari.name": {};
   "stamps.atariFerrari.rule": {};
+  "stamps.babyBoeing.name": {};
+  "stamps.babyBoeing.rule": {};
+  "stamps.etops.name": {};
+  "stamps.etops.rule": {};
+  "stamps.tripleSeven.name": {};
+  "stamps.tripleSeven.rule": {};
+  "stamps.dreamliner.name": {};
+  "stamps.dreamliner.rule": {};
+  "stamps.zorroMask.name": {};
+  "stamps.zorroMask.rule": {};
   "stamps.prideOfSeattle.name": {};
   "stamps.prideOfSeattle.rule": {};
   "stamps.worthTheWait.name": {};

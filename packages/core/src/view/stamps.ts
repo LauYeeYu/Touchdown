@@ -298,6 +298,11 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
     add({ id, group: "aircraft", ink: "flown", emblem: { kind: "type", code: by?.type ?? code }, by });
   };
   familyStamp("atariFerrari", "B757", "B752");
+  familyStamp("babyBoeing", "B737", "B732");
+  familyStamp("etops", "B767", "B762");
+  familyStamp("tripleSeven", "B777", "B772");
+  familyStamp("dreamliner", "B787", "B788");
+  familyStamp("zorroMask", "A350", "A359");
   // Boeing, fondly: its Seattle years, the 777-9 that took its time, and the Douglas that took its name.
   const seattle = first(flights, (x) => !!x.type && SEATTLE_BOEINGS.includes(x.type));
   add({ id: "prideOfSeattle", group: "aircraft", ink: "flown", emblem: { kind: "type", code: seattle?.type ?? "B703" }, by: seattle });
