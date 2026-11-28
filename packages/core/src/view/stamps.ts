@@ -292,9 +292,12 @@ export function stamps(store: Store, ref: RefIndex, opts: StampOptions = {}): St
   flightStamp("queen", "aircraft", { kind: "type", code: "B744" }, (x) => family(x) === "B747");
   flightStamp("superjumbo", "aircraft", { kind: "type", code: "A388" }, (x) => x.type === "A388");
   flightStamp("flyingPencil", "aircraft", { kind: "type", code: "A346" }, (x) => x.type === "A346");
-  // The 757 flown is the emblem, so a 757-300 shows the longer one.
-  const ferrari = first(flights, (x) => family(x) === "B757");
-  add({ id: "atariFerrari", group: "aircraft", ink: "flown", emblem: { kind: "type", code: ferrari?.type ?? "B752" }, by: ferrari });
+  // A family's own stamp shows the type flown, so a 757-300 shows the longer one, and the given type until one is.
+  const familyStamp = (id: string, familyId: string, code: string) => {
+    const by = first(flights, (x) => family(x) === familyId);
+    add({ id, group: "aircraft", ink: "flown", emblem: { kind: "type", code: by?.type ?? code }, by });
+  };
+  familyStamp("atariFerrari", "B757", "B752");
   // Boeing, fondly: its Seattle years, the 777-9 that took its time, and the Douglas that took its name.
   const seattle = first(flights, (x) => !!x.type && SEATTLE_BOEINGS.includes(x.type));
   add({ id: "prideOfSeattle", group: "aircraft", ink: "flown", emblem: { kind: "type", code: seattle?.type ?? "B703" }, by: seattle });
