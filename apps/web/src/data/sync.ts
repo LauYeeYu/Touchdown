@@ -5,7 +5,7 @@
 
 import { FILE_TABLES, SCHEMA_VERSION, settleOlder, todayIn, ulid, type Store } from "@touchdown/core";
 import { t } from "@touchdown/i18n";
-import { GoogleDrive, JsonTablesBackend, listDailyCopies, makeDailyCopy, SchemaTooNewError, SignInNeeded, SyncEngine, tablePath, type Backend, type FileAdapter, type QueuedRow, type SyncState, type SyncStateStore } from "@touchdown/storage";
+import { GoogleDrive, JsonTablesBackend, listDailyCopies, makeDailyCopy, SchemaTooNewError, SignInNeeded, StorageFull, SyncEngine, tablePath, type Backend, type FileAdapter, type QueuedRow, type SyncState, type SyncStateStore } from "@touchdown/storage";
 import { placeName, type StorageKind, type SyncedConnection } from "./connection.ts";
 import { db } from "./db.ts";
 import { folderAllowed, LocalFolder } from "./folder.ts";
@@ -19,9 +19,11 @@ export interface SyncInfo {
    * "permission": sync waits for the user's click, to use the folder again or to sign in to Google again (a
    * token lasts an hour). "update": a newer version of the app has changed the log; sync waits for a reload.
    * "offline": the storage is reached over the network, and the network cannot be reached. Edits wait in this
-   * browser and are sent when it returns.
+   * browser and are sent when it returns. "full": the storage refused a write for lack of space (docs/25-photos.md,
+   * "Full storage"). Edits wait in this browser, and sync tries again on Try again, every few minutes and when the
+   * tab comes back into view, not after each edit.
    */
-  state: "permission" | "syncing" | "synced" | "failed" | "update" | "offline";
+  state: "permission" | "syncing" | "synced" | "failed" | "update" | "offline" | "full";
   mode: SyncedConnection["mode"];
   adapter: StorageKind;
   /** Where the log syncs to, as the user knows it. */
@@ -37,6 +39,8 @@ export interface SyncInfo {
   tables: boolean;
   /** Tracks being read now, while some are left. */
   tracks: { done: number; total: number } | null;
+  /** Bytes the storage has left, read once when sync starts, where it can say (Google Drive); null otherwise. */
+  free: number | null;
 }
 
 /** What the app uses of sync: in the tab that syncs, SyncController; in the others, TabSync. */
@@ -153,7 +157,7 @@ function storageFor(c: SyncedConnection): Storage {
 }
 
 /** Sync cannot go on by itself: it waits for the user, a reload or the network. */
-const waitsForSomething = (state: SyncInfo["state"]) => state === "permission" || state === "failed" || state === "update" || state === "offline";
+const waitsForSomething = (state: SyncInfo["state"]) => state === "permission" || state === "failed" || state === "update" || state === "offline" || state === "full";
 
 /** Whether a saved position covers every table: the first download had its tables in. */
 export function hasTables(state: SyncState | null): boolean {
@@ -252,7 +256,7 @@ export class SyncController implements SyncHandle {
     private readonly hooks: SyncHooks,
   ) {
     this.storage = storageFor(connection);
-    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: placeName(connection), lastAt: null, waiting: 0, problems: [], error: null, tables: false, tracks: null };
+    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: placeName(connection), lastAt: null, waiting: 0, problems: [], error: null, tables: false, tracks: null, free: null };
   }
 
   subscribe = (fn: () => void) => {
@@ -355,6 +359,7 @@ export class SyncController implements SyncHandle {
     if (overNetwork(this.connection) && (this.offline() || unreachable(e))) this.set({ state: "offline", error: null, waiting, tracks: null });
     else if (e instanceof SignInNeeded) this.set({ state: "permission", error: this.connection.mode === "standard" ? e.message : null, waiting, tracks: null });
     else if (e instanceof SchemaTooNewError) this.set({ state: "update", error: null, waiting, tracks: null });
+    else if (e instanceof StorageFull) this.set({ state: "full", error: null, waiting, tracks: null });
     else this.set({ state: "failed", error: (e as Error).message, waiting, tracks: null });
   }
 
@@ -374,6 +379,7 @@ export class SyncController implements SyncHandle {
       }
       this.engine = engine;
       this.backend = backend;
+      void this.readSpace();
       await this.hooks.started();
     } catch (e) {
       this.failed(e);
@@ -388,6 +394,8 @@ export class SyncController implements SyncHandle {
 
   private later(ms: number) {
     this.set({ waiting: this.engine?.waiting ?? 0 });
+    // A full storage is tried again on Try again, every few minutes and when the tab comes back, not after each edit.
+    if (this.info.state === "full") return;
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       this.timer = null;
@@ -440,6 +448,16 @@ export class SyncController implements SyncHandle {
       void this.dailyCopy();
     } catch (e) {
       this.failed(e);
+    }
+  }
+
+  /** How much space the storage has left, for the warning before it is full (docs/25-photos.md, "Full storage"). */
+  private async readSpace() {
+    try {
+      this.set({ free: (await this.storage.files.freeSpace?.()) ?? null });
+    } catch (e) {
+      // Only for a warning: without an answer there is none.
+      console.warn("The storage's free space was not read:", e);
     }
   }
 
@@ -523,7 +541,7 @@ export class TabSync implements SyncHandle {
     private readonly flush: () => Promise<void>,
   ) {
     this.storage = storageFor(connection);
-    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: placeName(connection), lastAt: null, waiting: 0, problems: [], error: null, tables, tracks: null };
+    this.info = { state: "syncing", mode: connection.mode, adapter: connection.adapter, place: placeName(connection), lastAt: null, waiting: 0, problems: [], error: null, tables, tracks: null, free: null };
     // Coming back into view syncs, as it does in the writing tab.
     const onShow = () => document.visibilityState === "visible" && this.post({ type: "run", id: "" });
     document.addEventListener("visibilitychange", onShow);

@@ -249,6 +249,16 @@ describe("Google Drive files", () => {
     await files.write("tables/flights.json", text("two"));
     expect(read(drive.current("tables/flights.json"))).toBe("two");
   });
+
+  it("says how much space is left, or nothing for an account without a limit", async () => {
+    const drive = new FakeDrive();
+    const files = adapter(drive);
+    expect(await files.freeSpace()).toBeNull();
+    drive.quota = { limit: "16106127360", usage: "16000000000" };
+    expect(await files.freeSpace()).toBe(106_127_360);
+    drive.quota = { limit: "100", usage: "120" };
+    expect(await files.freeSpace()).toBe(0);
+  });
 });
 
 describe("sync through Google Drive", () => {

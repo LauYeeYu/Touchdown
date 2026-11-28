@@ -34,6 +34,7 @@
   "sync.waiting": "{count, plural, one {#\u00a0Änderung} other {#\u00a0Änderungen}} noch nicht synchronisiert.",
   "sync.failed": "Synchronisierung mit {place} fehlgeschlagen: {problem}. Deine Änderungen bleiben in diesem Browser und werden gesendet, sobald es wieder klappt.",
   "sync.offline": "Keine Verbindung zu {place}. {count, plural, =0 {Deine Änderungen bleiben in diesem Browser und werden gesendet, sobald die Verbindung wieder da ist.} one {#\u00a0Änderung bleibt in diesem Browser und wird gesendet, sobald die Verbindung wieder da ist.} other {#\u00a0Änderungen bleiben in diesem Browser und werden gesendet, sobald die Verbindung wieder da ist.}}",
+  "sync.full": "{place} ist voll. {count, plural, =0 {Änderungen bleiben in diesem Browser und werden gesendet, sobald wieder Platz ist.} one {#\u00a0Änderung bleibt in diesem Browser und wird gesendet, sobald wieder Platz ist.} other {#\u00a0Änderungen bleiben in diesem Browser und werden gesendet, sobald wieder Platz ist.}}",
   "sync.update": "Eine neuere Version von Touchdown hat dein Logbuch in {place} geändert. Lade die Seite neu, um die App zu aktualisieren. Deine Änderungen bleiben in diesem Browser und werden nach dem Neuladen gesendet.",
   "sync.problems.title": "Übersprungen, weil nicht lesbar:",
   "sync.problems.more": "{count, plural, one {und # weitere} other {und # weitere}}",

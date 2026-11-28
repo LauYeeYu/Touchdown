@@ -1810,6 +1810,7 @@ export interface MessageArgs {
   "format.momentShort": { day: "text"; time: "text" };
   "format.nameWithCode": { code: "text"; name: "text" };
   "format.measure.m": { n: "text" };
+  "format.measure.mb": { n: "text" };
   "format.measure.t": { n: "text" };
   "format.measure.kg": { n: "text" };
   "format.measure.kt": { n: "text" };
@@ -2651,6 +2652,7 @@ export interface MessageArgs {
   "settings.sync.waiting": { count: "number" };
   "settings.sync.failed": { place: "text"; problem: "text" };
   "settings.sync.offline": { count: "number"; place: "text" };
+  "settings.sync.full": { count: "number"; place: "text" };
   "settings.sync.update": { place: "text" };
   "settings.sync.problems.title": {};
   "settings.sync.problems.more": { count: "number" };
@@ -2915,6 +2917,8 @@ export interface MessageArgs {
   "shell.sync.failedTitle": { error: "text"; place: "text" };
   "shell.sync.offline": {};
   "shell.sync.offlineTitle": { place: "text"; waiting: "number" };
+  "shell.sync.full": {};
+  "shell.sync.fullTitle": { place: "text" };
   "shell.sync.update": {};
   "shell.sync.updateTitle": { place: "text" };
   "shell.sync.tracks": { done: "text"; total: "text" };
@@ -2928,6 +2932,14 @@ export interface MessageArgs {
   "shell.note.reading": { place: "text" };
   "shell.note.readFailed": { error: "text"; place: "text" };
   "shell.note.tryAgain": {};
+  "shell.note.full": { count: "number"; place: "text" };
+  "shell.note.lowSpace": { place: "text"; size: "text" };
+  "shell.full.title": { drive: "choice" };
+  "shell.full.text": { place: "text" };
+  "shell.full.makeSpaceDrive": {};
+  "shell.full.makeSpaceFolder": { place: "text" };
+  "shell.full.manage": {};
+  "shell.full.still": { place: "text" };
   "shell.note.readOffline": { place: "text" };
   "shell.note.connectAgain": {};
   "shell.note.signIn": {};
@@ -2940,6 +2952,7 @@ export interface MessageArgs {
   "shell.note.backupLast": { date: "text" };
   "shell.note.exportBackup": {};
   "shell.note.notNow": {};
+  "shell.note.gotIt": {};
   "shell.note.inbox": { count: "number"; files: "number"; records: "text"; source: "text" };
   "shell.note.review": {};
   "shell.note.newerBackup": { when: "text" };

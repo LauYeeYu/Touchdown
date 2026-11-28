@@ -14,6 +14,7 @@
   "momentShort": "{day} {time}",
   "nameWithCode": "{name}（{code}）",
   "measure.m": "{n}\u202f公\u2060尺",
+  "measure.mb": "{n}\u00a0MB",
   "measure.t": "{n}\u202f公\u2060噸",
   "measure.kg": "{n}\u202f公\u2060斤",
   "measure.kt": "{n}\u202f節",

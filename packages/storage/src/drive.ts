@@ -150,6 +150,14 @@ export class GoogleDrive implements FileAdapter {
     return about.user?.emailAddress ?? "";
   }
 
+  /** Bytes left in the account's storage, which Gmail and Google Photos share; null when it has no limit. */
+  async freeSpace(): Promise<number | null> {
+    const about = (await this.json(`${API}/about?fields=storageQuota(limit,usage)`)) as { storageQuota?: { limit?: string; usage?: string } };
+    const limit = Number(about.storageQuota?.limit ?? NaN);
+    if (!Number.isFinite(limit)) return null;
+    return Math.max(0, limit - Number(about.storageQuota?.usage ?? 0));
+  }
+
   async list(dir: string): Promise<FileInfo[]> {
     return (await this.scan(dir)).map((f) => ({ name: f.name, version: versionOf(f) }));
   }

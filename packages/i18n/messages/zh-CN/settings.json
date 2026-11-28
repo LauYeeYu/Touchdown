@@ -34,6 +34,7 @@
   "sync.waiting": "还有{count, plural, other {#项更改}}未同步。",
   "sync.failed": "无法与{place}同步：{problem}。更改会先保存在此浏览器中，恢复正常后再发送。",
   "sync.offline": "无法连接到{place}。{count, plural, =0 {更改会先保存在此浏览器中，网络恢复后再发送。} other {#项更改已保存在此浏览器中，网络恢复后再发送。}}",
+  "sync.full": "{place}已满。{count, plural, =0 {更改会先保存在此浏览器中，有空间后再发送。} other {#项更改已保存在此浏览器中，有空间后再发送。}}",
   "sync.update": "新版Touchdown已更改{place}中的日志。重新加载页面即可更新应用。更改会先保存在此浏览器中，重新加载后再发送。",
   "sync.problems.title": "以下文件无法读取，已跳过：",
   "sync.problems.more": "{count, plural, other {还有#个}}",

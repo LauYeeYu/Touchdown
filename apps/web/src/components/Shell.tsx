@@ -1,6 +1,6 @@
 // The app frame: masthead with the main navigation (a bottom bar on phones), tools, and the footer.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useApp } from "../data/context.tsx";
 import { Icon, type IconName } from "../lib/icons.tsx";
@@ -22,6 +22,7 @@ import { Overlays, hideTip, toast } from "./overlay.tsx";
 import { StableLabel } from "./StableLabel.tsx";
 import { Wordmark } from "./Wordmark.tsx";
 import { FootCredits } from "./FootCredits.tsx";
+import { FullStorageDialog, GOOGLE_STORAGE } from "./FullStorageDialog.tsx";
 import { reducedMotion } from "../lib/reducedMotion.ts";
 import { localValue, setLocalValue } from "../lib/localValue.ts";
 
@@ -35,6 +36,10 @@ const NAV: { to: string; label: () => string; icon: IconName; match: (p: string)
 
 /** Local mode: remind the user to export a backup when the last one is older than this and the log changed since. */
 const BACKUP_DUE_DAYS = 30;
+
+/** Less space than this left in the storage is said once, until there is more again (docs/25-photos.md, "Full storage"). */
+const LOW_SPACE = 500_000_000;
+const LOW_SPACE_SEEN = "td-low-space-seen";
 
 /** An error message as a clause in a sentence: without its own full stop. */
 export const clause = (message: string | null) => (message ?? "").replace(/\.+$/, "");
@@ -68,6 +73,8 @@ function saveState(saving: "saved" | "saving" | "error", sync: SyncInfo | null, 
         icon: "wifi-off",
         bad: false,
       };
+    case "full":
+      return { text: t("shell.sync.full"), title: `${t("shell.sync.fullTitle", { place })}${last}`, icon: drive ? "cloud-alert" : "folder-x", bad: true };
     case "update":
       return { text: t("shell.sync.update"), title: `${t("shell.sync.updateTitle", { place })}${last}`, icon: "rotate-cw", bad: true };
     case "syncing":
@@ -193,6 +200,27 @@ export function Shell() {
   }, [app, sync?.state, notHereYet]);
   const backupDue = useBackupDue(local, app.connection?.since ?? null, version);
   const [backupLater, setBackupLater] = useState(false);
+  // A full storage opens its dialog once, at the first write refused, and again only after a sync has gone through.
+  const [fullOpen, setFullOpen] = useState(false);
+  const fullShown = useRef(false);
+  useEffect(() => {
+    if (sync?.state === "full" && !fullShown.current) {
+      fullShown.current = true;
+      setFullOpen(true);
+    } else if (sync?.state === "synced") fullShown.current = false;
+  }, [sync?.state]);
+  const drive = sync?.adapter === "gdrive";
+  const manageStorage = drive && (
+    <a className="btn btn--ghost btn--small" href={GOOGLE_STORAGE} target="_blank" rel="noopener">
+      {t("shell.full.manage")}
+    </a>
+  );
+  // Little space left: said once, and again only after there was more.
+  const free = sync?.free ?? null;
+  const [lowSeen, setLowSeen] = useState(() => localValue(LOW_SPACE_SEEN) !== null);
+  useEffect(() => {
+    if (free !== null && free >= LOW_SPACE && setLocalValue(LOW_SPACE_SEEN, null)) setLowSeen(false);
+  }, [free]);
   const notHere = sync ? app.tracksNotHere() : 0;
   const state = saveState(app.saveState, sync, notHere);
 
@@ -297,6 +325,43 @@ export function Shell() {
           {sync.tables && `${sentenceGap()}${t("shell.note.untilThen")}`}
           {sync.tables && notHere > 0 && `${sentenceGap()}${t("shell.note.tracksNotHere", { count: notHere })}`}
           {sync.mode !== "standard" && sync.error && ` ${sync.error}`}
+        </NoteBar>
+      )}
+      {sync?.state === "full" && (
+        <NoteBar
+          icon={drive ? "cloud-alert" : "folder-x"}
+          actions={
+            <>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => void app.sync?.run()}>
+                {t("shell.note.tryAgain")}
+              </button>
+              {manageStorage}
+            </>
+          }
+        >
+          {t("shell.note.full", { place: sync.place, count: sync.waiting })}
+        </NoteBar>
+      )}
+      {sync && free !== null && free < LOW_SPACE && !lowSeen && sync.state !== "full" && (
+        <NoteBar
+          icon="hard-drive"
+          actions={
+            <>
+              {manageStorage}
+              <button
+                type="button"
+                className="btn btn--ghost btn--small"
+                onClick={() => {
+                  setLocalValue(LOW_SPACE_SEEN, "1");
+                  setLowSeen(true);
+                }}
+              >
+                {t("shell.note.gotIt")}
+              </button>
+            </>
+          }
+        >
+          {t("shell.note.lowSpace", { place: sync.place, size: t("format.measure.mb", { n: nf.format(Math.floor(free / 1_000_000)) }) })}
         </NoteBar>
       )}
       {sync?.state === "update" && (
@@ -416,6 +481,17 @@ export function Shell() {
           />
         </div>
       </footer>
+      {fullOpen && sync && (
+        <FullStorageDialog
+          place={sync.place}
+          drive={drive}
+          tryAgain={async () => {
+            await app.sync?.run();
+            return app.sync?.info.state === "full";
+          }}
+          onClose={() => setFullOpen(false)}
+        />
+      )}
       <Overlays />
     </>
   );

@@ -88,6 +88,7 @@ interface FileAdapter {                                         // used by file 
   read(path: string): Promise<{ data: Uint8Array; version: string } | null>;
   write(path: string, data: Uint8Array): Promise<{ version: string }>;  // throws StorageFull when there is no space
   remove(path: string): Promise<void>;
+  freeSpace?(): Promise<number | null>;                         // bytes left, where the storage can say (Google Drive)
 }
 ```
 
@@ -95,7 +96,7 @@ interface FileAdapter {                                         // used by file 
 - Server backends implement them with SQL: `pull` selects rows with `updated_at` after the cursor; `push` uses conditional writes (`UPDATE … WHERE id = ? AND rev = ?`) so the database itself detects conflicts.
 - File areas (`inbox`, `checks`, `attachments`) are folders in file backends (built) and would be a files table (or the provider's file storage) in server backends, so the CLI's inbox and the agent check hand-off work the same on every backend.
 - Validation runs on both sides of every backend: rows that do not match the schema are rejected, never stored.
-- A full storage (Proposed, [25](25-photos.md), "Full storage"): every backend reports a write refused for lack of space as one error, `storage_full` (Google Drive's 403 `storageQuotaExceeded`, a local directory's full disk), so the app opens one dialog and sync waits, whatever the backend. Photos add a `photos` file area.
+- A full storage (built, [25](25-photos.md), "Full storage"): every adapter reports a write refused for lack of space as one error, `StorageFull` (`packages/storage/src/errors.ts`: Google Drive's 403 `storageQuotaExceeded`, a local directory's full disk), so the app opens one dialog and sync waits, whatever the backend. Photos will add a `photos` file area.
 
 ## Sync algorithm
 

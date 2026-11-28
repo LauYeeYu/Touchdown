@@ -16,7 +16,7 @@ The order put the riskiest part first: the data model and identity rules were te
 | 7 Depth and friends | Built |
 | 8 Standard mode and sharing | Built, with a few Settings lines left |
 | 9 The command line on a par with the web app | Built |
-| 10 Photos | Not started |
+| 10 Photos | Under way: a full storage is handled |
 | 11 Planned flights | Built |
 | 12 Stamps | Built |
 
@@ -115,7 +115,7 @@ Built outside the phases: the aircraft types pages ([31](31-ui.md), "Aircraft ty
   - A link sends only the photos of the records it shows, and a file not named by its content gets the same "not found" as a guessed one (tests over every kind).
   - No copy carries the location or camera data, and no photo reaches the agent unless the user allowed it (tests).
   - Backups and daily copies hold the photos' rows, not their files.
-- Status: not started.
+- Status: under way. Step 1 of [25](25-photos.md)'s build order is built: a full storage reported for every write, Google Drive's or a local directory's, with the dialog and the warning ([25](25-photos.md), "Full storage").
 
 ## Phase 11: Planned flights
 

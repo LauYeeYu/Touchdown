@@ -10,6 +10,8 @@ export class MemoryFolder implements FileAdapter {
   pause: () => Promise<void> = async () => {};
   /** While true, every write is refused as a full storage would refuse it. */
   full = false;
+  /** What `freeSpace` answers: bytes left, or null for no limit. */
+  free: number | null = null;
 
   async list(dir: string): Promise<FileInfo[]> {
     await this.pause();
@@ -39,5 +41,9 @@ export class MemoryFolder implements FileAdapter {
   async remove(path: string) {
     await this.pause();
     this.files.delete(path);
+  }
+
+  async freeSpace() {
+    return this.free;
   }
 }

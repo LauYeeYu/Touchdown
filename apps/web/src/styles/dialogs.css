@@ -694,6 +694,11 @@
   height: 15px;
 }
 
+/* A full storage (components/FullStorageDialog.tsx): a confirmation's width, its paragraphs apart. */
+.storage-dialog {
+  width: min(28rem, calc(100vw - 32px));
+}
+
 /* A confirmation (components/ConfirmDialog.tsx): the Share dialog's card, narrower, with a picture of what changes
    (a stamp in People) to the left of the question and what it does. On a phone the picture stays beside them. */
 .confirm-dialog {

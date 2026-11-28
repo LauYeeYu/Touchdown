@@ -34,6 +34,7 @@
   "sync.waiting": "{count, plural, one {#\u00a0change} other {#\u00a0changes}} not synced yet.",
   "sync.failed": "Could not sync with {place}: {problem}. Your changes are kept in this browser and sent once it works.",
   "sync.offline": "No connection to {place}. {count, plural, =0 {Your changes are kept in this browser and sent when the connection returns.} one {#\u00a0change is kept in this browser and sent when the connection returns.} other {#\u00a0changes are kept in this browser and sent when the connection returns.}}",
+  "sync.full": "{place} is full. {count, plural, =0 {Your changes are kept in this browser and sent once there is space.} one {#\u00a0change is kept in this browser and sent once there is space.} other {#\u00a0changes are kept in this browser and sent once there is space.}}",
   "sync.update": "A newer version of Touchdown has changed your log in {place}. Reload the page to update the app. Your changes are kept in this browser and sent after the reload.",
   "sync.problems.title": "Left alone because they could not be read:",
   "sync.problems.more": "{count, plural, other {and # more}}",

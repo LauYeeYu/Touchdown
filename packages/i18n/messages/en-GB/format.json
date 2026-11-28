@@ -14,6 +14,7 @@
   "momentShort": "{day}, {time}",
   "nameWithCode": "{name}\u00a0({code})",
   "measure.m": "{n}\u00a0m",
+  "measure.mb": "{n}\u00a0MB",
   "measure.t": "{n}\u00a0t",
   "measure.kg": "{n}\u00a0kg",
   "measure.kt": "{n}\u00a0kt",

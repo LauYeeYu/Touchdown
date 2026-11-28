@@ -226,6 +226,12 @@ function WhereTheLogLives({ app }: { app: AppData }) {
               <span>{t("settings.sync.offline", { place: sync.place, count: sync.waiting })}</span>
             </p>
           )}
+          {sync.state === "full" && (
+            <p className="status-line status-line--error">
+              <Icon name={sync.adapter === "gdrive" ? "cloud-alert" : "folder-x"} />
+              <span>{t("settings.sync.full", { place: sync.place, count: sync.waiting })}</span>
+            </p>
+          )}
           {sync.state === "update" && (
             <p className="status-line status-line--error">
               <Icon name="rotate-cw" />

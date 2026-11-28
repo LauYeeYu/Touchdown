@@ -44,6 +44,8 @@ export class FakeDrive {
   readonly account = "pilot@example.com";
   /** While true, uploads are refused as a full Drive refuses them. */
   full = false;
+  /** The account's storage, as `about` reports it: no limit until a test gives one. */
+  quota: { limit?: string; usage: string } = { usage: "0" };
   private ids = 0;
   private clock = Date.parse("2026-01-01T00:00:00Z");
   private sessions = new Map<string, { id: string | null; meta: Partial<FakeFile> }>();
@@ -69,7 +71,7 @@ export class FakeDrive {
     const type = url.searchParams.get("uploadType");
     if (this.full && (url.host === "upload.fake" || type)) return error(403, "storageQuotaExceeded", "The user's Drive storage quota has been exceeded.");
     if (url.host === "upload.fake") return this.finishUpload(path, bytes(init.body));
-    if (method === "GET" && path === "/drive/v3/about") return json({ user: { emailAddress: this.account } });
+    if (method === "GET" && path === "/drive/v3/about") return json({ user: { emailAddress: this.account }, storageQuota: this.quota });
     if (method === "GET" && path === "/drive/v3/files") return this.list(url.searchParams.get("q") ?? "");
     if (method === "GET" && fileId) {
       const f = this.live(fileId);

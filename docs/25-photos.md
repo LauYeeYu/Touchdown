@@ -79,12 +79,13 @@ Proposed:
 
 ## Full storage
 
-Decided: a dialog warns the user. The rest is Proposed.
-- **Every write.** Tables, tracks, daily copies, inbox files and photos. A full Google Drive stops sync for everyone who uses one, not only users with photos, so this comes first.
-- **One error for every backend.** Each backend reports a full storage the same way (a `storage_full` error in the backend interface): Google Drive answers 403 with `storageQuotaExceeded`, and a local directory reports that the disk is full.
-- **The dialog.** It opens once, at the first write refused. It says the storage is full, that the edits are kept in this browser and sent once there is space, and how to make space (a link to the account's storage page). **Try again** syncs again. Until then sync waits, and the sync status says the storage is full.
-- **Before it is full.** The app asks the storage for its free space when it opens (Drive's `about` request, `storageQuota`, which it already sends for the account's address), and warns once when less than 500 MB is left.
-- **The CLI.** `touchdown photos` adds up the files it is about to upload and stops before uploading any when they would not fit, saying how much space they need. Every other command reports a refused write with the same words as the dialog.
+Decided, built (step 1 of the [Build order](#build-order)), but for `touchdown photos`, which waits for photos:
+- **Every write.** Tables, tracks, inbox files, the files kept with imports and daily copies, and photos once they are built. A full Google Drive stops sync for everyone who uses one, not only users with photos, so this came first.
+- **One error for every backend.** Each file adapter reports a full storage the same way, `StorageFull` (`packages/storage/src/errors.ts`): Google Drive answers 403 with `storageQuotaExceeded`, the browser's local directory throws `QuotaExceededError`, and the CLI's gets `ENOSPC` or `EDQUOT`. A refused write leaves the file as it was. A new file the browser made empty before the refusal is removed again, as an empty `manifest.json` would stop the log from opening.
+- **The dialog** (`FullStorageDialog`). It opens once, at the first write refused, and again only after a sync has gone through. It says the storage is full, that the changes are kept in this browser and sent once there is space, and how to make space: for Google Drive, that Gmail and Google Photos share the space, with Manage storage (Google One's storage page); for a directory, the disk that holds it. **Try again** syncs again, and the dialog says so when the storage is still full. **Not now** closes it.
+- **Until there is space** the masthead says "Storage full" and a bar under it says the storage is full, with Try again. Sync tries again on Try again, every few minutes and when the tab comes back into view (after making space in another tab), not after each edit.
+- **Before it is full.** When sync starts, the app asks the storage for its free space (Drive's `about` request, `storageQuota`). Below 500 MB, a bar says how much is left, once: its Got it is kept in this browser, and the bar comes again only after the storage was seen with more. A local directory cannot say in a browser, so it has no warning.
+- **The CLI.** `touchdown photos` will add up the files it is about to upload and stop before uploading any when they would not fit, saying how much space they need. Every other command reports a refused write as the storage's own words: "The storage is full, so Touchdown could not write to it. Make space in it, then try again." What `touchdown review` could not write waits on the computer for its next run, as after any refused write.
 - **Daily copies.** A copy refused for space is skipped and tried at the next sync, as a copy left for later is.
 - **Share links** only read, so a full storage does not stop them.
 
@@ -119,7 +120,7 @@ Proposed, for `PRIVACY.md` once built: the photos are in the user's storage. Tou
 ## Build order
 
 Proposed:
-1. Full storage: the error, the dialog and the warning (needed without photos too).
+1. Full storage: the error, the dialog and the warning (needed without photos too). Built.
 2. The `photos` table, the `photos/` area, and viewing in the app.
 3. `touchdown photos DIR`, with every photo placed by hand at the review.
 4. The agent reading registrations, the main way photos are matched.

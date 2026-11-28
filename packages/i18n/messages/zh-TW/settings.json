@@ -34,6 +34,7 @@
   "sync.waiting": "還有{count, plural, other {#項變更}}尚未同步。",
   "sync.failed": "無法與{place}同步：{problem}。變更會保留在此瀏覽器中，恢復同步後再送出。",
   "sync.offline": "無法連線到{place}。{count, plural, =0 {變更會保留在此瀏覽器中，恢復連線後再送出。} other {#項變更會保留在此瀏覽器中，恢復連線後再送出。}}",
+  "sync.full": "{place}已滿。{count, plural, =0 {變更會保留在此瀏覽器中，有空間後再送出。} other {#項變更會保留在此瀏覽器中，有空間後再送出。}}",
   "sync.update": "新版Touchdown已變更{place}中的日誌。請重新載入頁面以更新應用程式。變更會保留在此瀏覽器中，重新載入後再送出。",
   "sync.problems.title": "以下檔案無法讀取，已略過：",
   "sync.problems.more": "{count, plural, other {還有#個}}",

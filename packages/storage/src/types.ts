@@ -24,6 +24,8 @@ export interface FileAdapter {
   /** Throws `StorageFull` when the storage has no space left for it. */
   write(path: string, data: Uint8Array): Promise<{ version: string }>;
   remove(path: string): Promise<void>;
+  /** Bytes the storage has left, or null when it has no limit. Left out where the storage cannot say. */
+  freeSpace?(): Promise<number | null>;
 }
 
 /** The version of each data file at the last pull, by path. */
