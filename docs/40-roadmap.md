@@ -115,7 +115,7 @@ Built outside the phases: the aircraft types pages ([31](31-ui.md), "Aircraft ty
   - A link sends only the photos of the records it shows, and a file not named by its content gets the same "not found" as a guessed one (tests over every kind).
   - No copy carries the location or camera data, and no photo reaches the agent unless the user allowed it (tests).
   - Backups and daily copies hold the photos' rows, not their files.
-- Status: not started. Open checks: Q-AGENT-IMAGES, Q-PHOTO-SOURCEID.
+- Status: not started.
 
 ## Phase 11: Planned flights
 

@@ -10,6 +10,7 @@ The user's own photos of the aircraft they saw and flew on, kept as copies besid
 | Optional. A user who adds no photos sees no change: no `photos/` directory, no extra requests, and the pictures from planespotters.net as today. | Decided |
 | Photos come in as an export from the user's photo software (Lightroom first) into a directory on their computer, which the CLI reads (`touchdown photos`). Each photo is matched to its sighting or flight. | Decided |
 | The photos are assumed not to name their aircraft (Q-PHOTO-REG): the agent reads the registration off each photo. | Decided |
+| An edited photo is not recognised as the one it replaces: the user points to the edited photo, and it replaces the photo it names (Q-PHOTO-SOURCEID). | Decided |
 | Backups (daily copies and downloaded backups) hold the photos' rows, not their files. | Decided |
 | A full storage stops writing and says so in a dialog, for every write, not only photos. | Decided |
 | Cloudflare's Workers Paid plan ($5 a month) is accepted if share links' photos need it. | Decided |
@@ -26,17 +27,17 @@ Proposed. A saved export preset in the photo software, used for every session. F
 |---|---|---|
 | Format | JPEG | Read everywhere. Touchdown makes its own copies from it. |
 | Size | Long edge 2,048 px or more | Touchdown's display copy is 2,048 px. |
-| Metadata | All, except location ("Remove Location Info") | The capture time places the photo, and the photo software's id recognises it when exported again. The location is not needed. |
-| Directory | One directory for every export | `touchdown photos` reads it again and only adds what is new or re-edited. |
+| Metadata | All, except location ("Remove Location Info") | The capture time places the photo. The location is not needed. |
+| Directory | One directory for every export | `touchdown photos` reads it again and adds only what is new. |
 
-Lightroom Classic's Hard Drive publish service keeps such a directory up to date: new photos are exported, and an edited photo is exported again. Other photo software works the same way if it writes JPEGs with their capture time.
+Lightroom Classic's Hard Drive publish service keeps such a directory up to date as new photos are exported. An edited photo is pointed to by the user (step 2 below). Other photo software works the same way if it writes JPEGs with their capture time.
 
 ### `touchdown photos DIR`
 
 Proposed. For each image in the directory:
 
-1. **Read.** The capture time (`DateTimeOriginal` with `OffsetTimeOriginal`; without an offset, the clock time at the airport of that day's records, as [21](21-import-export.md), "Building date-times from clock times"), the photo software's id for the photo (Lightroom's `xmpMM:OriginalDocumentID`, the same in every export of one photo), keywords, title, caption and file name.
-2. **Known already.** A photo whose id the log has is skipped, or its files replaced when it was edited since. Re-exporting never adds a second copy.
+1. **Read.** The capture time (`DateTimeOriginal` with `OffsetTimeOriginal`; without an offset, the clock time at the airport of that day's records, as [21](21-import-export.md), "Building date-times from clock times"), keywords, title, caption and file name.
+2. **Known already.** A photo whose display copy the log has already is skipped: the copies carry no metadata, so the same picture exported again makes the same copy, with the same name ([Storage](#storage), "Names"). Re-exporting never adds a second copy. An edited photo is a new picture to Touchdown, which does not recognise it by itself: the user points to the edited photo and the photo it replaces, whose files it then replaces, keeping that photo's record and place (Decided). How the user points to them is settled when this is built.
 3. **The registration.** Photos are assumed not to name their aircraft (Q-PHOTO-REG), so the agent reads the registration off each photo, when the user allows that ([The agent](#the-agent)). A keyword, title, caption or file name that does read as a registration (core's registration rules) is used first, and saves that photo a call. Without the agent, the photo has none until the review.
 4. **Matching.** To the sighting of that registration on the photo's day. Else to a flight on that aircraft that day. Else a new sighting is proposed, at the airport of that day's other sightings, filled from the lookups as `touchdown spot` fills one ([21](21-import-export.md), "Source: spotting session").
 5. **Checks.** The lookups' type for the registration against what the agent saw (a registration read as an A350's on a photo of a 737 is a finding), and a photo whose capture time falls on another day than its record's.
@@ -54,14 +55,14 @@ Decided: the agent is the main way a photo's registration is found, since the ph
 - **Bursts.** Photos taken less than 30 seconds apart are one burst, most often of one aircraft, and go in one call. The registration is often readable on only some of a burst's frames, so the agent answers each photo and may give a frame the registration it read on another, saying so.
 - **Sent.** A copy 1,024 px on the long edge with every metadata field removed, and for each photo its capture time, its day's airport and the registrations of that day's records. Nothing else: no file names, no notes, no other records.
 - **Answer.** For each photo, the registration read (or none), how sure it is, and the aircraft family it sees. These are suggestions, checked against the lookups and the day's records, and confirmed at the review.
-- **Locked down** as the check is: no tools, the image passed in the request (Q-AGENT-IMAGES).
+- **Locked down** as the check is: no tools, the image passed in the request. Both agents can see an image given this way (Q-AGENT-IMAGES).
 - **Cost.** Every photo goes to the agent. One call for up to 10 photos, so a day of 200 photos is about 20 calls, which the CLI says before it starts, as `spot` does for a spreadsheet.
 
 ## In the log
 
 Proposed. A child table, synced like the others:
 
-**photos**: `ownerTable` (enum `flights`, `sightings`), `ownerId` (id), `file` (text; its name in `photos/`, ending in a hash of its content), `width`, `height` (integer; the display copy), `bytes` (integer; both files together), `takenAt` (datetime), `sourceId` (text; the photo software's id), `preview` (text; a blurred preview of a few hundred bytes, as a data URL), `position` (integer; the order on its record, the first being the record's picture).
+**photos**: `ownerTable` (enum `flights`, `sightings`), `ownerId` (id), `file` (text; its name in `photos/`, ending in a hash of its content), `width`, `height` (integer; the display copy), `bytes` (integer; both files together), `takenAt` (datetime), `preview` (text; a blurred preview of a few hundred bytes, as a data URL), `position` (integer; the order on its record, the first being the record's picture).
 
 - The next schema version adds it ([12](12-storage-and-sync.md), "Rules for a new version").
 - `sightings.photoCount` stays as it is: how many photos the user took, as their sheets record it, not how many are stored.
@@ -108,7 +109,7 @@ Proposed:
 Decided: backups hold the photos' rows, not their files.
 - **Why.** A log of 1,000 photos would make each copy about 0.5 GB instead of under 1 MB, and daily copies are kept for years.
 - **What is in a backup.** The `photos` rows, like every table. Restored, they show their photos while the files are still in the storage, and a grey frame where a file is gone.
-- **The photos' own backup** is the originals in the photo software. When files are lost, or a backup is restored into new storage, `touchdown photos DIR` over a fresh export puts the files back for the rows it recognises by `sourceId`, with no new rows.
+- **The photos' own backup** is the originals in the photo software. When files are lost, or a backup is restored into new storage, `touchdown photos DIR` over a fresh export puts the files back for the rows it recognises by their files' names (step 2 of `touchdown photos DIR`), with no new rows.
 - **A copy of the photos.** `touchdown backup --photos` (Proposed) writes the photo files to a separate zip, for whoever wants one.
 
 ## Privacy

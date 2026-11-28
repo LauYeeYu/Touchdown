@@ -228,7 +228,7 @@ One sighting = one aircraft seen at one place on one day. Several photos of it i
 
 **photo_links**: `ownerTable` (enum `flights`, `sightings`), `ownerId` (id), `url` (text; e.g. a Google Photos share link), `label` (text). A link to a photo kept elsewhere.
 
-**photos** (Proposed, [25](25-photos.md), "In the log"): copies of the user's own photos, kept in the storage's `photos/` directory. `ownerTable` (enum `flights`, `sightings`), `ownerId` (id), `file` (text), `width`, `height`, `bytes` (integer), `takenAt` (datetime), `sourceId` (text; the photo software's id), `preview` (text; a blurred preview as a data URL), `position` (integer).
+**photos** (Proposed, [25](25-photos.md), "In the log"): copies of the user's own photos, kept in the storage's `photos/` directory. `ownerTable` (enum `flights`, `sightings`), `ownerId` (id), `file` (text), `width`, `height`, `bytes` (integer), `takenAt` (datetime), `preview` (text; a blurred preview as a data URL), `position` (integer).
 
 ### airframes
 
